@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
-
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import java.util.Objects;
 
 public abstract class SingleIdentifier implements AbstractIdentifier {
 
@@ -54,13 +54,25 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
   }
 
   @Override
-  public boolean isPointer() {
-    return (LocalTransferRelation.findDereference(type) > 0);
+  public boolean isDereferenced() {
+    return dereference > 0;
   }
 
   @Override
-  public boolean isDereferenced() {
-    return dereference > 0;
+  public boolean isPointer() {
+    return (type instanceof CPointerType || type instanceof CArrayType)
+        && (dereference == 0 || dereference < getRefNum());
+  }
+
+  private int getRefNum() {
+    String typeStr = type.toString();
+    int result = 0;
+    for (char ch : typeStr.toCharArray()) {
+      if (ch == '*') {
+        ++result;
+      }
+    }
+    return result;
   }
 
   @Override

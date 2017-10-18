@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentifier, NoException> {
@@ -93,7 +94,8 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     resultId1 = expression.getOperand1().accept(this);
     dereference = 0;
     resultId2 = expression.getOperand2().accept(this);
-    result = new BinaryIdentifier(resultId1, resultId2, oldDereference);
+    // to get rid of the offset in 'a + 1' and 'a[1]' expressions
+    result = getMainPart(new BinaryIdentifier(resultId1, resultId2, oldDereference));
     dereference = oldDereference;
     return result;
   }
@@ -164,9 +166,9 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     } else if (id1 instanceof SingleIdentifier && id2 instanceof SingleIdentifier) {
       SingleIdentifier s1 = (SingleIdentifier) id1;
       SingleIdentifier s2 = (SingleIdentifier) id2;
-      if (s1.isPointer() && !s2.isPointer()) {
+      if (s1.isDereferenced() && !s2.isDereferenced()) {
         main = s1;
-      } else if (s1.isPointer() && !s2.isPointer()) {
+      } else if (s1.isDereferenced() && !s2.isDereferenced()) {
         main = s2;
       } else if (s1.getType().getClass() == CSimpleType.class && s2.getType().getClass() != CSimpleType.class) {
         main = s2;
@@ -189,5 +191,10 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   @Override
   protected AbstractIdentifier visitDefault(CExpression pExp) {
     return new ConstantIdentifier(pExp.toASTString(), dereference);
+  }
+
+  public static MemoryLocation idToMemLoc(AbstractIdentifier id) {
+
+    return null;
   }
 }

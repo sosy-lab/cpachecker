@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
@@ -46,7 +47,7 @@ import com.google.common.collect.Iterables;
  * Instances of this class are pointer states that are used as abstract elements
  * in the pointer CPA.
  */
-public class PointerState implements AbstractState {
+public class PointerState implements AbstractState, ForgetfulState<PointerInformation> {
 
   /**
    * The initial empty pointer state.
@@ -56,7 +57,7 @@ public class PointerState implements AbstractState {
   /**
    * The points-to map of the state.
    */
-  private final PersistentSortedMap<MemoryLocation, LocationSet> pointsToMap;
+  private PersistentSortedMap<MemoryLocation, LocationSet> pointsToMap;
 
   /**
    * Creates a new pointer state with an empty initial points-to map.
@@ -249,4 +250,29 @@ public class PointerState implements AbstractState {
     return pointsToMap.toString();
   }
 
+  public static PointerState copyOf(PointerState pState) {
+    return new PointerState(pState.pointsToMap);
+  }
+
+  @Override
+  public PointerInformation forget(MemoryLocation pPtr) {
+    pointsToMap = pointsToMap.removeAndCopy(pPtr);
+    // TODO: if it is needed - PointerInformation has empty implementation
+    return null;
+  }
+
+  @Override
+  public void remember(MemoryLocation location, PointerInformation forgottenInformation) {
+    // TODO: if it is needed - PointerInformation has empty implementation
+  }
+
+  @Override
+  public Set<MemoryLocation> getTrackedMemoryLocations() {
+    return pointsToMap.keySet();
+  }
+
+  @Override
+  public int getSize() {
+    return pointsToMap.size();
+  }
 }

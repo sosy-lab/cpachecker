@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;

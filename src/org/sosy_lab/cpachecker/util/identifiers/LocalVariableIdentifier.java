@@ -109,4 +109,5 @@ public class LocalVariableIdentifier extends VariableIdentifier {
       return 1;
     }
   }
+
 }

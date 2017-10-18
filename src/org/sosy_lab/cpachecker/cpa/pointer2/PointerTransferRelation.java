@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -89,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -373,9 +375,24 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     }
     CVariableDeclaration declaration = (CVariableDeclaration) pCfaEdge.getDeclaration();
     CInitializer initializer = declaration.getInitializer();
+    MemoryLocation location = toLocation(declaration);
+    CType declarationType = declaration.getType();
     if (initializer != null) {
-      MemoryLocation location = toLocation(declaration);
-      return handleWithInitializer(pState, location, declaration.getType(), initializer);
+      return handleWithInitializer(pState, location, declarationType, initializer);
+    } else if (declarationType instanceof CPointerType) {
+      // creating a fake pointer to init current pointer
+      FileLocation fLoc = declaration.getFileLocation();
+      String ptrName = "##" + declaration.getQualifiedName().replace(':','#');
+      CVariableDeclaration varDec = new CVariableDeclaration(fLoc,true,
+                                              CStorageClass.AUTO, CPointerType.POINTER_TO_VOID,
+                                              ptrName, ptrName, ptrName, null);
+      CIdExpression idExpression = new CIdExpression(fLoc, CPointerType.POINTER_TO_VOID,
+                                              declaration.getName(), varDec);
+      CUnaryExpression uExpr = new CUnaryExpression(fLoc, declarationType,
+                                              idExpression, UnaryOperator.AMPER);
+      initializer = new CInitializerExpression(declaration.getFileLocation(), uExpr);
+
+      return handleWithInitializer(pState, location, declarationType, initializer);
     }
     return pState;
   }
