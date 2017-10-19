@@ -512,6 +512,9 @@ cfa.simplifyConstExpressions = true
 # rightHandSide
 cfa.simplifyPointerExpressions = false
 
+# replace CFA edges with starting lines listed in this file with BlankEdges
+cfa.slice = no default value
+
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
 # program counter.

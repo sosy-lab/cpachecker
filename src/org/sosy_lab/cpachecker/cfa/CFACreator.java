@@ -29,14 +29,20 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -44,6 +50,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -61,20 +69,25 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
@@ -90,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -152,6 +166,11 @@ public class CFACreator {
   @Option(secure=true, name="cfa.export",
       description="export CFA as .dot file")
   private boolean exportCfa = true;
+
+  @Option(secure=true, name="cfa.slice",
+      description="replace CFA edges with starting lines listed in this file with BlankEdges")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path slice = null;
 
   @Option(secure=true, name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
@@ -591,7 +610,138 @@ private boolean classifyNodes = false;
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
 
+    if (slice != null) {
+      sliceCFA(cfa, slice);
+    }
+
     return cfa;
+  }
+
+  private void sliceCFA(final MutableCFA cfa, final @Nonnull Path slice) {
+    final Multimap<Integer, CFAEdge> edges = LinkedListMultimap.create();
+    final Map<Integer, CFANode> nodes = new HashMap<>();
+    cfa.getAllNodes().forEach(
+        node -> {
+          final int n = node.getNumLeavingEdges();
+          for (int i = 0; i < n; i++) {
+            final CFAEdge edge = node.getLeavingEdge(i);
+            switch(edge.getEdgeType()) {
+              case CallToReturnEdge:
+              case FunctionCallEdge:
+              case FunctionReturnEdge:
+                throw new AssertionError("Call and return edges should not be present yet");
+              case BlankEdge:
+              case AssumeEdge:
+              case DeclarationEdge:
+              case ReturnStatementEdge:
+              case StatementEdge:
+              default:
+                nodes.put(edge.getLineNumber(), node);
+                edges.put(edge.getLineNumber(), edge);
+                break;
+            }
+          }
+        });
+    try {
+      Files.lines(slice).forEach(
+          numbers -> {
+            final int pos = numbers.indexOf(',');
+            final int n = Integer.parseInt(numbers.substring(0, pos));
+            final Optional<Integer> m =
+                pos == numbers.length() - 1 ?
+                Optional.empty() :
+                Optional.of(Integer.parseInt(numbers.substring(pos + 1, numbers.length())));
+            final Collection<CFAEdge> es = edges.get(n);
+            es.forEach(
+                edge -> {
+                  final CFAEdge e;
+                  final Optional<CFAEdge> dummy;
+                  final CIntegerLiteralExpression constZero =
+                      new CIntegerLiteralExpression(edge.getFileLocation(),
+                                                    CNumericTypes.INT,
+                                                    BigInteger.ZERO);
+                  final CBinaryExpression trueExpr =
+                      new CBinaryExpression(
+                          edge.getFileLocation(),
+                          CNumericTypes.BOOL,
+                          CNumericTypes.INT,
+                          constZero,
+                          constZero,
+                          BinaryOperator.EQUALS);
+                  if (edge.getEdgeType() != CFAEdgeType.AssumeEdge) {
+                    if (m.isPresent()
+                        && nodes.containsKey(m.get())
+                        && !nodes.get(m.get()).equals(edge.getSuccessor())) {
+                      e = new CAssumeEdge(
+                          edge.getRawStatement(),
+                          edge.getFileLocation(),
+                          edge.getPredecessor(),
+                          nodes.get(m.get()),
+                          trueExpr,
+                          true);
+                      dummy = Optional.of(
+                          new CAssumeEdge(
+                              edge.getRawStatement(),
+                              edge.getFileLocation(),
+                              edge.getPredecessor(),
+                              edge.getSuccessor(),
+                              trueExpr,
+                              false));
+                    } else {
+                      e = new BlankEdge(edge.getRawStatement(),
+                          edge.getFileLocation(),
+                          edge.getPredecessor(),
+                          edge.getSuccessor(),
+                          BlankEdge.REPLACEMENT_LABEL);
+                      dummy = Optional.empty();
+                    }
+                  } else {
+                    final AssumeEdge assumeEdge = (AssumeEdge) edge;
+                    if (assumeEdge.getTruthAssumption()) {
+                      e = new CAssumeEdge(
+                          assumeEdge.getRawStatement(),
+                          assumeEdge.getFileLocation(),
+                          assumeEdge.getPredecessor(),
+                          assumeEdge.getSuccessor(),
+                          trueExpr,
+                          true);
+                    } else {
+                      final CIntegerLiteralExpression constOne =
+                          new CIntegerLiteralExpression(assumeEdge.getFileLocation(),
+                                                        CNumericTypes.INT,
+                                                        BigInteger.ONE);
+                      final CBinaryExpression falseExpr =
+                          new CBinaryExpression(
+                              assumeEdge.getFileLocation(),
+                              CNumericTypes.BOOL,
+                              CNumericTypes.INT,
+                              constZero,
+                              constOne,
+                              BinaryOperator.EQUALS);
+                      e = new CAssumeEdge(
+                            assumeEdge.getRawStatement(),
+                            assumeEdge.getFileLocation(),
+                            assumeEdge.getPredecessor(),
+                            assumeEdge.getSuccessor(),
+                            falseExpr,
+                            false);
+                    }
+                    dummy = Optional.empty();
+                  }
+                  CFACreationUtils.removeEdgeFromNodes(edge);
+                  CFACreationUtils.addEdgeUnconditionallyToCFA(e);
+                  dummy.ifPresent(
+                      d -> {
+                        if (!d.getPredecessor().hasEdgeTo(d.getSuccessor())) {
+                          CFACreationUtils.addEdgeUnconditionallyToCFA(d);
+                        }
+                  });
+            });
+            edges.removeAll(n);
+      });
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Couldn't open slice file ", slice);
+    }
   }
 
   /** Transform dummy loops into edges to termination nodes */
