@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,27 +30,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
-/**
- * CPA for detecting overflows in C programs.
- */
-public class OverflowCPA implements ConfigurableProgramAnalysis {
+/** CPA for detecting overflows in C programs. */
+public class OverflowCPA extends AbstractCPA {
 
   private final CBinaryExpressionBuilder expressionBuilder;
-  private final AbstractDomain domain;
   private final ArithmeticOverflowAssumptionBuilder noOverflowAssumptionBuilder;
 
   public static CPAFactory factory() {
@@ -59,15 +50,10 @@ public class OverflowCPA implements ConfigurableProgramAnalysis {
 
   private OverflowCPA(CFA pCfa, LogManager pLogger, Configuration pConfiguration)
       throws InvalidConfigurationException {
+    super("sep", "sep", null);
     expressionBuilder = new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
-    domain = new FlatLatticeNoTopDomain();
     noOverflowAssumptionBuilder =
         new ArithmeticOverflowAssumptionBuilder(pCfa, pLogger, pConfiguration);
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return domain;
   }
 
   @Override
@@ -75,15 +61,6 @@ public class OverflowCPA implements ConfigurableProgramAnalysis {
     return new OverflowTransferRelation(noOverflowAssumptionBuilder, expressionBuilder);
   }
 
-  @Override
-  public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return new StopSepOperator(domain);
-  }
 
   @Override
   public AbstractState getInitialState(
