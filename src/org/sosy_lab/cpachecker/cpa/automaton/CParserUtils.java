@@ -101,7 +101,7 @@ class CParserUtils {
     return parse(addFunctionDeclaration(pSource), parser, scope);
   }
 
-  private static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
+  static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
   }
