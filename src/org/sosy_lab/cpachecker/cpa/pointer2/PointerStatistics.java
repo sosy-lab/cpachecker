@@ -35,9 +35,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -66,6 +63,8 @@ public class PointerStatistics implements Statistics {
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     AbstractState state = reached.getLastState();
     PointerState ptState = AbstractStates.extractStateByType(state, PointerState.class);
+    boolean err = false;
+
     if (ptState != null) {
       Map<MemoryLocation, LocationSet> pointsTo = ptState.getPointsToMap();
 
@@ -78,8 +77,8 @@ public class PointerStatistics implements Statistics {
             Gson builder = new Gson();
             java.lang.reflect.Type type = new TypeToken<Map<MemoryLocation, LocationSet>>(){}.getType();
             builder.toJson(pointsTo, type, writer);
-            writer.close();
           } catch (IOException pE) {
+            err = true;
           }
         }
 
@@ -90,7 +89,8 @@ public class PointerStatistics implements Statistics {
         }
 
         String stats = "Points-To map size: " + pointsTo.size() + '\n' +
-                        "Points-To map values size: " + values + '\n';
+                        "Points-To map values size: " + values + '\n' +
+                        "IO Errors: " + err + '\n';
 
         out.append(stats);
         out.append('\n');

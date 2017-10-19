@@ -102,7 +102,6 @@ public class RCUSearchStatistics implements Statistics {
         java.lang.reflect.Type type = new TypeToken<Set<MemoryLocation>>() {
         }.getType();
         builder.toJson(rcuAndAliases, type, writer);
-        writer.close();
       } catch (IOException pE) {
         logger.log(Level.WARNING, pE.getMessage());
       }
@@ -157,10 +156,13 @@ public class RCUSearchStatistics implements Statistics {
   }
 
   private Map<MemoryLocation, Set<MemoryLocation>> parseFile(Path input, LogManager logger) {
-    Map<MemoryLocation, Set<MemoryLocation>> result = new HashMap<>();
+    /*Map<MemoryLocation, Set<MemoryLocation>> result = new HashMap<>();
+
     try (Reader reader = Files.newBufferedReader(input, Charset.defaultCharset())) {
       Gson builder = new Gson();
-      Map<String, Map<String, List<Map<String, String>>>> map = builder.fromJson(reader, Map.class);
+      Map<String, Map<String, List<Map<String, String>>>> map = (Map<String, Map<String,
+          List<Map<String, String>>>>) builder.fromJson(reader, Map
+          .class);
       for (String key : map.keySet()) {
         Map<String, List<Map<String, String>>> newMap = map.get(key);
         Set<MemoryLocation> set = new HashSet<>();
@@ -201,5 +203,8 @@ public class RCUSearchStatistics implements Statistics {
       logger.log(Level.WARNING, pE.getMessage());
     }
     return result;
+
+    */
+    return new HashMap<>();
   }
 }
