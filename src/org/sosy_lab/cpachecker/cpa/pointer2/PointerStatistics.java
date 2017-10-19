@@ -63,7 +63,7 @@ public class PointerStatistics implements Statistics {
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     AbstractState state = reached.getLastState();
     PointerState ptState = AbstractStates.extractStateByType(state, PointerState.class);
-    boolean err = false;
+    //boolean err = false;
 
     if (ptState != null) {
       Map<MemoryLocation, LocationSet> pointsTo = ptState.getPointsToMap();
@@ -72,25 +72,27 @@ public class PointerStatistics implements Statistics {
 
         pointsTo = replaceTopsAndBots(pointsTo);
 
-        if (!noOutput) {
-          try (Writer writer = Files.newBufferedWriter(path, Charset.defaultCharset())) {
-            Gson builder = new Gson();
-            java.lang.reflect.Type type = new TypeToken<Map<MemoryLocation, LocationSet>>(){}.getType();
-            builder.toJson(pointsTo, type, writer);
-          } catch (IOException pE) {
-            err = true;
-          }
-        }
-
         int values = 0;
 
         for (MemoryLocation key : pointsTo.keySet()) {
           values += ((ExplicitLocationSet) pointsTo.get(key)).getSize();
         }
 
-        String stats = "Points-To map size: " + pointsTo.size() + '\n' +
-                        "Points-To map values size: " + values + '\n' +
-                        "IO Errors: " + err + '\n';
+        String stats = "Points-To map size: " + pointsTo.size() + '\n';
+        stats += "Points-To map values size: " + values + '\n';
+
+        if (!noOutput) {
+          /*try (Writer writer = Files.newBufferedWriter(path, Charset.defaultCharset())) {
+            Gson builder = new Gson();
+            java.lang.reflect.Type type = new TypeToken<Map<MemoryLocation, LocationSet>>(){}.getType();
+            builder.toJson(pointsTo, type, writer);
+          } catch (IOException pE) {
+            err = true;
+          }*/
+          stats += "Points-To map output is disabled" + '\n';
+        }
+
+        //stats += "IOErrors: " + err + '\n';
 
         out.append(stats);
         out.append('\n');
