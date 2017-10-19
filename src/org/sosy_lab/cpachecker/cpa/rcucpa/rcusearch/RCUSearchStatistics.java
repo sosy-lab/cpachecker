@@ -97,14 +97,14 @@ public class RCUSearchStatistics implements Statistics {
         }
       }
 
-      try (Writer writer = Files.newBufferedWriter(output, Charset.defaultCharset())) {
+      /*try (Writer writer = Files.newBufferedWriter(output, Charset.defaultCharset())) {
         Gson builder = new Gson();
         java.lang.reflect.Type type = new TypeToken<Set<MemoryLocation>>() {
         }.getType();
         builder.toJson(rcuAndAliases, type, writer);
       } catch (IOException pE) {
         logger.log(Level.WARNING, pE.getMessage());
-      }
+      }*/
       logger.log(Level.ALL, "RCU with aliases: " + rcuAndAliases);
     }
 
