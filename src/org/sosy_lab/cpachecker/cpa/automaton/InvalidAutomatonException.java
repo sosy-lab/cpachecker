@@ -28,7 +28,7 @@ class InvalidAutomatonException extends Exception {
   private static final long serialVersionUID = 4881083051895812266L;
 
   public InvalidAutomatonException(String pMsg, Throwable pCause) {
-    super(pMsg, pCause)
+    super(pMsg, pCause);
   }
 
   public InvalidAutomatonException(String pMsg) {
