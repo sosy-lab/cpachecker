@@ -172,6 +172,10 @@ public class CFACreator {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path slice = null;
 
+  @Option(secure=true, name="cfa.slicePostfix",
+      description="obtain slice file name from program name by adding this postfix")
+  private @Nullable String slicePostfix = null;
+
   @Option(secure=true, name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
@@ -528,6 +532,9 @@ private boolean classifyNodes = false;
     }
 
     if (sourceFiles.size() == 1) {
+      if (slicePostfix != null && slice == null) {
+        slice = Paths.get(sourceFiles.get(0).concat(slicePostfix));
+      }
       parseResult = parser.parseFile(sourceFiles.get(0));
     } else {
       // when there is more than one file which should be evaluated, the
