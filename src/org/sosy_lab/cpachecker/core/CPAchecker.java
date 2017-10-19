@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -345,8 +347,12 @@ public class CPAchecker {
         // now everything necessary has been instantiated
 
         if (disableAnalysis) {
+          AlgorithmResult algorithmResult = null;
+          if (algorithm instanceof AlgorithmWithResult) {
+            algorithmResult = ((AlgorithmWithResult) algorithm).getResult();
+          }
           return new CPAcheckerResult(
-              Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats, programNeverTerminates);
+              Result.NOT_YET_STARTED, algorithmResult, violatedPropertyDescription, null, cfa, stats, programNeverTerminates);
         }
 
         // run analysis
@@ -414,7 +420,11 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats, programNeverTerminates);
+    AlgorithmResult algorithmResult = null;
+    if (algorithm instanceof AlgorithmWithResult) {
+      algorithmResult = ((AlgorithmWithResult) algorithm).getResult();
+    }
+    return new CPAcheckerResult(result, algorithmResult, violatedPropertyDescription, reached, cfa, stats, programNeverTerminates);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {

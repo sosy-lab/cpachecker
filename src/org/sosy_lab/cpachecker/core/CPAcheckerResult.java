@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -49,6 +50,8 @@ public class CPAcheckerResult {
 
   private final Result result;
 
+  private final AlgorithmResult algorithmResult;
+
   private final String violatedPropertyDescription;
 
   private final @Nullable ReachedSet reached;
@@ -63,6 +66,7 @@ public class CPAcheckerResult {
 
   CPAcheckerResult(
       Result result,
+      AlgorithmResult algorithmResult,
       String violatedPropertyDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
@@ -70,6 +74,7 @@ public class CPAcheckerResult {
       boolean programNeverTerminates) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
+    this.algorithmResult = algorithmResult;
     this.reached = reached;
     this.cfa = cfa;
     this.stats = stats;
@@ -81,6 +86,13 @@ public class CPAcheckerResult {
    */
   public Result getResult() {
     return result;
+  }
+
+  /**
+   * Return the result of the algorithm.
+   */
+  public AlgorithmResult getAlgorithmResult() {
+    return algorithmResult;
   }
 
   /**

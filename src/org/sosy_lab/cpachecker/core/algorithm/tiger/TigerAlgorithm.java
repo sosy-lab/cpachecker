@@ -74,6 +74,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
@@ -124,7 +127,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm {
+public class TigerAlgorithm implements AlgorithmWithResult {
 
   @Option(
       secure = true,
@@ -268,6 +271,11 @@ public class TigerAlgorithm implements Algorithm {
     for (String variable : outputInterface.split(",")) {
       outputVariables.add(variable.trim());
     }
+  }
+
+  @Override
+  public AlgorithmResult getResult() {
+    return testsuite;
   }
 
   @Override

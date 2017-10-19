@@ -34,11 +34,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 
-public class TestSuite {
+public class TestSuite implements AlgorithmResult {
 
   private Map<TestCase, List<Goal>> mapping;
   private Map<Goal, Region> infeasibleGoals;
