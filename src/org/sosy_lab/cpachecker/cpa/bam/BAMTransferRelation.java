@@ -402,7 +402,10 @@ public class BAMTransferRelation implements TransferRelation {
 
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, innerSubtree);
 
-      if (!needToSkip && AbstractStates.extractStateByType(reducedState, PredicateAbstractState.class).hasDeferedAllocations()) {
+      if (!needToSkip
+          && AbstractStates.extractStateByType(reducedState, PredicateAbstractState.class).hasDeferedAllocations()
+          && innerSubtree.getCallNodes().size() == 1
+          && innerSubtree.getCallNode().getFunctionName().endsWith("alloc")) {
         needToSkip = true;
       }
     }
