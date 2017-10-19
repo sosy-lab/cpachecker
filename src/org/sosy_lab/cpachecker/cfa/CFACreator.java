@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
@@ -649,8 +650,8 @@ private boolean classifyNodes = false;
             }
           }
         });
-    try {
-      Files.lines(slice).forEach(
+    try (final Stream<String> lines = Files.lines(slice)) {
+      lines.forEach(
           numbers -> {
             final int pos = numbers.indexOf(',');
             final int n = Integer.parseInt(numbers.substring(0, pos));
