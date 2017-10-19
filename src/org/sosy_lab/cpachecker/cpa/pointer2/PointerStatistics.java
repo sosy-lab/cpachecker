@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-@Options(prefix = "cpa.pointer2")
 public class PointerStatistics implements Statistics {
 
   private Path path = Paths.get("PointsToMap");
