@@ -91,7 +91,7 @@ public class PointerCPA extends AbstractCPA implements StatisticsProvider,
    */
   public PointerCPA(PointerOptions options) {
     super(options.merge, "SEP", PointerDomain.INSTANCE, PointerTransferRelation.INSTANCE);
-    statistics = new PointerStatistics(options.noOutput);
+    statistics = new PointerStatistics(options.noOutput, options.path);
     path = options.path;
   }
 

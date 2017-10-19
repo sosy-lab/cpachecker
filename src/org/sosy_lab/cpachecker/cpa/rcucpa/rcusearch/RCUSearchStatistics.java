@@ -40,8 +40,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -68,8 +70,9 @@ public class RCUSearchStatistics implements Statistics {
 
   private LogManager logger;
 
-  RCUSearchStatistics(LogManager pLogger) {
+  RCUSearchStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
+    config.inject(this);
   }
 
   @Override

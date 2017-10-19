@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.rcucpa.rcusearch;
 
-import java.nio.file.Path;
 import java.util.Collection;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -43,10 +43,10 @@ public class RCUSearchCPA extends AbstractCPA implements ConfigurableProgramAnal
   private final LogManager logger;
   private final RCUSearchStatistics statistics;
 
-  RCUSearchCPA (LogManager pLogger) {
-    super("JOIN", "SEP", new RCUSearchDomain(), new RCUSearchTransfer(pLogger));
+  RCUSearchCPA (Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    super("JOIN", "SEP", new RCUSearchDomain(), new RCUSearchTransfer(config, pLogger));
     logger = pLogger;
-    statistics = new RCUSearchStatistics(logger);
+    statistics = new RCUSearchStatistics(config, logger);
   }
 
   public static CPAFactory factory() {

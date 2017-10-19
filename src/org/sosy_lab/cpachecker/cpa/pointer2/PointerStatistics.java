@@ -51,20 +51,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.pointer2")
 public class PointerStatistics implements Statistics {
-  @Option(name = "precisionFile", secure = true, description = "name of a file containing "
-      + "information on pointer relations")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path path = Paths.get("PointsToMap");
 
-  @Option(name = "noOutput", secure = true, description = "whether the resulting Points-To map "
-      + "needs to be printed into file")
+  private Path path = Paths.get("PointsToMap");
   private boolean noOutput = true;
 
   private static final MemoryLocation replLocSetTop = MemoryLocation.valueOf("_LOCATION_SET_TOP_");
   private static final MemoryLocation replLocSetBot = MemoryLocation.valueOf("_LOCATION_SET_BOT_");
 
-  PointerStatistics(boolean pNoOutput) {
+  PointerStatistics(boolean pNoOutput, Path pPath) {
     noOutput = pNoOutput;
+    path = pPath;
   }
 
   @Override

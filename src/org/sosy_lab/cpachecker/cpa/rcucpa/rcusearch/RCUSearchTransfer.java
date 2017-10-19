@@ -29,6 +29,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -48,12 +52,22 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+@Options(prefix = "cpa.rcucpa")
 public class RCUSearchTransfer extends SingleEdgeTransferRelation {
+
+  @Option(secure = true, name = "assign", description = "Name of a function responsible for "
+      + "assignment to RCU pointers")
+  private String assign = "ldv_rcu_assign_pointer";
+
+  @Option(name = "deref", secure = true, description = "Name of a function responsible for "
+      + "dereferences of RCU pointers")
+  private String deref = "ldv_rcu_dereference";
 
   private LogManager logger;
 
-  RCUSearchTransfer(LogManager pLogger) {
+  RCUSearchTransfer(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
+    config.inject(this);
   }
 
   @Override
@@ -73,6 +87,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
         result = handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
                                 cfaEdge.getPredecessor().getFunctionName(),
                                 (RCUSearchState) state, logger);
+        break;
       case FunctionReturnEdge:
         if (cfaEdge instanceof CFunctionCallEdge) {
           result = handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
@@ -88,7 +103,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
     }
     return Collections.singleton(result);
   }
-  private static RCUSearchState handleFunctionReturnEdge(CFunctionReturnEdge pEdge,
+  private RCUSearchState handleFunctionReturnEdge(CFunctionReturnEdge pEdge,
                                                String pFunctionName,
                                                RCUSearchState state,
                                                LogManager pLogger) {
@@ -105,7 +120,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
     }
   }
 
-  private static RCUSearchState handleFunctionCallEdge(CFunctionCallEdge pEdge,
+  private RCUSearchState handleFunctionCallEdge(CFunctionCallEdge pEdge,
                                              String pFunctionName,
                                              RCUSearchState state,
                                              LogManager pLogger) {
@@ -113,7 +128,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
     CFunctionCallExpression fc = pEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
     CFunctionDeclaration fd = fc.getDeclaration();
     Set<MemoryLocation> pRcuPointers = new HashSet<>(state.getRcuPointers());
-    if (fd.getName().contains("ldv_rcu_assign_pointer")) {
+    if (fd.getName().contains(assign)) {
       List<CExpression> params = fc.getParameterExpressions();
 
       //TODO: not-really-a-clever-hack detected
@@ -128,7 +143,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
     return new RCUSearchState(pRcuPointers);
   }
 
-  private static RCUSearchState handleStatementEdge(CStatementEdge pEdge,
+  private RCUSearchState handleStatementEdge(CStatementEdge pEdge,
                                           String pFunctionName,
                                           RCUSearchState state,
                                           LogManager pLogger) {
@@ -143,7 +158,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
     return state;
   }
 
-  private static RCUSearchState handleFunctionCallAssignmentStatement(
+  private RCUSearchState handleFunctionCallAssignmentStatement(
       String pFunctionName,
       RCUSearchState state,
       LogManager pLogger,
@@ -156,7 +171,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
 
       pLogger.log(Level.ALL,"FUNC NAME EXPR: " + funcExpr.getFunctionNameExpression());
 
-      if (funcExpr.getFunctionNameExpression().toString().contains("ldv_rcu_dereference")) {
+      if (funcExpr.getFunctionNameExpression().toString().contains(deref)) {
         CExpression rcuPtr = funcExpr.getParameterExpressions().get(0);
 
         //TODO: not-really-a-clever-hack detected
