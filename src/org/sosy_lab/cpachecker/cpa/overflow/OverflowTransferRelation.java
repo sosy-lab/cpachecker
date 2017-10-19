@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -71,21 +70,17 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of(new OverflowState(ImmutableList.of(), false, prev));
     }
 
-    // No overflows <=> all assumptions hold.
-    List<? extends AExpression> noOverflows;
-    if (assumptions.isEmpty()) {
-      noOverflows = Collections.emptyList();
-    } else {
-      noOverflows = assumptions;
-    }
-
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
+
     outStates.addAll(
         Lists.transform(
             assumptions,
             // Overflow <=> there exists a violating assumption.
             a -> new OverflowState(ImmutableList.of(mkNot(a)), true, prev)));
-    outStates.add(new OverflowState(noOverflows, false, prev));
+
+    // No overflows <=> all assumptions hold.
+    outStates.add(new OverflowState(assumptions, false, prev));
+
     return outStates.build();
   }
 
