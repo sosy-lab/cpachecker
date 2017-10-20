@@ -31,6 +31,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -168,14 +169,23 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final Automaton pWitness)
+      final ImmutableList<Automaton> pSpecificationAutomata)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
     config = pConfig;
     logger = pLogger;
     shutdown = pShutdownNotifier;
-    witness = pWitness;
+
+    if (pSpecificationAutomata.size() < 1) {
+      throw new InvalidConfigurationException("Witness file is missing in specification.");
+    }
+    if (pSpecificationAutomata.size() != 1) {
+      throw new InvalidConfigurationException(
+          "Expect that only violation witness is part of the specification.");
+    }
+
+    witness = pSpecificationAutomata.get(0);
     witnessAutomatonName = AUTOMATANAMEPREFIX + witness.getName();
 
     Scope scope =

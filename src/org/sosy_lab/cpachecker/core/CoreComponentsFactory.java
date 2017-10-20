@@ -287,16 +287,9 @@ public class CoreComponentsFactory {
 
     if(useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
-      Preconditions.checkArgument(
-          pSpecification.getSpecificationAutomata().size() == 1,
-          "Expect that only violation witness is part of the specification.");
       algorithm =
           new NonTerminationWitnessValidator(
-              cfa,
-              config,
-              logger,
-              shutdownNotifier,
-              pSpecification.getSpecificationAutomata().get(0));
+              cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
     } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -483,8 +476,12 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
-        || useProofCheckWithARGCMCStrategy || asConditionalVerifier) {
+    if (useRestartingAlgorithm
+        || useParallelAlgorithm
+        || useProofCheckAlgorithmWithStoredConfig
+        || useProofCheckWithARGCMCStrategy
+        || asConditionalVerifier
+        || useNonTerminationWitnessValidation) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
