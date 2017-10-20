@@ -121,14 +121,19 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
   private static final String WITNESS_BREAK_OBSERVER_SPEC_NAME = "WitnessBreakObserver";
+  private static final String TERMINATION_OBSERVER_SPEC_NAME = "TerminationObserver";
+  private static final String ITERATION_CONTROL_SPEC_NAME = "RecurrentSetController";
+
   private static final Path TERMINATING_STATEMENT_CONTROL =
       Paths.get("config/specification/TerminatingStatements.spc");
+
   private static final String AUTOMATANAMEPREFIX = "AutomatonAnalysis_";
   private static final String BREAKSTATENAME = "_predefinedState_BREAK";
 
   @Option(
     secure = true,
     name = "reachCycle.config",
+    required = true,
     description =
         "Use this configuration when checking that recurrent set (at cycle head) is reachable."
             + " Configuration must be precise, i.e., may only report real counterexamples"
@@ -138,6 +143,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
   @Option(
     secure = true,
+    required = true,
     name = "inspectCycle.config",
     description =
         "Use this configuration when checking that when reach recurrent set, "
@@ -164,6 +170,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       final ShutdownNotifier pShutdownNotifier,
       final Automaton pWitness)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
     cfa = pCfa;
     config = pConfig;
     logger = pLogger;
@@ -227,6 +234,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         CAssumeEdge invCheck =
             new CAssumeEdge(
                 expr.toASTString(), FileLocation.DUMMY, stemEndLoc, afterInvCheck, expr, true);
+        stemEndLoc.addLeavingEdge(invCheck);
+        invCheck.getSuccessor().addEnteringEdge(invCheck);
+
         CAssumeEdge negInvCheck =
             new CAssumeEdge(
                 "!( " + invCheck.getRawStatement() + " )",
@@ -235,7 +245,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 new CFANode(stemEndLoc.getFunctionName()),
                 invCheck.getExpression(),
                 false);
-        stemEndLoc.removeLeavingEdge(negInvCheck); // not connected to CFA
 
         logger.log(Level.INFO, "Check that recurrent set is reachable");
         if (checkReachabilityOfRecurrentSet(invCheck)) {
@@ -457,12 +466,15 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       automata.add(terminationAutomaton);
       automata.add(
           getSpecForErrorAt(
-              terminationAutomatonName, BREAKSTATENAME, WITNESS_BREAK_OBSERVER_SPEC_NAME));
+              terminationAutomatonName, BREAKSTATENAME, TERMINATION_OBSERVER_SPEC_NAME));
       // break when should be in recurrent set again
       // i.e., visit stemEndLoc and  internal automaton state (multiple unrollings, edge
       // need to consider both to support multiple unrollings of syntactical path and staying in
       // automaton state for a sequence of CFA edges
-      automata.add(getSpecForBreakingAt(pStemEndLoc, witnessAutomatonName, pStemEndCycleStart));
+      Automaton automatonBreakAtRecurrentSet =
+          getSpecForBreakingAt(
+              pStemEndLoc, witnessAutomatonName, pStemEndCycleStart, ITERATION_CONTROL_SPEC_NAME);
+      automata.add(automatonBreakAtRecurrentSet);
       Specification spec = Specification.fromAutomata(automata);
 
       shutdown.shutdownIfNecessary();
@@ -483,6 +495,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       Preconditions.checkArgument(
           cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
+
+      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
@@ -512,11 +526,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               pStemEndLoc,
               pNegInvCheck.getExpression(),
               true);
-      pStemEndLoc.removeEnteringEdge(invCheckLoop);
-      pStemEndLoc.removeLeavingEdge(invCheckLoop);
       AbstractState initialState =
           setUpInitialAbstractStateForRecurrentSet(
-              pStemEndLoc, cpa, initialPrecision, invCheckLoop, pStemEndCycleStart);
+              pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
 
       reached = coreComponents.createReachedSet();
       reached.add(initialState, initialPrecision);
@@ -577,20 +589,22 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           } else if (compState instanceof AutomatonState) {
             AutomatonState amState = (AutomatonState) compState;
 
-            if (amState.getOwningAutomaton() == automata.get(2)) {
+            if (amState.getOwningAutomaton() == automatonBreakAtRecurrentSet) {
               if (amState.getInternalStateName().equals("_predefinedState_BREAK")) {
                 // reached end of iteration, i.e., found cycle start at stem end location again
                 // check that after iteration remain in recurrent set
                 // check that there does not exist a successor from this state along the negated
                 // description of the recurrent set (represented by assume edge pNegInvCheck)
                 for (AbstractState succ :
-                    cpa.getTransferRelation()
+                    wrappedCPA
+                        .getTransferRelation()
                         .getAbstractSuccessorsForEdge(
-                            stateWithoutSucc,
+                            ((ARGState) stateWithoutSucc).getWrappedState(),
                             reached.getPrecision(stateWithoutSucc),
                             pNegInvCheck)) {
                   java.util.Optional<PrecisionAdjustmentResult> precResult =
-                      cpa.getPrecisionAdjustment()
+                      wrappedCPA
+                          .getPrecisionAdjustment()
                           .prec(
                               succ,
                               reached.getPrecision(stateWithoutSucc),
@@ -646,7 +660,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
   private AbstractState setUpInitialAbstractStateForRecurrentSet(
       final CFANode pRecurrentSetLoc,
-      final ConfigurableProgramAnalysis cpa,
+      final ConfigurableProgramAnalysis cpaWrappedInARGCPA,
       final Precision pInitialPrecision,
       final CAssumeEdge pAssumeRecurrentSetInvariant,
       final AutomatonInternalState pStemEndCycleStart)
@@ -656,12 +670,14 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         pAssumeRecurrentSetInvariant.getPredecessor()
             == pAssumeRecurrentSetInvariant.getSuccessor());
     AbstractState initialDefault =
-        cpa.getInitialState(pRecurrentSetLoc, StateSpacePartition.getDefaultPartition());
+        cpaWrappedInARGCPA.getInitialState(
+            pRecurrentSetLoc, StateSpacePartition.getDefaultPartition());
 
     Collection<? extends AbstractState> succ;
     try {
       succ =
-          cpa.getTransferRelation()
+          cpaWrappedInARGCPA
+              .getTransferRelation()
               .getAbstractSuccessorsForEdge(
                   initialDefault, pInitialPrecision, pAssumeRecurrentSetInvariant);
 
@@ -677,7 +693,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         }
 
         if (found) {
-          return succ.iterator().next();
+          return new ARGState(succ.iterator().next(), null);
         }
       }
     } catch (CPATransferException e) {
@@ -689,7 +705,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         Level.WARNING,
         "Failed to add the information of the recurrent set. Try to check witness with recurrent set TRUE");
 
-    return initialDefault;
+    return new ARGState(initialDefault, null);
   }
 
   private boolean areWitnessAssumptionsInLoopOnlyNondeterminismRestricting(
@@ -741,7 +757,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       AbstractState initialState =
           cpa.getInitialState(pRecurrentStart, StateSpacePartition.getDefaultPartition());
-      Precision initialPrecision = SingletonPrecision.getInstance();
+      Precision initialPrecision =
+          cpa.getInitialPrecision(pRecurrentStart, StateSpacePartition.getDefaultPartition());
 
       reached = coreComponents.createReachedSet();
       reached.add(initialState, initialPrecision);
@@ -881,12 +898,15 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   }
 
   private Automaton getSpecForBreakingAt(
-      final CFANode loc, final String automatonCPAName, final AutomatonInternalState automatonState)
+      final CFANode loc,
+      final String automatonCPAName,
+      final AutomatonInternalState automatonState,
+      final String fileName)
       throws IOException, InvalidConfigurationException {
 
     return getAutomatonSpecification(
         false,
-        "",
+        fileName,
         "CHECK(location, \"nodenumber=="
             + loc.getNodeNumber()
             + "\") && CHECK("
