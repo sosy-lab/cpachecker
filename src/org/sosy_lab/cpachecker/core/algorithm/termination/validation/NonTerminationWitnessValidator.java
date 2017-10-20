@@ -951,7 +951,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       writer = writer.beginLevel();
       writer.put(cycleReachTime);
       writer.put(cycleCheckTime);
-      writer = writer.endLevel();
+      // writer = writer.endLevel();
     }
 
     @Override
