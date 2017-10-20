@@ -123,7 +123,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private static final String WITNESS_BREAK_OBSERVER_SPEC_NAME = "WitnessBreakObserver";
   private static final String TERMINATION_OBSERVER_SPEC_NAME = "TerminationObserver";
   private static final String ITERATION_OBSERVER_SPEC_NAME = "RecurrentSetObserver";
-  private static final String ITERATION_CONTROL_SPEC_NAME = "RecurrentSetController";
 
   private static final Path TERMINATING_STATEMENT_CONTROL =
       Paths.get("config/specification/TerminatingStatements.spc");
