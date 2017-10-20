@@ -1038,7 +1038,7 @@ public class AutomatonGraphmlParser {
       for (String prop : specText) {
         try {
         properties.add(getProperty(prop));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
           logger.log(Level.WARNING, String.format("Cannot map specification %s to property type. Will ignore it.", prop));
         }
       }
@@ -1047,15 +1047,22 @@ public class AutomatonGraphmlParser {
   }
 
   private PropertyType getProperty(final String pProperty) {
-      String prop;
-      if(pProperty.trim().startsWith("CHECK")) {
-        prop = pProperty.substring(pProperty.indexOf(",")+1, pProperty.lastIndexOf(")")).trim();
-        if(prop.startsWith("LTL")) {
-          prop = pProperty.substring(pProperty.indexOf("(")+1, pProperty.lastIndexOf(")"));
-        }
-      } else {
-        prop = pProperty;
+    String prop;
+    if (pProperty.trim().startsWith("CHECK")) {
+      prop = pProperty.substring(pProperty.indexOf(",") + 1, pProperty.lastIndexOf(")")).trim();
+      if (prop.startsWith("LTL")) {
+        prop = prop.substring(prop.indexOf("(") + 1, prop.lastIndexOf(")"));
       }
+    } else {
+      prop = pProperty;
+    }
+
+    for (PropertyType propType : PropertyType.values()) {
+      if (propType.toString().equals(prop)) {
+        return propType;
+      }
+    }
+
     return PropertyType.valueOf(prop.trim());
   }
 
