@@ -1038,7 +1038,7 @@ public class AutomatonGraphmlParser {
       for (String prop : specText) {
         try {
         properties.add(getProperty(prop));
-        } catch (IllegalArgumentException e) { // TODO check if that is correct exception
+        } catch (IllegalArgumentException e) {
           logger.log(Level.WARNING, String.format("Cannot map specification %s to property type. Will ignore it.", prop));
         }
       }
@@ -1056,7 +1056,7 @@ public class AutomatonGraphmlParser {
       } else {
         prop = pProperty;
       }
-      return PropertyType.valueOf(pProperty.trim());
+    return PropertyType.valueOf(prop.trim());
   }
 
   /**
