@@ -577,9 +577,25 @@ public class AssumptionToEdgeAllocator {
         pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
 
     if (leftType instanceof CSimpleType && !rightIsAccepted) {
-      rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);
+      if (rightType instanceof CVoidType) {
+        if (rightSide instanceof CPointerExpression) {
+          rightSide = castDereferencedPointerType((CPointerExpression) rightSide, leftType);
+        } else {
+          return null;
+        }
+      } else {
+        rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);
+      }
     } else if (!leftIsAccepted && rightType instanceof CSimpleType) {
-      leftSide = new CCastExpression(leftSide.getFileLocation(), rightType, leftSide);
+      if (leftType instanceof CVoidType) {
+        if (leftSide instanceof CPointerExpression) {
+          leftSide = castDereferencedPointerType((CPointerExpression) leftSide, rightType);
+        } else {
+          return null;
+        }
+      } else {
+        leftSide = new CCastExpression(leftSide.getFileLocation(), rightType, leftSide);
+      }
     }
 
     CBinaryExpression assumption =
@@ -589,6 +605,17 @@ public class AssumptionToEdgeAllocator {
             CBinaryExpression.BinaryOperator.EQUALS);
 
     return new CExpressionStatement(assumption.getFileLocation(), assumption);
+  }
+
+  private CExpression castDereferencedPointerType(CPointerExpression pDereference,
+      final CType pTargetType) {
+    CExpression inner = pDereference.getOperand();
+    if (inner.getExpressionType().equals(pTargetType)) {
+      return pDereference;
+    }
+    inner = new CCastExpression(pDereference.getFileLocation(),
+        new CPointerType(false, false, pTargetType), inner);
+    return new CPointerExpression(pDereference.getFileLocation(), pTargetType, inner);
   }
 
   private CExpression getLeftAssumptionFromLhs(CLeftHandSide pLValue) {
