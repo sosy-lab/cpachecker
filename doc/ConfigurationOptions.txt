@@ -140,6 +140,10 @@ analysis.algorithm.conditionAdjustment = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# use nontermination witness validator to check a violation witness for
+# termination
+analysis.algorithm.nonterminationWitnessCheck = false
+
 # use PDR algorithm
 analysis.algorithm.pdr = false
 
@@ -3042,6 +3046,9 @@ witness.matchOriginLine = true
 # Match the thread identifier for concurrent programs.
 witness.matchThreadId = true
 
+# Represent sink states by bottom state instead of break state
+witness.stopNotBreakAtSinkStates = true
+
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 witness.strictChecking = true
@@ -3052,6 +3059,15 @@ witness.validation.correctness.config = no default value
 
 # The witness to validate.
 witness.validation.file = no default value
+
+# Use this configuration when checking that when reach recurrent set,
+# execution can be extended to an infinite one
+witness.validation.termination.inspectCycle.config = no default value
+
+# Use this configuration when checking that recurrent set (at cycle head) is
+# reachable. Configuration must be precise, i.e., may only report real
+# counterexamples
+witness.validation.termination.reachCycle.config = no default value
 
 # When validating a violation witness, use this configuration file instead of
 # the current one.
