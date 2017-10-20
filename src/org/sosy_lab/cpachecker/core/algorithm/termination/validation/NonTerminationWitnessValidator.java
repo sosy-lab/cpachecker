@@ -571,35 +571,35 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                     "Function return without known caller found. May be unsound to continue. Abort non-termination witness validation.");
                 return false;
               }
+            }
 
-              // check that when one iteration of infinite paths ends, it ends in the recurrent set
-            } else if (compState instanceof AutomatonState) {
-              AutomatonState amState = (AutomatonState) compState;
+            // check that when one iteration of infinite paths ends, it ends in the recurrent set
+          } else if (compState instanceof AutomatonState) {
+            AutomatonState amState = (AutomatonState) compState;
 
-              if (amState.getOwningAutomaton() == automata.get(2)) {
-                if (amState.getInternalStateName().equals("_predefinedState_BREAK")) {
-                  // reached end of iteration, i.e., found cycle start at stem end location again
-                  // check that after iteration remain in recurrent set
-                  // check that there does not exist a successor from this state along the negated
-                  // description of the recurrent set (represented by assume edge pNegInvCheck)
-                  for (AbstractState succ :
-                      cpa.getTransferRelation()
-                          .getAbstractSuccessorsForEdge(
-                              stateWithoutSucc,
+            if (amState.getOwningAutomaton() == automata.get(2)) {
+              if (amState.getInternalStateName().equals("_predefinedState_BREAK")) {
+                // reached end of iteration, i.e., found cycle start at stem end location again
+                // check that after iteration remain in recurrent set
+                // check that there does not exist a successor from this state along the negated
+                // description of the recurrent set (represented by assume edge pNegInvCheck)
+                for (AbstractState succ :
+                    cpa.getTransferRelation()
+                        .getAbstractSuccessorsForEdge(
+                            stateWithoutSucc,
+                            reached.getPrecision(stateWithoutSucc),
+                            pNegInvCheck)) {
+                  java.util.Optional<PrecisionAdjustmentResult> precResult =
+                      cpa.getPrecisionAdjustment()
+                          .prec(
+                              succ,
                               reached.getPrecision(stateWithoutSucc),
-                              pNegInvCheck)) {
-                    java.util.Optional<PrecisionAdjustmentResult> precResult =
-                        cpa.getPrecisionAdjustment()
-                            .prec(
-                                succ,
-                                reached.getPrecision(stateWithoutSucc),
-                                reached,
-                                Functions.<AbstractState>identity(),
-                                succ);
-                    if (precResult.isPresent()) {
-                      logger.log(Level.INFO, "May leave the recurrent set.");
-                      return false;
-                    }
+                              reached,
+                              Functions.<AbstractState>identity(),
+                              succ);
+                  if (precResult.isPresent()) {
+                    logger.log(Level.INFO, "May leave the recurrent set.");
+                    return false;
                   }
                 }
               }
@@ -934,7 +934,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     pStatsCollection.add(statistics);
   }
 
-  private class NonTerminationValidationStatistics implements Statistics {
+  private static class NonTerminationValidationStatistics implements Statistics {
 
     private final StatTimer totalVal = new StatTimer("Total time for validation");
     private final StatTimer cycleReachTime =
