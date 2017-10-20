@@ -95,7 +95,8 @@ public class ConfigurationFilesTest {
               + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
               + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*"
+              + "|.*Witness file is missing in specification.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -124,6 +125,7 @@ public class ConfigurationFilesTest {
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
+          "witness.stopNotBreakAtSinkStates",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -134,15 +136,14 @@ public class ConfigurationFilesTest {
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
           "counterexample.checker.config",
-          // present in config files that derive their PCC validation configuration from the analysis configuration
+          // present in config files that derive their PCC validation configuration from the
+          // analysis configuration
           "ARGCPA.cpa",
           "cegar.refiner",
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize"
-
-          );
+          "pcc.partial.stopAddingAtReachedSetSize");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
