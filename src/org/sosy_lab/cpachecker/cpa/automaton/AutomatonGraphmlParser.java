@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -118,6 +119,12 @@ public class AutomatonGraphmlParser {
 
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
+
+  @Option(
+    secure = true,
+    description = "Represent sink states by bottom state instead of break state"
+  )
+  private boolean stopNotBreakAtSinkStates = true;
 
   @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
@@ -240,6 +247,7 @@ public class AutomatonGraphmlParser {
       checkArchitecture(architecture);
 
       final WitnessType graphType = getWitnessType(graphNode);
+      final Set<PropertyType> specType = getSpecAsProperties(graphNode);
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
@@ -439,7 +447,8 @@ public class AutomatonGraphmlParser {
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
         if (!candidates.isEmpty()) {
-          if (graphType == WitnessType.VIOLATION_WITNESS) {
+          if (graphType == WitnessType.VIOLATION_WITNESS
+              && !specType.contains(PropertyType.TERMINATION)) {
             throw new WitnessParseException("Invariants are not allowed for violation witnesses.");
           }
           candidateInvariants =
@@ -474,7 +483,8 @@ public class AutomatonGraphmlParser {
                   fpElseTrigger,
                   Collections.<AutomatonBoolExpr>emptyList(),
                   actions,
-                  false));
+                  false,
+                  stopNotBreakAtSinkStates));
         }
 
         if (functionEntry != null) {
@@ -500,7 +510,8 @@ public class AutomatonGraphmlParser {
         }
         stutterConditions.put(sourceStateId, stutterCondition);
 
-        // If the triggers match, there must be one successor state that moves the automaton forwards
+        // If the triggers match, there must be one successor state that moves the automaton
+        // forwards
         transitions.add(
             createAutomatonTransition(
                 conjoinedTriggers,
@@ -510,6 +521,7 @@ public class AutomatonGraphmlParser {
                 actions,
                 targetStateId,
                 leadsToViolationNode,
+                stopNotBreakAtSinkStates,
                 sinkStates));
 
         // Multiple CFA edges in a sequence might match the triggers,
@@ -529,6 +541,7 @@ public class AutomatonGraphmlParser {
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   sourceIsViolationNode,
+                  stopNotBreakAtSinkStates,
                   sinkStates));
         }
       }
@@ -561,6 +574,7 @@ public class AutomatonGraphmlParser {
                 Collections.<AutomatonAction>emptyList(),
                 stateId,
                 violationStates.contains(stateId),
+                stopNotBreakAtSinkStates,
                 sinkStates));
 
         if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
@@ -575,6 +589,7 @@ public class AutomatonGraphmlParser {
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true,
+                  stopNotBreakAtSinkStates,
                   sinkStates));
         }
 
@@ -586,7 +601,9 @@ public class AutomatonGraphmlParser {
         // Determine if "matchAll" should be enabled
         boolean matchAll = true;
 
-        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, matchAll);
+        AutomatonInternalState state =
+            new AutomatonInternalState(
+                stateId, transitions, false, matchAll, nodeFlags.contains(NodeFlag.ISCYCLEHEAD));
         automatonStates.add(state);
       }
 
@@ -1012,6 +1029,36 @@ public class AutomatonGraphmlParser {
     return witnessType;
   }
 
+  private Set<PropertyType> getSpecAsProperties(final Node pAutomaton) {
+    Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
+    if (specText.isEmpty()) {
+      return Sets.newHashSet(PropertyType.REACHABILITY);
+    } else {
+      Set<PropertyType> properties = Sets.newHashSetWithExpectedSize(specText.size());
+      for (String prop : specText) {
+        try {
+        properties.add(getProperty(prop));
+        } catch (IllegalArgumentException e) { // TODO check if that is correct exception
+          logger.log(Level.WARNING, String.format("Cannot map specification %s to property type. Will ignore it.", prop));
+        }
+      }
+      return properties;
+    }
+  }
+
+  private PropertyType getProperty(final String pProperty) {
+      String prop;
+      if(pProperty.trim().startsWith("CHECK")) {
+        prop = pProperty.substring(pProperty.indexOf(",")+1, pProperty.lastIndexOf(")")).trim();
+        if(prop.startsWith("LTL")) {
+          prop = pProperty.substring(pProperty.indexOf("(")+1, pProperty.lastIndexOf(")"));
+        }
+      } else {
+        prop = pProperty;
+      }
+      return PropertyType.valueOf(pProperty.trim());
+  }
+
   /**
    * Compute the distances from automaton states to violation states.
    *
@@ -1195,9 +1242,11 @@ public class AutomatonGraphmlParser {
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode,
+      boolean pSinkAsBottomNotBreak,
       Set<String> pSinkNodeIds) {
     if (pSinkNodeIds.contains(pTargetStateId)) {
-      return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
+      return createAutomatonSinkTransition(
+          pTriggers, pAssertions, pActions, pLeadsToViolationNode, pSinkAsBottomNotBreak);
     }
     if (pLeadsToViolationNode) {
       List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
@@ -1212,19 +1261,20 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
       List<AutomatonAction> pActions,
-      boolean pLeadsToViolationNode) {
+      boolean pLeadsToViolationNode,
+      boolean pSinkAsBottomNotBreak) {
     if (pLeadsToViolationNode) {
       return new ViolationCopyingAutomatonTransition(
           pTriggers,
           pAssertions,
           pActions,
-          AutomatonInternalState.BOTTOM);
+          pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
     }
     return new AutomatonTransition(
         pTriggers,
         pAssertions,
         pActions,
-        AutomatonInternalState.BOTTOM);
+        pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
   }
 
   private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
