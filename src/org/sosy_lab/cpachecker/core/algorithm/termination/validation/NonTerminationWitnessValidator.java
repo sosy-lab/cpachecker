@@ -122,6 +122,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private static final String STEM_SPEC_NAME = "StemEndController";
   private static final String WITNESS_BREAK_OBSERVER_SPEC_NAME = "WitnessBreakObserver";
   private static final String TERMINATION_OBSERVER_SPEC_NAME = "TerminationObserver";
+  private static final String ITERATION_OBSERVER_SPEC_NAME = "RecurrentSetObserver";
   private static final String ITERATION_CONTROL_SPEC_NAME = "RecurrentSetController";
 
   private static final Path TERMINATING_STATEMENT_CONTROL =
@@ -468,13 +469,18 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           getSpecForErrorAt(
               terminationAutomatonName, BREAKSTATENAME, TERMINATION_OBSERVER_SPEC_NAME));
       // break when should be in recurrent set again
+      // still allow successor computation along pNegInvCheck
       // i.e., visit stemEndLoc and  internal automaton state (multiple unrollings, edge
       // need to consider both to support multiple unrollings of syntactical path and staying in
       // automaton state for a sequence of CFA edges
-      Automaton automatonBreakAtRecurrentSet =
-          getSpecForBreakingAt(
-              pStemEndLoc, witnessAutomatonName, pStemEndCycleStart, ITERATION_CONTROL_SPEC_NAME);
-      automata.add(automatonBreakAtRecurrentSet);
+      Automaton automatonRedetectRecurrentSet =
+          getSpecForDetectingCycleIterationEnd(
+              pStemEndLoc,
+              witnessAutomatonName,
+              pStemEndCycleStart,
+              pNegInvCheck.getSuccessor(),
+              ITERATION_OBSERVER_SPEC_NAME);
+      automata.add(automatonRedetectRecurrentSet);
       Specification spec = Specification.fromAutomata(automata);
 
       shutdown.shutdownIfNecessary();
@@ -526,9 +532,12 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               pStemEndLoc,
               pNegInvCheck.getExpression(),
               true);
+      pStemEndLoc.addLeavingEdge(invCheckLoop);
       AbstractState initialState =
           setUpInitialAbstractStateForRecurrentSet(
               pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
+      pStemEndLoc.removeLeavingEdge(invCheckLoop);
+      // TODO okay that initial states is non-abstraction state?
 
       reached = coreComponents.createReachedSet();
       reached.add(initialState, initialPrecision);
@@ -551,6 +560,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         return false;
       }
 
+      pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);
       for (AbstractState stateWithoutSucc :
           from(reached)
               .filter(
@@ -589,8 +599,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           } else if (compState instanceof AutomatonState) {
             AutomatonState amState = (AutomatonState) compState;
 
-            if (amState.getOwningAutomaton() == automatonBreakAtRecurrentSet) {
-              if (amState.getInternalStateName().equals("_predefinedState_BREAK")) {
+            if (amState.getOwningAutomaton() == automatonRedetectRecurrentSet) {
+              if (amState.getInternalStateName().equals(SuccessorState.FINISHED.toString())) {
+
                 // reached end of iteration, i.e., found cycle start at stem end location again
                 // check that after iteration remain in recurrent set
                 // check that there does not exist a successor from this state along the negated
@@ -642,6 +653,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             pPredCPA.getSolver().getFormulaManager(), pPredCPA.getPathFormulaManager(), null);
     Collection<AbstractionPredicate> predicates = new ArrayList<>();
 
+    predicates.add(pAMgr.makeFalsePredicate());
+
     for (ExpressionTree<AExpression> candidate : witness.getAllCandidateInvariants()) {
       try {
         invariant = candidate.accept(toFormula);
@@ -680,7 +693,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               .getTransferRelation()
               .getAbstractSuccessorsForEdge(
                   initialDefault, pInitialPrecision, pAssumeRecurrentSetInvariant);
-
       if (succ.size() == 1) {
         boolean found = false;
         for (AbstractState innerState : AbstractStates.asIterable(succ.iterator().next())) {
@@ -867,7 +879,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private enum SuccessorState {
     BREAK,
     ERROR,
-    STOP;
+    STOP,
+    FINISHED;
   }
 
   private Automaton getSpecForErrorAt(
@@ -881,8 +894,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private Automaton getSpecForErrorAt(
       final String automatonCPAName, final String internalStateName, final String fileName)
       throws IOException, InvalidConfigurationException {
-    return getAutomatonSpecification(
-        true,
+    return writeObserver(
         fileName,
         "CHECK(" + automatonCPAName + " , \"state==" + internalStateName + "\")",
         SuccessorState.ERROR);
@@ -890,46 +902,18 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
   private Automaton getSpecForErrorAt(final CFANode loc)
       throws IOException, InvalidConfigurationException {
-    return getAutomatonSpecification(
-        true,
+    return writeObserver(
         REACHABILITY_SPEC_NAME,
         "CHECK(location , \"nodenumber==" + loc.getNodeNumber() + "\")",
         SuccessorState.ERROR);
   }
 
-  private Automaton getSpecForBreakingAt(
-      final CFANode loc,
-      final String automatonCPAName,
-      final AutomatonInternalState automatonState,
-      final String fileName)
-      throws IOException, InvalidConfigurationException {
-
-    return getAutomatonSpecification(
-        false,
-        fileName,
-        "CHECK(location, \"nodenumber=="
-            + loc.getNodeNumber()
-            + "\") && CHECK("
-            + automatonCPAName
-            + " , \"state=="
-            + automatonState.getName()
-            + "\")",
-        SuccessorState.BREAK);
-  }
-
-  private Automaton getAutomatonSpecification(
-      final boolean isObserver,
-      final String automatonFileName,
-      final String checkStatement,
-      final SuccessorState succState)
-      throws IOException, InvalidConfigurationException {
+  private Automaton writeObserver(
+      final String automatonFileName, final String checkStatement, final SuccessorState succState)
+      throws InvalidConfigurationException, IOException {
     Path tmpSpec = Files.createTempFile(automatonFileName, "spc");
     try (Writer writer = Files.newBufferedWriter(tmpSpec, Charset.defaultCharset())) {
-      if (isObserver) {
-        writer.append("OBSERVER AUTOMATON ");
-      } else {
-        writer.append("CONTROL AUTOMATON ");
-      }
+      writer.append("OBSERVER AUTOMATON ");
       writer.append(automatonFileName);
 
       writer.append("\nINITIAL STATE Init;\n");
@@ -941,11 +925,58 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       writer.append("END AUTOMATON");
     }
 
+    return getAutomaton(tmpSpec);
+  }
+
+  private Automaton getSpecForDetectingCycleIterationEnd(
+      final CFANode loc,
+      final String automatonCPAName,
+      final AutomatonInternalState automatonState,
+      final CFANode nodeToContinue,
+      final String fileName)
+      throws IOException, InvalidConfigurationException {
+    Path tmpSpec = Files.createTempFile(fileName, "spc");
+
+    try (Writer writer = Files.newBufferedWriter(tmpSpec, Charset.defaultCharset())) {
+
+      writer.append("CONTROL AUTOMATON ");
+      writer.append(fileName);
+
+      writer.append("\nINITIAL STATE Init;\n");
+
+      // needed to set up initial states, no cycle detection during set up
+      writer.append("STATE USEFIRST Init :\n");
+      writer.append(" TRUE -> GOTO Checking;\n\n");
+
+      writer.append("STATE USEFIRST Checking :\n");
+      writer.append("CHECK(location, \"nodenumber==");
+      writer.append(Integer.toString(loc.getNodeNumber()));
+      writer.append("\") && CHECK(");
+      writer.append(automatonCPAName);
+      writer.append(" , \"state==");
+      writer.append(automatonState.getName());
+      writer.append("\")");
+      writer.append(" -> GOTO " + SuccessorState.FINISHED + ";\n\n");
+
+      writer.append("STATE USEFIRST " + SuccessorState.FINISHED + ":\n");
+      writer.append("CHECK(location, \"nodenumber==");
+      writer.append(Integer.toString(nodeToContinue.getNodeNumber()));
+      writer.append("\") -> GOTO " + SuccessorState.FINISHED + ";\n");
+      writer.append(" TRUE -> " + SuccessorState.STOP + ";\n\n");
+
+      writer.append("END AUTOMATON");
+    }
+
+    return getAutomaton(tmpSpec);
+  }
+
+
+  private Automaton getAutomaton(final Path automatonSpec) throws InvalidConfigurationException {
     Scope scope =
         cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
     return AutomatonParser.parseAutomatonFile(
-            tmpSpec, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage())
+            automatonSpec, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage())
         .get(0);
   }
 
