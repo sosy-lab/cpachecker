@@ -23,9 +23,9 @@
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
