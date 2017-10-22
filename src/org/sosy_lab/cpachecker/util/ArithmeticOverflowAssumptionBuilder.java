@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -153,7 +153,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   @Override
   public List<CExpression> assumptionsForEdge(CFAEdge pEdge)
       throws UnrecognizedCCodeException {
-    Set<CExpression> result = new HashSet<>();
+    Set<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
     // the live variables of the successor.
