@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -245,6 +246,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements
           addMultiplicationAssumptions(op1, op2, lowerBounds.get(typ), upperBounds.get(typ),
               result);
         }
+      } else if (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO)) {
+        if (lowerBounds.get(typ) != null) {
+          addDivisionAssumption(op1, op2, lowerBounds.get(typ), result);
+        }
       }
     } else if (exp instanceof CUnaryExpression) {
       if (lowerBounds.get(typ) != null) {
@@ -416,6 +421,43 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         result.add(assumption);
       }
     }
+  }
+
+
+  /**
+   * This helper method generates assumptions for checking overflows
+   * in signed integer divisions and modulo operations.
+   *
+   * The necessary assumption for division or modulo to be free from
+   * overflows looks as follows:
+   *
+   * (operand1 != limit) | (operand2 != -1)
+   *
+   * @param operand1 first operand in the C Expression for which the
+   *        assumption should be generated
+   * @param operand2 second operand in the C Expression for which the
+   *        assumption should be generated
+   *
+   * @param limit the smallest value in the expression's type
+   * @param result the set to which the generated assumptions are added
+   */
+  private void addDivisionAssumption(CExpression operand1, CExpression operand2,
+      CLiteralExpression limit,
+      Set<CExpression> result) throws UnrecognizedCCodeException {
+
+    // operand1 != limit
+    CExpression term1 =
+        cBinaryExpressionBuilder.buildBinaryExpression(operand1, limit, BinaryOperator.NOT_EQUALS);
+    // -1
+    CExpression term2 = new CUnaryExpression(operand2.getFileLocation(), CNumericTypes.INT,
+        CIntegerLiteralExpression.ZERO, UnaryOperator.MINUS);
+    // operand2 != 0
+    CExpression term3 =
+        cBinaryExpressionBuilder.buildBinaryExpression(operand2, term2, BinaryOperator.NOT_EQUALS);
+    // (operand1 != INT_MIN) | (operand2 != -1)
+    CExpression assumption =
+        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
+    result.add(assumption);
   }
 
   private class AssumptionsFinder
