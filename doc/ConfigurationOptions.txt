@@ -140,6 +140,10 @@ analysis.algorithm.conditionAdjustment = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# use nontermination witness validator to check a violation witness for
+# termination
+analysis.algorithm.nonterminationWitnessCheck = false
+
 # use PDR algorithm
 analysis.algorithm.pdr = false
 
@@ -225,11 +229,15 @@ analysis.interprocedural = true
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
+  enum:     [LINUX32, LINUX64, ARM]
 
 # Use as targets for call edges only those shich are assigned to the
 # particular expression (structure field).
 analysis.matchAssignedFunctionPointers = false
+
+# If a no target function was assigned to a function pointer, use the origin
+# heuristic instead of replacing with empty calls
+analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments = false
 
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
@@ -656,9 +664,6 @@ counterexample.export.assumptions.allowMultiplicationWithConstants = false
 # is academic, you usually want this option to be off.
 counterexample.export.assumptions.assumeLinearArithmetics = false
 
-# Whether or not to include concrete address values.
-counterexample.export.assumptions.includeConstantsForPointers = false
-
 # export counterexample as automaton
 counterexample.export.automaton = "Counterexample.%d.spc"
 
@@ -783,10 +788,6 @@ cpa.apron.mergeop.type = "SEP"
 
 # target file to hold the exported precision
 cpa.apron.precisionFile = no default value
-
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.apron.refiner.checkForRepeatedRefinements = true
 
 # Timelimit for the backup feasibility check with the apron analysis.(use
 # seconds or specify a unit; 0 for infinite)
@@ -936,6 +937,10 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 # necessary to re-explore the program along the error-path.
 cpa.bam.doPrecisionRefinementForAllStates = false
 
+# Heuristic: This flag determines which precisions should be updated during
+# refinement. This flag also updates the precision of the most inner block.
+cpa.bam.doPrecisionRefinementForMostInnerBlock = true
+
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
@@ -960,6 +965,10 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
+
+# This flag determines which refinement procedure we should use. We can
+# choose between an in-place refinement and a copy-on-write refinement.
+cpa.bam.useCopyOnWriteRefinement = false
 
 # Use more fast partitioning builder, which can not handle loops
 cpa.bam.useExtendedPartitioningBuilder = false
@@ -1372,10 +1381,6 @@ cpa.octagon.mergeop.type = "SEP"
 cpa.octagon.octagonLibrary = "INT"
   allowed values: [INT, FLOAT]
 
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.octagon.refiner.checkForRepeatedRefinements = true
-
 # Timelimit for the backup feasibility check with the octagon analysis.(use
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
@@ -1513,6 +1518,10 @@ cpa.predicate.blk.alwaysAtJoin = false
 # force abstractions at loop heads, regardless of threshold
 cpa.predicate.blk.alwaysAtLoops = true
 
+# force abstractions at program exit (program end, abort, etc.), regardless
+# of threshold
+cpa.predicate.blk.alwaysAtProgramExit = false
+
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
 cpa.predicate.blk.functions = false
@@ -1539,7 +1548,7 @@ cpa.predicate.checkBlockFeasibility = false
 # determined.
 cpa.predicate.defaultAllocationSize = 4
 
-# The default length for arrays when the real length cannot be determined.
+# The length for arrays we assume for variably-sized arrays.
 cpa.predicate.defaultArrayLength = 20
 
 # Use deferred allocation heuristic that tracks void * variables until the
@@ -1556,13 +1565,13 @@ cpa.predicate.enableBlockreducer = false
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance.
-cpa.predicate.encodeBitvectorAs = INTEGER
+cpa.predicate.encodeBitvectorAs = BITVECTOR
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for floats. If different from FLOAT, the specified
 # theory is used to approximate floats. This can be used for solvers that do
 # not support floating-point arithmetic, or for increased performance.
-cpa.predicate.encodeFloatAs = RATIONAL
+cpa.predicate.encodeFloatAs = FLOAT
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
@@ -1577,9 +1586,6 @@ cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
-
-# Handle arrays using the theory of arrays.
-cpa.predicate.handleArrays = false
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
@@ -1677,18 +1683,15 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
-# The maximum length for arrays (elements beyond this will be ignored). Use
-# -1 to disable the limit.
-cpa.predicate.maxArrayLength = 20
-
-# Maximum size of allocations for which all structure fields are regarded
-# always essential, regardless of whether they were ever really used in code.
-cpa.predicate.maxPreFilledAllocationSize = 0
+# The maximum length up to which bulk assignments (e.g., initialization) for
+# arrays will be handled. With option useArraysForHeap=false, elements beyond
+# this bound will be ignored completely. Use -1 to disable the limit.
+cpa.predicate.maxArrayLength = -1
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
-      "malloc", "__kmalloc", "kmalloc"
+      "malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"
       }
 
 # Memory allocation functions of which all parameters but the first should be
@@ -1829,6 +1832,13 @@ cpa.predicate.refinement.restartAfterRefinements = 0
 # Use a single SMT solver environment for several interpolation queries
 cpa.predicate.refinement.reuseInterpolationEnvironment = false
 
+# In case we apply sequential interpolation, forward and backward directions
+# return valid interpolants. We can either choose one of the directions,
+# fallback to the other if one does not succeed, or even combine the
+# interpolants.
+cpa.predicate.refinement.sequentialStrategy = FWD
+  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, WEIGHTED, RANDOM]
+
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
@@ -1936,9 +1946,9 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
-# Use the theory of arrays for heap-memory encoding. This requires an SMT
-# solver that is capable of the theory of arrays.
-cpa.predicate.useArraysForHeap = false
+# Use SMT arrays for encoding heap memory instead of uninterpreted function.
+# This is more precise but may lead to interpolation failures.
+cpa.predicate.useArraysForHeap = true
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
@@ -2072,16 +2082,20 @@ cpa.smg.externalAllocationSize = Integer.MAX_VALUE
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
+# Handle extern variables with incomplete type (extern int array[]) as
+# external allocation
+cpa.smg.handleExternVariableAsExternalAllocation = false
+
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
 cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
 
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT
-  enum:     [STRICT, ASSUME_SAFE]
+  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # Memory allocation functions
-cpa.smg.memoryAllocationFunctions = {"malloc"}
+cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg.memoryAllocationFunctionsSizeParameter = 0
@@ -2134,7 +2148,7 @@ cpa.smg.unknownOnUndefined = true
 cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
-cpa.smg.zeroingMemoryAllocation = {"calloc"}
+cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.
@@ -2277,6 +2291,9 @@ cpa.value.abstraction.onlyAtNonLinearCFA = false
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to
 # 1, even if x is a symbolic expression).
 cpa.value.assignSymbolicAssumptionVars = false
+
+# Track or not function pointer values
+cpa.value.ignoreFunctionValue = true
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -2890,7 +2907,7 @@ solver.interpolationSolver = no default value
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Which SMT solver to use.
-solver.solver = SMTINTERPOL
+solver.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # comma-separated list of files with specifications that should be checked
@@ -3029,6 +3046,9 @@ witness.matchOriginLine = true
 # Match the thread identifier for concurrent programs.
 witness.matchThreadId = true
 
+# Represent sink states by bottom state instead of break state
+witness.stopNotBreakAtSinkStates = true
+
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 witness.strictChecking = true
@@ -3039,6 +3059,15 @@ witness.validation.correctness.config = no default value
 
 # The witness to validate.
 witness.validation.file = no default value
+
+# Use this configuration when checking that when reach recurrent set,
+# execution can be extended to an infinite one
+witness.validation.termination.inspectCycle.config = no default value
+
+# Use this configuration when checking that recurrent set (at cycle head) is
+# reachable. Configuration must be precise, i.e., may only report real
+# counterexamples
+witness.validation.termination.reachCycle.config = no default value
 
 # When validating a violation witness, use this configuration file instead of
 # the current one.

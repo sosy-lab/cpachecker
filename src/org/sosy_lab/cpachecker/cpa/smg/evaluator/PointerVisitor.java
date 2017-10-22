@@ -202,7 +202,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
           SMGExplicitValue arrayOffset = arrayAddress.getOffset();
           int typeSize = smgExpressionEvaluator.getBitSizeof(getCfaEdge(), smgExpressionEvaluator.getRealExpressionType(lValue), newState, lValue);
           SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
-          SMGExplicitValue offset = arrayOffset.add(subscriptValue).multiply(sizeOfType);
+          SMGExplicitValue offset = arrayOffset.add(subscriptValue.multiply(sizeOfType));
           SMGAddressValueAndStateList resultAddressAndState = smgExpressionEvaluator.createAddress(newState, arrayAddress.getObject(), offset);
           result.addAll(resultAddressAndState.asAddressValueAndStateList());
         }

@@ -8,65 +8,60 @@
   The rundefinition needs a runtime of 45 minutes.
   -->
 
-  <resultfiles>dummy</resultfiles>
-
   <option name="-noout"/>
-  <option name="-heap">1800M</option>
+  <option name="-heap">1500M</option>
+
+  <rundefinition/>
 
   <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
 
-  <rundefinition>
+  <tasks name="va-bdd-bool">
+    <option name="-valueAnalysis-BDD-bool"/>
+    <include>../programs/benchmarks/ssh/*clnt*.c</include>
+    <include>../programs/benchmarks/ssh-simplified/*clnt*.c</include>
+    <include>../programs/benchmarks/product-lines/*product0*.c</include>
+    <exclude>../programs/benchmarks/ssh/*clnt*1*.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/*clnt*1*.c</exclude>
+    <exclude>../programs/benchmarks/product-lines/email*</exclude>
+  </tasks>
 
-    <tasks name="va-bdd-bool">
-      <option name="-valueAnalysis-BDD-bool"/>
-      <include>../programs/benchmarks/ssh/*clnt*.c</include>
-      <include>../programs/benchmarks/ssh-simplified/*clnt*.c</include>
-      <include>../programs/benchmarks/product-lines/*product0*.c</include>
-      <exclude>../programs/benchmarks/ssh/*clnt*1*.c</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/*clnt*1*.c</exclude>
-      <exclude>../programs/benchmarks/product-lines/email*</exclude>
-    </tasks>
+  <tasks name="va-bdd-eq">
+    <option name="-valueAnalysis-BDD-bool-intEQ"/>
+    <include>../programs/benchmarks/ssh/*clnt*1*.c</include>
+    <include>../programs/benchmarks/ssh-simplified/*clnt*1*.c</include>
+    <include>../programs/benchmarks/product-lines/*product1*.c</include>
+    <exclude>../programs/benchmarks/product-lines/email*</exclude>
+  </tasks>
 
-    <tasks name="va-bdd-eq">
-      <option name="-valueAnalysis-BDD-bool-intEQ"/>
-      <include>../programs/benchmarks/ssh/*clnt*1*.c</include>
-      <include>../programs/benchmarks/ssh-simplified/*clnt*1*.c</include>
-      <include>../programs/benchmarks/product-lines/*product1*.c</include>
-      <exclude>../programs/benchmarks/product-lines/email*</exclude>
-    </tasks>
+  <tasks name="va-bdd-add">
+    <option name="-valueAnalysis-BDD-bool-intEQ-intADD"/>
+    <include>../programs/benchmarks/ssh/*srvr*.c</include>
+    <include>../programs/benchmarks/ssh-simplified/*srvr*.c</include>
+    <include>../programs/benchmarks/product-lines/*product2*.c</include>
+    <exclude>../programs/benchmarks/ssh/*srvr*1*.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*.c</exclude>
+    <exclude>../programs/benchmarks/product-lines/email*</exclude>
+  </tasks>
 
-    <tasks name="va-bdd-add">
-      <option name="-valueAnalysis-BDD-bool-intEQ-intADD"/>
-      <include>../programs/benchmarks/ssh/*srvr*.c</include>
-      <include>../programs/benchmarks/ssh-simplified/*srvr*.c</include>
-      <include>../programs/benchmarks/product-lines/*product2*.c</include>
-      <exclude>../programs/benchmarks/ssh/*srvr*1*.c</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*.c</exclude>
-      <exclude>../programs/benchmarks/product-lines/email*</exclude>
-    </tasks>
+  <tasks name="plain-bdd">
+    <option name="-bddAnalysis"/>
+    <option name="-setprop">cpa.bdd.compressIntEqual=false</option>
+    <include>../programs/benchmarks/ssh/*srvr*1*.c</include>
+    <include>../programs/benchmarks/ssh-simplified/*srvr*1*.c</include>
+    <include>../programs/benchmarks/product-lines/*product3*.c</include>
+    <exclude reason="java heap size near limit">../programs/benchmarks/product-lines/elevator_spec13_product30_true-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/product-lines/email*</exclude>
+  </tasks>
 
-    <tasks name="plain-bdd">
-      <option name="-bddAnalysis"/>
-      <option name="-setprop">cpa.bdd.compressIntEqual=false</option>
-      <include>../programs/benchmarks/ssh/*srvr*1*.c</include>
-      <include>../programs/benchmarks/ssh-simplified/*srvr*1*.c</include>
-      <include>../programs/benchmarks/product-lines/*product3*.c</include>
-      <exclude reason="java heap size near limit">../programs/benchmarks/product-lines/elevator_spec13_product30_true-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/product-lines/email*</exclude>
-    </tasks>
-
-    <tasks name="Loops">
-      <option name="-bddAnalysis"/>
-      <includesfile>../programs/benchmarks/Loops.set</includesfile>
-      <exclude>../programs/benchmarks/loops/matrix*</exclude>
-      <exclude>../programs/benchmarks/loops/for*</exclude>
-      <exclude>../programs/benchmarks/loops/bubble*</exclude>
-      <exclude>../programs/benchmarks/loops/n.*</exclude>
-      <exclude>../programs/benchmarks/loops/sum*</exclude>
-      <exclude>../programs/benchmarks/loops/eureka*</exclude>
-      <exclude>../programs/benchmarks/loops/*string*</exclude>
-    </tasks>
-
-  </rundefinition>
-
+  <tasks name="Loops">
+    <option name="-bddAnalysis"/>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loops/matrix*</exclude>
+    <exclude>../programs/benchmarks/loops/for*</exclude>
+    <exclude>../programs/benchmarks/loops/bubble*</exclude>
+    <exclude>../programs/benchmarks/loops/n.*</exclude>
+    <exclude>../programs/benchmarks/loops/sum*</exclude>
+    <exclude>../programs/benchmarks/loops/eureka*</exclude>
+    <exclude>../programs/benchmarks/loops/*string*</exclude>
+  </tasks>
 </benchmark>

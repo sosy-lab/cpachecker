@@ -28,11 +28,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
@@ -131,6 +136,23 @@ public class Automaton {
 
   public ImmutableMap<String, AutomatonVariable> getInitialVariables() {
     return initVars;
+  }
+
+  public Collection<ExpressionTree<AExpression>> getAllCandidateInvariants() {
+    Collection<ExpressionTree<AExpression>> invariants = new ArrayList<>(states.size());
+    ExpressionTree<AExpression> invariant;
+
+    for (AutomatonInternalState state : states) {
+      for (AutomatonTransition trans : state.getTransitions()) {
+        invariant = trans.getCandidateInvariants();
+        if (invariant == ExpressionTrees.<AExpression>getTrue()
+            || invariant == ExpressionTrees.<AExpression>getFalse()) {
+          continue;
+        }
+        invariants.add(invariant);
+      }
+    }
+    return invariants;
   }
 
   /**

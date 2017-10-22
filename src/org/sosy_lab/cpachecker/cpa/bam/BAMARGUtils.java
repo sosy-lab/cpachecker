@@ -92,8 +92,8 @@ class BAMARGUtils {
       for (ARGState child : currentElement.getChildren()) {
         List<CFAEdge> edges = currentElement.getEdgesToChild(child);
         if (edges.isEmpty()) {
-          //this is a summary edge
-          Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement);
+          // this is a summary edge
+          Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement, child);
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
         if (!worklist.contains(child)) {
@@ -105,11 +105,12 @@ class BAMARGUtils {
     }
   }
 
-  private static Pair<Block, ReachedSet> getCachedReachedSet(BAMCPA cpa, ARGState root) {
+  private static Pair<Block, ReachedSet> getCachedReachedSet(
+      BAMCPA cpa, ARGState root, ARGState exitState) {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
 
-    ReachedSet reachSet = cpa.getData().getReachedSetForInitialState(root);
+    ReachedSet reachSet = cpa.getData().getReachedSetForInitialState(root, exitState);
     assert reachSet != null;
     return Pair.of(rootSubtree, reachSet);
   }

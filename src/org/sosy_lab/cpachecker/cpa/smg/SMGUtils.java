@@ -77,7 +77,7 @@ public final class SMGUtils {
     return pInputSMG.getHVEdges(valueFilter);
   }
 
-  public static boolean isRecursiveOnOffset(CType pType, int fieldOffset, MachineModel pModel) {
+  public static boolean isRecursiveOnOffset(CType pType, long fieldOffset, MachineModel pModel) {
 
     CFieldTypeVisitor v = new CFieldTypeVisitor(fieldOffset, pModel);
 
@@ -92,12 +92,12 @@ public final class SMGUtils {
 
   private static class CFieldTypeVisitor implements CTypeVisitor<CType, RuntimeException> {
 
-    private final int fieldOffset;
+    private final long fieldOffset;
     private final MachineModel model;
     private static final CType UNKNOWN = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
         false, false, false, false, false, false, false);
 
-    public CFieldTypeVisitor(int pFieldOffset, MachineModel pModel) {
+    public CFieldTypeVisitor(long pFieldOffset, MachineModel pModel) {
       fieldOffset = pFieldOffset;
       model = pModel;
     }
@@ -108,7 +108,7 @@ public final class SMGUtils {
 
     @Override
     public CType visit(CArrayType pArrayType) {
-      if (fieldOffset % model.getBitSizeof(pArrayType) == 0) {
+      if (fieldOffset % model.getSizeofInBits(pArrayType) == 0) {
         return pArrayType.getType();
       } else {
         return UNKNOWN;
@@ -120,7 +120,7 @@ public final class SMGUtils {
 
       List<CCompositeTypeMemberDeclaration> members = pCompositeType.getMembers();
 
-      int memberOffset = 0;
+      long memberOffset = 0;
       for (CCompositeTypeMemberDeclaration member : members) {
 
         if (fieldOffset == memberOffset) {
@@ -128,7 +128,7 @@ public final class SMGUtils {
         } else if (memberOffset > fieldOffset) {
           return UNKNOWN;
         } else {
-          memberOffset = memberOffset + model.getBitSizeof(member.getType());
+          memberOffset = memberOffset + model.getSizeofInBits(member.getType());
         }
       }
 

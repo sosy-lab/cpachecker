@@ -100,8 +100,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -115,9 +113,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -235,7 +236,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
    */
-  public int getBitSizeof(CType pType) {
+  protected int getBitSizeof(CType pType) {
     return typeHandler.getBitSizeof(pType);
   }
 
@@ -294,8 +295,22 @@ public class CtoFormulaConverter {
     return true;
   }
 
-  public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    return typeHandler.getFormulaTypeFromCType(type);
+  public final FormulaType<?> getFormulaTypeFromCType(CType type) {
+    if (type instanceof CSimpleType) {
+      CSimpleType simpleType = (CSimpleType) type;
+      switch (simpleType.getType()) {
+        case FLOAT:
+          return FormulaType.getSinglePrecisionFloatingPointType();
+        case DOUBLE:
+          return FormulaType.getDoublePrecisionFloatingPointType();
+        default:
+          break;
+      }
+    }
+
+    int bitSize = typeHandler.getBitSizeof(type);
+
+    return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
 
   /**
@@ -323,11 +338,8 @@ public class CtoFormulaConverter {
     return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
   }
 
-  /**
-   * Produces a fresh new SSA index for an assignment
-   * and updates the SSA map.
-   */
-  public int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+  /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
+  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
@@ -501,6 +513,15 @@ public class CtoFormulaConverter {
     return result;
   }
 
+  protected Formula makeNondet(
+      final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
+    Formula newVariable = makeFreshVariable(name, type, ssa);
+    if (options.addRangeConstraintsForNondet()) {
+      addRangeConstraint(newVariable, type, constraints);
+    }
+    return newVariable;
+  }
+
   Formula makeStringLiteral(String literal) {
     Formula result = stringLitToFormula.get(literal);
 
@@ -591,7 +612,7 @@ public class CtoFormulaConverter {
    *  This method should only be used for a previously declared variable,
    *  otherwise the SSA-index is invalid.
    *  Example:  MIN_INT <= X <= MAX_INT  */
-  protected void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
+  private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
       final CSimpleType sType = (CSimpleType)type;
@@ -713,29 +734,45 @@ public class CtoFormulaConverter {
       throw new AssertionError("Not a simple type: " + t);
     };
 
-    final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
-    final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
+    final FormulaType<?> fromType = getFormulaTypeFromCType(pFromCType);
+    final FormulaType<?> toType = getFormulaTypeFromCType(pToCType);
 
     final Formula ret;
     if (fromType.equals(toType)) {
       ret = pFormula;
 
     } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
-      int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
-      if (fromSize > toSize) {
-        ret = fmgr.makeExtract(pFormula, toSize-1, 0, isSigned.test(pFromCType));
+      int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
 
-      } else if (fromSize < toSize) {
-        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
+      // Cf. C-Standard 6.3.1.2 (1)
+      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)) {
+        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
+        Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
+        Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
 
+        ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
-        ret = pFormula;
-      }
+        if (fromSize > toSize) {
+          ret = fmgr.makeExtract(pFormula, toSize - 1, 0, isSigned.test(pFromCType));
 
+        } else if (fromSize < toSize) {
+          ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
+
+        } else {
+          ret = pFormula;
+        }
+      }
     } else if (fromType.isFloatingPointType()) {
-      ret = fmgr.getFloatingPointFormulaManager().castTo(
-          (FloatingPointFormula)pFormula, toType);
+      if (toType.isFloatingPointType()) {
+        ret = fmgr.getFloatingPointFormulaManager().castTo((FloatingPointFormula) pFormula, toType);
+      } else {
+      // Cf. C-Standard 6.3.1.4 (1).
+      ret =
+          fmgr.getFloatingPointFormulaManager()
+              .castTo(
+                  (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
+      }
 
     } else if (toType.isFloatingPointType()) {
       ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
@@ -775,7 +812,8 @@ public class CtoFormulaConverter {
    * convert the literal into a floating-point literal.
    * Otherwise return the expression unchanged.
    */
-  public CExpression convertLiteralToFloatIfNecessary(final CExpression pExp, final CType targetType) {
+  protected CExpression convertLiteralToFloatIfNecessary(
+      final CExpression pExp, final CType targetType) {
     if (!isFloatingPointType(targetType)) {
       return pExp;
     }
@@ -798,14 +836,6 @@ public class CtoFormulaConverter {
           logger, e.getFileLocation());
       return new CFloatLiteralExpression(e.getFileLocation(), targetType,
           floatValue.asNumericValue().bigDecimalValue());
-    }
-
-    if (e instanceof CFloatLiteralExpression) {
-      NumericValue floatValue = new NumericValue(((CFloatLiteralExpression)e).getValue());
-      if (negative) {
-        floatValue = floatValue.negate();
-      }
-      return new CFloatLiteralExpression(e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
     }
 
     return pExp;
@@ -1013,7 +1043,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  protected BooleanFormula makeStatement(
+  private BooleanFormula makeStatement(
       final CStatementEdge statement, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
@@ -1364,9 +1394,8 @@ public class CtoFormulaConverter {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  public Formula buildTermFromPathFormula(PathFormula pFormula,
-      CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException {
+  public final Formula buildTermFromPathFormula(
+      PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);
@@ -1381,14 +1410,19 @@ public class CtoFormulaConverter {
     );
   }
 
-  protected Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
-      Constraints constraints, ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException {
+  protected Formula buildTerm(
+      CRightHandSide exp,
+      CFAEdge edge,
+      String function,
+      SSAMapBuilder ssa,
+      PointerTargetSetBuilder pts,
+      Constraints constraints,
+      ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException {
     return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  protected Formula buildLvalueTerm(CLeftHandSide exp,
+  private Formula buildLvalueTerm(CLeftHandSide exp,
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
@@ -1437,7 +1471,9 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException, InterruptedException {
+  public final BooleanFormula makePredicate(
+      CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
+      throws UnrecognizedCCodeException, InterruptedException {
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);

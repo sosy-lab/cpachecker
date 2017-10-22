@@ -171,7 +171,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.errorConditions = errorConditions;
     this.pts = pts;
     this.regionMgr = regionMgr;
-    this.baseVisitor = new BaseVisitor(cfaEdge, pts, typeHandler);
   }
 
   /**
@@ -322,6 +321,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
     e = e.withExplicitPointerDereference();
 
+    BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
       final String variableName = variable.getName();
@@ -412,18 +412,16 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
     final CType resultType = typeHandler.getSimplifiedType(e);
 
-    if (!pts.isActualBase(e.getDeclaration().getQualifiedName())
+    final String variableName = e.getDeclaration().getQualifiedName();
+    if (!pts.isActualBase(variableName)
         && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
-      Variable variable = Variable.create(e.getDeclaration().getQualifiedName(), resultType);
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
-        final String variableName = variable.getName();
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
-        return Value.ofValue(conv.makeConstant(variable.getName(), variable.getType()));
+        return Value.ofValue(conv.makeConstant(variableName, resultType));
       }
     } else {
-      final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(e.getDeclaration().getQualifiedName()),
-                                                CTypeUtils.getBaseType(resultType));
+      final Formula address = conv.makeBaseAddress(variableName, resultType);
       return AliasedLocation.ofAddress(address);
     }
   }
@@ -440,6 +438,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     if (e.getOperator() == UnaryOperator.AMPER) {
       final CExpression operand = e.getOperand();
 
+      BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
       final Variable baseVariable = operand.accept(baseVisitor);
       // Whether the addressed location was previously aliased (tracked with UFs)
       // If it was, there was no base variable/prefix used to hold its value and we simply return the
@@ -511,24 +510,26 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
-        final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
-                                                      CTypeUtils.getBaseType(base.getType()));
-        conv.addValueImportConstraints(edge,
-                                       baseAddress,
-                                       base,
-                                       initializedFields,
-                                       ssa,
-                                       constraints,
-                                       null);
+        final Formula baseAddress = conv.makeBaseAddress(base.getName(), base.getType());
+        conv.addValueImportConstraints(
+            baseAddress,
+            base.getName(),
+            base.getType(),
+            initializedFields,
+            ssa,
+            constraints,
+            null);
         if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
           ssa.deleteVariable(base.getName());
         }
-        conv.addPreFilledBase(base.getName(),
-                              base.getType(),
-                              pts.isPreparedBase(base.getName()),
-                              false,
-                              constraints,
-                              pts);
+        if (pts.isPreparedBase(base.getName())) {
+          pts.shareBase(base.getName(), base.getType());
+        } else {
+          Formula size =
+              conv.fmgr.makeNumber(
+                  conv.voidPointerFormulaType, typeHandler.getSizeof(base.getType()));
+          pts.addBase(base.getName(), base.getType(), size, constraints);
+        }
         return visit(e);
       }
     } else {
@@ -699,7 +700,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final PointerTargetSetBuilder pts;
   private final MemoryRegionManager regionMgr;
 
-  private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;
 
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);

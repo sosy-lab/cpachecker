@@ -39,7 +39,7 @@ public class SMGEdgeHasValueFilter {
   private SMGObject object = null;
   private Integer value = null;
   private boolean valueComplement = false;
-  private Integer offset = null;
+  private Long offset = null;
   private CType type = null;
 
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
@@ -59,7 +59,7 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
-  public SMGEdgeHasValueFilter filterAtOffset(Integer pOffset) {
+  public SMGEdgeHasValueFilter filterAtOffset(long pOffset) {
     offset = pOffset;
     return this;
   }
@@ -93,7 +93,7 @@ public class SMGEdgeHasValueFilter {
   }
 
   @Deprecated
-  public Integer filtersAtOffset() {
+  public Long filtersAtOffset() {
     return offset;
   }
 
@@ -164,6 +164,7 @@ public class SMGEdgeHasValueFilter {
     return filter(filtered);
   }
 
+  /** Info: Please use SMG.getHVEdges(filter) for better performance when filtering for objects. */
   public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {
     return Iterables.filter(pEdges, this::holdsFor);
   }

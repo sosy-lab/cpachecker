@@ -318,7 +318,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     assert reached != null;
-    data.registerInitialState(initialState, reached);
+    registerInitalAndExitStates(initialState, statesForFurtherAnalysis, reached);
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {

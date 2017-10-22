@@ -92,9 +92,11 @@ public class ConfigurationFilesTest {
           ".*File .* does not exist.*"
               + "|The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
+              + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
               + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*"
+              + "|.*Witness file is missing in specification.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -123,6 +125,7 @@ public class ConfigurationFilesTest {
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
+          "witness.stopNotBreakAtSinkStates",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -132,7 +135,15 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config");
+          "counterexample.checker.config",
+          // present in config files that derive their PCC validation configuration from the
+          // analysis configuration
+          "ARGCPA.cpa",
+          "cegar.refiner",
+          "cpa.predicate.refinement.performInitialStaticRefinement",
+          // options set with inject(...,...)
+          "pcc.proof",
+          "pcc.partial.stopAddingAtReachedSetSize");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {

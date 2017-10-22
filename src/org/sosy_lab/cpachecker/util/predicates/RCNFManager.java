@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -105,7 +109,7 @@ public class RCNFManager implements StatisticsProvider {
   private FormulaManagerView fmgr = null;
   private BooleanFormulaManager bfmgr = null;
   private final RCNFConversionStatistics statistics;
-  private final HashMap<BooleanFormula, Set<BooleanFormula>> conversionCache;
+  private final Map<BooleanFormula, ImmutableSet<BooleanFormula>> conversionCache;
 
   public RCNFManager(Configuration options)
       throws InvalidConfigurationException{
@@ -138,12 +142,12 @@ public class RCNFManager implements StatisticsProvider {
    *              Contains only latest SSA indexes.
    * @param pFmgr Formula manager which performs the conversion.
    */
-  public Set<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
+  public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
     Preconditions.checkNotNull(pFmgr);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
 
-    Set<BooleanFormula> out = conversionCache.get(input);
+    ImmutableSet<BooleanFormula> out = conversionCache.get(input);
     if (out != null) {
       statistics.conversionCacheHits++;
       return out;
@@ -252,15 +256,15 @@ public class RCNFManager implements StatisticsProvider {
     });
   }
 
-  private BooleanFormula expandClause(final BooleanFormula input) {
-    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<BooleanFormula>() {
+  private Iterable<BooleanFormula> expandClause(final BooleanFormula input) {
+    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
       @Override
-      protected BooleanFormula visitDefault() {
-        return input;
+      protected Iterable<BooleanFormula> visitDefault() {
+        return ImmutableList.of(input);
       }
 
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> operands) {
+      public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
         long sizeAfterExpansion = 1;
 
         List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
@@ -280,23 +284,21 @@ public class RCNFManager implements StatisticsProvider {
         if (sizeAfterExpansion <= expansionResultSizeLimit) {
           // Perform recursive expansion.
           Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-          return product.stream().map(bfmgr::or).collect(bfmgr.toConjunction());
+          return from(product).transform(bfmgr::or);
         } else {
-          return bfmgr.or(operands);
+          return ImmutableList.of(bfmgr.or(operands));
         }
       }
     });
   }
 
-  private Set<BooleanFormula> convert(BooleanFormula input) {
+  private ImmutableSet<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
     Set<BooleanFormula> factorizedLemmas =
         bfmgr.toConjunctionArgs(factorized, true);
-    Set<BooleanFormula> out = new HashSet<>();
+    ImmutableSet.Builder<BooleanFormula> out = ImmutableSet.builder();
     for (BooleanFormula lemma : factorizedLemmas) {
-      BooleanFormula expanded = expandClause(lemma);
-      Set<BooleanFormula> expandedLemmas =
-          bfmgr.toConjunctionArgs(expanded, true);
+      Iterable<BooleanFormula> expandedLemmas = expandClause(lemma);
       for (BooleanFormula l : expandedLemmas) {
         if (expandEquality) {
           out.addAll(bfmgr.toConjunctionArgs(
@@ -306,7 +308,7 @@ public class RCNFManager implements StatisticsProvider {
         }
       }
     }
-    return out;
+    return out.build();
   }
 
   /**

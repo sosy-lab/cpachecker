@@ -82,7 +82,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Option(secure=true,
       name = "proof",
       description = "file in which proof representation needed for proof checking is stored")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   protected Path proofFile = Paths.get("arg.obj");
 
   public ProofCheckAlgorithm(
@@ -95,6 +95,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     pConfig.inject(this, ProofCheckAlgorithm.class);
 
+    if (!proofFile.toFile().exists()) {
+      throw new InvalidConfigurationException(
+        "Cannot find proof file. File " + proofFile.toString() + " does not exists.");
+    }
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
             pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);

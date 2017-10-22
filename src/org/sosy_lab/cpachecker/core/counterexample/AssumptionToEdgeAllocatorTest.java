@@ -238,13 +238,10 @@ public class AssumptionToEdgeAllocatorTest {
 
   private void testWithEdge(CFAEdge pEdge) throws InvalidConfigurationException {
 
-    Configuration testConfig = Configuration
-        .builder()
-        .copyFrom(Configuration.defaultConfiguration())
-        .setOption("counterexample.export.assumptions.includeConstantsForPointers", "true")
-        .build();
+    Configuration testConfig = TestDataTools.configurationForTest().build();
 
-    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(testConfig, logger, machineModel);
+    AssumptionToEdgeAllocator allocator =
+        AssumptionToEdgeAllocator.create(testConfig, logger, machineModel);
 
     CFAEdgeWithAssumptions assignmentEdgeFull = allocator.allocateAssumptionsToEdge(pEdge, full);
     CFAEdgeWithAssumptions assignmentEdgeSymbolic = allocator.allocateAssumptionsToEdge(pEdge, symbolic);

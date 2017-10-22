@@ -606,7 +606,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       BooleanFormula fLess = bfmgr.and(list);
 
       list.clear();
-      for (AbstractionPredicate abs : lessPrecise) {
+      for (AbstractionPredicate abs : morePrecise) {
         list.add(abs.getSymbolicAtom());
       }
       BooleanFormula fMore = bfmgr.and(list);
@@ -614,7 +614,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       fMore = bfmgr.and(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      return solver.isUnsat(fMore);
+      return !solver.isUnsat(fMore);
     }
 
     return lessPrecise == null && morePrecise != null;

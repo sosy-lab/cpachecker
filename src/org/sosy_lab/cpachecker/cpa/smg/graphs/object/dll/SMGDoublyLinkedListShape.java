@@ -29,21 +29,21 @@ import java.util.Objects;
 public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
 
   /** head field offset */
-  private final int hfo;
+  private final long hfo;
   /** prev field offset */
-  private final int pfo;
+  private final long pfo;
   /** next field offset */
-  private final int nfo;
+  private final long nfo;
 
-  public int getHfo() {
+  public long getHfo() {
     return hfo;
   }
 
-  public int getPfo() {
+  public long getPfo() {
     return pfo;
   }
 
-  public int getNfo() {
+  public long getNfo() {
     return nfo;
   }
 
@@ -67,7 +67,7 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
     return hfo == other.hfo && nfo == other.nfo && pfo == other.pfo;
   }
 
-  public SMGDoublyLinkedListShape(int pHfo, int pPfo, int pNfo) {
+  public SMGDoublyLinkedListShape(long pHfo, long pPfo, long pNfo) {
     hfo = pHfo;
     pfo = pPfo;
     nfo = pNfo;

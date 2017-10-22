@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -43,13 +42,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
@@ -82,42 +79,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -126,10 +94,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -154,6 +119,12 @@ public class AutomatonGraphmlParser {
 
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
+
+  @Option(
+    secure = true,
+    description = "Represent sink states by bottom state instead of break state"
+  )
+  private boolean stopNotBreakAtSinkStates = true;
 
   @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
@@ -189,10 +160,7 @@ public class AutomatonGraphmlParser {
   private final LogManager logger;
   private final Configuration config;
   private final CFA cfa;
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-  private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
-  private final ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newCachingFactory();
-  private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier(factory);
+  private final ParserTools parserTools;
 
   public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, CFA pCFA, Scope pScope)
       throws InvalidConfigurationException {
@@ -202,9 +170,8 @@ public class AutomatonGraphmlParser {
     this.logger = pLogger;
     this.cfa = pCFA;
     this.config = pConfig;
-
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(pCFA.getMachineModel(), logger);
-    fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
+    this.parserTools =
+        ParserTools.create(ExpressionTrees.newCachingFactory(), cfa.getMachineModel(), logger);
   }
 
   /**
@@ -280,6 +247,7 @@ public class AutomatonGraphmlParser {
       checkArchitecture(architecture);
 
       final WitnessType graphType = getWitnessType(graphNode);
+      final Set<PropertyType> specType = getSpecAsProperties(graphNode);
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
@@ -454,7 +422,8 @@ public class AutomatonGraphmlParser {
               GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTION);
           assumptions.addAll(
               CParserUtils.convertStatementsToAssumptions(
-                  parseStatements(transAssumes, assumptionResultFunction, scope, cparser),
+                  CParserUtils.parseStatements(transAssumes, assumptionResultFunction, cparser,
+                      scope, parserTools),
                   cfa.getMachineModel(),
                   logger));
           if (graphType == WitnessType.CORRECTNESS_WITNESS && !assumptions.isEmpty()) {
@@ -478,14 +447,15 @@ public class AutomatonGraphmlParser {
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
         if (!candidates.isEmpty()) {
-          if (graphType == WitnessType.VIOLATION_WITNESS) {
+          if (graphType == WitnessType.VIOLATION_WITNESS
+              && !specType.contains(PropertyType.TERMINATION)) {
             throw new WitnessParseException("Invariants are not allowed for violation witnesses.");
           }
           candidateInvariants =
               And.of(
                   candidateInvariants,
-                  parseStatementsAsExpressionTree(
-                      candidates, resultFunction, candidateScope, cparser));
+                  CParserUtils.parseStatementsAsExpressionTree(
+                      candidates, resultFunction, cparser, candidateScope, parserTools));
         }
 
         if (matchOriginLine) {
@@ -513,7 +483,8 @@ public class AutomatonGraphmlParser {
                   fpElseTrigger,
                   Collections.<AutomatonBoolExpr>emptyList(),
                   actions,
-                  false));
+                  false,
+                  stopNotBreakAtSinkStates));
         }
 
         if (functionEntry != null) {
@@ -539,7 +510,8 @@ public class AutomatonGraphmlParser {
         }
         stutterConditions.put(sourceStateId, stutterCondition);
 
-        // If the triggers match, there must be one successor state that moves the automaton forwards
+        // If the triggers match, there must be one successor state that moves the automaton
+        // forwards
         transitions.add(
             createAutomatonTransition(
                 conjoinedTriggers,
@@ -549,6 +521,7 @@ public class AutomatonGraphmlParser {
                 actions,
                 targetStateId,
                 leadsToViolationNode,
+                stopNotBreakAtSinkStates,
                 sinkStates));
 
         // Multiple CFA edges in a sequence might match the triggers,
@@ -568,6 +541,7 @@ public class AutomatonGraphmlParser {
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   sourceIsViolationNode,
+                  stopNotBreakAtSinkStates,
                   sinkStates));
         }
       }
@@ -600,6 +574,7 @@ public class AutomatonGraphmlParser {
                 Collections.<AutomatonAction>emptyList(),
                 stateId,
                 violationStates.contains(stateId),
+                stopNotBreakAtSinkStates,
                 sinkStates));
 
         if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
@@ -614,6 +589,7 @@ public class AutomatonGraphmlParser {
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true,
+                  stopNotBreakAtSinkStates,
                   sinkStates));
         }
 
@@ -625,7 +601,9 @@ public class AutomatonGraphmlParser {
         // Determine if "matchAll" should be enabled
         boolean matchAll = true;
 
-        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, matchAll);
+        AutomatonInternalState state =
+            new AutomatonInternalState(
+                stateId, transitions, false, matchAll, nodeFlags.contains(NodeFlag.ISCYCLEHEAD));
         automatonStates.add(state);
       }
 
@@ -672,8 +650,6 @@ public class AutomatonGraphmlParser {
       throw new WitnessParseException(e);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException("The witness automaton provided is invalid!", e);
-    } catch (CParserException e) {
-      throw new WitnessParseException("The witness automaton contains invalid C code!", e);
     }
   }
 
@@ -1053,6 +1029,43 @@ public class AutomatonGraphmlParser {
     return witnessType;
   }
 
+  private Set<PropertyType> getSpecAsProperties(final Node pAutomaton) {
+    Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
+    if (specText.isEmpty()) {
+      return Sets.newHashSet(PropertyType.REACHABILITY);
+    } else {
+      Set<PropertyType> properties = Sets.newHashSetWithExpectedSize(specText.size());
+      for (String prop : specText) {
+        try {
+        properties.add(getProperty(prop));
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+          logger.log(Level.WARNING, String.format("Cannot map specification %s to property type. Will ignore it.", prop));
+        }
+      }
+      return properties;
+    }
+  }
+
+  private PropertyType getProperty(final String pProperty) {
+    String prop;
+    if (pProperty.trim().startsWith("CHECK")) {
+      prop = pProperty.substring(pProperty.indexOf(",") + 1, pProperty.lastIndexOf(")")).trim();
+      if (prop.startsWith("LTL")) {
+        prop = prop.substring(prop.indexOf("(") + 1, prop.lastIndexOf(")"));
+      }
+    } else {
+      prop = pProperty;
+    }
+
+    for (PropertyType propType : PropertyType.values()) {
+      if (propType.toString().equals(prop)) {
+        return propType;
+      }
+    }
+
+    return PropertyType.valueOf(prop.trim());
+  }
+
   /**
    * Compute the distances from automaton states to violation states.
    *
@@ -1222,345 +1235,6 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private Collection<CStatement> parseStatements(
-      Set<String> pStatements, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException {
-    if (!pStatements.isEmpty()) {
-
-      Set<CStatement> result = new HashSet<>();
-      for (String assumeCode : pStatements) {
-        Collection<CStatement> statements =
-            removeDuplicates(
-                adjustCharAssignments(
-                    parseAsCStatements(assumeCode, pResultFunction, pScope, pCParser)));
-        result.addAll(statements);
-      }
-      return result;
-    }
-    return Collections.emptySet();
-  }
-
-  private Collection<CStatement> parseAsCStatements(
-      String pCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException {
-    Collection<CStatement> result = new HashSet<>();
-    boolean fallBack = false;
-    ExpressionTree<AExpression> tree = parseStatement(pCode, pResultFunction, pScope, pCParser);
-    if (!tree.equals(ExpressionTrees.getTrue())) {
-      if (tree.equals(ExpressionTrees.getFalse())) {
-        return Collections.<CStatement>singleton(
-            new CExpressionStatement(
-                FileLocation.DUMMY,
-                new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
-      }
-      if (tree instanceof LeafExpression) {
-        LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
-        AExpression expression = leaf.getExpression();
-        if (expression instanceof CExpression) {
-          result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
-        } else {
-          fallBack = true;
-        }
-      } else if (ExpressionTrees.isAnd(tree)) {
-        for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
-          if (child instanceof LeafExpression) {
-            AExpression expression = ((LeafExpression<AExpression>) child).getExpression();
-            if (expression instanceof CExpression) {
-              result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
-            } else {
-              fallBack = true;
-            }
-          } else {
-            fallBack = true;
-          }
-        }
-      } else {
-        fallBack = true;
-      }
-    }
-    if (fallBack) {
-      return CParserUtils.parseListOfStatements(
-          tryFixACSL(tryFixArrayInitializers(pCode), pResultFunction, pScope), pCParser, pScope);
-    }
-    return result;
-  }
-
-  private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
-      Set<String> pStatements, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
-      throws InvalidAutomatonException {
-    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
-    for (String assumeCode : pStatements) {
-      try {
-        ExpressionTree<AExpression> expressionTree =
-            parseStatement(assumeCode, pResultFunction, pScope, pCParser);
-        result = And.of(result, expressionTree);
-      } catch (CParserException e) {
-        logger.log(Level.WARNING, "Cannot parse code: " + assumeCode);
-      }
-    }
-    return result;
-  }
-
-  private ExpressionTree<AExpression> parseStatement(
-      String pAssumeCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException {
-
-    // Try the old method first; it works for simple expressions
-    // and also supports assignment statements and multiple statements easily
-    String assumeCode = tryFixArrayInitializers(pAssumeCode);
-    Collection<CStatement> statements = null;
-    try {
-      statements = CParserUtils.parseListOfStatements(assumeCode, pCParser, pScope);
-    } catch (RuntimeException e) {
-      if (e.getMessage() != null && e.getMessage().contains("Syntax error:")) {
-        statements =
-            CParserUtils.parseListOfStatements(
-                tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
-      } else {
-        throw e;
-      }
-    } catch (CParserException e) {
-      statements =
-          CParserUtils.parseListOfStatements(
-              tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
-    }
-    statements = removeDuplicates(adjustCharAssignments(statements));
-    // Check that no expressions were split
-    if (!FluentIterable.from(statements)
-        .anyMatch(statement -> statement.toString().toUpperCase().contains("__CPACHECKER_TMP"))) {
-      return And.of(FluentIterable.from(statements).transform(fromStatement));
-    }
-
-    // For complex expressions, assume we are dealing with expression statements
-    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
-    try {
-      result = parseExpression(pAssumeCode, pResultFunction, pScope, pCParser);
-    } catch (CParserException e) {
-      // Try splitting on ';' to support legacy code:
-      Splitter semicolonSplitter = Splitter.on(';').omitEmptyStrings().trimResults();
-      List<String> clausesStrings = semicolonSplitter.splitToList(pAssumeCode);
-      if (clausesStrings.isEmpty()) {
-        throw e;
-      }
-      List<ExpressionTree<AExpression>> clauses = new ArrayList<>(clausesStrings.size());
-      for (String statement : clausesStrings) {
-        clauses.add(parseExpression(statement, pResultFunction, pScope, pCParser));
-      }
-      result = And.of(clauses);
-    }
-    return result;
-  }
-
-  private String tryFixACSL(String pAssumeCode, Optional<String> pResultFunction, Scope pScope) {
-    String assumeCode = pAssumeCode.trim();
-    if (assumeCode.endsWith(";")) {
-      assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
-    }
-
-    assumeCode = replaceResultVar(pResultFunction, pScope, assumeCode);
-
-    Splitter splitter = Splitter.on("==>").limit(2);
-    while (assumeCode.contains("==>")) {
-      Iterator<String> partIterator = splitter.split(assumeCode).iterator();
-      assumeCode =
-          String.format("!(%s) || (%s)", partIterator.next().trim(), partIterator.next().trim());
-    }
-    return assumeCode;
-  }
-
-  private String replaceResultVar(
-      Optional<String> pResultFunction, Scope pScope, String assumeCode) {
-    if (pResultFunction.isPresent() && pScope instanceof CProgramScope) {
-      CProgramScope scope = (CProgramScope) pScope;
-      String resultFunctionName = pResultFunction.get();
-      if (scope.hasFunctionReturnVariable(resultFunctionName)) {
-        CSimpleDeclaration functionReturnVariable =
-            scope.getFunctionReturnVariable(resultFunctionName);
-        return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
-      }
-    }
-    return assumeCode.replace("\\result", " ___CPAchecker_foo() ");
-  }
-
-  private ExpressionTree<AExpression> parseExpression(
-      String pAssumeCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
-      throws CParserException {
-    String assumeCode = pAssumeCode.trim();
-    while (assumeCode.endsWith(";")) {
-      assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();
-    }
-    String formatString = "int test() { if (%s) { return 1; } else { return 0; } ; }";
-    String testCode = String.format(formatString, assumeCode);
-
-    ParseResult parseResult;
-    try {
-      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
-    } catch (ParserException e) {
-      assumeCode = tryFixACSL(assumeCode, pResultFunction, pScope);
-      testCode = String.format(formatString, assumeCode);
-      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
-    }
-    FunctionEntryNode entryNode = parseResult.getFunctions().values().iterator().next();
-
-    return asExpressionTree(entryNode);
-  }
-
-  private ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pEntry) {
-    Map<CFANode, ExpressionTree<AExpression>> memo = Maps.newHashMap();
-    memo.put(pEntry, ExpressionTrees.<AExpression>getTrue());
-    Set<CFANode> ready = new HashSet<>();
-    ready.add(pEntry);
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.offer(pEntry);
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-
-      // Current tree is already complete in this location
-      ExpressionTree<AExpression> currentTree = memo.get(current);
-
-      // Compute successor trees
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-
-        CFANode succ = leavingEdge.getSuccessor();
-
-        // Get the tree currently stored for the successor
-        ExpressionTree<AExpression> succTree = memo.get(succ);
-        if (succTree == null) {
-          succTree = ExpressionTrees.getFalse();
-        }
-
-        // Now, build the disjunction of the old tree with the new path
-
-        // Handle the return statement: Returning 0 means false, 1 means true
-        if (leavingEdge instanceof AReturnStatementEdge) {
-          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-          com.google.common.base.Optional<? extends AExpression> optExpression =
-              returnStatementEdge.getExpression();
-          assert optExpression.isPresent();
-          if (!optExpression.isPresent()) {
-            return ExpressionTrees.getTrue();
-          }
-          AExpression expression = optExpression.get();
-          if (!(expression instanceof AIntegerLiteralExpression)) {
-            return ExpressionTrees.getTrue();
-          }
-          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
-          // If the value is zero, the current path is 'false', so we do not add it.
-          // If the value is one, we add the current path
-          if (!literal.getValue().equals(BigInteger.ZERO)) {
-            succTree = factory.or(succTree, currentTree);
-          }
-
-          // Handle assume edges
-        } else if (leavingEdge instanceof AssumeEdge) {
-          AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
-          AExpression expression = assumeEdge.getExpression();
-
-          if (expression.toString().contains("__CPAchecker_TMP")) {
-            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
-              Map<AExpression, AExpression> tmpVariableValues =
-                  collectCPAcheckerTMPValues(enteringEdge);
-              if (!tmpVariableValues.isEmpty()) {
-                expression =
-                    replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), tmpVariableValues);
-              }
-              final ExpressionTree<AExpression> newPath;
-              if (assumeEdge.getTruthAssumption()
-                  && !expression.toString().contains("__CPAchecker_TMP")) {
-                newPath =
-                    factory.and(
-                        currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
-              } else {
-                newPath = currentTree;
-              }
-              succTree = factory.or(succTree, newPath);
-            }
-          } else {
-            final ExpressionTree<AExpression> newPath;
-            if (assumeEdge.getTruthAssumption()) {
-              newPath =
-                  factory.and(
-                      currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
-            } else {
-              newPath = currentTree;
-            }
-            succTree = factory.or(succTree, newPath);
-          }
-          // All other edges do not change the path
-        } else {
-          succTree = factory.or(succTree, currentTree);
-        }
-
-        memo.put(succ, succTree);
-      }
-
-      // Prepare successors
-      for (CFANode successor : CFAUtils.successorsOf(current)) {
-        if (CFAUtils.predecessorsOf(successor).allMatch(Predicates.in(ready))
-            && ready.add(successor)) {
-          waitlist.offer(successor);
-        }
-      }
-    }
-    return simplifier.simplify(memo.get(pEntry.getExitNode()));
-  }
-
-  private AExpression replaceCPAcheckerTMPVariables(
-      AExpression pExpression, Map<AExpression, AExpression> pTmpValues) {
-    // Short cut if there cannot be any matches
-    if (pTmpValues.isEmpty()) {
-      return pExpression;
-    }
-    AExpression directMatch = pTmpValues.get(pExpression);
-    if (directMatch != null) {
-      return directMatch;
-    }
-    if (pExpression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
-      CExpression op1 =
-          (CExpression) replaceCPAcheckerTMPVariables(binaryExpression.getOperand1(), pTmpValues);
-      CExpression op2 =
-          (CExpression) replaceCPAcheckerTMPVariables(binaryExpression.getOperand2(), pTmpValues);
-      return new CBinaryExpression(
-          binaryExpression.getFileLocation(),
-          binaryExpression.getExpressionType(),
-          binaryExpression.getCalculationType(),
-          op1,
-          op2,
-          binaryExpression.getOperator());
-    }
-    if (pExpression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
-      CExpression op =
-          (CExpression) replaceCPAcheckerTMPVariables(unaryExpression.getOperand(), pTmpValues);
-      return new CUnaryExpression(
-          unaryExpression.getFileLocation(),
-          unaryExpression.getExpressionType(),
-          op,
-          unaryExpression.getOperator());
-    }
-    return pExpression;
-  }
-
-  private Map<AExpression, AExpression> collectCPAcheckerTMPValues(CFAEdge pEdge) {
-
-    if (pEdge instanceof AStatementEdge) {
-      AStatement statement = ((AStatementEdge) pEdge).getStatement();
-      if (statement instanceof AExpressionAssignmentStatement) {
-        AExpressionAssignmentStatement expAssignStmt = (AExpressionAssignmentStatement) statement;
-        ALeftHandSide lhs = expAssignStmt.getLeftHandSide();
-        if (lhs instanceof AIdExpression
-            && ((AIdExpression) lhs).getName().contains("__CPAchecker_TMP")) {
-          AExpression rhs = expAssignStmt.getRightHandSide();
-          return Collections.<AExpression, AExpression>singletonMap(lhs, rhs);
-        }
-      }
-    }
-
-    return Collections.emptyMap();
-  }
-
   private static AutomatonBoolExpr createViolationAssertion() {
     return and(
         not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY))
@@ -1575,9 +1249,11 @@ public class AutomatonGraphmlParser {
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode,
+      boolean pSinkAsBottomNotBreak,
       Set<String> pSinkNodeIds) {
     if (pSinkNodeIds.contains(pTargetStateId)) {
-      return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
+      return createAutomatonSinkTransition(
+          pTriggers, pAssertions, pActions, pLeadsToViolationNode, pSinkAsBottomNotBreak);
     }
     if (pLeadsToViolationNode) {
       List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
@@ -1592,19 +1268,20 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
       List<AutomatonAction> pActions,
-      boolean pLeadsToViolationNode) {
+      boolean pLeadsToViolationNode,
+      boolean pSinkAsBottomNotBreak) {
     if (pLeadsToViolationNode) {
       return new ViolationCopyingAutomatonTransition(
           pTriggers,
           pAssertions,
           pActions,
-          AutomatonInternalState.BOTTOM);
+          pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
     }
     return new AutomatonTransition(
         pTriggers,
         pAssertions,
         pActions,
-        AutomatonInternalState.BOTTOM);
+        pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
   }
 
   private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
@@ -1658,113 +1335,6 @@ public class AutomatonGraphmlParser {
       return Joiner.on(',').join(violatedPropertyDescriptions);
     }
 
-  }
-
-  /**
-   * Some tools put assumptions for multiple statements on the same edge, which
-   * may lead to contradictions between the assumptions.
-   *
-   * This is clearly a tool error, but for the competition we want to help them
-   * out and only use the last assumption.
-   *
-   * @param pStatements the assumptions.
-   *
-   * @return the duplicate-free assumptions.
-   */
-  private static Collection<CStatement> removeDuplicates(Iterable<? extends CStatement> pStatements) {
-    Map<Object, CStatement> result = new HashMap<>();
-    for (CStatement statement : pStatements) {
-      if (statement instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement assignmentStatement = (CExpressionAssignmentStatement) statement;
-        result.put(assignmentStatement.getLeftHandSide(), assignmentStatement);
-      } else {
-        result.put(statement, statement);
-      }
-    }
-    return result.values();
-  }
-
-  /**
-   * Be nice to tools that assume that default char (when it is neither
-   * specified as signed nor as unsigned) may be unsigned.
-   *
-   * @param pStatements the assignment statements.
-   *
-   * @return the adjusted statements.
-   */
-  private static Collection<CStatement> adjustCharAssignments(Iterable<? extends CStatement> pStatements) {
-    return FluentIterable.from(pStatements).transform(new Function<CStatement, CStatement>() {
-
-      @Override
-      public CStatement apply(CStatement pStatement) {
-        if (pStatement instanceof CExpressionAssignmentStatement) {
-          CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
-          CLeftHandSide leftHandSide = statement.getLeftHandSide();
-          CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
-          if (canonicalType instanceof CSimpleType) {
-            CSimpleType simpleType = (CSimpleType) canonicalType;
-            CBasicType basicType = simpleType.getType();
-            if (basicType.equals(CBasicType.CHAR) && !simpleType.isSigned() && !simpleType.isUnsigned()) {
-              CExpression rightHandSide = statement.getRightHandSide();
-              CExpression castedRightHandSide = new CCastExpression(rightHandSide.getFileLocation(), canonicalType, rightHandSide);
-              return new CExpressionAssignmentStatement(statement.getFileLocation(), leftHandSide, castedRightHandSide);
-            }
-          }
-        }
-        return pStatement;
-      }
-
-    }).toList();
-  }
-
-  /**
-   * Let's be nice to tools that ignore the restriction that array initializers
-   * are not allowed as right-hand sides of assignment statements and try to
-   * help them. This is a hack, no good solution.
-   * We would need a kind-of-but-not-really-C-parser to properly handle these
-   * declarations-that-aren't-declarations.
-   *
-   * @param pAssumeCode the code from the witness assumption.
-   *
-   * @return the code from the witness assumption if no supported array
-   * initializer is contained; otherwise the fixed code.
-   */
-  private static String tryFixArrayInitializers(String pAssumeCode) {
-    String C_INTEGER = "([\\+\\-])?(0[xX])?[0-9a-fA-F]+";
-    String assumeCode = pAssumeCode.trim();
-    if (assumeCode.endsWith(";")) {
-      assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
-    }
-    /*
-     * This only covers the special case of one assignment statement using one
-     * array of integers.
-     */
-    if (assumeCode.matches(".+=\\s*\\{\\s*(" + C_INTEGER + "\\s*(,\\s*" + C_INTEGER + "\\s*)*)?\\}\\s*")) {
-      Iterable<String> assignmentParts = Splitter.on('=').trimResults().split(assumeCode);
-      Iterator<String> assignmentPartIterator = assignmentParts.iterator();
-      if (!assignmentPartIterator.hasNext()) {
-        return pAssumeCode;
-      }
-      String leftHandSide = assignmentPartIterator.next();
-      if (!assignmentPartIterator.hasNext()) {
-        return pAssumeCode;
-      }
-      String rightHandSide = assignmentPartIterator.next().trim();
-      if (assignmentPartIterator.hasNext()) {
-        return pAssumeCode;
-      }
-      assert rightHandSide.startsWith("{") && rightHandSide.endsWith("}");
-      rightHandSide = rightHandSide.substring(1, rightHandSide.length() - 1).trim();
-      Iterable<String> elements = Splitter.on(',').trimResults().split(rightHandSide);
-      StringBuilder resultBuilder = new StringBuilder();
-      int index = 0;
-      for (String element : elements) {
-        resultBuilder.append(String.format("%s[%d] = %s; ", leftHandSide, index, element));
-        ++index;
-      }
-      return resultBuilder.toString();
-    }
-    return pAssumeCode;
   }
 
   private static class GraphMLDocumentData {

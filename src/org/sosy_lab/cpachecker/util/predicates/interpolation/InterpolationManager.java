@@ -67,10 +67,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation.SeqInterpolationStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
@@ -87,7 +88,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-
 
 @Options(prefix="cpa.predicate.refinement")
 public final class InterpolationManager {
@@ -152,7 +152,17 @@ public final class InterpolationManager {
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
   private static enum InterpolationStrategy {
     SEQ, SEQ_CPACHECKER,
-    TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER}
+    TREE,
+    TREE_WELLSCOPED,
+    TREE_NESTED,
+    TREE_CPACHECKER,
+  }
+
+  @Option(secure = true, description = "In case we apply sequential interpolation, "
+      + "forward and backward directions return valid interpolants. "
+      + "We can either choose one of the directions, fallback to the other "
+      + "if one does not succeed, or even combine the interpolants.")
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -613,7 +623,7 @@ public final class InterpolationManager {
     final  ITPStrategy<T> itpStrategy;
     switch (strategy) {
       case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr, sequentialStrategy);
         break;
       case SEQ:
         itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);

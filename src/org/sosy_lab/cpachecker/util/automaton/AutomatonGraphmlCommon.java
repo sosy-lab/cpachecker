@@ -126,6 +126,7 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean", false),
     ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean", false),
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
+    ISCYCLEHEAD("cyclehead", ElementType.NODE, "isCycleHead", "boolean", false),
     ENTERLOOPHEAD("enterLoopHead", ElementType.EDGE, "enterLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
@@ -205,7 +206,8 @@ public class AutomatonGraphmlCommon {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
-    ISSINKNODE(KeyDef.ISSINKNODE);
+    ISSINKNODE(KeyDef.ISSINKNODE),
+    ISCYCLEHEAD(KeyDef.ISCYCLEHEAD);
 
     public final KeyDef key;
 

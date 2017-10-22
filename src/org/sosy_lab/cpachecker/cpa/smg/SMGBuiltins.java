@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
@@ -161,6 +162,7 @@ public class SMGBuiltins {
 
     if (bufferAddress.isUnknown() || countValue.isUnknown()) {
       currentState = currentState.setInvalidWrite();
+      currentState.setErrorDescription("Can't evaluate dst or count for memset");
       return SMGAddressValueAndState.of(currentState);
     }
 
@@ -173,7 +175,7 @@ public class SMGBuiltins {
 
     SMGObject bufferMemory =  bufferAddress.getObject();
 
-    int offset =  bufferAddress.getOffset().getAsInt();
+    long offset =  bufferAddress.getOffset().getAsLong();
 
     if (ch.equals(SMGKnownSymValue.ZERO)) {
       // Create one large edge
@@ -211,7 +213,7 @@ public class SMGBuiltins {
   }
 
   public final SMGAddressValueAndStateList evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
+      CFunctionCallExpression pFunctionCall, SMGState pState) {
     SMGState currentState = pState;
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
@@ -459,6 +461,8 @@ public class SMGBuiltins {
         logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
             " is invalid, because the target of the address could not be calculated.");
         SMGState invalidFreeState = currentState.setInvalidFree();
+        invalidFreeState.setErrorDescription("Free on expression " + pointerExp.toASTString() +
+            " is invalid, because the target of the address could not be calculated.");
         resultStates.add(invalidFreeState);
         continue;
       }
@@ -546,15 +550,15 @@ public class SMGBuiltins {
         List<SMGExplicitValueAndState> sizeValueAndStates = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
 
         for (SMGExplicitValueAndState sizeValueAndState : sizeValueAndStates) {
-          SMGState sizeState = sizeValueAndState.getSmgState();
+          currentState = sizeValueAndState.getSmgState();
           SMGAddressValue targetObject = targetStr1AndState.getObject();
           SMGAddressValue sourceObject = sourceStr2AndState.getObject();
           SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
           if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
             SMGValueAndStateList sizeSymbolicValueAndStates =
-                evaluateExpressionValue(sizeState, pCfaEdge, sizeExpr);
-            int symbolicValueSize = smgTransferRelation.expressionEvaluator.getBitSizeof(pCfaEdge, sizeExpr
-                .getExpressionType(), sizeState);
+                evaluateExpressionValue(currentState, pCfaEdge, sizeExpr);
+            int symbolicValueSize = smgTransferRelation.expressionEvaluator.getBitSizeof(pCfaEdge,
+                sizeExpr.getExpressionType(), currentState);
             for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
                 .getValueAndStateList()) {
               SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
@@ -568,15 +572,18 @@ public class SMGBuiltins {
               int availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown()) {
-                sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                    .valueOf(availableSource), symbolicValueSize, pCfaEdge);
-                sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                    .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                if (!currentState.isObjectExternallyAllocated(sourceObject.getObject())) {
+                  currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                      .valueOf(availableSource), symbolicValueSize, pCfaEdge);
+                }
+                if (!currentState.isObjectExternallyAllocated(targetObject.getObject())) {
+                  currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                      .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                }
               }
             }
           }
-          result.add(evaluateMemcpy(sizeState, targetObject, sourceObject,
-              explicitSizeValue));
+          result.add(evaluateMemcpy(currentState, targetObject, sourceObject, explicitSizeValue));
         }
       }
     }
@@ -598,33 +605,51 @@ public class SMGBuiltins {
         if (sizeValue.isUnknown()) {
           currentState = currentState.setInvalidWrite();
           currentState = currentState.setInvalidRead();
+          currentState.setErrorDescription("Can't evaluate memcpy dst and src");
         } else if (targetStr1Address.isUnknown()) {
           currentState = currentState.setInvalidWrite();
+          currentState.setErrorDescription("Can't evaluate memcpy dst");
         } else {
           currentState = currentState.setInvalidRead();
+          currentState.setErrorDescription("Can't evaluate memcpy src");
         }
       }
+      if (!sourceStr2Address.isUnknown() && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
+        currentState = currentState.setInvalidRead();
+        currentState.setErrorDescription("Memcpy src is null pointer");
+      }
+      if (!targetStr1Address.isUnknown() && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
+        currentState = currentState.setInvalidWrite();
+        currentState.setErrorDescription("Memcpy to null pointer dst");
+      }
+
       if (targetStr1Address.isUnknown()) {
         currentState.unknownWrite();
-        return SMGAddressValueAndState.of(currentState);
       } else {
         //TODO More precise clear of values
         currentState.writeUnknownValueInUnknownField(targetStr1Address.getAddress().getObject());
-        return SMGAddressValueAndState.of(currentState);
       }
+
+      return SMGAddressValueAndState.of(currentState);
     }
 
     SMGObject source = sourceStr2Address.getObject();
     SMGObject target = targetStr1Address.getObject();
 
-    int sourceRangeOffset = sourceStr2Address.getOffset().getAsInt();
-    int sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() + sourceRangeOffset;
-    int targetRangeOffset = targetStr1Address.getOffset().getAsInt();
+    long sourceOffset = sourceStr2Address.getOffset().getAsLong();
+    long sourceLastCopyBitOffset = sizeValue.getAsLong() * machineModel.getSizeofCharInBits() +
+        sourceOffset;
+    long targetOffset = targetStr1Address.getOffset().getAsLong();
 
-    if (sourceRangeSize > source.getSize() - sourceRangeOffset) {
+    if (sourceLastCopyBitOffset > source.getSize()) {
       currentState = currentState.setInvalidRead();
+      currentState.setErrorDescription("Overread on memcpy");
+    } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
+        .getSizeofCharInBits())) {
+      currentState = currentState.setInvalidWrite();
+      currentState.setErrorDescription("Overwrite on memcpy");
     } else {
-      currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
+      currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
     }
 
     return SMGAddressValueAndState.of(currentState, targetStr1Address);

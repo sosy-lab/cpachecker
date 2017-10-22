@@ -28,9 +28,9 @@ public class SMGEdgeTemplate {
 
   private final SMGObjectTemplate abstractObject;
   private final int abstractValue;
-  private final int offset;
+  private final long offset;
 
-  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, int pAbstractValue, int pOffset) {
+  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, int pAbstractValue, long pOffset) {
     abstractObject = pAbstractObject;
     abstractValue = pAbstractValue;
     offset = pOffset;
@@ -44,7 +44,7 @@ public class SMGEdgeTemplate {
     return abstractValue;
   }
 
-  public int getOffset() {
+  public long getOffset() {
     return offset;
   }
 }

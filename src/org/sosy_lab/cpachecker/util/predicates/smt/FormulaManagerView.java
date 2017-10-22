@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -122,6 +121,14 @@ public class FormulaManagerView {
     BITVECTOR,
     FLOAT,
     ;
+
+    String description() {
+      if (this == INTEGER) {
+        return "unbounded integers";
+      } else {
+        return name().toLowerCase() + "s";
+      }
+    }
   }
 
   private final LogManager logger;
@@ -149,12 +156,12 @@ public class FormulaManagerView {
   @Option(secure=true, description="Theory to use as backend for bitvectors."
       + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
       + " This can be used for solvers that do not support bitvectors, or for increased performance.")
-  private Theory encodeBitvectorAs = Theory.INTEGER;
+  private Theory encodeBitvectorAs = Theory.BITVECTOR;
 
   @Option(secure=true, description="Theory to use as backend for floats."
       + " If different from FLOAT, the specified theory is used to approximate floats."
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
-  private Theory encodeFloatAs = Theory.RATIONAL;
+  private Theory encodeFloatAs = Theory.FLOAT;
 
   @Option(secure=true, description="Enable fallback to UFs if a solver does not "
       + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")
@@ -171,6 +178,24 @@ public class FormulaManagerView {
 
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
+
+    StringBuilder approximations = new StringBuilder();
+    if (encodeBitvectorAs != Theory.BITVECTOR) {
+      approximations.append("ints with ").append(encodeBitvectorAs.description());
+    }
+    if (encodeFloatAs != Theory.FLOAT) {
+      if (approximations.length() > 0) {
+        approximations.append(" and ");
+      }
+      approximations.append("floats with ").append(encodeFloatAs.description());
+    }
+    if (approximations.length() > 0) {
+      logger.log(
+          Level.WARNING,
+          "Using unsound approximation of",
+          approximations,
+          "for encoding program semantics.");
+    }
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
@@ -1251,7 +1276,8 @@ public class FormulaManagerView {
           Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
         if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
             || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
-            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
+            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()
+            && !functionDeclaration.getArgumentTypes().get(0).isArrayType()) {
 
           Formula arg1 = args.get(0);
           Formula arg2;

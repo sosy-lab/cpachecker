@@ -102,7 +102,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     for (SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      int nfo = hveNext.getOffset();
+      long nfo = hveNext.getOffset();
       int nextPointer = hveNext.getValue();
 
       if (!pSmg.isPointer(nextPointer)) {
@@ -110,7 +110,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
 
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
-      int hfo = nextPointerEdge.getOffset();
+      long hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
 
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
@@ -179,8 +179,8 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       startTraversal(nextObject, pSmg, pSmgState, pProgress);
     }
 
-    Integer nfo = pPrevCandidate.getShape().getNfo();
-    Integer hfo = pPrevCandidate.getShape().getHfo();
+    Long nfo = pPrevCandidate.getShape().getNfo();
+    Long hfo = pPrevCandidate.getShape().getHfo();
 
     SMGSingleLinkedListCandidate candidate;
 
@@ -344,7 +344,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     return true;
   }
 
-  private void getSubSmgOf(SMGObject pObject, int nfo, CLangSMG inputSmg,
+  private void getSubSmgOf(SMGObject pObject, long nfo, CLangSMG inputSmg,
       Set<Integer> pValues, Set<SMGObject> pObjects) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();

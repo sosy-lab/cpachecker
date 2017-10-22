@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import java.io.PrintStream;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * An interface for managing memory regions
@@ -52,6 +52,17 @@ public interface MemoryRegionManager {
    * @return New memory region for the given field
    */
   public MemoryRegion makeMemoryRegion(CType pFieldOwnerType, CType pExpressionType, String pFieldName);
+
+  /**
+   * Creates a region for accessing a given field
+   *
+   * @param pFieldOwnerType the type of the field owner structure
+   * @param pField the field to access
+   * @return New memory region for the given field
+   */
+  public MemoryRegion makeMemoryRegion(
+      CType pFieldOwnerType, CCompositeTypeMemberDeclaration pField);
+
   /**
    * Adds target to statistics.
    * For calculating how many targets were used to construct formulas.

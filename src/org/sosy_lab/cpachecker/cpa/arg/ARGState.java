@@ -307,7 +307,7 @@ public class ARGState extends AbstractSingleWrapperState
     return wasExpanded;
   }
 
-  void markExpanded() {
+  public void markExpanded() {
     wasExpanded = true;
   }
 

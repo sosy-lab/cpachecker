@@ -93,8 +93,8 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMG.NULL_ADDRESS);
     smg.addHasValueEdge(hv);
 
-    TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
-    assertThat(nullEdges).containsExactly(32, 32);
+    TreeMap<Long, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
+    assertThat(nullEdges).containsExactly(32L, 32);
   }
 
   @Test

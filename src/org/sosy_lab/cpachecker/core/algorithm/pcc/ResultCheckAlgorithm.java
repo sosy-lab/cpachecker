@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
 public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -243,6 +244,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
         return AlgorithmStatus.SOUND_AND_PRECISE.withSound(false);
       }
     }
+
+    GlobalInfo.getInstance().setUpInfoFromCPA(checkerCPA);
 
     stats.checkTimer.start();
     ProofCheckAlgorithm checker =

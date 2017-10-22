@@ -63,9 +63,9 @@ final public class SMGJoinSubSMGsForAbstraction {
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
     Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
 
-    int nfo;
-    int pfo;
-    int hfo;
+    long nfo;
+    long pfo;
+    long hfo;
 
     SMGEdgeHasValue prevObj1hve = null;
     SMGEdgeHasValue nextObj1hve = null;

@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirem
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -179,6 +180,14 @@ public class CoreComponentsFactory {
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
+  @Option(
+    secure = true,
+    name = "algorithm.nonterminationWitnessCheck",
+    description =
+        "use nontermination witness validator to check a violation witness for termination"
+  )
+  private boolean useNonTerminationWitnessValidation = false;
+
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
 
@@ -276,7 +285,12 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if(useProofCheckAlgorithmWithStoredConfig) {
+    if(useNonTerminationWitnessValidation) {
+      logger.log(Level.INFO, "Using validator for violation witnesses for termination");
+      algorithm =
+          new NonTerminationWitnessValidator(
+              cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
+    } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
@@ -462,8 +476,12 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
-        || useProofCheckWithARGCMCStrategy || asConditionalVerifier) {
+    if (useRestartingAlgorithm
+        || useParallelAlgorithm
+        || useProofCheckAlgorithmWithStoredConfig
+        || useProofCheckWithARGCMCStrategy
+        || asConditionalVerifier
+        || useNonTerminationWitnessValidation) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.nondeterminism.NondeterminismState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -91,19 +90,9 @@ public class ForwardTransition {
 
     cpa = pCPA;
 
-    PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    if (predicateCPA == null) {
-      throw new InvalidConfigurationException(
-          "PredicateCPA required for transitions in the PDRAlgorithm");
-    }
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ForwardTransition.class);
     pathFormulaManager = predicateCPA.getPathFormulaManager();
-
-    ARGCPA argCPA = CPAs.retrieveCPA(cpa, ARGCPA.class);
-    if (argCPA == null) {
-      throw new InvalidConfigurationException(
-          "ARGCPA required for transitions in the PDRAlgorithm");
-    }
-
     algorithm = pAlgorithm;
     cfa = pCFA;
   }

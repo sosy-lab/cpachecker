@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
 class SMGJoinSllProgress
-    extends SMGJoinAbstractListProgress<Integer, SMGSingleLinkedListCandidate> {
+    extends SMGJoinAbstractListProgress<Long, SMGSingleLinkedListCandidate> {
 
   public SMGJoinSllProgress() {}
 

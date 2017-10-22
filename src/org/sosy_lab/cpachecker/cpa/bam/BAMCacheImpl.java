@@ -94,7 +94,7 @@ public class BAMCacheImpl implements BAMCache {
   @Override
   public void put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    assert !preciseReachedCache.containsKey(hash);
+    // assert !preciseReachedCache.containsKey(hash);
     preciseReachedCache.put(hash, item);
   }
 

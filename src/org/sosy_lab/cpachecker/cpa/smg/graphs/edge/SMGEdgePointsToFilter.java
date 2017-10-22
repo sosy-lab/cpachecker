@@ -33,7 +33,7 @@ public class SMGEdgePointsToFilter {
 
   private Integer value = null;
   private SMGObject targetObject = null;
-  private Integer targetOffset = null;
+  private Long targetOffset = null;
   private SMGTargetSpecifier targetSpecifier = null;
 
   private SMGEdgePointsToFilter() {}
@@ -48,7 +48,7 @@ public class SMGEdgePointsToFilter {
     return this;
   }
 
-  public SMGEdgePointsToFilter filterAtTargetOffset(Integer pOffset) {
+  public SMGEdgePointsToFilter filterAtTargetOffset(Long pOffset) {
     targetOffset = pOffset;
     return this;
   }
@@ -68,7 +68,7 @@ public class SMGEdgePointsToFilter {
   }
 
   @Deprecated
-  public Integer filtersAtTargetOffset() {
+  public Long filtersAtTargetOffset() {
     return targetOffset;
   }
 

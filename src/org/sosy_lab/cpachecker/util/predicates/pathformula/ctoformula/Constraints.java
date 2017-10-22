@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 

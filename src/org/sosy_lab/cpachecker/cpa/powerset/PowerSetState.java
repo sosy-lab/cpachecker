@@ -23,31 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.powerset;
 
-import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class PowerSetState implements AbstractWrapperState, Targetable {
 
   private final transient PowerSetState merged1;
   private final transient PowerSetState merged2;
 
-  private final Set<AbstractState> setOfStates;
+  private final ImmutableSet<AbstractState> setOfStates;
 
   public PowerSetState(final Set<AbstractState> states) {
     merged1 = merged2 = null;
-    setOfStates = states;
+    setOfStates = ImmutableSet.copyOf(states);
   }
 
   public PowerSetState(final Set<AbstractState> states, final PowerSetState state1, final PowerSetState state2) {
     merged1 = state1;
     merged2 = state2;
-    setOfStates = states;
+    setOfStates = ImmutableSet.copyOf(states);
   }
 
   public boolean isMergedInto(final PowerSetState pState) {
@@ -56,58 +59,32 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((setOfStates == null) ? 0 : setOfStates.hashCode());
-    return result;
+    return Objects.hash(setOfStates);
   }
 
   @Override
   public boolean equals(Object obj) {
     if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (getClass() != obj.getClass()) { return false; }
-    PowerSetState other = (PowerSetState) obj;
-    if (setOfStates == null) {
-      if (other.setOfStates != null) { return false; }
-    } else if (!setOfStates.equals(other.setOfStates)) { return false; }
-    return true;
-  }
-
-  Set<AbstractState> getSet() {
-    return setOfStates;
-  }
-
-  public boolean contains(final AbstractState pState) {
-    return setOfStates.contains(pState);
+    return obj instanceof PowerSetState
+        && Objects.equals(setOfStates, ((PowerSetState) obj).setOfStates);
   }
 
   @Override
-  public Iterable<AbstractState> getWrappedStates() {
-    return ImmutableList.copyOf(setOfStates);
+  public ImmutableSet<AbstractState> getWrappedStates() {
+    return setOfStates;
   }
 
   @Override
   public boolean isTarget() {
-    for (AbstractState state : setOfStates) {
-      if (state instanceof Targetable && ((Targetable) state).isTarget()) {
-        return true;
-      }
-    }
-    return false;
+    return Iterables.any(setOfStates, AbstractStates.IS_TARGET_STATE);
   }
 
   @Override
   public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
-    Set<Property> result = new HashSet<>();
-
-    for (AbstractState state : setOfStates) {
-      if (state instanceof Targetable && ((Targetable) state).isTarget()) {
-        result.addAll(((Targetable) state).getViolatedProperties());
-      }
-    }
-
-    return result;
+    return FluentIterable.from(setOfStates)
+        .filter(AbstractStates.IS_TARGET_STATE)
+        .transformAndConcat(s -> ((Targetable) s).getViolatedProperties())
+        .toSet();
   }
 
 }

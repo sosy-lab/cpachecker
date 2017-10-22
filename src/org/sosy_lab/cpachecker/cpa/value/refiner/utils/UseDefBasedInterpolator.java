@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -328,7 +327,7 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
-      return createSingleMemoryLocation(new BaseSizeofVisitor(model).visit(pCompositeType));
+      return createSingleMemoryLocation(model.getSizeof(pCompositeType));
     }
 
     @Override

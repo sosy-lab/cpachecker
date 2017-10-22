@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 
 public final class SMGSingleLinkedList extends SMGAbstractList<SMGSingleLinkedListShape> {
 
-  public SMGSingleLinkedList(int pSize, int pHfo, int pNfo,
+  public SMGSingleLinkedList(int pSize, long pHfo, long pNfo,
       int pMinLength, int level) {
     super(
         pSize,
@@ -46,11 +46,11 @@ public final class SMGSingleLinkedList extends SMGAbstractList<SMGSingleLinkedLi
     super(other);
   }
 
-  public int getNfo() {
+  public long getNfo() {
     return getShape().getNfo();
   }
 
-  public int getHfo() {
+  public long getHfo() {
     return getShape().getHfo();
   }
 

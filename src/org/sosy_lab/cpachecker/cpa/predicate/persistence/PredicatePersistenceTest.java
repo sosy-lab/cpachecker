@@ -25,27 +25,21 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.CharMatcher;
+import com.google.common.truth.Truth;
 import java.util.List;
-
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
-
-import com.google.common.base.CharMatcher;
-import com.google.common.truth.Truth;
 
 @RunWith(Parameterized.class)
-public class PredicatePersistenceTest extends SolverBasedTest0 {
+public class PredicatePersistenceTest extends SolverViewBasedTest0 {
 
   @Parameters(name = "{0}")
   public static Solvers[] getAllSolvers() {
@@ -53,23 +47,11 @@ public class PredicatePersistenceTest extends SolverBasedTest0 {
   }
 
   @Parameter(0)
-  public Solvers solver;
+  public Solvers solverToUse;
 
   @Override
   protected Solvers solverToUse() {
-    return solver;
-  }
-
-  private FormulaManagerView mgrv;
-
-  @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
-    return super.createTestConfigBuilder().setOption("cpa.predicate.encodeFloatAs", "integer");
-  }
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    mgrv = new FormulaManagerView(mgr, config, logger);
+    return solverToUse;
   }
 
   @Test

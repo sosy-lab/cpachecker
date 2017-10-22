@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
@@ -61,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -185,17 +185,18 @@ class AssignmentHandler {
           rhsLearnedPointersTypes);
     }
 
-    Set<MemoryRegion> updatedRegions = useOldSSAIndices ? null : new HashSet<>();
+    // necessary only for update terms for new UF indices
+    Set<MemoryRegion> updatedRegions = useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
     final BooleanFormula result =
         makeDestructiveAssignment(
             lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
 
-    if (!useOldSSAIndices) {
+    if (!useOldSSAIndices && !options.useArraysForHeap()) {
       if (lhsLocation.isAliased()) {
         final PointerTargetPattern pattern
             = PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
-        finishAssignments(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
+        finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
         assert updatedRegions.isEmpty();
       }
@@ -399,7 +400,7 @@ class AssignmentHandler {
     return true;
   }
 
-  private void finishAssignments(
+  private void finishAssignmentsForUF(
       CType lvalueType,
       final AliasedLocation lvalue,
       final PointerTargetPattern pattern,
@@ -471,20 +472,6 @@ class AssignmentHandler {
     checkArgument(lvalue.isAliased(), "Array elements are always aliased");
     final CType lvalueElementType = lvalueArrayType.getType();
 
-    // There are two cases of assignment to an array
-    // - Initialization with a value (possibly nondet), useful for stack declarations and memset
-    // - Array assignment as part of a structure assignment
-    checkArgument(
-        (rvalue.isValue() && isSimpleType(rvalueType))
-            || (rvalue.asLocation().isAliased()
-                && rvalueType instanceof CArrayType
-                && ((CArrayType) rvalueType).getType().equals(lvalueElementType)),
-        "Impossible array assignment due to incompatible types: assignment of %s with type %s to %s with type %s",
-        rvalue,
-        rvalueType,
-        lvalue,
-        lvalueArrayType);
-
     OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
     // Try to fix the length if it's unknown (or too big)
     // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
@@ -496,22 +483,65 @@ class AssignmentHandler {
             ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
             : options.defaultArrayLength();
 
+    // There are two cases of assignment to an array
+    // - Initialization with a value (possibly nondet), useful for stack declarations and memset
+    // - Array assignment as part of a structure assignment
+    final CType newRvalueType;
+    if (rvalue.isValue()) {
+      checkArgument(
+          isSimpleType(rvalueType),
+          "Impossible assignment of %s with type %s to array:",
+          rvalue,
+          rvalueType);
+      if (rvalue.isNondetValue()) {
+        newRvalueType =
+            isSimpleType(lvalueElementType) ? lvalueElementType : CNumericTypes.SIGNED_CHAR;
+      } else {
+        newRvalueType = rvalueType;
+      }
+
+    } else {
+      checkArgument(
+          rvalue.asLocation().isAliased(),
+          "Impossible assignment of %s with type %s to array:",
+          rvalue,
+          rvalueType);
+      checkArgument(
+          ((CArrayType) rvalueType).getType().equals(lvalueElementType),
+          "Impossible array assignment due to incompatible types: assignment of %s with type %s to %s with type %s",
+          rvalue,
+          rvalueType,
+          lvalue,
+          lvalueArrayType);
+      newRvalueType = checkIsSimplified(((CArrayType) rvalueType).getType());
+    }
+
     BooleanFormula result = bfmgr.makeTrue();
     int offset = 0;
     for (int i = 0; i < length; ++i) {
-      final Pair<AliasedLocation, CType> newLvalue =
-          shiftArrayLvalue(lvalue.asAliased(), offset, lvalueElementType);
-      final Pair<? extends Expression, CType> newRvalue =
-          shiftArrayRvalue(rvalue, rvalueType, offset, lvalueElementType);
+      final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
+      final AliasedLocation newLvalue =
+          Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula));
+      final Expression newRvalue;
+
+      // Support both initialization (with a value or nondet) and assignment (from another array
+      // location)
+      if (rvalue.isValue()) {
+        newRvalue = rvalue;
+      } else {
+        newRvalue =
+            Location.ofAddress(
+                fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula));
+      }
 
       result =
           bfmgr.and(
               result,
               makeDestructiveAssignment(
-                  newLvalue.getSecond(),
-                  newRvalue.getSecond(),
-                  newLvalue.getFirst(),
-                  newRvalue.getFirst(),
+                  lvalueElementType,
+                  newRvalueType,
+                  newLvalue,
+                  newRvalue,
                   useOldSSAIndices,
                   updatedRegions));
       offset += conv.getBitSizeof(lvalueArrayType.getType());
@@ -542,7 +572,6 @@ class AssignmentHandler {
     for (final CCompositeTypeMemberDeclaration memberDeclaration :
         lvalueCompositeType.getMembers()) {
       final String memberName = memberDeclaration.getName();
-      final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
       final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
       // Optimizing away the assignments from uninitialized fields
       if (conv.isRelevantField(lvalueCompositeType, memberName)
@@ -558,26 +587,60 @@ class AssignmentHandler {
               || // The variable representing the RHS was used somewhere (i.e. has SSA index)
               (!rvalue.isAliasedLocation()
                   && conv.hasIndex(
-                      rvalue.asUnaliasedLocation().getVariableName()
-                          + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-                          + memberName,
+                      getFieldAccessName(
+                          rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration),
                       newLvalueType,
                       ssa)))) {
-        final Pair<? extends Location, CType> newLvalue =
-            shiftCompositeLvalue(
-                lvalueCompositeType, lvalue, offset, memberName, memberDeclaration.getType());
-        final Pair<? extends Expression, CType> newRvalue =
-            shiftCompositeRvalue(
-                rvalue, offset, memberName, rvalueType, memberDeclaration.getType());
+
+        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
+        final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
+        final Location newLvalue;
+        if (lvalue.isAliased()) {
+          final MemoryRegion region =
+              regionMgr.makeMemoryRegion(lvalueCompositeType, memberDeclaration);
+          newLvalue =
+              Location.ofAddressWithRegion(
+                  fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula), region);
+
+        } else {
+          newLvalue =
+              Location.ofVariableName(
+                  getFieldAccessName(lvalue.asUnaliased().getVariableName(), memberDeclaration));
+        }
+
+        final CType newRvalueType;
+        final Expression newRvalue;
+        if (rvalue.isLocation()) {
+          newRvalueType = newLvalueType;
+          if (rvalue.isAliasedLocation()) {
+            final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, memberDeclaration);
+            newRvalue =
+                Location.ofAddressWithRegion(
+                    fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula), region);
+          } else {
+            newRvalue =
+                Location.ofVariableName(
+                    getFieldAccessName(
+                        rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration));
+          }
+
+        } else {
+          newRvalue = rvalue;
+          if (rvalue.isNondetValue()) {
+            newRvalueType = isSimpleType(newLvalueType) ? newLvalueType : CNumericTypes.SIGNED_CHAR;
+          } else {
+            newRvalueType = rvalueType;
+          }
+        }
 
         result =
             bfmgr.and(
                 result,
                 makeDestructiveAssignment(
-                    newLvalue.getSecond(),
-                    newRvalue.getSecond(),
-                    newLvalue.getFirst(),
-                    newRvalue.getFirst(),
+                    newLvalueType,
+                    newRvalueType,
+                    newLvalue,
+                    newRvalue,
                     useOldSSAIndices,
                     updatedRegions));
       }
@@ -610,31 +673,21 @@ class AssignmentHandler {
 
     checkArgument(isSimpleType(lvalueType));
     checkArgument(isSimpleType(rvalueType));
-
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    String targetName;
-    MemoryRegion region;
-    if(!lvalue.isAliased()) {
-      targetName = lvalue.asUnaliased().getVariableName();
-      region = null;
-    } else {
-      region = lvalue.asAliased().getMemoryRegion();
-      if(region == null) {
-        region = regionMgr.makeMemoryRegion(lvalueType);
-      }
-      targetName = regionMgr.getPointerAccessName(region);
-    }
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final BooleanFormula result;
 
     final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
-    final Formula rhs =
+    Formula rhs =
         value.isPresent()
             ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
             : null;
+
     if (!lvalue.isAliased()) { // Unaliased LHS
       assert !useOldSSAIndices;
+
+      final String targetName = lvalue.asUnaliased().getVariableName();
       final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
 
       if (rhs != null) {
@@ -644,11 +697,37 @@ class AssignmentHandler {
       }
 
     } else { // Aliased LHS
+      MemoryRegion region = lvalue.asAliased().getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(lvalueType);
+      }
+      final String targetName = regionMgr.getPointerAccessName(region);
+
       final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-      final int newIndex =
-          useOldSSAIndices
-              ? conv.getIndex(targetName, lvalueType, ssa)
-              : conv.getFreshIndex(targetName, lvalueType, ssa);
+      final int newIndex;
+      if (useOldSSAIndices) {
+        assert updatedRegions == null : "Returning updated regions is only for new indices";
+        newIndex = oldIndex;
+
+      } else if (options.useArraysForHeap()) {
+        assert updatedRegions == null : "Return updated regions is only for UF encoding";
+        if (rhs == null) {
+          // For arrays, we always need to add a term that connects oldIndex with newIndex
+          String nondetName =
+              "__nondet_value_" + CTypeUtils.typeToString(rvalueType).replace(' ', '_');
+          rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
+          rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
+        }
+        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+
+      } else {
+        assert updatedRegions != null : "UF encoding needs to update regions for new indices";
+        updatedRegions.add(region);
+        // For UFs, we use a new index without storing it such that we use the same index
+        // for multiple writes that are part of the same assignment.
+        // The new index will be stored in the SSAMap later.
+        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
+      }
 
       if (rhs != null) {
         final Formula address = lvalue.asAliased().getAddress();
@@ -657,10 +736,6 @@ class AssignmentHandler {
                 targetName, targetType, oldIndex, newIndex, address, rhs);
       } else {
         result = bfmgr.makeTrue();
-      }
-
-      if (updatedRegions != null) {
-        updatedRegions.add(region);
       }
     }
 
@@ -692,7 +767,7 @@ class AssignmentHandler {
 
   /**
    * Add terms to the {@link #constraints} object that specify that unwritten heap cells
-   * keep their value when the SSA index is updated.
+   * keep their value when the SSA index is updated. Only used for the UF encoding.
    *
    * @param lvalueType The LHS type of the current assignment.
    * @param startAddress The start address of the written heap region.
@@ -711,10 +786,7 @@ class AssignmentHandler {
     checkNotNull(pattern);
     checkNotNull(regionsToRetain);
 
-    if (options.useArraysForHeap()) {
-      // not necessary for heap-array encoding
-      return;
-    }
+    assert !options.useArraysForHeap();
 
     checkIsSimplified(lvalueType);
     final int size = conv.getBitSizeof(lvalueType);
@@ -803,7 +875,7 @@ class AssignmentHandler {
         region = regionMgr.makeMemoryRegion(lvalueType);
       } else { // CCompositeType
         CCompositeTypeMemberDeclaration memberDeclaration = ((CCompositeType) lvalueType).getMembers().get(0);
-        region = regionMgr.makeMemoryRegion(lvalueType, checkIsSimplified(memberDeclaration.getType()), memberDeclaration.getName());
+        region = regionMgr.makeMemoryRegion(lvalueType, memberDeclaration);
       }
       //for lvalueType
       addSemiexactRetentionConstraints(pattern, region, startAddress, size, regionsToRetain);
@@ -926,7 +998,7 @@ class AssignmentHandler {
   }
 
   /**
-   * Updates the SSA map.
+   * Updates the SSA map for memory UFs.
    *
    * @param regions A set of regions that should be added to the SSA map.
    * @param ssa The current SSA map.
@@ -935,131 +1007,6 @@ class AssignmentHandler {
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
       conv.makeFreshIndex(ufName, region.getType(), ssa);
-    }
-  }
-
-  /**
-   * Shifts the array's lvalue.
-   *
-   * @param lvalue The lvalue location.
-   * @param offset The offset of the shift.
-   * @param lvalueElementType The type of the lvalue element.
-   * @return A tuple of location and type after the shift.
-   */
-  private Pair<AliasedLocation, CType> shiftArrayLvalue(final AliasedLocation lvalue,
-                                                        final int offset,
-                                                        final CType lvalueElementType) {
-    final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-    final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.getAddress(), offsetFormula));
-    return Pair.of(newLvalue, lvalueElementType);
-  }
-
-  /**
-   * Shifts the array's rvalue.
-   *
-   * @param rvalue The rvalue expression.
-   * @param rvalueType The type of the rvalue.
-   * @param offset The offset of the shift.
-   * @param lvalueElementType The type of the lvalue element.
-   * @return A tuple of expression and type after the shift.
-   */
-  private Pair<? extends Expression, CType> shiftArrayRvalue(final Expression rvalue,
-                                                             final CType rvalueType,
-                                                             final int offset,
-                                                             final CType lvalueElementType) {
-    // Support both initialization (with a value or nondet) and assignment (from another array location)
-    switch (rvalue.getKind()) {
-    case ALIASED_LOCATION: {
-      assert rvalueType instanceof CArrayType : "Non-array rvalue in array assignment";
-      final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
-                                                           offsetFormula));
-      final CType newRvalueType = checkIsSimplified(((CArrayType) rvalueType).getType());
-      return Pair.of(newRvalue, newRvalueType);
-    }
-    case DET_VALUE: {
-      return Pair.of(rvalue, rvalueType);
-    }
-    case NONDET: {
-      final CType newLvalueType = isSimpleType(lvalueElementType) ? lvalueElementType : CNumericTypes.SIGNED_CHAR;
-      return Pair.of(Value.nondetValue(), newLvalueType);
-    }
-    case UNALIASED_LOCATION: {
-      throw new AssertionError("Array locations should always be aliased");
-    }
-    default: throw new AssertionError();
-    }
-  }
-
-  /**
-   * Shifts the composite lvalue.
-   *
-   * @param lvalue The lvalue location.
-   * @param offset The offset of the shift.
-   * @param memberName The name of the member.
-   * @param memberType The type of the member.
-   * @return A tuple of location and type after the shift.
-   */
-  private Pair<? extends Location, CType> shiftCompositeLvalue(final CType lvalueType,
-                                                               final Location lvalue,
-                                                               final int offset,
-                                                               final String memberName,
-                                                               final CType memberType) {
-    final CType newLvalueType = checkIsSimplified(memberType);
-    if (lvalue.isAliased()) {
-      final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final MemoryRegion region = regionMgr.makeMemoryRegion(lvalueType, newLvalueType, memberName);
-      final AliasedLocation newLvalue = Location.ofAddressWithRegion(fmgr.makePlus(lvalue.asAliased().getAddress(),
-                                                                         offsetFormula), region);
-      return Pair.of(newLvalue, newLvalueType);
-
-    } else {
-      final UnaliasedLocation newLvalue = Location.ofVariableName(lvalue.asUnaliased().getVariableName() +
-                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName);
-      return Pair.of(newLvalue, newLvalueType);
-    }
-
-  }
-
-  /**
-   * Shifts the composite rvalue.
-   *
-   * @param rvalue The rvalue expression.
-   * @param offset The offset of the shift.
-   * @param memberName The name of the member.
-   * @param rvalueType The type of the rvalue.
-   * @param memberType The type of the member.
-   * @return A tuple of expression and type after the shift.
-   */
-  private Pair<? extends Expression, CType> shiftCompositeRvalue(final Expression rvalue,
-                                                                 final int offset,
-                                                                 final String memberName,
-                                                                 final CType rvalueType,
-                                                                 final CType memberType) {
-    // Support both structure assignment and initialization with a value (or nondet)
-    final CType newLvalueType = checkIsSimplified(memberType);
-    switch (rvalue.getKind()) {
-    case ALIASED_LOCATION: {
-      final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, newLvalueType, memberName);
-      final AliasedLocation newRvalue = Location.ofAddressWithRegion(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
-                                                                         offsetFormula), region);
-      return Pair.of(newRvalue, newLvalueType);
-    }
-    case UNALIASED_LOCATION: {
-      final UnaliasedLocation newRvalue = Location.ofVariableName(rvalue.asUnaliasedLocation().getVariableName() +
-                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
-                                                                  memberName);
-      return Pair.of(newRvalue, newLvalueType);
-    }
-    case DET_VALUE: {
-      return Pair.of(rvalue, rvalueType);
-    }
-    case NONDET: {
-      final CType newRvalueType = isSimpleType(newLvalueType) ? newLvalueType : CNumericTypes.SIGNED_CHAR;
-      return Pair.of(Value.nondetValue(), newRvalueType);
-    }
-    default: throw new AssertionError();
     }
   }
 }

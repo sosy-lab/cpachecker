@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -185,16 +184,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         requiredSpecification,
         pSpecification);
 
-    TerminationCPA terminationCpa = CPAs.retrieveCPA(pSafetyCPA, TerminationCPA.class);
-    if (terminationCpa == null) {
-      throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
-    }
+    TerminationCPA terminationCpa =
+        CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
     terminationInformation = terminationCpa.getTerminationInformation();
-
-    ARGCPA agrCpa = CPAs.retrieveCPA(pSafetyCPA, ARGCPA.class);
-    if (agrCpa == null) {
-      throw new InvalidConfigurationException("TerminationAlgorithm requires ARGCPA");
-    }
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
     for (CFANode function : cfa.getAllFunctionHeads()) {
