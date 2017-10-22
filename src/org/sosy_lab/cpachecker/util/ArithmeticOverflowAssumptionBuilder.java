@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
+  private final Map<CType, CLiteralExpression> width;
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
   private final CFA cfa;
   private final LogManager logger;
@@ -117,28 +119,37 @@ public final class ArithmeticOverflowAssumptionBuilder implements
           "Liveness information is required for overflow analysis.");
     }
 
-    CIntegerLiteralExpression INT_MIN = new CIntegerLiteralExpression(
-        FileLocation.DUMMY,
-        CNumericTypes.INT,
-        cfa.getMachineModel().getMinimalIntegerValue(CNumericTypes.INT));
-    CIntegerLiteralExpression INT_MAX = new CIntegerLiteralExpression(
-        FileLocation.DUMMY,
-        CNumericTypes.INT,
-        cfa.getMachineModel().getMaximalIntegerValue(CNumericTypes.INT));
-
     ImmutableMap.Builder<CType, CLiteralExpression> upperBoundsBuilder =
         ImmutableMap.builder();
     ImmutableMap.Builder<CType, CLiteralExpression> lowerBoundsBuilder =
         ImmutableMap.builder();
+    ImmutableMap.Builder<CType, CLiteralExpression> widthBuilder =
+        ImmutableMap.builder();
 
     if (trackSignedIntegers) {
+      CIntegerLiteralExpression INT_MIN = new CIntegerLiteralExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.INT,
+          cfa.getMachineModel().getMinimalIntegerValue(CNumericTypes.INT));
+      CIntegerLiteralExpression INT_MAX = new CIntegerLiteralExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.INT,
+          cfa.getMachineModel().getMaximalIntegerValue(CNumericTypes.INT));
+      CIntegerLiteralExpression INT_WIDTH = new CIntegerLiteralExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.INT,
+          getWidthForMaxOf(cfa.getMachineModel().getMaximalIntegerValue(CNumericTypes.INT)));
+
       upperBoundsBuilder.put(CNumericTypes.INT, INT_MAX);
       upperBoundsBuilder.put(CNumericTypes.SIGNED_INT, INT_MAX);
       lowerBoundsBuilder.put(CNumericTypes.INT, INT_MIN);
       lowerBoundsBuilder.put(CNumericTypes.SIGNED_INT, INT_MIN);
+      widthBuilder.put(CNumericTypes.INT, INT_WIDTH);
+      widthBuilder.put(CNumericTypes.SIGNED_INT, INT_WIDTH);
     }
     upperBounds = upperBoundsBuilder.build();
     lowerBounds = lowerBoundsBuilder.build();
+    width = widthBuilder.build();
     cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
         cfa.getMachineModel(),
         logger);
@@ -249,6 +260,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       } else if (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO)) {
         if (lowerBounds.get(typ) != null) {
           addDivisionAssumption(op1, op2, lowerBounds.get(typ), result);
+        }
+      } else if (binop.equals(BinaryOperator.SHIFT_LEFT)) {
+        if (upperBounds.get(typ) != null && width.get(typ) != null) {
+          addLeftShiftAssumptions(op1, op2, upperBounds.get(typ), width.get(typ), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
@@ -449,7 +464,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     CExpression term1 =
         cBinaryExpressionBuilder.buildBinaryExpression(operand1, limit, BinaryOperator.NOT_EQUALS);
     // -1
-    CExpression term2 = new CUnaryExpression(operand2.getFileLocation(), CNumericTypes.INT,
+    CExpression term2 = new CUnaryExpression(FileLocation.DUMMY, CNumericTypes.INT,
         CIntegerLiteralExpression.ZERO, UnaryOperator.MINUS);
     // operand2 != 0
     CExpression term3 =
@@ -458,6 +473,41 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     CExpression assumption =
         cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
     result.add(assumption);
+  }
+
+  /**
+   * @param operand1 first operand in the C Expression for which the
+   *        assumption should be generated
+   * @param operand2 second operand in the C Expression for which the
+   *        assumption should be generated
+   * @param limit the largest value in the expression's type
+   * @param width the width of the type as defined in ISO-C11 (6.2.6.2 #6)
+   * @param result the set to which the generated assumptions are added
+   */
+  private void addLeftShiftAssumptions(CExpression operand1, CExpression operand2,
+      CLiteralExpression limit, CLiteralExpression width,
+      Set<CExpression> result) throws UnrecognizedCCodeException {
+
+    // For no overflow, both operands need to be positive:
+    result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand1,
+        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
+    result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand2,
+        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
+
+    // Shifting the precision of the type or a bigger number of bits  is undefined behavior:
+    // operand2 < width
+    result.add(
+        cBinaryExpressionBuilder.buildBinaryExpression(operand2, width, BinaryOperator.LESS_THAN));
+
+    // Shifting out set bits is undefined behaviour. This is equivalent to the assumption:
+    // operand1 <= (limit >> operand2)
+    CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(limit, operand2, BinaryOperator.SHIFT_RIGHT);
+    result.add(
+        cBinaryExpressionBuilder.buildBinaryExpression(operand1, term1, BinaryOperator.LESS_EQUAL));
+  }
+
+  private static BigInteger getWidthForMaxOf(BigInteger pMax) {
+    return BigInteger.valueOf(pMax.bitLength() + 1);
   }
 
   private class AssumptionsFinder
