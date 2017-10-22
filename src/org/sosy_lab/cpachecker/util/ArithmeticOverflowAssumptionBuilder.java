@@ -100,6 +100,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   @Option(description = "Track overflow for signed integers.")
   private boolean trackSignedIntegers = true;
 
+  @Option(description = "Track undefined behavior in left-shift operations.")
+  private boolean trackLeftShifts = false;
+
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
   private final Map<CType, CLiteralExpression> width;
@@ -261,7 +264,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         if (lowerBounds.get(typ) != null) {
           addDivisionAssumption(op1, op2, lowerBounds.get(typ), result);
         }
-      } else if (binop.equals(BinaryOperator.SHIFT_LEFT)) {
+      } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
         if (upperBounds.get(typ) != null && width.get(typ) != null) {
           addLeftShiftAssumptions(op1, op2, upperBounds.get(typ), width.get(typ), result);
         }
