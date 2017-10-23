@@ -131,7 +131,7 @@ public class AutomatonGraphmlCommon {
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     THREAD("thread", ElementType.EDGE, "thread", "int"),
-    CREATETHREAD("createThread", ElementType.EDGE, "thread", "int"),
+    CREATETHREAD("createThread", ElementType.EDGE, "createThread", "int"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
