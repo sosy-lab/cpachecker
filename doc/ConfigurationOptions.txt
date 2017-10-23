@@ -2580,6 +2580,9 @@ merge = "JOIN"
 # instead of the current one.
 overflow.config = no default value
 
+# Track undefined behavior in left-shift operations.
+overflow.trackLeftShifts = false
+
 # Track overflow for signed integers.
 overflow.trackSignedIntegers = true
 
@@ -3068,6 +3071,10 @@ witness.validation.termination.inspectCycle.config = no default value
 # reachable. Configuration must be precise, i.e., may only report real
 # counterexamples
 witness.validation.termination.reachCycle.config = no default value
+
+# Path to automaton specification describing which statements let the program
+# terminate.
+witness.validation.termination.terminatingStatements = "config/specification/TerminatingStatements.spc"
 
 # When validating a violation witness, use this configuration file instead of
 # the current one.

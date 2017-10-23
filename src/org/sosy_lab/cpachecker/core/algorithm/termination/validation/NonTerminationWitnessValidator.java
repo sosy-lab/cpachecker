@@ -125,9 +125,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private static final String TERMINATION_OBSERVER_SPEC_NAME = "TerminationObserver";
   private static final String ITERATION_OBSERVER_SPEC_NAME = "RecurrentSetObserver";
 
-  private static final Path TERMINATING_STATEMENT_CONTROL =
-      Paths.get("config/specification/TerminatingStatements.spc");
-
   private static final String AUTOMATANAMEPREFIX = "AutomatonAnalysis_";
   private static final String BREAKSTATENAME = "_predefinedState_BREAK";
 
@@ -152,6 +149,17 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path recurrentConfig;
+
+  @Option(
+    secure = true,
+    required = true,
+    name = "terminatingStatements",
+    description =
+        "Path to automaton specification describing which statements let the program terminate."
+  )
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path TERMINATING_STATEMENT_CONTROL =
+      Paths.get("config/specification/TerminatingStatements.spc");
 
   private final Configuration config;
   private final LogManager logger;
