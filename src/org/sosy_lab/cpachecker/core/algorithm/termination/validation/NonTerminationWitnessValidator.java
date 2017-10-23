@@ -162,6 +162,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private Path TERMINATING_STATEMENT_CONTROL =
       Paths.get("config/specification/TerminatingStatements.spc");
 
+  private final String RECURSIONDEPTH = "2";
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdown;
@@ -335,6 +337,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       singleConfigBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
       singleConfigBuilder.setOption(
           "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA");
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
       singleConfigBuilder.setOption("analysis.traversal.order", "BFS");
       singleConfigBuilder.setOption("output.disable", "true");
       Configuration singleConfig = singleConfigBuilder.build();
@@ -402,6 +405,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.loadFromFile(reachabilityConfig);
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
       singleConfigBuilder.setOption("output.disable", "true");
       Configuration singleConfig = singleConfigBuilder.build();
 
@@ -513,6 +517,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.loadFromFile(recurrentConfig);
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
       singleConfigBuilder.setOption("output.disable", "true");
       Configuration singleConfig = singleConfigBuilder.build();
 
@@ -655,7 +660,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       }
     } catch (CPAException | IOException | InvalidConfigurationException e) {
       logger.logException(
-          Level.INFO,
+          Level.FINE,
           e,
           "Exception occurred while checking validity (closedness) of given recurrent set.");
       return false;
@@ -762,7 +767,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 pRecurrentStartInWitness.getName()));
         automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       } catch (Exception e) {
-        logger.logException(Level.INFO, e, "Failed to set up specification to check assumptions");
+        logger.log(Level.INFO, "Failed to set up specification to check assumptions.");
+        logger.logException(Level.FINE, e, "Failure during set up of assumptions check");
         return false;
       }
       automata.add(terminationAutomaton);
