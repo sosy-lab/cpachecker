@@ -125,6 +125,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   private AbstractionFormula lastAbstraction = null;
   private boolean initialSliceDone = false;
 
+  private HashMap<ARGState,ARGState> forkedStateMap;
+
   public SlicingAbstractionsStrategy(final Configuration config, final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr,
       final PathFormulaManager pPathFormulaManager) throws InvalidConfigurationException {
@@ -143,6 +145,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   protected void startRefinementOfPath() {
     checkState(lastAbstraction == null);
     lastAbstraction = predAbsMgr.makeTrueAbstractionFormula(null);
+    forkedStateMap = new HashMap<>();
   }
 
   /**
@@ -156,6 +159,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       ARGState s) throws SolverException, InterruptedException {
     checkArgument(!bfmgr.isTrue(itp));
     checkArgument(!bfmgr.isFalse(itp));
+    checkState(forkedStateMap != null);
 
     PredicateAbstractState original = getPredicateState(s);
     PredicateAbstractState copiedPredicateState = mkAbstractionState(
@@ -170,6 +174,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     if (stateChanged) {
       //splitting the state:
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
+      forkedStateMap.put(s,newState);
 
       //Now we strengthen the splitted state with negated interpolant:
       BooleanFormula negatedItp = bfmgr.not(itp);
@@ -202,10 +207,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     stats.copyEdges.start();
     for (ARGState w : changedElements) {
       pReached.removeCoverageOf(w);
-      if (w.getForkedChild() != null && !w.getForkedChild().isForkCompleted()) {
-        SlicingAbstractionsUtility.copyEdges(w.getForkedChild(),w,pReached);
-        pReached.addForkedState(w.getForkedChild(),w);
-        w.getForkedChild().setForkCompleted();
+      if (forkedStateMap.containsKey(w)) {
+        ARGState forkedState = forkedStateMap.get(w);
+        SlicingAbstractionsUtility.copyEdges(forkedState,w,pReached);
+        pReached.addForkedState(forkedState,w);
       }
     }
     stats.copyEdges.stop();
@@ -252,6 +257,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     } finally {
       stats.coverTime.stop();
     }
+
+    // This way we can check if startRefinementOfPath is called
+    // before performRefinementForState:
+    forkedStateMap = null;
   }
 
   private void sliceEdges(final List<ARGState> pChangedElements,
@@ -260,7 +269,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     final List<ARGState> allChangedStates;
     //get the corresponding forked states:
     allChangedStates = pChangedElements.stream()
-        .map(x -> x.getForkedChild())
+        .map(x -> forkedStateMap.get(x))
         .filter(x -> x != null)
         .collect(Collectors.toList());
     allChangedStates.addAll(pChangedElements);
@@ -368,7 +377,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       ARGState currentState = abstractionStatesTrace.get(i);
       ARGState nextState = abstractionStatesTrace.get(i+1);
       if (currentState == parent) {
-        ARGState s = nextState.getForkedChild();
+        ARGState s = forkedStateMap.get(nextState);
         if (s == child && pChangedElements.contains(nextState)) {
           return true;
         }
@@ -378,7 +387,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // root state needs special treatment:
     if (parent.getStateId()==0) {
       ARGState firstAfterRoot = abstractionStatesTrace.get(0);
-      ARGState s = firstAfterRoot.getForkedChild();
+      ARGState s = forkedStateMap.get(firstAfterRoot);
       if (s == child &&  pChangedElements.contains(firstAfterRoot)) {
         return true;
       }

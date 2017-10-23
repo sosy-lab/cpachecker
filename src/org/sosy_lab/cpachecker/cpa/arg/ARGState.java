@@ -75,7 +75,6 @@ public class ARGState extends AbstractSingleWrapperState
   private boolean hasCoveredParent = false;
 
   private ARGState mergedWith = null;
-  private ARGState forkedChild = null;
 
   private final int stateId;
 
@@ -83,8 +82,6 @@ public class ARGState extends AbstractSingleWrapperState
   private transient CounterexampleInfo counterexample;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-
-  private boolean forkCompleted = false;
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
@@ -551,10 +548,6 @@ public class ARGState extends AbstractSingleWrapperState
     destroyed = true;
   }
 
-  public ARGState getForkedChild() {
-    return this.forkedChild;
-  }
-
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.cpa.arg.Splitable#forkWithReplacements(java.util.List)
    */
@@ -579,8 +572,6 @@ public class ARGState extends AbstractSingleWrapperState
     ARGState newState = new ARGState(newWrappedState,null);
     newState.makeTwinOf(this);
 
-    this.forkedChild = newState;
-
     return newState;
   }
 
@@ -594,18 +585,6 @@ public class ARGState extends AbstractSingleWrapperState
     this.mayCover = pTemplateState.mayCover;
     this.hasCoveredParent = pTemplateState.hasCoveredParent;
 
-  }
-
-  public void unsetForkedChild() {
-    this.forkedChild = null;
-  }
-
-  public boolean isForkCompleted() {
-    return forkCompleted;
-  }
-
-  public void setForkCompleted() {
-    this.forkCompleted = true;
   }
 
   public void removeParent(ARGState pOtherParent) {
