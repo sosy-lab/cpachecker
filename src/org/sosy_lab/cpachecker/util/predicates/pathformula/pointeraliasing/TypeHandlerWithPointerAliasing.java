@@ -164,7 +164,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           Maps.newHashMapWithExpectedSize(calculatedOffsets.size());
       calculatedOffsets
           .entrySet()
-          .parallelStream()
+          .stream()
           .forEach(e -> memberOffsets.put(e.getKey().getName(), e.getValue()));
       multiset = memberOffsets;
       offsets.put(compositeType, multiset);
