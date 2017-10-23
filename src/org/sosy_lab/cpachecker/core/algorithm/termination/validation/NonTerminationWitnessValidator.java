@@ -121,6 +121,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
+  private static final String WITNESS_BREAK_CONTROLLER_SPEC_NAME = "WitnessBreakController";
   private static final String WITNESS_BREAK_OBSERVER_SPEC_NAME = "WitnessBreakObserver";
   private static final String TERMINATION_OBSERVER_SPEC_NAME = "TerminationObserver";
   private static final String ITERATION_OBSERVER_SPEC_NAME = "RecurrentSetObserver";
@@ -389,6 +390,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       automata.add(witness);
       automata.add(getSpecForErrorAt(quasiInvariantAsAssumeEdge.getSuccessor()));
       automata.add(terminationAutomaton);
+      // stop when reach break state
+      automata.add(getSpecForStopAtWitnessBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       Specification spec = Specification.fromAutomata(automata);
 
       // set up
@@ -938,6 +941,33 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       writer.append("STATE USEFIRST Init :\n");
       writer.append(checkStatement);
       writer.append(" -> " + succState + ";\n\n");
+
+      writer.append("END AUTOMATON");
+    }
+
+    return getAutomaton(tmpSpec);
+  }
+
+  private Automaton getSpecForStopAtWitnessBreak(String fileName) throws IOException, InvalidConfigurationException {
+    Path tmpSpec = Files.createTempFile(fileName, "spc");
+
+    try (Writer writer = Files.newBufferedWriter(tmpSpec, Charset.defaultCharset())) {
+
+      writer.append("CONTROL AUTOMATON ");
+      writer.append(fileName);
+
+      writer.append("\nINITIAL STATE Init;\n");
+
+      // needed to set up initial states, no cycle detection during set up
+      writer.append("STATE USEFIRST Init :\n");
+      writer.append(" TRUE -> GOTO Checking;\n\n");
+
+      writer.append("STATE USEFIRST Checking :\n");
+      writer.append("CHECK(");
+      writer.append(witnessAutomatonName);
+      writer.append(" , \"state==");
+      writer.append(BREAKSTATENAME);
+      writer.append("\") -> STOP;\n\n");
 
       writer.append("END AUTOMATON");
     }
