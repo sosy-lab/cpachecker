@@ -151,7 +151,9 @@ class WitnessWriter implements EdgeAppender {
           KeyDef.ENDOFFSET,
           KeyDef.LINECOLS,
           KeyDef.ASSUMPTIONSCOPE,
-          KeyDef.ASSUMPTIONRESULTFUNCTION);
+          KeyDef.ASSUMPTIONRESULTFUNCTION,
+          KeyDef.THREADID,
+          KeyDef.THREADNAME);
 
   private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
 
