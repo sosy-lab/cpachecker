@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -865,13 +864,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           throws UnrecognizedCCodeException, InterruptedException {
 
     // TODO merge with super-class method
-
-    if (declarationEdge.getDeclaration() instanceof CTypeDeclaration) {
-      final CType declarationType = typeHandler.getSimplifiedType(declarationEdge.getDeclaration());
-      if (declarationType instanceof CCompositeType) {
-        typeHandler.addCompositeTypeToCache((CCompositeType) declarationType);
-      }
-    }
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // function declaration, typedef etc.

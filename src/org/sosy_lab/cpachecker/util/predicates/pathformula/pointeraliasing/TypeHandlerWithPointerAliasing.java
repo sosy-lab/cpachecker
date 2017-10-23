@@ -23,22 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -86,7 +82,9 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       if (sizes.contains(cType)) {
         return sizes.count(cType);
       } else {
-        return getSizeofUncached(cType);
+        int size = getSizeofUncached(cType);
+        sizes.add((CCompositeType) cType, size);
+        return size;
       }
     } else {
       return getSizeofUncached(cType);
@@ -160,141 +158,17 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     HashMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
-      addCompositeTypeToCache(compositeType);
-      multiset = offsets.get(compositeType);
-      assert multiset != null : "Failed adding composite type to cache: " + compositeType;
+      Map<CCompositeTypeMemberDeclaration, Long> calculatedOffsets =
+          machineModel.getAllFieldOffsetsInBits(compositeType);
+      HashMap<String, Long> memberOffsets =
+          Maps.newHashMapWithExpectedSize(calculatedOffsets.size());
+      calculatedOffsets
+          .entrySet()
+          .parallelStream()
+          .forEach(e -> memberOffsets.put(e.getKey().getName(), e.getValue()));
+      multiset = memberOffsets;
+      offsets.put(compositeType, multiset);
     }
     return multiset.get(memberName);
-  }
-
-  /**
-   * Adds the declared composite type to the cache saving its size as well as the offset of every
-   * member of the composite.
-   */
-  @SuppressWarnings("deprecation")
-  void addCompositeTypeToCache(CCompositeType compositeType) {
-    checkIsSimplified(compositeType);
-    if (offsets.containsKey(compositeType)) {
-      // Support for empty structs though it's a GCC extension
-      assert sizes.contains(compositeType) || Integer.valueOf(0).equals(getSizeofUncached(compositeType)) :
-          "Illegal state of PointerTargetSet: no size for type:" + compositeType;
-      return; // The type has already been added
-    }
-
-    final int size = getSizeofUncached(compositeType);
-    final int sizeOfByte = machineModel.getSizeofCharInBits();
-
-    assert compositeType.getKind() != ComplexTypeKind.ENUM
-        : "Enums are not composite: " + compositeType;
-
-    final HashMap<String, Long> members = new HashMap<>();
-    long offset = 0;
-    long bitFieldsSize = 0;
-    Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
-    while (memberIt.hasNext()) {
-      final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
-      final CType memberType = getSimplifiedType(memberDeclaration);
-      final CCompositeType memberCompositeType;
-      if (memberType instanceof CCompositeType) {
-        memberCompositeType = (CCompositeType) memberType;
-        if (memberCompositeType.getKind() == ComplexTypeKind.STRUCT ||
-            memberCompositeType.getKind() == ComplexTypeKind.UNION) {
-          if (!offsets.containsKey(memberCompositeType)) {
-            assert !sizes.contains(memberCompositeType) :
-              "Illegal state of PointerTargetSet: size for type:" + memberCompositeType;
-            addCompositeTypeToCache(memberCompositeType);
-          }
-        }
-      } else {
-        memberCompositeType = null;
-      }
-      if (compositeType.getKind() == ComplexTypeKind.UNION) {
-        members.put(memberDeclaration.getName(), 0L);
-      } else if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-        if (memberCompositeType != null) {
-          if (bitFieldsSize > 0) {
-            // Previous is BitField
-            offset += calculateByteSize(bitFieldsSize);
-          }
-          bitFieldsSize = 0;
-          offset += machineModel.getPadding(offset, memberCompositeType);
-          setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
-          offset += sizes.count(memberCompositeType);
-        } else if (memberType.isIncomplete() && memberType instanceof CArrayType && !memberIt.hasNext()) {
-          // Last member of a struct can be an incomplete array.
-          // In this case we need only padding according to the element type of the array and no size.
-          CType elementType = ((CArrayType) memberType).getType();
-          if (bitFieldsSize > 0) {
-            // Previous is BitField
-            offset += calculateByteSize(bitFieldsSize);
-          }
-          bitFieldsSize = 0;
-          offset += machineModel.getPadding(offset, elementType);
-          setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
-        } else {
-          if (memberDeclaration.getType() instanceof CBitFieldType) {
-            // Cf. implementation of {@link MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
-            CBitFieldType currentType = (CBitFieldType) memberDeclaration.getType();
-            int memberSize = currentType.getBitFieldSize();
-            CType innerType = currentType.getType();
-
-            if (memberSize == 0) {
-              bitFieldsSize =
-                  machineModel.calculatePaddedBitsize(offset * sizeOfByte, bitFieldsSize, innerType,
-                      sizeOfByte) - offset * sizeOfByte;
-              setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
-            } else {
-              bitFieldsSize =
-                  machineModel.calculateNecessaryBitfieldOffset(
-                      offset * sizeOfByte + bitFieldsSize, innerType, sizeOfByte, memberSize)
-                      - offset * sizeOfByte;
-              setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
-              bitFieldsSize += memberSize;
-            }
-          } else {
-            if (bitFieldsSize > 0) {
-              // Previous is BitField
-              offset += calculateByteSize(bitFieldsSize);
-            }
-            bitFieldsSize = 0;
-            offset += machineModel.getPadding(offset, memberDeclaration.getType());
-            setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
-            offset += getSizeofUncached(memberDeclaration.getType());
-          }
-        }
-      }
-    }
-    offset += calculateByteSize(bitFieldsSize);
-    offset += machineModel.getPadding(offset, compositeType);
-
-    assert compositeType.getKind() != ComplexTypeKind.STRUCT || offset == size :
-        "Incorrect sizeof or offset of the last member: " + compositeType;
-
-    sizes.setCount(compositeType, size);
-    offsets.put(compositeType, members);
-
-    long machineModelSize = model.getSizeof(compositeType);
-    Map<String, Long> machineModelOffsets = ImmutableMap.copyOf(from(model.getAllFieldOffsetsInBits(compositeType).entrySet()).transform(entry -> Maps.immutableEntry(entry.getKey().getName(), entry.getValue())));
-    assert size == machineModelSize
-        : "Mismatching sizes " + size + " and " + machineModelSize + " for " + compositeType;
-    assert members.equals(machineModelOffsets)
-        : "Mismatching offsets for " + compositeType + ": " + Maps.difference(members, machineModelOffsets);
-  }
-
-  private void setMemberBitOffset(
-      HashMap<String, Long> pMembers,
-      long pBitFieldsSize,
-      long pOffset,
-      CCompositeTypeMemberDeclaration pMemberDeclaration, int pSizeOfByte) {
-    long bitPreciseOffset = pOffset * pSizeOfByte + pBitFieldsSize;
-    pMembers.put(pMemberDeclaration.getName(), bitPreciseOffset);
-  }
-
-  private int calculateByteSize(long pBitFieldsSize) {
-    int result = Math.toIntExact(pBitFieldsSize / model.getSizeofCharInBits());
-    if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
-      result++;
-    }
-    return result;
   }
 }
