@@ -232,19 +232,7 @@ public class AutomatonGraphmlParser {
       checkParsable(graphs.getLength() == 1, TOO_MANY_GRAPHS_ERROR_MESSAGE);
       Node graphNode = graphs.item(0);
 
-      Set<String> programHash = GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
-      checkHashSum(programHash);
-
-      if (strictChecking) {
-        checkRequiredField(graphNode, KeyDef.WITNESS_TYPE);
-        checkRequiredField(graphNode, KeyDef.SOURCECODELANGUAGE);
-        checkRequiredField(graphNode, KeyDef.PRODUCER);
-        checkRequiredField(graphNode, KeyDef.SPECIFICATION);
-        checkRequiredField(graphNode, KeyDef.PROGRAMFILE);
-      }
-
-      Set<String> architecture = GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE);
-      checkArchitecture(architecture);
+      checkFields(graphNode);
 
       final WitnessType graphType = getWitnessType(graphNode);
       final Set<PropertyType> specType = getSpecAsProperties(graphNode);
@@ -650,6 +638,20 @@ public class AutomatonGraphmlParser {
       throw new WitnessParseException(e);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException("The witness automaton provided is invalid!", e);
+    }
+  }
+
+  private void checkFields(Node graphNode) throws IOException, WitnessParseException {
+
+    checkHashSum(GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH));
+    checkArchitecture(GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE));
+
+    if (strictChecking) {
+      checkRequiredField(graphNode, KeyDef.WITNESS_TYPE);
+      checkRequiredField(graphNode, KeyDef.SOURCECODELANGUAGE);
+      checkRequiredField(graphNode, KeyDef.PRODUCER);
+      checkRequiredField(graphNode, KeyDef.SPECIFICATION);
+      checkRequiredField(graphNode, KeyDef.PROGRAMFILE);
     }
   }
 
