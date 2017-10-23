@@ -865,7 +865,7 @@ cpa.arg.witness.exportLineNumbers = true
 cpa.arg.witness.exportOffset = true
 
 # Verification witness: Include the sourcecode of the operations?
-cpa.arg.witness.exportSourcecode = true
+cpa.arg.witness.exportSourcecode = false
 
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false

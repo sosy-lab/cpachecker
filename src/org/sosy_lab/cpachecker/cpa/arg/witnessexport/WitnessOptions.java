@@ -55,7 +55,7 @@ class WitnessOptions {
     secure = true,
     description = "Verification witness: Include the sourcecode of the operations?"
   )
-  private boolean exportSourcecode = true;
+  private boolean exportSourcecode = false;
 
   @Option(secure = true, description = "Verification witness: Include the offset within the file?")
   private boolean exportOffset = true;
