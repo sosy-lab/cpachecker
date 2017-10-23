@@ -162,7 +162,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private Path TERMINATING_STATEMENT_CONTROL =
       Paths.get("config/specification/TerminatingStatements.spc");
 
-  private final String RECURSIONDEPTH = "2";
+  private static final String RECURSIONDEPTH = "2"; // TODO should it be configurable?
 
   private final Configuration config;
   private final LogManager logger;
