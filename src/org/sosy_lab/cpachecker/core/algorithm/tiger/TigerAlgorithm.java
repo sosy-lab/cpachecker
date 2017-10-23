@@ -211,6 +211,12 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       description = "List of output variables: v1,v2,v3...")
   String outputInterface = "";
 
+  @Option(
+      secure = true,
+      name = "allCoveredGoalsPerTestCase",
+      description = "Returns all test goals covered by a test case.")
+  private boolean allCoveredGoalsPerTestCase = false;
+
   private FQLSpecification fqlSpecification;
   private final LogManager logger;
   private final CFA cfa;
@@ -262,7 +268,6 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.programDenotation = programDenotation;
     this.stats = stats;
-    testsuite = new TestSuite(null);
     inputVariables = new TreeSet<>();
     for (String variable : inputInterface.split(",")) {
       inputVariables.add(variable.trim());
@@ -307,6 +312,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       goalIndex++;
     }
 
+    testsuite = new TestSuite(null, pGoalsToCover);
     /* for (Goal goal : pGoalsToCover) {
       try {
         runReachabilityAnalysis(goal, goal.getIndex());
@@ -647,6 +653,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
               if (checkCoverage) {
                 removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
               }
+              if (allCoveredGoalsPerTestCase) {
+                List<Goal> allGoals = testsuite.getIncludedTestGoals();
+                checkGoalCoverageForTestCase(allGoals, testcase);
+              }
             }
 
           }
@@ -850,7 +860,17 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     return new BigInteger(resArray[resArray.length - 1]);
   }
 
-  private void removeAllGoalsCoveredByTestcase(LinkedList<Goal> pGoalsToCover, TestCase pTestcase) {
+  private void checkGoalCoverageForTestCase(List<Goal> pAllGoals, TestCase testCase) {
+    for (Goal goal : pAllGoals) {
+      ThreeValuedAnswer answer = TigerAlgorithm.accepts(goal, testCase);
+      if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
+        testsuite.updateTestcaseToGoalMapping(testCase, goal);
+        logger.log(Level.INFO, "TestCase " + testCase.getId() + " covers goal " + goal.getName());
+      }
+    }
+  }
+
+  private void removeAllGoalsCoveredByTestcase(List<Goal> pGoalsToCover, TestCase pTestcase) {
     LinkedList<Goal> temp = new LinkedList<>(pGoalsToCover);
     for (Goal goal : temp) {
       ThreeValuedAnswer answer = TigerAlgorithm.accepts(goal, pTestcase);

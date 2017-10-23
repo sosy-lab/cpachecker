@@ -47,13 +47,15 @@ public class TestSuite implements AlgorithmResult {
   private int numberOfFeasibleGoals = 0;
   private NamedRegionManager bddCpaNamedRegionManager;
   private Map<Goal, List<TestCase>> coveringTestCases;
+  private List<Goal> includedTestGoals;
 
-  public TestSuite(NamedRegionManager pBddCpaNamedRegionManager) {
+  public TestSuite(NamedRegionManager pBddCpaNamedRegionManager, List<Goal> includedTestGoals) {
     mapping = new HashMap<>();
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     coveringTestCases = new HashMap<>();
+    this.includedTestGoals = includedTestGoals;
   }
 
   public Set<Goal> getTestGoals() {
@@ -123,8 +125,34 @@ public class TestSuite implements AlgorithmResult {
 
   public void updateTestcaseToGoalMapping(TestCase testcase, Goal goal) {
     List<Goal> goals = mapping.get(testcase);
-    goals.add(goal);
+    if (!goals.contains(goal)) {
+      goals.add(goal);
+    }
+
+    List<TestCase> testcases = coveringTestCases.get(goal);
+
+    if (testcases == null) {
+      testcases = new LinkedList<>();
+      coveringTestCases.put(goal, testcases);
+    }
+    testcases.add(testcase);
     mapping.put(testcase, goals);
+  }
+
+
+  public List<Goal> getIncludedTestGoals() {
+    return includedTestGoals;
+  }
+
+  public Goal getGoalByName(String name) {
+    for (Goal goal : includedTestGoals) {
+      if (goal.getName().equals(name)) { return goal; }
+    }
+    return null;
+  }
+
+  public void setIncludedTestGoals(List<Goal> pIncludedTestGoals) {
+    includedTestGoals = pIncludedTestGoals;
   }
 
   private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {
@@ -292,7 +320,7 @@ public class TestSuite implements AlgorithmResult {
     return totalCoverage;
   }
 
-  public boolean isKnownAsInfeasible(Goal goal) {
+  public boolean isInfeasible(Goal goal) {
     return infeasibleGoals.containsKey(goal);
   }
 
@@ -300,6 +328,10 @@ public class TestSuite implements AlgorithmResult {
     List<TestCase> testCases = coveringTestCases.get(pGoal);
     return (testCases != null && testCases.size() > 0);
 
+  }
+
+  public List<TestCase> getCoveringTestCases(Goal goal) {
+    return coveringTestCases.get(goal);
   }
 
 }

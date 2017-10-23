@@ -90,6 +90,10 @@ public class TestCase {
     return inputs;
   }
 
+  public Map<String, BigInteger> getOutputs() {
+    return outputs;
+  }
+
   public Region getPresenceCondition() {
     return presenceCondition;
   }
