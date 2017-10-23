@@ -323,6 +323,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       // reaching stem end in witness results in ERROR (simple termination and easy to search for)
       automata.add(getSpecForErrorAt(witnessAutomatonName, cycleStart, STEM_SPEC_NAME));
       automata.add(terminationAutomaton);
+      automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       Specification spec = Specification.fromAutomata(automata);
 
       // set up
@@ -391,7 +392,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       automata.add(getSpecForErrorAt(quasiInvariantAsAssumeEdge.getSuccessor()));
       automata.add(terminationAutomaton);
       // stop when reach break state
-      automata.add(getSpecForStopAtWitnessBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
+      automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       Specification spec = Specification.fromAutomata(automata);
 
       // set up
@@ -759,6 +760,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 witness.getInitialVariables(),
                 witness.getStates(),
                 pRecurrentStartInWitness.getName()));
+        automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       } catch (Exception e) {
         logger.logException(Level.INFO, e, "Failed to set up specification to check assumptions");
         return false;
@@ -802,90 +804,90 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       logger.log(Level.INFO, "Explore assumptions in witness automaton. Focus on looping part.");
       algorithm.run(reached);
 
-      AutomatonState amState;
       ARGState argState;
       CFAEdge edge;
       CExpression assigned;
       CBinaryExpression assumption;
 
       for (AbstractState state : reached) {
-        amState = AbstractStates.extractStateByType(state, AutomatonState.class);
-        if (!amState.getAssumptions().isEmpty()) {
-          argState = (ARGState) state;
+        for (AutomatonState amState :
+            AbstractStates.asIterable(state).filter(AutomatonState.class)) {
+          if (!amState.getAssumptions().isEmpty()) {
+            argState = (ARGState) state;
 
-          if (amState.getAssumptions().size() > 1) {
-            logger.log(
-                Level.INFO,
-                "Support at most one assumption per edge in witness, but this witness has more.");
-            return false;
-          }
+            if (amState.getAssumptions().size() > 1) {
+              logger.log(
+                  Level.INFO,
+                  "Support at most one assumption per edge in witness, but this witness has more.");
+              return false;
+            }
 
-          if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
-            logger.log(
-                Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
-            return false;
-          } else {
-            assumption = (CBinaryExpression) amState.getAssumptions().get(0);
-          }
+            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
+              logger.log(
+                  Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
+              return false;
+            } else {
+              assumption = (CBinaryExpression) amState.getAssumptions().get(0);
+            }
 
-          if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {
-            logger.log(
-                Level.INFO,
-                "Found a disallowed operator in assumption. Only equality is supported.");
-            return false;
-          }
+            if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {
+              logger.log(
+                  Level.INFO,
+                  "Found a disallowed operator in assumption. Only equality is supported.");
+              return false;
+            }
 
-          // check that assumption is after nondeterministic statement
-          // it is okay if there is an assumption, but no parent because assumptions are added by
-          // the transfer relation
-          for (ARGState parent : argState.getParents()) {
-            edge = parent.getEdgeToChild(argState);
-            switch (edge.getEdgeType()) {
-              case StatementEdge:
-                CStatement stmt = ((CStatementEdge) edge).getStatement();
-                if (stmt instanceof CFunctionCallAssignmentStatement) {
-                  // external function call
-                  assigned = ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide();
-                  if (!assumption.getOperand1().equals(assigned)
-                      && !assumption.getOperand2().equals(assigned)) {
-                    logger.log(
-                        Level.INFO,
-                        "Cannot detect that assumption only restricts assigned variable. Assumption might be too strong.");
+            // check that assumption is after nondeterministic statement
+            // it is okay if there is an assumption, but no parent because assumptions are added by
+            // the transfer relation
+            for (ARGState parent : argState.getParents()) {
+              edge = parent.getEdgeToChild(argState);
+              switch (edge.getEdgeType()) {
+                case StatementEdge:
+                  CStatement stmt = ((CStatementEdge) edge).getStatement();
+                  if (stmt instanceof CFunctionCallAssignmentStatement) {
+                    // external function call
+                    assigned = ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide();
+                    if (!assumption.getOperand1().equals(assigned)
+                        && !assumption.getOperand2().equals(assigned)) {
+                      logger.log(
+                          Level.INFO,
+                          "Cannot detect that assumption only restricts assigned variable. Assumption might be too strong.");
+                      return false;
+                    }
+                  } else {
+                    logger.log(Level.INFO, "Found an assumption for a deterministic edge.");
                     return false;
                   }
-                } else {
-                  logger.log(Level.INFO, "Found an assumption for a deterministic edge.");
-                  return false;
-                }
-                break;
-              case DeclarationEdge:
-                CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-                if (decl instanceof CVariableDeclaration
-                    && ((CVariableDeclaration) decl).getInitializer() == null) {
+                  break;
+                case DeclarationEdge:
+                  CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+                  if (decl instanceof CVariableDeclaration
+                      && ((CVariableDeclaration) decl).getInitializer() == null) {
 
-                  // check that assumption only affects declared variable
-                  if (!decl.getName().equals(assumption.getOperand1().toASTString())
-                      && !decl.getName().equals(assumption.getOperand2().toASTString())) {
+                    // check that assumption only affects declared variable
+                    if (!decl.getName().equals(assumption.getOperand1().toASTString())
+                        && !decl.getName().equals(assumption.getOperand2().toASTString())) {
+                      logger.log(
+                          Level.INFO,
+                          "Cannot detect that declared variables refers to declared variable. Assumption might be too strong.");
+                      return false;
+                    }
+                  } else {
                     logger.log(
                         Level.INFO,
-                        "Cannot detect that declared variables refers to declared variable. Assumption might be too strong.");
+                        "Found an unallowed assumption for a declaration with initializer.");
                     return false;
                   }
-                } else {
-                  logger.log(
-                      Level.INFO,
-                      "Found an unallowed assumption for a declaration with initializer.");
+                  break;
+                default:
+                  logger.log(Level.INFO, "Found an assumption for a deterministic statement");
                   return false;
-                }
-                break;
-              default:
-                logger.log(Level.INFO, "Found an assumption for a deterministic statement");
-                return false;
+              }
             }
           }
         }
       }
-
       return true;
 
     } catch (InvalidConfigurationException | CPAException e) {
@@ -948,7 +950,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     return getAutomaton(tmpSpec);
   }
 
-  private Automaton getSpecForStopAtWitnessBreak(String fileName) throws IOException, InvalidConfigurationException {
+  private Automaton getSpecForStopAtWitnessTerminationBreak(final String fileName)
+      throws IOException, InvalidConfigurationException {
     Path tmpSpec = Files.createTempFile(fileName, "spc");
 
     try (Writer writer = Files.newBufferedWriter(tmpSpec, Charset.defaultCharset())) {
@@ -960,11 +963,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       // needed to set up initial states, no cycle detection during set up
       writer.append("STATE USEFIRST Init :\n");
-      writer.append(" TRUE -> GOTO Checking;\n\n");
-
-      writer.append("STATE USEFIRST Checking :\n");
       writer.append("CHECK(");
       writer.append(witnessAutomatonName);
+      writer.append(" , \"state==");
+      writer.append(BREAKSTATENAME);
+      writer.append("\") -> STOP;\n");
+      writer.append("CHECK(");
+      writer.append(terminationAutomatonName);
       writer.append(" , \"state==");
       writer.append(BREAKSTATENAME);
       writer.append("\") -> STOP;\n\n");
