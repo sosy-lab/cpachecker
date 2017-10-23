@@ -788,8 +788,10 @@ class WitnessWriter implements EdgeAppender {
     if (threadingState != null) {
       for (String threadId : threadingState.getThreadIds()) {
         if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
-          result = result.putAndCopy(KeyDef.THREADID, threadId);
-          result = result.putAndCopy(KeyDef.THREAD, getUniqueThreadNum(threadId));
+          if (witnessOptions.exportThreadName()) {
+            result = result.putAndCopy(KeyDef.THREADNAME, threadId);
+          }
+          result = result.putAndCopy(KeyDef.THREADID, getUniqueThreadNum(threadId));
           result = exportThreadCreation(result, pEdge, state, threadingState);
           break;
         }

@@ -870,6 +870,10 @@ cpa.arg.witness.exportSourcecode = false
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
 
+# Verification witness: Include (not necessarily globally unique) thread
+# names for concurrent tasks for debugging?
+cpa.arg.witness.exportThreadName = false
+
 # Some redundant transitions will be removed
 cpa.arg.witness.removeInsufficientEdges = true
 

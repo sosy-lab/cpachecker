@@ -342,7 +342,7 @@ public class AutomatonGraphmlParser {
             // define new variable in automaton,
             // this would be sufficient once and not per iteration, but who cares...
             automatonVariables.put(
-                KeyDef.THREADID.name(), new AutomatonVariable("int", KeyDef.THREADID.name()));
+                KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
           }
         }
 
@@ -887,7 +887,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonAction getThreadIdAssignment(Node transition)
       throws WitnessParseException {
     Set<String> threadIdTags =
-        GraphMLDocumentData.getDataOnNode(transition, KeyDef.THREADID);
+        GraphMLDocumentData.getDataOnNode(transition, KeyDef.THREADNAME);
 
     if (threadIdTags.size() > 0) {
       checkParsable(
@@ -896,7 +896,7 @@ public class AutomatonGraphmlParser {
       // TODO use unique Integer for each identifier
       int threadId = threadIdStr.hashCode();
       AutomatonIntExpr expr = new AutomatonIntExpr.Constant(threadId);
-      return new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr);
+      return new AutomatonAction.Assignment(KeyDef.THREADNAME.name(), expr);
     }
     return null;
   }
