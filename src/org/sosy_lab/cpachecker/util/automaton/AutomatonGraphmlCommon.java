@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 public class AutomatonGraphmlCommon {
 
@@ -167,19 +168,16 @@ public class AutomatonGraphmlCommon {
     @Nullable public final String defaultValue;
 
     private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
-      this.id = id;
-      this.keyFor = pKeyFor;
-      this.attrName = attrName;
-      this.attrType = attrType;
-      this.defaultValue = null;
+      this(id, pKeyFor, attrName, attrType, null);
     }
 
-    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType, Object defaultValue) {
-      this.id = id;
-      this.keyFor = pKeyFor;
-      this.attrName = attrName;
-      this.attrType = attrType;
-      this.defaultValue = defaultValue.toString();
+    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType,
+        @Nullable Object defaultValue) {
+      this.id = Preconditions.checkNotNull(id);
+      this.keyFor = Preconditions.checkNotNull(pKeyFor);
+      this.attrName = Preconditions.checkNotNull(attrName);
+      this.attrType = Preconditions.checkNotNull(attrType);
+      this.defaultValue = defaultValue == null ? null : defaultValue.toString();
     }
 
     @Override
@@ -319,6 +317,8 @@ public class AutomatonGraphmlCommon {
 
     private final Document doc;
     private final Element graph;
+    private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
+    private final Map<KeyDef, Node> keyDefsToAppend = Maps.newEnumMap(KeyDef.class);
 
     public GraphMlBuilder(
         WitnessType pGraphType,
@@ -335,11 +335,11 @@ public class AutomatonGraphmlCommon {
       root.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
       root.setAttribute("xmlns", "http://graphml.graphdrawing.org/xmlns");
 
-      EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
-      root.appendChild(createKeyDefElement(KeyDef.ORIGINFILE, pDefaultSourceFileName));
-      keyDefs.remove(KeyDef.ORIGINFILE);
-      for (KeyDef keyDef : keyDefs) {
-        root.appendChild(createKeyDefElement(keyDef, keyDef.defaultValue));
+      defineKey(KeyDef.ORIGINFILE, Optional.of(pDefaultSourceFileName));
+      for (KeyDef keyDef : KeyDef.values()) {
+        if (keyDef.keyFor == ElementType.GRAPH) {
+          defineKey(keyDef);
+        }
       }
 
       graph = doc.createElement("graph");
@@ -380,11 +380,23 @@ public class AutomatonGraphmlCommon {
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
     }
 
+    private void defineKey(KeyDef pKeyDef) {
+      defineKey(pKeyDef, Optional.empty());
+    }
+
+    private void defineKey(KeyDef pKeyDef, Optional<String> pOverrideDefaultValue) {
+      if (definedKeys.add(pKeyDef)) {
+        keyDefsToAppend.put(pKeyDef,
+            createKeyDefElement(pKeyDef, pOverrideDefaultValue));
+      }
+    }
+
     private Element createElement(GraphMLTag tag) {
       return doc.createElement(tag.toString());
     }
 
     private Element createDataElement(final KeyDef key, final String value) {
+      defineKey(key);
       Element result = createElement(GraphMLTag.DATA);
       result.setAttribute("key", key.id);
       result.setTextContent(value);
@@ -412,31 +424,16 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    private Element createKeyDefElement(KeyDef keyDef, @Nullable String defaultValue) {
-      return createKeyDefElement(
-          keyDef.id, keyDef.keyFor, keyDef.attrName, keyDef.attrType, defaultValue);
-    }
-
-    private Element createKeyDefElement(
-        String id,
-        ElementType keyFor,
-        String attrName,
-        String attrType,
-        @Nullable String defaultValue) {
-
-      Preconditions.checkNotNull(doc);
-      Preconditions.checkNotNull(id);
-      Preconditions.checkNotNull(keyFor);
-      Preconditions.checkNotNull(attrName);
-      Preconditions.checkNotNull(attrType);
+    private Element createKeyDefElement(KeyDef pKeyDef, Optional<String> pDefaultValue) {
 
       Element result = createElement(GraphMLTag.KEY);
 
-      result.setAttribute("id", id);
-      result.setAttribute("for", keyFor.toString());
-      result.setAttribute("attr.name", attrName);
-      result.setAttribute("attr.type", attrType);
+      result.setAttribute("id", pKeyDef.id);
+      result.setAttribute("for", pKeyDef.keyFor.toString());
+      result.setAttribute("attr.name", pKeyDef.attrName);
+      result.setAttribute("attr.type", pKeyDef.attrType);
 
+      String defaultValue = pDefaultValue.orElse(pKeyDef.defaultValue);
       if (defaultValue != null) {
         Element defaultValueElement = createElement(GraphMLTag.DEFAULT);
         defaultValueElement.setTextContent(defaultValue);
@@ -452,6 +449,17 @@ public class AutomatonGraphmlCommon {
     }
 
     public void appendTo(Appendable pTarget) throws IOException {
+      Node root = doc.getFirstChild();
+      Node insertionLocation = root.getFirstChild();
+      for (Node graphMLKeyDefNode : Iterables
+          .consumingIterable(keyDefsToAppend.values())) {
+        while (insertionLocation != null
+            && insertionLocation.getNodeName().equals(GraphMLTag.KEY.toString())) {
+          insertionLocation = insertionLocation.getNextSibling();
+        }
+        root.insertBefore(graphMLKeyDefNode, insertionLocation);
+      }
+
       try {
         pTarget.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 
