@@ -60,10 +60,14 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
       description = "Specifies the mode how HW requirements are detected in the proof.")
   private CIDescriptionType ciMode = CIDescriptionType.OPERATOR;
 
-
-  public ProofCheckAndExtractCIRequirementsAlgorithm(ConfigurableProgramAnalysis pCpa,
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Specification pSpecification) throws InvalidConfigurationException {
+  public ProofCheckAndExtractCIRequirementsAlgorithm(
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
+      throws InvalidConfigurationException, CPAException {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
 
     pConfig.inject(this);
