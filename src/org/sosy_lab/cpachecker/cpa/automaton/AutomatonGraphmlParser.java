@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.w3c.dom.Document;
@@ -406,24 +405,8 @@ public class AutomatonGraphmlParser {
     }
 
     // Parse the invariants of the witness
-    ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
-    if (!pTransition.getTarget().getInvariants().isEmpty()) {
-      Scope candidateScope = determineScope(
-          pTransition.getTarget().getExplicitInvariantScope(),
-          newStack,
-          getLocationMatcherPredicate(pTransition));
-      Optional<String> resultFunction =
-          determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
-      candidateInvariants =
-          And.of(
-              candidateInvariants,
-              CParserUtils.parseStatementsAsExpressionTree(
-                  pTransition.getTarget().getInvariants(),
-                  resultFunction,
-                  pCParser,
-                  candidateScope,
-                  parserTools));
-    }
+    ExpressionTree<AExpression> candidateInvariants =
+        getInvariants(pCParser, pTransition, newStack);
 
     // Check that there are no invariants in a violation witness
     if (!ExpressionTrees.getTrue().equals(candidateInvariants)
@@ -567,6 +550,33 @@ public class AutomatonGraphmlParser {
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
     }
+  }
+
+  /**
+   * Parses the invariants specified for this transition.
+   *
+   * @param pCParser the C parser to parse the assumptions with.
+   * @param pTransition the transition to be parsed.
+   * @param pCallstack the current call stack.
+   * @return the invariants specified for this transition.
+  */
+  private ExpressionTree<AExpression> getInvariants(CParser pCParser, GraphMLTransition pTransition,
+      Deque<String> pCallstack) {
+    if (!pTransition.getTarget().getInvariants().isEmpty()) {
+      Scope candidateScope = determineScope(
+          pTransition.getTarget().getExplicitInvariantScope(),
+          pCallstack,
+          getLocationMatcherPredicate(pTransition));
+      Optional<String> resultFunction =
+          determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
+      return CParserUtils.parseStatementsAsExpressionTree(
+          pTransition.getTarget().getInvariants(),
+          resultFunction,
+          pCParser,
+          candidateScope,
+          parserTools);
+    }
+    return ExpressionTrees.getTrue();
   }
 
   /**
