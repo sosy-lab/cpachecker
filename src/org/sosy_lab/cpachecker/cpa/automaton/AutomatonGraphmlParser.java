@@ -324,13 +324,7 @@ public class AutomatonGraphmlParser {
     if (pState.isEntryState()
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
       AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      Integer distance = pGraphMLParserState.getDistances().get(pState);
-      if (distance == null) {
-        distance = Integer.MIN_VALUE;
-      } else {
-        distance = -distance;
-      }
-      distanceVariable.setValue(distance);
+      distanceVariable.setValue(pGraphMLParserState.getDistance(pState));
       pGraphMLParserState.getAutomatonVariables().put(DISTANCE_TO_VIOLATION, distanceVariable);
     }
 
@@ -371,9 +365,7 @@ public class AutomatonGraphmlParser {
           new AutomatonAction.Assignment(
               DISTANCE_TO_VIOLATION,
               new AutomatonIntExpr.Constant(
-                  -pGraphMLParserState.getDistances().getOrDefault(
-                      pTransition.getTarget(),
-                      Integer.MAX_VALUE))));
+                  -pGraphMLParserState.getDistance(pTransition.getTarget()))));
     }
 
     Optional<Predicate<FileLocation>> offsetMatcherPredicate =
@@ -653,19 +645,16 @@ public class AutomatonGraphmlParser {
               leavingTransitions);
 
     // Check if entry state is connected to a violation state
-    if (result.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
-      Integer initialStateDistance =
-          result.getDistances().get(result.getEntryState());
-      if (initialStateDistance == null) {
-        logger.log(
-            Level.WARNING,
-            String.format(
-                "There is no path from the entry state %s"
-                    + " to a state explicitly marked as violation state."
-                    + " Distance-to-violation waitlist order will not work"
-                    + " and witness validation may fail to confirm this witness.",
-                result.getEntryState()));
-      }
+    if (result.getWitnessType() == WitnessType.VIOLATION_WITNESS
+        && !result.isEntryConnectedToViolation()) {
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "There is no path from the entry state %s"
+                  + " to a state explicitly marked as violation state."
+                  + " Distance-to-violation waitlist order will not work"
+                  + " and witness validation may fail to confirm this witness.",
+              result.getEntryState()));
     }
 
     return result;

@@ -272,12 +272,16 @@ public class AutomatonGraphmlParserState {
   }
 
   /**
-   * Gets for each state (in the GraphML model) the distance to the next violation state.
+   * Gets for a given state (in the GraphML model) the distance to the next violation state.
    *
-   * @return for each state (in the GraphML model) the distance to the next violation state.
+   * @return the distance of the given state to the next violation state.
    */
-  public Map<GraphMLState, Integer> getDistances() {
-    return distances;
+  public int getDistance(GraphMLState pState) {
+    Integer distance = distances.get(pState);
+    if (distance == null) {
+      return Integer.MAX_VALUE;
+    }
+    return distance;
   }
 
   /**
@@ -338,5 +342,15 @@ public class AutomatonGraphmlParserState {
    */
   public Map<GraphMLState, LinkedList<AutomatonTransition>> getStateTransitions() {
     return stateTransitions;
+  }
+
+  /**
+   * Checks if the entry state is connected to a violation state.
+   *
+   * @return {@code true} if the entry state is connected to a violation state,
+   * {@code false} otherwise.
+   */
+  public boolean isEntryConnectedToViolation() {
+    return distances.get(getEntryState()) != null;
   }
 }
