@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
@@ -256,8 +257,9 @@ public class AutomatonGraphmlParser {
       Multimap<GraphMLState, GraphMLTransition> leavingEdges = HashMultimap.create();
       Multimap<GraphMLState, GraphMLTransition> enteringEdges = HashMultimap.create();
 
+      NumericIdProvider numericIdProvider = NumericIdProvider.create();
       for (Node edge : asIterable(edges)) {
-        collectEdgeData(docDat, states, leavingEdges, enteringEdges, edge);
+        collectEdgeData(docDat, states, leavingEdges, enteringEdges, numericIdProvider, edge);
       }
 
       final GraphMLState entryState = getEntryState(states.values());
@@ -875,23 +877,23 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Collects data about the given transition and the states it connects.
-   * Build an AutomatonAction to set a given thraedId for an active thread at the current edge.
+   * Collects data about the given transition and the states it connects. Build an AutomatonAction
+   * to set a given threadId for an active thread at the current edge.
    *
-   * <p>Returns {@null}, if no data can be found.
+   * @param pTransition the transition to parse the thread id from.
+   * @param pNumericIdProvider a numeric id provider to map textual thread ids to numeric ones.
    */
-  private static Optional<AutomatonAction> getThreadIdAssignment(Node pTransition)
-      throws WitnessParseException {
+  private static Optional<AutomatonAction> getThreadIdAssignment(
+      Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
     Set<String> threadIdTags =
         GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.THREADID);
 
     if (threadIdTags.size() > 0) {
       checkParsable(
           threadIdTags.size() < 2, "At most one threadId tag must be provided for each edge.");
-      String threadIdStr = threadIdTags.iterator().next();
-      // TODO use unique Integer for each identifier
-      int threadId = threadIdStr.hashCode();
-      AutomatonIntExpr expr = new AutomatonIntExpr.Constant(threadId);
+      String threadId = threadIdTags.iterator().next();
+      Integer numericId = pNumericIdProvider.provideNumericId(threadId);
+      AutomatonIntExpr expr = new AutomatonIntExpr.Constant(numericId);
       return Optional.of(new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr));
     }
     return Optional.empty();
@@ -906,6 +908,8 @@ public class AutomatonGraphmlParser {
    *     the given transition will be entered into.
    * @param pEnteringEdges the map from successor states to transitions entering these states that
    *     the given transition will be entered into.
+   * @param pNumericThreadIdProvider a numeric id provider to map textual thread ids to numeric
+   *     ones.
    * @param pTransition the transition to be analyzed, represented as a GraphML edge.
    */
   private void collectEdgeData(
@@ -913,6 +917,7 @@ public class AutomatonGraphmlParser {
       Map<String, GraphMLState> pStates,
       Multimap<GraphMLState, GraphMLTransition> pLeavingEdges,
       Multimap<GraphMLState, GraphMLTransition> pEnteringEdges,
+      NumericIdProvider pNumericThreadIdProvider,
       Node pTransition)
       throws WitnessParseException {
     String sourceStateId =
@@ -937,17 +942,20 @@ public class AutomatonGraphmlParser {
         parseSingleDataValue(pTransition, KeyDef.ASSUMPTIONRESULTFUNCTION,
             "At most one result function must be provided for a transition.");
 
-    GraphMLTransition transition = new GraphMLTransition(source, target,
-        functionEntry,
-        functionExit,
-        getOffsetMatcherPredicate(pTransition),
-        getOriginLineMatcherPredicate(pTransition),
-        getAssumeCaseMatcher(pTransition),
-        getThreadIdAssignment(pTransition),
-        GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ASSUMPTION),
-        explicitAssumptionScope,
-        assumptionResultFunction,
-        entersLoopHead(pTransition));
+    GraphMLTransition transition =
+        new GraphMLTransition(
+            source,
+            target,
+            functionEntry,
+            functionExit,
+            getOffsetMatcherPredicate(pTransition),
+            getOriginLineMatcherPredicate(pTransition),
+            getAssumeCaseMatcher(pTransition),
+            getThreadIdAssignment(pTransition, pNumericThreadIdProvider),
+            GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ASSUMPTION),
+            explicitAssumptionScope,
+            assumptionResultFunction,
+            entersLoopHead(pTransition));
 
     pLeavingEdges.put(source, transition);
     pEnteringEdges.put(target, transition);
