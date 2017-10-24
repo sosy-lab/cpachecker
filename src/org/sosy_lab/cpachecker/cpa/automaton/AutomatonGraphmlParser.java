@@ -385,7 +385,6 @@ public class AutomatonGraphmlParser {
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
-    List<AExpression> assumptions = Lists.newArrayList();
     ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
     LinkedList<AutomatonTransition> transitions =
@@ -414,28 +413,9 @@ public class AutomatonGraphmlParser {
       transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
     }
 
-    // Add assumptions to the transition
-    if (considerAssumptions) {
-      Scope scope = determineScope(
-          pTransition.getExplicitAssumptionScope(),
-          newStack,
-          getLocationMatcherPredicate(pTransition));
-      Optional<String> assumptionResultFunction =
-          determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
-      try {
-        assumptions.addAll(
-            CParserUtils.convertStatementsToAssumptions(
-                CParserUtils.parseStatements(
-                    pTransition.getAssumptions(),
-                    assumptionResultFunction,
-                    pCParser,
-                    scope, parserTools),
-                cfa.getMachineModel(),
-                logger));
-      } catch (InvalidAutomatonException e) {
-        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
-      }
-    }
+    // Parse the assumptions of the transition
+    List<AExpression> assumptions = getAssumptions(pCParser, pTransition, newStack);
+
     if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
         && !assumptions.isEmpty()) {
       throw new WitnessParseException(
@@ -578,6 +558,42 @@ public class AutomatonGraphmlParser {
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
     }
+  }
+
+  /**
+   * Parses the assumptions specified for this transition.
+   *
+   * @param pCParser the C parser to parse the assumptions with.
+   * @param pTransition the transition to be parsed.
+   * @param pCallstack the current call stack.
+   * @return the assumptions specified for this transition.
+   * @throws WitnessParseException if parsing the assumptions fails.
+   */
+  private List<AExpression> getAssumptions(CParser pCParser,
+      GraphMLTransition pTransition,
+      Deque<String> pCallstack) throws WitnessParseException {
+    if (considerAssumptions) {
+      Scope scope = determineScope(
+          pTransition.getExplicitAssumptionScope(),
+          pCallstack,
+          getLocationMatcherPredicate(pTransition));
+      Optional<String> assumptionResultFunction =
+          determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
+      try {
+        return
+            CParserUtils.convertStatementsToAssumptions(
+                CParserUtils.parseStatements(
+                    pTransition.getAssumptions(),
+                    assumptionResultFunction,
+                    pCParser,
+                    scope, parserTools),
+                cfa.getMachineModel(),
+                logger);
+      } catch (InvalidAutomatonException e) {
+        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
+      }
+    }
+    return Collections.emptyList();
   }
 
   /**
