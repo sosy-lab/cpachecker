@@ -46,7 +46,7 @@ public class TestCase {
   private Region presenceCondition;
   private ARGPath argPath;
 
-  public TestCase(Map<String, BigInteger> pInputs, Map<String, BigInteger> pOutputs,
+  public TestCase(int pI, Map<String, BigInteger> pInputs, Map<String, BigInteger> pOutputs,
       List<CFAEdge> pPath,
       List<CFAEdge> pShrinkedErrorPath,
       Region pPresenceCondition) {
@@ -55,6 +55,7 @@ public class TestCase {
     path = pPath;
     errorPath = pShrinkedErrorPath;
     presenceCondition = pPresenceCondition;
+    id = pI;
   }
 
   public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,

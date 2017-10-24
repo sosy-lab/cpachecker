@@ -41,6 +41,11 @@ public class ExpectedGoalProperties {
     GT
   }
 
+  public enum GoalPropertyType {
+    INPUT,
+    OUTPUT
+  }
+
   public class RelativeVariableProperty {
 
     private String variable1;
@@ -49,14 +54,19 @@ public class ExpectedGoalProperties {
 
     private Comparators comp;
 
-    public RelativeVariableProperty(String pV1, String pV2, Comparators pComp) {
+    private GoalPropertyType inOrOut;
+
+    public RelativeVariableProperty(String pV1, String pV2, Comparators pComp,
+        GoalPropertyType inOrOut) {
       super();
       variable1 = pV1;
       variable2 = pV2;
       comp = pComp;
+      this.inOrOut = inOrOut;
     }
 
-    public boolean checkProperty(Map<String, BigInteger> listToCheck) {
+    public boolean checkProperty(Map<String, BigInteger> listToCheck, GoalPropertyType inOrOut) {
+      if (this.inOrOut != inOrOut) { return true; }
       BigInteger value1 = listToCheck.get(variable1);
       BigInteger value2 = listToCheck.get(variable2);
 
@@ -105,15 +115,20 @@ public class ExpectedGoalProperties {
 
     private Comparators comp;
 
+    private GoalPropertyType inOrOut;
+
     ConcreteVariableProperty(String pVariable, BigInteger pExpectedValue,
-        Comparators pComp) {
+        Comparators pComp, GoalPropertyType inOrOut) {
       super();
       variable = pVariable;
       expectedValue = pExpectedValue;
       comp = pComp;
+      this.inOrOut = inOrOut;
     }
 
-    boolean checkProperty(Map<String, BigInteger> listToCheck) {
+    boolean checkProperty(Map<String, BigInteger> listToCheck, GoalPropertyType inOrOut) {
+      if (this.inOrOut != inOrOut) { return true; }
+
       BigInteger value = listToCheck.get(variable);
 
       if (value == null) { return false; }
@@ -165,6 +180,7 @@ public class ExpectedGoalProperties {
     goalName = pGoalName;
     isFeasible = pFeasible;
     relativeVariableProperties = Lists.newLinkedList();
+    concreteVariableProperties = Lists.newLinkedList();
   }
 
   public boolean checkProperties(TestSuite testSuite) {
@@ -179,6 +195,10 @@ public class ExpectedGoalProperties {
     if (!isFeasible && testSuite.isGoalCovered(goal)) { throw new AssertionError(
         "Goal " + goalName + " should be infeasible but was found fasible!"); }
 
+    if (testSuite.isInfeasible(goal)) {
+      return true;
+    }
+
     List<TestCase> testCases = testSuite.getCoveringTestCases(goal);
 
     for (TestCase testCase : testCases) {
@@ -186,19 +206,19 @@ public class ExpectedGoalProperties {
       Map<String, BigInteger> outputs = testCase.getOutputs();
 
       for (RelativeVariableProperty r : relativeVariableProperties) {
-        if (!r.checkProperty(inputs)) { throw new AssertionError(
+        if (!r.checkProperty(inputs, GoalPropertyType.INPUT)) { throw new AssertionError(
             "Expected input property (" + r.toString() + ") for goal " + goalName
                 + " is not fullfilled in testCase " + testCase.getId()); }
-        if (!r.checkProperty(outputs)) { throw new AssertionError(
+        if (!r.checkProperty(outputs, GoalPropertyType.OUTPUT)) { throw new AssertionError(
             "Expected output property (" + r.toString() + ") for goal " + goalName
                 + " is not fullfilled in testCase " + testCase.getId()); }
       }
 
       for (ConcreteVariableProperty r : concreteVariableProperties) {
-        if (!r.checkProperty(inputs)) { throw new AssertionError(
+        if (!r.checkProperty(inputs, GoalPropertyType.INPUT)) { throw new AssertionError(
             "Expected input property (" + r.toString() + ") for goal " + goalName
                 + " is not fullfilled in testCase " + testCase.getId()); }
-        if (!r.checkProperty(outputs)) { throw new AssertionError(
+        if (!r.checkProperty(outputs, GoalPropertyType.OUTPUT)) { throw new AssertionError(
             "Expected output property (" + r.toString() + ") for goal " + goalName
                 + " is not fullfilled in testCase " + testCase.getId()); }
       }

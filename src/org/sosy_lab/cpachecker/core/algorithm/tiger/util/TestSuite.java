@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.collect.Lists;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.relation.Pair;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -50,12 +52,13 @@ public class TestSuite implements AlgorithmResult {
   private List<Goal> includedTestGoals;
 
   public TestSuite(NamedRegionManager pBddCpaNamedRegionManager, List<Goal> includedTestGoals) {
-    mapping = new HashMap<>();
+    mapping = new LinkedHashMap<>();
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
-    coveringTestCases = new HashMap<>();
-    this.includedTestGoals = includedTestGoals;
+    coveringTestCases = new LinkedHashMap<>();
+    this.includedTestGoals = Lists.newLinkedList();
+    this.includedTestGoals.addAll(includedTestGoals);
   }
 
   public Set<Goal> getTestGoals() {
@@ -82,9 +85,9 @@ public class TestSuite implements AlgorithmResult {
     return !timedOutGoals.isEmpty();
   }
 
-  @SuppressWarnings("unused")
+
   public void addTimedOutGoal(int index, Goal goal, Region presenceCondition) {
-    // timedOutGoals.put(index, Pair.of(goal, presenceCondition));
+    timedOutGoals.put(index, new Pair<>(goal, presenceCondition));
   }
 
   public Map<Integer, Pair<Goal, Region>> getTimedOutGoals() {
@@ -124,6 +127,7 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void updateTestcaseToGoalMapping(TestCase testcase, Goal goal) {
+    numberOfFeasibleGoals++;
     List<Goal> goals = mapping.get(testcase);
     if (!goals.contains(goal)) {
       goals.add(goal);
@@ -152,7 +156,8 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void setIncludedTestGoals(List<Goal> pIncludedTestGoals) {
-    includedTestGoals = pIncludedTestGoals;
+    includedTestGoals.clear();
+    includedTestGoals.addAll(pIncludedTestGoals);
   }
 
   private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {

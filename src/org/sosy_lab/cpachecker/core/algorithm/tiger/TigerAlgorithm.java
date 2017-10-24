@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.collect.Lists;
+import de.uni_freiburg.informatik.ultimate.util.datastructures.relation.Pair;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
@@ -122,7 +122,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -238,6 +237,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private Set<String> inputVariables;
   private Set<String> outputVariables;
 
+  private int currentTestCaseID;
+
   enum ReachabilityAnalysisResult {
     SOUND,
     UNSOUND,
@@ -276,6 +277,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     for (String variable : outputInterface.split(",")) {
       outputVariables.add(variable.trim());
     }
+    currentTestCaseID = 0;
   }
 
   @Override
@@ -297,7 +299,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     goalPatterns = extractTestGoalPatterns(fqlSpecification);
 
     for (int i = 0; i < goalPatterns.size(); i++) {
-      pTestGoalPatterns.add(Pair.of(goalPatterns.get(i), (Region) null));
+      pTestGoalPatterns.add(new Pair<>(goalPatterns.get(i), (Region) null));
     }
 
     int goalIndex = 1;
@@ -377,11 +379,11 @@ public class TigerAlgorithm implements AlgorithmWithResult {
               set = new TreeSet<>(WorklistEntryComparator.ORDER_INVERTING_COMPARATOR);
             }
 
-            set.addAll((Collection<? extends Entry<Integer, Pair<Goal, Region>>>) testsuite
+            set.addAll(testsuite
                 .getTimedOutGoals().entrySet());
           } else {
             set = new LinkedList<>();
-            set.addAll((Collection<? extends Entry<Integer, Pair<Goal, Region>>>) testsuite
+            set.addAll(testsuite
                 .getTimedOutGoals().entrySet());
           }
 
@@ -407,7 +409,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           wasSound = false;
         }
         if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
-          break;
+          logger.log(Level.INFO, "Adding timedout Goal to testsuite!");
+          testsuite.addTimedOutGoal(goalIndex, goal, null);
+         // break;
         }
       }
 
@@ -686,8 +690,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           testsuite.addInfeasibleGoal(pGoal, null);
         }
       } else {
-        throw new RuntimeException(
-            "We need a last state to determine the feasibility of the test goal!");
+        /*throw new RuntimeException(
+            "We need a last state to determine the feasibility of the test goal!");*/
+        logger.logf(Level.INFO, "Test goal infeasible.");
+        testsuite.addInfeasibleGoal(pGoal, null);
       }
     }
 
@@ -705,8 +711,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     List<CFAEdge> shrinkedErrorPath =
         new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
     TestCase testcase =
-        new TestCase(inputValues, outputValus, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
+        new TestCase(currentTestCaseID, inputValues, outputValus, cex.getTargetPath().asEdgesList(),
+            shrinkedErrorPath,
             null);
+    currentTestCaseID++;
     return testcase;
   }
 
@@ -1008,7 +1016,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         }
       }
     }
-    return Pair.of(analysisWasSound, hasTimedOut);
+    return new Pair<>(analysisWasSound, hasTimedOut);
   }
 
   private TestCase handleUnavailableCounterexample(CFAEdge criticalEdge, AbstractState lastState) {
@@ -1054,7 +1062,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     Map<String, BigInteger> inputValues = new LinkedHashMap<>();
     Map<String, BigInteger> outputValues = new LinkedHashMap<>();
 
-    return new TestCase(inputValues, outputValues, trace, shrinkedErrorPath,
-        null);
+    TestCase result =
+        new TestCase(currentTestCaseID, inputValues, outputValues, trace, shrinkedErrorPath,
+            null);
+    currentTestCaseID++;
+    return result;
   }
 }
