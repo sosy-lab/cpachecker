@@ -408,7 +408,7 @@ public class AutomatonGraphmlParser {
     transitionCondition =
         and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
-    // Match a loop start
+    // Add a source-code guard for a specified loop head
     if (pTransition.entersLoopHead()) {
       transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
     }
@@ -416,12 +416,14 @@ public class AutomatonGraphmlParser {
     // Parse the assumptions of the transition
     List<AExpression> assumptions = getAssumptions(pCParser, pTransition, newStack);
 
+    // Check that there are no assumptions for a correctness witness
     if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
         && !assumptions.isEmpty()) {
       throw new WitnessParseException(
             "Assumptions are not allowed for correctness witnesses.");
     }
 
+    // Add a source-code guard for function-call statements if an explicit result function is specified
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName = pTransition.getExplicitAssumptionResultFunction().get();
@@ -430,6 +432,7 @@ public class AutomatonGraphmlParser {
               new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
     }
 
+    // Parse the invariants of the witness
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
       if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
           && !pGraphMLParserState.getSpecificationTypes()
@@ -454,6 +457,7 @@ public class AutomatonGraphmlParser {
                   parserTools));
     }
 
+    // Add a source-code guard for specified line numbers
     if (matchOriginLine) {
       transitionCondition = and(
           transitionCondition,
@@ -462,6 +466,7 @@ public class AutomatonGraphmlParser {
               pTransition.getLineMatcherPredicate()));
     }
 
+    // Add a source-code guard for specified character offsets
     if (matchOffset) {
       transitionCondition = and(
           transitionCondition,
@@ -470,6 +475,7 @@ public class AutomatonGraphmlParser {
               pTransition.getOffsetMatcherPredicate()));
     }
 
+    // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
       transitionCondition =
           and(transitionCondition,
@@ -498,6 +504,7 @@ public class AutomatonGraphmlParser {
               stopNotBreakAtSinkStates));
     }
 
+    // Add a source-code guard for specified function entries
     if (pTransition.getFunctionEntry().isPresent()) {
       transitionCondition = and(transitionCondition,
           getFunctionCallMatcher(
@@ -505,6 +512,7 @@ public class AutomatonGraphmlParser {
               pTransition.entersLoopHead()));
     }
 
+    // Add a source-code guard for specified branching information
     if (matchAssumeCase) {
       transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
     }
