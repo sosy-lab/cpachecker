@@ -64,6 +64,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
+import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -533,8 +534,7 @@ public class AutomatonGraphmlParser {
 
       // Create states ----
       List<AutomatonInternalState> automatonStates = Lists.newArrayList();
-      for (Map.Entry<String, Element> stateEntry : docDat.getIdToNodeMap().entrySet()) {
-        GraphMLState state = states.get(stateEntry.getKey());
+      for (GraphMLState state : states.values()) {
 
         List<AutomatonTransition> transitions = stateTransitions.get(state);
         if (transitions == null) {
@@ -1388,10 +1388,8 @@ public class AutomatonGraphmlParser {
 
     private final Document doc;
 
-    private Map<String, Element> idToNodeMap = null;
-
     public GraphMLDocumentData(Document doc) {
-      this.doc = doc;
+      this.doc = Objects.requireNonNull(doc);
     }
 
     public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
@@ -1412,34 +1410,19 @@ public class AutomatonGraphmlParser {
       return result;
     }
 
-    public Map<String, Element> getIdToNodeMap() {
-      if (idToNodeMap != null) {
-        return idToNodeMap;
-      }
-
-      idToNodeMap = Maps.newHashMap();
-
-      NodeList nodes = doc.getElementsByTagName(GraphMLTag.NODE.toString());
-      for (Node stateNode : asIterable(nodes)) {
-        String stateId = getNodeId(stateNode);
-        idToNodeMap.put(stateId, (Element) stateNode);
-      }
-
-      return idToNodeMap;
-    }
-
     private static String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
       Node attribute = of.getAttributes().getNamedItem(attributeName);
       Preconditions.checkNotNull(attribute, exceptionMessage);
       return attribute.getTextContent();
     }
 
-    private static String getNodeId(Node stateNode) {
-      return getAttributeValue(stateNode, "id", "Every state needs an ID!");
-    }
-
-    private Element getNodeWithId(String nodeId) {
-      return getIdToNodeMap().get(nodeId);
+    private @Nullable Element getNodeWithId(String nodeId) {
+      Element result = doc.getElementById(nodeId);
+      if (result == null
+          || !result.getTagName().equals(GraphMLTag.NODE.toString())) {
+        return null;
+      }
+      return result;
     }
 
     private static Set<String> getDataOnNode(Node node, final KeyDef dataKey) {
