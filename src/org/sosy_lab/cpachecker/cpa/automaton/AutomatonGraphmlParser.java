@@ -397,22 +397,6 @@ public class AutomatonGraphmlParser {
     // Handle call stack
     Deque<String> newStack = handleCallStack(pGraphMLParserState, pTransition);
 
-    // Initialize the transition condition to TRUE, so that all individual
-    // conditions can conveniently be conjoined to it later
-    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
-
-    // Never match on the dummy edge directly after the main function entry node
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
-    // Never match on artificially split declarations
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
-
-    // Add a source-code guard for a specified loop head
-    if (pTransition.entersLoopHead()) {
-      transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-    }
-
     // Parse the assumptions of the transition
     List<AExpression> assumptions = getAssumptions(pCParser, pTransition, newStack);
 
@@ -421,15 +405,6 @@ public class AutomatonGraphmlParser {
         && !assumptions.isEmpty()) {
       throw new WitnessParseException(
             "Assumptions are not allowed for correctness witnesses.");
-    }
-
-    // Add a source-code guard for function-call statements if an explicit result function is specified
-    if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
-      String resultFunctionName = pTransition.getExplicitAssumptionResultFunction().get();
-      transitionCondition =
-          and(transitionCondition,
-              new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
     }
 
     // Parse the invariants of the witness
@@ -455,6 +430,31 @@ public class AutomatonGraphmlParser {
                   pCParser,
                   candidateScope,
                   parserTools));
+    }
+
+    // Initialize the transition condition to TRUE, so that all individual
+    // conditions can conveniently be conjoined to it later
+    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
+
+    // Never match on the dummy edge directly after the main function entry node
+    transitionCondition =
+        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
+    // Never match on artificially split declarations
+    transitionCondition =
+        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
+
+    // Add a source-code guard for a specified loop head
+    if (pTransition.entersLoopHead()) {
+      transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+    }
+
+    // Add a source-code guard for function-call statements if an explicit result function is specified
+    if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
+        && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
+      String resultFunctionName = pTransition.getExplicitAssumptionResultFunction().get();
+      transitionCondition =
+          and(transitionCondition,
+              new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
     }
 
     // Add a source-code guard for specified line numbers
