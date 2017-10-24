@@ -247,7 +247,6 @@ public class AutomatonGraphmlParser {
       GraphMLState initialState = null;
 
       // Create transitions ----
-      //AutomatonBoolExpr epsilonTrigger = new SubsetMatchEdgeTokens(Collections.<Comparable<Integer>>emptySet());
       NodeList edges = doc.getElementsByTagName(GraphMLTag.EDGE.toString());
       Map<GraphMLState, LinkedList<AutomatonTransition>> stateTransitions = Maps.newHashMap();
       Map<GraphMLState, Deque<String>> stacks = Maps.newHashMap();
