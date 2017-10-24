@@ -112,6 +112,8 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -674,9 +676,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private PredicatePrecision getPredicatePrecisionFromCandidateInvariants(PredicateCPA pPredCPA) {
     PredicateAbstractionManager pAMgr = pPredCPA.getPredicateManager();
     BooleanFormula invariant;
+    PathFormulaManager pfmgr = pPredCPA.getPathFormulaManager();
+    if (pfmgr instanceof CachingPathFormulaManager) {
+      pfmgr = ((CachingPathFormulaManager) pfmgr).delegate;
+    }
+
     ToFormulaVisitor toFormula =
-        new ToFormulaVisitor(
-            pPredCPA.getSolver().getFormulaManager(), pPredCPA.getPathFormulaManager(), null);
+        new ToFormulaVisitor(pPredCPA.getSolver().getFormulaManager(), pfmgr, null);
     Collection<AbstractionPredicate> predicates = new ArrayList<>();
 
     predicates.add(pAMgr.makeFalsePredicate());
@@ -719,19 +725,19 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               .getTransferRelation()
               .getAbstractSuccessorsForEdge(
                   initialDefault, pInitialPrecision, pAssumeRecurrentSetInvariant);
-      if (succ.size() == 1) {
-        boolean found = false;
-        for (AbstractState innerState : AbstractStates.asIterable(succ.iterator().next())) {
+      List<AbstractState> initialCandidate = new ArrayList<>(succ.size());
+      for (AbstractState successor : succ) {
+        for (AbstractState innerState : AbstractStates.asIterable(successor)) {
           if (innerState instanceof AutomatonState
               && ((AutomatonState) innerState)
                   .getInternalStateName()
                   .equals(pStemEndCycleStart.getName())) {
-            found = true;
+            initialCandidate.add(successor);
           }
         }
 
-        if (found) {
-          return new ARGState(succ.iterator().next(), null);
+        if (initialCandidate.size() == 1) {
+          return new ARGState(initialCandidate.get(0), null);
         }
       }
     } catch (CPATransferException e) {
