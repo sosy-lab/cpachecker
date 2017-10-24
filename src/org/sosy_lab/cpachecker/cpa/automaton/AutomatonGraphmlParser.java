@@ -141,9 +141,6 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Match the branching information at a branching location.")
   private boolean matchAssumeCase = true;
 
-  @Option(secure = true, description = "Match the thread identifier for concurrent programs.")
-  private boolean matchThreadId = true;
-
   @Option(
     secure = true,
     description =
@@ -406,11 +403,9 @@ public class AutomatonGraphmlParser {
       locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
     }
 
-    if (matchThreadId) {
-      Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
-      if (threadAssignment.isPresent()) {
-        actions.add(threadAssignment.get());
-      }
+    Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
+    if (threadAssignment.isPresent()) {
+      actions.add(threadAssignment.get());
     }
 
     List<AExpression> assumptions = Lists.newArrayList();
@@ -680,8 +675,9 @@ public class AutomatonGraphmlParser {
               result.getEntryState()));
     }
 
-    // Define thread-id variable
-    if (matchThreadId) {
+    // Define thread-id variable, if any assignments to it exist
+    if (result.getLeavingTransitions().values().stream()
+        .anyMatch(t -> t.getThreadAssignment().isPresent())) {
       result.getAutomatonVariables().put(
           KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
     }

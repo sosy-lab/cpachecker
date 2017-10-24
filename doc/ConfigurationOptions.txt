@@ -3050,9 +3050,6 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
-# Match the thread identifier for concurrent programs.
-witness.matchThreadId = true
-
 # Represent sink states by bottom state instead of break state
 witness.stopNotBreakAtSinkStates = true
 
