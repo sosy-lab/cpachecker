@@ -347,8 +347,10 @@ public class AutomatonGraphmlParser {
       GraphMLTransition pTransition)
       throws WitnessParseException {
     if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
-        && pTransition.getTarget().isSinkState()) { throw new WitnessParseException(
-            "Proof witnesses do not allow sink nodes."); }
+        && pTransition.getTarget().isSinkState()) {
+      throw new WitnessParseException(
+            "Proof witnesses do not allow sink nodes.");
+    }
 
     Iterable<GraphMLTransition> successorTransitions = pGraphMLParserState
         .getLeavingTransitions()
