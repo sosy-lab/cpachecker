@@ -385,8 +385,6 @@ public class AutomatonGraphmlParser {
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
-    ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
-
     LinkedList<AutomatonTransition> transitions =
         pGraphMLParserState.getStateTransitions().get(pTransition.getSource());
     if (transitions == null) {
@@ -408,13 +406,8 @@ public class AutomatonGraphmlParser {
     }
 
     // Parse the invariants of the witness
+    ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
-      if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-          && !pGraphMLParserState.getSpecificationTypes()
-              .contains(PropertyType.TERMINATION)) {
-        throw new WitnessParseException(
-            "Invariants are not allowed for violation witnesses.");
-      }
       Scope candidateScope = determineScope(
           pTransition.getTarget().getExplicitInvariantScope(),
           newStack,
@@ -430,6 +423,14 @@ public class AutomatonGraphmlParser {
                   pCParser,
                   candidateScope,
                   parserTools));
+    }
+
+    // Check that there are no invariants in a violation witness
+    if (!ExpressionTrees.getTrue().equals(candidateInvariants)
+        && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
+        && !pGraphMLParserState.getSpecificationTypes().contains(PropertyType.TERMINATION)) {
+      throw new WitnessParseException(
+          "Invariants are not allowed for violation witnesses.");
     }
 
     // Initialize the transition condition to TRUE, so that all individual
