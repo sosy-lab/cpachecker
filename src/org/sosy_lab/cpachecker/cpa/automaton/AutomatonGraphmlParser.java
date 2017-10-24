@@ -383,14 +383,7 @@ public class AutomatonGraphmlParser {
             "Proof witnesses do not allow sink nodes.");
     }
 
-    final List<AutomatonAction> actions = new ArrayList<>(0);
-    if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
-      actions.add(
-          new AutomatonAction.Assignment(
-              DISTANCE_TO_VIOLATION,
-              new AutomatonIntExpr.Constant(
-                  -pGraphMLParserState.getDistance(pTransition.getTarget()))));
-    }
+    final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
     Optional<Predicate<FileLocation>> offsetMatcherPredicate =
         pTransition.getOffsetMatcherPredicate();
@@ -401,11 +394,6 @@ public class AutomatonGraphmlParser {
     }
     if (lineMatcherPredicate.isPresent()) {
       locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
-    }
-
-    Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
-    if (threadAssignment.isPresent()) {
-      actions.add(threadAssignment.get());
     }
 
     List<AExpression> assumptions = Lists.newArrayList();
@@ -623,6 +611,24 @@ public class AutomatonGraphmlParser {
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
     }
+  }
+
+  private static List<AutomatonAction> getTransitionActions(
+      AutomatonGraphmlParserState pGraphMLParserState, GraphMLTransition pTransition) {
+    ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+    if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
+      actionBuilder.add(
+          new AutomatonAction.Assignment(
+              DISTANCE_TO_VIOLATION,
+              new AutomatonIntExpr.Constant(
+                  -pGraphMLParserState.getDistance(pTransition.getTarget()))));
+    }
+
+    Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
+    if (threadAssignment.isPresent()) {
+      actionBuilder.add(threadAssignment.get());
+    }
+    return actionBuilder.build();
   }
 
   private AutomatonGraphmlParserState setupGraphMLParser(InputStream pInputStream)
