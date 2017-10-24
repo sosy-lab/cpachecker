@@ -407,45 +407,7 @@ public class AutomatonGraphmlParser {
     }
 
     // Handle call stack
-    Deque<String> currentStack = pGraphMLParserState.getStacks().get(pTransition.getSource());
-    if (currentStack == null) {
-      currentStack = new ArrayDeque<>();
-      pGraphMLParserState.getStacks().put(pTransition.getSource(), currentStack);
-    }
-    Deque<String> newStack = currentStack;
-
-    // If the same function is entered and exited, the stack remains unchanged.
-    // Otherwise, adjust the stack accordingly:
-    if (!Objects.equals(pTransition.getFunctionEntry(), pTransition.getFunctionExit())) {
-      // First, perform the function exit
-      if (pTransition.getFunctionExit().isPresent()) {
-        if (newStack.isEmpty()) {
-          logger.log(Level.WARNING,
-              "Trying to return from function",
-              pTransition.getFunctionExit().get(),
-              "although no function is on the stack.");
-        } else {
-          newStack = new ArrayDeque<>(newStack);
-          String oldFunction = newStack.pop();
-          assert oldFunction.equals(pTransition.getFunctionExit().get());
-        }
-      }
-      // Now enter the new function
-      if (pTransition.getFunctionEntry().isPresent()) {
-        newStack = new ArrayDeque<>(newStack);
-        newStack.push(pTransition.getFunctionEntry().get());
-      }
-    }
-    // Store the stack in its state after the edge is applied
-    pGraphMLParserState.getStacks().put(pTransition.getTarget(), newStack);
-
-    // If the edge enters and exits the same function, assume this function for this edge only
-    if (pTransition.getFunctionEntry().isPresent()
-        && pTransition.getFunctionEntry().equals(pTransition.getFunctionExit())
-        && (newStack.isEmpty()
-            || !newStack.peek().equals(pTransition.getFunctionExit().get()))) {
-      newStack = new ArrayDeque<>(newStack);
-    }
+    Deque<String> newStack = handleCallStack(pGraphMLParserState, pTransition);
 
     // Never match on the dummy edge directly after the main function entry node
     AutomatonBoolExpr conjoinedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
@@ -478,9 +440,11 @@ public class AutomatonGraphmlParser {
       } catch (InvalidAutomatonException e) {
         throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
       }
-      if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
-          && !assumptions.isEmpty()) { throw new WitnessParseException(
-              "Assumptions are not allowed for correctness witnesses."); }
+    }
+    if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
+        && !assumptions.isEmpty()) {
+      throw new WitnessParseException(
+            "Assumptions are not allowed for correctness witnesses.");
     }
 
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
@@ -611,6 +575,59 @@ public class AutomatonGraphmlParser {
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
     }
+  }
+
+  /**
+   * Handle any function entries or exits on this transition and obtain the resulting call stack.
+   *
+   * @param pGraphMLParserState the GraphML parser state.
+   * @param pTransition the transition to parse.
+   *
+   * @return the new call stack.
+   */
+  private Deque<String> handleCallStack(
+      AutomatonGraphmlParserState pGraphMLParserState,
+      GraphMLTransition pTransition) {
+    Deque<String> currentStack = pGraphMLParserState.getStacks().get(pTransition.getSource());
+    if (currentStack == null) {
+      currentStack = new ArrayDeque<>();
+      pGraphMLParserState.getStacks().put(pTransition.getSource(), currentStack);
+    }
+    Deque<String> newStack = currentStack;
+
+    // If the same function is entered and exited, the stack remains unchanged.
+    // Otherwise, adjust the stack accordingly:
+    if (!Objects.equals(pTransition.getFunctionEntry(), pTransition.getFunctionExit())) {
+      // First, perform the function exit
+      if (pTransition.getFunctionExit().isPresent()) {
+        if (newStack.isEmpty()) {
+          logger.log(Level.WARNING,
+              "Trying to return from function",
+              pTransition.getFunctionExit().get(),
+              "although no function is on the stack.");
+        } else {
+          newStack = new ArrayDeque<>(newStack);
+          String oldFunction = newStack.pop();
+          assert oldFunction.equals(pTransition.getFunctionExit().get());
+        }
+      }
+      // Now enter the new function
+      if (pTransition.getFunctionEntry().isPresent()) {
+        newStack = new ArrayDeque<>(newStack);
+        newStack.push(pTransition.getFunctionEntry().get());
+      }
+    }
+    // Store the stack in its state after the edge is applied
+    pGraphMLParserState.getStacks().put(pTransition.getTarget(), newStack);
+
+    // If the edge enters and exits the same function, assume this function for this edge only
+    if (pTransition.getFunctionEntry().isPresent()
+        && pTransition.getFunctionEntry().equals(pTransition.getFunctionExit())
+        && (newStack.isEmpty()
+            || !newStack.peek().equals(pTransition.getFunctionExit().get()))) {
+      newStack = new ArrayDeque<>(newStack);
+    }
+    return newStack;
   }
 
   private static List<AutomatonAction> getTransitionActions(
