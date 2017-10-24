@@ -37,7 +37,7 @@
 
     <target name="unit-tests" depends="build, load-junit, init-unit-tests" description="Run all JUnit tests">
         <delete dir="{junit.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="200000">
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
