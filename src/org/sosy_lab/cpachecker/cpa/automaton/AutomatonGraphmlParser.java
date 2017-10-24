@@ -113,6 +113,9 @@ public class AutomatonGraphmlParser {
 
   private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file: %s!";
 
+  private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
+      "The witness automaton provided is invalid!";
+
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
@@ -218,373 +221,389 @@ public class AutomatonGraphmlParser {
     final CParser cparser =
         CParser.Factory.getParser(
             logger, CParser.Factory.getOptions(config), cfa.getMachineModel());
-    try {
 
-      AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
+    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
-      graphMLParserState.getWaitingTransitions().addAll(
-          graphMLParserState.getLeavingTransitions().get(graphMLParserState.getEntryState()));
-      graphMLParserState.getVisitedTransitions().addAll(graphMLParserState.getWaitingTransitions());
-      while (!graphMLParserState.getWaitingTransitions().isEmpty()) {
-        GraphMLTransition transition = graphMLParserState.getWaitingTransitions().poll();
+    graphMLParserState.getWaitingTransitions().addAll(
+        graphMLParserState.getLeavingTransitions().get(graphMLParserState.getEntryState()));
+    graphMLParserState.getVisitedTransitions().addAll(graphMLParserState.getWaitingTransitions());
+    while (!graphMLParserState.getWaitingTransitions().isEmpty()) {
+      GraphMLTransition transition = graphMLParserState.getWaitingTransitions().poll();
+      parseTransition(cparser, graphMLParserState, transition);
+    }
 
-        if (graphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
-            && transition.getTarget().isSinkState()) {
-          throw new WitnessParseException("Proof witnesses do not allow sink nodes.");
-        }
+    // Create states ----
+    List<AutomatonInternalState> automatonStates = Lists.newArrayList();
+    for (GraphMLState state : graphMLParserState.getStates()) {
 
-        Iterable<GraphMLTransition> successorTransitions = graphMLParserState
-            .getLeavingTransitions()
-            .get(transition.getTarget());
-        for (GraphMLTransition successorTransition : successorTransitions) {
-          if (graphMLParserState.getVisitedTransitions().add(successorTransition)) {
-            graphMLParserState.getWaitingTransitions().add(successorTransition);
-          }
-        }
-
-        final List<AutomatonAction> actions = new ArrayList<>(0);
-        if (graphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
-          actions.add(
-              new AutomatonAction.Assignment(
-                  DISTANCE_TO_VIOLATION,
-                  new AutomatonIntExpr.Constant(
-                      -graphMLParserState.getDistances().getOrDefault(
-                          transition.getTarget(),
-                          Integer.MAX_VALUE))));
-        }
-
-        Optional<Predicate<FileLocation>> offsetMatcherPredicate =
-            transition.getOffsetMatcherPredicate();
-        Optional<Predicate<FileLocation>> lineMatcherPredicate = transition.getLineMatcherPredicate();
-        Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
-        if (offsetMatcherPredicate.isPresent()) {
-          locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
-        }
-        if (lineMatcherPredicate.isPresent()) {
-          locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
-        }
-
-        if (matchThreadId) {
-          Optional<AutomatonAction> threadAssignment = transition.getThreadAssignment();
-          if (threadAssignment.isPresent()) {
-            actions.add(threadAssignment.get());
-            // define new variable in automaton,
-            // this would be sufficient once and not per iteration, but who cares...
-            graphMLParserState.getAutomatonVariables().put(
-                KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
-          }
-        }
-
-        List<AExpression> assumptions = Lists.newArrayList();
-        ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
-
-        LinkedList<AutomatonTransition> transitions =
-            graphMLParserState.getStateTransitions().get(transition.getSource());
-        if (transitions == null) {
-          transitions = Lists.newLinkedList();
-          graphMLParserState.getStateTransitions().put(transition.getSource(), transitions);
-        }
-
-        // Handle call stack
-        Deque<String> currentStack = graphMLParserState.getStacks().get(transition.getSource());
-        if (currentStack == null) {
-          currentStack = new ArrayDeque<>();
-          graphMLParserState.getStacks().put(transition.getSource(), currentStack);
-        }
-        Deque<String> newStack = currentStack;
-
-        // If the same function is entered and exited, the stack remains unchanged.
-        // Otherwise, adjust the stack accordingly:
-        if (!Objects.equals(transition.getFunctionEntry(), transition.getFunctionExit())) {
-          // First, perform the function exit
-          if (transition.getFunctionExit().isPresent()) {
-            if (newStack.isEmpty()) {
-              logger.log(Level.WARNING,
-                  "Trying to return from function",
-                  transition.getFunctionExit().get(),
-                  "although no function is on the stack.");
-            } else {
-              newStack = new ArrayDeque<>(newStack);
-              String oldFunction = newStack.pop();
-              assert oldFunction.equals(transition.getFunctionExit().get());
-            }
-          }
-          // Now enter the new function
-          if (transition.getFunctionEntry().isPresent()) {
-            newStack = new ArrayDeque<>(newStack);
-            newStack.push(transition.getFunctionEntry().get());
-          }
-        }
-        // Store the stack in its state after the edge is applied
-        graphMLParserState.getStacks().put(transition.getTarget(), newStack);
-
-        // If the edge enters and exits the same function, assume this function for this edge only
-        if (transition.getFunctionEntry().isPresent()
-            && transition.getFunctionEntry().equals(transition.getFunctionExit())
-            && (newStack.isEmpty()
-                || !newStack.peek().equals(transition.getFunctionExit().get()))) {
-          newStack = new ArrayDeque<>(newStack);
-        }
-
-        // Never match on the dummy edge directly after the main function entry node
-        AutomatonBoolExpr conjoinedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
-        // Never match on artificially split declarations
-        conjoinedTriggers =
-            and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
-
-        // Match a loop start
-        if (transition.entersLoopHead()) {
-          conjoinedTriggers = and(conjoinedTriggers, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-        }
-
-        // Add assumptions to the transition
-        Scope scope = determineScope(transition.getExplicitAssumptionScope(), newStack, locationMatcherPredicate);
-        Optional<String> assumptionResultFunction =
-            determineResultFunction(transition.getExplicitAssumptionResultFunction(), scope);
-        if (considerAssumptions) {
-          assumptions.addAll(
-              CParserUtils.convertStatementsToAssumptions(
-                  CParserUtils.parseStatements(
-                      transition.getAssumptions(),
-                      assumptionResultFunction,
-                      cparser,
-                      scope, parserTools),
-                  cfa.getMachineModel(),
-                  logger));
-          if (graphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
-              && !assumptions.isEmpty()) {
-            throw new WitnessParseException(
-                "Assumptions are not allowed for correctness witnesses.");
-          }
-        }
-
-        if (graphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-            && transition.getExplicitAssumptionResultFunction().isPresent()) {
-          String resultFunctionName = assumptionResultFunction.get();
-          conjoinedTriggers =
-              and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
-        }
-
-        final Scope candidateScope = determineScope(
-            transition.getTarget().getExplicitInvariantScope(),
-            newStack,
-            locationMatcherPredicate);
-        Optional<String> resultFunction =
-            determineResultFunction(transition.getExplicitAssumptionResultFunction(), scope);
-        if (!transition.getTarget().getInvariants().isEmpty()) {
-          if (graphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-              && !graphMLParserState.getSpecificationTypes()
-                  .contains(PropertyType.TERMINATION)) {
-            throw new WitnessParseException("Invariants are not allowed for violation witnesses.");
-          }
-          candidateInvariants =
-              And.of(
-                  candidateInvariants,
-                  CParserUtils.parseStatementsAsExpressionTree(
-                      transition.getTarget().getInvariants(),
-                      resultFunction,
-                      cparser,
-                      candidateScope,
-                      parserTools));
-        }
-
-        if (matchOriginLine) {
-          conjoinedTriggers = and(conjoinedTriggers,
-              getLocationMatcher(transition.entersLoopHead(), lineMatcherPredicate));
-        }
-
-        if (matchOffset) {
-          conjoinedTriggers = and(conjoinedTriggers,
-              getLocationMatcher(transition.entersLoopHead(), offsetMatcherPredicate));
-        }
-
-        if (transition.getFunctionExit().isPresent()) {
-          conjoinedTriggers =
-              and(conjoinedTriggers,
-                  getFunctionExitMatcher(
-                      transition.getFunctionExit().get(),
-                      transition.entersLoopHead()));
-        }
-
-        // If the transition represents a function call, add a sink transition
-        // in case it is a function pointer call,
-        // where we can eliminate the other branch
-        AutomatonBoolExpr fpElseTrigger = null;
-        if (transition.getFunctionEntry().isPresent()
-            && graphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
-          fpElseTrigger = and(
-              conjoinedTriggers,
-              getFunctionPointerAssumeCaseMatcher(transition.getFunctionEntry().get(),
-                  transition.getTarget().isSinkState(),
-                  transition.entersLoopHead()));
-          transitions.add(
-              createAutomatonSinkTransition(
-                  fpElseTrigger,
-                  Collections.<AutomatonBoolExpr>emptyList(),
-                  actions,
-                  false,
-                  stopNotBreakAtSinkStates));
-        }
-
-        if (transition.getFunctionEntry().isPresent()) {
-          conjoinedTriggers = and(conjoinedTriggers,
-              getFunctionCallMatcher(
-                  transition.getFunctionEntry().get(),
-                  transition.entersLoopHead()));
-        }
-
-        if (matchAssumeCase) {
-          conjoinedTriggers = and(conjoinedTriggers, transition.getAssumeCaseMatcher());
-        }
-
-        // If the triggers do not apply, none of the above transitions is taken,
-        // so we need to build the stutter condition
-        // as the conjoined negations of the transition conditions.
-        AutomatonBoolExpr stutterCondition =
-            graphMLParserState.getStutterConditions().get(transition.getSource());
-        AutomatonBoolExpr additionalStutterCondition = not(conjoinedTriggers);
-        if (fpElseTrigger != null) {
-          additionalStutterCondition = and(additionalStutterCondition, not(fpElseTrigger));
-        }
-        if (stutterCondition == null) {
-          stutterCondition = additionalStutterCondition;
-        } else {
-          stutterCondition = and(stutterCondition, additionalStutterCondition);
-        }
-        graphMLParserState.getStutterConditions().put(transition.getSource(), stutterCondition);
-
-        // If the triggers match, there must be one successor state that moves the automaton
-        // forwards
-        transitions.add(
-            createAutomatonTransition(
-                conjoinedTriggers,
-                Collections.<AutomatonBoolExpr>emptyList(),
-                assumptions,
-                candidateInvariants,
-                actions,
-                transition.getTarget(),
-                transition.getTarget().isViolationState(),
-                stopNotBreakAtSinkStates));
-
-        // Multiple CFA edges in a sequence might match the triggers,
-        // so in that case we ALSO need a transition back to the source state
-        if (!assumptions.isEmpty()
-            || !actions.isEmpty()
-            || !candidateInvariants.equals(ExpressionTrees.getTrue())
-            || transition.getTarget().isViolationState()) {
-          boolean sourceIsViolationNode = transition.getSource().isViolationState();
-          transitions.add(
-              createAutomatonTransition(
-                  and(
-                      conjoinedTriggers,
-                      new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjoinedTriggers)),
-                  Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.emptyList(),
-                  ExpressionTrees.<AExpression>getTrue(),
-                  Collections.<AutomatonAction>emptyList(),
-                  transition.getSource(),
-                  sourceIsViolationNode,
-                  stopNotBreakAtSinkStates));
-        }
+      List<AutomatonTransition> transitions = graphMLParserState.getStateTransitions().get(state);
+      if (transitions == null) {
+        transitions = new ArrayList<>();
       }
 
-      // Create states ----
-      List<AutomatonInternalState> automatonStates = Lists.newArrayList();
-      for (GraphMLState state : graphMLParserState.getStates()) {
+      // If the transition conditions do not apply, none of the above transitions is taken,
+      // and instead, the stutter condition applies.
+      AutomatonBoolExpr stutterCondition = graphMLParserState.getStutterConditions().get(state);
+      if (stutterCondition == null) {
+        stutterCondition = AutomatonBoolExpr.TRUE;
+      }
+      // Wait in the source state until the witness checker catches up with the witness
+      transitions.add(
+          createAutomatonTransition(
+              stutterCondition,
+              Collections.<AutomatonBoolExpr>emptyList(),
+              Collections.emptyList(),
+              ExpressionTrees.<AExpression>getTrue(),
+              Collections.<AutomatonAction>emptyList(),
+              state,
+              state.isViolationState(),
+              stopNotBreakAtSinkStates));
 
-        List<AutomatonTransition> transitions = graphMLParserState.getStateTransitions().get(state);
-        if (transitions == null) {
-          transitions = new ArrayList<>();
-        }
-
-        // If the transition conditions do not apply, none of the above transitions is taken,
-        // and instead, the stutter condition applies.
-        AutomatonBoolExpr stutterCondition = graphMLParserState.getStutterConditions().get(state);
-        if (stutterCondition == null) {
-          stutterCondition = AutomatonBoolExpr.TRUE;
-        }
-        // Wait in the source state until the witness checker catches up with the witness
+      if (state.isViolationState()) {
+        AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
+        List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
         transitions.add(
             createAutomatonTransition(
-                stutterCondition,
-                Collections.<AutomatonBoolExpr>emptyList(),
+                AutomatonBoolExpr.TRUE,
+                assertions,
                 Collections.emptyList(),
                 ExpressionTrees.<AExpression>getTrue(),
                 Collections.<AutomatonAction>emptyList(),
                 state,
-                state.isViolationState(),
+                true,
                 stopNotBreakAtSinkStates));
-
-        if (state.isViolationState()) {
-          AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
-          List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
-          transitions.add(
-              createAutomatonTransition(
-                  AutomatonBoolExpr.TRUE,
-                  assertions,
-                  Collections.emptyList(),
-                  ExpressionTrees.<AExpression>getTrue(),
-                  Collections.<AutomatonAction>emptyList(),
-                  state,
-                  true,
-                  stopNotBreakAtSinkStates));
-        }
-
-        // Determine if "matchAll" should be enabled
-        boolean matchAll = true;
-
-        AutomatonInternalState automatonState =
-            new AutomatonInternalState(
-                state.getId(), transitions, false, matchAll, state.isCycleHead());
-        automatonStates.add(automatonState);
       }
 
-      // Build and return the result
-      if (graphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
-        AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-        Integer initialStateDistance =
-            graphMLParserState.getDistances().get(graphMLParserState.getEntryState());
-        if (initialStateDistance != null) {
-          distanceVariable.setValue(-initialStateDistance);
-        } else {
-          logger.log(
-              Level.WARNING,
-              String.format(
-                  "There is no path from the entry state %s"
-                      + " to a state explicitly marked as violation state."
-                      + " Distance-to-violation waitlist order will not work"
-                      + " and witness validation may fail to confirm this witness.",
-                  graphMLParserState.getEntryState()));
-        }
-        graphMLParserState.getAutomatonVariables().put(DISTANCE_TO_VIOLATION, distanceVariable);
+      // Determine if "matchAll" should be enabled
+      boolean matchAll = true;
+
+      AutomatonInternalState automatonState =
+          new AutomatonInternalState(
+              state.getId(), transitions, false, matchAll, state.isCycleHead());
+      automatonStates.add(automatonState);
+    }
+
+    // Build and return the result
+    if (graphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
+      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
+      Integer initialStateDistance =
+          graphMLParserState.getDistances().get(graphMLParserState.getEntryState());
+      if (initialStateDistance != null) {
+        distanceVariable.setValue(-initialStateDistance);
+      } else {
+        logger.log(
+            Level.WARNING,
+            String.format(
+                "There is no path from the entry state %s"
+                    + " to a state explicitly marked as violation state."
+                    + " Distance-to-violation waitlist order will not work"
+                    + " and witness validation may fail to confirm this witness.",
+                graphMLParserState.getEntryState()));
       }
-      List<Automaton> result = Lists.newArrayList();
-      Automaton automaton =
-          new Automaton(
-              graphMLParserState.getAutomatonName(),
-              graphMLParserState.getAutomatonVariables(),
-              automatonStates,
-              graphMLParserState.getEntryState().getId());
-      result.add(automaton);
-
-      if (automatonDumpFile != null) {
-        try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
-          automaton.writeDotFile(w);
-        } catch (IOException e) {
-          // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
-        }
-        Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
-        try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-          w.write(automaton.toString());
-        } catch (IOException e) {
-          // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
-        }
-      }
-
-      return result;
-
+      graphMLParserState.getAutomatonVariables().put(DISTANCE_TO_VIOLATION, distanceVariable);
+    }
+    List<Automaton> result = Lists.newArrayList();
+    Automaton automaton;
+    try {
+      automaton = new Automaton(
+          graphMLParserState.getAutomatonName(),
+          graphMLParserState.getAutomatonVariables(),
+          automatonStates,
+          graphMLParserState.getEntryState().getId());
     } catch (InvalidAutomatonException e) {
-      throw new WitnessParseException("The witness automaton provided is invalid!", e);
+      throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
+    }
+    result.add(automaton);
+
+    if (automatonDumpFile != null) {
+      try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
+        automaton.writeDotFile(w);
+      } catch (IOException e) {
+        // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+      }
+      Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
+      try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
+        w.write(automaton.toString());
+      } catch (IOException e) {
+        // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Parses the given transition and modifies the GraphML parser state accordingly.
+   *
+   * @param pCParser the C parser to be used for parsing expressions.
+   * @param pGraphMLParserState the GraphML parser state.
+   * @param pTransition the transition to parse.
+   * @throws WitnessParseException if the witness file is invalid and cannot be parsed.
+   */
+  private void parseTransition(CParser pCParser,
+      AutomatonGraphmlParserState pGraphMLParserState,
+      GraphMLTransition pTransition)
+      throws WitnessParseException {
+    if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
+        && pTransition.getTarget().isSinkState()) { throw new WitnessParseException(
+            "Proof witnesses do not allow sink nodes."); }
+
+    Iterable<GraphMLTransition> successorTransitions = pGraphMLParserState
+        .getLeavingTransitions()
+        .get(pTransition.getTarget());
+    for (GraphMLTransition successorTransition : successorTransitions) {
+      if (pGraphMLParserState.getVisitedTransitions().add(successorTransition)) {
+        pGraphMLParserState.getWaitingTransitions().add(successorTransition);
+      }
+    }
+
+    final List<AutomatonAction> actions = new ArrayList<>(0);
+    if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
+      actions.add(
+          new AutomatonAction.Assignment(
+              DISTANCE_TO_VIOLATION,
+              new AutomatonIntExpr.Constant(
+                  -pGraphMLParserState.getDistances().getOrDefault(
+                      pTransition.getTarget(),
+                      Integer.MAX_VALUE))));
+    }
+
+    Optional<Predicate<FileLocation>> offsetMatcherPredicate =
+        pTransition.getOffsetMatcherPredicate();
+    Optional<Predicate<FileLocation>> lineMatcherPredicate = pTransition.getLineMatcherPredicate();
+    Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
+    if (offsetMatcherPredicate.isPresent()) {
+      locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
+    }
+    if (lineMatcherPredicate.isPresent()) {
+      locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
+    }
+
+    if (matchThreadId) {
+      Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
+      if (threadAssignment.isPresent()) {
+        actions.add(threadAssignment.get());
+        // define new variable in automaton,
+        // this would be sufficient once and not per iteration, but who cares...
+        pGraphMLParserState.getAutomatonVariables().put(
+            KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
+      }
+    }
+
+    List<AExpression> assumptions = Lists.newArrayList();
+    ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
+
+    LinkedList<AutomatonTransition> transitions =
+        pGraphMLParserState.getStateTransitions().get(pTransition.getSource());
+    if (transitions == null) {
+      transitions = Lists.newLinkedList();
+      pGraphMLParserState.getStateTransitions().put(pTransition.getSource(), transitions);
+    }
+
+    // Handle call stack
+    Deque<String> currentStack = pGraphMLParserState.getStacks().get(pTransition.getSource());
+    if (currentStack == null) {
+      currentStack = new ArrayDeque<>();
+      pGraphMLParserState.getStacks().put(pTransition.getSource(), currentStack);
+    }
+    Deque<String> newStack = currentStack;
+
+    // If the same function is entered and exited, the stack remains unchanged.
+    // Otherwise, adjust the stack accordingly:
+    if (!Objects.equals(pTransition.getFunctionEntry(), pTransition.getFunctionExit())) {
+      // First, perform the function exit
+      if (pTransition.getFunctionExit().isPresent()) {
+        if (newStack.isEmpty()) {
+          logger.log(Level.WARNING,
+              "Trying to return from function",
+              pTransition.getFunctionExit().get(),
+              "although no function is on the stack.");
+        } else {
+          newStack = new ArrayDeque<>(newStack);
+          String oldFunction = newStack.pop();
+          assert oldFunction.equals(pTransition.getFunctionExit().get());
+        }
+      }
+      // Now enter the new function
+      if (pTransition.getFunctionEntry().isPresent()) {
+        newStack = new ArrayDeque<>(newStack);
+        newStack.push(pTransition.getFunctionEntry().get());
+      }
+    }
+    // Store the stack in its state after the edge is applied
+    pGraphMLParserState.getStacks().put(pTransition.getTarget(), newStack);
+
+    // If the edge enters and exits the same function, assume this function for this edge only
+    if (pTransition.getFunctionEntry().isPresent()
+        && pTransition.getFunctionEntry().equals(pTransition.getFunctionExit())
+        && (newStack.isEmpty()
+            || !newStack.peek().equals(pTransition.getFunctionExit().get()))) {
+      newStack = new ArrayDeque<>(newStack);
+    }
+
+    // Never match on the dummy edge directly after the main function entry node
+    AutomatonBoolExpr conjoinedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+    // Never match on artificially split declarations
+    conjoinedTriggers =
+        and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
+
+    // Match a loop start
+    if (pTransition.entersLoopHead()) {
+      conjoinedTriggers = and(conjoinedTriggers, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+    }
+
+    // Add assumptions to the transition
+    Scope scope =
+        determineScope(pTransition.getExplicitAssumptionScope(), newStack,
+            locationMatcherPredicate);
+    Optional<String> assumptionResultFunction =
+        determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
+    if (considerAssumptions) {
+      try {
+        assumptions.addAll(
+            CParserUtils.convertStatementsToAssumptions(
+                CParserUtils.parseStatements(
+                    pTransition.getAssumptions(),
+                    assumptionResultFunction,
+                    pCParser,
+                    scope, parserTools),
+                cfa.getMachineModel(),
+                logger));
+      } catch (InvalidAutomatonException e) {
+        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
+      }
+      if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
+          && !assumptions.isEmpty()) { throw new WitnessParseException(
+              "Assumptions are not allowed for correctness witnesses."); }
+    }
+
+    if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
+        && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
+      String resultFunctionName = assumptionResultFunction.get();
+      conjoinedTriggers =
+          and(conjoinedTriggers,
+              new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
+    }
+
+    final Scope candidateScope = determineScope(
+        pTransition.getTarget().getExplicitInvariantScope(),
+        newStack,
+        locationMatcherPredicate);
+    Optional<String> resultFunction =
+        determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
+    if (!pTransition.getTarget().getInvariants().isEmpty()) {
+      if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
+          && !pGraphMLParserState.getSpecificationTypes()
+              .contains(PropertyType.TERMINATION)) { throw new WitnessParseException(
+                  "Invariants are not allowed for violation witnesses."); }
+      candidateInvariants =
+          And.of(
+              candidateInvariants,
+              CParserUtils.parseStatementsAsExpressionTree(
+                  pTransition.getTarget().getInvariants(),
+                  resultFunction,
+                  pCParser,
+                  candidateScope,
+                  parserTools));
+    }
+
+    if (matchOriginLine) {
+      conjoinedTriggers = and(conjoinedTriggers,
+          getLocationMatcher(pTransition.entersLoopHead(), lineMatcherPredicate));
+    }
+
+    if (matchOffset) {
+      conjoinedTriggers = and(conjoinedTriggers,
+          getLocationMatcher(pTransition.entersLoopHead(), offsetMatcherPredicate));
+    }
+
+    if (pTransition.getFunctionExit().isPresent()) {
+      conjoinedTriggers =
+          and(conjoinedTriggers,
+              getFunctionExitMatcher(
+                  pTransition.getFunctionExit().get(),
+                  pTransition.entersLoopHead()));
+    }
+
+    // If the transition represents a function call, add a sink transition
+    // in case it is a function pointer call,
+    // where we can eliminate the other branch
+    AutomatonBoolExpr fpElseTrigger = null;
+    if (pTransition.getFunctionEntry().isPresent()
+        && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
+      fpElseTrigger = and(
+          conjoinedTriggers,
+          getFunctionPointerAssumeCaseMatcher(pTransition.getFunctionEntry().get(),
+              pTransition.getTarget().isSinkState(),
+              pTransition.entersLoopHead()));
+      transitions.add(
+          createAutomatonSinkTransition(
+              fpElseTrigger,
+              Collections.<AutomatonBoolExpr> emptyList(),
+              actions,
+              false,
+              stopNotBreakAtSinkStates));
+    }
+
+    if (pTransition.getFunctionEntry().isPresent()) {
+      conjoinedTriggers = and(conjoinedTriggers,
+          getFunctionCallMatcher(
+              pTransition.getFunctionEntry().get(),
+              pTransition.entersLoopHead()));
+    }
+
+    if (matchAssumeCase) {
+      conjoinedTriggers = and(conjoinedTriggers, pTransition.getAssumeCaseMatcher());
+    }
+
+    // If the triggers do not apply, none of the above transitions is taken,
+    // so we need to build the stutter condition
+    // as the conjoined negations of the transition conditions.
+    AutomatonBoolExpr stutterCondition =
+        pGraphMLParserState.getStutterConditions().get(pTransition.getSource());
+    AutomatonBoolExpr additionalStutterCondition = not(conjoinedTriggers);
+    if (fpElseTrigger != null) {
+      additionalStutterCondition = and(additionalStutterCondition, not(fpElseTrigger));
+    }
+    if (stutterCondition == null) {
+      stutterCondition = additionalStutterCondition;
+    } else {
+      stutterCondition = and(stutterCondition, additionalStutterCondition);
+    }
+    pGraphMLParserState.getStutterConditions().put(pTransition.getSource(), stutterCondition);
+
+    // If the triggers match, there must be one successor state that moves the automaton
+    // forwards
+    transitions.add(
+        createAutomatonTransition(
+            conjoinedTriggers,
+            Collections.<AutomatonBoolExpr> emptyList(),
+            assumptions,
+            candidateInvariants,
+            actions,
+            pTransition.getTarget(),
+            pTransition.getTarget().isViolationState(),
+            stopNotBreakAtSinkStates));
+
+    // Multiple CFA edges in a sequence might match the triggers,
+    // so in that case we ALSO need a transition back to the source state
+    if (!assumptions.isEmpty()
+        || !actions.isEmpty()
+        || !candidateInvariants.equals(ExpressionTrees.getTrue())
+        || pTransition.getTarget().isViolationState()) {
+      boolean sourceIsViolationNode = pTransition.getSource().isViolationState();
+      transitions.add(
+          createAutomatonTransition(
+              and(
+                  conjoinedTriggers,
+                  new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjoinedTriggers)),
+              Collections.<AutomatonBoolExpr> emptyList(),
+              Collections.emptyList(),
+              ExpressionTrees.<AExpression> getTrue(),
+              Collections.<AutomatonAction> emptyList(),
+              pTransition.getSource(),
+              sourceIsViolationNode,
+              stopNotBreakAtSinkStates));
     }
   }
 
