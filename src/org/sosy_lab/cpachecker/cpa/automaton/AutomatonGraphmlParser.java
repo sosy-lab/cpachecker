@@ -224,6 +224,7 @@ public class AutomatonGraphmlParser {
 
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
+    // Parse the transitions
     graphMLParserState.getWaitingTransitions().addAll(
         graphMLParserState.getLeavingTransitions().get(graphMLParserState.getEntryState()));
     graphMLParserState.getVisitedTransitions().addAll(graphMLParserState.getWaitingTransitions());
@@ -232,7 +233,7 @@ public class AutomatonGraphmlParser {
       parseTransition(cparser, graphMLParserState, transition);
     }
 
-    // Create states ----
+    // Create the actual states in our automaton model
     List<AutomatonInternalState> automatonStates = Lists.newArrayList();
     for (GraphMLState state : graphMLParserState.getStates()) {
 
