@@ -654,7 +654,7 @@ public class AutomatonGraphmlParser {
           numericIdProvider,
           transition);
     }
-    AutomatonGraphmlParserState result = AutomatonGraphmlParserState.initialize(
+    AutomatonGraphmlParserState state = AutomatonGraphmlParserState.initialize(
               automatonName,
               graphType,
               specType,
@@ -663,8 +663,8 @@ public class AutomatonGraphmlParser {
               leavingTransitions);
 
     // Check if entry state is connected to a violation state
-    if (result.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && !result.isEntryConnectedToViolation()) {
+    if (state.getWitnessType() == WitnessType.VIOLATION_WITNESS
+        && !state.isEntryConnectedToViolation()) {
       logger.log(
           Level.WARNING,
           String.format(
@@ -672,17 +672,17 @@ public class AutomatonGraphmlParser {
                   + " to a state explicitly marked as violation state."
                   + " Distance-to-violation waitlist order will not work"
                   + " and witness validation may fail to confirm this witness.",
-              result.getEntryState()));
+              state.getEntryState()));
     }
 
     // Define thread-id variable, if any assignments to it exist
-    if (result.getLeavingTransitions().values().stream()
+    if (state.getLeavingTransitions().values().stream()
         .anyMatch(t -> t.getThreadAssignment().isPresent())) {
-      result.getAutomatonVariables().put(
+      state.getAutomatonVariables().put(
           KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
     }
 
-    return result;
+    return state;
   }
 
   private GraphMLDocumentData parseXML(InputStream pInputStream)
