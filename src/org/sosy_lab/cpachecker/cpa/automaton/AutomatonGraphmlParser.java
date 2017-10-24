@@ -630,6 +630,13 @@ public class AutomatonGraphmlParser {
     return newStack;
   }
 
+  /**
+   * Gets the automaton actions that should be applied for the given transition.
+   *
+   * @param pGraphMLParserState the GraphML parser state.
+   * @param pTransition the transition to parse.
+   * @return the automaton actions that should be applied for the given transition.
+   */
   private static List<AutomatonAction> getTransitionActions(
       AutomatonGraphmlParserState pGraphMLParserState, GraphMLTransition pTransition) {
     ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
@@ -648,6 +655,15 @@ public class AutomatonGraphmlParser {
     return actionBuilder.build();
   }
 
+  /**
+   * Initializes the GraphML-parser state by parsing the XML document from the given input stream
+   * into an intermediate representation.
+   *
+   * @param pInputStream the input stream to read from.
+   * @return the initialized parser state.
+   * @throws IOException if reading from the input stream fails.
+   * @throws WitnessParseException if the initial validity checks for conformity with the witness format fail.
+   */
   private AutomatonGraphmlParserState setupGraphMLParser(InputStream pInputStream)
       throws IOException, WitnessParseException {
 
