@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
@@ -79,8 +78,8 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       final Collection<? extends AbstractState> successors =
           getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
 
-      assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
-          : "target-state should be returned as single-element-collection";
+      //assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
+      //    : "target-state should be returned as single-element-collection";
 
       return successors;
 
