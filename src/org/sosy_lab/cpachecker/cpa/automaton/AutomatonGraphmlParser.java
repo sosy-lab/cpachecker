@@ -410,10 +410,6 @@ public class AutomatonGraphmlParser {
       Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
       if (threadAssignment.isPresent()) {
         actions.add(threadAssignment.get());
-        // define new variable in automaton,
-        // this would be sufficient once and not per iteration, but who cares...
-        pGraphMLParserState.getAutomatonVariables().put(
-            KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
       }
     }
 
@@ -682,6 +678,12 @@ public class AutomatonGraphmlParser {
                   + " Distance-to-violation waitlist order will not work"
                   + " and witness validation may fail to confirm this witness.",
               result.getEntryState()));
+    }
+
+    // Define thread-id variable
+    if (matchThreadId) {
+      result.getAutomatonVariables().put(
+          KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
     }
 
     return result;
