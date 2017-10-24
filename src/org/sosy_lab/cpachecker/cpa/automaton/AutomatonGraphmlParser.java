@@ -444,7 +444,7 @@ public class AutomatonGraphmlParser {
 
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
-      String resultFunctionName = assumptionResultFunction.get();
+      String resultFunctionName = pTransition.getExplicitAssumptionResultFunction().get();
       transitionCondition =
           and(transitionCondition,
               new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
