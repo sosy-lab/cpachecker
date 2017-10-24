@@ -116,6 +116,7 @@ public class AutomatonGraphmlParser {
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
 
+  /** The name of the variable that stores the distance of each automaton state to the nearest violation state. */
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
@@ -240,24 +241,6 @@ public class AutomatonGraphmlParser {
     }
 
     // Build and return the result
-    if (graphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
-      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      Integer initialStateDistance =
-          graphMLParserState.getDistances().get(graphMLParserState.getEntryState());
-      if (initialStateDistance != null) {
-        distanceVariable.setValue(-initialStateDistance);
-      } else {
-        logger.log(
-            Level.WARNING,
-            String.format(
-                "There is no path from the entry state %s"
-                    + " to a state explicitly marked as violation state."
-                    + " Distance-to-violation waitlist order will not work"
-                    + " and witness validation may fail to confirm this witness.",
-                graphMLParserState.getEntryState()));
-      }
-      graphMLParserState.getAutomatonVariables().put(DISTANCE_TO_VIOLATION, distanceVariable);
-    }
     List<Automaton> result = Lists.newArrayList();
     Automaton automaton;
     try {
@@ -335,6 +318,20 @@ public class AutomatonGraphmlParser {
               pState,
               true,
               stopNotBreakAtSinkStates));
+    }
+
+    // Initialize distance variable at the entry state
+    if (pState.isEntryState()
+        && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
+      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
+      Integer distance = pGraphMLParserState.getDistances().get(pState);
+      if (distance == null) {
+        distance = Integer.MIN_VALUE;
+      } else {
+        distance = -distance;
+      }
+      distanceVariable.setValue(distance);
+      pGraphMLParserState.getAutomatonVariables().put(DISTANCE_TO_VIOLATION, distanceVariable);
     }
 
     AutomatonInternalState automatonState =
@@ -647,13 +644,31 @@ public class AutomatonGraphmlParser {
           numericIdProvider,
           transition);
     }
-    return AutomatonGraphmlParserState.initialize(
+    AutomatonGraphmlParserState result = AutomatonGraphmlParserState.initialize(
               automatonName,
               graphType,
               specType,
               states.values(),
               enteringTransitions,
               leavingTransitions);
+
+    // Check if entry state is connected to a violation state
+    if (result.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
+      Integer initialStateDistance =
+          result.getDistances().get(result.getEntryState());
+      if (initialStateDistance == null) {
+        logger.log(
+            Level.WARNING,
+            String.format(
+                "There is no path from the entry state %s"
+                    + " to a state explicitly marked as violation state."
+                    + " Distance-to-violation waitlist order will not work"
+                    + " and witness validation may fail to confirm this witness.",
+                result.getEntryState()));
+      }
+    }
+
+    return result;
   }
 
   private GraphMLDocumentData parseXML(InputStream pInputStream)
