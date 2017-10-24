@@ -18,6 +18,16 @@
 
     <include>../programs/ldv-benchmarks/validator/v0.7/*.c</include>
     <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
+    <exclude>../programs/ldv-benchmarks/validator/v0.7/linux-stable-90a4845-110_1a-drivers--char--ipmi--ipmi_si.ko-ldv_main0_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--net--wireless--orinoco--orinoco_usb.ko-ldv_main0_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main2_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--staging--lustre--lustre--llite--lustre.ko-ldv_main15_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main2_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main4_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
 
   <tasks>
@@ -28,5 +38,6 @@
   <tasks>
     <propertyfile>../programs/ldv-benchmarks/bnb/ALL.prp</propertyfile>
     <includesfile>../programs/ldv-benchmarks/bnb/bnb.set</includesfile>
+    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--ethernet--broadcom--bnx2x--bnx2x-ldv_main3_sequence_infinite_withcheck_stateful-entry_point_true-unreach-call.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
 </benchmark>
