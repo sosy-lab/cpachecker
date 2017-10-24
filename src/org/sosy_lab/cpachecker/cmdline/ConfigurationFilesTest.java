@@ -259,7 +259,9 @@ public class ConfigurationFilesTest {
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
     if (configFile instanceof Path) {
-      assume().that((Iterable<?>) configFile).doesNotContain(Paths.get("includes"));
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
