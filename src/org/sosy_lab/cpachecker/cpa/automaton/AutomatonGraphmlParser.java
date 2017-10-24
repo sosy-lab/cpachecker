@@ -385,15 +385,20 @@ public class AutomatonGraphmlParser {
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
-    Optional<Predicate<FileLocation>> offsetMatcherPredicate =
-        pTransition.getOffsetMatcherPredicate();
-    Optional<Predicate<FileLocation>> lineMatcherPredicate = pTransition.getLineMatcherPredicate();
     Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
-    if (offsetMatcherPredicate.isPresent()) {
-      locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
+    if (matchOffset) {
+      Optional<Predicate<FileLocation>> offsetMatcherPredicate =
+          pTransition.getOffsetMatcherPredicate();
+      if (offsetMatcherPredicate.isPresent()) {
+        locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
+      }
     }
-    if (lineMatcherPredicate.isPresent()) {
-      locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
+    if (matchOriginLine) {
+      Optional<Predicate<FileLocation>> lineMatcherPredicate =
+          pTransition.getLineMatcherPredicate();
+      if (lineMatcherPredicate.isPresent()) {
+        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
+      }
     }
 
     List<AExpression> assumptions = Lists.newArrayList();
@@ -478,13 +483,19 @@ public class AutomatonGraphmlParser {
     }
 
     if (matchOriginLine) {
-      conjoinedTriggers = and(conjoinedTriggers,
-          getLocationMatcher(pTransition.entersLoopHead(), lineMatcherPredicate));
+      conjoinedTriggers = and(
+          conjoinedTriggers,
+          getLocationMatcher(
+              pTransition.entersLoopHead(),
+              pTransition.getLineMatcherPredicate()));
     }
 
     if (matchOffset) {
-      conjoinedTriggers = and(conjoinedTriggers,
-          getLocationMatcher(pTransition.entersLoopHead(), offsetMatcherPredicate));
+      conjoinedTriggers = and(
+          conjoinedTriggers,
+          getLocationMatcher(
+              pTransition.entersLoopHead(),
+              pTransition.getOffsetMatcherPredicate()));
     }
 
     if (pTransition.getFunctionExit().isPresent()) {
