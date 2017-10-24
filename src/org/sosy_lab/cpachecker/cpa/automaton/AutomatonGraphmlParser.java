@@ -385,22 +385,6 @@ public class AutomatonGraphmlParser {
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
-    Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
-    if (matchOffset) {
-      Optional<Predicate<FileLocation>> offsetMatcherPredicate =
-          pTransition.getOffsetMatcherPredicate();
-      if (offsetMatcherPredicate.isPresent()) {
-        locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
-      }
-    }
-    if (matchOriginLine) {
-      Optional<Predicate<FileLocation>> lineMatcherPredicate =
-          pTransition.getLineMatcherPredicate();
-      if (lineMatcherPredicate.isPresent()) {
-        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
-      }
-    }
-
     List<AExpression> assumptions = Lists.newArrayList();
     ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
@@ -426,9 +410,10 @@ public class AutomatonGraphmlParser {
     }
 
     // Add assumptions to the transition
-    Scope scope =
-        determineScope(pTransition.getExplicitAssumptionScope(), newStack,
-            locationMatcherPredicate);
+    Scope scope = determineScope(
+        pTransition.getExplicitAssumptionScope(),
+        newStack,
+        getLocationMatcherPredicate(pTransition));
     Optional<String> assumptionResultFunction =
         determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
     if (considerAssumptions) {
@@ -463,7 +448,7 @@ public class AutomatonGraphmlParser {
     final Scope candidateScope = determineScope(
         pTransition.getTarget().getExplicitInvariantScope(),
         newStack,
-        locationMatcherPredicate);
+        getLocationMatcherPredicate(pTransition));
     Optional<String> resultFunction =
         determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
@@ -586,6 +571,31 @@ public class AutomatonGraphmlParser {
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
     }
+  }
+
+  /**
+   * Gets the location matcher predicate for the given transition.
+   *
+   * @param pTransition the transition to parse.
+   * @return the location matcher predicate for the given transition.
+   */
+  private Predicate<FileLocation> getLocationMatcherPredicate(GraphMLTransition pTransition) {
+    Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
+    if (matchOffset) {
+      Optional<Predicate<FileLocation>> offsetMatcherPredicate =
+          pTransition.getOffsetMatcherPredicate();
+      if (offsetMatcherPredicate.isPresent()) {
+        locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
+      }
+    }
+    if (matchOriginLine) {
+      Optional<Predicate<FileLocation>> lineMatcherPredicate =
+          pTransition.getLineMatcherPredicate();
+      if (lineMatcherPredicate.isPresent()) {
+        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
+      }
+    }
+    return locationMatcherPredicate;
   }
 
   /**
