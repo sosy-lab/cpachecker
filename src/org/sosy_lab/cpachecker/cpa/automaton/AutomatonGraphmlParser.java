@@ -398,8 +398,12 @@ public class AutomatonGraphmlParser {
     // Handle call stack
     Deque<String> newStack = handleCallStack(pGraphMLParserState, pTransition);
 
+    // Initialize the transition condition to TRUE, so that all individual
+    // conditions can conveniently be conjoined to it later
+    AutomatonBoolExpr conjoinedTriggers = AutomatonBoolExpr.TRUE;
+
     // Never match on the dummy edge directly after the main function entry node
-    AutomatonBoolExpr conjoinedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+    conjoinedTriggers = and(conjoinedTriggers, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
     // Never match on artificially split declarations
     conjoinedTriggers =
         and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
