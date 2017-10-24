@@ -36,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
@@ -57,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -226,13 +228,7 @@ public class AutomatonGraphmlParser {
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
     // Parse the transitions
-    graphMLParserState.getWaitingTransitions().addAll(
-        graphMLParserState.getLeavingTransitions().get(graphMLParserState.getEntryState()));
-    graphMLParserState.getVisitedTransitions().addAll(graphMLParserState.getWaitingTransitions());
-    while (!graphMLParserState.getWaitingTransitions().isEmpty()) {
-      GraphMLTransition transition = graphMLParserState.getWaitingTransitions().poll();
-      parseTransition(cparser, graphMLParserState, transition);
-    }
+    parseTransitions(cparser, graphMLParserState);
 
     // Create the actual states in our automaton model
     List<AutomatonInternalState> automatonStates = Lists.newArrayList();
@@ -335,6 +331,44 @@ public class AutomatonGraphmlParser {
   }
 
   /**
+   * Parses all transitions reachable from the entry state and modifies the GraphML parser state accordingly.
+   *
+   * @param pCParser the C parser to be used for parsing expressions.
+   * @param pGraphMLParserState the GraphML parser state.
+   * @throws WitnessParseException if the witness file is invalid and cannot be parsed.
+   */
+  private void parseTransitions(final CParser pCParser,
+      AutomatonGraphmlParserState pGraphMLParserState) throws WitnessParseException {
+
+    // The transitions (represented in the GraphML model) already visited
+    Set<GraphMLTransition> visitedTransitions = Sets.newHashSet();
+    // The transition search frontier, i.e. the transitions (represented in the GraphML model)
+    // currently waiting to be explored
+    Queue<GraphMLTransition> waitingTransitions = Queues.newArrayDeque();
+    waitingTransitions.addAll(
+        pGraphMLParserState.getLeavingTransitions().get(pGraphMLParserState.getEntryState()));
+    visitedTransitions.addAll(waitingTransitions);
+
+    while (!waitingTransitions.isEmpty()) {
+      // Get the next transition to be parsed
+      GraphMLTransition transition = waitingTransitions.poll();
+
+      // Parse the transition
+      parseTransition(pCParser, pGraphMLParserState, transition);
+
+      // Collect all successor transitions that were not parsed yet and add them to the wait list
+      Iterable<GraphMLTransition> successorTransitions = pGraphMLParserState
+          .getLeavingTransitions()
+          .get(transition.getTarget());
+      for (GraphMLTransition successorTransition : successorTransitions) {
+        if (visitedTransitions.add(successorTransition)) {
+          waitingTransitions.add(successorTransition);
+        }
+      }
+    }
+  }
+
+  /**
    * Parses the given transition and modifies the GraphML parser state accordingly.
    *
    * @param pCParser the C parser to be used for parsing expressions.
@@ -350,15 +384,6 @@ public class AutomatonGraphmlParser {
         && pTransition.getTarget().isSinkState()) {
       throw new WitnessParseException(
             "Proof witnesses do not allow sink nodes.");
-    }
-
-    Iterable<GraphMLTransition> successorTransitions = pGraphMLParserState
-        .getLeavingTransitions()
-        .get(pTransition.getTarget());
-    for (GraphMLTransition successorTransition : successorTransitions) {
-      if (pGraphMLParserState.getVisitedTransitions().add(successorTransition)) {
-        pGraphMLParserState.getWaitingTransitions().add(successorTransition);
-      }
     }
 
     final List<AutomatonAction> actions = new ArrayList<>(0);

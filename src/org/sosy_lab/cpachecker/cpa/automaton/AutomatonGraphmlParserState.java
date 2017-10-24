@@ -28,8 +28,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -73,15 +71,6 @@ public class AutomatonGraphmlParserState {
 
   /** Automaton variables by their names. */
   private final Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
-
-  /** The transitions (represented in the GraphML model) already visited. */
-  private final Set<GraphMLTransition> visitedTransitions = Sets.newHashSet();
-
-  /**
-   * The transition search frontier, i.e. the transitions (represented in the GraphML model)
-   * currently waiting to be explored.
-   */
-  private final Queue<GraphMLTransition> waitingTransitions = Queues.newArrayDeque();
 
   /** States (represented in the GraphML model) and the call stack at each of them. */
   private final Map<GraphMLState, Deque<String>> stacks = Maps.newHashMap();
@@ -302,26 +291,6 @@ public class AutomatonGraphmlParserState {
    */
   public Map<String, AutomatonVariable> getAutomatonVariables() {
     return automatonVariables;
-  }
-
-  /**
-   * Gets the transitions (represented in the GraphML model) already visited.
-   *
-   * @return the transitions (represented in the GraphML model) already visited.
-   */
-  public Set<GraphMLTransition> getVisitedTransitions() {
-    return visitedTransitions;
-  }
-
-  /**
-   * Gets the transition search frontier, i.e. the transitions (represented in the GraphML model)
-   * currently waiting to be explored.
-   *
-   * @return the transition search frontier, i.e. the transitions (represented in the GraphML model)
-   *     currently waiting to be explored.
-   */
-  public Queue<GraphMLTransition> getWaitingTransitions() {
-    return waitingTransitions;
   }
 
   /**
