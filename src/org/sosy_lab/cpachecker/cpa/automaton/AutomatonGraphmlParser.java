@@ -400,17 +400,18 @@ public class AutomatonGraphmlParser {
 
     // Initialize the transition condition to TRUE, so that all individual
     // conditions can conveniently be conjoined to it later
-    AutomatonBoolExpr conjoinedTriggers = AutomatonBoolExpr.TRUE;
+    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
 
     // Never match on the dummy edge directly after the main function entry node
-    conjoinedTriggers = and(conjoinedTriggers, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
+    transitionCondition =
+        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
     // Never match on artificially split declarations
-    conjoinedTriggers =
-        and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
+    transitionCondition =
+        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
     // Match a loop start
     if (pTransition.entersLoopHead()) {
-      conjoinedTriggers = and(conjoinedTriggers, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+      transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
     }
 
     // Add assumptions to the transition
@@ -444,8 +445,8 @@ public class AutomatonGraphmlParser {
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName = assumptionResultFunction.get();
-      conjoinedTriggers =
-          and(conjoinedTriggers,
+      transitionCondition =
+          and(transitionCondition,
               new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
     }
 
@@ -472,24 +473,24 @@ public class AutomatonGraphmlParser {
     }
 
     if (matchOriginLine) {
-      conjoinedTriggers = and(
-          conjoinedTriggers,
+      transitionCondition = and(
+          transitionCondition,
           getLocationMatcher(
               pTransition.entersLoopHead(),
               pTransition.getLineMatcherPredicate()));
     }
 
     if (matchOffset) {
-      conjoinedTriggers = and(
-          conjoinedTriggers,
+      transitionCondition = and(
+          transitionCondition,
           getLocationMatcher(
               pTransition.entersLoopHead(),
               pTransition.getOffsetMatcherPredicate()));
     }
 
     if (pTransition.getFunctionExit().isPresent()) {
-      conjoinedTriggers =
-          and(conjoinedTriggers,
+      transitionCondition =
+          and(transitionCondition,
               getFunctionExitMatcher(
                   pTransition.getFunctionExit().get(),
                   pTransition.entersLoopHead()));
@@ -502,7 +503,7 @@ public class AutomatonGraphmlParser {
     if (pTransition.getFunctionEntry().isPresent()
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
       fpElseTrigger = and(
-          conjoinedTriggers,
+          transitionCondition,
           getFunctionPointerAssumeCaseMatcher(pTransition.getFunctionEntry().get(),
               pTransition.getTarget().isSinkState(),
               pTransition.entersLoopHead()));
@@ -516,14 +517,14 @@ public class AutomatonGraphmlParser {
     }
 
     if (pTransition.getFunctionEntry().isPresent()) {
-      conjoinedTriggers = and(conjoinedTriggers,
+      transitionCondition = and(transitionCondition,
           getFunctionCallMatcher(
               pTransition.getFunctionEntry().get(),
               pTransition.entersLoopHead()));
     }
 
     if (matchAssumeCase) {
-      conjoinedTriggers = and(conjoinedTriggers, pTransition.getAssumeCaseMatcher());
+      transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
     }
 
     // If the triggers do not apply, none of the above transitions is taken,
@@ -531,7 +532,7 @@ public class AutomatonGraphmlParser {
     // as the conjoined negations of the transition conditions.
     AutomatonBoolExpr stutterCondition =
         pGraphMLParserState.getStutterConditions().get(pTransition.getSource());
-    AutomatonBoolExpr additionalStutterCondition = not(conjoinedTriggers);
+    AutomatonBoolExpr additionalStutterCondition = not(transitionCondition);
     if (fpElseTrigger != null) {
       additionalStutterCondition = and(additionalStutterCondition, not(fpElseTrigger));
     }
@@ -546,7 +547,7 @@ public class AutomatonGraphmlParser {
     // forwards
     transitions.add(
         createAutomatonTransition(
-            conjoinedTriggers,
+            transitionCondition,
             Collections.<AutomatonBoolExpr> emptyList(),
             assumptions,
             candidateInvariants,
@@ -565,8 +566,8 @@ public class AutomatonGraphmlParser {
       transitions.add(
           createAutomatonTransition(
               and(
-                  conjoinedTriggers,
-                  new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjoinedTriggers)),
+                  transitionCondition,
+                  new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(transitionCondition)),
               Collections.<AutomatonBoolExpr> emptyList(),
               Collections.emptyList(),
               ExpressionTrees.<AExpression> getTrue(),
