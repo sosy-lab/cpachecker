@@ -415,13 +415,13 @@ public class AutomatonGraphmlParser {
     }
 
     // Add assumptions to the transition
-    Scope scope = determineScope(
-        pTransition.getExplicitAssumptionScope(),
-        newStack,
-        getLocationMatcherPredicate(pTransition));
-    Optional<String> assumptionResultFunction =
-        determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
     if (considerAssumptions) {
+      Scope scope = determineScope(
+          pTransition.getExplicitAssumptionScope(),
+          newStack,
+          getLocationMatcherPredicate(pTransition));
+      Optional<String> assumptionResultFunction =
+          determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
       try {
         assumptions.addAll(
             CParserUtils.convertStatementsToAssumptions(
@@ -450,17 +450,19 @@ public class AutomatonGraphmlParser {
               new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
     }
 
-    final Scope candidateScope = determineScope(
-        pTransition.getTarget().getExplicitInvariantScope(),
-        newStack,
-        getLocationMatcherPredicate(pTransition));
-    Optional<String> resultFunction =
-        determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
       if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
           && !pGraphMLParserState.getSpecificationTypes()
-              .contains(PropertyType.TERMINATION)) { throw new WitnessParseException(
-                  "Invariants are not allowed for violation witnesses."); }
+              .contains(PropertyType.TERMINATION)) {
+        throw new WitnessParseException(
+            "Invariants are not allowed for violation witnesses.");
+      }
+      Scope candidateScope = determineScope(
+          pTransition.getTarget().getExplicitInvariantScope(),
+          newStack,
+          getLocationMatcherPredicate(pTransition));
+      Optional<String> resultFunction =
+          determineResultFunction(pTransition.getExplicitAssumptionResultFunction(), scope);
       candidateInvariants =
           And.of(
               candidateInvariants,
