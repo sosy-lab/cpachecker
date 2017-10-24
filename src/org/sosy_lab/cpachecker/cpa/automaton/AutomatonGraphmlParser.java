@@ -236,49 +236,7 @@ public class AutomatonGraphmlParser {
     // Create the actual states in our automaton model
     List<AutomatonInternalState> automatonStates = Lists.newArrayList();
     for (GraphMLState state : graphMLParserState.getStates()) {
-
-      List<AutomatonTransition> transitions = graphMLParserState.getStateTransitions().get(state);
-      if (transitions == null) {
-        transitions = new ArrayList<>();
-      }
-
-      // If the transition conditions do not apply, none of the above transitions is taken,
-      // and instead, the stutter condition applies.
-      AutomatonBoolExpr stutterCondition = graphMLParserState.getStutterConditions().get(state);
-      if (stutterCondition == null) {
-        stutterCondition = AutomatonBoolExpr.TRUE;
-      }
-      // Wait in the source state until the witness checker catches up with the witness
-      transitions.add(
-          createAutomatonTransition(
-              stutterCondition,
-              Collections.<AutomatonBoolExpr>emptyList(),
-              Collections.emptyList(),
-              ExpressionTrees.<AExpression>getTrue(),
-              Collections.<AutomatonAction>emptyList(),
-              state,
-              state.isViolationState(),
-              stopNotBreakAtSinkStates));
-
-      if (state.isViolationState()) {
-        AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
-        List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
-        transitions.add(
-            createAutomatonTransition(
-                AutomatonBoolExpr.TRUE,
-                assertions,
-                Collections.emptyList(),
-                ExpressionTrees.<AExpression>getTrue(),
-                Collections.<AutomatonAction>emptyList(),
-                state,
-                true,
-                stopNotBreakAtSinkStates));
-      }
-
-      AutomatonInternalState automatonState =
-          new AutomatonInternalState(
-              state.getId(), transitions, false, true, state.isCycleHead());
-      automatonStates.add(automatonState);
+      automatonStates.add(createAutomatonState(graphMLParserState, state));
     }
 
     // Build and return the result
@@ -328,6 +286,61 @@ public class AutomatonGraphmlParser {
     }
 
     return result;
+  }
+
+  /**
+   * Creates an {@link AutomatonInternalState} from the given {@link GraphMLState},
+   * adds the corresponding stutter transitions to the GraphML-parser state,
+   * and adds a self-transition to violation states.
+   *
+   * @param pGraphMLParserState the current GraphML-parser state.
+   * @param pState the GraphML state to be converted into an automaton state.
+   * @return an {@link AutomatonInternalState} corresponding to the given GraphML state.
+   */
+  private AutomatonInternalState createAutomatonState(
+      AutomatonGraphmlParserState pGraphMLParserState, GraphMLState pState) {
+    List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions().get(pState);
+    if (transitions == null) {
+      transitions = new ArrayList<>();
+    }
+
+    // If the transition conditions do not apply, none of the above transitions is taken,
+    // and instead, the stutter condition applies.
+    AutomatonBoolExpr stutterCondition = pGraphMLParserState.getStutterConditions().get(pState);
+    if (stutterCondition == null) {
+      stutterCondition = AutomatonBoolExpr.TRUE;
+    }
+    // Wait in the source state until the witness checker catches up with the witness
+    transitions.add(
+        createAutomatonTransition(
+            stutterCondition,
+            Collections.<AutomatonBoolExpr>emptyList(),
+            Collections.emptyList(),
+            ExpressionTrees.<AExpression>getTrue(),
+            Collections.<AutomatonAction>emptyList(),
+            pState,
+            pState.isViolationState(),
+            stopNotBreakAtSinkStates));
+
+    if (pState.isViolationState()) {
+      AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
+      List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
+      transitions.add(
+          createAutomatonTransition(
+              AutomatonBoolExpr.TRUE,
+              assertions,
+              Collections.emptyList(),
+              ExpressionTrees.<AExpression>getTrue(),
+              Collections.<AutomatonAction>emptyList(),
+              pState,
+              true,
+              stopNotBreakAtSinkStates));
+    }
+
+    AutomatonInternalState automatonState =
+        new AutomatonInternalState(
+            pState.getId(), transitions, false, true, pState.isCycleHead());
+    return automatonState;
   }
 
   /**
