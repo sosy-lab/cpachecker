@@ -275,12 +275,9 @@ public class AutomatonGraphmlParser {
                 stopNotBreakAtSinkStates));
       }
 
-      // Determine if "matchAll" should be enabled
-      boolean matchAll = true;
-
       AutomatonInternalState automatonState =
           new AutomatonInternalState(
-              state.getId(), transitions, false, matchAll, state.isCycleHead());
+              state.getId(), transitions, false, true, state.isCycleHead());
       automatonStates.add(automatonState);
     }
 
