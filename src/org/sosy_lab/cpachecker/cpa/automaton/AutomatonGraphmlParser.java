@@ -883,7 +883,7 @@ public class AutomatonGraphmlParser {
   private static Optional<AutomatonAction> getThreadIdAssignment(Node pTransition)
       throws WitnessParseException {
     Set<String> threadIdTags =
-        GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.THREADNAME);
+        GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.THREADID);
 
     if (threadIdTags.size() > 0) {
       checkParsable(
@@ -892,7 +892,7 @@ public class AutomatonGraphmlParser {
       // TODO use unique Integer for each identifier
       int threadId = threadIdStr.hashCode();
       AutomatonIntExpr expr = new AutomatonIntExpr.Constant(threadId);
-      return Optional.of(new AutomatonAction.Assignment(KeyDef.THREADNAME.name(), expr));
+      return Optional.of(new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr));
     }
     return Optional.empty();
   }
