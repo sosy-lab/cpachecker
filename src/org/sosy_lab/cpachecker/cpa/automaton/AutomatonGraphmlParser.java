@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1386,10 +1387,17 @@ public class AutomatonGraphmlParser {
 
   private static class GraphMLDocumentData {
 
-    private final Document doc;
+    private final ImmutableMap<String, Element> idToNodeMap;
 
-    public GraphMLDocumentData(Document doc) {
-      this.doc = Objects.requireNonNull(doc);
+    public GraphMLDocumentData(Document doc) throws WitnessParseException {
+      ImmutableMap.Builder<String, Element> idToNodeMapBuilder = ImmutableMap.builder();
+
+      NodeList nodes = doc.getElementsByTagName(GraphMLTag.NODE.toString());
+      for (Node stateNode : asIterable(nodes)) {
+        String stateId = getAttributeValue(stateNode, "id", "Every state needs an ID!");
+        idToNodeMapBuilder.put(stateId, (Element) stateNode);
+      }
+      idToNodeMap = idToNodeMapBuilder.build();
     }
 
     public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
@@ -1410,14 +1418,17 @@ public class AutomatonGraphmlParser {
       return result;
     }
 
-    private static String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
+    private static String getAttributeValue(Node of, String attributeName, String exceptionMessage)
+        throws WitnessParseException {
       Node attribute = of.getAttributes().getNamedItem(attributeName);
-      Preconditions.checkNotNull(attribute, exceptionMessage);
+      if (attribute == null) {
+        throw new WitnessParseException(exceptionMessage);
+      }
       return attribute.getTextContent();
     }
 
     private @Nullable Element getNodeWithId(String nodeId) {
-      Element result = doc.getElementById(nodeId);
+      Element result = idToNodeMap.get(nodeId);
       if (result == null
           || !result.getTagName().equals(GraphMLTag.NODE.toString())) {
         return null;
