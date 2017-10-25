@@ -794,7 +794,7 @@ class WitnessWriter implements EdgeAppender {
             result = result.putAndCopy(KeyDef.THREADNAME, threadId);
           }
           result = result.putAndCopy(KeyDef.THREADID, getUniqueThreadNum(threadId));
-          result = exportThreadCreation(result, pEdge, state, threadingState);
+          result = exportThreadManagement(result, pEdge, state, threadingState);
           break;
         }
       }
@@ -802,7 +802,7 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  private TransitionCondition exportThreadCreation(
+  private TransitionCondition exportThreadManagement(
       TransitionCondition result,
       final CFAEdge pEdge,
       ARGState state,
@@ -814,23 +814,46 @@ class WitnessWriter implements EdgeAppender {
             ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           final String functionName = ((AIdExpression) functionNameExp).getName();
-          if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
-            // extract new thread-id from succeeding state. we assume there is only 'one' match
-            ARGState child =
-                from(state.getChildren()).firstMatch(c -> pEdge == state.getEdgeToChild(c)).get();
-            // search the new created thread-id
-            ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
-            for (String threadId : succThreadingState.getThreadIds()) {
-              if (!threadingState.getThreadIds().contains(threadId)) {
-                // we found the new created thread-id. we assume there is only 'one' match
-                result = result.putAndCopy(KeyDef.CREATETHREAD, getUniqueThreadNum(threadId));
+          switch (functionName) {
+            case ThreadingTransferRelation.THREAD_START:
+              {
+                ARGState child = getChildState(state, pEdge);
+                // search the new created thread-id
+                ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
+                for (String threadId : succThreadingState.getThreadIds()) {
+                  if (!threadingState.getThreadIds().contains(threadId)) {
+                    // we found the new created thread-id. we assume there is only 'one' match
+                    result = result.putAndCopy(KeyDef.CREATETHREAD, getUniqueThreadNum(threadId));
+                  }
+                }
+                break;
               }
-            }
+            case ThreadingTransferRelation.THREAD_JOIN:
+              {
+                // extract old thread-id from current state. we assume there is only 'one' match
+                ARGState child = getChildState(state, pEdge);
+                // search the old deleted thread-id
+                ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
+                for (String threadId : threadingState.getThreadIds()) {
+                  if (!succThreadingState.getThreadIds().contains(threadId)) {
+                    // we found the old deleted thread-id. we assume there is only 'one' match
+                    result = result.putAndCopy(KeyDef.DESTROYTHREAD, getUniqueThreadNum(threadId));
+                  }
+                }
+                break;
+              }
+            default:
+              // nothing to do
           }
         }
       }
     }
     return result;
+  }
+
+  /** return the single successor state of a state along an edge. */
+  private static ARGState getChildState(ARGState pParent, final CFAEdge pEdge) {
+    return from(pParent.getChildren()).firstMatch(c -> pEdge == pParent.getEdgeToChild(c)).get();
   }
 
   private String getUniqueThreadNum(String threadId) {

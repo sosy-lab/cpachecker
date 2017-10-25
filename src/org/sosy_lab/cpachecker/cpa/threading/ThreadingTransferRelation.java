@@ -102,7 +102,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private boolean useLocalAccessLocks = true;
 
   public static final String THREAD_START = "pthread_create";
-  protected static final String THREAD_JOIN = "pthread_join";
+  public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
