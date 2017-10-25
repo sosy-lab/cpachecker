@@ -178,12 +178,32 @@ public class CBinaryExpressionBuilder {
    * This makes it easier for many CPAs to handle it.
    */
   public CBinaryExpression negateExpressionAndSimplify(final CExpression expr) throws UnrecognizedCCodeException {
-    // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
+
     if (expr instanceof CBinaryExpression) {
       final CBinaryExpression binExpr = (CBinaryExpression)expr;
+      BinaryOperator binOp = binExpr.getOperator();
+      // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
       if (binExpr.getOperator().isLogicalOperator()) {
-        BinaryOperator inverseOperator = binExpr.getOperator().getOppositLogicalOperator();
+        BinaryOperator inverseOperator = binOp.getOppositLogicalOperator();
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
+      }
+      // others can be negated using De Morgan's law:
+      if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
+        if (binExpr.getOperand1() instanceof CBinaryExpression
+            && binExpr.getOperand2() instanceof CBinaryExpression) {
+          final CBinaryExpression binExpr1 = (CBinaryExpression) binExpr.getOperand1();
+          final CBinaryExpression binExpr2 = (CBinaryExpression) binExpr.getOperand2();
+          if (binExpr1.getOperator().isLogicalOperator()
+              && binExpr2.getOperator().isLogicalOperator()) {
+            BinaryOperator negatedOperator = binOp.equals(BinaryOperator.BINARY_AND)
+                ? BinaryOperator.BINARY_OR : BinaryOperator.BINARY_AND;
+            CBinaryExpression newOp1 = buildBinaryExpression(binExpr1.getOperand1(),
+                binExpr1.getOperand2(), binExpr1.getOperator().getOppositLogicalOperator());
+            CBinaryExpression newOp2 = buildBinaryExpression(binExpr2.getOperand1(),
+                binExpr2.getOperand2(), binExpr2.getOperator().getOppositLogicalOperator());
+            return buildBinaryExpression(newOp1, newOp2, negatedOperator);
+          }
+        }
       }
     }
 
