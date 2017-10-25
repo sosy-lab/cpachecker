@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +58,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * modifiable integers instead of the immutable Integer class.
    */
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
-  private final Map<CCompositeType, HashMap<String, Long>> offsets = new HashMap<>();
+  private final Map<CCompositeType, ImmutableMap<String, Long>> offsets = new HashMap<>();
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
                                         FormulaEncodingWithPointerAliasingOptions pOptions) {
@@ -156,17 +156,14 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   long getBitOffset(CCompositeType compositeType, final String memberName) {
     checkIsSimplified(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    HashMap<String, Long> multiset = offsets.get(compositeType);
+    ImmutableMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
       Map<CCompositeTypeMemberDeclaration, Long> calculatedOffsets =
           machineModel.getAllFieldOffsetsInBits(compositeType);
-      HashMap<String, Long> memberOffsets =
-          Maps.newHashMapWithExpectedSize(calculatedOffsets.size());
-      calculatedOffsets
-          .entrySet()
-          .stream()
-          .forEach(e -> memberOffsets.put(e.getKey().getName(), e.getValue()));
-      multiset = memberOffsets;
+      ImmutableMap.Builder<String, Long> memberOffsets =
+          ImmutableMap.builderWithExpectedSize(calculatedOffsets.size());
+      calculatedOffsets.forEach((key, value) -> memberOffsets.put(key.getName(), value));
+      multiset = memberOffsets.build();
       offsets.put(compositeType, multiset);
     }
     return multiset.get(memberName);
