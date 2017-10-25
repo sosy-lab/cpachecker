@@ -42,7 +42,13 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -288,7 +294,7 @@ public final class PointerTargetSet implements Serializable {
     private final PersistentSortedMap<CompositeField, Boolean> fields;
     private final List<Pair<String, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
-    private final List<Formula> highestAllocatedAddresses;
+    private final List<String> highestAllocatedAddresses;
     private final int allocationCount;
 
     private SerializationProxy(PointerTargetSet pts) {
@@ -298,19 +304,65 @@ public final class PointerTargetSet implements Serializable {
           Lists.newArrayList(pts.deferredAllocations);
       this.deferredAllocations = deferredAllocations;
       this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
-      highestAllocatedAddresses = new ArrayList<>(pts.highestAllocatedAddresses);
+      highestAllocatedAddresses =
+          new ArrayList<>(
+              Lists.<Formula, String>transform(
+                  pts.highestAllocatedAddresses, SerializationProxy::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
 
+
     private Object readResolve() {
+      PersistentList<Formula> highestAllocatedAddressesFormulas =
+          PersistentLinkedList.copyOf(
+              Lists.<String, Formula>transform(
+                  highestAllocatedAddresses, SerializationProxy::parseArbitraryFormula));
+
       return new PointerTargetSet(
           bases,
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(this.targets, PersistentLinkedList::copyOf)),
-          PersistentLinkedList.copyOf(highestAllocatedAddresses),
+          highestAllocatedAddressesFormulas,
           allocationCount);
+    }
+
+    private static final String DUMMY_VAR = "__dummy_variable_for_serialization__";
+
+    private static String dumpArbitraryFormula(Formula f) {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      Formula dummyVar = mgr.makeVariable(mgr.getFormulaType(f), DUMMY_VAR);
+      return mgr.dumpFormula(mgr.makeEqual(dummyVar, f)).toString();
+    }
+
+    private static Formula parseArbitraryFormula(String s) {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      BooleanFormula f = mgr.parse(s);
+      return mgr.visit(
+          f,
+          new DefaultFormulaVisitor<Formula>() {
+
+            @Override
+            protected Formula visitDefault(Formula pF) {
+              throw new AssertionError("Unexpected formula " + pF);
+            }
+
+            @Override
+            public Formula visitFunction(
+                Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pDecl) {
+              if (pDecl.getKind() != FunctionDeclarationKind.EQ && pArgs.size() != 2) {
+                return visitDefault(pF);
+              }
+              Formula dummyVar = mgr.makeVariable(mgr.getFormulaType(pArgs.get(0)), DUMMY_VAR);
+              if (pArgs.get(0).equals(dummyVar)) {
+                return pArgs.get(1);
+              } else if (pArgs.get(1).equals(dummyVar)) {
+                return pArgs.get(0);
+              }
+              return visitDefault(pF);
+            }
+          });
     }
   }
 }
