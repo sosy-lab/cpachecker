@@ -31,12 +31,12 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -907,7 +907,7 @@ class ASTConverter {
         && (wayToInnerField.size() > 1 || owner instanceof CFieldReference)
         && !scope.isGlobalScope()) {
       CExpression tmp = fullFieldReference;
-      Deque<Pair<CType, String>> fields = new LinkedList<>();
+      Deque<Pair<CType, String>> fields = new ArrayDeque<>();
       while (tmp != owner) {
         fields.push(Pair.of(tmp.getExpressionType(), ((CFieldReference)tmp).getFieldName()));
         tmp = ((CFieldReference) tmp).getFieldOwner();

@@ -382,10 +382,7 @@ class DynamicBindingCreator {
 
 
     if (onlyFunction == null) {
-
-      List<JClassOrInterfaceType> superTypes = runTimeBinding.getAllSuperTypesOfType();
-
-      for (JClassOrInterfaceType superType : superTypes) {
+      for (JClassOrInterfaceType superType : runTimeBinding.getAllSuperTypesOfType()) {
         if (map.containsKey(superType)) {
           onlyFunction = map.get(superType);
           break;
@@ -599,7 +596,8 @@ class DynamicBindingCreator {
 
     final MethodDefinition toBeRegistered = getMethodDefinition(declaration, entryNode);
     final JClassOrInterfaceType declaringClassType = declaration.getDeclaringClass();
-    final List<JClassOrInterfaceType> declaringClassesSuperTypes = declaringClassType.getAllSuperTypesOfType();
+    final Set<? extends JClassOrInterfaceType> declaringClassesSuperTypes =
+        declaringClassType.getAllSuperTypesOfType();
 
     registerForSuperClass(declaringClassesSuperTypes, toBeRegistered, declaration);
   }
@@ -609,7 +607,8 @@ class DynamicBindingCreator {
   // and register that the method toBeRegistered overrides
   // this function
   private void registerForSuperClass(
-      List<JClassOrInterfaceType> pSuperClasses, MethodDefinition pToBeRegistered,
+      Set<? extends JClassOrInterfaceType> pSuperClasses,
+      MethodDefinition pToBeRegistered,
       JMethodDeclaration pBindingToBeRegistered) {
 
     final TypeHierarchy typeHierarchy = cfaBuilder.getScope().getTypeHierarchy();
