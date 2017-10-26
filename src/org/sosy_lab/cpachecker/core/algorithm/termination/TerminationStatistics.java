@@ -168,7 +168,7 @@ public class TerminationStatistics implements Statistics {
 
   private final WitnessExporter witnessExporter;
   private final LocationStateFactory locFac;
-  private Loop nonterminatingLoop = null;
+  private @Nullable Loop nonterminatingLoop = null;
 
   public TerminationStatistics(
       Configuration pConfig,
