@@ -131,4 +131,9 @@ public interface Reducer {
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation);
-  }
+
+  /**
+   * See option bam.useDynamicAdjustment
+   */
+  default boolean canBeUsedInCache(AbstractState pState) { return true; }
+}

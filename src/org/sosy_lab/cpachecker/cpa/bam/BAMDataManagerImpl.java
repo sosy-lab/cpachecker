@@ -32,13 +32,16 @@ import com.google.common.collect.Table.Cell;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -85,6 +88,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
    * corresponding expanded precisions.
    **/
   private final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new HashMap<>();
+
+  /**
+   * The corresponding blocks will not start the recursive analysis
+   */
+  private final Set<CFANode> uncachedBlockEntries = new HashSet<>();
 
   BAMDataManagerImpl(BAMCache pArgCache, ReachedSetFactory pReachedSetFactory, LogManager pLogger) {
     bamCache = pArgCache;
@@ -308,5 +316,15 @@ public class BAMDataManagerImpl implements BAMDataManager {
     expandedStateToExpandedPrecision.clear();
     expandedStateToReducedState.clear();
     bamCache.clear();
+  }
+
+  @Override
+  public boolean addUncachedBlockEntry(CFANode pNode) {
+    return uncachedBlockEntries.add(pNode);
+  }
+
+  @Override
+  public boolean isUncachedBlockEntry(CFANode pNode) {
+    return uncachedBlockEntries.contains(pNode);
   }
 }

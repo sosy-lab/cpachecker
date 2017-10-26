@@ -559,4 +559,10 @@ public class BAMPredicateReducer implements Reducer {
       ssa.mergeFreshValueProviderWith(bamfvp);
     }
   }
+
+  @Override
+  public boolean canBeUsedInCache(AbstractState pState) {
+    PredicateAbstractState predicateState = (PredicateAbstractState) pState;
+    return !predicateState.getPathFormula().getPointerTargetSet().hasEmptyDeferredAllocationsSet();
+  }
 }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -123,4 +124,18 @@ public interface BAMDataManager {
   /** return a matching precision for the given state, or Null if state is not found. */
   @Nullable
   Precision getExpandedPrecisionForState(AbstractState pState);
+
+  /**
+   * The results from cache will never be used for corresponding block entry
+   * @param node The block entry
+   * @return success
+   */
+  boolean addUncachedBlockEntry(CFANode node);
+
+  /**
+   * If the corresponding block is 'uncached' the recursive analysis will not start
+   * @param node Block entry to check
+   * @return true if the block entry was added as 'uncached'
+   */
+  boolean isUncachedBlockEntry(CFANode node);
 }

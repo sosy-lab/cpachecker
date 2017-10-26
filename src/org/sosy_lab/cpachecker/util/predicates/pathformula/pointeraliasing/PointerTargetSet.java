@@ -365,4 +365,8 @@ public final class PointerTargetSet implements Serializable {
           });
     }
   }
+
+  public boolean hasEmptyDeferredAllocationsSet() {
+    return deferredAllocations.isEmpty();
+  }
 }
