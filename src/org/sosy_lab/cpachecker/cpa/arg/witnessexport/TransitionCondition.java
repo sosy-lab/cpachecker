@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -125,13 +126,26 @@ class TransitionCondition implements Comparable<TransitionCondition> {
     boolean ignoreInvariantScope =
         !keyValues.keySet().contains(KeyDef.INVARIANT)
         || !pLabel.keyValues.keySet().contains(KeyDef.INVARIANT);
-    for (KeyDef keyDef : KeyDef.values()) {
-      if (!keyDef.equals(KeyDef.ASSUMPTION)
-          && !keyDef.equals(KeyDef.INVARIANT)
-          && !(ignoreAssumptionScope
-              && (keyDef.equals(KeyDef.ASSUMPTIONSCOPE) || keyDef.equals(KeyDef.ASSUMPTIONRESULTFUNCTION)))
-          && !(ignoreInvariantScope && keyDef.equals(KeyDef.INVARIANTSCOPE))
-          && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
+
+    final EnumSet<KeyDef> keyDefs;
+    if (!keyValues.isEmpty()) {
+      keyDefs = EnumSet.copyOf(keyValues.keySet());
+      keyDefs.addAll(pLabel.keyValues.keySet());
+    } else {
+      keyDefs = EnumSet.copyOf(pLabel.keyValues.keySet());
+    }
+    keyDefs.remove(KeyDef.ASSUMPTION);
+    keyDefs.remove(KeyDef.INVARIANT);
+    if (ignoreAssumptionScope) {
+      keyDefs.remove(KeyDef.ASSUMPTIONSCOPE);
+      keyDefs.remove(KeyDef.ASSUMPTIONRESULTFUNCTION);
+    }
+    if (ignoreInvariantScope) {
+      keyDefs.remove(KeyDef.INVARIANTSCOPE);
+    }
+
+    for (KeyDef keyDef : keyDefs) {
+      if (!Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
         return false;
       }
     }
