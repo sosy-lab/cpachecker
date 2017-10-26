@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -111,7 +114,39 @@ public class WitnessExporter {
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
+        Predicates.alwaysFalse(),
+        Optional.empty(),
         Optional.of(pCounterExample),
+        GraphBuilder.ARG_PATH);
+  }
+
+  public void writeTerminationErrorWitness(
+      final Writer pWriter,
+      final ARGState pRoot,
+      final Predicate<? super ARGState> pIsRelevantState,
+      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final Predicate<? super ARGState> pIsCycleHead,
+      final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
+      throws IOException {
+    String defaultFileName = getInitialFileName(pRoot);
+    WitnessWriter writer =
+        new WitnessWriter(
+            options,
+            cfa,
+            verificationTaskMetaData,
+            factory,
+            simplifier,
+            defaultFileName,
+            WitnessType.VIOLATION_WITNESS,
+            InvariantProvider.TrueInvariantProvider.INSTANCE);
+    writer.writePath(
+        pWriter,
+        pRoot,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        pIsCycleHead,
+        Optional.of(toQuasiInvariant),
+        Optional.empty(),
         GraphBuilder.ARG_PATH);
   }
 
@@ -201,6 +236,8 @@ public class WitnessExporter {
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
+        Predicates.alwaysFalse(),
+        Optional.empty(),
         Optional.empty(),
         GraphBuilder.CFA_FULL);
   }

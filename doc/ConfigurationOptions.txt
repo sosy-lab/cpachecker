@@ -3027,6 +3027,9 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
 
+# Export termination counterexample to file as GraphML automaton 
+termination.violation.witness = "nontermination_witness.graphml"
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 

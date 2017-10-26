@@ -371,6 +371,7 @@ class WitnessWriter implements EdgeAppender {
   private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
   private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
+  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = Maps.newLinkedHashMap();
   private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
@@ -441,6 +442,7 @@ class WitnessWriter implements EdgeAppender {
       isFunctionScope = true;
     }
   }
+
 
   /**
    * build a transition-condition for the given edge, i.e. collect all important data and store it
@@ -961,6 +963,8 @@ class WitnessWriter implements EdgeAppender {
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final Predicate<? super ARGState> pIsCyclehead,
+      final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
       GraphBuilder pGraphBuilder)
       throws IOException {
@@ -994,6 +998,12 @@ class WitnessWriter implements EdgeAppender {
       EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
       if (sourceStateNodeId.equals(entryStateNodeId)) {
         sourceNodeFlags.add(NodeFlag.ISENTRY);
+      }
+      if (pIsCyclehead.apply(s)) {
+        sourceNodeFlags.add(NodeFlag.ISCYCLEHEAD);
+        if (cycleHeadToQuasiInvariant.isPresent()) {
+          stateQuasiInvariants.put(sourceStateNodeId, cycleHeadToQuasiInvariant.get().apply(s));
+        }
       }
       sourceNodeFlags.addAll(extractNodeFlags(s));
       nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
@@ -1171,6 +1181,14 @@ class WitnessWriter implements EdgeAppender {
             return true;
           }
 
+          if (stateQuasiInvariants.get(pEdge.source) != null
+              && stateQuasiInvariants.get(pEdge.target) != null
+              && !stateQuasiInvariants
+                  .get(pEdge.source)
+                  .equals(stateQuasiInvariants.get(pEdge.target))) {
+            return false;
+          }
+
           if (pEdge.label.getMapping().isEmpty()) {
             return true;
           }
@@ -1243,6 +1261,9 @@ class WitnessWriter implements EdgeAppender {
 
     // Merge the trees
     mergeExpressionTrees(nodeToKeep, nodeToRemove);
+
+    // Merge quasi invariant
+    mergeQuasiInvariant(nodeToKeep, nodeToRemove);
 
     // Merge the violated properties
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
@@ -1354,6 +1375,24 @@ class WitnessWriter implements EdgeAppender {
     }
   }
 
+  private void mergeQuasiInvariant(final String pNodeToKeep, final String pNodeToRemove) {
+    ExpressionTree<Object> fromToKeep = getQuasiInvariant(pNodeToKeep);
+    ExpressionTree<Object> fromToRemove = getQuasiInvariant(pNodeToRemove);
+
+    fromToKeep = factory.or(fromToKeep, fromToRemove);
+    if (!ExpressionTrees.getFalse().equals(fromToKeep)) {
+      stateQuasiInvariants.put(pNodeToKeep, fromToKeep);
+    }
+  }
+
+  private ExpressionTree<Object> getQuasiInvariant(final String pNodeId) {
+    ExpressionTree<Object> result = stateQuasiInvariants.get(pNodeId);
+    if (result == null) {
+      return ExpressionTrees.getFalse();
+    }
+    return result;
+  }
+
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
     assert !pEdge.source.equals(SINK_NODE_ID);
@@ -1399,6 +1438,12 @@ class WitnessWriter implements EdgeAppender {
     for (Property violation : violatedProperties.get(pEntryStateNodeId)) {
       pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
     }
+
+    if(stateQuasiInvariants.containsKey(pEntryStateNodeId)) {
+      ExpressionTree<Object> tree = getQuasiInvariant(pEntryStateNodeId);
+        pDoc.addDataElementChild(result, KeyDef.INVARIANT, tree.toString());
+    }
+
     return result;
   }
 

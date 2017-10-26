@@ -31,19 +31,37 @@ import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
+import apache.harmony.math.BigInteger;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricNonTerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Rational;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
+import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -60,10 +78,38 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "termination")
 public class TerminationStatistics implements Statistics {
@@ -76,6 +122,14 @@ public class TerminationStatistics implements Statistics {
     )
   @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Paths.get("terminationAnalysisResult.txt");
+
+  @Option(
+    secure = true,
+    name = "violation.witness",
+    description = "Export termination counterexample to file as GraphML automaton "
+  )
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitness = Paths.get("nontermination_witness.graphml");
 
   private final int totalLoops;
 
@@ -112,12 +166,23 @@ public class TerminationStatistics implements Statistics {
 
   private final LogManager logger;
 
+  private final WitnessExporter witnessExporter;
+  private final LocationStateFactory locFac;
+  private Loop nonterminatingLoop = null;
+
   public TerminationStatistics(
-      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops)
-          throws InvalidConfigurationException {
+      Configuration pConfig,
+      LogManager pLogger,
+      int pTotalNumberOfLoops,
+      Specification pOrigSpec,
+      CFA pCFA)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
+
+    witnessExporter = new WitnessExporter(pConfig, pLogger, pOrigSpec, pCFA);
+    locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 
   void algorithmStarted() {
@@ -166,6 +231,12 @@ public class TerminationStatistics implements Statistics {
     checkState(analysedLoops.contains(pLoop));
     checkState(safetyAnalysisRunsPerLoop.containsKey(pLoop));
     safetyAnalysisTime.stop();
+  }
+
+  void setNonterminatingLoop(Loop pLoop) {
+    checkState(nonterminatingLoop == null);
+    checkState(pLoop != null);
+    nonterminatingLoop = pLoop;
   }
 
   public void analysisOfLassosStarted() {
@@ -325,6 +396,21 @@ public class TerminationStatistics implements Statistics {
     }
 
     exportSynthesizedArguments();
+
+    if (pResult == Result.FALSE && violationWitness != null) {
+      Iterator<ARGState> violations =
+          pReached
+              .asCollection()
+              .stream()
+              .filter(AbstractStates::isTargetState)
+              .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(s -> s.getCounterexampleInformation().isPresent())
+              .iterator();
+      Preconditions.checkState(nonterminatingLoop != null);
+      Preconditions.checkState(violations.hasNext());
+      exportViolationWitness((ARGState) pReached.getFirstState(), violations.next());
+      Preconditions.checkState(!violations.hasNext());
+    }
   }
 
   private void exportSynthesizedArguments() {
@@ -356,6 +442,190 @@ public class TerminationStatistics implements Statistics {
         logger.logException(WARNING, e, "Could not export (non-)termination arguments.");
       }
     }
+  }
+
+  private void exportViolationWitness(final ARGState root, final ARGState loopStart) {
+    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().get();
+
+    ARGState loopStartInCEX =
+        new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
+    for(ARGState parent: loopStart.getParents()) {
+      loopStartInCEX.addParent(parent);
+    }
+
+    NonTerminationArgument arg = nonTerminationArguments.get(nonterminatingLoop);
+    ExpressionTree<Object> quasiInvariant = buildInvariantFrom(arg);
+
+    Function<? super ARGState, ExpressionTree<Object>> provideQuasiInvariant =
+        (ARGState argState) -> {
+          if (argState == loopStartInCEX) {
+            return quasiInvariant;
+          }
+          return ExpressionTrees.getTrue();
+        };
+
+    Collection<ARGState> loopStates = addCEXLoopingPartToARG(loopStartInCEX);
+
+    Predicate<? super ARGState> relevantStates =
+        Predicates.or(
+            Predicates.in(loopStates),
+            Predicates.and(
+                Predicates.in(cexInfo.getTargetPath().asStatesList()),
+                Predicates.not(Predicates.equalTo(loopStart))));
+
+    try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
+      witnessExporter.writeTerminationErrorWitness(
+          writer,
+          root,
+          relevantStates,
+          edge -> relevantStates.apply(edge.getFirst()) && relevantStates.apply(edge.getSecond()),
+          state -> state == loopStartInCEX,
+          provideQuasiInvariant);
+    } catch (IOException e) {
+      logger.logException(WARNING, e, "Violation witness export failed.");
+    }
+  }
+
+  private Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry) {
+    CFANode loc = AbstractStates.extractLocation(pLoopEntry);
+    Preconditions.checkState(nonterminatingLoop.getLoopHeads().contains(loc));
+
+    Map<CFANode, ARGState> nodeToARGState =
+        Maps.newHashMapWithExpectedSize(nonterminatingLoop.getLoopNodes().size());
+    nodeToARGState.put(loc, pLoopEntry);
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.push(loc);
+
+    ARGState pred, succ;
+
+    while(!waitlist.isEmpty()) {
+      loc = waitlist.pop();
+      pred = nodeToARGState.get(loc);
+      assert(pred!=null);
+
+      for(CFAEdge leave: CFAUtils.leavingEdges(loc)) {
+        if(nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
+          succ = nodeToARGState.get(leave.getSuccessor());
+          if(succ == null) {
+            succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
+            nodeToARGState.put(leave.getSuccessor(), succ);
+            waitlist.push(leave.getSuccessor());
+          }
+
+          succ.addParent(pred);
+        }
+      }
+    }
+    return nodeToARGState.values();
+  }
+
+  private ExpressionTree<Object> buildInvariantFrom(NonTerminationArgument pArg) {
+    ExpressionTree<Object> computedQuasiInvariant = ExpressionTrees.getTrue();
+    if (pArg instanceof GeometricNonTerminationArgument) {
+      computedQuasiInvariant = buildInvariantFrom((GeometricNonTerminationArgument) pArg);
+    } else if (pArg instanceof InfiniteFixpointRepetition) {
+      computedQuasiInvariant = buildInvaraintFrom((InfiniteFixpointRepetition) pArg);
+    }
+    return computedQuasiInvariant;
+  }
+
+  private ExpressionTree<Object> buildInvariantFrom(final GeometricNonTerminationArgument arg) {
+    ExpressionTree<Object> result = ExpressionTrees.getTrue();
+
+    if (likelyIsFixpoint(arg)) {
+      String varName;
+      CLiteralExpression litexpr;
+
+      for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
+        varName = toOrigName(entry.getKey().getTermVariable());
+        litexpr = literalExpressionFrom(entry.getValue());
+        result = And.of(result, LeafExpression.of(buildEquals(varName, litexpr)));
+      }
+    }
+
+    return result;
+  }
+
+  private boolean likelyIsFixpoint(final GeometricNonTerminationArgument arg) {
+    Map<IProgramVar, Rational> secondElem = new HashMap<>(arg.getStateHonda());
+
+    for (Map<IProgramVar, Rational> gev : arg.getGEVs()) {
+      for (Entry<IProgramVar, Rational> entry : gev.entrySet()) {
+        secondElem.put(entry.getKey(), entry.getValue().add(secondElem.get(entry.getKey())));
+      }
+    }
+
+    for (Entry<IProgramVar, Rational> entry : secondElem.entrySet()) {
+      if (!entry.getValue().equals(arg.getStateHonda().get(entry.getKey()))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private ExpressionTree<Object> buildInvaraintFrom(final InfiniteFixpointRepetition arg) {
+    ExpressionTree<Object> result = ExpressionTrees.getTrue();
+
+    String varName;
+    CLiteralExpression litexpr;
+    Object termVal;
+
+    for (Entry<Term, Term> entry : arg.getValuesAtHonda().entrySet()) {
+      if (entry.getKey() instanceof TermVariable && entry.getValue() instanceof ConstantTerm) {
+        varName = toOrigName((TermVariable) entry.getKey());
+        termVal = ((ConstantTerm) entry.getValue()).getValue();
+
+        if(termVal instanceof BigDecimal) {
+          litexpr = new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT,
+              (BigDecimal) termVal);
+        } else if (termVal instanceof BigInteger) {
+          litexpr = CIntegerLiteralExpression.createDummyLiteral(((BigInteger) termVal).longValue(), CNumericTypes.INT);
+        } else if (termVal instanceof Rational) {
+          litexpr = literalExpressionFrom((Rational) termVal);
+        } else {
+          continue;
+        }
+
+        result = And.of(result, LeafExpression.of(buildEquals(varName, litexpr)));
+      }
+    }
+
+    return result;
+  }
+
+  private CLiteralExpression literalExpressionFrom(final Rational rat) {
+    if (rat.numerator().mod(rat.denominator()).intValue() == 0) {
+      return CIntegerLiteralExpression.createDummyLiteral(rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
+    } else {
+      return new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT,
+          new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator())));
+    }
+  }
+
+  private CBinaryExpression buildEquals(final String varName, final CLiteralExpression litExpr) {
+    CType type =
+        litExpr instanceof CIntegerLiteralExpression ? CNumericTypes.INT : CNumericTypes.FLOAT;
+    CIdExpression idexpr =
+        new CIdExpression(
+            FileLocation.DUMMY,
+            type,
+            varName,
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                false,
+                CStorageClass.AUTO,
+                type,
+                varName,
+                varName,
+                varName,
+                null));
+    return new CBinaryExpression(
+        FileLocation.DUMMY, type, type, idexpr, litExpr, BinaryOperator.EQUALS);
+  }
+
+  private String toOrigName(final TermVariable pTermVariable) {
+    MemoryLocation memLoc = MemoryLocation.valueOf(pTermVariable.getName());
+    return memLoc.getIdentifier();
   }
 
   @Override

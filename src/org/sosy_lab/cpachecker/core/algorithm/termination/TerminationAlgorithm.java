@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -201,7 +202,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                 () ->
                     new InvalidConfigurationException(
                         "Loop structure is not present, but required for termination analysis."));
-    statistics = new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size());
+
+    // rebuild termination specification for witness export
+    Set<SpecificationProperty> property =
+        Sets.newHashSet(
+            new SpecificationProperty(
+                pCfa.getMainFunction().getFunctionName(),
+                PropertyType.TERMINATION,
+                Optional.of(SPEC_FILE.toString())));
+    Specification termSpec =
+        Specification.fromFiles(property, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+
+    statistics =
+        new TerminationStatistics(
+            pConfig, logger, loopStructure.getAllLoops().size(), termSpec, pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
@@ -335,6 +349,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);
           result = Result.FALSE;
+
+          statistics.setNonterminatingLoop(pLoop);
 
         } else if (lassoAnalysisResult.hasTerminationArgument()) {
           RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument();
