@@ -373,6 +373,8 @@ class WitnessWriter implements EdgeAppender {
   private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = Maps.newLinkedHashMap();
   private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
 
+  private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
+
   private final String defaultSourcefileName;
   private final WitnessType graphType;
 
@@ -415,6 +417,12 @@ class WitnessWriter implements EdgeAppender {
     TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
     Edge edge = new Edge(pFrom, pTo, desc);
+    if (desc.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
+      Optional<CFANode> loopHead = entersLoop(pEdge);
+      if (loopHead.isPresent()) {
+        loopHeadEnteringEdges.put(edge, loopHead.get());
+      }
+    }
 
     putEdge(edge);
   }
