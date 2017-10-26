@@ -62,7 +62,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
@@ -380,6 +379,9 @@ class WitnessWriter implements EdgeAppender {
   private final WitnessType graphType;
 
   private final InvariantProvider invariantProvider;
+
+  private final Map<CFAEdge, LoopEntryInfo> loopEntryInfoMemo = Maps.newHashMap();
+  private final Map<CFANode, Boolean> loopProximityMemo = Maps.newHashMap();
 
   private boolean isFunctionScope = false;
 
@@ -1524,60 +1526,103 @@ class WitnessWriter implements EdgeAppender {
     }
 
     CFANode referenceNode = pEdge.getSuccessor();
-    Queue<CFANode> waitlist = Queues.newArrayDeque();
+
+    // Check if either the reference node or any of its direct predecessors via assume edges are in
+    // loop proximity
+    return FluentIterable.concat(
+            Collections.singleton(referenceNode),
+            CFAUtils.enteringEdges(referenceNode)
+                .filter(AssumeEdge.class)
+                .transform(CFAEdge::getPredecessor))
+        .anyMatch(n -> isInLoopProximity(n));
+  }
+
+  /**
+   * From given node, backward via non-assume edges until a loop head is found.
+   *
+   * @param pReferenceNode the node to start the search from.
+   * @return {@code true} if a loop head is found, {@code false} otherwise.
+   */
+  private boolean isInLoopProximity(CFANode pReferenceNode) {
+
+    Deque<List<CFANode>> waitlist = Queues.newArrayDeque();
     Set<CFANode> visited = Sets.newHashSet();
-    waitlist.offer(referenceNode);
-    visited.add(referenceNode);
-    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(referenceNode).filter(AssumeEdge.class)) {
-      if (visited.add(assumeEdge.getPredecessor())) {
-        waitlist.offer(assumeEdge.getPredecessor());
-      }
-    }
+    waitlist.push(ImmutableList.of(pReferenceNode));
+    visited.add(pReferenceNode);
+
     Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
-    Predicate<CFANode> loopProximity =
-        cfa.getAllLoopHeads().isPresent()
-            ? pNode -> cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart()
-            : pNode -> pNode.isLoopStart();
+    java.util.function.Predicate<CFANode> loopProximity = pNode -> pNode.isLoopStart();
+    if (cfa.getAllLoopHeads().isPresent()) {
+      loopProximity = loopProximity.and(pNode -> cfa.getAllLoopHeads().get().contains(pNode));
+    }
     while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (loopProximity.apply(current)) {
+      List<CFANode> current = waitlist.pop();
+      CFANode currentNode = current.get(current.size() - 1);
+      Boolean memoized = loopProximityMemo.get(currentNode);
+      if (memoized != null && !memoized) {
+        continue;
+      }
+      if ((memoized != null && memoized) || loopProximity.test(currentNode)) {
+        for (CFANode onTrace : current) {
+          loopProximityMemo.put(onTrace, true);
+        }
         return true;
       }
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
-        if (visited.add(enteringEdge.getPredecessor())) {
-          waitlist.offer(enteringEdge.getPredecessor());
+      // boolean isFirst = true;
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (visited.add(predecessor)) {
+          waitlist.push(ImmutableList.<CFANode>builder().addAll(current).add(predecessor).build());
+          // isFirst = false;
         }
       }
     }
+
+    for (CFANode v : visited) {
+      loopProximityMemo.put(v, false);
+    }
+
     return false;
   }
 
-  private static Optional<CFANode> entersLoop(CFAEdge pEdge) {
+  private Optional<CFANode> entersLoop(CFAEdge pEdge) {
     return entersLoop(pEdge, true);
   }
 
-  private static Optional<CFANode> entersLoop(CFAEdge pEdge, boolean pAllowGoto) {
+  private Optional<CFANode> entersLoop(CFAEdge pEdge, boolean pAllowGoto) {
     class EnterLoopVisitor implements CFAVisitor {
 
-      private CFANode loopHead;
+      private final Collection<CFAEdge> previouslyChecked = Lists.newArrayList();
+
+      private LoopEntryInfo loopEntryInfo = new LoopEntryInfo();
 
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
+        LoopEntryInfo loopEntryInfo = loopEntryInfoMemo.get(pEdge);
+        if (loopEntryInfo != null) {
+          this.loopEntryInfo = loopEntryInfo;
+          return TraversalProcess.ABORT;
+        }
         if (pNode.isLoopStart()) {
-          if (!pAllowGoto && pNode instanceof CLabelNode) {
+          boolean gotoLoop = false;
+          if (pNode instanceof CLabelNode) {
             CLabelNode node = (CLabelNode) pNode;
             for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
-                return TraversalProcess.ABORT;
+                gotoLoop = true;
+                break;
               }
             }
           }
-          loopHead = pNode;
+          this.loopEntryInfo = new LoopEntryInfo(pNode, gotoLoop);
+          loopEntryInfoMemo.put(pEdge, this.loopEntryInfo);
+
           return TraversalProcess.ABORT;
         }
         if (pNode.getNumLeavingEdges() > 1) {
-          return TraversalProcess.SKIP;
+          return TraversalProcess.ABORT;
         }
+        previouslyChecked.add(pEdge);
         return TraversalProcess.CONTINUE;
       }
 
@@ -1593,7 +1638,18 @@ class WitnessWriter implements EdgeAppender {
         .ignoreFunctionCalls()
         .ignoreSummaryEdges()
         .traverse(pEdge.getSuccessor(), enterLoopVisitor);
-    return Optional.ofNullable(enterLoopVisitor.loopHead);
+
+    LoopEntryInfo loopEntryInfo = enterLoopVisitor.loopEntryInfo;
+
+    for (CFAEdge e : enterLoopVisitor.previouslyChecked) {
+      loopEntryInfoMemo.put(e, loopEntryInfo);
+    }
+
+    if (!loopEntryInfo.entersLoop() || (loopEntryInfo.isGotoLoop() && !pAllowGoto)) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(loopEntryInfo.loopHead);
   }
 
   private static @Nullable CFAEdgeWithAssumptions getFromValueMap(
@@ -1604,5 +1660,58 @@ class WitnessWriter implements EdgeAppender {
       return null;
     }
     return Iterables.getOnlyElement(assumptions);
+  }
+
+  private static class LoopEntryInfo {
+
+    private final @Nullable CFANode loopHead;
+
+    private final boolean gotoLoop;
+
+    public LoopEntryInfo() {
+      this(null, false);
+    }
+
+    public LoopEntryInfo(CFANode pLoopHead, boolean pGotoLoop) {
+      if (pGotoLoop) {
+        Objects.requireNonNull(pLoopHead);
+      }
+      loopHead = pLoopHead;
+      gotoLoop = pGotoLoop;
+    }
+
+    public boolean entersLoop() {
+      return loopHead != null;
+    }
+
+    public CFANode getLoopHead() {
+      return loopHead;
+    }
+
+    public boolean isGotoLoop() {
+      return gotoLoop;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("Loop head: %s; Goto: %s", loopHead, Boolean.toString(gotoLoop));
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof LoopEntryInfo) {
+        LoopEntryInfo other = (LoopEntryInfo) pOther;
+        return Objects.equals(getLoopHead(), other.getLoopHead()) && gotoLoop == other.gotoLoop;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(loopHead, gotoLoop);
+    }
   }
 }
