@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -72,8 +73,10 @@ public class AutomatonGraphmlParserState {
   /** Automaton variables by their names. */
   private final Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
 
-  /** States (represented in the GraphML model) and the call stack at each of them. */
-  private final Map<GraphMLState, Deque<String>> stacks = Maps.newHashMap();
+  /**
+   * States (represented in the GraphML model) and the call stack at each of them, for each thread.
+   */
+  private final Map<Integer, Map<GraphMLState, Deque<String>>> stacks = Maps.newHashMap();
 
   /**
    * States (represented in the GraphML model) and the transitions leaving them (in our automaton
@@ -294,12 +297,53 @@ public class AutomatonGraphmlParserState {
   }
 
   /**
-   * Gets the call stacks currently stored for the states (represented in the GraphML model).
+   * Gets the call stacks currently stored for the states (represented in the GraphML model) for the
+   * given thread.
    *
-   * @return the call stacks currently stored for the states (represented in the GraphML model)
+   * @param pThreadId the thread identifier.
+   * @return the call stacks currently stored for the states (represented in the GraphML model) for
+   *     the given thread.
    */
-  public Map<GraphMLState, Deque<String>> getStacks() {
-    return stacks;
+  private Map<GraphMLState, Deque<String>> getOrCreateThreadStacks(int pThreadId) {
+    Map<GraphMLState, Deque<String>> threadStacks = stacks.get(pThreadId);
+    if (threadStacks == null) {
+      threadStacks = Maps.newHashMap();
+      stacks.put(pThreadId, threadStacks);
+    }
+    return threadStacks;
+  }
+
+  /**
+   * Gets the call stack currently stored for the given thread and state (represented in the GraphML
+   * model).
+   *
+   * @param pThreadId the thread identifier.
+   * @param pState the state, represented in the GraphML model.
+   * @return the call stack currently stored for the given thread and state (represented in the
+   *     GraphML model).
+   */
+  public Deque<String> getOrCreateStack(int pThreadId, GraphMLState pState) {
+    Objects.requireNonNull(pState);
+    Map<GraphMLState, Deque<String>> threadStacks = getOrCreateThreadStacks(pThreadId);
+    Deque<String> stack = threadStacks.get(pState);
+    if (stack == null) {
+      stack = Queues.newArrayDeque();
+      threadStacks.put(pState, stack);
+    }
+    return stack;
+  }
+
+  /**
+   * Stores the given call stack for the given thread and GraphML state (represented in the GraphML
+   * model).
+   *
+   * @param pThreadId the thread identifier.
+   * @param pState the state, represented in the GraphML model.
+   * @param pStack the call stack.
+   */
+  public void putStack(int pThreadId, GraphMLState pState, Deque<String> pStack) {
+    Objects.requireNonNull(pStack);
+    getOrCreateThreadStacks(pThreadId).put(pState, pStack);
   }
 
   /**

@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -108,6 +109,8 @@ import org.xml.sax.helpers.DefaultHandler;
 public class AutomatonGraphmlParser {
 
   private static final String AMBIGUOUS_TYPE_ERROR_MESSAGE = "Witness type must be unambiguous";
+
+  private static final int DEFAULT_THREAD_ID = 0;
 
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
@@ -651,11 +654,9 @@ public class AutomatonGraphmlParser {
   private Deque<String> handleCallStack(
       AutomatonGraphmlParserState pGraphMLParserState,
       GraphMLTransition pTransition) {
-    Deque<String> currentStack = pGraphMLParserState.getStacks().get(pTransition.getSource());
-    if (currentStack == null) {
-      currentStack = new ArrayDeque<>();
-      pGraphMLParserState.getStacks().put(pTransition.getSource(), currentStack);
-    }
+    int threadId = pTransition.getThreadId();
+    Deque<String> currentStack =
+        pGraphMLParserState.getOrCreateStack(threadId, pTransition.getSource());
     Deque<String> newStack = currentStack;
 
     // If the same function is entered and exited, the stack remains unchanged.
@@ -681,7 +682,7 @@ public class AutomatonGraphmlParser {
       }
     }
     // Store the stack in its state after the edge is applied
-    pGraphMLParserState.getStacks().put(pTransition.getTarget(), newStack);
+    pGraphMLParserState.putStack(threadId, pTransition.getTarget(), newStack);
 
     // If the edge enters and exits the same function, assume this function for this edge only
     if (pTransition.getFunctionEntry().isPresent()
@@ -1046,26 +1047,34 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Collects data about the given transition and the states it connects. Build an AutomatonAction
-   * to set a given threadId for an active thread at the current edge.
+   * Gets the thread id specified on the given transition, if any.
    *
    * @param pTransition the transition to parse the thread id from.
    * @param pNumericIdProvider a numeric id provider to map textual thread ids to numeric ones.
+   * @throws WitnessParseException if more than one thread id was specified.
    */
-  private static Optional<AutomatonAction> getThreadIdAssignment(
-      Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
-    Set<String> threadIdTags =
-        GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.THREADID);
+  private static OptionalInt getThreadId(Node pTransition, NumericIdProvider pNumericIdProvider)
+      throws WitnessParseException {
+    Set<String> threadIdTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.THREADID);
 
     if (threadIdTags.size() > 0) {
       checkParsable(
           threadIdTags.size() < 2, "At most one threadId tag must be provided for each edge.");
       String threadId = threadIdTags.iterator().next();
-      Integer numericId = pNumericIdProvider.provideNumericId(threadId);
-      AutomatonIntExpr expr = new AutomatonIntExpr.Constant(numericId);
-      return Optional.of(new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr));
+      return OptionalInt.of(pNumericIdProvider.provideNumericId(threadId));
     }
-    return Optional.empty();
+    return OptionalInt.empty();
+  }
+
+  /**
+   * Creates an automaton action that assigns the given thread id to the thread-id automaton
+   * variable.
+   *
+   * @param pThreadId the thread id to assign.
+   */
+  private static AutomatonAction getThreadIdAssignment(int pThreadId) {
+    AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
+    return new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr);
   }
 
   /**
@@ -1111,6 +1120,12 @@ public class AutomatonGraphmlParser {
         parseSingleDataValue(pTransition, KeyDef.ASSUMPTIONRESULTFUNCTION,
             "At most one result function must be provided for a transition.");
 
+    OptionalInt threadId = getThreadId(pTransition, pNumericThreadIdProvider);
+    Optional<AutomatonAction> threadIdAssignment =
+        threadId.isPresent()
+            ? Optional.of(getThreadIdAssignment(threadId.getAsInt()))
+            : Optional.empty();
+
     GraphMLTransition transition =
         new GraphMLTransition(
             source,
@@ -1120,7 +1135,8 @@ public class AutomatonGraphmlParser {
             getOffsetMatcherPredicate(pTransition),
             getOriginLineMatcherPredicate(pTransition),
             getAssumeCaseMatcher(pTransition),
-            getThreadIdAssignment(pTransition, pNumericThreadIdProvider),
+            threadId.orElse(DEFAULT_THREAD_ID),
+            threadIdAssignment,
             GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ASSUMPTION),
             explicitAssumptionScope,
             assumptionResultFunction,

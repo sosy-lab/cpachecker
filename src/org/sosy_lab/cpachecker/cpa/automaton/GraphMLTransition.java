@@ -46,6 +46,8 @@ class GraphMLTransition {
 
   private final AutomatonBoolExpr assumeCaseMatcher;
 
+  private final int threadId;
+
   private final Optional<AutomatonAction> threadAssignment;
 
   private final Set<String> assumptions;
@@ -56,12 +58,15 @@ class GraphMLTransition {
 
   private final boolean entersLoopHead;
 
-  public GraphMLTransition(GraphMLState pSource, GraphMLState pTarget,
+  public GraphMLTransition(
+      GraphMLState pSource,
+      GraphMLState pTarget,
       Optional<String> pFunctionEntry,
       Optional<String> pFunctionExit,
       Optional<Predicate<FileLocation>> pOffsetMatcherPredicate,
       Optional<Predicate<FileLocation>> pLineMatcherPredicate,
       AutomatonBoolExpr pAssumeCaseMatcher,
+      int pThreadId,
       Optional<AutomatonAction> pThreadAssignment,
       Set<String> pAssumptions,
       Optional<String> pExplicitAssumptionScope,
@@ -74,6 +79,7 @@ class GraphMLTransition {
     offsetMatcherPredicate = Objects.requireNonNull(pOffsetMatcherPredicate);
     lineMatcherPredicate = Objects.requireNonNull(pLineMatcherPredicate);
     assumeCaseMatcher = Objects.requireNonNull(pAssumeCaseMatcher);
+    threadId = pThreadId;
     threadAssignment = Objects.requireNonNull(pThreadAssignment);
     assumptions = ImmutableSet.copyOf(pAssumptions);
     explicitAssumptionScope = Objects.requireNonNull(pExplicitAssumptionScope);
@@ -93,10 +99,12 @@ class GraphMLTransition {
           && getOffsetMatcherPredicate().equals(other.getOffsetMatcherPredicate())
           && getLineMatcherPredicate().equals(other.getLineMatcherPredicate())
           && getAssumeCaseMatcher().equals(other.getAssumeCaseMatcher())
+          && getThreadId() == other.getThreadId()
           && getThreadAssignment().equals(other.getThreadAssignment())
           && getAssumptions().equals(other.getAssumptions())
           && getExplicitAssumptionScope().equals(other.getExplicitAssumptionScope())
-          && getExplicitAssumptionResultFunction().equals(other.getExplicitAssumptionResultFunction())
+          && getExplicitAssumptionResultFunction()
+              .equals(other.getExplicitAssumptionResultFunction())
           && entersLoopHead() == other.entersLoopHead();
     }
     return false;
@@ -104,13 +112,15 @@ class GraphMLTransition {
 
   @Override
   public int hashCode() {
-    return Objects.hash(getSource(),
+    return Objects.hash(
+        getSource(),
         getTarget(),
         getFunctionEntry(),
         getFunctionExit(),
         getOffsetMatcherPredicate(),
         getLineMatcherPredicate(),
         getAssumeCaseMatcher(),
+        getThreadId(),
         getThreadAssignment(),
         getAssumptions(),
         getExplicitAssumptionScope(),
@@ -151,6 +161,10 @@ class GraphMLTransition {
     return assumeCaseMatcher;
   }
 
+  public int getThreadId() {
+    return threadId;
+  }
+
   public Optional<AutomatonAction> getThreadAssignment() {
     return threadAssignment;
   }
@@ -170,5 +184,4 @@ class GraphMLTransition {
   public boolean entersLoopHead() {
     return entersLoopHead;
   }
-
 }
