@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,7 +47,7 @@ class GraphMLTransition {
 
   private final AutomatonBoolExpr assumeCaseMatcher;
 
-  private final int threadId;
+  private final Thread thread;
 
   private final Optional<AutomatonAction> threadAssignment;
 
@@ -66,7 +67,7 @@ class GraphMLTransition {
       Optional<Predicate<FileLocation>> pOffsetMatcherPredicate,
       Optional<Predicate<FileLocation>> pLineMatcherPredicate,
       AutomatonBoolExpr pAssumeCaseMatcher,
-      int pThreadId,
+      Thread pThread,
       Optional<AutomatonAction> pThreadAssignment,
       Set<String> pAssumptions,
       Optional<String> pExplicitAssumptionScope,
@@ -79,7 +80,7 @@ class GraphMLTransition {
     offsetMatcherPredicate = Objects.requireNonNull(pOffsetMatcherPredicate);
     lineMatcherPredicate = Objects.requireNonNull(pLineMatcherPredicate);
     assumeCaseMatcher = Objects.requireNonNull(pAssumeCaseMatcher);
-    threadId = pThreadId;
+    thread = Objects.requireNonNull(pThread);
     threadAssignment = Objects.requireNonNull(pThreadAssignment);
     assumptions = ImmutableSet.copyOf(pAssumptions);
     explicitAssumptionScope = Objects.requireNonNull(pExplicitAssumptionScope);
@@ -99,7 +100,7 @@ class GraphMLTransition {
           && getOffsetMatcherPredicate().equals(other.getOffsetMatcherPredicate())
           && getLineMatcherPredicate().equals(other.getLineMatcherPredicate())
           && getAssumeCaseMatcher().equals(other.getAssumeCaseMatcher())
-          && getThreadId() == other.getThreadId()
+          && getThread().equals(other.getThread())
           && getThreadAssignment().equals(other.getThreadAssignment())
           && getAssumptions().equals(other.getAssumptions())
           && getExplicitAssumptionScope().equals(other.getExplicitAssumptionScope())
@@ -120,7 +121,7 @@ class GraphMLTransition {
         getOffsetMatcherPredicate(),
         getLineMatcherPredicate(),
         getAssumeCaseMatcher(),
-        getThreadId(),
+        getThread(),
         getThreadAssignment(),
         getAssumptions(),
         getExplicitAssumptionScope(),
@@ -161,8 +162,8 @@ class GraphMLTransition {
     return assumeCaseMatcher;
   }
 
-  public int getThreadId() {
-    return threadId;
+  public Thread getThread() {
+    return thread;
   }
 
   public Optional<AutomatonAction> getThreadAssignment() {
@@ -183,5 +184,52 @@ class GraphMLTransition {
 
   public boolean entersLoopHead() {
     return entersLoopHead;
+  }
+
+  public static Thread createThread(int pId, String pName) {
+    return new Thread(pId, pName);
+  }
+
+  static class Thread implements Comparable<Thread> {
+
+    private final int id;
+
+    private final String name;
+
+    private Thread(int pId, String pName) {
+      id = pId;
+      name = Objects.requireNonNull(pName);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof Thread) {
+        Thread other = (Thread) pOther;
+        return id == other.id && name.equals(other.name);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return id;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s (%d)", name, id);
+    }
+
+    @Override
+    public int compareTo(Thread pOther) {
+      return ComparisonChain.start().compare(id, pOther.id).compare(name, pOther.name).result();
+    }
   }
 }
