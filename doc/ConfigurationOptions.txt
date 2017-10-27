@@ -3076,6 +3076,10 @@ witness.validation.termination.inspectCycle.config = no default value
 # counterexamples
 witness.validation.termination.reachCycle.config = no default value
 
+# Report a successful validation of the witness, i.e., a confirmation of the
+# nontermination, as termination violation.
+witness.validation.termination.successAsViolation = true
+
 # Path to automaton specification describing which statements let the program
 # terminate.
 witness.validation.termination.terminatingStatements = "config/specification/TerminatingStatements.spc"
