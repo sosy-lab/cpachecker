@@ -81,6 +81,8 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -370,7 +372,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
           lastAnalysisFailed = true;
-          if (e.getMessage().contains("Counterexample could not be analyzed")) {
+          if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
             status = status.withPrecise(false);
           }
           if (configFilesIterator.hasNext()) {
