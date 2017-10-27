@@ -225,7 +225,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     }
 
     if (from(pState2.DataInfo.keySet())
-        .filter(i ->pState2.isLocal(i))
+        .filter(pState2::isLocal)
         .anyMatch(i -> !this.DataInfo.containsKey(i))) {
       return false;
     }
@@ -265,7 +265,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   @Override
   public String toString() {
     return from(DataInfo.keySet())
-        .transform(id -> id.toString() + " - " + getDataInfo(id) + "\n")
+        .transform(id -> id.toString() + " - " + getDataInfo(id))
         .join(Joiner.on("\n"));
   }
 }

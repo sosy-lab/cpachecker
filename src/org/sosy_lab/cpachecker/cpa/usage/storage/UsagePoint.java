@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class UsagePoint implements Comparable<UsagePoint> {
 
@@ -109,11 +111,13 @@ public class UsagePoint implements Comparable<UsagePoint> {
 
   public boolean addCoveredUsage(UsagePoint newChild) {
     if (!coveredUsages.contains(newChild)) {
-      for (UsagePoint usage : coveredUsages) {
-        if (usage.covers(newChild)) {
-          assert !usage.equals(newChild);
-          return usage.addCoveredUsage(newChild);
-        }
+
+      Optional<UsagePoint> usage = from(coveredUsages)
+                         .firstMatch(u -> u.covers(newChild));
+
+      if (usage.isPresent()) {
+        assert !usage.get().equals(newChild);
+        return usage.get().addCoveredUsage(newChild);
       }
       return coveredUsages.add(newChild);
     }
@@ -172,27 +176,14 @@ public class UsagePoint implements Comparable<UsagePoint> {
     if (access.compareTo(o.access) > 0) {
       return false;
     }
-    Preconditions.checkArgument(compatibleNodes.size() == o.compatibleNodes.size());
-    for (int i = 0; i < compatibleNodes.size(); i++) {
-      UsageTreeNode currentNode = compatibleNodes.get(i);
-      UsageTreeNode otherNode = o.compatibleNodes.get(i);
-      if(!currentNode.cover(otherNode)) {
-        return false;
-      }
-    }
-    return true;
+
+    return from(Pair.zipList(compatibleNodes, o.compatibleNodes))
+           .allMatch(p -> p.getFirst().cover(p.getSecond()));
   }
 
   public boolean isCompatible(UsagePoint other) {
-    Preconditions.checkArgument(compatibleNodes.size() == other.compatibleNodes.size());
-    for (int i = 0; i < compatibleNodes.size(); i++) {
-      UsageTreeNode currentNode = compatibleNodes.get(i);
-      UsageTreeNode otherNode = other.compatibleNodes.get(i);
-      if(!currentNode.isCompatibleWith(otherNode)) {
-        return false;
-      }
-    }
-    return true;
+    return from(Pair.zipList(compatibleNodes, other.compatibleNodes))
+           .allMatch(p -> p.getFirst().isCompatibleWith(p.getSecond()));
   }
 
   public boolean isEmpty() {

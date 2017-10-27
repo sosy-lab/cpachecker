@@ -298,9 +298,11 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
   @Override
   public String toString() {
     if (locks.size() > 0) {
-      return from(locks.keySet())
-        .transform(l -> l.toString() + "[" + locks.get(l) + "]")
-        .join(Joiner.on(", "));
+      StringBuilder sb = new StringBuilder();
+      return Joiner.on("], ")
+             .withKeyValueSeparator("[")
+             .appendTo(sb, locks)
+             .toString();
     } else {
       return "Without locks";
     }

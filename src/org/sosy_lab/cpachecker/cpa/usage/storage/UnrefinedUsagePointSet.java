@@ -130,17 +130,4 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   SortedSet<UsagePoint> getTopUsages() {
     return topUsages;
   }
-
-  public UsagePoint next(UsagePoint p) {
-    if (p == null) {
-      //initialization
-      if (topUsages.size() == 0) {
-        return null;
-      } else {
-        return topUsages.first();
-      }
-    } else {
-      return topUsages.higher(p);
-    }
-  }
 }

@@ -181,11 +181,7 @@ public class UsageState extends AbstractSingleWrapperState {
     StringBuilder str = new StringBuilder();
 
     str.append("[");
-    str.append(
-      from(variableBindingRelation.keySet())
-        .transform(id -> id.toString() + "->" + variableBindingRelation.get(id).toString())
-        .join(Joiner.on(", "))
-    );
+    Joiner.on(", ").withKeyValueSeparator("->").appendTo(str, variableBindingRelation);
     str.append("]\n");
     str.append(getWrappedState());
     return str.toString();

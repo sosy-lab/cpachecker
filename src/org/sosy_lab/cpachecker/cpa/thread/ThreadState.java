@@ -29,7 +29,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 public class ThreadState implements AbstractState, AbstractStateWithLocation, Partitionable,
@@ -129,7 +129,10 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
 
   public String getCurrentThreadName() {
     //Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread = from(threadSet).firstMatch(l -> l.isCreatedThread());
+    Optional<ThreadLabel> createdThread =
+        from(threadSet)
+        .firstMatch(ThreadLabel::isCreatedThread);
+
     if (createdThread.isPresent()) {
       return createdThread.get().getName();
     } else {
@@ -227,13 +230,9 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
       return result;
     }
 
-    Iterator<ThreadLabel> iterator1 = threadSet.iterator();
-    Iterator<ThreadLabel> iterator2 = other.threadSet.iterator();
     //Sizes are equal
-    while (iterator1.hasNext()) {
-      ThreadLabel label1 = iterator1.next();
-      ThreadLabel label2 = iterator2.next();
-      result = label1.compareTo(label2);
+    for (Pair<ThreadLabel, ThreadLabel> pair : Pair.zipList(threadSet, other.threadSet)) {
+      result = pair.getFirst().compareTo(pair.getSecond());
       if (result != 0) {
         return result;
       }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -34,8 +35,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
+public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LockCPA.class);
@@ -56,5 +59,11 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
   @Override
   public LockReducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    LockTransferRelation transfer = (LockTransferRelation) getTransferRelation();
+    pStatsCollection.add(transfer.getStatistics());
   }
 }
