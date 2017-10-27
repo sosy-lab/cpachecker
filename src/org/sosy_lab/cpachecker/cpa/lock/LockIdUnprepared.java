@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,25 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.util.Pair;
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
+public class LockIdUnprepared {
 
+  private int p;
+  private String lockName;
 
-public class LockInfo {
+  public LockIdUnprepared(String pName, int num) {
+    p = num;
+    lockName = pName;
+  }
 
-  public final Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffectDescription;
-  public final Map<String, LockIdentifier> variableEffectDescription;
-  public final Map<String, Integer> maxLevel;
+  public String getName() {
+    return lockName;
+  }
 
-  public LockInfo(Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects,
-                  Map<String, LockIdentifier> varEffects,
-                  Map<String, Integer> max) {
-    functionEffectDescription = ImmutableMap.copyOf(functionEffects);
-    variableEffectDescription = ImmutableMap.copyOf(varEffects);
-    maxLevel = ImmutableMap.copyOf(max);
+  public LockIdentifier apply(List<CExpression> params) {
+    if (p == 0) {
+      return LockIdentifier.of(lockName);
+    } else {
+      return LockIdentifier.of(lockName, params.get(p - 1).toASTString());
+    }
   }
 
 }

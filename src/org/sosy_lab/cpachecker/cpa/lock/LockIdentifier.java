@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Optional;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -46,13 +43,11 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
   private static Set<LockIdentifier> createdIds;
 
   private final String name;
-  private final String variable;
   private final LockType type;
 
-  private LockIdentifier(String pName, String pVariable, LockType pType) {
+  protected LockIdentifier(String pName, LockType pType) {
     name = pName;
     type = pType;
-    variable = pVariable;
   }
 
   public static LockIdentifier of(String name) {
@@ -67,22 +62,22 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     if (createdIds == null) {
       createdIds = new HashSet<>();
     }
-    String varName = getCleanName(var);
-
-    Optional<LockIdentifier> oId = from(createdIds)
-      .firstMatch(id -> id.name.equals(name) && id.type == type && id.variable.equals(varName));
-
-    if (oId.isPresent()) {
-      return oId.get();
+    LockIdentifier newId;
+    if (var.isEmpty()) {
+      newId = new LockIdentifier(name, type);
+    } else {
+      String varName = getCleanName(var);
+      newId = new LockIdentifierWithVariable(name, varName, type);
     }
 
-    LockIdentifier newId = new LockIdentifier(name, varName, type);
+    for (LockIdentifier id : createdIds) {
+      if (id.equals(newId)) {
+        return id;
+      }
+    }
+
     createdIds.add(newId);
     return newId;
-  }
-
-  public boolean hasEqualNameAndVariable(String lockName, String variableName) {
-    return (name.equals(lockName) && variable.equals(variableName));
   }
 
   public String getName() {
@@ -106,7 +101,6 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     int result = 1;
     result = prime * result + Objects.hashCode(name);
     result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(variable);
     return result;
   }
 
@@ -121,22 +115,16 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     }
     LockIdentifier other = (LockIdentifier) obj;
     return Objects.equals(name, other.name)
-        && Objects.equals(type, other.type)
-        && Objects.equals(variable, other.variable);
+        && Objects.equals(type, other.type);
   }
 
   @Override
   public String toString() {
-    return name + ( variable != "" ? ("(" + variable + ")") : "" );
+    return name;
   }
 
   @Override
   public int compareTo(LockIdentifier pO) {
-    int result = this.name.compareTo(pO.name);
-    if (result != 0) {
-      return result;
-    }
-    return this.variable.compareTo(pO.variable);
+    return this.name.compareTo(pO.name);
   }
-
 }

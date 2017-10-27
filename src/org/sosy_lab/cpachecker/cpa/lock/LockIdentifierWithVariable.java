@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,56 +21,53 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.lock.effects;
+package org.sosy_lab.cpachecker.cpa.lock;
 
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
+public class LockIdentifierWithVariable extends LockIdentifier {
 
+  private final String varName;
 
-public abstract class LockEffect implements AbstractLockEffect {
-
-  protected final LockIdentifier target;
-
-  protected LockEffect(LockIdentifier id) {
-    target = id;
-  }
-
-  public abstract LockEffect cloneWithTarget(LockIdentifier id);
-
-  protected abstract String getAction();
-
-  @Override
-  public String toString() {
-    return getAction() + " " + target;
-  }
-
-  public LockIdentifier getAffectedLock() {
-    return target;
+  LockIdentifierWithVariable(String pName, String var, LockType pType) {
+    super(pName, pType);
+    assert !var.isEmpty();
+    varName = var;
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + Objects.hashCode(target);
-    result = prime * result + Objects.hashCode(getAction());
+    result = super.hashCode();
+    result = prime * result + Objects.hashCode(varName);
     return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (!super.equals(obj)) {
       return false;
     }
-    LockEffect other = (LockEffect) obj;
-    return Objects.equals(target, other.target) &&
-           Objects.equals(getAction(), other.getAction());
+    LockIdentifierWithVariable other = (LockIdentifierWithVariable) obj;
+    return Objects.equals(varName, other.varName);
   }
 
+  @Override
+  public String toString() {
+    return super.toString() + "(" + varName + ")" ;
+  }
 
+  @Override
+  public int compareTo(LockIdentifier pO) {
+    int result = super.compareTo(pO);
+    if (result != 0) {
+      return result;
+    }
+    if (pO instanceof LockIdentifierWithVariable) {
+      return this.varName.compareTo(((LockIdentifierWithVariable)pO).varName);
+    } else {
+      return 1;
+    }
+  }
 }

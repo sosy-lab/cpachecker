@@ -63,11 +63,6 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     }
 
     @Override
-    public CompatibleState prepareToStore() {
-      return this;
-    }
-
-    @Override
     public UsageTreeNode getTreeNode() {
       return this;
     }
@@ -95,10 +90,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     public boolean cover(UsageTreeNode pNode) {
       Preconditions.checkArgument(pNode instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pNode;
-      if (o.containsAll(this)) {
-        return true;
-      }
-      return false;
+      return o.containsAll(this);
     }
 
     @Override
@@ -122,15 +114,8 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     }
 
     public void add(LockIdentifier lockId) {
-      Integer a;
-      if (mutableLocks.containsKey(lockId)) {
-        a = mutableLocks.get(lockId);
-        a++;
-      } else {
-        a = 1;
-      }
-      assert (a != null);
-      mutableLocks.put(lockId, a);
+      Integer a = mutableLocks.getOrDefault(lockId, 0);
+      mutableLocks.put(lockId, ++a);
     }
 
     public void free(LockIdentifier lockId) {
@@ -332,10 +317,8 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       return false;
     }
     LockState other = (LockState) obj;
-    if (!Objects.equals(locks, other.locks)) {
-      return false;
-    }
-    return Objects.equals(toRestore, other.toRestore);
+    return Objects.equals(toRestore, other.toRestore)
+        && Objects.equals(locks, other.locks);
   }
 
   /**
