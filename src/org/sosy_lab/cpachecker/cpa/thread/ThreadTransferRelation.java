@@ -135,6 +135,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
     if (isThreadCreateFunction(fCall)) {
       threadStatistics.threadCreates.inc();
+      threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName());
       builder.handleChildThread((CThreadCreateStatement)fCall);
       //Just to statistics
       threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
