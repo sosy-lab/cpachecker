@@ -84,7 +84,7 @@ public class AutomatonGraphmlParserState {
   /**
    * States (represented in the GraphML model) and the call stack at each of them, for each thread.
    */
-  private final Map<GraphMLTransition.Thread, Map<GraphMLState, Deque<String>>> stacks =
+  private final Map<GraphMLTransition.GraphMLThread, Map<GraphMLState, Deque<String>>> stacks =
       Maps.newHashMap();
 
   /** The names of all functions available in the CFA. */
@@ -97,7 +97,7 @@ public class AutomatonGraphmlParserState {
   private final Multimap<String, FunctionInstance> functionCopies = TreeMultimap.create();
 
   /** The functions currently occupied by each thread. */
-  private final Multimap<GraphMLTransition.Thread, FunctionInstance> occupiedFunctions =
+  private final Multimap<GraphMLTransition.GraphMLThread, FunctionInstance> occupiedFunctions =
       TreeMultimap.create();
 
   /**
@@ -334,7 +334,7 @@ public class AutomatonGraphmlParserState {
    *     the given thread.
    */
   private Map<GraphMLState, Deque<String>> getOrCreateThreadStacks(
-      GraphMLTransition.Thread pThread) {
+      GraphMLTransition.GraphMLThread pThread) {
     Map<GraphMLState, Deque<String>> threadStacks = stacks.get(pThread);
     if (threadStacks == null) {
       threadStacks = Maps.newHashMap();
@@ -352,7 +352,7 @@ public class AutomatonGraphmlParserState {
    * @return the call stack currently stored for the given thread and state (represented in the
    *     GraphML model).
    */
-  public Deque<String> getOrCreateStack(GraphMLTransition.Thread pThread, GraphMLState pState) {
+  public Deque<String> getOrCreateStack(GraphMLTransition.GraphMLThread pThread, GraphMLState pState) {
     Objects.requireNonNull(pState);
     Map<GraphMLState, Deque<String>> threadStacks = getOrCreateThreadStacks(pThread);
     Deque<String> stack = threadStacks.get(pState);
@@ -372,7 +372,7 @@ public class AutomatonGraphmlParserState {
    * @param pStack the call stack.
    */
   public void putStack(
-      GraphMLTransition.Thread pThread, GraphMLState pState, Deque<String> pStack) {
+      GraphMLTransition.GraphMLThread pThread, GraphMLState pState, Deque<String> pStack) {
     Objects.requireNonNull(pStack);
     getOrCreateThreadStacks(pThread).put(pState, pStack);
   }
@@ -386,7 +386,7 @@ public class AutomatonGraphmlParserState {
    *     this function are already occupied by other threads.
    */
   public Optional<String> getFunctionForThread(
-      GraphMLTransition.Thread pThread, String pDesiredFunctionName) {
+      GraphMLTransition.GraphMLThread pThread, String pDesiredFunctionName) {
     // If the function does not exist, we cannot provide it to the caller anyway
     if (!functionNames.contains(pDesiredFunctionName)) {
       return Optional.empty();
@@ -437,7 +437,7 @@ public class AutomatonGraphmlParserState {
    *
    * @param pThread the thread identifier and name.
    */
-  public void releaseFunctions(GraphMLTransition.Thread pThread) {
+  public void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {
     occupiedFunctions.removeAll(pThread);
   }
 

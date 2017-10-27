@@ -47,7 +47,7 @@ class GraphMLTransition {
 
   private final AutomatonBoolExpr assumeCaseMatcher;
 
-  private final Thread thread;
+  private final GraphMLThread thread;
 
   private final Optional<AutomatonAction> threadAssignment;
 
@@ -67,7 +67,7 @@ class GraphMLTransition {
       Optional<Predicate<FileLocation>> pOffsetMatcherPredicate,
       Optional<Predicate<FileLocation>> pLineMatcherPredicate,
       AutomatonBoolExpr pAssumeCaseMatcher,
-      Thread pThread,
+      GraphMLThread pThread,
       Optional<AutomatonAction> pThreadAssignment,
       Set<String> pAssumptions,
       Optional<String> pExplicitAssumptionScope,
@@ -162,7 +162,7 @@ class GraphMLTransition {
     return assumeCaseMatcher;
   }
 
-  public Thread getThread() {
+  public GraphMLThread getThread() {
     return thread;
   }
 
@@ -186,17 +186,17 @@ class GraphMLTransition {
     return entersLoopHead;
   }
 
-  public static Thread createThread(int pId, String pName) {
-    return new Thread(pId, pName);
+  public static GraphMLThread createThread(int pId, String pName) {
+    return new GraphMLThread(pId, pName);
   }
 
-  static class Thread implements Comparable<Thread> {
+  static class GraphMLThread implements Comparable<GraphMLThread> {
 
     private final int id;
 
     private final String name;
 
-    private Thread(int pId, String pName) {
+    private GraphMLThread(int pId, String pName) {
       id = pId;
       name = Objects.requireNonNull(pName);
     }
@@ -206,8 +206,8 @@ class GraphMLTransition {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Thread) {
-        Thread other = (Thread) pOther;
+      if (pOther instanceof GraphMLThread) {
+        GraphMLThread other = (GraphMLThread) pOther;
         return id == other.id && name.equals(other.name);
       }
       return false;
@@ -228,7 +228,7 @@ class GraphMLTransition {
     }
 
     @Override
-    public int compareTo(Thread pOther) {
+    public int compareTo(GraphMLThread pOther) {
       return ComparisonChain.start().compare(id, pOther.id).compare(name, pOther.name).result();
     }
   }

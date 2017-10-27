@@ -109,7 +109,7 @@ public class AutomatonGraphmlParser {
 
   private static final String AMBIGUOUS_TYPE_ERROR_MESSAGE = "Witness type must be unambiguous";
 
-  private static final GraphMLTransition.Thread DEFAULT_THREAD =
+  private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
@@ -706,7 +706,7 @@ public class AutomatonGraphmlParser {
   private Deque<String> handleCallStack(
       AutomatonGraphmlParserState pGraphMLParserState, GraphMLTransition pTransition)
       throws WitnessParseException {
-    GraphMLTransition.Thread thread = pTransition.getThread();
+    GraphMLTransition.GraphMLThread thread = pTransition.getThread();
     Deque<String> currentStack =
         pGraphMLParserState.getOrCreateStack(thread, pTransition.getSource());
     Deque<String> newStack = currentStack;
@@ -1112,7 +1112,7 @@ public class AutomatonGraphmlParser {
    * @param pNumericIdProvider a numeric id provider to map textual thread ids to numeric ones.
    * @throws WitnessParseException if more than one thread id was specified.
    */
-  private static Optional<GraphMLTransition.Thread> getThread(
+  private static Optional<GraphMLTransition.GraphMLThread> getThread(
       Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
     Set<String> threadIdTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.THREADID);
 
@@ -1180,7 +1180,7 @@ public class AutomatonGraphmlParser {
         parseSingleDataValue(pTransition, KeyDef.ASSUMPTIONRESULTFUNCTION,
             "At most one result function must be provided for a transition.");
 
-    Optional<GraphMLTransition.Thread> thread = getThread(pTransition, pNumericThreadIdProvider);
+    Optional<GraphMLTransition.GraphMLThread> thread = getThread(pTransition, pNumericThreadIdProvider);
     Optional<AutomatonAction> threadIdAssignment =
         thread.isPresent()
             ? Optional.of(getThreadIdAssignment(thread.get().getId()))
