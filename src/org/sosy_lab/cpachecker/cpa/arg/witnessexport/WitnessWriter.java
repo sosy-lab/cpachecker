@@ -32,7 +32,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -63,6 +62,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -1028,15 +1028,14 @@ class WitnessWriter implements EdgeAppender {
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
-    Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
-        () -> FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
-
-    Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
-    while (redundantEdgeIterator.hasNext()) {
-      Edge edge = redundantEdgeIterator.next();
-      mergeNodes(edge);
-      redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
-      assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+    TreeSet<Edge> waitlist = Sets.newTreeSet(leavingEdges.values());
+    while (!waitlist.isEmpty()) {
+      Edge edge = waitlist.pollFirst();
+      // If the edge still exists in the graph and is redundant, remove it
+      if (leavingEdges.get(edge.source).contains(edge) && isEdgeRedundant.apply(edge)) {
+        Iterables.addAll(waitlist, mergeNodes(edge));
+        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+      }
     }
 
     // Write elements
@@ -1241,11 +1240,11 @@ class WitnessWriter implements EdgeAppender {
         }
       };
 
-  /** Merge two consecutive nodes into one new node,
-   * if the edge between the nodes is redundant.
-   * The merge also merges the information of the nodes,
-   * e.g. disjuncts their invariants. */
-  private void mergeNodes(final Edge pEdge) {
+  /**
+   * Merge two consecutive nodes into one new node, if the edge between the nodes is redundant. The
+   * merge also merges the information of the nodes, e.g. disjuncts their invariants.
+   */
+  private Iterable<Edge> mergeNodes(final Edge pEdge) {
     Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
 
     // Always merge into the predecessor, unless the successor is the sink
@@ -1255,7 +1254,7 @@ class WitnessWriter implements EdgeAppender {
 
     if (nodeToKeep.equals(nodeToRemove)) {
       removeEdge(pEdge);
-      return;
+      return Iterables.concat(leavingEdges.get(nodeToKeep), enteringEdges.get(nodeToKeep));
     }
 
     // Merge the flags
@@ -1269,6 +1268,9 @@ class WitnessWriter implements EdgeAppender {
 
     // Merge the violated properties
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
+
+    Set<String> affectedNodes = Sets.newHashSet();
+    affectedNodes.add(nodeToKeep);
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
@@ -1288,6 +1290,7 @@ class WitnessWriter implements EdgeAppender {
         }
         label = label.putAllAndCopy(leavingEdge.label);
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
+        affectedNodes.add(leavingEdge.target);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
@@ -1311,6 +1314,7 @@ class WitnessWriter implements EdgeAppender {
       if (!pEdge.equals(enteringEdge)) {
         TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
         Edge replacementEdge = new Edge(enteringEdge.source, nodeToKeep, label);
+        affectedNodes.add(enteringEdge.source);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
@@ -1325,6 +1329,12 @@ class WitnessWriter implements EdgeAppender {
       assert removed : "could not remove edge: " + enteringEdge;
     }
 
+    Set<Edge> affectedEdges = Sets.newHashSet();
+    for (String affectedNode : affectedNodes) {
+      affectedEdges.addAll(leavingEdges.get(affectedNode));
+      affectedEdges.addAll(enteringEdges.get(affectedNode));
+    }
+    return affectedEdges;
   }
 
   private ExpressionTree<Object> getTargetStateInvariant(String pTargetState) {
