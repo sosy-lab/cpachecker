@@ -422,7 +422,7 @@ public class AutomatonGraphmlParserState {
         return Optional.of(functionInstance.cloneName);
       }
       // If the function instance is available, we mark it as occupied and hand it out
-      if (!occupiedFunctions.values().contains(functionInstance.cloneName)) {
+      if (!occupiedFunctions.values().contains(functionInstance)) {
         occupiedFunctions.put(pThread, functionInstance);
         return Optional.of(functionInstance.cloneName);
       }
