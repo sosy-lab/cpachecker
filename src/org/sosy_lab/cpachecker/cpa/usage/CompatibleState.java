@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 public interface CompatibleState extends Comparable<CompatibleState>{
 
   public boolean isCompatibleWith(CompatibleState state);
-  public CompatibleState prepareToStore();
+  default public CompatibleState prepareToStore() {return this; }
   public UsageTreeNode getTreeNode();
   default public boolean isRelevantFor(SingleIdentifier id) { return true; }
 }

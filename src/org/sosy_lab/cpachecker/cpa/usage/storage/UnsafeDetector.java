@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import org.sosy_lab.common.configuration.Configuration;
@@ -89,9 +86,10 @@ public class UnsafeDetector {
 
   private boolean isUnsafe(SortedSet<UsagePoint> points) {
     for (UsagePoint point1 : points) {
-      if (from(points.tailSet(point1))
-          .anyMatch(p -> isUnsafePair(point1, p))) {
-        return true;
+      for (UsagePoint point2 : points.tailSet(point1)) {
+        if (isUnsafePair(point1, point2)) {
+          return true;
+        }
       }
     }
     return false;
@@ -114,11 +112,10 @@ public class UnsafeDetector {
     }
     //Now we find an unsafe only from one usage
     if (!ignoreEmptyLockset) {
-      Optional<UsagePoint> result =
-          from(set).firstMatch(p -> isUnsafePair(p, p));
-
-      if (result.isPresent()) {
-        return Pair.of(result.get(), result.get());
+      for (UsagePoint point : set) {
+        if (isUnsafePair(point, point)) {
+          return Pair.of(point, point);
+        }
       }
     }
     //If we can not find an unsafe here, fail

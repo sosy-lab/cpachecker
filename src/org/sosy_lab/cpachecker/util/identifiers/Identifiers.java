@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 public class Identifiers {
 
@@ -50,5 +51,14 @@ public class Identifiers {
       info = "Error in string representation, dereference < -1";
     }
     return info;
+  }
+
+  public static AbstractIdentifier createIdentifier(CExpression expression, String function) {
+    return createIdentifier(expression, 0, function);
+  }
+
+  public static AbstractIdentifier createIdentifier(CExpression expression, int dereference, String function) {
+    IdentifierCreator idCreator = new IdentifierCreator(function);
+    return idCreator.createIdentifier(expression, dereference);
   }
 }

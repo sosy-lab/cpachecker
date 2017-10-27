@@ -107,23 +107,24 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
     if (! (pO instanceof SingleIdentifier)) {
       return 1;
     } else {
-      int result = this.name.compareTo(((SingleIdentifier)pO).name);
+      SingleIdentifier other = (SingleIdentifier) pO;
+      int result = this.name.compareTo(other.name);
       if (result != 0) {
         return result;
       }
       if (this.type != null) {
-        if (((SingleIdentifier)pO).type != null) {
-          result = this.type.toASTString("").compareTo(((SingleIdentifier)pO).type.toASTString(""));
+        if (other.type != null) {
+          result = this.type.toASTString("").compareTo(other.type.toASTString(""));
           if (result != 0) {
             return result;
           }
         } else {
           return 1;
         }
-      } else if (((SingleIdentifier)pO).type != null) {
+      } else if (other.type != null) {
         return -1;
       }
-      return this.dereference - ((SingleIdentifier)pO).dereference;
+      return this.dereference - other.dereference;
     }
   }
 }

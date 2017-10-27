@@ -87,7 +87,7 @@ public class VariableSkipper {
 
     if (byFunctionPrefix != null &&
         from(byFunctionPrefix)
-          .anyMatch(prefix -> functionName.startsWith(prefix))) {
+          .anyMatch(functionName::startsWith)) {
       return true;
     }
 
@@ -102,7 +102,7 @@ public class VariableSkipper {
     }
     if (byNamePrefix != null &&
         from(byNamePrefix)
-          .anyMatch(prefix -> varName.startsWith(prefix))) {
+          .anyMatch(varName::startsWith)) {
       return true;
     }
     if (byType != null) {

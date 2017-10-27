@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.base.Strings;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class LocalVariableIdentifier extends VariableIdentifier {
-  protected String function;//function, where this variable was declared
+  protected @Nonnull String function;//function, where this variable was declared
 
   public LocalVariableIdentifier(String nm, CType t, String func, int dereference) {
     super(nm, t, dereference);
-    function = func;
+    function = Strings.nullToEmpty(func);
   }
 
   @Override
@@ -91,18 +93,7 @@ public class LocalVariableIdentifier extends VariableIdentifier {
       if (result != 0) {
         return result;
       }
-      if (function != null) {
-        if (((LocalVariableIdentifier) pO).function != null) {
-          result = this.function.compareTo(((LocalVariableIdentifier) pO).function);
-          return result;
-        } else {
-          return 1;
-        }
-      } else if (((LocalVariableIdentifier) pO).function != null) {
-        return -1;
-      } else {
-        return 0;
-      }
+      return this.function.compareTo(((LocalVariableIdentifier) pO).function);
     } else if (pO instanceof GlobalVariableIdentifier){
       return -1;
     } else {
