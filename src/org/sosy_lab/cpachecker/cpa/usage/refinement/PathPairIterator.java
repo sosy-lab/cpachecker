@@ -90,7 +90,7 @@ public class PathPairIterator extends
 
     switch (type) {
       case ARGStateId:
-        idExtractor = s -> s.getStateId();
+        idExtractor = ARGState::getStateId;
         break;
 
       case CFANodeId:
@@ -362,9 +362,10 @@ public class PathPairIterator extends
     ARGState forkState = forkChildInARG.getParents().iterator().next();
     //Clone is necessary, make tree set for determinism
     Set<ARGState> callerStates = Sets.newTreeSet();
-    for (AbstractState state : fromReducedToExpand.get(forkState)) {
-      callerStates.add((ARGState)state);
-    }
+
+    from(fromReducedToExpand.get(forkState))
+      .transform(s -> (ARGState) s)
+      .forEach(callerStates::add);
 
     Iterator<ARGState> iterator;
     //It is important to put a backward state in map, because we can find the same real state during exploration
@@ -493,18 +494,20 @@ public class PathPairIterator extends
 
   private boolean checkThePathHasRepeatedStates(ARGPath path) {
     additionTimerCheck.start();
-    List<Integer> ids = from(path.asStatesList())
-    .transform(idExtractor).toList();
+    List<Integer> ids =
+        from(path.asStatesList())
+        .transform(idExtractor)
+        .toList();
 
-    for (List<Integer> states : refinedStates) {
-      if (ids.containsAll(states)) {
-        numberOfRepeatedConstructedPaths++;
-        additionTimerCheck.stop();
-        return true;
-      }
+    boolean repeated =
+        from(refinedStates)
+        .anyMatch(l -> ids.containsAll(l));
+
+    if (repeated) {
+      numberOfRepeatedConstructedPaths++;
     }
     additionTimerCheck.stop();
-    return false;
+    return repeated;
   }
 
 }

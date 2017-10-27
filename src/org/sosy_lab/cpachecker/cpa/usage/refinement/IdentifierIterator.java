@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -69,10 +68,6 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       secure = true)
   private int precisionReset = Integer.MAX_VALUE;
 
-  @Option(name="refinablePathLimitation", description="a limit for paths for one usage, which could be refined",
-      secure = true)
-  private int refinablePathLimitation = Integer.MAX_VALUE;
-
   //TODO Option is broken!!
   @Option(name="totalARGCleaning", description="clean all ARG or try to reuse some parts of it (memory consuming)",
       secure = true)
@@ -91,10 +86,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     super(pWrapper);
     config.inject(this);
     cpa = pCpa;
-    UsageCPA UScpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
-    logger = UScpa.getLogger();
-    Preconditions.checkArgument(refinablePathLimitation > 0,
-        "The option refinablePathLimitation couldn't be " + refinablePathLimitation + ", why in this case you need refiner itself?");
+    logger = CPAs.retrieveCPA(pCpa, UsageCPA.class).getLogger();
     transfer = pTransfer;
   }
 
@@ -183,9 +175,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       PredicatePrecision predicates = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
 
       from(container.getProcessedUnsafes())
-        .transform(id -> precisionMap.remove(id))
-        .filter(p -> p != null)
-        .forEach(p -> predicates.subtract(p));
+        .transform(precisionMap::remove)
+        .filter(Predicates.notNull())
+        .forEach(predicates::subtract);
 
       CFANode firstNode = AbstractStates.extractLocation(firstState);
       //Get new state to remove all links to the old ARG

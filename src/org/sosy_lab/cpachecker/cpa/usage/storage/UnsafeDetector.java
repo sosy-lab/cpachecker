@@ -59,7 +59,7 @@ public class UnsafeDetector {
 
   private UnrefinedUsagePointSet preparePointSet(Set<UsageInfo> set) {
     UnrefinedUsagePointSet tmpSet = new UnrefinedUsagePointSet();
-    set.forEach(s -> tmpSet.add(s));
+    set.forEach(tmpSet::add);
     return tmpSet;
   }
 

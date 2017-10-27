@@ -105,8 +105,8 @@ public class UsagePrecision implements WrapperPrecision {
 
   public int getTotalRecords() {
     int sum = 0;
-    for (CFANode node : localStatistics.keySet()) {
-      sum += localStatistics.get(node).size();
+    for (Map<GeneralIdentifier, DataType> val : localStatistics.values()) {
+      sum += val.size();
     }
     return sum;
   }

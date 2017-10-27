@@ -119,11 +119,8 @@ public class PresisionParser {
   }
 
   private boolean shouldBeSkipped(String[] set) {
-    if (set[0].equalsIgnoreCase("r")) {
-      //Return identifier, it's not interesting for us
-      return true;
-    }
-    return false;
+    //Return identifier, it's not interesting for us
+    return set[0].equalsIgnoreCase("r");
   }
 
   private CFANode getNode(int id) {

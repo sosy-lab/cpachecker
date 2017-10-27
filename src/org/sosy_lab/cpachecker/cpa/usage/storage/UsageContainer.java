@@ -150,7 +150,7 @@ public class UsageContainer {
           falseUnsafes.add(id);
         }
       }
-      toDelete.forEach(id -> removeIdFromCaches(id));
+      toDelete.forEach(this::removeIdFromCaches);
 
       refinedIds.forEach((id, list) -> unsafeUsages += list.size());
 
@@ -226,7 +226,8 @@ public class UsageContainer {
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
     unsafeUsages = -1;
-    unrefinedIds.forEach((id, s) -> s.reset());
+    unrefinedIds.values()
+      .forEach(UnrefinedUsagePointSet::reset);
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }

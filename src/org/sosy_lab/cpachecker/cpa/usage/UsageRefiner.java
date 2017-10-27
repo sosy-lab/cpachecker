@@ -57,13 +57,10 @@ public class UsageRefiner implements Refiner, StatisticsProvider {
 
   }
 
-  final Stats pStat = new Stats();
-
   private final ConfigurableRefinementBlock<ReachedSet> startingBlock;
 
   public UsageRefiner(Configuration pConfig, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    RefinementBlockFactory factory = new RefinementBlockFactory(pCpa, pConfig);
-    startingBlock = factory.create();
+    startingBlock = new RefinementBlockFactory(pCpa, pConfig).create();
   }
 
   public static UsageRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -76,8 +73,7 @@ public class UsageRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
-    UsageRefiner result = new UsageRefiner(predicateCpa.getConfiguration(), pCpa);
-    return result;
+    return new UsageRefiner(predicateCpa.getConfiguration(), pCpa);
   }
 
   @Override
@@ -87,7 +83,7 @@ public class UsageRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(pStat);
+    pStatsCollection.add(new Stats());
   }
 
 }

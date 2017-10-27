@@ -32,7 +32,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -117,13 +116,10 @@ public class UsageTransferRelation implements TransferRelation {
     statistics = s;
 
     logger = pLogger;
-    binderFunctionInfo = new HashMap<>();
     if (binderFunctions != null) {
-      BinderFunctionInfo tmpInfo;
-      for (String name : binderFunctions) {
-        tmpInfo = new BinderFunctionInfo(name, config, logger);
-        binderFunctionInfo.put(name, tmpInfo);
-      }
+      binderFunctionInfo =
+          from(binderFunctions)
+          .toMap(name -> new BinderFunctionInfo(name, config, logger));
       //BindedFunctions should not be analysed
       skippedfunctions = skippedfunctions == null ? binderFunctions : Sets.union(skippedfunctions, binderFunctions);
     }
@@ -179,6 +175,8 @@ public class UsageTransferRelation implements TransferRelation {
 
     Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessorsForEdge(oldWrappedState,
         precision.getWrappedPrecision(), currentEdge);
+
+    //Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
       UsageState resultState = newState.clone(newWrappedState);
       if (resultState != null) {
@@ -249,17 +247,12 @@ public class UsageTransferRelation implements TransferRelation {
       /*
        * a = f(b)
        */
-      CRightHandSide right = ((CFunctionCallAssignmentStatement)statement).getRightHandSide();
+      CFunctionCallExpression right = ((CFunctionCallAssignmentStatement)statement).getRightHandSide();
       CExpression variable = ((CFunctionCallAssignmentStatement)statement).getLeftHandSide();
 
       visitStatement(variable, Access.WRITE);
       // expression - only name of function
-      if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(variable, (CFunctionCallExpression)right);
-      } else {
-        //where is function?
-        throw new HandleCodeException("Can't find function call here: " + right.toASTString());
-      }
+      handleFunctionCallExpression(variable, right);
 
     } else if (statement instanceof CFunctionCallStatement) {
       handleFunctionCallExpression(null, ((CFunctionCallStatement)statement).getFunctionCallExpression());
@@ -433,6 +426,7 @@ public class UsageTransferRelation implements TransferRelation {
             from(singleId.getComposedIdentifiers())
             .filter(SingleIdentifier.class)
             .transform(SingleIdentifier::getGeneralId);
+
         boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
         boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
         if (isLocal && !isGlobal) {

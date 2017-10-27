@@ -101,7 +101,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();
       stats.emptyJoin.inc();
-      funcContainer.forEach((id, set) -> this.addUsages(id, set));
+      funcContainer.forEach(this::addUsages);
       stats.copyTimer.stop();
     } else {
       Map<LockState, LockState> reduceToExpand = new HashMap<>();

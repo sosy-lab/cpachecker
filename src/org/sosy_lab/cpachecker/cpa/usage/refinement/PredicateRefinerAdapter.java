@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -217,7 +215,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       //false cache may contain other precision
       //It happens if we clean it for other Id and rerefine it now
       //Just replace old precision
-      falseCacheForCurrentIteration.forEach((edges, prec) -> falseCache.put(edges, prec));
+      falseCacheForCurrentIteration.forEach(falseCache::put);
       falseCacheForCurrentIteration.clear();
     }
   }
@@ -234,7 +232,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     if (refiner instanceof StatisticsProvider) {
       Collection<Statistics> stats = new HashSet<>();
       ((StatisticsProvider)refiner).collectStatistics(stats);
-      from(stats).forEach(s -> s.printStatistics(pOut, null, null));
+      stats.forEach(s -> s.printStatistics(pOut, null, null));
     }
   }
 
@@ -277,7 +275,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       lastAddedPrecision = newPrecisionFromPredicates;
 
       lastAffectedStates.clear();
-      pAffectedStates.forEach(s -> lastAffectedStates.add(s));
+      pAffectedStates.forEach(lastAffectedStates::add);
     }
   }
 

@@ -214,8 +214,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
 
     public void reduceLocks(Set<LockIdentifier> usedLocks) {
       if (usedLocks != null) {
-        Set<LockIdentifier> reducableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), usedLocks);
-        reducableLocks.forEach(l -> mutableLocks.remove(l));
+        usedLocks.forEach(mutableLocks::remove);
       }
     }
 
@@ -302,6 +301,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       return Joiner.on("], ")
              .withKeyValueSeparator("[")
              .appendTo(sb, locks)
+             .append("]")
              .toString();
     } else {
       return "Without locks";
@@ -349,7 +349,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     //State is less, if it has the same locks as the other and may be some more
 
     return from(other.locks.keySet())
-            .allMatch(lock -> this.locks.containsKey(lock));
+            .allMatch(this.locks::containsKey);
   }
 
   /**

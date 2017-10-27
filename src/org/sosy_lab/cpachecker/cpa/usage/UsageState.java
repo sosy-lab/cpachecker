@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -101,11 +102,8 @@ public class UsageState extends AbstractSingleWrapperState {
     *  if we have *b, map also contains **b, ***b and so on.
     *  So, if we get **b, having (*b, c), we give *c
     */
-    if (from(Identifiers.getDereferencedIdentifiers(id))
-        .anyMatch(i -> variableBindingRelation.containsKey(i))) {
-      return true;
-    }
-    return false;
+    return from(Identifiers.getDereferencedIdentifiers(id))
+           .anyMatch(variableBindingRelation::containsKey);
   }
 
   public void put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
@@ -128,7 +126,8 @@ public class UsageState extends AbstractSingleWrapperState {
      */
     Optional<AbstractIdentifier> linkedId =
         from(Identifiers.getDereferencedIdentifiers(id))
-          .firstMatch(i -> variableBindingRelation.containsKey(i));
+          .firstMatch(variableBindingRelation::containsKey);
+
     if (linkedId.isPresent()) {
       AbstractIdentifier pointsFrom = linkedId.get();
       int delta = id.getDereference() - pointsFrom.getDereference();
@@ -197,10 +196,9 @@ public class UsageState extends AbstractSingleWrapperState {
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this element
-    for (AbstractIdentifier id : variableBindingRelation.keySet()) {
-      if (!other.variableBindingRelation.containsKey(id)) {
-        return false;
-      }
+    if (from(variableBindingRelation.keySet())
+         .anyMatch(Predicates.not(other.variableBindingRelation::containsKey))) {
+      return false;
     }
 
     // in case of true, we need to copy usages

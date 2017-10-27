@@ -53,7 +53,8 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
       CFANode location = AbstractStates.extractLocation(pInput);
       if (location instanceof CFunctionEntryNode) {
         CallstackState callstack = AbstractStates.extractStateByType(pInput, CallstackState.class);
-        if (callstack.getPreviousState() != null && callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
+        if (callstack.getPreviousState() != null &&
+            callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
           return true;
         }
       }

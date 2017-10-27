@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
@@ -219,7 +220,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   public boolean isLessOrEqual(LocalState pState2) {
     //LOCAL < NULL < GLOBAL
     if (from(this.DataInfo.keySet())
-      .filter(i -> !this.isLocal(i))
+      .filter(Predicates.not(this::isLocal))
       .anyMatch(i -> !pState2.DataInfo.containsKey(i) || pState2.isLocal(i))) {
       return false;
     }

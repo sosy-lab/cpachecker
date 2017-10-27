@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,17 +92,14 @@ public class ConfigurationParser {
 
   @SuppressWarnings("deprecation")
   private Map<String, Integer> createMap(String lockName, String target) {
-    Map<String, Integer> map = new HashMap<>();
+
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {
-      int num;
-      Set<String> tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-      for (String funcName : tmpStringSet) {
-        num = getValue(lockName + "." + funcName + ".parameters", 0);
-        map.put(funcName, num);
-      }
+
+      return from(Arrays.asList(tmpString.split(", *")))
+            .toMap(f -> getValue(lockName + "." + f + ".parameters", 0));
     }
-    return map;
+    return Maps.newHashMap();
   }
 
   @SuppressWarnings("deprecation")

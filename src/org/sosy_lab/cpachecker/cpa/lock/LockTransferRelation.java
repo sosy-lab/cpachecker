@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -224,13 +225,11 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     return Collections.emptyList();
   }
 
-  private List<AbstractLockEffect> convertAnnotationToLockEffect(Map<String, String> map, LockEffect e) {
-    List<AbstractLockEffect> result = new LinkedList<>();
-
-    map.forEach(
-        (lockName, var) -> result.add(e.cloneWithTarget(LockIdentifier.of(lockName, var)))
-    );
-    return result;
+  private ImmutableList<? extends AbstractLockEffect> convertAnnotationToLockEffect(Map<String, String> map, LockEffect e) {
+    return from(map.keySet())
+           .transform(l -> LockIdentifier.of(l, map.get(l)))
+           .transform(e::cloneWithTarget)
+           .toList();
   }
 
   private List<AbstractLockEffect> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge) {

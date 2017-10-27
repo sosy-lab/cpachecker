@@ -115,7 +115,7 @@ public abstract class ErrorTracePrinter {
   private void createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
-    Function<ARGState, Integer> dummyFunc = s -> s.getStateId();
+    Function<ARGState, Integer> dummyFunc = ARGState::getStateId;
     BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(dummyFunc);
     ARGState target = (ARGState)usage.getKeyState();
     BackwardARGState newTreeTarget = new BackwardARGState(target);
@@ -210,11 +210,7 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String getNoteFor(CFAEdge pEdge) {
-    if (lockTransfer != null) {
-      return lockTransfer.doesChangeTheState(pEdge);
-    } else {
-      return null;
-    }
+    return lockTransfer == null ? null : lockTransfer.doesChangeTheState(pEdge);
   }
 
   protected List<CFAEdge> getPath(UsageInfo usage) {
@@ -223,10 +219,7 @@ public abstract class ErrorTracePrinter {
     }
     List<CFAEdge> path = usage.getPath();
 
-    if (path.isEmpty()) {
-      return null;
-    }
-    return path;
+    return path.isEmpty() ? null : path;
   }
 
   protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);

@@ -301,26 +301,22 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private boolean isThreadCreateFunction(CFAEdge pEdge) {
-    if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge)pEdge).getSummaryEdge();
-      CFunctionCall fCall = sEdge.getExpression();
-      if (fCall instanceof CThreadCreateStatement) {
-        return true;
-      }
-    }
-    return false;
+    return getThreadCreateStatementIfExists(pEdge) != null;
   }
 
   private boolean isThreadCreateNFunction(CFAEdge pEdge) {
+    CThreadCreateStatement stmnt = getThreadCreateStatementIfExists(pEdge);
+    return stmnt == null ? false : stmnt.isSelfParallel();
+  }
+
+  private CThreadCreateStatement getThreadCreateStatementIfExists(CFAEdge pEdge) {
     if (pEdge instanceof CFunctionCallEdge) {
       CFunctionSummaryEdge sEdge = ((CFunctionCallEdge)pEdge).getSummaryEdge();
       CFunctionCall fCall = sEdge.getExpression();
       if (fCall instanceof CThreadCreateStatement) {
-        if (((CThreadCreateStatement)fCall).isSelfParallel()) {
-          return true;
-        }
+        return (CThreadCreateStatement) fCall;
       }
     }
-    return false;
+    return null;
   }
 }
