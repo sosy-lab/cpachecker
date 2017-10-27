@@ -28,7 +28,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -46,7 +45,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -63,6 +61,8 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.usage")
 public abstract class ErrorTracePrinter {
@@ -84,9 +84,9 @@ public abstract class ErrorTracePrinter {
   protected final LockTransferRelation lockTransfer;
   private UnsafeDetector detector;
 
-  private final Timer preparationTimer = new Timer();
-  private final Timer unsafeDetectionTimer = new Timer();
-  private final Timer writingUnsafeTimer = new Timer();
+  private final StatTimer preparationTimer = new StatTimer("Time for preparation");
+  private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
+  private final StatTimer writingUnsafeTimer = new StatTimer("Time for dumping the unsafes");
 
   protected final Configuration config;
   protected UsageContainer container;
@@ -199,15 +199,14 @@ public abstract class ErrorTracePrinter {
     finish();
   }
 
-  public void printStatistics(final PrintStream out) {
+  public void printStatistics(StatisticsWriter out) {
+
+    out.spacer()
+       .put(preparationTimer)
+       .put(unsafeDetectionTimer)
+       .put(writingUnsafeTimer);
 
     container.printUsagesStatistics(out);
-
-    out.println("");
-    out.println("Time for preparation:          " + preparationTimer);
-    out.println("Time for unsafe detection:     " + unsafeDetectionTimer);
-    out.println("Time for dumping the unsafes:  " + writingUnsafeTimer);
-    out.println("Time for reseting unsafes:     " + container.resetTimer);
   }
 
   protected String getNoteFor(CFAEdge pEdge) {

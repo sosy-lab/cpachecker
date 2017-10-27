@@ -27,13 +27,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -48,6 +46,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
  * Represents one abstract state of the Usage CPA.
@@ -308,9 +308,9 @@ public class UsageState extends AbstractSingleWrapperState {
   }*/
 
   public static class StateStatistics {
-    private Timer expandTimer = new Timer();
-    private Timer joinTimer = new Timer();
-    private Timer addRecentUsagesTimer = new Timer();
+    private StatTimer expandTimer = new StatTimer("Time for lock difference calculation");
+    private StatTimer joinTimer = new StatTimer("Time for joining");
+    private StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
 
     private final StorageStatistics storageStats;
 
@@ -318,11 +318,12 @@ public class UsageState extends AbstractSingleWrapperState {
       storageStats = Objects.requireNonNull(stats);
     }
 
-    public void printStatistics(PrintStream out) {
-      out.println("");
-      out.println("Time for lock difference calculation:" + expandTimer);
-      out.println("Time for joining:                    " + joinTimer);
-      out.println("Time for adding recent usages:       " + addRecentUsagesTimer);
+    public void printStatistics(StatisticsWriter out) {
+      out.spacer()
+         .put(expandTimer)
+         .put(joinTimer)
+         .put(addRecentUsagesTimer);
+
       storageStats.printStatistics(out);
     }
   }

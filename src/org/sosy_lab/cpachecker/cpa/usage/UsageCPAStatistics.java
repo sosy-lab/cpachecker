@@ -31,15 +31,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.usage")
-public class UsageCPAStatistics implements Statistics {
+public class UsageCPAStatistics extends AbstractStatistics {
 
   public static enum OutputFileType {
     ETV,
@@ -84,12 +84,12 @@ public class UsageCPAStatistics implements Statistics {
     printUnsafesTimer.stop();
 
     printStatisticsTimer.start();
-    errPrinter.printStatistics(out);
-    UsageState.get(reached.getFirstState()).getStatistics().printStatistics(out);
-    //out.
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer);
     writer.put(printStatisticsTimer);
+    errPrinter.printStatistics(writer);
+    UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
+    //out.
     printStatisticsTimer.stop();
 
   }
