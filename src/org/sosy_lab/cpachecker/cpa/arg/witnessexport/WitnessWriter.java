@@ -1277,13 +1277,16 @@ class WitnessWriter implements EdgeAppender {
     // Add them as entering edges to their target nodes
     for (Edge leavingEdge : leavingEdgesToMove) {
       if (!pEdge.equals(leavingEdge)) {
-        TransitionCondition label;
+        TransitionCondition label = pEdge.label;
+        // Don't give function-exit transitions labels from preceding transitions
+        if (leavingEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
+          label = TransitionCondition.empty();
+        }
         // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
         if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
-          label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
-        } else {
-          label = pEdge.label.putAllAndCopy(leavingEdge.label);
+          label = label.removeAndCopy(KeyDef.ORIGINFILE);
         }
+        label = label.putAllAndCopy(leavingEdge.label);
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
