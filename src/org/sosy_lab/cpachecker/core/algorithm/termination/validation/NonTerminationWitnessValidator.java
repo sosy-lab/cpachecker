@@ -1108,7 +1108,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
     @Override
     public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
-      return NamedProperty.singleton("Termination");
+      return NamedProperty.singleton("termination");
     }
   }
 }
