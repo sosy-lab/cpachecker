@@ -123,6 +123,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private boolean doPrecisionRefinementForAllStates = false;
 
   @Option(secure = true,
+      description = "adjustment of BAM cache usage")
+  private boolean useDynamicAdjustment = true;
+
+  @Option(secure = true,
       description = "Use more fast partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
 
@@ -268,6 +272,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   public boolean collectPrecisionFromAllSubgraph() {
     return collectPrecisionFromAllSubgraph;
+  }
+
+  public boolean useDynamicAdjustment() {
+    return useDynamicAdjustment;
   }
 
   LogManager getLogger() {
