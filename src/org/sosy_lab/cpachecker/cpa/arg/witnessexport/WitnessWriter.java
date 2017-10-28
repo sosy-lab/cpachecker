@@ -120,6 +120,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
@@ -382,6 +383,8 @@ class WitnessWriter implements EdgeAppender {
 
   private final Map<CFAEdge, LoopEntryInfo> loopEntryInfoMemo = Maps.newHashMap();
   private final Map<CFANode, Boolean> loopProximityMemo = Maps.newHashMap();
+
+  private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
   private boolean isFunctionScope = false;
 
@@ -797,7 +800,8 @@ class WitnessWriter implements EdgeAppender {
           if (witnessOptions.exportThreadName()) {
             result = result.putAndCopy(KeyDef.THREADNAME, threadId);
           }
-          result = result.putAndCopy(KeyDef.THREADID, getUniqueThreadNum(threadId));
+          result =
+              result.putAndCopy(KeyDef.THREADID, Integer.toString(getUniqueThreadNum(threadId)));
           result = exportThreadManagement(result, pEdge, state, threadingState);
           break;
         }
@@ -827,7 +831,9 @@ class WitnessWriter implements EdgeAppender {
                 for (String threadId : succThreadingState.getThreadIds()) {
                   if (!threadingState.getThreadIds().contains(threadId)) {
                     // we found the new created thread-id. we assume there is only 'one' match
-                    result = result.putAndCopy(KeyDef.CREATETHREAD, getUniqueThreadNum(threadId));
+                    result =
+                        result.putAndCopy(
+                            KeyDef.CREATETHREAD, Integer.toString(getUniqueThreadNum(threadId)));
                   }
                 }
                 break;
@@ -841,7 +847,9 @@ class WitnessWriter implements EdgeAppender {
                 for (String threadId : threadingState.getThreadIds()) {
                   if (!succThreadingState.getThreadIds().contains(threadId)) {
                     // we found the old deleted thread-id. we assume there is only 'one' match
-                    result = result.putAndCopy(KeyDef.DESTROYTHREAD, getUniqueThreadNum(threadId));
+                    result =
+                        result.putAndCopy(
+                            KeyDef.DESTROYTHREAD, Integer.toString(getUniqueThreadNum(threadId)));
                   }
                 }
                 break;
@@ -860,10 +868,8 @@ class WitnessWriter implements EdgeAppender {
     return from(pParent.getChildren()).firstMatch(c -> pEdge == pParent.getEdgeToChild(c)).get();
   }
 
-  private String getUniqueThreadNum(String threadId) {
-    // TODO threadNum should be unique, hashCode might have collisions, but works for most cases.
-    //      and as long as we do not support multiple LHS for thread-creation, it works.
-    return threadId.hashCode() + "";
+  private int getUniqueThreadNum(String threadId) {
+    return numericThreadIdProvider.provideNumericId(threadId);
   }
 
   /**
