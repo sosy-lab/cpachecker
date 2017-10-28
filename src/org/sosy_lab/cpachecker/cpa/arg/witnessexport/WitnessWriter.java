@@ -527,14 +527,15 @@ class WitnessWriter implements EdgeAppender {
         functionName = Optional.of(pEdge.getSuccessor().getFunctionName());
       }
       if (functionName.isPresent()) {
-        result = result.putAndCopy(KeyDef.FUNCTIONENTRY, functionName.get());
+        result =
+            result.putAndCopy(KeyDef.FUNCTIONENTRY, getOriginalFunctionName(functionName.get()));
       }
     }
 
     if (witnessOptions.exportFunctionCallsAndReturns()
         && pEdge.getSuccessor() instanceof FunctionExitNode) {
       String functionName = ((FunctionExitNode) pEdge.getSuccessor()).getFunctionName();
-      result = result.putAndCopy(KeyDef.FUNCTIONEXIT, functionName);
+      result = result.putAndCopy(KeyDef.FUNCTIONEXIT, getOriginalFunctionName(functionName));
     }
 
     if (pEdge instanceof AssumeEdge) {
@@ -886,10 +887,6 @@ class WitnessWriter implements EdgeAppender {
                             .getThreadLocation(threadId)
                             .getLocationNode()
                             .getFunctionName();
-                    Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(calledFunctionName);
-                    if (matcher.matches()) {
-                      calledFunctionName = matcher.group(1);
-                    }
                     threadInitialFunctionName = Optional.of(calledFunctionName);
                   }
                 }
@@ -942,6 +939,14 @@ class WitnessWriter implements EdgeAppender {
 
   private int getUniqueThreadNum(String threadId) {
     return numericThreadIdProvider.provideNumericId(threadId);
+  }
+
+  private String getOriginalFunctionName(String pFunctionName) {
+    Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
+    if (matcher.matches()) {
+      return matcher.group(1);
+    }
+    return pFunctionName;
   }
 
   /**
