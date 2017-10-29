@@ -24,163 +24,27 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.test.VariableProperty.GoalPropertyType;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 
 public class ExpectedGoalProperties {
 
-  public enum Comparators {
-    LE,
-    LT,
-    EQ,
-    GE,
-    GT
-  }
-
-  public enum GoalPropertyType {
-    INPUT,
-    OUTPUT
-  }
-
-  public class RelativeVariableProperty {
-
-    private String variable1;
-
-    private String variable2;
-
-    private Comparators comp;
-
-    private GoalPropertyType inOrOut;
-
-    public RelativeVariableProperty(String pV1, String pV2, Comparators pComp,
-        GoalPropertyType inOrOut) {
-      super();
-      variable1 = pV1;
-      variable2 = pV2;
-      comp = pComp;
-      this.inOrOut = inOrOut;
-    }
-
-    public boolean checkProperty(Map<String, BigInteger> listToCheck, GoalPropertyType inOrOut) {
-      if (this.inOrOut != inOrOut) { return true; }
-      BigInteger value1 = listToCheck.get(variable1);
-      BigInteger value2 = listToCheck.get(variable2);
-
-      if (value1 == null || value2 == null) { return false; }
-
-      switch (comp) {
-        case EQ:
-          return value1.compareTo(value2) == 0;
-        case LE:
-          return value1.compareTo(value2) <= 0;
-        case LT:
-          return value1.compareTo(value2) < 0;
-        case GE:
-          return value1.compareTo(value2) >= 0;
-        case GT:
-          return value1.compareTo(value2) > 0;
-        default:
-          return true;
-      }
-    }
-
-    @Override
-    public String toString() {
-      switch (comp) {
-        case EQ:
-          return variable1 + " == " + variable2;
-        case LE:
-          return variable1 + " <= " + variable2;
-        case LT:
-          return variable1 + " < " + variable2;
-        case GE:
-          return variable1 + " >= " + variable2;
-        case GT:
-          return variable1 + " > " + variable2;
-        default:
-          return "incorrect property";
-      }
-    }
-  }
-
-  class ConcreteVariableProperty {
-
-    private String variable;
-
-    private BigInteger expectedValue;
-
-    private Comparators comp;
-
-    private GoalPropertyType inOrOut;
-
-    ConcreteVariableProperty(String pVariable, BigInteger pExpectedValue,
-        Comparators pComp, GoalPropertyType inOrOut) {
-      super();
-      variable = pVariable;
-      expectedValue = pExpectedValue;
-      comp = pComp;
-      this.inOrOut = inOrOut;
-    }
-
-    boolean checkProperty(Map<String, BigInteger> listToCheck, GoalPropertyType inOrOut) {
-      if (this.inOrOut != inOrOut) { return true; }
-
-      BigInteger value = listToCheck.get(variable);
-
-      if (value == null) { return false; }
-
-      switch (comp) {
-        case EQ:
-          return value.compareTo(expectedValue) == 0;
-        case LE:
-          return value.compareTo(expectedValue) <= 0;
-        case LT:
-          return value.compareTo(expectedValue) < 0;
-        case GE:
-          return value.compareTo(expectedValue) >= 0;
-        case GT:
-          return value.compareTo(expectedValue) > 0;
-        default:
-          return true;
-      }
-    }
-
-    @Override
-    public String toString() {
-      switch (comp) {
-        case EQ:
-          return variable + " == " + expectedValue;
-        case LE:
-          return variable + " <= " + expectedValue;
-        case LT:
-          return variable + " < " + expectedValue;
-        case GE:
-          return variable + " >= " + expectedValue;
-        case GT:
-          return variable + " > " + expectedValue;
-        default:
-          return "incorrect property";
-      }
-    }
-  }
-
   private String goalName;
 
-  private List<RelativeVariableProperty> relativeVariableProperties;
-
-  private List<ConcreteVariableProperty> concreteVariableProperties;
+  private List<VariableProperty> variableProperties;
 
   private boolean isFeasible;
 
   public ExpectedGoalProperties(String pGoalName, boolean pFeasible) {
     goalName = pGoalName;
     isFeasible = pFeasible;
-    relativeVariableProperties = Lists.newLinkedList();
-    concreteVariableProperties = Lists.newLinkedList();
+    variableProperties = Lists.newLinkedList();
   }
 
   public boolean checkProperties(TestSuite testSuite) {
@@ -195,43 +59,29 @@ public class ExpectedGoalProperties {
     if (!isFeasible && testSuite.isGoalCovered(goal)) { throw new AssertionError(
         "Goal " + goalName + " should be infeasible but was found fasible!"); }
 
-    if (testSuite.isInfeasible(goal)) {
-      return true;
-    }
+    if (testSuite.isInfeasible(goal)) { return true; }
 
     List<TestCase> testCases = testSuite.getCoveringTestCases(goal);
 
     for (TestCase testCase : testCases) {
       Map<String, BigInteger> inputs = testCase.getInputs();
       Map<String, BigInteger> outputs = testCase.getOutputs();
+      Map<String, BigInteger> inputsAndOutputs = Maps.newLinkedHashMap();
+      inputsAndOutputs.putAll(inputs);
+      inputsAndOutputs.putAll(outputs);
 
-      for (RelativeVariableProperty r : relativeVariableProperties) {
+      for (VariableProperty r : variableProperties) {
         if (!r.checkProperty(inputs, GoalPropertyType.INPUT)) { throw new AssertionError(
             "Expected input property (" + r.toString() + ") for goal " + goalName
                 + " is not fullfilled in testCase " + testCase.getId()); }
-        if (!r.checkProperty(outputs, GoalPropertyType.OUTPUT)) { throw new AssertionError(
-            "Expected output property (" + r.toString() + ") for goal " + goalName
-                + " is not fullfilled in testCase " + testCase.getId()); }
       }
 
-      for (ConcreteVariableProperty r : concreteVariableProperties) {
-        if (!r.checkProperty(inputs, GoalPropertyType.INPUT)) { throw new AssertionError(
-            "Expected input property (" + r.toString() + ") for goal " + goalName
-                + " is not fullfilled in testCase " + testCase.getId()); }
-        if (!r.checkProperty(outputs, GoalPropertyType.OUTPUT)) { throw new AssertionError(
-            "Expected output property (" + r.toString() + ") for goal " + goalName
-                + " is not fullfilled in testCase " + testCase.getId()); }
-      }
     }
     return true;
   }
 
-  public void addRelativeValueProperty(RelativeVariableProperty relativeVariableProperty) {
-    relativeVariableProperties.add(relativeVariableProperty);
-  }
-
-  public void addConcreteValueProperty(ConcreteVariableProperty concreteVariableProperty) {
-    concreteVariableProperties.add(concreteVariableProperty);
+  public void addVariableProperty(VariableProperty variableProperty) {
+    variableProperties.add(variableProperty);
   }
 }
 

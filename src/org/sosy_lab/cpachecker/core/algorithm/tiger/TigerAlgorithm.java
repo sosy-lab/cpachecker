@@ -719,6 +719,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   }
 
   private Map<String, BigInteger> extractOutputValues(CounterexampleInfo cex) {
+    Set<String> tmpOutputVariables = new LinkedHashSet<>(outputVariables);
     Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
     CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
     int index = 0;
@@ -733,9 +734,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           CLeftHandSide cLeft = functionCall.getLeftHandSide();
           CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
 
-          if (cld != null && outputVariables.contains(cld.getName())) {
+          if (cld != null && tmpOutputVariables.contains(cld.getName())) {
 
-            outputVariables.remove(cld.getName());
+            tmpOutputVariables.remove(cld.getName());
 
             BigInteger value;
 

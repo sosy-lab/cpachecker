@@ -33,8 +33,9 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.test.ExpectedGoalProperties.Comparators;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.test.ExpectedGoalProperties.GoalPropertyType;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.test.CombinedVariableProperty.Combinators;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.test.VariableProperty.Comparators;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.test.VariableProperty.GoalPropertyType;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -47,9 +48,23 @@ public class TigerTest {
 
   private static final String EMAIL_SIMULATOR_C = "test/programs/tiger/simulator/email_simulator.c";
 
+  private static final String EXAMPLE_LOOP = "test/programs/tiger/simulator/example_loop.c";
+
+  private static final String EXAMPLE_ONLY_INFEASIBLE =
+      "test/programs/tiger/simulator/example_only_infeasible.c";
+
+  private static final String EXAMPLE_IfCOMBINATIONS =
+      "test/programs/tiger/simulator/example_ifCombinations.c";
+
   private static List<ExpectedGoalProperties> exampleGoalProperties;
 
   private static List<ExpectedGoalProperties> exampleGoalProperties_v1;
+
+  private static List<ExpectedGoalProperties> exampleGoalProperties_loop;
+
+  private static List<ExpectedGoalProperties> exampleGoalProperties_onlyInfeasible;
+
+  private static List<ExpectedGoalProperties> exampleGoalProperties_ifCombinations;
 
   @BeforeClass
   public static void initializeExpectedGoalProperties() {
@@ -57,31 +72,78 @@ public class TigerTest {
     //example.c
     exampleGoalProperties = Lists.newLinkedList();
     ExpectedGoalProperties g1 = new ExpectedGoalProperties("G1", true);
-    g1.addRelativeValueProperty(g1.new RelativeVariableProperty("relevant: x", "relevant: y",
+    g1.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
         Comparators.LT, GoalPropertyType.INPUT));
+    List<String> addXandY = Lists.newLinkedList();
+    addXandY.add("relevant: x");
+    addXandY.add("relevant: y");
+    g1.addVariableProperty(new CombinedRelativeVariableProperty("relevant: z", addXandY,
+        Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties.add(g1);
     ExpectedGoalProperties g2 = new ExpectedGoalProperties("G2", true);
-    g2.addRelativeValueProperty(g2.new RelativeVariableProperty("relevant: x", "relevant: y",
+    g2.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
         Comparators.LT, GoalPropertyType.INPUT));
+    g2.addVariableProperty(new CombinedRelativeVariableProperty("relevant: z", addXandY,
+        Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties.add(g2);
 
     //example_v1.c
     exampleGoalProperties_v1 = Lists.newLinkedList();
     g1 = new ExpectedGoalProperties("G1", true);
-    g1.addRelativeValueProperty(g1.new RelativeVariableProperty("relevant: x", "relevant: y",
+    g1.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
         Comparators.LT, GoalPropertyType.INPUT));
+    g1.addVariableProperty(new CombinedRelativeVariableProperty("relevant: z", addXandY,
+        Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties_v1.add(g1);
     g2 = new ExpectedGoalProperties("G2", false);
     exampleGoalProperties_v1.add(g2);
     ExpectedGoalProperties g3 = new ExpectedGoalProperties("G3", true);
-    g3.addRelativeValueProperty(g3.new RelativeVariableProperty("relevant: x", "relevant: y",
+    g3.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
         Comparators.GT, GoalPropertyType.INPUT));
+    g3.addVariableProperty(new RelativeVariableProperty("relevant: z", "relevant: y",
+        Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties_v1.add(g3);
 
+    //example_loop.c
+    exampleGoalProperties_loop = Lists.newLinkedList();
+    g1 = new ExpectedGoalProperties("G1", true);
+    g1.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+        Comparators.LT, GoalPropertyType.INPUT));
+    exampleGoalProperties_loop.add(g1);
+
+    //example_only_infeasible.c
+    exampleGoalProperties_onlyInfeasible = Lists.newLinkedList();
+    g1 = new ExpectedGoalProperties("G1", false);
+    exampleGoalProperties_onlyInfeasible.add(g1);
+
+    //example_ifCombinations.c
+    exampleGoalProperties_ifCombinations = Lists.newLinkedList();
+    g1 = new ExpectedGoalProperties("G1", true);
+    g1.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+        Comparators.LT, GoalPropertyType.INPUT));
+    g1.addVariableProperty(new RelativeVariableProperty("relevant: y", "relevant: z",
+        Comparators.LT, GoalPropertyType.INPUT));
+    addXandY = Lists.newLinkedList();
+    addXandY.add("relevant: x");
+    addXandY.add("relevant: y");
+    g1.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandY,
+        Combinators.ADD, Comparators.LE, GoalPropertyType.INPUTANDOUTPUT));
+    exampleGoalProperties_ifCombinations.add(g1);
+    g2 = new ExpectedGoalProperties("G2", true);
+    g2.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+        Comparators.LT, GoalPropertyType.INPUT));
+    g2.addVariableProperty(new CombinedRelativeVariableProperty("relevant: z", addXandY,
+        Combinators.ADD, Comparators.LE, GoalPropertyType.INPUT));
+    List<String> addXandYandZ = Lists.newLinkedList();
+    addXandYandZ.addAll(addXandY);
+    addXandYandZ.add("relevant: z");
+    g2.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandYandZ,
+        Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
+    exampleGoalProperties_ifCombinations.add(g2);
   }
 
   @Test
-  public void testExample() throws Exception {
+  public void testPredicateExample() throws Exception {
     Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
@@ -105,7 +167,7 @@ public class TigerTest {
   }
 
   @Test
-  public void testExample_v1() throws Exception {
+  public void testPredicateExample_v1() throws Exception {
     Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
@@ -129,7 +191,7 @@ public class TigerTest {
   }
 
   @Test
-  public void testEmailSimulatorForTimeout() throws Exception {
+  public void testPredicateEmailSimulatorForTimeout() throws Exception {
     Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("tiger.fqlQuery",
@@ -143,4 +205,197 @@ public class TigerTest {
 
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() > 0);
   }
+
+  @Test
+  public void testPredicateExample_loop() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_LOOP);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 1);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_loop) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testPredicateExample_only_infeasible() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_ONLY_INFEASIBLE);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 0);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_onlyInfeasible) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testPredicateExample_ifCombinations() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_IfCOMBINATIONS);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 2);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_ifCombinations) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testValueExample() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-value.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 1);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testValueExample_v1() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-value.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G3))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_V1_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 2);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_v1) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testValueExample_loop() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-value.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_LOOP);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 1);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_loop) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testValueExample_only_infeasible() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-value.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_ONLY_INFEASIBLE);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 0);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_onlyInfeasible) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
+  @Test
+  public void testValueExample_ifCombinations() throws Exception {
+    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-value.properties"));
+    prop.put("tiger.inputInterface", "x,y,z");
+    prop.put("tiger.outputInterface", "tmp");
+    prop.put("tiger.fqlQuery",
+        "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_IfCOMBINATIONS);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfTestCases() == 2);
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    for (ExpectedGoalProperties exp : exampleGoalProperties_ifCombinations) {
+      assertTrue(exp.checkProperties(testSuite));
+    }
+  }
+
 }
