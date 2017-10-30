@@ -169,6 +169,9 @@ analysis.algorithm.propertyCheck = false
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
 
+# collect undefined functions
+analysis.algorithm.undefinedFunctionCollector = false
+
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
@@ -3036,6 +3039,21 @@ termination.violation.witness = "nontermination_witness.graphml"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+
+# export undefined functions as C file
+undefFuncCollectorAlgorithm.file = "env.c"
+
+# Set of functions that should be ignored
+undefFuncCollectorAlgorithm.ignoreFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+
+# On-demand memory allocation function
+undefFuncCollectorAlgorithm.odmAllocFunction = "external_alloc"
+
+# Set of functions that are defined by pthread.h and should be ignored
+undefFuncCollectorAlgorithm.pthreadFunctionsRegexp = "^pthread_[a-zA-Z0-9_]*"
+
+# Set of functions that are defined by SV-COMP rules and should be ignored
+undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
