@@ -117,11 +117,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class TerminationStatistics implements Statistics {
 
   @Option(
-      secure = true,
-      description =
-          "A human readable representation of the synthesized (non-)termination arguments is "
-              + "exported to this file."
-    )
+    secure = true,
+    description =
+        "A human readable representation of the synthesized (non-)termination arguments is "
+            + "exported to this file."
+  )
   @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Paths.get("terminationAnalysisResult.txt");
 
@@ -299,10 +299,14 @@ public class TerminationStatistics implements Statistics {
     pOut.println();
 
     int loops = analysedLoops.size();
-    pOut.println("Number of analysed loops:                               " + valueWithPercentage(loops, totalLoops));
+    pOut.println(
+        "Number of analysed loops:                               "
+            + valueWithPercentage(loops, totalLoops));
     pOut.println("Total time for loop analysis:                       " + loopTime);
-    pOut.println("  Avg time per loop analysis:                       " + format(loopTime.getAvgTime()));
-    pOut.println("  Max time per loop analysis:                       " + format(loopTime.getMaxTime()));
+    pOut.println(
+        "  Avg time per loop analysis:                       " + format(loopTime.getAvgTime()));
+    pOut.println(
+        "  Max time per loop analysis:                       " + format(loopTime.getMaxTime()));
     pOut.println();
 
     int safetyAnalysisRuns =
@@ -312,57 +316,89 @@ public class TerminationStatistics implements Statistics {
         safetyAnalysisRunsPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
     String loopsWithMaxSafetyAnalysisRuns =
         safetyAnalysisRunsPerLoop
-        .entrySet()
-        .stream()
-        .filter(e -> e.getValue().get() == maxSafetyAnalysisRuns)
-        .map(Entry::getKey)
-        .map(l -> l.getLoopHeads().toString())
-        .collect(Collectors.joining(", "));
-    pOut.println("Number of safety analysis runs:                     " + format(safetyAnalysisRuns));
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue().get() == maxSafetyAnalysisRuns)
+            .map(Entry::getKey)
+            .map(l -> l.getLoopHeads().toString())
+            .collect(Collectors.joining(", "));
+    pOut.println(
+        "Number of safety analysis runs:                     " + format(safetyAnalysisRuns));
     if (loops > 0) {
-      pOut.println("  Avg safety analysis run per loop:                 " + div(safetyAnalysisRuns, loops));
+      pOut.println(
+          "  Avg safety analysis run per loop:                 " + div(safetyAnalysisRuns, loops));
     }
-    pOut.println("  Max safety analysis run per loop:                 " + format(maxSafetyAnalysisRuns) + " \t for loops " + loopsWithMaxSafetyAnalysisRuns);
+    pOut.println(
+        "  Max safety analysis run per loop:                 "
+            + format(maxSafetyAnalysisRuns)
+            + " \t for loops "
+            + loopsWithMaxSafetyAnalysisRuns);
 
     pOut.println("Total time for safety analysis:                     " + safetyAnalysisTime);
-    pOut.println("  Avg time per safety analysis run:                 " + format(safetyAnalysisTime.getAvgTime()));
-    pOut.println("  Max time per safety analysis run:                 " + format(safetyAnalysisTime.getMaxTime()));
+    pOut.println(
+        "  Avg time per safety analysis run:                 "
+            + format(safetyAnalysisTime.getAvgTime()));
+    pOut.println(
+        "  Max time per safety analysis run:                 "
+            + format(safetyAnalysisTime.getMaxTime()));
     pOut.println();
 
     int iterations = lassoTime.getNumberOfIntervals();
     int lassos = lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).sum();
-    int maxLassosPerLoop = lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
+    int maxLassosPerLoop =
+        lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
     String loopsWithMaxLassos =
         lassosPerLoop
-        .entrySet()
-        .stream()
-        .filter(e -> e.getValue().get() == maxLassosPerLoop)
-        .map(Entry::getKey)
-        .map(l -> l.getLoopHeads().toString())
-        .collect(Collectors.joining(", "));
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue().get() == maxLassosPerLoop)
+            .map(Entry::getKey)
+            .map(l -> l.getLoopHeads().toString())
+            .collect(Collectors.joining(", "));
     pOut.println("Number of analysed lassos:                          " + format(lassos));
     if (loops > 0) {
       pOut.println("  Avg number of lassos per loop:                    " + div(lassos, loops));
     }
-    pOut.println("  Max number of lassos per loop:                    " + format(maxLassosPerLoop) + " \t for loops " + loopsWithMaxLassos);
+    pOut.println(
+        "  Max number of lassos per loop:                    "
+            + format(maxLassosPerLoop)
+            + " \t for loops "
+            + loopsWithMaxLassos);
     if (loops > 0) {
-      pOut.println("  Avg number of lassos per iteration:               " + div(lassos, iterations));
+      pOut.println(
+          "  Avg number of lassos per iteration:               " + div(lassos, iterations));
     }
-    pOut.println("  Max number of lassos per iteration:               " + format(maxLassosPerIteration.get()));
+    pOut.println(
+        "  Max number of lassos per iteration:               "
+            + format(maxLassosPerIteration.get()));
     pOut.println();
 
     pOut.println("Total time for lassos analysis:                     " + lassoTime);
-    pOut.println("  Avg time per iteration:                           " + format(lassoTime.getAvgTime()));
-    pOut.println("  Max time per iteration:                           " + format(lassoTime.getMaxTime()));
+    pOut.println(
+        "  Avg time per iteration:                           " + format(lassoTime.getAvgTime()));
+    pOut.println(
+        "  Max time per iteration:                           " + format(lassoTime.getMaxTime()));
     pOut.println("  Time for lassos construction:                     " + lassoConstructionTime);
-    pOut.println("    Avg time for lasso construction per iteration:  " + format(lassoConstructionTime.getAvgTime()));
-    pOut.println("    Max time for lasso construction per iteration:  " + format(lassoConstructionTime.getMaxTime()));
+    pOut.println(
+        "    Avg time for lasso construction per iteration:  "
+            + format(lassoConstructionTime.getAvgTime()));
+    pOut.println(
+        "    Max time for lasso construction per iteration:  "
+            + format(lassoConstructionTime.getMaxTime()));
     pOut.println("  Total time for non-termination analysis:          " + lassoNonTerminationTime);
-    pOut.println("    Avg time for non-termination analysis per lasso:" + format(lassoNonTerminationTime.getAvgTime()));
-    pOut.println("    Max time for non-termination analysis per lasso:" + format(lassoNonTerminationTime.getMaxTime()));
+    pOut.println(
+        "    Avg time for non-termination analysis per lasso:"
+            + format(lassoNonTerminationTime.getAvgTime()));
+    pOut.println(
+        "    Max time for non-termination analysis per lasso:"
+            + format(lassoNonTerminationTime.getMaxTime()));
     pOut.println("  Total time for termination analysis:              " + lassoTerminationTime);
-    pOut.println("    Avg time for termination analysis per lasso:    " + format(lassoTerminationTime.getAvgTime()));
-    pOut.println("    Max time for termination analysis per lasso:    " + format(lassoTerminationTime.getMaxTime()));
+    pOut.println(
+        "    Avg time for termination analysis per lasso:    "
+            + format(lassoTerminationTime.getAvgTime()));
+    pOut.println(
+        "    Max time for termination analysis per lasso:    "
+            + format(lassoTerminationTime.getMaxTime()));
     pOut.println();
 
     int totoalTerminationArguments = terminationArguments.size();
@@ -370,19 +406,26 @@ public class TerminationStatistics implements Statistics {
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
         terminationArguments
-        .asMap()
-        .entrySet()
-        .stream()
-        .filter(e -> e.getValue().size() == maxTerminationArgumentsPerLoop)
-        .map(Entry::getKey)
-        .map(l -> l.getLoopHeads().toString())
-        .collect(Collectors.joining(", "));
-    pOut.println("Total number of termination arguments:              " + format(totoalTerminationArguments));
+            .asMap()
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue().size() == maxTerminationArgumentsPerLoop)
+            .map(Entry::getKey)
+            .map(l -> l.getLoopHeads().toString())
+            .collect(Collectors.joining(", "));
+    pOut.println(
+        "Total number of termination arguments:              "
+            + format(totoalTerminationArguments));
     if (loops > 0) {
-      pOut.println("  Avg termination arguments per loop:               " + div(totoalTerminationArguments, loops));
+      pOut.println(
+          "  Avg termination arguments per loop:               "
+              + div(totoalTerminationArguments, loops));
     }
-    pOut.println("  Max termination arguments per loop:               " + format(maxTerminationArgumentsPerLoop) + " \t for loops " + loopsWithMaxTerminationArguments);
-
+    pOut.println(
+        "  Max termination arguments per loop:               "
+            + format(maxTerminationArgumentsPerLoop)
+            + " \t for loops "
+            + loopsWithMaxTerminationArguments);
 
     pOut.println();
     Map<String, Integer> terminationArguementTypes = Maps.newHashMap();
@@ -451,7 +494,7 @@ public class TerminationStatistics implements Statistics {
 
     ARGState loopStartInCEX =
         new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
-    for(ARGState parent: loopStart.getParents()) {
+    for (ARGState parent : loopStart.getParents()) {
       loopStartInCEX.addParent(parent);
     }
 
@@ -500,15 +543,15 @@ public class TerminationStatistics implements Statistics {
 
     ARGState pred, succ;
 
-    while(!waitlist.isEmpty()) {
+    while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
       pred = nodeToARGState.get(loc);
-      assert(pred!=null);
+      assert (pred != null);
 
-      for(CFAEdge leave: CFAUtils.leavingEdges(loc)) {
-        if(nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
+      for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
+        if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
           succ = nodeToARGState.get(leave.getSuccessor());
-          if(succ == null) {
+          if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
             waitlist.push(leave.getSuccessor());
@@ -577,11 +620,14 @@ public class TerminationStatistics implements Statistics {
         varName = toOrigName((TermVariable) entry.getKey());
         termVal = ((ConstantTerm) entry.getValue()).getValue();
 
-        if(termVal instanceof BigDecimal) {
-          litexpr = new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT,
-              (BigDecimal) termVal);
+        if (termVal instanceof BigDecimal) {
+          litexpr =
+              new CFloatLiteralExpression(
+                  FileLocation.DUMMY, CNumericTypes.FLOAT, (BigDecimal) termVal);
         } else if (termVal instanceof BigInteger) {
-          litexpr = CIntegerLiteralExpression.createDummyLiteral(((BigInteger) termVal).longValue(), CNumericTypes.INT);
+          litexpr =
+              CIntegerLiteralExpression.createDummyLiteral(
+                  ((BigInteger) termVal).longValue(), CNumericTypes.INT);
         } else if (termVal instanceof Rational) {
           litexpr = literalExpressionFrom((Rational) termVal);
         } else {
@@ -597,9 +643,12 @@ public class TerminationStatistics implements Statistics {
 
   private CLiteralExpression literalExpressionFrom(final Rational rat) {
     if (rat.numerator().mod(rat.denominator()).intValue() == 0) {
-      return CIntegerLiteralExpression.createDummyLiteral(rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
+      return CIntegerLiteralExpression.createDummyLiteral(
+          rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
     } else {
-      return new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT,
+      return new CFloatLiteralExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.FLOAT,
           new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator())));
     }
   }
@@ -648,6 +697,12 @@ public class TerminationStatistics implements Statistics {
           return "*(" + expressionVarName(t.get(1)) + ")";
         } else if (t.size() == 3) {
           return "(" + expressionVarName(t.get(1)) + ")*(" + expressionVarName(t.get(2)) + ")";
+        }
+      }
+
+      if (t.get(0).startsWith("+")) {
+        if (t.size() == 3) {
+          return "(" + expressionVarName(t.get(1)) + ")+(" + expressionVarName(t.get(2)) + ")";
         }
       }
 
