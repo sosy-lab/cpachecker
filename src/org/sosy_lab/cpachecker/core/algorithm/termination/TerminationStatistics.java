@@ -58,10 +58,12 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -624,8 +626,83 @@ public class TerminationStatistics implements Statistics {
   }
 
   private String toOrigName(final TermVariable pTermVariable) {
-    MemoryLocation memLoc = MemoryLocation.valueOf(pTermVariable.getName());
+    String varName = pTermVariable.getName();
+
+    if (varName.startsWith("(")) {
+      return expressionVarName(varName);
+    }
+
+    MemoryLocation memLoc = MemoryLocation.valueOf(varName);
     return memLoc.getIdentifier();
+  }
+
+  private String expressionVarName(final String varName) {
+    String result = varName;
+
+    if (result.startsWith("(")) {
+      result = result.substring(1, result.length() - 1);
+      List<String> t = extractArgs(result);
+
+      if (t.get(0).startsWith("*")) {
+        if (t.size() == 2) {
+          return "*(" + expressionVarName(t.get(1)) + ")";
+        } else if (t.size() == 3) {
+          return "(" + expressionVarName(t.get(1)) + ")*(" + expressionVarName(t.get(2)) + ")";
+        }
+      }
+
+      if (t.size() > 1) {
+        StringBuilder sb = new StringBuilder();
+
+        for (String s : t) {
+          sb.append(expressionVarName(s));
+        }
+
+        return sb.toString();
+      }
+    }
+
+    if (result.startsWith("|") && result.endsWith("|")) {
+      result = result.substring(1, result.length() - 1);
+    }
+
+    MemoryLocation memLoc = MemoryLocation.valueOf(result);
+    return memLoc.getIdentifier();
+  }
+
+  private List<String> extractArgs(final String input) {
+    List<String> args = new ArrayList<>(2);
+    String extendedInput = input + " ";
+
+    int openBrackets = 0;
+    StringBuilder bd = new StringBuilder();
+    char c;
+
+    for (int i = 0; i < extendedInput.length(); i++) {
+      c = extendedInput.charAt(i);
+      switch (c) {
+        case '(':
+          openBrackets++;
+          break;
+        case ')':
+          openBrackets--;
+          break;
+        case ' ':
+          if (openBrackets == 0) {
+            if (bd.length() != 0) {
+              args.add(bd.toString());
+              bd = new StringBuilder();
+            }
+
+            continue;
+          }
+          break;
+        default:
+      }
+      bd.append(c);
+    }
+
+    return args;
   }
 
   @Override
