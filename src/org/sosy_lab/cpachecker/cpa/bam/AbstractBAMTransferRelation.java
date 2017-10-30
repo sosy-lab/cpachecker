@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -232,7 +233,16 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, innerSubtree);
 
       if (useDynamicAdjustment && wrappedReducer.canBeUsedInCache(expandedState)) {
-        data.addUncachedBlockEntry(innerSubtree.getCallNode());
+        if (expandedState instanceof Targetable &&
+            ((Targetable) expandedState).isTarget()) {
+          //In case of error location we should look at root state,
+          //because the 'target' state is not a real exit of the block
+          if (wrappedReducer.canBeUsedInCache(state)) {
+            data.addUncachedBlockEntry(innerSubtree.getCallNode());
+          }
+        } else {
+          data.addUncachedBlockEntry(innerSubtree.getCallNode());
+        }
       }
     }
 
