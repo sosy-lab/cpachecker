@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -390,7 +391,6 @@ public class BAMTransferRelation implements TransferRelation {
 
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
     boolean needToSkip = false;
-    BAMPrecision BAMPrec = (BAMPrecision) precision;
     for (AbstractState reducedState : reducedResult) {
       Precision reducedPrecision = reached.getPrecision(reducedState);
 
@@ -407,7 +407,15 @@ public class BAMTransferRelation implements TransferRelation {
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, innerSubtree);
 
       if (useDynamicAdjustment && !needToSkip && AbstractStates.extractStateByType(reducedState, PredicateAbstractState.class).hasDeferedAllocations()) {
-        needToSkip = true;
+        if (reducedState instanceof Targetable && ((Targetable)reducedState).isTarget()) {
+          if (AbstractStates.extractStateByType(state, PredicateAbstractState.class).hasDeferedAllocations()) {
+            needToSkip = true;
+          } else {
+            needToSkip = false;
+          }
+        } else {
+          needToSkip = true;
+        }
       }
     }
 
