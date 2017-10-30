@@ -351,6 +351,8 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    // clear reached set and therefore waitlist to prevent further warnings:
+    pReachedSet.clear();
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
