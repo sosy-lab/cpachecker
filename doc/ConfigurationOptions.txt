@@ -755,7 +755,7 @@ coverage.enabled = true
 # print coverage info to file
 coverage.file = "coverage.info"
 
-# CPA to use (see doc/Configuration.txt for more documentation on this)
+# CPA to use (see doc/Configuration.md for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
 # Where to perform abstraction
