@@ -125,8 +125,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
     Path assumptionAutomaton = null;
 
-    if (getStrategy() == ResidualGenStrategy.CONDITION
-        || getStrategy() == ResidualGenStrategy.COMBINATION) {
+    if (usesParallelCompositionOfProgramAndCondition()) {
       try {
         assumptionAutomaton = TempFile.builder().prefix("assumptions").suffix("txt").create();
 
@@ -310,8 +309,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
       Specification spec = getSpecification();
-      if (getStrategy() == ResidualGenStrategy.CONDITION
-          || getStrategy() == ResidualGenStrategy.COMBINATION) {
+      if (usesParallelCompositionOfProgramAndCondition()) {
         assert (assumptionAutomaton != null);
         List<Path> specList = Lists.newArrayList(spec.getSpecFiles());
         specList.add(getAssumptionGuider());
@@ -344,14 +342,20 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   @Override
   protected void checkConfiguration() throws InvalidConfigurationException {
-    if (getStrategy() == ResidualGenStrategy.CONDITION
-        || getStrategy() == ResidualGenStrategy.COMBINATION) {
+    if (usesParallelCompositionOfProgramAndCondition()) {
       if (getAssumptionGuider() == null) {
         throw new InvalidConfigurationException(
           "For current strategy " + getStrategy().toString() +
           ", the control automaton guiding the exploration based on the condition is needed. " +
           "Please set the option residualprogram.assumptionGuider."); }
     }
+  }
+
+  private boolean usesParallelCompositionOfProgramAndCondition() {
+    return getStrategy() == ResidualGenStrategy.CONDITION
+        || getStrategy() == ResidualGenStrategy.COMBINATION
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD;
   }
 
   @Override

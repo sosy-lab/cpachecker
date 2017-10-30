@@ -56,6 +56,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -89,7 +90,13 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 @Options(prefix = "residualprogram")
 public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
 
-  public enum ResidualGenStrategy {SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION}
+  public enum ResidualGenStrategy {
+    SLICING,
+    CONDITION,
+    CONDITION_PLUS_CFA_FOLD,
+    CONDITION_PLUS_LOOP_FOLD,
+    COMBINATION
+  }
 
   @Option(secure = true, name = "strategy",
       description = "which strategy to use to generate the residual program")
@@ -324,12 +331,108 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return newRoot;
   }
 
+  private ARGState foldARGAtLoops(final ARGState pRoot) {
+    Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
+    Set<CFANode> loopHeads = cfa.getAllLoopHeads().get();
+
+    Map<ARGState, Set<ARGState>> oldARGToFoldedState = new HashMap<>();
+    Map<Integer, ARGState> foldedStateToNewARGState = new HashMap<>();
+    Map<ARGState, Set<ARGState>> newARGToFoldedState = new HashMap<>();
+    Map<Pair<CFANode, CallstackStateEqualsWrapper>, Set<ARGState>> loopHeadToFoldedARGState =
+        new HashMap<>();
+
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Set<ARGState> foldedNode;
+    ARGState oldState, newState, newChild;
+    CFANode loc;
+    CFAEdge edge;
+    Pair<CFANode, CallstackStateEqualsWrapper> inlinedLoc;
+
+    foldedNode = new HashSet<>();
+    foldedNode.add(pRoot);
+    oldARGToFoldedState.put(pRoot, foldedNode);
+    newState = new ARGState(pRoot.getWrappedState(), null);
+    foldedStateToNewARGState.put(System.identityHashCode(foldedNode), newState);
+    newARGToFoldedState.put(newState, foldedNode);
+    loc = AbstractStates.extractLocation(pRoot);
+    if(loopHeads.contains(loc)) {
+      loopHeadToFoldedARGState.put(
+          Pair.of(
+              loc,
+              new CallstackStateEqualsWrapper(
+                  AbstractStates.extractStateByType(pRoot, CallstackState.class))),
+          foldedNode);
+    }
+    waitlist.push(pRoot);
+
+    while (!waitlist.isEmpty()) {
+      oldState = waitlist.pop();
+      newState =
+          foldedStateToNewARGState.get(System.identityHashCode(oldARGToFoldedState.get(oldState)));
+
+      for (ARGState child : oldState.getChildren()) {
+        if (!oldARGToFoldedState.containsKey(child)) {
+          loc = AbstractStates.extractLocation(child);
+
+          if (loopHeads.contains(loc)) {
+            inlinedLoc =
+                Pair.of(
+                    loc,
+                    new CallstackStateEqualsWrapper(
+                        AbstractStates.extractStateByType(child, CallstackState.class)));
+            foldedNode = loopHeadToFoldedARGState.get(inlinedLoc);
+            if (foldedNode == null) {
+              foldedNode = new HashSet<>();
+              loopHeadToFoldedARGState.put(inlinedLoc, foldedNode);
+              newChild = new ARGState(child.getWrappedState(), null);
+              assert (!foldedStateToNewARGState.containsKey(System.identityHashCode(foldedNode)));
+              foldedStateToNewARGState.put(System.identityHashCode(foldedNode), newChild);
+            }
+
+          } else {
+            foldedNode = null;
+            for (ARGState newARGChild : newState.getChildren()) {
+              edge = oldState.getEdgeToChild(child);
+              if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+                foldedNode = newARGToFoldedState.get(newARGChild);
+                // there should be only one such child, thus break
+                break;
+              }
+            }
+
+            if (foldedNode == null) {
+              foldedNode = new HashSet<>();
+              newChild = new ARGState(child.getWrappedState(), null);
+              assert (!foldedStateToNewARGState.containsKey(System.identityHashCode(foldedNode)));
+              foldedStateToNewARGState.put(System.identityHashCode(foldedNode), newChild);
+              newARGToFoldedState.put(newChild, foldedNode);
+            }
+          }
+
+          oldARGToFoldedState.put(child, foldedNode);
+          foldedNode.add(child);
+          waitlist.push(child);
+        }
+
+        newChild =
+            foldedStateToNewARGState.get(System.identityHashCode(oldARGToFoldedState.get(child)));
+        newChild.addParent(newState);
+      }
+    }
+
+    return foldedStateToNewARGState.get(System.identityHashCode(oldARGToFoldedState.get(pRoot)));
+  }
+
   private String getResidualProgramText(final ARGState pARGRoot,
       @Nullable final Set<ARGState> pAddPragma) throws CPAException {
-    if(constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
+    if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD) {
       Preconditions.checkState(pAddPragma == null);
 
       return translator.translateARG(foldARG(pARGRoot));
+    } else if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD) {
+      Preconditions.checkState(pAddPragma == null);
+
+      return translator.translateARG(foldARGAtLoops(pARGRoot));
     }
     return translator.translateARG(pARGRoot, pAddPragma);
   }
@@ -419,7 +522,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private boolean checkInitialState(final AbstractState initState) {
     if (constructionStrategy == ResidualGenStrategy.CONDITION
-        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD
+        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
+        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD
         || constructionStrategy == ResidualGenStrategy.COMBINATION) {
       boolean considersAssumption = false, considersAssumptionGuider = false;
 

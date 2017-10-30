@@ -2882,7 +2882,8 @@ residualprogram.file = "residualProgram.c"
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_CFA_FOLD, CONDITION_PLUS_LOOP_FOLD,
+             COMBINATION]
 
 # wether to start next algorithm independently from the previous result
 restartAlgorithm.alwaysRestart = false
