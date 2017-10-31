@@ -31,7 +31,9 @@ import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -516,10 +518,10 @@ class PointerTargetSetManager {
       }
     }
 
-    /*Verify.verify(
+    Verify.verify(
         ssaBuilder.build().equals(ssa),
         "Unexpected SSMap changes for value-import constraints: %s",
-        Sets.difference(ssaBuilder.allVariables(), ssa.allVariables()));*/
+        Sets.difference(ssaBuilder.allVariables(), ssa.allVariables()));
 
     return constraints.get();
   }

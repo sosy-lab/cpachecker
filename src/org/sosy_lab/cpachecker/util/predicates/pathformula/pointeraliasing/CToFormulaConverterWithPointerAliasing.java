@@ -451,7 +451,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       } else if (isAddressedVariable(declaration)) {
         pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
       }
-    } else {
+    } else if (CTypeUtils.containsArray(type, originalDeclaration) ||
+        isAddressedVariable(declaration)) {
       pts.addBase(declaration.getQualifiedName(), type, size, constraints);
     }
   }

@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -157,6 +158,8 @@ public class BAMPredicateReducer implements Reducer {
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
+      PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+
       for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
         if (!oldSSA.containsVariable(var)) {
@@ -165,7 +168,7 @@ public class BAMPredicateReducer implements Reducer {
         }
       }
       SSAMap newSSA = builder.build();
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, rootPts);
 
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
@@ -176,7 +179,14 @@ public class BAMPredicateReducer implements Reducer {
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
     } else {
-      return pReducedState;
+      PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
+      PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
+      PathFormula oldPathFormula = reducedState.getPathFormula();
+      SSAMap oldSSA = oldPathFormula.getSsa();
+      PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, rootPts);
+      return PredicateAbstractState.mkAbstractionState(newPathFormula,
+          reducedState.getAbstractionFormula(), reducedState.getAbstractionLocationsOnPath());
     }
   }
 
