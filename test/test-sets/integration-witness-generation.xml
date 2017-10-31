@@ -11,7 +11,7 @@
   <option name="-heap">6000M</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
-  <rundefinition name="witness-generation">
+  <rundefinition>
     <option name="-svcomp18"/>
   </rundefinition>
 
