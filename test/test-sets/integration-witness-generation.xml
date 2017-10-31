@@ -12,7 +12,7 @@
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <rundefinition name="witness-generation">
-    <option name="-sv-comp17"/>
+    <option name="-svcomp18"/>
   </rundefinition>
 
   <resultfiles>**.graphml.gz</resultfiles>
