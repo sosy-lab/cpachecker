@@ -445,10 +445,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             ? null
             : fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
 
-    if (CTypeUtils.containsArray(type, originalDeclaration)) {
+    if (options.useConstraintOptimisation()) {
+      if (CTypeUtils.containsArray(type, originalDeclaration)) {
+        pts.addBase(declaration.getQualifiedName(), type, size, constraints);
+      } else if (isAddressedVariable(declaration)) {
+        pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
+      }
+    } else {
       pts.addBase(declaration.getQualifiedName(), type, size, constraints);
-    } else if (isAddressedVariable(declaration)) {
-      pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
     }
   }
 
