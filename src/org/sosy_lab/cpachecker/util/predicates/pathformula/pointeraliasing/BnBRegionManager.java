@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  */
 class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
   private static final String GLOBAL = "global";
-  private static final String SEPARATOR = "_";
+  private static final String SEPARATOR = ":";
 
 
   private static class GlobalBnBRegion implements MemoryRegion {
