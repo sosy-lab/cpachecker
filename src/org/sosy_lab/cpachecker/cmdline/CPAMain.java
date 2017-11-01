@@ -522,7 +522,8 @@ public class CPAMain {
       case VIOLATION_WITNESS:
         validationConfigFile = options.violationWitnessValidationConfig;
         String specs = overrideOptions.get(SPECIFICATION_OPTION);
-        specs = Joiner.on(',').join(specs, options.witness.toString());
+        String witnessSpec = options.witness.toString();
+        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec.toString());
         overrideOptions.put(SPECIFICATION_OPTION, specs);
         break;
       case CORRECTNESS_WITNESS:

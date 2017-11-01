@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -188,6 +189,12 @@ public class CoreComponentsFactory {
   )
   private boolean useNonTerminationWitnessValidation = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.undefinedFunctionCollector",
+      description = "collect undefined functions")
+  private boolean useUndefinedFunctionCollector = false;
+
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
 
@@ -285,7 +292,11 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if(useNonTerminationWitnessValidation) {
+    if (useUndefinedFunctionCollector) {
+      logger.log(Level.INFO, "Using undefined function collector");
+      algorithm =
+          new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+    } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
           new NonTerminationWitnessValidator(
@@ -481,7 +492,8 @@ public class CoreComponentsFactory {
         || useProofCheckAlgorithmWithStoredConfig
         || useProofCheckWithARGCMCStrategy
         || asConditionalVerifier
-        || useNonTerminationWitnessValidation) {
+        || useNonTerminationWitnessValidation
+        || useUndefinedFunctionCollector) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

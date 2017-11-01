@@ -42,7 +42,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,14 +78,17 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -163,6 +168,15 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path TERMINATING_STATEMENT_CONTROL =
       Paths.get("config/specification/TerminatingStatements.spc");
+
+  @Option(
+    secure = true,
+    name = "successAsViolation",
+    description =
+        "Report a successful validation of the witness, "
+            + "i.e., a confirmation of the nontermination, as termination violation."
+  )
+  private boolean reportSuccessfulCheckAsViolation = true;
 
   private static final String RECURSIONDEPTH = "2"; // TODO should it be configurable?
 
@@ -282,6 +296,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
             pReachedSet.popFromWaitlist();
             logger.log(Level.INFO, "Non-termination witness confirmed.");
+            if (reportSuccessfulCheckAsViolation) {
+              pReachedSet.add(
+                  new ARGState(TerminationViolatingDummyState.INSTANCE, null),
+                  SingletonPrecision.getInstance());
+            }
             return AlgorithmStatus.SOUND_AND_PRECISE; // TODO correct choice here?
           }
         }
@@ -1072,6 +1091,24 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     @Override
     public @Nullable String getName() {
       return "Nontermination Witness Validation";
+    }
+  }
+
+  private static class TerminationViolatingDummyState implements AbstractState, Targetable {
+
+    private TerminationViolatingDummyState() {}
+
+    public static final TerminationViolatingDummyState INSTANCE =
+        new TerminationViolatingDummyState();
+
+    @Override
+    public boolean isTarget() {
+      return true;
+    }
+
+    @Override
+    public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+      return NamedProperty.singleton("termination");
     }
   }
 }

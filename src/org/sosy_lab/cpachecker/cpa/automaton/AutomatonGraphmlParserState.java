@@ -23,24 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
+import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class AutomatonGraphmlParserState {
+
+  private static final Pattern CLONED_FUNCTION_NAME_PATTERN =
+      Pattern.compile("(.+)(__cloned_function__\\d+)");
 
   /** The name of the witness automaton. */
   private final String automatonName;
@@ -72,8 +81,24 @@ public class AutomatonGraphmlParserState {
   /** Automaton variables by their names. */
   private final Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
 
-  /** States (represented in the GraphML model) and the call stack at each of them. */
-  private final Map<GraphMLState, Deque<String>> stacks = Maps.newHashMap();
+  /**
+   * States (represented in the GraphML model) and the call stack at each of them, for each thread.
+   */
+  private final Map<GraphMLTransition.GraphMLThread, Map<GraphMLState, Deque<String>>> stacks =
+      Maps.newHashMap();
+
+  /** The names of all functions available in the CFA. */
+  private final Set<String> functionNames;
+
+  /**
+   * A mapping from function names to names of their copies (in the context of concurrency).
+   * Populated only on demand.
+   */
+  private final Multimap<String, FunctionInstance> functionCopies = TreeMultimap.create();
+
+  /** The functions currently occupied by each thread. */
+  private final Multimap<GraphMLTransition.GraphMLThread, FunctionInstance> occupiedFunctions =
+      TreeMultimap.create();
 
   /**
    * States (represented in the GraphML model) and the transitions leaving them (in our automaton
@@ -91,6 +116,7 @@ public class AutomatonGraphmlParserState {
    * @param pStates the states.
    * @param pEnteringTransitions the transitions entering states.
    * @param pLeavingTransitions the transitions leaving states.
+   * @param pFunctionNames the names of all functions available in the CFA.
    * @throws WitnessParseException if there is not exactly one entry state.
    */
   private AutomatonGraphmlParserState(
@@ -99,7 +125,8 @@ public class AutomatonGraphmlParserState {
       ImmutableSet<PropertyType> pSpecificationTypes,
       ImmutableSet<GraphMLState> pStates,
       ImmutableMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
-      ImmutableMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions)
+      ImmutableMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
+      ImmutableSet<String> pFunctionNames)
       throws WitnessParseException {
 
     automatonName = Objects.requireNonNull(pAutomatonName);
@@ -126,6 +153,8 @@ public class AutomatonGraphmlParserState {
             pEnteringTransitions,
             filterableStates.filter(GraphMLState::isViolationState),
             filterableStates.filter(GraphMLState::isSinkState));
+
+    functionNames = Objects.requireNonNull(pFunctionNames);
   }
 
   /**
@@ -177,6 +206,7 @@ public class AutomatonGraphmlParserState {
    * @param pStates the states.
    * @param pEnteringTransitions the transitions entering states.
    * @param pLeavingTransitions the transitions leaving states.
+   * @param pFunctionNames the names of all functions available in the CFA.
    * @throws WitnessParseException if there is not exactly one entry state.
    * @return the initialized {@link AutomatonGraphmlParserState}.
    */
@@ -186,7 +216,8 @@ public class AutomatonGraphmlParserState {
       Set<PropertyType> pSpecificationTypes,
       Iterable<GraphMLState> pStates,
       Multimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
-      Multimap<GraphMLState, GraphMLTransition> pLeavingTransitions)
+      Multimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
+      Set<String> pFunctionNames)
       throws WitnessParseException {
     return new AutomatonGraphmlParserState(
         pAutomatonName,
@@ -194,7 +225,8 @@ public class AutomatonGraphmlParserState {
         ImmutableSet.copyOf(pSpecificationTypes),
         ImmutableSet.copyOf(pStates),
         ImmutableMultimap.copyOf(pEnteringTransitions),
-        ImmutableMultimap.copyOf(pLeavingTransitions));
+        ImmutableMultimap.copyOf(pLeavingTransitions),
+        ImmutableSet.copyOf(pFunctionNames));
   }
 
   /**
@@ -294,12 +326,119 @@ public class AutomatonGraphmlParserState {
   }
 
   /**
-   * Gets the call stacks currently stored for the states (represented in the GraphML model).
+   * Gets the call stacks currently stored for the states (represented in the GraphML model) for the
+   * given thread.
    *
-   * @return the call stacks currently stored for the states (represented in the GraphML model)
+   * @param pThread the thread identifier andname.
+   * @return the call stacks currently stored for the states (represented in the GraphML model) for
+   *     the given thread.
    */
-  public Map<GraphMLState, Deque<String>> getStacks() {
-    return stacks;
+  private Map<GraphMLState, Deque<String>> getOrCreateThreadStacks(
+      GraphMLTransition.GraphMLThread pThread) {
+    Map<GraphMLState, Deque<String>> threadStacks = stacks.get(pThread);
+    if (threadStacks == null) {
+      threadStacks = Maps.newHashMap();
+      stacks.put(pThread, threadStacks);
+    }
+    return threadStacks;
+  }
+
+  /**
+   * Gets the call stack currently stored for the given thread and state (represented in the GraphML
+   * model).
+   *
+   * @param pThread the thread identifier and name.
+   * @param pState the state, represented in the GraphML model.
+   * @return the call stack currently stored for the given thread and state (represented in the
+   *     GraphML model).
+   */
+  public Deque<String> getOrCreateStack(GraphMLTransition.GraphMLThread pThread, GraphMLState pState) {
+    Objects.requireNonNull(pState);
+    Map<GraphMLState, Deque<String>> threadStacks = getOrCreateThreadStacks(pThread);
+    Deque<String> stack = threadStacks.get(pState);
+    if (stack == null) {
+      stack = Queues.newArrayDeque();
+      threadStacks.put(pState, stack);
+    }
+    return stack;
+  }
+
+  /**
+   * Stores the given call stack for the given thread and GraphML state (represented in the GraphML
+   * model).
+   *
+   * @param pThread the thread identifier and name.
+   * @param pState the state, represented in the GraphML model.
+   * @param pStack the call stack.
+   */
+  public void putStack(
+      GraphMLTransition.GraphMLThread pThread, GraphMLState pState, Deque<String> pStack) {
+    Objects.requireNonNull(pStack);
+    getOrCreateThreadStacks(pThread).put(pState, pStack);
+  }
+
+  /**
+   * Tries to obtain (a copy of) the given function for the given thread.
+   *
+   * @param pThread the thread identifier and name.
+   * @param pDesiredFunctionName the original name of the desired function.
+   * @return (a copy of) the given function, or {@code Optional.absent()} if all existing copies of
+   *     this function are already occupied by other threads.
+   */
+  public Optional<String> getFunctionForThread(
+      GraphMLTransition.GraphMLThread pThread, String pDesiredFunctionName) {
+    // If the function does not exist, we cannot provide it to the caller anyway
+    if (!functionNames.contains(pDesiredFunctionName)) {
+      return Optional.empty();
+    }
+
+    // If we have not yet computed the equivalence classes, we can try if we can do without them
+    if (functionCopies.isEmpty()) {
+      FunctionInstance originalFunction =
+          new FunctionInstance(pDesiredFunctionName, pDesiredFunctionName);
+
+      // If the thread already owns the function, we can trivially hand it out
+      if (occupiedFunctions.get(pThread).contains(originalFunction)) {
+        return Optional.of(pDesiredFunctionName);
+      }
+      // If the function is available, we mark it as occupied and hand it out
+      if (!occupiedFunctions.values().contains(originalFunction)) {
+        occupiedFunctions.put(pThread, originalFunction);
+        return Optional.of(pDesiredFunctionName);
+      }
+
+      // If the previous checks were unsuccessful, we need the equivalence classes, so we can not
+      // delay computing them any longer
+      for (String functionName : functionNames) {
+        FunctionInstance functionInstance = parseFunctionInstance(functionName);
+        functionCopies.put(functionInstance.originalName, functionInstance);
+      }
+    }
+
+    // Check the equivalence class of this function
+    for (FunctionInstance functionInstance : functionCopies.get(pDesiredFunctionName)) {
+      // If the thread already owns the instance, we can trivially hand it out
+      if (occupiedFunctions.get(pThread).contains(functionInstance)) {
+        return Optional.of(functionInstance.cloneName);
+      }
+      // If the function instance is available, we mark it as occupied and hand it out
+      if (!occupiedFunctions.values().contains(functionInstance)) {
+        occupiedFunctions.put(pThread, functionInstance);
+        return Optional.of(functionInstance.cloneName);
+      }
+    }
+
+    // If the function is not available, we cannot hand it out
+    return Optional.empty();
+  }
+
+  /**
+   * Releases all functions occupied by the given thread.
+   *
+   * @param pThread the thread identifier and name.
+   */
+  public void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {
+    occupiedFunctions.removeAll(pThread);
   }
 
   /**
@@ -321,5 +460,53 @@ public class AutomatonGraphmlParserState {
    */
   public boolean isEntryConnectedToViolation() {
     return distances.get(getEntryState()) != null;
+  }
+
+  private static class FunctionInstance implements Comparable<FunctionInstance> {
+
+    private final String originalName;
+
+    private final String cloneName;
+
+    public FunctionInstance(String pOriginalName, String pCloneName) {
+      originalName = Objects.requireNonNull(pOriginalName);
+      cloneName = Objects.requireNonNull(pCloneName);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof FunctionInstance) {
+        FunctionInstance other = (FunctionInstance) pOther;
+        return originalName.equals(other.originalName) && cloneName.equals(other.cloneName);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(originalName, cloneName);
+    }
+
+    @Override
+    public String toString() {
+      return cloneName;
+    }
+
+    @Override
+    public int compareTo(FunctionInstance pOther) {
+      return ComparisonChain.start()
+          .compare(cloneName, pOther.cloneName)
+          .compare(originalName, pOther.originalName)
+          .result();
+    }
+  }
+
+  private static FunctionInstance parseFunctionInstance(String pFunctionName) {
+    Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
+    String pOriginalName = matcher.matches() ? matcher.group(1) : pFunctionName;
+    return new FunctionInstance(pOriginalName, pFunctionName);
   }
 }

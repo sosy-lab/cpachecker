@@ -11,8 +11,8 @@
   <option name="-heap">6000M</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
-  <rundefinition name="witness-generation">
-    <option name="-sv-comp17"/>
+  <rundefinition>
+    <option name="-svcomp18"/>
   </rundefinition>
 
   <resultfiles>**.graphml.gz</resultfiles>

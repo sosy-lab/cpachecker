@@ -23,23 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -47,6 +58,9 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class WitnessExporterTest {
+
+  private static final Pattern PROOF_WITNESS_OPTION_PATTERN =
+      Pattern.compile("(cpa.arg.proofWitness\\s*=\\s*)(.+)");
 
   private enum WitnessGenerationConfig {
     K_INDUCTION("kInduction"),
@@ -113,6 +127,42 @@ public class WitnessExporterTest {
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
       overrideOptions.put("bmc.invariantsExport", pWitnessPath.uncompressedFilePath.toString());
+      Path origInvGenConfigFile =
+          Paths.get("config/components/invariantGeneration-witness.properties");
+      Path invGenConfigFile =
+          origInvGenConfigFile.resolveSibling(
+              pWitnessPath.uncompressedFilePath.getFileName() + ".properties");
+      invGenConfigFile.toFile().deleteOnExit();
+      Files.copy(origInvGenConfigFile, invGenConfigFile);
+      List<String> lines;
+      try (BufferedReader reader =
+          new BufferedReader(
+              new InputStreamReader(
+                  new FileInputStream(invGenConfigFile.toString()), Charsets.UTF_8))) {
+        lines =
+            reader
+                .lines()
+                .map(
+                    line -> {
+                      Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
+                      if (matcher.matches()) {
+                        return matcher.group(1) + pWitnessPath.uncompressedFilePath.toString();
+                      }
+                      return line;
+                    })
+                .collect(Collectors.toList());
+      }
+      try (Writer writer = IO.openOutputFile(invGenConfigFile, Charsets.UTF_8)) {
+        for (String line : lines) {
+          writer.write(line);
+          writer.write(System.lineSeparator());
+        }
+      }
+      overrideOptions.put(
+          "parallelAlgorithm.configFiles",
+          "config/components/kInduction/kInduction.properties, "
+              + invGenConfigFile.toString()
+              + "::supply-reached-refinable");
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
     }

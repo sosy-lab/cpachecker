@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -90,6 +91,13 @@ public class ARGStatistics implements Statistics {
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path proofWitness = null;
+
+  @Option(
+    secure = true,
+    name = "compressWitness",
+    description = "compress the produced correctness-witness automata using GZIP compression."
+  )
+  private boolean compressWitness = true;
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -272,12 +280,16 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (proofWitness != null && pResult == Result.TRUE) {
-      try (Writer w =
-          IO.openOutputFile(
-              adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
-        argWitnessExporter.writeProofWitness(w, rootState,
-            Predicates.alwaysTrue(),
+      try {
+        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+        Appender content = pAppendable -> argWitnessExporter.writeProofWitness(pAppendable, rootState, Predicates.alwaysTrue(),
             Predicates.alwaysTrue());
+        if (!compressWitness) {
+          IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
+        } else {
+          witnessFile = witnessFile.resolveSibling(witnessFile.getFileName() + ".gz");
+          IO.writeGZIPFile(witnessFile, StandardCharsets.UTF_8, content);
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }

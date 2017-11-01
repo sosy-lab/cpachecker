@@ -169,6 +169,9 @@ analysis.algorithm.propertyCheck = false
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
 
+# collect undefined functions
+analysis.algorithm.undefinedFunctionCollector = false
+
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
@@ -755,7 +758,7 @@ coverage.enabled = true
 # print coverage info to file
 coverage.file = "coverage.info"
 
-# CPA to use (see doc/Configuration.txt for more documentation on this)
+# CPA to use (see doc/Configuration.md for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
 # Where to perform abstraction
@@ -799,6 +802,9 @@ cpa.apron.splitDisequalities = true
 
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
+
+# compress the produced correctness-witness automata using GZIP compression.
+cpa.arg.compressWitness = true
 
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
@@ -2884,7 +2890,8 @@ residualprogram.file = "residualProgram.c"
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_CFA_FOLD, CONDITION_PLUS_LOOP_FOLD,
+             COMBINATION]
 
 # wether to start next algorithm independently from the previous result
 restartAlgorithm.alwaysRestart = false
@@ -3038,6 +3045,21 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
+# export undefined functions as C file
+undefFuncCollectorAlgorithm.file = "env.c"
+
+# Set of functions that should be ignored
+undefFuncCollectorAlgorithm.ignoreFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+
+# On-demand memory allocation function
+undefFuncCollectorAlgorithm.odmAllocFunction = "external_alloc"
+
+# Set of functions that are defined by pthread.h and should be ignored
+undefFuncCollectorAlgorithm.pthreadFunctionsRegexp = "^pthread_[a-zA-Z0-9_]*"
+
+# Set of functions that are defined by SV-COMP rules and should be ignored
+undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
+
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
@@ -3080,6 +3102,10 @@ witness.validation.termination.inspectCycle.config = no default value
 # reachable. Configuration must be precise, i.e., may only report real
 # counterexamples
 witness.validation.termination.reachCycle.config = no default value
+
+# Report a successful validation of the witness, i.e., a confirmation of the
+# nontermination, as termination violation.
+witness.validation.termination.successAsViolation = true
 
 # Path to automaton specification describing which statements let the program
 # terminate.

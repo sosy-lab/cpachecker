@@ -78,6 +78,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -236,7 +238,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       try {
         heuristicPrecision = extractPrecisionFromCfa(pReached.asReachedSet(), targetState);
       } catch (CPATransferException | SolverException e) {
-        throw new CPAException("Static refinement failed", e);
+        throw new RefinementFailedException(Reason.StaticRefinementFailed, allStatesTrace, e);
       } finally {
         predicateExtractionTime.stop();
       }

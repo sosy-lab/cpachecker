@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ContiguousSet;
+import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 
 /** Instances of this class map textual ids to numeric ids. */
@@ -66,10 +70,21 @@ public class NumericIdProvider {
     // If we did not attempt parsing, or parsing failed, or the parsed id is already in use,
     // we need to generate an artificial numeric id:
     if (id == null || usedIds.contains(id)) {
-      id = usedIds.complement().asRanges().iterator().next().lowerEndpoint();
+      RangeSet<Integer> remainingIds = usedIds.complement();
+      Iterator<Range<Integer>> rangeIterator = remainingIds.asRanges().iterator();
+      while (rangeIterator.hasNext()) {
+        Range<Integer> range = rangeIterator.next();
+        ContiguousSet<Integer> contiguousRange =
+            ContiguousSet.create(range, DiscreteDomain.integers());
+        if (!contiguousRange.isEmpty()) {
+          id = contiguousRange.first();
+          break;
+        }
+      }
     }
+    assert !usedIds.contains(id);
     mappedIds.put(pId, id);
-    usedIds.add(Range.singleton(id));
+    usedIds.add(Range.open(id - 1, id + 1));
     return id;
   }
 
