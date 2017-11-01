@@ -1042,7 +1042,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           throws UnrecognizedCCodeException, InterruptedException {
 
     final CFunctionEntryNode entryNode = edge.getSuccessor();
-    BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
       final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
@@ -1061,6 +1060,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           constraints,
           pts);
     }
+
+    BooleanFormula result =
+        super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     return result;
   }
