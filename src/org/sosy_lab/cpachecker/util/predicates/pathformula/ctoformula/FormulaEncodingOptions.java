@@ -107,11 +107,6 @@ public class FormulaEncodingOptions {
       description = "For multithreaded programs this is an overapproximation of possible values of shared variables.")
   private boolean useHavocAbstraction = false;
 
-  @Option(
-      secure = true,
-      description = "Use an optimisation for constraint generation")
-  private boolean useConstraintOptimisation = true;
-
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -171,9 +166,5 @@ public class FormulaEncodingOptions {
 
   public boolean useHavocAbstraction() {
     return useHavocAbstraction;
-  }
-
-  public boolean useConstraintOptimisation() {
-    return useConstraintOptimisation;
   }
 }

@@ -102,6 +102,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
       + "If the field is not accessed by an address then it is placed into a separate region.")
   private boolean useMemoryRegions = false;
 
+  @Option(
+      secure = true,
+      description = "Use an optimisation for constraint generation")
+  private boolean useConstraintOptimization = true;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
@@ -198,5 +203,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean useMemoryRegions() {
     return useMemoryRegions;
+  }
+
+  public boolean useConstraintOptimization() {
+    return useConstraintOptimization;
   }
 }
