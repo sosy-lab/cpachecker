@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -100,7 +102,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
           return false;
         } else {
           if (SlicingAbstractionsUtils.checkProgress(pReached, errorPath) == false) {
-            throw new RuntimeException("Progress property is violated!");
+            throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath);
           }
         }
       } else {

@@ -411,6 +411,12 @@ public class SlicingAbstractionsUtils {
     }
   }
 
+  /**
+   * Check that there is no path through the ARG anymore that has the same sequence of abstraction states as the error path.
+   * This is a mathematically proven progress property that should hold after splitting and slicing.
+   * This method makes no restrictions on the shape of the ARG, so one abstraction state could have several abstraction state
+   * parents. For analysis where this is not the case there are more efficient ways to check this.
+   */
   public static boolean checkProgress(UnmodifiableReachedSet pReached, ARGPath pErrorPath) {
     Set<ARGState> rootStates = ARGUtils.getRootStates(pReached);
     assert rootStates.size()==1;

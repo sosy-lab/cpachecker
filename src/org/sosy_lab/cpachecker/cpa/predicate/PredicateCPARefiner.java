@@ -32,7 +32,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,7 +44,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;

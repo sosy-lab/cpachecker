@@ -313,8 +313,6 @@ public class ARGState extends AbstractSingleWrapperState
     assert (child.parents.contains(this));
     children.remove(child);
     child.parents.remove(this);
-    assert (!children.contains(child));
-    assert (!child.parents.contains(this));
   }
 
   // counterexample
@@ -485,7 +483,6 @@ public class ARGState extends AbstractSingleWrapperState
     for (ARGState child : children) {
       assert (child.parents.contains(this));
       child.parents.remove(this);
-      assert (!child.parents.contains(this));
     }
     children.clear();
 
@@ -493,7 +490,6 @@ public class ARGState extends AbstractSingleWrapperState
     for (ARGState parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);
-      assert (!parent.children.contains(this));
     }
     parents.clear();
   }

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -105,8 +105,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     // Check if the argElement has only one parent and remember it for later:
     ARGState parent = null;
     if (argElement.getParents().size() == 1) {
-      Iterator<ARGState> it = argElement.getParents().iterator();
-      parent = it.next();
+      parent = Iterables.get(argElement.getParents(), 0);
     }
 
     for (AbstractState reachedState : pReached) {

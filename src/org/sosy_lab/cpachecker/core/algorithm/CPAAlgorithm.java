@@ -370,6 +370,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               shutdownNotifier.shutdownIfNecessary();
               AbstractState mergedState =
                   mergeOperator.merge(successor, reachedState, successorPrecision);
+
               if (!mergedState.equals(reachedState)) {
                 logger.log(Level.FINER, "Successor was merged with state from reached set");
                 logger.log(

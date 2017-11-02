@@ -26,6 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+/**
+ * This class provides a flexible way of building path formulas.
+ * The initial {@link SSAMap} / {@link PathFormula} and the {@link PathFormulaManager}
+ * do not have to be known before the corresponding build-method is called.
+ * This allows e.g. to easily reorder parts of path formulas and much more.
+ */
 public class PathFormulaBuilder {
 
   private static class PathFormulaAndBuilder extends PathFormulaBuilder {
@@ -87,7 +93,7 @@ public class PathFormulaBuilder {
    * @throws InterruptedException PathFormulaManager was interrupted
    */
   public PathFormula build(PathFormulaManager pPfmgr, SSAMap ssaMap) throws CPATransferException,InterruptedException{
-     return pPfmgr.makeNewPathFormula(pPfmgr.makeEmptyPathFormula(),ssaMap);
+    return pPfmgr.makeNewPathFormula(pPfmgr.makeEmptyPathFormula(), ssaMap);
   }
 
   /**
