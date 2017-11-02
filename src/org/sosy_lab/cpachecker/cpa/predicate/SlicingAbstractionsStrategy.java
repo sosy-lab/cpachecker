@@ -290,6 +290,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     allChangedStates = pChangedElements.stream()
         .map(x -> forkedStateMap.get(x))
         .filter(x -> x != null)
+        .filter(x -> !pChangedElements.contains(x))
         .collect(Collectors.toList());
     allChangedStates.addAll(pChangedElements);
 
