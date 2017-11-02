@@ -1970,6 +1970,9 @@ cpa.predicate.useArraysForHeap = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Use an optimisation for constraint generation
+cpa.predicate.useConstraintOptimization = true
+
 # For multithreaded programs this is an overapproximation of possible values
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
