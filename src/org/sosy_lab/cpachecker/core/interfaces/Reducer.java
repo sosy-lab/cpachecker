@@ -134,6 +134,10 @@ public interface Reducer {
 
   /**
    * See option bam.useDynamicAdjustment
+   *
+   * @param pState an abstract state which might be used in cache
    */
-  default boolean canBeUsedInCache(AbstractState pState) { return true; }
+  default boolean canBeUsedInCache(AbstractState pState) {
+    return true;
+  }
 }
