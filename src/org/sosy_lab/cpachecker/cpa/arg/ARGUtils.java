@@ -320,12 +320,12 @@ public class ARGUtils {
       }
     }
     assert firstElement != null : "ARG seems to have no initial state (state without parents)!";
-    List<ARGState> path = new LinkedList<>();
+    ImmutableList.Builder<ARGState> path = ImmutableList.builder();
     while (firstElement != null) {
       path.add(firstElement);
       firstElement = searchTree.get(firstElement);
     }
-    return new ARGPath(path);
+    return new ARGPath(path.build());
   }
 
   public static Collection<PathPosition> getTracePrefixesBeforePostfix(
