@@ -335,25 +335,27 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
     Set<CFANode> loopHeads = cfa.getAllLoopHeads().get();
 
-    Map<ARGState, Set<ARGState>> oldARGToFoldedState = new HashMap<>();
-    Map<Integer, ARGState> foldedStateToNewARGState = new HashMap<>();
-    Map<ARGState, Set<ARGState>> newARGToFoldedState = new HashMap<>();
-    Map<Pair<CFANode, CallstackStateEqualsWrapper>, Set<ARGState>> loopHeadToFoldedARGState =
+    Map<ARGState, ARGState> oldARGToFoldedState = new HashMap<>();
+    // Map<Integer, ARGState> foldedStateToNewARGState = new HashMap<>();
+    Map<ARGState, Set<ARGState>> newARGToFoldedStates = new HashMap<>();
+    Map<Pair<CFANode, CallstackStateEqualsWrapper>, ARGState> loopHeadToFoldedARGState =
         new HashMap<>();
 
     Deque<ARGState> waitlist = new ArrayDeque<>();
-    Set<ARGState> foldedNode;
+    ARGState foldedNode;
+    Set<ARGState> foldedStates;
     ARGState oldState, newState, newChild;
     CFANode loc;
     CFAEdge edge;
     Pair<CFANode, CallstackStateEqualsWrapper> inlinedLoc;
 
-    foldedNode = new HashSet<>();
-    foldedNode.add(pRoot);
+    foldedNode = new ARGState(pRoot.getWrappedState(), null);
     oldARGToFoldedState.put(pRoot, foldedNode);
-    newState = new ARGState(pRoot.getWrappedState(), null);
-    foldedStateToNewARGState.put(System.identityHashCode(foldedNode), newState);
-    newARGToFoldedState.put(newState, foldedNode);
+    // newState = new ARGState(pRoot.getWrappedState(), null);
+    // foldedStateToNewARGState.put(pRoot, foldedNode);
+    foldedStates = new HashSet<>();
+    foldedStates.add(pRoot);
+    newARGToFoldedStates.put(foldedNode, foldedStates);
     loc = AbstractStates.extractLocation(pRoot);
     if(loopHeads.contains(loc)) {
       loopHeadToFoldedARGState.put(
@@ -367,13 +369,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
     while (!waitlist.isEmpty()) {
       oldState = waitlist.pop();
-      newState =
-          foldedStateToNewARGState.get(System.identityHashCode(oldARGToFoldedState.get(oldState)));
 
       for (ARGState child : oldState.getChildren()) {
-        if (!oldARGToFoldedState.containsKey(child)) {
-          loc = AbstractStates.extractLocation(child);
+        loc = AbstractStates.extractLocation(child);
+        edge = oldState.getEdgeToChild(child);
+        child = getUncoveredChild(child);
 
+        if (!oldARGToFoldedState.containsKey(child)) {
           if (loopHeads.contains(loc)) {
             inlinedLoc =
                 Pair.of(
@@ -382,45 +384,107 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                         AbstractStates.extractStateByType(child, CallstackState.class)));
             foldedNode = loopHeadToFoldedARGState.get(inlinedLoc);
             if (foldedNode == null) {
-              foldedNode = new HashSet<>();
+              foldedNode = new ARGState(child.getWrappedState(), null);
+              foldedStates = new HashSet<>();
+              newARGToFoldedStates.put(foldedNode, foldedStates);
               loopHeadToFoldedARGState.put(inlinedLoc, foldedNode);
-              newChild = new ARGState(child.getWrappedState(), null);
-              assert (!foldedStateToNewARGState.containsKey(System.identityHashCode(foldedNode)));
-              foldedStateToNewARGState.put(System.identityHashCode(foldedNode), newChild);
             }
 
           } else {
             foldedNode = null;
+            newState = oldARGToFoldedState.get(oldState);
             for (ARGState newARGChild : newState.getChildren()) {
-              edge = oldState.getEdgeToChild(child);
               if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
-                foldedNode = newARGToFoldedState.get(newARGChild);
+                foldedNode = newARGChild;
                 // there should be only one such child, thus break
                 break;
               }
             }
 
             if (foldedNode == null) {
-              foldedNode = new HashSet<>();
-              newChild = new ARGState(child.getWrappedState(), null);
-              assert (!foldedStateToNewARGState.containsKey(System.identityHashCode(foldedNode)));
-              foldedStateToNewARGState.put(System.identityHashCode(foldedNode), newChild);
-              newARGToFoldedState.put(newChild, foldedNode);
+              foldedNode = new ARGState(child.getWrappedState(), null);
+              foldedStates = new HashSet<>();
+              newARGToFoldedStates.put(foldedNode, foldedStates);
             }
           }
 
           oldARGToFoldedState.put(child, foldedNode);
-          foldedNode.add(child);
+          newARGToFoldedStates.get(foldedNode).add(child);
           waitlist.push(child);
+
+        } else {
+          newState = oldARGToFoldedState.get(oldState);
+          newChild = null;
+          for (ARGState newARGChild : newState.getChildren()) {
+            if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+              newChild = newARGChild;
+              // there should be only one such child, thus break
+              break;
+            }
+          }
+
+          if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
+            merge(newChild, oldARGToFoldedState.get(child), oldARGToFoldedState, newARGToFoldedStates);
+          }
         }
 
-        newChild =
-            foldedStateToNewARGState.get(System.identityHashCode(oldARGToFoldedState.get(child)));
-        newChild.addParent(newState);
+        newChild = oldARGToFoldedState.get(child);
+        newChild.addParent(oldARGToFoldedState.get(oldState));
       }
     }
 
-    return foldedStateToNewARGState.get(System.identityHashCode(oldARGToFoldedState.get(pRoot)));
+    return oldARGToFoldedState.get(pRoot);
+  }
+
+  private ARGState getUncoveredChild(ARGState pChild) {
+    while (pChild.isCovered()) {
+      pChild = pChild.getCoveringState();
+    }
+    return pChild;
+  }
+
+  private void merge(
+      final ARGState newState1,
+      final ARGState newState2,
+      final Map<ARGState, ARGState> pOldARGToFoldedState,
+      final Map<ARGState, Set<ARGState>> pNewARGToFoldedStates) {
+
+    Map<ARGState, ARGState> mergedInto = new HashMap<>();
+    Deque<Pair<ARGState, ARGState>> toMerge = new ArrayDeque<>();
+    toMerge.push(Pair.of(newState1, newState2));
+    ARGState merge, mergeInto;
+
+    while (!toMerge.isEmpty()) {
+      merge = toMerge.peek().getFirst();
+      while (mergedInto.containsKey(merge)) {
+        merge = mergedInto.get(merge);
+      }
+      mergeInto = toMerge.pop().getSecond();
+      while (mergedInto.containsKey(mergeInto)) {
+        mergeInto = mergedInto.get(mergeInto);
+      }
+
+      if (merge == mergeInto) {
+        continue;
+      }
+
+      for (ARGState child : merge.getChildren()) {
+        for (ARGState ch : mergeInto.getChildren()) {
+          if (merge.getEdgeToChild(child) != null
+              && merge.getEdgeToChild(child).equals(mergeInto.getEdgeToChild(ch))
+              && ch != child) {
+            toMerge.add(Pair.of(child, ch));
+          }
+        }
+      }
+
+      merge.replaceInARGWith(mergeInto);
+      mergedInto.put(merge, mergeInto);
+      for (ARGState oldState : pNewARGToFoldedStates.remove(merge)) {
+        pOldARGToFoldedState.put(oldState, mergeInto);
+        pNewARGToFoldedStates.get(mergeInto).add(oldState);
+      }
+    }
   }
 
   private String getResidualProgramText(final ARGState pARGRoot,
@@ -560,5 +624,4 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     cpaAlgorithm.collectStatistics(pStatsCollection);
   }
-
 }
