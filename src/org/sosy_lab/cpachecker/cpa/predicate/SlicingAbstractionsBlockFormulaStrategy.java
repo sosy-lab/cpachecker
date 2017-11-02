@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtility.buildPathFormula;
+import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
 
 import java.util.ArrayList;
 import java.util.List;

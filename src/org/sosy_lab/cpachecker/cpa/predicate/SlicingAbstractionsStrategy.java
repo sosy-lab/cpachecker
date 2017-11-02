@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkAbstractionState;
-import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtility.buildPathFormula;
+import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -209,7 +209,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       pReached.removeCoverageOf(w);
       if (forkedStateMap.containsKey(w)) {
         ARGState forkedState = forkedStateMap.get(w);
-        SlicingAbstractionsUtility.copyEdges(forkedState,w,pReached);
+        SlicingAbstractionsUtils.copyEdges(forkedState,w,pReached);
         pReached.addForkedState(forkedState,w);
       }
     }
@@ -276,7 +276,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
     List<ARGState> priorAbstractionStates = new ArrayList<>();
     for (ARGState currentState : allChangedStates) {
-      for (ARGState s : SlicingAbstractionsUtility.calculateStartStates(currentState)) {
+      for (ARGState s : SlicingAbstractionsUtils.calculateStartStates(currentState)) {
         if (!priorAbstractionStates.contains(s) && ! allChangedStates.contains(s)) {
           priorAbstractionStates.add(s);
         }
@@ -295,7 +295,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
 
     for (ARGState currentState : allChangedStates) {
-      Map<ARGState, List<ARGState>> segmentMap = SlicingAbstractionsUtility.calculateOutgoingSegments(currentState);
+      Map<ARGState, List<ARGState>> segmentMap = SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
       Set<ARGState> segmentStateSet = new HashSet<>();
       for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {

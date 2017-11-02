@@ -99,7 +99,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
           ((ARGState)targetState).addCounterexampleInformation(counterexample);
           return false;
         } else {
-          if (SlicingAbstractionsUtility.checkProgress(pReached, errorPath) == false) {
+          if (SlicingAbstractionsUtils.checkProgress(pReached, errorPath) == false) {
             throw new RuntimeException("Progress property is violated!");
           }
         }

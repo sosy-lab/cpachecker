@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtility;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -239,7 +239,7 @@ public class CounterexampleCheckAlgorithm
     ARGState rootState = (ARGState) reached.getFirstState();
     Set<ARGState> statesOnErrorPath;
     if (ambigiousARG) {
-      statesOnErrorPath = SlicingAbstractionsUtility.getStatesOnErrorPath(errorState);
+      statesOnErrorPath = SlicingAbstractionsUtils.getStatesOnErrorPath(errorState);
     } else {
       statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
     }

@@ -59,7 +59,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
  * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
-public class SlicingAbstractionsUtility {
+public class SlicingAbstractionsUtils {
+
+  private SlicingAbstractionsUtils() {}
 
   /**
    * Calculate parent abstraction states for a given abstraction state
@@ -234,13 +236,13 @@ public class SlicingAbstractionsUtility {
   public static PathFormula buildPathFormula(ARGState start, ARGState stop,
       SSAMap pSSAMap, PointerTargetSet pPts, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants)
           throws CPATransferException, InterruptedException {
-    List<ARGState> segmentList = SlicingAbstractionsUtility.calculateOutgoingSegments(start).get(stop);
+    List<ARGState> segmentList = SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
     return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pSolver, pPfmgr, withInvariants);
   }
 
   /**
    * For better scaling, call this method instead of
-   * {@link SlicingAbstractionsUtility#buildPathFormula(ARGState, ARGState, SSAMap, PointerTargetSet, Solver, PathFormulaManager, boolean)}
+   * {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, SSAMap, PointerTargetSet, Solver, PathFormulaManager, boolean)}
    * if you already have calculated the segmentList (states between start and stop state).
    */
   public static PathFormula buildPathFormula(ARGState start, ARGState stop,
@@ -418,7 +420,7 @@ public class SlicingAbstractionsUtility {
     for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
        ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
        ARGState second = abstractionStatesTrace.get(i+1);
-       if (!SlicingAbstractionsUtility.calculateOutgoingSegments(first).keySet().contains(second)) {
+       if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).keySet().contains(second)) {
          return true;
        }
     }
@@ -456,7 +458,7 @@ public class SlicingAbstractionsUtility {
     for (int i = 0; i< abstractionStatesOnErrorPath.size()-1;i++) {
       ARGState start = abstractionStatesOnErrorPath.get(i);
       ARGState stop = abstractionStatesOnErrorPath.get(i+1);
-      statesOnErrorPath.addAll(SlicingAbstractionsUtility.calculateOutgoingSegments(start).get(stop));
+      statesOnErrorPath.addAll(SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop));
     }
 
     return statesOnErrorPath;
