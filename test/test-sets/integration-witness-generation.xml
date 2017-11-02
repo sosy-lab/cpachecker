@@ -3,16 +3,15 @@
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="7 GB" cpuCores="2">
 
   <!--
-  The benchmarks "integration-witness-generation" and
-  "integration-witness-validation" depend on each other.
-  If one file is changed, please also update the other one.
+  Generate the test-set definition file to validate the witnesses
+  produced by this test-set definition using ../../scripts/generate_validation_testdef.py
   -->
 
   <option name="-heap">6000M</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
-  <rundefinition name="witness-generation">
-    <option name="-sv-comp17"/>
+  <rundefinition>
+    <option name="-svcomp18"/>
   </rundefinition>
 
   <resultfiles>**.graphml.gz</resultfiles>

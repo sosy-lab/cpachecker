@@ -27,12 +27,13 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -100,8 +101,8 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
       if (workCopyOfCFANodes.isEmpty()) {
         break;
       }
-      //Detect a recursion loop
-      LinkedList<CFANode> foundedRecursionLoop = new LinkedList<>();
+      // Detect a recursion loop
+      Deque<CFANode> foundedRecursionLoop = new ArrayDeque<>();
       /* Create a random path by getting the first function call from every node
        * and find the first node which is repeated
        */

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeTraverser;
+import com.google.common.graph.Traverser;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -82,20 +82,18 @@ public class CPAs {
   }
 
   /**
-   * Creates an iterable that enumerates all the CPAs contained in
-   * a single CPA, including the root CPA itself.
-   * The tree of elements is traversed in pre-order.
+   * Creates an iterable that enumerates all the CPAs contained in a single CPA, including the root
+   * CPA itself. The tree of elements is traversed in pre-order.
    */
-  public static FluentIterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
-
-    return new TreeTraverser<ConfigurableProgramAnalysis>() {
-      @Override
-      public Iterable<ConfigurableProgramAnalysis> children(ConfigurableProgramAnalysis cpa) {
-        return (cpa instanceof WrapperCPA)
-             ? ((WrapperCPA)cpa).getWrappedCPAs()
-             : ImmutableList.<ConfigurableProgramAnalysis>of();
-      }
-    }.preOrderTraversal(pCpa);
+  public static FluentIterable<ConfigurableProgramAnalysis> asIterable(
+      final ConfigurableProgramAnalysis pCpa) {
+    return FluentIterable.from(
+        Traverser.forTree(
+                (ConfigurableProgramAnalysis cpa) ->
+                    (cpa instanceof WrapperCPA)
+                        ? ((WrapperCPA) cpa).getWrappedCPAs()
+                        : ImmutableList.<ConfigurableProgramAnalysis>of())
+            .depthFirstPreOrder(pCpa));
   }
 
   /**

@@ -56,6 +56,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -89,7 +90,13 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 @Options(prefix = "residualprogram")
 public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
 
-  public enum ResidualGenStrategy {SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION}
+  public enum ResidualGenStrategy {
+    SLICING,
+    CONDITION,
+    CONDITION_PLUS_CFA_FOLD,
+    CONDITION_PLUS_LOOP_FOLD,
+    COMBINATION
+  }
 
   @Option(secure = true, name = "strategy",
       description = "which strategy to use to generate the residual program")
@@ -256,7 +263,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         return null;
       }
 
-      HashMultimap<CFANode, CallstackStateEqualsWrapper> result =
+      Multimap<CFANode, CallstackStateEqualsWrapper> result =
           HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
 
       for (AbstractState targetState : Iterables.filter(reached,
@@ -324,12 +331,172 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return newRoot;
   }
 
+  private ARGState foldARGAtLoops(final ARGState pRoot) {
+    Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
+    Set<CFANode> loopHeads = cfa.getAllLoopHeads().get();
+
+    Map<ARGState, ARGState> oldARGToFoldedState = new HashMap<>();
+    // Map<Integer, ARGState> foldedStateToNewARGState = new HashMap<>();
+    Map<ARGState, Set<ARGState>> newARGToFoldedStates = new HashMap<>();
+    Map<Pair<CFANode, CallstackStateEqualsWrapper>, ARGState> loopHeadToFoldedARGState =
+        new HashMap<>();
+
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    ARGState foldedNode;
+    Set<ARGState> foldedStates;
+    ARGState oldState, newState, newChild;
+    CFANode loc;
+    CFAEdge edge;
+    Pair<CFANode, CallstackStateEqualsWrapper> inlinedLoc;
+
+    foldedNode = new ARGState(pRoot.getWrappedState(), null);
+    oldARGToFoldedState.put(pRoot, foldedNode);
+    // newState = new ARGState(pRoot.getWrappedState(), null);
+    // foldedStateToNewARGState.put(pRoot, foldedNode);
+    foldedStates = new HashSet<>();
+    foldedStates.add(pRoot);
+    newARGToFoldedStates.put(foldedNode, foldedStates);
+    loc = AbstractStates.extractLocation(pRoot);
+    if(loopHeads.contains(loc)) {
+      loopHeadToFoldedARGState.put(
+          Pair.of(
+              loc,
+              new CallstackStateEqualsWrapper(
+                  AbstractStates.extractStateByType(pRoot, CallstackState.class))),
+          foldedNode);
+    }
+    waitlist.push(pRoot);
+
+    while (!waitlist.isEmpty()) {
+      oldState = waitlist.pop();
+
+      for (ARGState child : oldState.getChildren()) {
+        loc = AbstractStates.extractLocation(child);
+        edge = oldState.getEdgeToChild(child);
+        child = getUncoveredChild(child);
+
+        if (!oldARGToFoldedState.containsKey(child)) {
+          if (loopHeads.contains(loc)) {
+            inlinedLoc =
+                Pair.of(
+                    loc,
+                    new CallstackStateEqualsWrapper(
+                        AbstractStates.extractStateByType(child, CallstackState.class)));
+            foldedNode = loopHeadToFoldedARGState.get(inlinedLoc);
+            if (foldedNode == null) {
+              foldedNode = new ARGState(child.getWrappedState(), null);
+              foldedStates = new HashSet<>();
+              newARGToFoldedStates.put(foldedNode, foldedStates);
+              loopHeadToFoldedARGState.put(inlinedLoc, foldedNode);
+            }
+
+          } else {
+            foldedNode = null;
+            newState = oldARGToFoldedState.get(oldState);
+            for (ARGState newARGChild : newState.getChildren()) {
+              if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+                foldedNode = newARGChild;
+                // there should be only one such child, thus break
+                break;
+              }
+            }
+
+            if (foldedNode == null) {
+              foldedNode = new ARGState(child.getWrappedState(), null);
+              foldedStates = new HashSet<>();
+              newARGToFoldedStates.put(foldedNode, foldedStates);
+            }
+          }
+
+          oldARGToFoldedState.put(child, foldedNode);
+          newARGToFoldedStates.get(foldedNode).add(child);
+          waitlist.push(child);
+
+        } else {
+          newState = oldARGToFoldedState.get(oldState);
+          newChild = null;
+          for (ARGState newARGChild : newState.getChildren()) {
+            if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+              newChild = newARGChild;
+              // there should be only one such child, thus break
+              break;
+            }
+          }
+
+          if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
+            merge(newChild, oldARGToFoldedState.get(child), oldARGToFoldedState, newARGToFoldedStates);
+          }
+        }
+
+        newChild = oldARGToFoldedState.get(child);
+        newChild.addParent(oldARGToFoldedState.get(oldState));
+      }
+    }
+
+    return oldARGToFoldedState.get(pRoot);
+  }
+
+  private ARGState getUncoveredChild(ARGState pChild) {
+    while (pChild.isCovered()) {
+      pChild = pChild.getCoveringState();
+    }
+    return pChild;
+  }
+
+  private void merge(
+      final ARGState newState1,
+      final ARGState newState2,
+      final Map<ARGState, ARGState> pOldARGToFoldedState,
+      final Map<ARGState, Set<ARGState>> pNewARGToFoldedStates) {
+
+    Map<ARGState, ARGState> mergedInto = new HashMap<>();
+    Deque<Pair<ARGState, ARGState>> toMerge = new ArrayDeque<>();
+    toMerge.push(Pair.of(newState1, newState2));
+    ARGState merge, mergeInto;
+
+    while (!toMerge.isEmpty()) {
+      merge = toMerge.peek().getFirst();
+      while (mergedInto.containsKey(merge)) {
+        merge = mergedInto.get(merge);
+      }
+      mergeInto = toMerge.pop().getSecond();
+      while (mergedInto.containsKey(mergeInto)) {
+        mergeInto = mergedInto.get(mergeInto);
+      }
+
+      if (merge == mergeInto) {
+        continue;
+      }
+
+      for (ARGState child : merge.getChildren()) {
+        for (ARGState ch : mergeInto.getChildren()) {
+          if (merge.getEdgeToChild(child) != null
+              && merge.getEdgeToChild(child).equals(mergeInto.getEdgeToChild(ch))
+              && ch != child) {
+            toMerge.add(Pair.of(child, ch));
+          }
+        }
+      }
+
+      merge.replaceInARGWith(mergeInto);
+      mergedInto.put(merge, mergeInto);
+      for (ARGState oldState : pNewARGToFoldedStates.remove(merge)) {
+        pOldARGToFoldedState.put(oldState, mergeInto);
+        pNewARGToFoldedStates.get(mergeInto).add(oldState);
+      }
+    }
+  }
+
   private String getResidualProgramText(final ARGState pARGRoot,
       @Nullable final Set<ARGState> pAddPragma) throws CPAException {
-    if(constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
+    if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD) {
       Preconditions.checkState(pAddPragma == null);
 
       return translator.translateARG(foldARG(pARGRoot));
+    } else if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD) {
+      Preconditions.checkState(pAddPragma == null);
+
+      return translator.translateARG(foldARGAtLoops(pARGRoot));
     }
     return translator.translateARG(pARGRoot, pAddPragma);
   }
@@ -418,9 +585,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   private boolean checkInitialState(final AbstractState initState) {
-    if (constructionStrategy == ResidualGenStrategy.CONDITION
-        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD
-        || constructionStrategy == ResidualGenStrategy.COMBINATION) {
+    if (usesParallelCompositionOfProgramAndCondition()) {
       boolean considersAssumption = false, considersAssumptionGuider = false;
 
       for (AbstractState component : AbstractStates.asIterable(initState)) {
@@ -440,6 +605,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return true;
   }
 
+  protected boolean usesParallelCompositionOfProgramAndCondition() {
+    return getStrategy() == ResidualGenStrategy.CONDITION
+        || getStrategy() == ResidualGenStrategy.COMBINATION
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD;
+  }
+
   protected ResidualGenStrategy getStrategy() {
     return constructionStrategy;
   }
@@ -456,5 +628,4 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     cpaAlgorithm.collectStatistics(pStatsCollection);
   }
-
 }

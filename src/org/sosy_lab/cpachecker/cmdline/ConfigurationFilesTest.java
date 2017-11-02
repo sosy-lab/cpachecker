@@ -35,6 +35,7 @@ import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
+import com.google.common.truth.Expect;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -221,6 +222,72 @@ public class ConfigurationFilesTest {
     return Configuration.builder().loadFromFile(configFile);
   }
 
+  @Rule public final Expect expect = Expect.create();
+
+  @Test
+  public void checkUndesiredOptions() {
+    Configuration config;
+    try {
+      config = parse(configFile).build();
+    } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
+      assume().fail(e.getMessage());
+      throw new AssertionError();
+    }
+    assume()
+        .withMessage("Test configs (which are loaded from URL resources) may contain any option")
+        .that(configFile)
+        .isNotInstanceOf(URL.class);
+
+    // All the following options encode some information about the program itself,
+    // so they need to be specified by the user and may occur only in certain configurations
+    // for specific use cases (e.g., SV-COMP).
+    // If you add config files for specific use cases (and this is clear from the config's name!),
+    // you can whitelist it here.
+    // Otherwise consider changing the default value of the option if the value makes sense in
+    // general, or remove it from the config file.
+
+    checkOption(config, "analysis.entryFunction");
+    checkOption(config, "analysis.programNames");
+    checkOption(config, "java.classpath");
+    checkOption(config, "java.sourcepath");
+    checkOption(config, "java.version");
+    checkOption(config, "parser.usePreprocessor");
+
+    if (!configFile.toString().contains("ldv")) {
+      // LDV configs are specific to their use case, so these options are allowed
+
+      checkOption(config, "analysis.machineModel");
+
+      if (!configFile.toString().contains("sv-comp") && !configFile.toString().contains("svcomp")) {
+        checkOption(config, "cpa.predicate.memoryAllocationsAlwaysSucceed");
+
+        // Should not be changed for SV-COMP configs, but was in 2016 and 2017
+        checkOption(config, "cpa.smg.arrayAllocationFunctions");
+        checkOption(config, "cpa.smg.deallocationFunctions");
+        checkOption(config, "cpa.smg.memoryAllocationFunctions");
+        checkOption(config, "cpa.smg.zeroingMemoryAllocation");
+      }
+
+      checkOption(config, "cfa.assumeFunctions");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctions");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctionsWithZeroing");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctions");
+      checkOption(config, "cpa.predicate.memoryFreeFunctionName");
+      checkOption(config, "cpa.predicate.nondetFunctionsRegexp");
+      checkOption(config, "cpa.smg.externalAllocationFunction");
+    }
+  }
+
+  @SuppressWarnings("deprecation") // for tests this usage is ok
+  private void checkOption(Configuration config, String option) {
+    if (config.hasProperty(option)) {
+      expect.fail(
+          "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+          option, config.getProperty(option));
+    }
+  }
+
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @BeforeClass
@@ -259,7 +326,9 @@ public class ConfigurationFilesTest {
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
     if (configFile instanceof Path) {
-      assume().that((Iterable<?>) configFile).doesNotContain(Paths.get("includes"));
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();

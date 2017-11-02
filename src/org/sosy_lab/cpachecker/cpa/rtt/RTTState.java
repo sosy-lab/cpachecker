@@ -25,23 +25,22 @@ package org.sosy_lab.cpachecker.cpa.rtt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Stack;
-
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 
 public class RTTState extends AbstractAppender implements
@@ -79,23 +78,24 @@ public class RTTState extends AbstractAppender implements
    */
   private String classObjectScope;
 
-  /**
-   * Unique Object Scope Stack
-   */
-  private final Stack<String> classObjectStack;
+  /** Unique Object Scope Stack */
+  private final Deque<String> classObjectStack;
 
   public RTTState() {
     constantsMap = new HashMap<>();
     identificationMap = new HashMap<>();
     classTypeMap = new HashMap<>();
-    classObjectStack = new Stack<>();
+    classObjectStack = new ArrayDeque<>();
     classObjectScope = NULL_REFERENCE;
     constantsMap.put(KEYWORD_THIS, NULL_REFERENCE);
   }
 
-  private RTTState(Map<String, String> pConstantsMap,
-      Map<String, String> pIdentificationMap, Map<String, String> pClassTypeMap,
-      String pClassObjectScope, Stack<String> pClassObjectStack) {
+  private RTTState(
+      Map<String, String> pConstantsMap,
+      Map<String, String> pIdentificationMap,
+      Map<String, String> pClassTypeMap,
+      String pClassObjectScope,
+      Deque<String> pClassObjectStack) {
     constantsMap = pConstantsMap;
     identificationMap = pIdentificationMap;
     classTypeMap = pClassTypeMap;
@@ -323,8 +323,7 @@ public class RTTState extends AbstractAppender implements
 
 
   public static RTTState copyOf(RTTState old) {
-      Stack<String> newClassObjectStack = new Stack<>();
-      newClassObjectStack.addAll(old.classObjectStack);
+    Deque<String> newClassObjectStack = new ArrayDeque<>(old.classObjectStack);
       //TODO Investigate if this works
     return new RTTState(new HashMap<>(old.constantsMap), new HashMap<>(old.identificationMap), new HashMap<>(old.classTypeMap), old.classObjectScope, newClassObjectStack);
   }
@@ -377,7 +376,7 @@ public class RTTState extends AbstractAppender implements
     this.classObjectScope = classObjectScope;
   }
 
-  Stack<String> getClassObjectStack() {
+  Deque<String> getClassObjectStack() {
     return classObjectStack;
   }
 

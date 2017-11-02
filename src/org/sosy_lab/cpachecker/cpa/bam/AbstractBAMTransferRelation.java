@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -60,6 +60,8 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected final Reducer wrappedReducer;
   protected final ShutdownNotifier shutdownNotifier;
 
+  protected final boolean useDynamicAdjustment;
+
   protected AbstractBAMTransferRelation(
       AbstractBAMCPA pBamCPA, ShutdownNotifier pShutdownNotifier) {
     logger = pBamCPA.getLogger();
@@ -68,6 +70,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     data = pBamCPA.getData();
     partitioning = pBamCPA.getBlockPartitioning();
     shutdownNotifier = pShutdownNotifier;
+    useDynamicAdjustment = pBamCPA.useDynamicAdjustment();
   }
 
   @Override
@@ -79,8 +82,8 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       final Collection<? extends AbstractState> successors =
           getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
 
-      assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
-          : "target-state should be returned as single-element-collection";
+      //assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
+      //    : "target-state should be returned as single-element-collection";
 
       return successors;
 
@@ -142,12 +145,15 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
    * @param node the node of the location
    */
   protected boolean startNewBlockAnalysis(final ARGState pState, final CFANode node) {
-    return partitioning.isCallNode(node)
+    boolean result = partitioning.isCallNode(node)
         // at begin of a block, we do not want to enter it again immediately, new block != old block
         // -> state in the middle of a block
         && !pState.getParents().isEmpty()
         // -> start another block (needed for loop-blocks)
         && !partitioning.getBlockForCallNode(node).equals(getBlockForState(pState));
+
+    if (result && useDynamicAdjustment && data.isUncachedBlockEntry(node)) { return false; }
+    return result;
   }
 
   /**
@@ -225,6 +231,19 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       expandedResult.add(expandedState);
 
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, innerSubtree);
+
+      if (useDynamicAdjustment && wrappedReducer.canBeUsedInCache(expandedState)) {
+        if (expandedState instanceof Targetable &&
+            ((Targetable) expandedState).isTarget()) {
+          //In case of error location we should look at root state,
+          //because the 'target' state is not a real exit of the block
+          if (wrappedReducer.canBeUsedInCache(state)) {
+            data.addUncachedBlockEntry(innerSubtree.getCallNode());
+          }
+        } else {
+          data.addUncachedBlockEntry(innerSubtree.getCallNode());
+        }
+      }
     }
 
     logger.log(Level.FINEST, "Expanded results:", expandedResult);

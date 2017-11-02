@@ -144,8 +144,12 @@ class CFAFunctionBuilder extends ASTVisitor {
   // Data structure for handling switch-statements
   private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
-  private final Deque<CFANode> switchDefaultStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
-  private final Deque<FileLocation> switchDefaultFileLocationStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
+
+  @SuppressWarnings("JdkObsolete") // ArrayDeque not possible because it does not allow null
+  private final Deque<CFANode> switchDefaultStack = new LinkedList<>();
+
+  @SuppressWarnings("JdkObsolete") // ArrayDeque not possible because it does not allow null
+  private final Deque<FileLocation> switchDefaultFileLocationStack = new LinkedList<>();
 
   private final CBinaryExpressionBuilder binExprBuilder;
 

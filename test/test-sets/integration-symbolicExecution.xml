@@ -16,6 +16,7 @@
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <exclude>../programs/simple/struct-char-array-initializer_true-unreach-label.c</exclude> <!-- flapping timeout / out of memory -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
@@ -41,6 +42,7 @@
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loops/ludcmp_false-unreach-call.i</exclude> <!-- flapping timeout / out of memory -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 
@@ -49,6 +51,7 @@
     <exclude>../programs/benchmarks/systemc/token_ring.1*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/systemc/token_ring.*true-unreach-call*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_time_var_mutex_true-unreach-call.i</exclude> <!-- flapping timeout -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 

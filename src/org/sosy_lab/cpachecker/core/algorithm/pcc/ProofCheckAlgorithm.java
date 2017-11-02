@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -92,7 +93,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Specification specification)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this, ProofCheckAlgorithm.class);
 
     if (!proofFile.toFile().exists()) {
@@ -106,12 +107,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = logger;
 
     logger.log(Level.INFO, "Start reading proof.");
+    stats.totalTimer.start();
+    stats.readTimer.start();
     try {
-      stats.totalTimer.start();
-      stats.readTimer.start();
       checkingStrategy.readProof();
-    } catch (Throwable e) {
-      throw new RuntimeException("Failed reading proof.", e);
+    } catch (ClassNotFoundException | InvalidConfigurationException | IOException e) {
+      throw new CPAException("Failed reading proof", e);
     } finally {
       stats.readTimer.stop();
       stats.totalTimer.stop();

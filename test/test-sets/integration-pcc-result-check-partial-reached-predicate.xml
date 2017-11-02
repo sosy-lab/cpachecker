@@ -22,6 +22,7 @@
     <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/ssh/*</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
   
   <!-- need to test if these work at all -->
@@ -60,6 +61,7 @@
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/loop-new/*</exclude>
     <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude>
+    <exclude>../programs/benchmarks/loops/sum03_true-unreach-call_false-termination.i</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
@@ -73,6 +75,7 @@
     <exclude>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</exclude>
     <exclude>../programs/benchmarks/seq-mthreaded/*_false-unreach-call.*.c</exclude>
     <exclude>../programs/benchmarks/seq-pthread/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.04_true-unreach-call_false-termination.cil.c</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
   <tasks>
     <includesfile>integration-DeviceDriversLinux64.set</includesfile>

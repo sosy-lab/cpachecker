@@ -41,12 +41,14 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -192,7 +194,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
             prevCallState = callStacks.get(parentElement);
           }
 
-          PathFormula currentFormula = parentFormula;
+          PathFormula currentFormula = strengthen(currentState, parentFormula);
           for (CFAEdge edge : edges) {
             currentFormula = pfmgr.makeAnd(currentFormula, edge);
           }
@@ -242,6 +244,20 @@ public abstract class BAMPredicateRefiner implements Refiner {
         waitlist.addAll(currentState.getChildren());
       }
       return abstractionFormulas;
+    }
+
+    /** Add additional information from other CPAs. */
+    private PathFormula strengthen(final ARGState currentState, PathFormula currentFormula)
+        throws CPATransferException, InterruptedException {
+      AbstractStateWithAssumptions other =
+          AbstractStates.extractStateByType(currentState, AbstractStateWithAssumptions.class);
+      if (other != null) {
+        for (CExpression preassumption :
+            Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
+          currentFormula = pfmgr.makeAnd(currentFormula, preassumption);
+        }
+      }
+      return currentFormula;
     }
 
     /* rebuild indices from outer scope */

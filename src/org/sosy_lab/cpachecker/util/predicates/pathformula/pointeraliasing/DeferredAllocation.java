@@ -32,6 +32,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
@@ -159,12 +161,13 @@ class DeferredAllocation implements Serializable {
     private final String base;
     private final long size;
     private final @Nullable CType sizeType;
-    private final Formula sizeExp;
+    private final String sizeExp;
 
     private SerializationProxy(DeferredAllocation pDeferredAllocationPool) {
       isZeroed = pDeferredAllocationPool.isZeroed;
       base = pDeferredAllocationPool.base;
-      sizeExp = pDeferredAllocationPool.sizeExp;
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      sizeExp = mgr.dumpArbitraryFormula(pDeferredAllocationPool.sizeExp);
       if (pDeferredAllocationPool.size.isPresent()) {
         size = pDeferredAllocationPool.size.get().asLong();
         sizeType = pDeferredAllocationPool.size.get().getExpressionType();
@@ -180,7 +183,7 @@ class DeferredAllocation implements Serializable {
           sizeType != null
               ? Optional.of(CIntegerLiteralExpression.createDummyLiteral(size, sizeType))
               : Optional.empty(),
-          sizeExp,
+          GlobalInfo.getInstance().getPredicateFormulaManagerView().parseArbitraryFormula(sizeExp),
           isZeroed);
     }
   }

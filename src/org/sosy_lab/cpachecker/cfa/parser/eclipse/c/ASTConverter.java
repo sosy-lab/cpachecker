@@ -31,12 +31,12 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -197,6 +197,7 @@ class ASTConverter {
   private final ASTLiteralConverter literalConverter;
   private final ASTOperatorConverter operatorConverter;
   private final ASTTypeConverter typeConverter;
+  private final MachineModel machinemodel;
 
   private final ParseContext parseContext;
 
@@ -228,6 +229,7 @@ class ASTConverter {
     this.literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
     this.operatorConverter = new ASTOperatorConverter(pParseContext);
     this.parseContext = pParseContext;
+    this.machinemodel = pMachineModel;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
 
@@ -907,7 +909,7 @@ class ASTConverter {
         && (wayToInnerField.size() > 1 || owner instanceof CFieldReference)
         && !scope.isGlobalScope()) {
       CExpression tmp = fullFieldReference;
-      Deque<Pair<CType, String>> fields = new LinkedList<>();
+      Deque<Pair<CType, String>> fields = new ArrayDeque<>();
       while (tmp != owner) {
         fields.push(Pair.of(tmp.getExpressionType(), ((CFieldReference)tmp).getFieldName()));
         tmp = ((CFieldReference) tmp).getFieldOwner();
@@ -1306,6 +1308,15 @@ class ASTConverter {
       CType type;
       if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
         type = CNumericTypes.INT;
+      } else if (e.getOperator() == IASTUnaryExpression.op_minus
+          && operand.getExpressionType() instanceof CSimpleType) {
+        // CDT parser might get the type wrong in this case, e.g.:
+        // literals that should be of type long would still be int instead of long,
+        // because CDT only makes the operand long if there is a 'L' at the end
+        // => we cannot use e.getExpressionType() here!
+        CSimpleType innerType = (CSimpleType) operand.getExpressionType();
+        // now do not forget: operand should get promoted to int if its type is smaller than int:
+        type = machinemodel.getPromotedCType(innerType);
       } else {
         type = typeConverter.convert(e.getExpressionType());
       }

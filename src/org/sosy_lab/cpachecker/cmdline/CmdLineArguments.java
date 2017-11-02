@@ -333,7 +333,7 @@ class CmdLineArguments {
     out.println("You can also specify any of the configuration files in the directory config/");
     out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
     out.println();
-    out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
+    out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
   }
 
   static void putIfNotExistent(

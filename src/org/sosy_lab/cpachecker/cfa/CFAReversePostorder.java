@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -74,7 +73,8 @@ public class CFAReversePostorder {
     final Set<CFANode> visited = new HashSet<>();
 
     final Deque<CFANode> nodeStack = new ArrayDeque<>();
-    final Deque<Iterator<CFANode>> iteratorStack = new LinkedList<>(); // ArrayDeque doesn't work here because we store nulls
+    @SuppressWarnings("JdkObsolete") // ArrayDeque doesn't work here because we store nulls
+    final Deque<Iterator<CFANode>> iteratorStack = new LinkedList<>();
 
     nodeStack.push(start);
     iteratorStack.push(null);

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,8 +45,8 @@ public class LoopInvariantsState implements AbstractState {
   public LoopInvariantsState() {
     isLoopHead = false;
     inLoop = false;
-    polynomials = new LinkedList<>();
-    polynomialsOutsideOfLoop = new LinkedList<>();
+    polynomials = new ArrayList<>();
+    polynomialsOutsideOfLoop = new ArrayList<>();
     variableValueMap = new HashMap<>();
     invariants = null;
   }

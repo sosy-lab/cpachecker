@@ -102,7 +102,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private boolean useLocalAccessLocks = true;
 
   public static final String THREAD_START = "pthread_create";
-  protected static final String THREAD_JOIN = "pthread_join";
+  public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
@@ -618,7 +618,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private @Nullable ThreadingState handleWitnessAutomaton(
       ThreadingState ts, AutomatonState automatonState) {
     Map<String, AutomatonVariable> vars = automatonState.getVars();
-    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADID.id.toUpperCase());
+    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADNAME.id.toUpperCase());
     String threadId = ts.getActiveThread();
     if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
       // values not available or default value zero -> ignore and return state unchanged

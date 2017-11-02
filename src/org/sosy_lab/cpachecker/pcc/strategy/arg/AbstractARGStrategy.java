@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -205,7 +206,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   private boolean isCoveringCycleFree(ARGState pState) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     seen.add(pState);
     while (pState.isCovered()) {
       pState = pState.getCoveringState();

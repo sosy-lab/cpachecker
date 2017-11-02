@@ -4,7 +4,7 @@ CONTROL AUTOMATON TerminatingFunctions
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  MATCH {abort($?)} || MATCH {exit($?) || __assert_fail($?)} -> BREAK;
+  MATCH {abort($?)} || MATCH {exit($?)} || MATCH {__assert_fail($?)} -> BREAK;
   
 
 END AUTOMATON

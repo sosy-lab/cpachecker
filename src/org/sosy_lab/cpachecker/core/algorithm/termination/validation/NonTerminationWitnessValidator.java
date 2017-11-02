@@ -42,7 +42,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,14 +78,17 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -112,6 +117,8 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -121,12 +128,10 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
+  private static final String WITNESS_BREAK_CONTROLLER_SPEC_NAME = "WitnessBreakController";
   private static final String WITNESS_BREAK_OBSERVER_SPEC_NAME = "WitnessBreakObserver";
   private static final String TERMINATION_OBSERVER_SPEC_NAME = "TerminationObserver";
   private static final String ITERATION_OBSERVER_SPEC_NAME = "RecurrentSetObserver";
-
-  private static final Path TERMINATING_STATEMENT_CONTROL =
-      Paths.get("config/specification/TerminatingStatements.spc");
 
   private static final String AUTOMATANAMEPREFIX = "AutomatonAnalysis_";
   private static final String BREAKSTATENAME = "_predefinedState_BREAK";
@@ -152,6 +157,28 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path recurrentConfig;
+
+  @Option(
+    secure = true,
+    required = true,
+    name = "terminatingStatements",
+    description =
+        "Path to automaton specification describing which statements let the program terminate."
+  )
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path TERMINATING_STATEMENT_CONTROL =
+      Paths.get("config/specification/TerminatingStatements.spc");
+
+  @Option(
+    secure = true,
+    name = "successAsViolation",
+    description =
+        "Report a successful validation of the witness, "
+            + "i.e., a confirmation of the nontermination, as termination violation."
+  )
+  private boolean reportSuccessfulCheckAsViolation = true;
+
+  private static final String RECURSIONDEPTH = "2"; // TODO should it be configurable?
 
   private final Configuration config;
   private final LogManager logger;
@@ -269,6 +296,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
             pReachedSet.popFromWaitlist();
             logger.log(Level.INFO, "Non-termination witness confirmed.");
+            if (reportSuccessfulCheckAsViolation) {
+              pReachedSet.add(
+                  new ARGState(TerminationViolatingDummyState.INSTANCE, null),
+                  SingletonPrecision.getInstance());
+            }
             return AlgorithmStatus.SOUND_AND_PRECISE; // TODO correct choice here?
           }
         }
@@ -314,6 +346,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       // reaching stem end in witness results in ERROR (simple termination and easy to search for)
       automata.add(getSpecForErrorAt(witnessAutomatonName, cycleStart, STEM_SPEC_NAME));
       automata.add(terminationAutomaton);
+      automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       Specification spec = Specification.fromAutomata(automata);
 
       // set up
@@ -325,6 +358,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       singleConfigBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
       singleConfigBuilder.setOption(
           "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA");
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
       singleConfigBuilder.setOption("analysis.traversal.order", "BFS");
       singleConfigBuilder.setOption("output.disable", "true");
       Configuration singleConfig = singleConfigBuilder.build();
@@ -381,6 +415,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       automata.add(witness);
       automata.add(getSpecForErrorAt(quasiInvariantAsAssumeEdge.getSuccessor()));
       automata.add(terminationAutomaton);
+      // stop when reach break state
+      automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       Specification spec = Specification.fromAutomata(automata);
 
       // set up
@@ -390,6 +426,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.loadFromFile(reachabilityConfig);
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
       singleConfigBuilder.setOption("output.disable", "true");
       Configuration singleConfig = singleConfigBuilder.build();
 
@@ -501,6 +538,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.loadFromFile(recurrentConfig);
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
       singleConfigBuilder.setOption("output.disable", "true");
       Configuration singleConfig = singleConfigBuilder.build();
 
@@ -643,7 +681,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       }
     } catch (CPAException | IOException | InvalidConfigurationException e) {
       logger.logException(
-          Level.INFO,
+          Level.FINE,
           e,
           "Exception occurred while checking validity (closedness) of given recurrent set.");
       return false;
@@ -657,9 +695,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private PredicatePrecision getPredicatePrecisionFromCandidateInvariants(PredicateCPA pPredCPA) {
     PredicateAbstractionManager pAMgr = pPredCPA.getPredicateManager();
     BooleanFormula invariant;
+    PathFormulaManager pfmgr = pPredCPA.getPathFormulaManager();
+    if (pfmgr instanceof CachingPathFormulaManager) {
+      pfmgr = ((CachingPathFormulaManager) pfmgr).delegate;
+    }
+
     ToFormulaVisitor toFormula =
-        new ToFormulaVisitor(
-            pPredCPA.getSolver().getFormulaManager(), pPredCPA.getPathFormulaManager(), null);
+        new ToFormulaVisitor(pPredCPA.getSolver().getFormulaManager(), pfmgr, null);
     Collection<AbstractionPredicate> predicates = new ArrayList<>();
 
     predicates.add(pAMgr.makeFalsePredicate());
@@ -702,19 +744,19 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               .getTransferRelation()
               .getAbstractSuccessorsForEdge(
                   initialDefault, pInitialPrecision, pAssumeRecurrentSetInvariant);
-      if (succ.size() == 1) {
-        boolean found = false;
-        for (AbstractState innerState : AbstractStates.asIterable(succ.iterator().next())) {
+      List<AbstractState> initialCandidate = new ArrayList<>(succ.size());
+      for (AbstractState successor : succ) {
+        for (AbstractState innerState : AbstractStates.asIterable(successor)) {
           if (innerState instanceof AutomatonState
               && ((AutomatonState) innerState)
                   .getInternalStateName()
                   .equals(pStemEndCycleStart.getName())) {
-            found = true;
+            initialCandidate.add(successor);
           }
         }
 
-        if (found) {
-          return new ARGState(succ.iterator().next(), null);
+        if (initialCandidate.size() == 1) {
+          return new ARGState(initialCandidate.get(0), null);
         }
       }
     } catch (CPATransferException e) {
@@ -748,8 +790,10 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 witness.getInitialVariables(),
                 witness.getStates(),
                 pRecurrentStartInWitness.getName()));
+        automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       } catch (Exception e) {
-        logger.logException(Level.INFO, e, "Failed to set up specification to check assumptions");
+        logger.log(Level.INFO, "Failed to set up specification to check assumptions.");
+        logger.logException(Level.FINE, e, "Failure during set up of assumptions check");
         return false;
       }
       automata.add(terminationAutomaton);
@@ -791,90 +835,90 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       logger.log(Level.INFO, "Explore assumptions in witness automaton. Focus on looping part.");
       algorithm.run(reached);
 
-      AutomatonState amState;
       ARGState argState;
       CFAEdge edge;
       CExpression assigned;
       CBinaryExpression assumption;
 
       for (AbstractState state : reached) {
-        amState = AbstractStates.extractStateByType(state, AutomatonState.class);
-        if (!amState.getAssumptions().isEmpty()) {
-          argState = (ARGState) state;
+        for (AutomatonState amState :
+            AbstractStates.asIterable(state).filter(AutomatonState.class)) {
+          if (!amState.getAssumptions().isEmpty()) {
+            argState = (ARGState) state;
 
-          if (amState.getAssumptions().size() > 1) {
-            logger.log(
-                Level.INFO,
-                "Support at most one assumption per edge in witness, but this witness has more.");
-            return false;
-          }
+            if (amState.getAssumptions().size() > 1) {
+              logger.log(
+                  Level.INFO,
+                  "Support at most one assumption per edge in witness, but this witness has more.");
+              return false;
+            }
 
-          if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
-            logger.log(
-                Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
-            return false;
-          } else {
-            assumption = (CBinaryExpression) amState.getAssumptions().get(0);
-          }
+            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
+              logger.log(
+                  Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
+              return false;
+            } else {
+              assumption = (CBinaryExpression) amState.getAssumptions().get(0);
+            }
 
-          if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {
-            logger.log(
-                Level.INFO,
-                "Found a disallowed operator in assumption. Only equality is supported.");
-            return false;
-          }
+            if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {
+              logger.log(
+                  Level.INFO,
+                  "Found a disallowed operator in assumption. Only equality is supported.");
+              return false;
+            }
 
-          // check that assumption is after nondeterministic statement
-          // it is okay if there is an assumption, but no parent because assumptions are added by
-          // the transfer relation
-          for (ARGState parent : argState.getParents()) {
-            edge = parent.getEdgeToChild(argState);
-            switch (edge.getEdgeType()) {
-              case StatementEdge:
-                CStatement stmt = ((CStatementEdge) edge).getStatement();
-                if (stmt instanceof CFunctionCallAssignmentStatement) {
-                  // external function call
-                  assigned = ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide();
-                  if (!assumption.getOperand1().equals(assigned)
-                      && !assumption.getOperand2().equals(assigned)) {
-                    logger.log(
-                        Level.INFO,
-                        "Cannot detect that assumption only restricts assigned variable. Assumption might be too strong.");
+            // check that assumption is after nondeterministic statement
+            // it is okay if there is an assumption, but no parent because assumptions are added by
+            // the transfer relation
+            for (ARGState parent : argState.getParents()) {
+              edge = parent.getEdgeToChild(argState);
+              switch (edge.getEdgeType()) {
+                case StatementEdge:
+                  CStatement stmt = ((CStatementEdge) edge).getStatement();
+                  if (stmt instanceof CFunctionCallAssignmentStatement) {
+                    // external function call
+                    assigned = ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide();
+                    if (!assumption.getOperand1().equals(assigned)
+                        && !assumption.getOperand2().equals(assigned)) {
+                      logger.log(
+                          Level.INFO,
+                          "Cannot detect that assumption only restricts assigned variable. Assumption might be too strong.");
+                      return false;
+                    }
+                  } else {
+                    logger.log(Level.INFO, "Found an assumption for a deterministic edge.");
                     return false;
                   }
-                } else {
-                  logger.log(Level.INFO, "Found an assumption for a deterministic edge.");
-                  return false;
-                }
-                break;
-              case DeclarationEdge:
-                CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-                if (decl instanceof CVariableDeclaration
-                    && ((CVariableDeclaration) decl).getInitializer() == null) {
+                  break;
+                case DeclarationEdge:
+                  CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+                  if (decl instanceof CVariableDeclaration
+                      && ((CVariableDeclaration) decl).getInitializer() == null) {
 
-                  // check that assumption only affects declared variable
-                  if (!decl.getName().equals(assumption.getOperand1().toASTString())
-                      && !decl.getName().equals(assumption.getOperand2().toASTString())) {
+                    // check that assumption only affects declared variable
+                    if (!decl.getName().equals(assumption.getOperand1().toASTString())
+                        && !decl.getName().equals(assumption.getOperand2().toASTString())) {
+                      logger.log(
+                          Level.INFO,
+                          "Cannot detect that declared variables refers to declared variable. Assumption might be too strong.");
+                      return false;
+                    }
+                  } else {
                     logger.log(
                         Level.INFO,
-                        "Cannot detect that declared variables refers to declared variable. Assumption might be too strong.");
+                        "Found an unallowed assumption for a declaration with initializer.");
                     return false;
                   }
-                } else {
-                  logger.log(
-                      Level.INFO,
-                      "Found an unallowed assumption for a declaration with initializer.");
+                  break;
+                default:
+                  logger.log(Level.INFO, "Found an assumption for a deterministic statement");
                   return false;
-                }
-                break;
-              default:
-                logger.log(Level.INFO, "Found an assumption for a deterministic statement");
-                return false;
+              }
             }
           }
         }
       }
-
       return true;
 
     } catch (InvalidConfigurationException | CPAException e) {
@@ -930,6 +974,36 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       writer.append("STATE USEFIRST Init :\n");
       writer.append(checkStatement);
       writer.append(" -> " + succState + ";\n\n");
+
+      writer.append("END AUTOMATON");
+    }
+
+    return getAutomaton(tmpSpec);
+  }
+
+  private Automaton getSpecForStopAtWitnessTerminationBreak(final String fileName)
+      throws IOException, InvalidConfigurationException {
+    Path tmpSpec = Files.createTempFile(fileName, "spc");
+
+    try (Writer writer = Files.newBufferedWriter(tmpSpec, Charset.defaultCharset())) {
+
+      writer.append("CONTROL AUTOMATON ");
+      writer.append(fileName);
+
+      writer.append("\nINITIAL STATE Init;\n");
+
+      // needed to set up initial states, no cycle detection during set up
+      writer.append("STATE USEFIRST Init :\n");
+      writer.append("CHECK(");
+      writer.append(witnessAutomatonName);
+      writer.append(" , \"state==");
+      writer.append(BREAKSTATENAME);
+      writer.append("\") -> STOP;\n");
+      writer.append("CHECK(");
+      writer.append(terminationAutomatonName);
+      writer.append(" , \"state==");
+      writer.append(BREAKSTATENAME);
+      writer.append("\") -> STOP;\n\n");
 
       writer.append("END AUTOMATON");
     }
@@ -1017,6 +1091,24 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     @Override
     public @Nullable String getName() {
       return "Nontermination Witness Validation";
+    }
+  }
+
+  private static class TerminationViolatingDummyState implements AbstractState, Targetable {
+
+    private TerminationViolatingDummyState() {}
+
+    public static final TerminationViolatingDummyState INSTANCE =
+        new TerminationViolatingDummyState();
+
+    @Override
+    public boolean isTarget() {
+      return true;
+    }
+
+    @Override
+    public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+      return NamedProperty.singleton("termination");
     }
   }
 }

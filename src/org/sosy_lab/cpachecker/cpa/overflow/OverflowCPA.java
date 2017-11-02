@@ -34,12 +34,13 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
 /** CPA for detecting overflows in C programs. */
-public class OverflowCPA extends AbstractCPA {
+public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
 
   private final CBinaryExpressionBuilder expressionBuilder;
   private final ArithmeticOverflowAssumptionBuilder noOverflowAssumptionBuilder;

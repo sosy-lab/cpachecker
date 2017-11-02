@@ -169,6 +169,9 @@ analysis.algorithm.propertyCheck = false
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
 
+# collect undefined functions
+analysis.algorithm.undefinedFunctionCollector = false
+
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
@@ -755,7 +758,7 @@ coverage.enabled = true
 # print coverage info to file
 coverage.file = "coverage.info"
 
-# CPA to use (see doc/Configuration.txt for more documentation on this)
+# CPA to use (see doc/Configuration.md for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
 # Where to perform abstraction
@@ -799,6 +802,9 @@ cpa.apron.splitDisequalities = true
 
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
+
+# compress the produced correctness-witness automata using GZIP compression.
+cpa.arg.compressWitness = true
 
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
@@ -865,10 +871,14 @@ cpa.arg.witness.exportLineNumbers = true
 cpa.arg.witness.exportOffset = true
 
 # Verification witness: Include the sourcecode of the operations?
-cpa.arg.witness.exportSourcecode = true
+cpa.arg.witness.exportSourcecode = false
 
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
+
+# Verification witness: Include (not necessarily globally unique) thread
+# names for concurrent tasks for debugging?
+cpa.arg.witness.exportThreadName = false
 
 # Some redundant transitions will be removed
 cpa.arg.witness.removeInsufficientEdges = true
@@ -969,6 +979,11 @@ cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 # This flag determines which refinement procedure we should use. We can
 # choose between an in-place refinement and a copy-on-write refinement.
 cpa.bam.useCopyOnWriteRefinement = false
+
+# In some cases BAM cache can not be easily applied. If the option is enabled
+# CPAs can inform BAM that the result states should not be used even if there
+# will a cache hit.
+cpa.bam.useDynamicAdjustment = false
 
 # Use more fast partitioning builder, which can not handle loops
 cpa.bam.useExtendedPartitioningBuilder = false
@@ -1955,6 +1970,9 @@ cpa.predicate.useArraysForHeap = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Use an optimisation for constraint generation
+cpa.predicate.useConstraintOptimization = true
+
 # For multithreaded programs this is an overapproximation of possible values
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
@@ -2580,6 +2598,9 @@ merge = "JOIN"
 # instead of the current one.
 overflow.config = no default value
 
+# Track undefined behavior in left-shift operations.
+overflow.trackLeftShifts = false
+
 # Track overflow for signed integers.
 overflow.trackSignedIntegers = true
 
@@ -2872,7 +2893,8 @@ residualprogram.file = "residualProgram.c"
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_CFA_FOLD, CONDITION_PLUS_LOOP_FOLD,
+             COMBINATION]
 
 # wether to start next algorithm independently from the previous result
 restartAlgorithm.alwaysRestart = false
@@ -3020,8 +3042,26 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
 
+# Export termination counterexample to file as GraphML automaton 
+termination.violation.witness = "nontermination_witness.graphml"
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+
+# export undefined functions as C file
+undefFuncCollectorAlgorithm.file = "env.c"
+
+# Set of functions that should be ignored
+undefFuncCollectorAlgorithm.ignoreFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+
+# On-demand memory allocation function
+undefFuncCollectorAlgorithm.odmAllocFunction = "external_alloc"
+
+# Set of functions that are defined by pthread.h and should be ignored
+undefFuncCollectorAlgorithm.pthreadFunctionsRegexp = "^pthread_[a-zA-Z0-9_]*"
+
+# Set of functions that are defined by SV-COMP rules and should be ignored
+undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
@@ -3042,9 +3082,6 @@ witness.matchOffset = true
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
 witness.matchOriginLine = true
-
-# Match the thread identifier for concurrent programs.
-witness.matchThreadId = true
 
 # Represent sink states by bottom state instead of break state
 witness.stopNotBreakAtSinkStates = true
@@ -3068,6 +3105,14 @@ witness.validation.termination.inspectCycle.config = no default value
 # reachable. Configuration must be precise, i.e., may only report real
 # counterexamples
 witness.validation.termination.reachCycle.config = no default value
+
+# Report a successful validation of the witness, i.e., a confirmation of the
+# nontermination, as termination violation.
+witness.validation.termination.successAsViolation = true
+
+# Path to automaton specification describing which statements let the program
+# terminate.
+witness.validation.termination.terminatingStatements = "config/specification/TerminatingStatements.spc"
 
 # When validating a violation witness, use this configuration file instead of
 # the current one.

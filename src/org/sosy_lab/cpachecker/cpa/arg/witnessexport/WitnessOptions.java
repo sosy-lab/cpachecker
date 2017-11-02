@@ -55,7 +55,12 @@ class WitnessOptions {
     secure = true,
     description = "Verification witness: Include the sourcecode of the operations?"
   )
-  private boolean exportSourcecode = true;
+  private boolean exportSourcecode = false;
+
+  @Option(
+      secure = true,
+      description = "Verification witness: Include (not necessarily globally unique) thread names for concurrent tasks for debugging?")
+  private boolean exportThreadName = false;
 
   @Option(secure = true, description = "Verification witness: Include the offset within the file?")
   private boolean exportOffset = true;
@@ -101,6 +106,10 @@ class WitnessOptions {
 
   boolean exportThreadId() {
     return exportThreadId;
+  }
+
+  boolean exportThreadName() {
+    return exportThreadName;
   }
 
   boolean removeInsufficientEdges() {

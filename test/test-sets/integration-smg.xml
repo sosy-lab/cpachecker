@@ -4,6 +4,8 @@
 
   <option name="-noout"/>
   <option name="-heap">1500M</option>
+	<option name="-setprop">analysis.traversal.usePostorder=true</option>
+	<option name="-setprop">analysis.traversal.order=RAND</option>
 
   <rundefinition/>
 

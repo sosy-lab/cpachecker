@@ -42,6 +42,8 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 @Immutable
@@ -288,7 +290,7 @@ public final class PointerTargetSet implements Serializable {
     private final PersistentSortedMap<CompositeField, Boolean> fields;
     private final List<Pair<String, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
-    private final List<Formula> highestAllocatedAddresses;
+    private final List<String> highestAllocatedAddresses;
     private final int allocationCount;
 
     private SerializationProxy(PointerTargetSet pts) {
@@ -298,19 +300,34 @@ public final class PointerTargetSet implements Serializable {
           Lists.newArrayList(pts.deferredAllocations);
       this.deferredAllocations = deferredAllocations;
       this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
-      highestAllocatedAddresses = new ArrayList<>(pts.highestAllocatedAddresses);
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      highestAllocatedAddresses =
+          new ArrayList<>(
+              Lists.<Formula, String>transform(
+                  pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
 
+
     private Object readResolve() {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      PersistentList<Formula> highestAllocatedAddressesFormulas =
+          PersistentLinkedList.copyOf(
+              Lists.<String, Formula>transform(
+                  highestAllocatedAddresses, mgr::parseArbitraryFormula));
+
       return new PointerTargetSet(
           bases,
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(this.targets, PersistentLinkedList::copyOf)),
-          PersistentLinkedList.copyOf(highestAllocatedAddresses),
+          highestAllocatedAddressesFormulas,
           allocationCount);
     }
+  }
+
+  public boolean hasEmptyDeferredAllocationsSet() {
+    return deferredAllocations.isEmpty();
   }
 }

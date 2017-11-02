@@ -353,8 +353,8 @@ public class SMGStateTest {
     Assert.assertNotEquals(copy.getId(), original.getId());
     Assert.assertNotEquals(copy.getId(), second.getId());
 
-    Assert.assertSame(second.getPredecessorId(), original.getId());
-    Assert.assertSame(copy.getPredecessorId(), original.getId());
+    Assert.assertEquals(second.getPredecessorId(), original.getId());
+    Assert.assertEquals(copy.getPredecessorId(), original.getId());
   }
 
   @Test

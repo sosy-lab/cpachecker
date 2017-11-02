@@ -68,9 +68,13 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   private final ConfigurableProgramAnalysis valCPA;
   private final CFA cfa;
 
-  public ConfigReadingProofCheckAlgorithm(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier, final CFA pCfa,
-      final Specification pSpecification) throws InvalidConfigurationException {
+  public ConfigReadingProofCheckAlgorithm(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa,
+      final Specification pSpecification)
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     cfa = pCfa;
