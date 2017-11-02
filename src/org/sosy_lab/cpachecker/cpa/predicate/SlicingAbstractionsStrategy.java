@@ -109,7 +109,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       description="Reduces the amount of solver calls by directely slicing some edges" +
                   "that are mathematically proven to be infeasible in any case")
 
-  private boolean optimizeSlicing = false;
+  private boolean optimizeSlicing = true;
 
   private final Stats stats = new Stats();
 
