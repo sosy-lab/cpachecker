@@ -483,8 +483,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
             .toList();
 
-    assert from(result).allMatch(state -> state.getParents().size() <= 1)
-        : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
+    // This assertion does not hold anymore for slicing abstractions.
+    // TODO: Find a way to still check this for when we do not use slicing!
+    //assert from(result).allMatch(state -> state.getParents().size() <= 1)
+    //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
 
     assert pPath.getLastState() == result.get(result.size()-1);
     return result;

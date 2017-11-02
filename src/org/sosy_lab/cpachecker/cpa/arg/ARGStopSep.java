@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
@@ -101,11 +102,25 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
     // Now do the usual coverage checks
 
+    // Check if the argElement has only one parent and remember it for later:
+    ARGState parent = null;
+    if (argElement.getParents().size() == 1) {
+      parent = Iterables.get(argElement.getParents(), 0);
+    }
+
     for (AbstractState reachedState : pReached) {
       ARGState argReachedState = (ARGState)reachedState;
       if (stop(argElement, argReachedState, pPrecision)) {
-        // if this option is true, we always return false here on purpose
-        return !keepCoveredStatesInReached;
+        if (parent != null && argReachedState.getParents().contains(parent)) {
+          // if the covering state has the same parent as the covered state
+          // and if the covered state has no other parents,
+          // it should always be safe to remove the covered state:
+          argElement.removeFromARG();
+          return true;
+        } else {
+          // if this option is true, we always return false here on purpose
+          return !keepCoveredStatesInReached;
+        }
       }
     }
     return false;

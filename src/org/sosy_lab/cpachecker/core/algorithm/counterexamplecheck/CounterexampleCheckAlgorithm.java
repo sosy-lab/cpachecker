@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -85,6 +86,12 @@ public class CounterexampleCheckAlgorithm
                     + "Currently CBMC or CPAchecker with a different config or the concrete execution \n"
                     + "checker can be used.")
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
+
+  @Option(secure=true, name="ambigiousARG",
+      description="True if the path to the error state can not always be uniquely determined from the ARG.\n"
+                + "This is the case e.g. for Slicing Abstractions, where the abstraction states in the ARG\n"
+                + "do not form a tree!")
+  private boolean ambigiousARG = false;
 
   public CounterexampleCheckAlgorithm(
       Algorithm algorithm,
@@ -230,7 +237,12 @@ public class CounterexampleCheckAlgorithm
       throws CPAException, InterruptedException {
 
     ARGState rootState = (ARGState) reached.getFirstState();
-    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+    Set<ARGState> statesOnErrorPath;
+    if (ambigiousARG) {
+      statesOnErrorPath = SlicingAbstractionsUtils.getStatesOnErrorPath(errorState);
+    } else {
+      statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+    }
 
     return checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
   }

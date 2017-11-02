@@ -53,7 +53,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
+public class ARGState extends AbstractSingleWrapperState
+    implements Comparable<ARGState>, Graphable, Splitable{
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -309,6 +310,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   void deleteChild(ARGState child) {
     assert (children.contains(child));
+    assert (child.parents.contains(this));
     children.remove(child);
     child.parents.remove(this);
   }
@@ -506,6 +508,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
+    assert !(this==replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : children) {
@@ -539,5 +542,58 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
+  }
+
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.cpa.arg.Splitable#forkWithReplacements(java.util.List)
+   */
+  @Override
+  public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
+    AbstractState wrappedState = this.getWrappedState();
+    AbstractState newWrappedState = null;
+    for (AbstractState state : pReplacementStates) {
+      if (state.getClass().isInstance(wrappedState)) {
+        newWrappedState = state;
+        break;
+      }
+    }
+    if (newWrappedState == null) {
+      if (wrappedState instanceof Splitable) {
+        newWrappedState = ((Splitable)wrappedState).forkWithReplacements(pReplacementStates);
+      } else {
+        newWrappedState = wrappedState;
+      }
+    }
+
+    ARGState newState = new ARGState(newWrappedState,null);
+    newState.makeTwinOf(this);
+
+    return newState;
+  }
+
+  public void makeTwinOf(ARGState pTemplateState) {
+
+    checkState(this.stateId != pTemplateState.stateId);
+    checkState(pTemplateState.destroyed != true);
+    checkState(pTemplateState.counterexample == null);
+
+    this.wasExpanded = pTemplateState.wasExpanded;
+    this.mayCover = pTemplateState.mayCover;
+    this.hasCoveredParent = pTemplateState.hasCoveredParent;
+
+  }
+
+  public void removeParent(ARGState pOtherParent) {
+    checkNotNull(pOtherParent);
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    // Manually enforce set semantics.
+    if (parents.contains(pOtherParent)) {
+      assert pOtherParent.children.contains(this);
+      parents.remove(pOtherParent);
+      pOtherParent.children.remove(this);
+    } else {
+      assert !pOtherParent.children.contains(this) : "Problem detected!";
+    }
   }
 }

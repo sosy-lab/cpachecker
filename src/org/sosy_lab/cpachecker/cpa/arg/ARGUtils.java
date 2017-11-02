@@ -287,6 +287,47 @@ public class ARGUtils {
     return Optional.of(new ARGPath(Lists.reverse(states)));
   }
 
+  /**
+   * Create the shortest path in the ARG from root to the given element.
+   * If there are several such paths, one is chosen arbitrarily.
+   * This method is suited for analysis where {@link ARGUtils#getOnePathTo(ARGState)}
+   * is not fast enough due to the structure of the ARG.
+   *
+   * @param pLastElement The last element in the path.
+   * @return A path from root to lastElement.
+   */
+  public static ARGPath getShortestPathTo(final ARGState pLastElement) {
+    Map<ARGState,ARGState> searchTree = new HashMap<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    searchTree.put(pLastElement,null);
+    waitlist.add(pLastElement);
+    ARGState firstElement = null;
+    while (!waitlist.isEmpty()) {
+      ARGState currentState = waitlist.pop();
+      for (ARGState parent: currentState.getParents()) {
+        if (parent.getParents().isEmpty()) {
+          firstElement = parent;
+          searchTree.put(parent,currentState);
+          break;
+        }
+        if (!searchTree.containsKey(parent)) {
+          waitlist.add(parent);
+          searchTree.put(parent,currentState);
+        }
+      }
+      if (firstElement != null) {
+        break;
+      }
+    }
+    assert firstElement != null : "ARG seems to have no initial state (state without parents)!";
+    List<ARGState> path = new LinkedList<>();
+    while (firstElement != null) {
+      path.add(firstElement);
+      firstElement = searchTree.get(firstElement);
+    }
+    return new ARGPath(path);
+  }
+
   public static Collection<PathPosition> getTracePrefixesBeforePostfix(
       final Collection<PathPosition> pTracePosition,
       final CFANode pPostfixLocation) {
