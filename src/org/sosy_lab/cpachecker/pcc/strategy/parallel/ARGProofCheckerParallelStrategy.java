@@ -27,13 +27,14 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Stack;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ThreadFactory;
@@ -205,7 +206,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
   private List<ARGState> getARGElements(ARGState pRoot) {
     HashSet<ARGState> seen = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pRoot);
     toVisit.add(pRoot);
     ARGState current;
@@ -306,11 +307,11 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
   private ARGState[] orderBAMBlockStartStates(ARGState pMainRoot) {
     HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
-    Stack<BAMARGBlockStartState> blocksToVisit = new Stack<>();
+    Deque<BAMARGBlockStartState> blocksToVisit = new ArrayDeque<>();
     int nextIndex = 0;
 
     HashSet<ARGState> seen = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pMainRoot);
     toVisit.add(pMainRoot);
     ARGState current;
@@ -347,12 +348,14 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     return topologySort(map);
   }
 
-  private void traverseARG(BAMARGBlockStartState pRoot,
+  private void traverseARG(
+      BAMARGBlockStartState pRoot,
       HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
-      Stack<BAMARGBlockStartState> pBlocksToVisit, int pNextIndex) {
+      Deque<BAMARGBlockStartState> pBlocksToVisit,
+      int pNextIndex) {
 
     HashSet<ARGState> seen = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pRoot.getAnalyzedBlock());
     toVisit.add(pRoot.getAnalyzedBlock());
     ARGState current;
