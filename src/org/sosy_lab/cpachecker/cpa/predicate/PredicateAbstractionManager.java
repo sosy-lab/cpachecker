@@ -618,6 +618,7 @@ public class PredicateAbstractionManager {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
+    @SuppressWarnings("JdkObsolete")
     Collection<AbstractionPredicate> relevantPredicates = new LinkedList<>();
 
     for (AbstractionPredicate predicate : pPredicates) {
