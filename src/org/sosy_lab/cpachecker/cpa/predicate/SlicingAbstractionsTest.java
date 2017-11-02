@@ -27,11 +27,11 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -64,53 +64,39 @@ public class SlicingAbstractionsTest {
       return false;
     }
   };
-  private static final ImmutableMap<String, String> EMPTY_OPTIONS =
-      new ImmutableMap.Builder<String, String>().build();
-  private static final ImmutableMap<String, String> LINEAR_OPTIONS;
-  private static final ImmutableMap<String, String> UNOPTIMIZED_OPTION;
-  private static final ImmutableMap<String, String> MINIMAL_OPTION;
-
-  static {
-    ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<>();
-    builder.put("cpa.predicate.encodeBitvectorAs", "INTEGER");
-    builder.put("cpa.predicate.encodeFloatAs", "RATIONAL");
-    builder.put("cpa.predicate.handleFieldAccess", "false");
-    LINEAR_OPTIONS = builder.build();
-
-    builder = new ImmutableMap.Builder<>();
-    builder.put("cpa.predicate.slicingabstractions.optimizeslicing", "false");
-    UNOPTIMIZED_OPTION = builder.build();
-
-    builder = new ImmutableMap.Builder<>();
-    builder.put("cpa.predicate.slicingabstractions.minimalslicing", "true");
-    MINIMAL_OPTION = builder.build();
-  }
+  private static final ImmutableMap<String, String> EMPTY_OPTIONS = ImmutableMap.of();
+  private static final ImmutableMap<String, String> LINEAR_OPTIONS =
+      ImmutableMap.of(
+          "cpa.predicate.encodeBitvectorAs", "INTEGER",
+          "cpa.predicate.encodeFloatAs", "RATIONAL",
+          "cpa.predicate.handleFieldAccess", "false");
+  private static final ImmutableMap<String, String> UNOPTIMIZED_OPTION =
+      ImmutableMap.of("cpa.predicate.slicingabstractions.optimizeslicing", "false");
+  private static final ImmutableMap<String, String> MINIMAL_OPTION =
+      ImmutableMap.of("cpa.predicate.slicingabstractions.minimalslicing", "true");
 
   private String filename;
   private String configname;
   private Map<String, String> extraOptions;
 
   @Parameters(name = "{3}: {0}")
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public static Collection<Object[]> data() {
     File taskfolder = new File(TEST_DIR_PATH);
-    List<Object> files = new ArrayList<>(FluentIterable.from(taskfolder.listFiles())
-        .transform(x -> x.getName())
-        .toList());
+    List<Object> files =
+        FluentIterable.from(taskfolder.listFiles()).<Object>transform(x -> x.getName()).toList();
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
-        new ArrayList<>(FluentIterable.from(configfolder.listFiles(CONFIG_FILTER))
-        .transform(x -> x.getName())
-        .toList());
+        FluentIterable.from(configfolder.listFiles(CONFIG_FILTER))
+            .<Object>transform(x -> x.getName())
+            .toList();
 
-    List<Object> solverModes =
-        ImmutableList.of(EMPTY_OPTIONS, LINEAR_OPTIONS);
+    List<Object> solverModes = ImmutableList.of(EMPTY_OPTIONS, LINEAR_OPTIONS);
 
-    List<Object> optimizeModes =
-        Lists.newArrayList(EMPTY_OPTIONS, UNOPTIMIZED_OPTION);
+    List<Object> optimizeModes = ImmutableList.of(EMPTY_OPTIONS, UNOPTIMIZED_OPTION);
 
-    List<Object> minimalModes =
-        Lists.newArrayList(EMPTY_OPTIONS, MINIMAL_OPTION);
+    List<Object> minimalModes = ImmutableList.of(EMPTY_OPTIONS, MINIMAL_OPTION);
 
     return FluentIterable
         .from(Lists.cartesianProduct(files, configs, solverModes, optimizeModes, minimalModes))
