@@ -21,6 +21,7 @@
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_2_true-unreach-call.cil.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ssh/s3_clnt.blast.04_true-unreach-call.i.cil.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ssh/s3_clnt.blast.07_true-unreach-call.i.cil.c</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/ssh/s3_srvr.blast.07_true-unreach-call.i.cil.c</exclude> <!-- flapping timeout / interpolation failure -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
