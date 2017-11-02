@@ -42,11 +42,10 @@ public class ARGMergeJoin implements MergeOperator {
 
   @Option(
       secure = true,
-      name = "cpa.arg.mergeOnARGSubsumption",
-      description = "If this option is enabled, ARG states will also be merged if the first state is \n"
-          + "subsumed by the other (parents of first state are a subset of the parents of the second state \n"
-          + "and the subsumption relation of the wrapped domain holds for the wrapped states).")
-  private boolean mergeOnARGSubsumption = false;
+      name = "cpa.arg.mergeOnWrappedSubsumption",
+      description = "If this option is enabled, ARG states will also be merged if the first wrapped state is \n"
+          + " subsumed by the second wrapped state (and the parents are not yet subsumed).")
+  private boolean mergeOnWrappedSubsumption = false;
 
   public ARGMergeJoin(MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain, Configuration config)
       throws InvalidConfigurationException {
@@ -81,7 +80,7 @@ public class ARGMergeJoin implements MergeOperator {
     AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
 
     boolean continueMerge = !retElement.equals(wrappedState2);
-    if (mergeOnARGSubsumption) {
+    if (mergeOnWrappedSubsumption) {
       HashSet<ARGState> parents1 = new HashSet<>(argElement1.getParents());
       HashSet<ARGState> parents2 = new HashSet<>(argElement2.getParents());
       continueMerge = continueMerge ||
