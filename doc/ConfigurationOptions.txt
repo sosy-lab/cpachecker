@@ -617,6 +617,13 @@ conditional.verifier.verifierConfig = no default value
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
+# True if the path to the error state can not always be uniquely determined
+# from the ARG.
+# This is the case e.g. for Slicing Abstractions, where the abstraction
+# states in the ARG
+# do not form a tree!
+counterexample.ambigiousARG = false
+
 # Which model checker to use for verifying counterexamples as a second check.
 # Currently CBMC or CPAchecker with a different config or the concrete
 # execution 
@@ -840,6 +847,12 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# If this option is enabled, ARG states will also be merged if the first
+# wrapped state is 
+#  subsumed by the second wrapped state (and the parents are not yet
+# subsumed).
+cpa.arg.mergeOnWrappedSubsumption = false
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
@@ -1810,6 +1823,12 @@ cpa.predicate.refinement.global.restartAfterRefinement = false
 # to be found. Use 0 for unlimited refinements (default).
 cpa.predicate.refinement.global.stopAfterNRefinements = 0
 
+# BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)
+cpa.predicate.refinement.graphblockformulastrategy = false
+
+# Enable/Disable adding partial state invariants into the PathFormulas
+cpa.predicate.refinement.includePartialInvariants = true
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
@@ -1922,6 +1941,13 @@ cpa.predicate.satCheckAtAbstraction = false
 
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
+
+# Only slices the minimal amount of edges to guarantuee progress
+cpa.predicate.slicingabstractions.minimalslicing = false
+
+# Reduces the amount of solver calls by directely slicing some edgesthat are
+# mathematically proven to be infeasible in any case
+cpa.predicate.slicingabstractions.optimizeslicing = true
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
