@@ -183,7 +183,7 @@ class DeferredAllocation implements Serializable {
           sizeType != null
               ? Optional.of(CIntegerLiteralExpression.createDummyLiteral(size, sizeType))
               : Optional.empty(),
-          GlobalInfo.getInstance().getPredicateFormulaManagerView().parse(sizeExp),
+          GlobalInfo.getInstance().getPredicateFormulaManagerView().parseArbitraryFormula(sizeExp),
           isZeroed);
     }
   }
