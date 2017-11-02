@@ -25,14 +25,17 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Table;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -50,8 +53,8 @@ public class Partition implements Comparable<Partition>, Serializable {
   /** we use an index to track the "age" of a partition. */
   private final int index;
 
-  private final Set<String> vars = new TreeSet<>();
-  private final Set<BigInteger> values = new TreeSet<>();
+  private final SortedSet<String> vars = new TreeSet<>();
+  private final SortedSet<BigInteger> values = new TreeSet<>();
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
@@ -66,16 +69,16 @@ public class Partition implements Comparable<Partition>, Serializable {
     index = idGenerator.getFreshId();
   }
 
-  public Set<String> getVars() {
-    return vars;
+  public SortedSet<String> getVars() {
+    return Collections.unmodifiableSortedSet(vars);
   }
 
-  public Set<BigInteger> getValues() {
-    return values;
+  public SortedSet<BigInteger> getValues() {
+    return Collections.unmodifiableSortedSet(values);
   }
 
   public Multimap<CFAEdge, Integer> getEdges() {
-    return edges;
+    return Multimaps.unmodifiableMultimap(edges);
   }
 
   /** adds the var to the partition and also to the global set of all vars. */
