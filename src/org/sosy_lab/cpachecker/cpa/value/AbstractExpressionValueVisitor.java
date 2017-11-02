@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -2064,15 +2064,13 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JArrayCreationExpression pJArrayCreationExpression) {
-    List<JExpression> arraySizeExpressions = new ArrayList<>(pJArrayCreationExpression.getLength());
     Value lastArrayValue;
     Value currentArrayValue = null;
     int currentDimension = 0;
     long concreteArraySize;
     final JType elementType = pJArrayCreationExpression.getExpressionType().getElementType();
 
-    Collections.reverse(arraySizeExpressions);
-    for (JExpression sizeExpression : arraySizeExpressions) {
+    for (JExpression sizeExpression : Lists.reverse(pJArrayCreationExpression.getLength())) {
       currentDimension++;
       lastArrayValue = currentArrayValue;
       Value sizeValue = sizeExpression.accept(this);
