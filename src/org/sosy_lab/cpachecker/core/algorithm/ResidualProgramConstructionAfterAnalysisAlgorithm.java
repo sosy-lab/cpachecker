@@ -351,13 +351,6 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     }
   }
 
-  private boolean usesParallelCompositionOfProgramAndCondition() {
-    return getStrategy() == ResidualGenStrategy.CONDITION
-        || getStrategy() == ResidualGenStrategy.COMBINATION
-        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
-        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD;
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.addAll(stats);

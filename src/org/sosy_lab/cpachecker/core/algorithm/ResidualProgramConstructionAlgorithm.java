@@ -585,10 +585,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   private boolean checkInitialState(final AbstractState initState) {
-    if (constructionStrategy == ResidualGenStrategy.CONDITION
-        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
-        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD
-        || constructionStrategy == ResidualGenStrategy.COMBINATION) {
+    if (usesParallelCompositionOfProgramAndCondition()) {
       boolean considersAssumption = false, considersAssumptionGuider = false;
 
       for (AbstractState component : AbstractStates.asIterable(initState)) {
@@ -606,6 +603,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
 
     return true;
+  }
+
+  protected boolean usesParallelCompositionOfProgramAndCondition() {
+    return getStrategy() == ResidualGenStrategy.CONDITION
+        || getStrategy() == ResidualGenStrategy.COMBINATION
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD;
   }
 
   protected ResidualGenStrategy getStrategy() {
