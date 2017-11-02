@@ -188,8 +188,7 @@ public class ConstraintManager {
       return nres.setFalse();
     }
 
-
-    Hashtable<String,Term> varSolMap = new Hashtable<>(varMap);
+    Map<String, Term> varSolMap = new HashMap<>(varMap);
 
     varSolMap.remove(sol);
 

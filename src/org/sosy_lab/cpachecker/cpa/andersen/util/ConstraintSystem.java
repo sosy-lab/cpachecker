@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen.util;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -316,8 +318,8 @@ public class ConstraintSystem {
 
     for (List<String> scc : sccs) {
 
-      LinkedList<DirectedGraph.Node> refNodes = new LinkedList<>();
-      LinkedList<DirectedGraph.Node> normNodes = new LinkedList<>();
+      List<DirectedGraph.Node> refNodes = new ArrayList<>();
+      Deque<DirectedGraph.Node> normNodes = new ArrayDeque<>();
 
       for (String n : scc) {
 
@@ -401,8 +403,8 @@ public class ConstraintSystem {
 
     // find strongly-connected components (using tarjans linear algorithm)
     int maxdfs = 1;
-    LinkedList<DirectedGraph.Node> stack = new LinkedList<>();
-    List<List<String>> sccs = new LinkedList<>();
+    Deque<DirectedGraph.Node> stack = new ArrayDeque<>();
+    List<List<String>> sccs = new ArrayList<>();
     while (!workset.isEmpty()) {
 
       DirectedGraph.Node n = workset.iterator().next();
@@ -415,26 +417,25 @@ public class ConstraintSystem {
 
   /**
    * Recursive part of tarjans algorithm to find strongly connected components. Algorithm is e.g.
-   * described in
-   * <a href="http://en.wikipedia.org/wiki/Tarjan's_strongly_connected_components_algorithm">wikipedia</a>
+   * described in <a
+   * href="http://en.wikipedia.org/wiki/Tarjan's_strongly_connected_components_algorithm">wikipedia</a>
    *
-   * @param maxdfs
-   *        The current value for maxdfs.
-   * @param v
-   *        The current Node to process.
-   * @param workset
-   *        Set of all unreached Nodes.
-   * @param stack
-   *        Temporary datastructure for algorithm.
-   * @param nodeStrMap
-   *        Because the sccs are returned as a list of variables (i.e. Strings), the mapping from
-   *        Node to String must be given.
-   * @param sccs
-   *        All found strongly connected components are added to this list.
+   * @param maxdfs The current value for maxdfs.
+   * @param v The current Node to process.
+   * @param workset Set of all unreached Nodes.
+   * @param stack Temporary datastructure for algorithm.
+   * @param nodeStrMap Because the sccs are returned as a list of variables (i.e. Strings), the
+   *     mapping from Node to String must be given.
+   * @param sccs All found strongly connected components are added to this list.
    * @return an updated value for maxdfs.
    */
-  private static int tarjan(int maxdfs, DirectedGraph.Node v, Set<DirectedGraph.Node> workset,
-      LinkedList<DirectedGraph.Node> stack, Map<DirectedGraph.Node, String> nodeStrMap, List<List<String>> sccs) {
+  private static int tarjan(
+      int maxdfs,
+      DirectedGraph.Node v,
+      Set<DirectedGraph.Node> workset,
+      Deque<DirectedGraph.Node> stack,
+      Map<DirectedGraph.Node, String> nodeStrMap,
+      List<List<String>> sccs) {
 
     v.dfs = maxdfs;
     v.lowlink = maxdfs;
@@ -454,7 +455,7 @@ public class ConstraintSystem {
     if (v.lowlink == v.dfs) {
 
       DirectedGraph.Node succ;
-      LinkedList<String> scc = new LinkedList<>();
+      List<String> scc = new ArrayList<>();
 
       do {
         succ = stack.pop();
