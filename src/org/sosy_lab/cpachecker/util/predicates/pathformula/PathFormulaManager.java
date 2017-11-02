@@ -148,4 +148,6 @@ public interface PathFormulaManager {
   public void printStatistics(PrintStream out);
 
   public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
+
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
 }

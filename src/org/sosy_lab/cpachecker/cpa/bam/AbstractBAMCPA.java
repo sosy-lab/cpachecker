@@ -90,6 +90,13 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   private boolean useExtendedPartitioningBuilder = false;
 
   @Option(
+      secure = true,
+      description = "In some cases BAM cache can not be easily applied. "
+          + "If the option is enabled CPAs can inform BAM that the result states should not be used"
+          + " even if there will a cache hit.")
+  private boolean useDynamicAdjustment = false;
+
+  @Option(
     secure = true,
     description =
         "This flag determines which refinement procedure we should use. "
@@ -198,5 +205,9 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   boolean useCopyOnWriteRefinement() {
     return useCopyOnWriteRefinement;
+  }
+
+  boolean useDynamicAdjustment() {
+    return useDynamicAdjustment;
   }
 }

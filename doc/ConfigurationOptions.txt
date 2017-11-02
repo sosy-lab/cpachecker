@@ -980,6 +980,11 @@ cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 # choose between an in-place refinement and a copy-on-write refinement.
 cpa.bam.useCopyOnWriteRefinement = false
 
+# In some cases BAM cache can not be easily applied. If the option is enabled
+# CPAs can inform BAM that the result states should not be used even if there
+# will a cache hit.
+cpa.bam.useDynamicAdjustment = false
+
 # Use more fast partitioning builder, which can not handle loops
 cpa.bam.useExtendedPartitioningBuilder = false
 
@@ -1964,6 +1969,9 @@ cpa.predicate.useArraysForHeap = true
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
+
+# Use an optimisation for constraint generation
+cpa.predicate.useConstraintOptimization = true
 
 # For multithreaded programs this is an overapproximation of possible values
 # of shared variables.

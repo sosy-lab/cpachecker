@@ -447,8 +447,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.addBase(declaration.getQualifiedName(), type, size, constraints);
-    } else if (isAddressedVariable(declaration)) {
-      pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
+    } else if (isAddressedVariable(declaration) || !CTypeUtils.isSimpleType(decayedType)) {
+      if (options.useConstraintOptimization()) {
+        pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
+      } else {
+        pts.addBase(declaration.getQualifiedName(), type, size, constraints);
+      }
     }
   }
 
@@ -1037,7 +1041,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           throws UnrecognizedCCodeException, InterruptedException {
 
     final CFunctionEntryNode entryNode = edge.getSuccessor();
-    BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
       final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
@@ -1056,6 +1059,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           constraints,
           pts);
     }
+
+    BooleanFormula result =
+        super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     return result;
   }
