@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -54,11 +54,10 @@ public class Partition implements Comparable<Partition>, Serializable {
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
-  private final HashBasedTable<CFAEdge, Integer, Partition> edgeToPartition;
+  private final Table<CFAEdge, Integer, Partition> edgeToPartition;
 
   Partition(
-      Map<String, Partition> varToPartition,
-      HashBasedTable<CFAEdge, Integer, Partition> edgeToPartition) {
+      Map<String, Partition> varToPartition, Table<CFAEdge, Integer, Partition> edgeToPartition) {
     this.varToPartition = varToPartition;
     this.edgeToPartition = edgeToPartition;
     index = idGenerator.getFreshId();

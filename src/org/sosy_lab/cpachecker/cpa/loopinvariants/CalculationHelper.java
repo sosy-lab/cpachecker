@@ -28,7 +28,6 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,7 +98,7 @@ public class CalculationHelper {
 
     List<String> groebnerBasis = getMatchesFromStreamWithGroebner(pSympy);
 
-    List<Polynom> polynoms = new LinkedList<>();
+    List<Polynom> polynoms = new ArrayList<>();
 
     for (String invariant : groebnerBasis) {
       Polynom poly = new Polynom();
@@ -176,7 +175,7 @@ public class CalculationHelper {
 
     CollectVariablesVisitor collector = new CollectVariablesVisitor();
     Set<String> variables;
-    List<String> closedFormPolynomials = new LinkedList<>();
+    List<String> closedFormPolynomials = new ArrayList<>();
 
     for (PolynomExpression polynom : polynomials) {
 

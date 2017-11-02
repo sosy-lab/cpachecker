@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
@@ -245,7 +246,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       throws CPAException, InterruptedException {
     // overapproximating this set, considering all syntactical paths
 
-    HashMultimap<CFANode, CallstackStateEqualsWrapper> seen =
+    Multimap<CFANode, CallstackStateEqualsWrapper> seen =
         HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
     Deque<Pair<CFANode, CallstackState>> toProcess = new ArrayDeque<>();
     Pair<CFANode, CallstackState> current, explored;
@@ -349,13 +350,6 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
           ", the control automaton guiding the exploration based on the condition is needed. " +
           "Please set the option residualprogram.assumptionGuider."); }
     }
-  }
-
-  private boolean usesParallelCompositionOfProgramAndCondition() {
-    return getStrategy() == ResidualGenStrategy.CONDITION
-        || getStrategy() == ResidualGenStrategy.COMBINATION
-        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
-        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD;
   }
 
   @Override

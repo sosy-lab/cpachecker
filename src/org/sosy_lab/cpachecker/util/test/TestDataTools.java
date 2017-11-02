@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.util.test;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -129,7 +129,7 @@ public class TestDataTools {
     );
 
     mapping.put(start, initial);
-    Deque<CFANode> queue = new LinkedList<>();
+    Deque<CFANode> queue = new ArrayDeque<>();
     queue.add(start);
 
     while (!queue.isEmpty()) {

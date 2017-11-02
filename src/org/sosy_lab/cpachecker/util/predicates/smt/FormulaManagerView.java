@@ -1816,4 +1816,45 @@ public class FormulaManagerView {
     }
 
   }
+
+  private static final String DUMMY_VAR = "__dummy_variable_dumping_formulas__";
+
+  /**
+   * Dump an arbitrary formula into a string, in contrast to {@link #dumpFormula(BooleanFormula)}
+   * this works with non-boolean formulas. No guarantees are made about the output format, except
+   * that it can be parsed by {@link #parseArbitraryFormula(String)}.
+   */
+  public String dumpArbitraryFormula(Formula f) {
+    Formula dummyVar = makeVariable(getFormulaType(f), DUMMY_VAR);
+    return dumpFormula(makeEqual(dummyVar, f)).toString();
+  }
+
+  /** Parse a string with a formula that was created by {@link #dumpArbitraryFormula(Formula)}. */
+  public Formula parseArbitraryFormula(String s) {
+    BooleanFormula f = parse(s);
+    return visit(
+        f,
+        new DefaultFormulaVisitor<Formula>() {
+
+          @Override
+          protected Formula visitDefault(Formula pF) {
+            throw new AssertionError("Unexpected formula " + pF);
+          }
+
+          @Override
+          public Formula visitFunction(
+              Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pDecl) {
+            if (pDecl.getKind() != FunctionDeclarationKind.EQ && pArgs.size() != 2) {
+              return visitDefault(pF);
+            }
+            Formula dummyVar = makeVariable(getFormulaType(pArgs.get(0)), DUMMY_VAR);
+            if (pArgs.get(0).equals(dummyVar)) {
+              return pArgs.get(1);
+            } else if (pArgs.get(1).equals(dummyVar)) {
+              return pArgs.get(0);
+            }
+            return visitDefault(pF);
+          }
+        });
+  }
 }

@@ -454,7 +454,7 @@ class MainCPAStatistics implements Statistics {
       mostFrequentLocationCount = maxPartition.getValue().size();
 
     } else {
-      HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+      Multiset<CFANode> allLocations = HashMultiset.create(from(reached)
                                                                     .transform(EXTRACT_LOCATION)
                                                                     .filter(notNull()));
 

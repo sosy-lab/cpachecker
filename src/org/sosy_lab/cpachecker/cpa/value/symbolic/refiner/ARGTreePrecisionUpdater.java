@@ -28,7 +28,11 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -39,12 +43,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrec
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Class for creating precisions and updating the ARGTree with them.
@@ -169,9 +167,9 @@ public class ARGTreePrecisionUpdater {
       final ARGReachedSet pReached,
       final ARGState pState
   ) {
-    return (ConstraintsPrecision) Precisions
+    return Precisions
         .asIterable(pReached.asReachedSet().getPrecision(pState))
-        .filter(Predicates.instanceOf(ConstraintsPrecision.class))
+        .filter(ConstraintsPrecision.class)
         .get(0);
   }
 

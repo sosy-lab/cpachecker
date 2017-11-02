@@ -28,9 +28,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,19 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -85,14 +81,15 @@ public final class AbstractionManager {
       description = "Predicate ordering")
   private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.CHRONOLOGICAL;
   // mapping predicate variable -> partition containing predicates with this predicate variable
-  private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
+  private final Map<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
-  private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
+  private final Map<Integer, Set<String>> partitionIDToPredVars = new HashMap<>();
   private PredicatePartition partition;
   @Option(secure = true, name = "abs.predicateOrdering.partitions",
       description = "Use multiple partitions for predicates")
   private boolean multiplePartitions = false;
-  private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
+
+  private final List<Integer> randomListOfVarIDs = new ArrayList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
 
@@ -214,7 +211,7 @@ public final class AbstractionManager {
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
       partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<>());
     } else {
-      HashSet<String> predVarsCoveredByPartition = new HashSet<>(predVars);
+      Set<String> predVarsCoveredByPartition = new HashSet<>(predVars);
 
       // check which variables of the predicate are covered by the partitions.
       Set<String> varIntersection = new HashSet<>(predVars);
@@ -257,7 +254,7 @@ public final class AbstractionManager {
       if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
         predicateOrdering.addAll(randomListOfVarIDs);
       } else if (multiplePartitions) {
-        HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
+        Set<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
         for (PredicatePartition partition : partitions) {
           List<AbstractionPredicate> predicates = partition.getPredicates();
 

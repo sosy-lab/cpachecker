@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.Stack;
-
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 /**
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
  */
 class FunctionBody implements Iterable<BasicBlock> {
 
-  private final Stack<BasicBlock> stack = new Stack<>();
+  private final Deque<BasicBlock> stack = new ArrayDeque<>();
 
   public FunctionBody(int pElementId, String pFunctionName) {
     stack.push(new BasicBlock(pElementId, pFunctionName));
@@ -75,6 +75,6 @@ class FunctionBody implements Iterable<BasicBlock> {
   public String toString() {
     // To write the C code, we need only the outermost block of the function.
     // It will print its nested blocks automatically as needed.
-    return stack.get(0).getCode();
+    return stack.getFirst().getCode();
   }
 }

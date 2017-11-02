@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -194,7 +195,7 @@ public class CtoFormulaConverter {
 
   private final FunctionDeclaration<?> stringUfDecl;
 
-  protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
+  protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,

@@ -24,15 +24,18 @@
 
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-import org.sosy_lab.cpachecker.util.Pair;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class FiducciaMattheysesAlgorithm {
 
@@ -64,22 +67,22 @@ public class FiducciaMattheysesAlgorithm {
 
   private void initDataStructures(
       Set<Integer> pV,
-      TreeMap<Long, LinkedList<Integer>> pBuckets,
-      HashMap<Integer, Long> pGain,
-      HashMap<Integer, Boolean> lock) {
+      TreeMap<Long, Deque<Integer>> pBuckets,
+      Map<Integer, Long> pGain,
+      Map<Integer, Boolean> lock) {
     for(Integer i : pV) {
       lock.put(i, false);
       long g = computeGain(i);
       pGain.put(i, g);
       if(!pBuckets.containsKey(g)) {
-        pBuckets.put(g, new LinkedList<Integer>());
+        pBuckets.put(g, new ArrayDeque<Integer>());
       }
       pBuckets.get(g).addFirst(i);
     }
   }
 
-  private Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> tryFindBestGainWithNonEmptyBucket(
-      final TreeMap<Long, LinkedList<Integer>> bucket) {
+  private Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> tryFindBestGainWithNonEmptyBucket(
+      final TreeMap<Long, Deque<Integer>> bucket) {
     return bucket
         .descendingKeySet()
         .stream()
@@ -97,11 +100,12 @@ public class FiducciaMattheysesAlgorithm {
     return Math.max(pSizeP1, pSizeP2)/(double)min <= balanceCriterion;
   }
 
-  private Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> tryPickBestGain(
-      final TreeMap<Long, LinkedList<Integer>> bucket1,
-      final TreeMap<Long, LinkedList<Integer>> bucket2) {
-    Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> bestV1Gain = tryFindBestGainWithNonEmptyBucket(bucket1);
-    Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> bestV2Gain = tryFindBestGainWithNonEmptyBucket(bucket2);
+  private Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> tryPickBestGain(
+      final TreeMap<Long, Deque<Integer>> bucket1, final TreeMap<Long, Deque<Integer>> bucket2) {
+    Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> bestV1Gain =
+        tryFindBestGainWithNonEmptyBucket(bucket1);
+    Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> bestV2Gain =
+        tryFindBestGainWithNonEmptyBucket(bucket2);
     if(!bestV2Gain.isPresent()) {
       return bestV1Gain;
     }
@@ -121,7 +125,7 @@ public class FiducciaMattheysesAlgorithm {
     }
   }
 
-  private int pollNodeFromBucketByGain(Long gain, final TreeMap<Long, LinkedList<Integer>> bucket) {
+  private int pollNodeFromBucketByGain(Long gain, final TreeMap<Long, Deque<Integer>> bucket) {
     // get first node from list in bucket
     // TODO implement alternative strategies
     return bucket.get(gain).poll();
@@ -129,13 +133,13 @@ public class FiducciaMattheysesAlgorithm {
 
   private void updateGain(
       int pNode,
-      final TreeMap<Long, LinkedList<Integer>> pBucket,
-      HashMap<Integer, Long> pGain,
+      final TreeMap<Long, Deque<Integer>> pBucket,
+      Map<Integer, Long> pGain,
       long pNewGain) {
     boolean success = pBucket.get(pGain.get(pNode)).removeFirstOccurrence(pNode);
     assert(success);
     if(!pBucket.containsKey(pNewGain)) {
-      pBucket.put(pNewGain, new LinkedList<Integer>());
+      pBucket.put(pNewGain, new ArrayDeque<Integer>());
     }
     pBucket.get(pNewGain).add(pNode);
     pGain.put(pNode, pNewGain);
@@ -143,10 +147,10 @@ public class FiducciaMattheysesAlgorithm {
 
   private void updateNeighbors(
       int node,
-      TreeMap<Long, LinkedList<Integer>> v1Buckets,
-      TreeMap<Long, LinkedList<Integer>> v2Buckets,
-      HashMap<Integer, Long> gain,
-      HashMap<Integer, Boolean> lock) {
+      TreeMap<Long, Deque<Integer>> v1Buckets,
+      TreeMap<Long, Deque<Integer>> v2Buckets,
+      Map<Integer, Long> gain,
+      Map<Integer, Boolean> lock) {
     Set<Integer> neighbors = new HashSet<>();
     neighbors.addAll(graph.getAdjacencyList().get(node));
     neighbors.addAll(graph.getPredecessorsOf(node));
@@ -170,23 +174,24 @@ public class FiducciaMattheysesAlgorithm {
   }
 
   public long improvePartitioning() {
-    LinkedList<Integer> moved = new LinkedList<>();
-    LinkedList<Long> cutSizes = new LinkedList<>();
-    TreeMap<Long, LinkedList<Integer>> v1Buckets = new TreeMap<>();
-    TreeMap<Long, LinkedList<Integer>> v2Buckets = new TreeMap<>();
-    HashMap<Integer, Long> gain = new HashMap<>();
-    HashMap<Integer, Boolean> lock = new HashMap<>();
+    List<Integer> moved = new ArrayList<>();
+    Deque<Long> cutSizes = new ArrayDeque<>();
+    TreeMap<Long, Deque<Integer>> v1Buckets = new TreeMap<>();
+    TreeMap<Long, Deque<Integer>> v2Buckets = new TreeMap<>();
+    Map<Integer, Long> gain = new HashMap<>();
+    Map<Integer, Boolean> lock = new HashMap<>();
 
       /* Initialize all the stuff */
     initDataStructures(v1, v1Buckets, gain, lock);
     initDataStructures(v2, v2Buckets, gain, lock);
     cutSizes.add(graph.getNumEdgesBetween(v1, v2));
     int iterationWithSmallestCutSize = 0;
-    long smallestCutSize = cutSizes.get(0);
+    long smallestCutSize = cutSizes.getFirst();
 
       /* Start algorithm */
     for(int i = 1; i < v1.size() + v2.size(); i++) {
-      Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> gainAndBuckets = tryPickBestGain(v1Buckets, v2Buckets);
+      Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> gainAndBuckets =
+          tryPickBestGain(v1Buckets, v2Buckets);
       if(!gainAndBuckets.isPresent()) {
         break;
       }

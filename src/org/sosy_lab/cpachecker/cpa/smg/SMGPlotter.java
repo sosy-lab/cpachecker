@@ -150,7 +150,7 @@ public final class SMGPlotter {
         plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
   }
 
-  private final HashMap <SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
+  private final Map<SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
   static private int nulls = 0;
   private int offset = 0;
 
@@ -235,7 +235,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    HashMap<String, SMGRegion> to_print = new HashMap<>();
+    Map<String, SMGRegion> to_print = new HashMap<>();
     to_print.putAll(pStackFrame.getVariables());
 
     SMGRegion returnObject = pStackFrame.getReturnObject();

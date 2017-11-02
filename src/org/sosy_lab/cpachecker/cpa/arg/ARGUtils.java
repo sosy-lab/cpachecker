@@ -57,7 +57,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -801,7 +800,7 @@ public class ARGUtils {
 
     ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
 
-    LinkedList<String> sortedFunctionOccurrence = new LinkedList<>();
+    Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
       CFANode node = extractLocation(s);
       if (!sortedFunctionOccurrence.isEmpty()

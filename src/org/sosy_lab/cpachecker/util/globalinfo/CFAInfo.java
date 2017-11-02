@@ -36,7 +36,7 @@ public class CFAInfo {
   private LocationStateFactory locationStateFactory;
 
   CFAInfo(CFA cfa) {
-    HashMap<Integer, CFANode> nodeNumberToNode = new HashMap<>();
+    Map<Integer, CFANode> nodeNumberToNode = new HashMap<>();
     for (CFANode node : cfa.getAllNodes()) {
       nodeNumberToNode.put(node.getNodeNumber(), node);
     }

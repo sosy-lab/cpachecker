@@ -82,7 +82,7 @@ public class ConstraintManager {
     return init;
   }
 
-  public static Constraint simplify(ArrayList<Term> cn, HashMap<String,Term> vars) {
+  public static Constraint simplify(ArrayList<Term> cn, Map<String, Term> vars) {
 
     // Constraint to be solved
     Term constraint = Util.termArrayToList(cn.toArray(new Term[0]));
@@ -95,7 +95,7 @@ public class ConstraintManager {
     logger.log(Level.FINEST, "\n * solve (w.r.t. " + varList.toString() + ")");
 
     @SuppressWarnings("unchecked")
-    Hashtable<String,Term> sol = q.oneSolution();
+    Hashtable<String, Term> sol = q.oneSolution();
 
     return ConstraintManager.normalize("S", sol);
   }
@@ -151,7 +151,7 @@ public class ConstraintManager {
      * Remove all non primed variables which occur in
      * the set of primed variables
      */
-    HashMap<String,Term> newVars = ConstraintManager.selectVariables(
+    Map<String,Term> newVars = ConstraintManager.selectVariables(
         cn1.getVars(), cn2.getVars());
 
     Constraint andConstraint = ConstraintManager.simplify(andCn, newVars);
@@ -161,10 +161,10 @@ public class ConstraintManager {
     return andConstraint;
   }
 
-  private static HashMap<String,Term> selectVariables(
-    HashMap<String,Term> vars,  HashMap<String,Term> pVars) {
+  private static Map<String, Term> selectVariables(
+      Map<String, Term> vars, Map<String, Term> pVars) {
 
-    HashMap<String,Term> newVars = new HashMap<>(pVars);
+    Map<String,Term> newVars = new HashMap<>(pVars);
 
     for (Map.Entry<String, Term> me : vars.entrySet()) {
       if (! pVars.containsKey(me.getKey())) {
@@ -188,8 +188,7 @@ public class ConstraintManager {
       return nres.setFalse();
     }
 
-
-    Hashtable<String,Term> varSolMap = new Hashtable<>(varMap);
+    Map<String, Term> varSolMap = new HashMap<>(varMap);
 
     varSolMap.remove(sol);
 

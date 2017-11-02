@@ -72,9 +72,9 @@ public class ARGToCTranslator {
   private static String DEFAULTRETURN = "default return";
 
   private static abstract class Statement {
-    public abstract void translateToCode(StringBuffer buffer, int indent);
+    public abstract void translateToCode(StringBuilder buffer, int indent);
 
-    protected static void writeIndent(StringBuffer buffer, int indent) {
+    protected static void writeIndent(StringBuilder buffer, int indent) {
       for(int i = 0; i < indent; i++) {
         // buffer.append(" ");
       }
@@ -108,7 +108,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append("{\n");
 
@@ -133,7 +133,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(code);
       buffer.append("\n");
@@ -154,7 +154,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(functionHeader);
       buffer.append("\n");
@@ -249,7 +249,7 @@ public class ARGToCTranslator {
 
 
   private String generateCCode(boolean includeHeader) {
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
@@ -519,7 +519,7 @@ public class ARGToCTranslator {
   }
 
   private ARGState getCovering(final ARGState pCovered) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
 
     while (current.isCovered()) {

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -39,8 +40,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import java.util.Stack;
-
 
 public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
@@ -52,15 +51,14 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
   }
 
   @Override
-  public void visit(ARGState pChildElement, CFAEdge pEdge, Stack<FunctionBody> pFunctionStack) {
+  public void visit(ARGState pChildElement, CFAEdge pEdge, Deque<FunctionBody> pFunctionStack) {
     translator.processEdge(pChildElement, pEdge, pFunctionStack);
 
     createAssumedAssigmentString(pFunctionStack, pEdge);
   }
 
-
-  private void createAssumedAssigmentString(Stack<FunctionBody> functionStack,
-      CFAEdge currentCFAEdge) {
+  private void createAssumedAssigmentString(
+      Deque<FunctionBody> functionStack, CFAEdge currentCFAEdge) {
     CFAEdgeWithAssumptions e = findMatchingEdge(currentCFAEdge);
     if (e != null &&
         e.getCFAEdge() instanceof CStatementEdge) {

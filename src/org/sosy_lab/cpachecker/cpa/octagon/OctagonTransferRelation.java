@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -801,7 +800,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
                   cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
     }
 
-    List<Pair<MemoryLocation, CExpression>> handleAbleParams = new LinkedList<>();
+    List<Pair<MemoryLocation, CExpression>> handleAbleParams = new ArrayList<>();
 
     // declare all parameters as variables
     for (int i = 0; i < parameters.size(); i++) {

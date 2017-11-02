@@ -162,6 +162,7 @@ public class CPreprocessor {
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
     protected void handleOutput(String pLine) throws IOException {
       if (buffer == null) {
         buffer = new StringBuffer();

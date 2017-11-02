@@ -1323,7 +1323,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       heap.addValue(pValue);
     }
 
-    HashSet<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
+    Set<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
 
     /* We need to remove all non-zero overlapping edges
      * and remember all overlapping zero edges to shrink them later

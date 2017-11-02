@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Collections;
-import java.util.LinkedList;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -56,9 +55,7 @@ public class PredicatePartitionRevImplication extends PredicatePartition {
     // find lowest position of a predicate that is implied by newPred, insert newPred before that predicate
     int lowestImplier = this.predicates.size();
     int elementIndex = this.predicates.size() - 1;
-    LinkedList<AbstractionPredicate> predicatesCopy = new LinkedList<>(this.predicates);
-    Collections.reverse(predicatesCopy);
-    for (AbstractionPredicate oldPred : predicatesCopy) {
+    for (AbstractionPredicate oldPred : Lists.reverse(ImmutableList.copyOf(this.predicates))) {
       try {
         if (this.solver.implies(oldPred.getSymbolicAtom(), newPred.getSymbolicAtom())) {
           lowestImplier = elementIndex;
