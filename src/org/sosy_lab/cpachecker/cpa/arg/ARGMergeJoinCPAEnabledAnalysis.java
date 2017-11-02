@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -151,8 +152,8 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
 
   private void deleteChildren2(ARGState parent) {
     // assumes that covered elements are not saved in reached set
-    HashSet<ARGState> subtreeNodes = getSubtreeNodes(parent);
-    HashSet<ARGState> laterCovered = new HashSet<>();
+    Set<ARGState> subtreeNodes = getSubtreeNodes(parent);
+    Set<ARGState> laterCovered = new HashSet<>();
 
     Deque<ARGState> toProcess = new ArrayDeque<>();
     toProcess.add(parent);
@@ -274,7 +275,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
   }
 
   // requires that elem has at least one covered element
-  private ARGState getCoveredNodeFromDifferentSubtree(HashSet<ARGState> subtreeNodes, ARGState elem) {
+  private ARGState getCoveredNodeFromDifferentSubtree(Set<ARGState> subtreeNodes, ARGState elem) {
     Iterator<ARGState> coveredElems = elem.getCoveredByThis().iterator();
     ARGState covered;
     do {
@@ -287,9 +288,9 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
     return covered;
   }
 
-  private HashSet<ARGState> getSubtreeNodes(ARGState top) {
+  private Set<ARGState> getSubtreeNodes(ARGState top) {
     Deque<ARGState> toProcess = new ArrayDeque<>();
-    HashSet<ARGState> nodes = new HashSet<>();
+    Set<ARGState> nodes = new HashSet<>();
 
     toProcess.push(top);
     nodes.add(top);

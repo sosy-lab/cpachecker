@@ -392,7 +392,7 @@ public class SMGTest {
 
   @Test
   public void getObjectsTest() {
-    HashSet<SMGObject> set = new HashSet<>();
+    Set<SMGObject> set = new HashSet<>();
     set.add(obj1);
     set.add(obj2);
     set.add(SMGNullObject.INSTANCE);
@@ -409,7 +409,7 @@ public class SMGTest {
 
   @Test
   public void getValuesTest() {
-    HashSet<Integer> set = new HashSet<>();
+    Set<Integer> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
     set.add(SMG.NULL_ADDRESS);
@@ -419,7 +419,7 @@ public class SMGTest {
 
   @Test
   public void getHVEdgesTest() {
-    HashSet<SMGEdgeHasValue> set = new HashSet<>();
+    Set<SMGEdgeHasValue> set = new HashSet<>();
     set.add(hv2has2at0);
     set.add(hv2has1at4);
 
@@ -428,7 +428,7 @@ public class SMGTest {
 
   @Test
   public void getPTEdgesTest() {
-    HashSet<SMGEdgePointsTo> set = new HashSet<>();
+    Set<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
     assertThat(smg.getPTEdges()).containsAllIn(set);

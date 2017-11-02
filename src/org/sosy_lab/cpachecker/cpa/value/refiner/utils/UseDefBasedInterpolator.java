@@ -159,7 +159,7 @@ public class UseDefBasedInterpolator {
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
+    Map<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
 

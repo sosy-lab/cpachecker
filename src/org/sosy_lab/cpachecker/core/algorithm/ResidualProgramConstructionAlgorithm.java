@@ -263,7 +263,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         return null;
       }
 
-      HashMultimap<CFANode, CallstackStateEqualsWrapper> result =
+      Multimap<CFANode, CallstackStateEqualsWrapper> result =
           HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
 
       for (AbstractState targetState : Iterables.filter(reached,

@@ -81,9 +81,9 @@ public final class AbstractionManager {
       description = "Predicate ordering")
   private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.CHRONOLOGICAL;
   // mapping predicate variable -> partition containing predicates with this predicate variable
-  private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
+  private final Map<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
-  private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
+  private final Map<Integer, Set<String>> partitionIDToPredVars = new HashMap<>();
   private PredicatePartition partition;
   @Option(secure = true, name = "abs.predicateOrdering.partitions",
       description = "Use multiple partitions for predicates")
@@ -211,7 +211,7 @@ public final class AbstractionManager {
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
       partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<>());
     } else {
-      HashSet<String> predVarsCoveredByPartition = new HashSet<>(predVars);
+      Set<String> predVarsCoveredByPartition = new HashSet<>(predVars);
 
       // check which variables of the predicate are covered by the partitions.
       Set<String> varIntersection = new HashSet<>(predVars);
@@ -254,7 +254,7 @@ public final class AbstractionManager {
       if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
         predicateOrdering.addAll(randomListOfVarIDs);
       } else if (multiplePartitions) {
-        HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
+        Set<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
         for (PredicatePartition partition : partitions) {
           List<AbstractionPredicate> predicates = partition.getPredicates();
 

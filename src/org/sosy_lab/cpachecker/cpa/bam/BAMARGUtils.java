@@ -32,6 +32,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -118,8 +119,8 @@ class BAMARGUtils {
    * Only used for PCC.
    */
   public static ARGState copyARG(ARGState pRoot) {
-    HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<>();
-    HashSet<ARGState> visited = new HashSet<>();
+    Map<ARGState, ARGState> stateToCopyElem = new HashMap<>();
+    Set<ARGState> visited = new HashSet<>();
     Deque<ARGState> toVisit = new ArrayDeque<>();
     ARGState current, copyState, copyStateInner;
 

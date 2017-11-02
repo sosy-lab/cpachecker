@@ -35,6 +35,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ThreadFactory;
@@ -205,7 +207,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private List<ARGState> getARGElements(ARGState pRoot) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pRoot);
     toVisit.add(pRoot);
@@ -266,7 +268,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private static boolean isCoveringCycleFree(ARGState pState) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     seen.add(pState);
     while (pState.isCovered()) {
       pState = pState.getCoveringState();
@@ -306,11 +308,11 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private ARGState[] orderBAMBlockStartStates(ARGState pMainRoot) {
-    HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
+    Map<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
     Deque<BAMARGBlockStartState> blocksToVisit = new ArrayDeque<>();
     int nextIndex = 0;
 
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pMainRoot);
     toVisit.add(pMainRoot);
@@ -350,11 +352,11 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
   private void traverseARG(
       BAMARGBlockStartState pRoot,
-      HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
+      Map<BAMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
       Deque<BAMARGBlockStartState> pBlocksToVisit,
       int pNextIndex) {
 
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pRoot.getAnalyzedBlock());
     toVisit.add(pRoot.getAnalyzedBlock());
@@ -390,8 +392,9 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     }
   }
 
-  // returns array which is one entry greater than pMap so at last position top most ARG can be added
-  private ARGState[] topologySort(HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
+  // returns array which is one entry greater than pMap so at last position top most ARG can be
+  // added
+  private ARGState[] topologySort(Map<BAMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
     int nextPos = 0, size = 0;

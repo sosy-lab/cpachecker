@@ -79,11 +79,11 @@ public class ReachingDefUtils {
 TODO delete */
     Map<FunctionEntryNode, Set<String>> result = new HashMap<>();
 
-    HashSet<FunctionEntryNode> reachedFunctions = new HashSet<>();
+    Set<FunctionEntryNode> reachedFunctions = new HashSet<>();
     Deque<FunctionEntryNode> functionsToProcess = new ArrayDeque<>();
 
     Deque<CFANode> currentWaitlist = new ArrayDeque<>();
-    HashSet<CFANode> seen = new HashSet<>();
+    Set<CFANode> seen = new HashSet<>();
     List<String> localVariables = new ArrayList<>();
     CFANode currentElement;
     FunctionEntryNode currentFunction;

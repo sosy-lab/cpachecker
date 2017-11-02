@@ -170,14 +170,14 @@ public class ConstraintSystem {
 
     buildGraph(bConstr, sConstr, cConstr, g);
 
-    HashSet<DirectedGraph.Node> workset = new HashSet<>();
+    Set<DirectedGraph.Node> workset = new HashSet<>();
 
     // add all nodes in graph to the initial workset
     for (Map.Entry<String, DirectedGraph.Node> entry : g.getNameMappings()) {
       workset.add(entry.getValue());
     }
 
-    HashSet<DirectedGraph.Edge> tested = new HashSet<>();
+    Set<DirectedGraph.Edge> tested = new HashSet<>();
 
     // dynamic transitive closure
     while (!workset.isEmpty()) {
@@ -353,10 +353,10 @@ public class ConstraintSystem {
   private static List<List<String>> buildOfflineGraphAndFindSCCs(Collection<SimpleConstraint> sConstr,
       Collection<ComplexConstraint> cConstr) {
 
-    HashSet<DirectedGraph.Node> workset = new HashSet<>();
+    Set<DirectedGraph.Node> workset = new HashSet<>();
     DirectedGraph g = new DirectedGraph();
 
-    HashMap<DirectedGraph.Node, String> nodeStrMap = new HashMap<>();
+    Map<DirectedGraph.Node, String> nodeStrMap = new HashMap<>();
 
     for (SimpleConstraint sc : sConstr) {
 

@@ -138,7 +138,7 @@ public final class BAMPCCManager {
           setCorrectARG(key, endOfBlock);
         }
 
-        HashSet<AbstractState> notFoundSuccessors = new HashSet<>(pSuccessors);
+        Set<AbstractState> notFoundSuccessors = new HashSet<>(pSuccessors);
         AbstractState expandedState;
 
         Multimap<CFANode, AbstractState> blockSuccessors = HashMultimap.create();
@@ -167,7 +167,7 @@ public final class BAMPCCManager {
             + " for block " + currentBlock + "failed.");
       }
     } else {
-      HashSet<CFAEdge> usedEdges = new HashSet<>();
+      Set<CFAEdge> usedEdges = new HashSet<>();
       for (AbstractState absElement : pSuccessors) {
         ARGState successorElem = (ARGState) absElement;
         usedEdges.add(((ARGState) pState).getEdgeToChild(successorElem));
@@ -204,8 +204,8 @@ public final class BAMPCCManager {
     Set<ARGState> waitingForUnexploredParents = new HashSet<>();
     boolean unexploredParent;
     Deque<ARGState> waitlist = new ArrayDeque<>();
-    HashSet<ARGState> visited = new HashSet<>();
-    HashSet<ARGState> coveredNodes = new HashSet<>();
+    Set<ARGState> visited = new HashSet<>();
+    Set<ARGState> coveredNodes = new HashSet<>();
     ARGState current;
 
     waitlist.add(rootNode);

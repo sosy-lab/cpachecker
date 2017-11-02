@@ -519,7 +519,7 @@ public class ARGToCTranslator {
   }
 
   private ARGState getCovering(final ARGState pCovered) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
 
     while (current.isCovered()) {

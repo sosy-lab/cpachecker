@@ -98,7 +98,7 @@ public class ReachingDefState implements AbstractState, Serializable,
   public ReachingDefState initVariables(Set<String> uninitVariableNames, Set<String> parameters,
       CFANode pEntry, CFANode pExit) {
     ProgramDefinitionPoint definition = new ProgramDefinitionPoint(pEntry, pExit);
-    HashMap<String, Set<DefinitionPoint>> localVarsDef = new HashMap<>();
+    Map<String, Set<DefinitionPoint>> localVarsDef = new HashMap<>();
     addVariables(localVarsDef, uninitVariableNames, UninitializedDefinitionPoint.getInstance());
     addVariables(localVarsDef, parameters, definition);
     return new ReachingDefState(localVarsDef, globalReachDefs, this);
@@ -290,7 +290,7 @@ public class ReachingDefState implements AbstractState, Serializable,
   }
 
   private Set<DefinitionPoint> unionSets(Set<DefinitionPoint> set1, Set<DefinitionPoint> set2) {
-    HashSet<DefinitionPoint> result = new HashSet<>();
+    Set<DefinitionPoint> result = new HashSet<>();
     result.addAll(set1);
     result.addAll(set2);
     return result;

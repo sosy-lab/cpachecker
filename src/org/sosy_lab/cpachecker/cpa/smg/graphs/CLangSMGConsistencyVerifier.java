@@ -125,7 +125,7 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG pSmg) {
-    HashSet<SMGObject> object_union = new HashSet<>();
+    Set<SMGObject> object_union = new HashSet<>();
 
     object_union.addAll(pSmg.getHeapObjects());
     object_union.addAll(pSmg.getGlobalObjects().values());
@@ -223,7 +223,7 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG pSmg) {
-    HashSet<SMGObject> stack_objects = new HashSet<>();
+    Set<SMGObject> stack_objects = new HashSet<>();
 
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
       for (SMGObject object : frame.getAllObjects()) {

@@ -56,12 +56,11 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 public class PseudoPartitionedReachedSet extends DefaultReachedSet {
 
   /**
-   * the main storage:
-   * row/first key: the partition key, same as in {@link PartitionedReachedSet},
+   * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
    */
-  private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>> partitionedReached =
-      HashBasedTable.create(1,1);
+  private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>>
+      partitionedReached = HashBasedTable.create(1, 1);
 
   public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);

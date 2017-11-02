@@ -457,7 +457,7 @@ final class CompositeTransferRelation implements TransferRelation {
 
     if (resultCount > pSuccessors.size()) { return false; }
 
-    HashSet<List<AbstractState>> states = new HashSet<>();
+    Set<List<AbstractState>> states = new HashSet<>();
     for (AbstractState successor : pSuccessors) {
       states.add(((CompositeState) successor).getWrappedStates());
     }

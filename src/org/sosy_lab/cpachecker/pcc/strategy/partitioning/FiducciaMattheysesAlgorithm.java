@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -67,8 +68,8 @@ public class FiducciaMattheysesAlgorithm {
   private void initDataStructures(
       Set<Integer> pV,
       TreeMap<Long, Deque<Integer>> pBuckets,
-      HashMap<Integer, Long> pGain,
-      HashMap<Integer, Boolean> lock) {
+      Map<Integer, Long> pGain,
+      Map<Integer, Boolean> lock) {
     for(Integer i : pV) {
       lock.put(i, false);
       long g = computeGain(i);
@@ -133,7 +134,7 @@ public class FiducciaMattheysesAlgorithm {
   private void updateGain(
       int pNode,
       final TreeMap<Long, Deque<Integer>> pBucket,
-      HashMap<Integer, Long> pGain,
+      Map<Integer, Long> pGain,
       long pNewGain) {
     boolean success = pBucket.get(pGain.get(pNode)).removeFirstOccurrence(pNode);
     assert(success);
@@ -148,8 +149,8 @@ public class FiducciaMattheysesAlgorithm {
       int node,
       TreeMap<Long, Deque<Integer>> v1Buckets,
       TreeMap<Long, Deque<Integer>> v2Buckets,
-      HashMap<Integer, Long> gain,
-      HashMap<Integer, Boolean> lock) {
+      Map<Integer, Long> gain,
+      Map<Integer, Boolean> lock) {
     Set<Integer> neighbors = new HashSet<>();
     neighbors.addAll(graph.getAdjacencyList().get(node));
     neighbors.addAll(graph.getPredecessorsOf(node));
@@ -177,8 +178,8 @@ public class FiducciaMattheysesAlgorithm {
     Deque<Long> cutSizes = new ArrayDeque<>();
     TreeMap<Long, Deque<Integer>> v1Buckets = new TreeMap<>();
     TreeMap<Long, Deque<Integer>> v2Buckets = new TreeMap<>();
-    HashMap<Integer, Long> gain = new HashMap<>();
-    HashMap<Integer, Boolean> lock = new HashMap<>();
+    Map<Integer, Long> gain = new HashMap<>();
+    Map<Integer, Boolean> lock = new HashMap<>();
 
       /* Initialize all the stuff */
     initDataStructures(v1, v1Buckets, gain, lock);

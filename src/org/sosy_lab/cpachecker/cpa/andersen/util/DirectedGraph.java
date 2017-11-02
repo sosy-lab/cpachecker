@@ -166,7 +166,7 @@ public class DirectedGraph {
      */
     public Set<DirectedGraph.Node> getPointsToNodesSet() {
 
-      HashSet<DirectedGraph.Node> ptNSet = new HashSet<>();
+      Set<DirectedGraph.Node> ptNSet = new HashSet<>();
 
       for (String n : getPointsToSet()) {
         ptNSet.add(getNode(n));
@@ -242,7 +242,7 @@ public class DirectedGraph {
    */
   public DirectedGraph.Node detectAndCollapseCycleContainingEdge(DirectedGraph.Edge edge) {
 
-    HashSet<DirectedGraph.Node> reached = new HashSet<>();
+    Set<DirectedGraph.Node> reached = new HashSet<>();
     Deque<Deque<DirectedGraph.Node>> stack = new ArrayDeque<>();
     Deque<DirectedGraph.Node> cycle = null;
 

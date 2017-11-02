@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -333,9 +334,9 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
     private ARGState predecessor;
     private int indexPredecessor;
-    private final HashMap<AbstractState, Integer> nodeToIndex;
+    private final Map<AbstractState, Integer> nodeToIndex;
     private final List<List<Integer>> changeableAdjacencyList;
-    private final HashSet<Pair<Integer, Integer>> knownEdges;
+    private final Set<Pair<Integer, Integer>> knownEdges;
 
     public SuccessorEdgeConstructor(List<List<Integer>> pAdjacencyList) {
       super(false);

@@ -437,7 +437,7 @@ public class AppliedCustomInstructionParser {
     }
 
     pOutputVariables.addAll(edgeOutputVariables);
-    HashSet<String> returnRes = new HashSet<>(pPredOutputVars);
+    Set<String> returnRes = new HashSet<>(pPredOutputVars);
     returnRes.addAll(edgeOutputVariables);
 
     return returnRes;
