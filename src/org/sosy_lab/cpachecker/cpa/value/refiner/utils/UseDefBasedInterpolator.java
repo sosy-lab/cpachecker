@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -106,7 +106,8 @@ public class UseDefBasedInterpolator {
     Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
-    LinkedList<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new LinkedList<>();
+    // reverse order!
+    List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayList<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
       iterator.advance();
@@ -118,7 +119,7 @@ public class UseDefBasedInterpolator {
           ? trivialItp
           : createInterpolant(uses);
 
-      interpolants.addFirst(Pair.of(state, interpolant));
+      interpolants.add(Pair.of(state, interpolant));
 
       // as the traversal goes backwards, once the interpolant was non-trivial once,
       // the next time it is trivial, it has to be TRUE, and no longer FALSE
@@ -127,7 +128,7 @@ public class UseDefBasedInterpolator {
       }
     }
 
-    return interpolants;
+    return Lists.reverse(interpolants);
   }
 
   /**

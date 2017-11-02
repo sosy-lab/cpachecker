@@ -25,7 +25,14 @@ package org.sosy_lab.cpachecker.util.reachingdef;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -45,14 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 
 
 public class ReachingDefUtils {
@@ -81,9 +80,9 @@ TODO delete */
     Map<FunctionEntryNode, Set<String>> result = new HashMap<>();
 
     HashSet<FunctionEntryNode> reachedFunctions = new HashSet<>();
-    Stack<FunctionEntryNode> functionsToProcess = new Stack<>();
+    Deque<FunctionEntryNode> functionsToProcess = new ArrayDeque<>();
 
-    Stack<CFANode> currentWaitlist = new Stack<>();
+    Deque<CFANode> currentWaitlist = new ArrayDeque<>();
     HashSet<CFANode> seen = new HashSet<>();
     List<String> localVariables = new ArrayList<>();
     CFANode currentElement;

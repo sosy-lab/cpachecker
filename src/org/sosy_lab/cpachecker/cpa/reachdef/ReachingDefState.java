@@ -23,26 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Vector;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class ReachingDefState implements AbstractState, Serializable,
     LatticeAbstractState<ReachingDefState>, Graphable {
@@ -221,7 +220,7 @@ public class ReachingDefState implements AbstractState, Serializable,
   }
 
   private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
-    Vector<ReachingDefState> statesToMerge = new Vector<>();
+    List<ReachingDefState> statesToMerge = new ArrayList<>();
     do {
       if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null) {
         return topElement;

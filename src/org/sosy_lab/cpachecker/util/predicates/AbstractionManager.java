@@ -28,9 +28,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,19 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -92,7 +88,8 @@ public final class AbstractionManager {
   @Option(secure = true, name = "abs.predicateOrdering.partitions",
       description = "Use multiple partitions for predicates")
   private boolean multiplePartitions = false;
-  private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
+
+  private final List<Integer> randomListOfVarIDs = new ArrayList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
 

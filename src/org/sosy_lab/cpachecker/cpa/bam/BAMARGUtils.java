@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -121,7 +120,7 @@ class BAMARGUtils {
   public static ARGState copyARG(ARGState pRoot) {
     HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<>();
     HashSet<ARGState> visited = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     ARGState current, copyState, copyStateInner;
 
     visited.add(pRoot);

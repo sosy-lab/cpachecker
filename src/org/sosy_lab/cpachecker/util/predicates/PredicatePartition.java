@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -45,7 +44,7 @@ public abstract class PredicatePartition {
   final LogManager logger;
   final int partitionID = partitionCounter.getFreshId();
   final FormulaManagerView fmgr;
-  LinkedList<AbstractionPredicate> predicates;
+  final List<AbstractionPredicate> predicates;
   // mapping varID -> predicate in partition
   HashMap<Integer, AbstractionPredicate> varIDToPredicate;
   Solver solver;
@@ -54,7 +53,7 @@ public abstract class PredicatePartition {
     this.fmgr = fmgr;
     this.solver = solver;
     this.logger = logger;
-    predicates = new LinkedList<>();
+    predicates = new ArrayList<>();
     varIDToPredicate = new HashMap<>();
   }
 

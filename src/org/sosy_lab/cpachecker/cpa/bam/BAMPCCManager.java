@@ -27,15 +27,16 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -202,7 +203,7 @@ public final class BAMPCCManager {
     Collection<ARGState> returnNodes = new ArrayList<>();
     Set<ARGState> waitingForUnexploredParents = new HashSet<>();
     boolean unexploredParent;
-    Stack<ARGState> waitlist = new Stack<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
     HashSet<ARGState> visited = new HashSet<>();
     HashSet<ARGState> coveredNodes = new HashSet<>();
     ARGState current;

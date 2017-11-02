@@ -30,7 +30,6 @@ import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -2117,7 +2116,7 @@ public abstract class AbstractExpressionValueVisitor
     final List<JExpression> initializerExpressions = pJArrayInitializer.getInitializerExpressions();
 
     // this list stores the values in the array's slots, in occurring order
-    List<Value> slotValues = new LinkedList<>();
+    List<Value> slotValues = new ArrayList<>();
 
     for (JExpression currentExpression : initializerExpressions) {
       slotValues.add(currentExpression.accept(this));

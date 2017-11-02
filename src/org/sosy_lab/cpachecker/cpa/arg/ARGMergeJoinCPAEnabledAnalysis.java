@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Stack;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -97,7 +97,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
   @SuppressWarnings("unused")
   private void deleteChildren(ARGState parent) {
     // assumes that covered elements are not saved in reached set
-    Stack<ARGState> toProcess = new Stack<>();
+    Deque<ARGState> toProcess = new ArrayDeque<>();
     toProcess.add(parent);
 
     ARGState current;
@@ -154,7 +154,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
     HashSet<ARGState> subtreeNodes = getSubtreeNodes(parent);
     HashSet<ARGState> laterCovered = new HashSet<>();
 
-    Stack<ARGState> toProcess = new Stack<>();
+    Deque<ARGState> toProcess = new ArrayDeque<>();
     toProcess.add(parent);
 
     ARGState current;
@@ -288,7 +288,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
   }
 
   private HashSet<ARGState> getSubtreeNodes(ARGState top) {
-    Stack<ARGState> toProcess = new Stack<>();
+    Deque<ARGState> toProcess = new ArrayDeque<>();
     HashSet<ARGState> nodes = new HashSet<>();
 
     toProcess.push(top);
