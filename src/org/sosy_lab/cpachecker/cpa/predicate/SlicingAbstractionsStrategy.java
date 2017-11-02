@@ -338,13 +338,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       infeasible = true;
     } else if (minimalSlicing) {
       if (!optimizeSlicing) {
-        assert (!mustBeInfeasible || isInfeasibleEdge(startState, endState, segmentList)) : "^ " + startState.getStateId() + " -> " + endState.getStateId();
+        assert (!mustBeInfeasible || isInfeasibleEdge(startState, endState, segmentList)) : "Edge "
+            + startState.getStateId() + " -> " + endState.getStateId() + " must be infeasible!";
       }
       infeasible = mustBeInfeasible;
     } else {
       infeasible = isInfeasibleEdge(startState, endState, segmentList);
       // Assert that mustBeInfeasible => infeasible holds:
-      assert (!mustBeInfeasible || infeasible) : "^ " + startState.getStateId() + " -> " + endState.getStateId();
+      assert (!mustBeInfeasible || infeasible) : "Edge " + startState.getStateId() + " -> "
+          + endState.getStateId() + " must be infeasible!";
     }
     return infeasible;
   }
