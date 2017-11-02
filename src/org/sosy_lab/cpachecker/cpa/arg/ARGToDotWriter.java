@@ -27,15 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -43,6 +34,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class ARGToDotWriter {
 
@@ -98,7 +96,7 @@ public class ARGToDotWriter {
         sb.append(determineEdge(Predicates.alwaysFalse(), state, child));
       }
     }
-    label = String.format("label=\"%s\";\nlabelloc=top;\nlabeljust=left;\n",label);
+    label = String.format("label=\"%s\";%nlabelloc=top;%nlabeljust=left;%n", label);
     sb.append(label);
     toDotWriter.finish();
   }

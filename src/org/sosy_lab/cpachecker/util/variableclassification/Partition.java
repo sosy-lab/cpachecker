@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -54,6 +55,8 @@ public class Partition implements Comparable<Partition>, Serializable {
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
+
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Table<CFAEdge, Integer, Partition> edgeToPartition;
 
   Partition(
