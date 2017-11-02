@@ -37,6 +37,8 @@ import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -51,6 +54,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
@@ -113,31 +117,50 @@ public class ARGReachedSet {
   }
 
   /**
-   * for the case that the ARG is not a tree, recalculate the ReachedSet
+   * For the case that the ARG is not a tree, recalculate the ReachedSet
    * by calculating the states reachable from the rootState.
    * States which have become unreachable get properly detached
    */
   public void recalculateReachedSet(ARGState rootState) {
-    Deque<ARGState> toVisit = new ArrayDeque<>();
-    toVisit.add(rootState);
+    removeReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
+  }
+
+  /**
+   * If at least one error state is present,remove the parts of the ARG from which no error state is reachable.
+   * Warning: This might remove states that could cover other states.
+   */
+  public void removeSafeRegions() {
+    Collection<AbstractState> targetStates = from(mReached)
+        .filter(AbstractStates.IS_TARGET_STATE)
+        .toList();
+    if (!targetStates.isEmpty()) {
+      removeReachableFrom(targetStates,
+          ARGState::getParents, x -> x.wasExpanded());
+    }
+  }
+
+  private void removeReachableFrom(Collection<AbstractState> startStates,
+      Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      Predicate<ARGState> allowedToRemove) {
+    Deque<AbstractState> toVisit = new ArrayDeque<>(startStates);
     Set<ARGState> reached = new HashSet<>();
     while (!toVisit.isEmpty()) {
-      ARGState currentElement = toVisit.removeFirst();
+      ARGState currentElement = (ARGState) toVisit.removeFirst();
       if (reached.add(currentElement)) {
-        List<ARGState> notYetReached = from(currentElement.getChildren())
-                                        .filter(x -> !reached.contains(x))
-                                        .toList();
+        List<ARGState> notYetReached = from(successorFunction.apply(currentElement))
+            .filter(x -> !reached.contains(x))
+            .toList();
         toVisit.addAll(notYetReached);
       }
     }
     List<ARGState> toRemove = new ArrayList<>(2);
     for (AbstractState inOldReached : mReached) {
-      if (!reached.contains(inOldReached)) {
+      if (!reached.contains(inOldReached) && allowedToRemove.apply((ARGState) inOldReached)) {
         toRemove.add((ARGState) inOldReached);
       }
     }
     mReached.removeAll(toRemove);
-    for (ARGState state :  toRemove) {
+    for (ARGState state : toRemove) {
       if (!state.isDestroyed()) {
         state.removeFromARG();
       }

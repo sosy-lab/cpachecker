@@ -238,6 +238,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // Instead we use a different method:
     stats.calcReached.start();
     pReached.recalculateReachedSet(rootStates.iterator().next());
+    pReached.removeSafeRegions();
     stats.calcReached.stop();
 
     stats.argUpdate.stop();
