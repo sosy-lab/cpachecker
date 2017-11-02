@@ -123,7 +123,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   // a reference to the abstraction of the last state we have seen
   // (we sometimes needs this to refer to the previous block).
   private AbstractionFormula lastAbstraction = null;
+  // There might be edges in the first refinement that are already infeasible.
+  // This boolean is for keeping track of whether these were already sliced:
   private boolean initialSliceDone = false;
+  // As long as the abstraction states form a tree, states do not need to be split.
+  // This boolean is for keeping track of when this shortcut is allowed:
+  private Boolean mayShortcutSlicing = null;
 
   private HashMap<ARGState,ARGState> forkedStateMap;
 
@@ -146,6 +151,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     checkState(lastAbstraction == null);
     lastAbstraction = predAbsMgr.makeTrueAbstractionFormula(null);
     forkedStateMap = new HashMap<>();
+    mayShortcutSlicing = true;
   }
 
   /**
@@ -171,7 +177,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
                                                        itp, s, lastAbstraction);
     // we only split if the state has actually changed
     ARGState newState;
-    if (stateChanged) {
+    if (stateChanged
+        && (!optimizeSlicing || !mayShortcutSlicing
+            || SlicingAbstractionsUtils.calculateIncomingSegments(s).keySet().size() > 1)) {
+      mayShortcutSlicing = false;
       //splitting the state:
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
       forkedStateMap.put(s,newState);
@@ -262,6 +271,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // This way we can check if startRefinementOfPath is called
     // before performRefinementForState:
     forkedStateMap = null;
+    mayShortcutSlicing = null;
   }
 
   private void sliceEdges(final List<ARGState> pChangedElements,
