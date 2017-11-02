@@ -210,8 +210,8 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         w.write("// with type: " + f.getType() + "\n");
         Type rt = f.getType().getReturnType();
         w.write("// with return type: " + rt + "\n");
-        StringBuffer buf = new StringBuffer();
-        StringBuffer prepend = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
+        StringBuilder prepend = new StringBuilder();
         boolean b = printType("  ", prepend, buf, (CType) rt);
         if (b) {
           w.write(prepend.toString());
@@ -249,7 +249,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     private final String odmFunctionDecl = "void *" + odmAllocFunction + "(void)";
     private final String assumeFunctionDecl = "void " + assume + "(int)";
 
-    private boolean printType(String indent, StringBuffer prepend, StringBuffer buf, CType rt) {
+    private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {
       boolean ignore = false;
       if (rt instanceof CVoidType) {
         buf.append(indent + "// Void type\n");
