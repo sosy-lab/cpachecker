@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-
 public abstract class PathTranslator {
 
   protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
@@ -472,7 +471,7 @@ public abstract class PathTranslator {
 
     Deque<FunctionBody> ret = new ArrayDeque<>();
     for (FunctionBody functionBody : pStack) {
-      ret.push(new FunctionBody(functionBody));
+      ret.add(new FunctionBody(functionBody));
     }
     return ret;
   }
