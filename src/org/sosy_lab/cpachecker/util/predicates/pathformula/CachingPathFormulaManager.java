@@ -25,6 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -34,16 +39,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another
  * instance but caches results of some methods.
@@ -219,5 +219,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts) {
     return delegate.makeNewPathFormula(pOldFormula, pM, pPts);
+  }
+
+  @Override
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(PointerTargetSet pPts1,
+      PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
+    return delegate.mergePointerTargetSets(pPts1, pPts2, pSsa);
   }
 }

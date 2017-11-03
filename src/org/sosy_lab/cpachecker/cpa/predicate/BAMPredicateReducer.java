@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -150,6 +151,20 @@ public class BAMPredicateReducer implements Reducer {
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+    PointerTargetSet reducePts = reducedState.getPathFormula().getPointerTargetSet();
+
+    for (String var : rootSSA.allVariables()) {
+      //if we do not have the index in the reduced map..
+      if (!oldSSA.containsVariable(var)) {
+        //add an index (with the value of rootSSA)
+        builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
+      }
+    }
+    SSAMap newSSA = builder.build();
+    MergeResult<PointerTargetSet> result = pmgr.mergePointerTargetSets(rootPts, reducePts, newSSA);
+    PointerTargetSet newPts = result.getResult();
+
+    PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, newPts);
 
     if (useAbstractionReduction) {
 
@@ -162,16 +177,6 @@ public class BAMPredicateReducer implements Reducer {
           cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
-      for (String var : rootSSA.allVariables()) {
-        //if we do not have the index in the reduced map..
-        if (!oldSSA.containsVariable(var)) {
-          //add an index (with the value of rootSSA)
-          builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
-        }
-      }
-      SSAMap newSSA = builder.build();
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, rootPts);
-
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
               relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
@@ -181,7 +186,6 @@ public class BAMPredicateReducer implements Reducer {
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
     } else {
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, rootPts);
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           reducedState.getAbstractionFormula(), reducedState.getAbstractionLocationsOnPath());
     }

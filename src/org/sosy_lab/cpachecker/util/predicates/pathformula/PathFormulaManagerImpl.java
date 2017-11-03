@@ -106,7 +106,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final CtoFormulaConverter converter;
+  public final CtoFormulaConverter converter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -509,6 +509,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public void printStatistics(PrintStream out) {
     converter.printStatistics(out);
+  }
+
+  @Override
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(PointerTargetSet pPts1,
+      PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSsa);
   }
 
 }
