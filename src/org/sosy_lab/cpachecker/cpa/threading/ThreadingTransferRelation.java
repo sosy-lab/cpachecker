@@ -431,7 +431,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
       throws InterruptedException {
     CFANode functioncallNode =
-        Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
+        Preconditions.checkNotNull(
+            cfa.getFunctionHead(functionName),
+            "Function '" + functionName + "' was not found. Please enable cloning for the CFA!");
     AbstractState initialStack =
         callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
     AbstractState initialLoc =
