@@ -122,6 +122,7 @@ public class AutomatonGraphmlCommon {
     INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
     INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
     NAMED("named", ElementType.NODE, "namedValue", "string"),
+    LABEL("label", ElementType.NODE, "label", "string"),
     NODETYPE("nodetype", ElementType.NODE, "nodeType", "string", NodeType.ONPATH),
     ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean", false),
     ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean", false),
@@ -414,6 +415,9 @@ public class AutomatonGraphmlCommon {
     public Element createNodeElement(String nodeId, NodeType nodeType) {
       Element result = createElement(GraphMLTag.NODE);
       result.setAttribute("id", nodeId);
+
+      // add a printable label that for example is shown in yEd
+      addDataElementChild(result, KeyDef.LABEL, nodeId);
 
       if (nodeType != defaultNodeType) {
         addDataElementChild(result, KeyDef.NODETYPE, nodeType.toString());
