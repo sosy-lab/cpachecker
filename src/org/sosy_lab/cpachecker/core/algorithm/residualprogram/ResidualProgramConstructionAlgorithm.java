@@ -113,7 +113,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   protected final LogManager logger;
   protected final ShutdownNotifier shutdown;
 
-  private CPAAlgorithm cpaAlgorithm;
+  private @Nullable CPAAlgorithm cpaAlgorithm;
 
   private final ARGToCTranslator translator;
   private final @Nullable ConditionFolder folder;
@@ -158,6 +158,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     Preconditions.checkState(checkInitialState(pReachedSet.getFirstState()),
         "CONDITION, CONDITION_PLUS_FOLD, and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
+    Preconditions.checkNotNull(cpaAlgorithm);
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     status = status.withPrecise(false);

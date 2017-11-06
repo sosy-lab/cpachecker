@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -58,13 +59,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix="conditional.verifier")
 public class ConditionalVerifierAlgorithm implements Algorithm {
 
-  @Option(description = "configuration for the verification of the residual program which is constructed from another verifier's condition")
+  @Option(
+    description =
+        "configuration for the verification of the residual program which is constructed from another verifier's condition"
+  )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path verifierConfig;
+  private @Nullable Path verifierConfig;
 
   @Option(description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path generatorConfig;
+  private @Nullable Path generatorConfig;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdown;
