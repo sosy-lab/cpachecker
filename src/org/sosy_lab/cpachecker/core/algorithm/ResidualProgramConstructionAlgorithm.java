@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -36,7 +37,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,8 +59,13 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -83,7 +91,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
@@ -95,6 +105,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     CONDITION,
     CONDITION_PLUS_CFA_FOLD,
     CONDITION_PLUS_LOOP_FOLD,
+    CONDITION_PLUS_PRED_LOOP_FOLD,
     COMBINATION
   }
 
@@ -424,7 +435,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           }
 
           if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
-            merge(newChild, oldARGToFoldedState.get(child), oldARGToFoldedState, newARGToFoldedStates);
+            merge(
+                newChild,
+                oldARGToFoldedState.get(child),
+                oldARGToFoldedState,
+                newARGToFoldedStates,
+                null,
+                null);
           }
         }
 
@@ -434,6 +451,230 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
 
     return oldARGToFoldedState.get(pRoot);
+  }
+
+  private Map<CFANode, Loop> loopMap;
+
+  private ARGState foldARGAtPredecessorLoopStarts(final ARGState pRoot) {
+    Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
+    Set<CFANode> loopHeads = cfa.getAllLoopHeads().get();
+
+    buildLoopMap();
+
+    Map<ARGState, ARGState> oldARGToFoldedState = new HashMap<>();
+    Map<ARGState, Set<ARGState>> newARGToFoldedStates = new HashMap<>();
+    // takes function call context and taken branches into account
+    Map<String, ARGState> loopContextToFoldedARGState = new HashMap<>();
+    Map<ARGState, Set<String>> foldedARGStateToLoopContexts = new HashMap<>();
+
+    Deque<Pair<ARGState, String>> waitlist = new ArrayDeque<>();
+    ARGState foldedNode;
+    Set<ARGState> foldedStates;
+    Set<String> loopContexts;
+    ARGState oldState, newState, newChild;
+    CFANode loc, locChild;
+    CFAEdge edge;
+    String loopContext, loopContextChild;
+
+    foldedNode = new ARGState(pRoot.getWrappedState(), null);
+    oldARGToFoldedState.put(pRoot, foldedNode);
+    foldedStates = new HashSet<>();
+    foldedStates.add(pRoot);
+    newARGToFoldedStates.put(foldedNode, foldedStates);
+    loc = AbstractStates.extractLocation(pRoot);
+    if (loopHeads.contains(loc)) {
+      loopContextToFoldedARGState.put("", foldedNode);
+      loopContexts = new HashSet<>();
+      loopContexts.add("");
+      foldedARGStateToLoopContexts.put(foldedNode, loopContexts);
+    }
+    waitlist.push(Pair.of(pRoot, ""));
+
+    while (!waitlist.isEmpty()) {
+      oldState = waitlist.peek().getFirst();
+      loopContext = waitlist.pop().getSecond();
+      loc = AbstractStates.extractLocation(oldState);
+
+      for (ARGState child : oldState.getChildren()) {
+        locChild = AbstractStates.extractLocation(child);
+        edge = oldState.getEdgeToChild(child);
+        child = getUncoveredChild(child);
+
+        loopContextChild=extendLoopContext(edge, loopContext);
+
+        if (!oldARGToFoldedState.containsKey(child)) {
+          if (loopHeads.contains(locChild)
+              && loopContextToFoldedARGState.containsKey(loopContextChild)) {
+            foldedNode =
+                loopContextToFoldedARGState.get(loopContextChild); // TODO braucht update bei merge
+          } else {
+            foldedNode = null;
+            newState = oldARGToFoldedState.get(oldState);
+            for (ARGState newARGChild : newState.getChildren()) {
+              if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+                foldedNode = newARGChild;
+                // there should be only one such child, thus break
+                break;
+              }
+            }
+
+            if (foldedNode == null) {
+              foldedNode = new ARGState(child.getWrappedState(), null);
+              foldedStates = new HashSet<>();
+              newARGToFoldedStates.put(foldedNode, foldedStates);
+            }
+
+            if (loopHeads.contains(locChild)) {
+              loopContextToFoldedARGState.put(loopContextChild, foldedNode);
+              if (!foldedARGStateToLoopContexts.containsKey(foldedNode)) {
+                foldedARGStateToLoopContexts.put(foldedNode, new HashSet<>());
+              }
+              foldedARGStateToLoopContexts.get(foldedNode).add(loopContextChild);
+            }
+          }
+
+          oldARGToFoldedState.put(child, foldedNode);
+          newARGToFoldedStates.get(foldedNode).add(child);
+          waitlist.push(Pair.of(child, loopContextChild));
+
+        } else {
+          // TODO das passt hier ggfs. nicht, reicht zumindest nicht aus
+          newState = oldARGToFoldedState.get(oldState);
+          newChild = null;
+          for (ARGState newARGChild : newState.getChildren()) {
+            if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+              newChild = newARGChild;
+              // there should be only one such child, thus break
+              break;
+            }
+          }
+
+          if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
+            merge(
+                newChild,
+                oldARGToFoldedState.get(child),
+                oldARGToFoldedState,
+                newARGToFoldedStates,
+                loopContextToFoldedARGState,
+                foldedARGStateToLoopContexts);
+          }
+        }
+
+        newChild = oldARGToFoldedState.get(child);
+        newChild.addParent(oldARGToFoldedState.get(oldState));
+      }
+    }
+
+    return oldARGToFoldedState.get(pRoot);
+  }
+
+  private void buildLoopMap() {
+    loopMap = Maps.newHashMapWithExpectedSize(cfa.getAllNodes().size());
+
+    Deque<Pair<CFANode, List<Loop>>> toVisit = new ArrayDeque<>();
+    toVisit.push(Pair.of(cfa.getMainFunction(), Collections.emptyList()));
+    loopMap.put(cfa.getMainFunction(), null);
+    List<Loop> loopStack, succLoopStack;
+    CFANode node;
+    Loop l;
+
+    while (!toVisit.isEmpty()) {
+      node = toVisit.peek().getFirst();
+      loopStack = toVisit.pop().getSecond();
+      if (loopStack.isEmpty()) {
+        l = null;
+      } else {
+        l = loopStack.get(loopStack.size() - 1);
+      }
+
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (loopMap.containsKey(edge.getSuccessor())) {
+          continue;
+        }
+
+        if (edge instanceof CFunctionReturnEdge) {
+          continue; // successor treated by FunctionSummaryEdge
+        }
+
+        if (edge instanceof CFunctionCallEdge) {
+          l = null;
+          succLoopStack = Collections.emptyList();
+        }
+
+        succLoopStack = loopStack;
+        while (l != null && l.getOutgoingEdges().contains(edge)) {
+          // leave edge
+          succLoopStack = new ArrayList<>(succLoopStack);
+          succLoopStack.remove(succLoopStack.size() - 1);
+          if (succLoopStack.isEmpty()) {
+            l = null;
+          } else {
+            l = succLoopStack.get(succLoopStack.size() - 1);
+          }
+        }
+
+        if (cfa.getAllLoopHeads().get().contains(edge.getSuccessor())) {
+          Set<Loop> loop = cfa.getLoopStructure().get().getLoopsForLoopHead(edge.getSuccessor());
+          assert (loop.size() >= 1);
+          l = loop.iterator().next();
+
+          if (succLoopStack == loopStack) {
+            succLoopStack = new ArrayList<>(succLoopStack);
+          }
+          succLoopStack.add(l);
+        }
+
+        loopMap.put(edge.getSuccessor(), l);
+        toVisit.push(Pair.of(edge.getSuccessor(), succLoopStack));
+      }
+    }
+  }
+
+  private String extendLoopContext(final CFAEdge pEdge, final String pLoopContext) {
+    String newLoopContext = pLoopContext;
+    // leave loop, finish iteration
+    if ((leaveLoop(pEdge) || startNewLoopIteation(pEdge)) && newLoopContext.contains("|")) {
+      newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|"));
+    }
+
+    if (pEdge instanceof FunctionReturnEdge && newLoopContext.contains("/")) {
+      newLoopContext =
+          newLoopContext.substring(newLoopContext.indexOf("/") + 1, newLoopContext.length());
+    }
+    if (pEdge instanceof FunctionCallEdge) {
+      newLoopContext =
+          ((FunctionCallEdge) pEdge).getSuccessor().getFunctionName() + "/" + newLoopContext;
+    }
+
+    // enter loop or start next iteration
+    if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
+      newLoopContext += "|";
+    }
+
+    if (pEdge instanceof AssumeEdge) {
+        if(((AssumeEdge)pEdge).getTruthAssumption()) {
+          newLoopContext += "1";
+        } else {
+          newLoopContext += "0";
+        }
+      }
+
+    return newLoopContext;
+  }
+
+  private boolean leaveLoop(final CFAEdge pEdge) {
+    return !(pEdge instanceof CFunctionCallEdge)
+        && !(pEdge instanceof CFunctionReturnEdge)
+        && loopMap.get(pEdge.getPredecessor()) != loopMap.get(pEdge.getSuccessor());
+  }
+
+  private boolean startNewLoopIteation(final CFAEdge pEdge) {
+    if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
+      if (loopMap.get(pEdge.getPredecessor()) == loopMap.get(pEdge.getSuccessor())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private ARGState getUncoveredChild(ARGState pChild) {
@@ -447,7 +688,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       final ARGState newState1,
       final ARGState newState2,
       final Map<ARGState, ARGState> pOldARGToFoldedState,
-      final Map<ARGState, Set<ARGState>> pNewARGToFoldedStates) {
+      final Map<ARGState, Set<ARGState>> pNewARGToFoldedStates,
+      final @Nullable Map<String, ARGState> pLoopContextToFoldedARGState,
+      final @Nullable Map<ARGState, Set<String>> pFoldedARGStateToLoopContexts) {
 
     Map<ARGState, ARGState> mergedInto = new HashMap<>();
     Deque<Pair<ARGState, ARGState>> toMerge = new ArrayDeque<>();
@@ -484,6 +727,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         pOldARGToFoldedState.put(oldState, mergeInto);
         pNewARGToFoldedStates.get(mergeInto).add(oldState);
       }
+      if (pLoopContextToFoldedARGState != null
+          && pFoldedARGStateToLoopContexts.containsKey(merge)) {
+        for (String loopContext : pFoldedARGStateToLoopContexts.remove(merge)) {
+          pLoopContextToFoldedARGState.put(loopContext, mergeInto);
+          pFoldedARGStateToLoopContexts.get(mergeInto).add(loopContext);
+        }
+      }
     }
   }
 
@@ -497,6 +747,10 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Preconditions.checkState(pAddPragma == null);
 
       return translator.translateARG(foldARGAtLoops(pARGRoot));
+    } else if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_PRED_LOOP_FOLD) {
+      Preconditions.checkState(pAddPragma == null);
+
+      return translator.translateARG(foldARGAtPredecessorLoopStarts(pARGRoot));
     }
     return translator.translateARG(pARGRoot, pAddPragma);
   }
@@ -609,7 +863,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return getStrategy() == ResidualGenStrategy.CONDITION
         || getStrategy() == ResidualGenStrategy.COMBINATION
         || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_CFA_FOLD
-        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD;
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_LOOP_FOLD
+        || getStrategy() == ResidualGenStrategy.CONDITION_PLUS_PRED_LOOP_FOLD;
   }
 
   protected ResidualGenStrategy getStrategy() {
