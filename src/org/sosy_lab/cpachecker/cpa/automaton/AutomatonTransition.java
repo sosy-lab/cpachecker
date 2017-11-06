@@ -287,9 +287,10 @@ class AutomatonTransition {
     if (!assertion.equals(AutomatonBoolExpr.TRUE)) {
       sb.append("ASSERT ");
       sb.append(assertion);
+      sb.append(" ");
     }
     if (!actions.isEmpty()) {
-      Joiner.on(' ').appendTo(sb, actions);
+      Joiner.on(" ").appendTo(sb, actions);
       sb.append(" ");
     }
     sb.append(followState);
