@@ -163,14 +163,15 @@ public class Automaton {
    */
   public void assertObserverAutomaton() throws InvalidConfigurationException {
     for (AutomatonInternalState s : this.states) {
-        for (AutomatonTransition t : s.getTransitions()) {
-          if (!t.meetsObserverRequirements()) {
-            throw new InvalidConfigurationException("The transition " + t
-                + " in state \"" + s + "\" is not valid for an ObserverAutomaton.");
-          }
+      for (AutomatonTransition t : s.getTransitions()) {
+        if (!t.meetsObserverRequirements()) {
+          throw new InvalidConfigurationException(
+              "The transition \"" + t + "\" in state \"" + s
+                  + "\" is not valid for an ObserverAutomaton.");
         }
       }
     }
+  }
 
   @Override
   public String toString() {
