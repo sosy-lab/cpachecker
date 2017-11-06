@@ -2917,10 +2917,14 @@ residualprogram.assumptionGuider = no default value
 # write residual program to file
 residualprogram.file = "residualProgram.c"
 
+# Define kind of folder to use when combining condition with folding approach
+# in residual program generation
+residualprogram.folderType = CFA
+  enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
+
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_CFA_FOLD, CONDITION_PLUS_LOOP_FOLD,
-             COMBINATION]
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # wether to start next algorithm independently from the previous result
 restartAlgorithm.alwaysRestart = false
