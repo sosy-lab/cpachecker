@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
@@ -645,5 +646,35 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       // threadId does not match -> no successor
       return ts;
     }
+  }
+
+  /** if the current edge creates a new function, return its name, else nothing. */
+  public static Optional<String> getCreatedThreadFunction(final CFAEdge edge)
+      throws UnrecognizedCodeException {
+    if (edge instanceof AStatementEdge) {
+      AStatement statement = ((AStatementEdge) edge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp =
+            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          final String functionName = ((AIdExpression) functionNameExp).getName();
+          if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
+            List<? extends AExpression> params =
+                ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+            if (!(params.get(2) instanceof CUnaryExpression)) {
+              throw new UnrecognizedCodeException(
+                  "unsupported thread function call", params.get(2));
+            }
+            CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
+            if (!(expr2 instanceof CIdExpression)) {
+              throw new UnrecognizedCodeException("unsupported thread function call", expr2);
+            }
+            String newThreadFunctionName = ((CIdExpression) expr2).getName();
+            return Optional.of(newThreadFunctionName);
+          }
+        }
+      }
+    }
+    return Optional.absent();
   }
 }

@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 
 public class AutomatonGraphmlParserState {
 
-  private static final Pattern CLONED_FUNCTION_NAME_PATTERN =
+  protected static final Pattern CLONED_FUNCTION_NAME_PATTERN =
       Pattern.compile("(.+)(__cloned_function__\\d+)");
 
   /** The name of the witness automaton. */

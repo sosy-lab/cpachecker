@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
@@ -286,6 +288,18 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return successors;
     }
 
+    if ("WitnessAutomaton".equals(((AutomatonState) pElement).getOwningAutomatonName())) {
+      /* In case of concurrent tasks, we need to go two steps:
+       * The first step is the createThread edge of the witness.
+       * The second step is the enterFunction edge of the witness.
+       * As we currently only use one edge in the CFA to do both, we must execute transfer twice.
+       */
+      Optional<String> threadFunction =
+          ThreadingTransferRelation.getCreatedThreadFunction(pCfaEdge);
+      if (threadFunction.isPresent()) {
+        return getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
+      }
+    }
     return Collections.singleton(pElement);
   }
 
