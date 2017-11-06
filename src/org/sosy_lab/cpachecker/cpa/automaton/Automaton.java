@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -184,17 +185,9 @@ public class Automaton {
     str.append("INITIAL STATE ").append(initState).append(";\n\n");
 
     for (AutomatonInternalState s : states) {
-      str.append("STATE ").append(s.getName()).append(":\n");
-      for (AutomatonTransition transition : s.getTransitions()) {
-
-        // remove ugly symbol '"' before and after the transitionStr.
-        // TODO fix AutomatonTransition#toString() ?
-        String transitionStr = transition.toString();
-        transitionStr = transitionStr.substring(1, transitionStr.length() - 1);
-
-        str.append("    ").append(transitionStr).append("\n");
-      }
-      str.append("\n");
+      str.append("STATE ").append(s.getName()).append(":\n    ");
+      Joiner.on("\n    ").appendTo(str, s.getTransitions());
+      str.append("\n\n");
     }
 
     str.append("END AUTOMATON\n");

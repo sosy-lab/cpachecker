@@ -281,7 +281,6 @@ class AutomatonTransition {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append('"');
     sb.append(trigger);
     sb.append(" -> ");
     if (!assertion.equals(AutomatonBoolExpr.TRUE)) {
@@ -294,7 +293,7 @@ class AutomatonTransition {
       sb.append(" ");
     }
     sb.append(followState);
-    sb.append(";\"");
+    sb.append(";");
     return sb.toString();
   }
 
