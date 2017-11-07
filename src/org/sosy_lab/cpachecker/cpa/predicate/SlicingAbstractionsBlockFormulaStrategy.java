@@ -65,7 +65,7 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   }
 
   @Override
-  List<BooleanFormula> getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
+  BlockFormulas getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
       throws CPATransferException, InterruptedException {
 
     final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
@@ -82,7 +82,7 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
       abstractionFormulas.add(currentPathFormula.getFormula());
     }
 
-    return abstractionFormulas;
+    return new BlockFormulas(abstractionFormulas);
 
   }
 

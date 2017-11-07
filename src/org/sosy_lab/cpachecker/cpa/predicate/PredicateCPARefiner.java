@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -210,18 +211,18 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   /**
    * Create list of formulas on path.
    */
-  private List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
+  private BlockFormulas createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
-    List<BooleanFormula> formulas = (isRefinementSelectionEnabled())
+    BlockFormulas formulas = (isRefinementSelectionEnabled())
         ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
         : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
 
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
     // however we do not have the very first state in the trace,
     // because the rootState has always abstraction "True".
-    assert abstractionStatesTrace.size() == formulas.size()
-               : abstractionStatesTrace.size() + " != " + formulas.size();
+    assert abstractionStatesTrace.size() == formulas.getSize()
+               : abstractionStatesTrace.size() + " != " + formulas.getSize();
 
     logger.log(Level.ALL, "Error path formulas: ", formulas);
     return formulas;
@@ -254,8 +255,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
-      final List<BooleanFormula> formulas =
+      BlockFormulas formulas =
           createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
+      if(!formulas.hasBranchingFormula()) {
+        formulas = formulas.withBranchingFormula(interpolationManager.buildBranchingFormula(elementsOnPath));
+      }
 
       CounterexampleTraceInfo counterexample;
 
@@ -268,14 +272,13 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         counterexample =
             performInvariantsRefinement(
                 allStatesTrace,
-                elementsOnPath,
                 abstractionStatesTrace,
                 formulas);
 
       } else {
         logger.log(Level.FINEST, "Starting interpolation-based refinement.");
         counterexample =
-            performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
+            performInterpolatingRefinement(abstractionStatesTrace, formulas);
       }
 
       // if error is spurious refine
@@ -321,8 +324,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   private CounterexampleTraceInfo performInterpolatingRefinement(
       final List<ARGState> abstractionStatesTrace,
-      final Set<ARGState> elementsOnPath,
-      final List<BooleanFormula> formulas)
+      final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
     if (strategy instanceof PredicateAbstractionRefinementStrategy) {
@@ -332,19 +334,17 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     return interpolationManager.buildCounterexampleTrace(
         formulas,
-        Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-        elementsOnPath);
+        Lists.<AbstractState>newArrayList(abstractionStatesTrace));
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
       final ARGPath allStatesTrace,
-      final Set<ARGState> elementsOnPath,
       final List<ARGState> abstractionStatesTrace,
-      final List<BooleanFormula> formulas)
+      final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample =
-        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas, elementsOnPath);
+        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -366,7 +366,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         logger.log(
             Level.FINEST,
             "Starting interpolation-based refinement because invariant generation was not successful.");
-        return performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
+        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
 
       } else {
         if (strategy instanceof PredicateAbstractionRefinementStrategy) {
@@ -498,7 +498,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
    */
-  private List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
+  private BlockFormulas getFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException, InterruptedException {
     getFormulasForPathTime.start();
     try {
@@ -508,7 +508,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
   }
 
-  private List<BooleanFormula> performRefinementSelection(final ARGPath pAllStatesTrace,
+  private BlockFormulas performRefinementSelection(final ARGPath pAllStatesTrace,
       final List<ARGState> pAbstractionStatesTrace)
       throws InterruptedException, CPAException {
 
@@ -533,7 +533,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         formulas.add(fmgr.getBooleanFormulaManager().makeTrue());
       }
 
-      return formulas;
+      return new BlockFormulas(formulas);
     }
   }
 

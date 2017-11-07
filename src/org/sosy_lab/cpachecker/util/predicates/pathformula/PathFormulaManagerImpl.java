@@ -346,6 +346,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         forcePointerDereference);
   }
 
+
+
   /**
    * Build a formula containing a predicate for all branching situations in the
    * ARG. If a satisfying assignment is created for this formula, it can be used
@@ -359,6 +361,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    */
   @Override
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
+      throws CPATransferException, InterruptedException {
+    return buildBranchingFormula(elementsOnPath, Collections.<Pair<ARGState,CFAEdge>, PathFormula>emptySortedMap());
+  }
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
+   *
+   * This method may be called with an empty set, in which case it does nothing
+   * and returns the formula "true".
+   *
+   * @param elementsOnPath The ARG states that should be considered.
+   * @param parentFormulasOnPath TODO.
+   * @return A formula containing a predicate for each branching.
+   */
+  @Override
+  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeTrue();
@@ -409,20 +429,23 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
 
-        // create formula by edge, be sure to use the correct SSA indices!
-        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-        // it is used without PredicateCPA as well.
-        PathFormula pf;
-        PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-        if (pe == null) {
-          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return bfmgr.makeTrue();
-        } else {
-          pf = pe.getPathFormula();
-        }
-        pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
-        pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
+        Pair<ARGState,CFAEdge> key = Pair.of(pathElement, positiveEdge);
+        PathFormula pf = parentFormulasOnPath.get(key);
 
+        if(pf == null) {
+          // create formula by edge, be sure to use the correct SSA indices!
+          // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+          // it is used without PredicateCPA as well.
+          PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+          if (pe == null) {
+            logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
+            return bfmgr.makeTrue();
+          } else {
+            pf = pe.getPathFormula();
+          }
+          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+          pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
+        }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
         branchingFormula = bfmgr.and(branchingFormula, equiv);
       }
@@ -510,5 +533,4 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public void printStatistics(PrintStream out) {
     converter.printStatistics(out);
   }
-
 }
