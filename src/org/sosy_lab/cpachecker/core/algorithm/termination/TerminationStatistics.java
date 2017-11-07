@@ -91,6 +91,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -543,6 +545,10 @@ public class TerminationStatistics implements Statistics {
 
     ARGState pred, succ;
 
+    CFANode locContinueLoop, locFun;
+    ARGState predFun, succFun;
+    Deque<CFANode> waitlistFun;
+
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
       pred = nodeToARGState.get(loc);
@@ -558,6 +564,48 @@ public class TerminationStatistics implements Statistics {
           }
 
           succ.addParent(pred);
+
+        } else if (leave instanceof FunctionCallEdge) {
+          locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
+          waitlistFun = new ArrayDeque<>();
+          waitlistFun.push(leave.getSuccessor());
+
+          predFun = nodeToARGState.get(leave.getSuccessor());
+          if (predFun == null) {
+            predFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+            nodeToARGState.put(leave.getSuccessor(), predFun);
+          }
+
+          predFun.addParent(pred);
+
+          while (!waitlistFun.isEmpty()) {
+            locFun = waitlistFun.pop();
+            predFun = nodeToARGState.get(locFun);
+            assert (predFun != null);
+
+            for (CFAEdge leaveFun : CFAUtils.leavingEdges(locFun)) {
+              if (leaveFun instanceof FunctionReturnEdge
+                  && !nodeToARGState.containsKey(
+                      ((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
+                continue; // false context
+              }
+
+              succFun = nodeToARGState.get(leaveFun.getSuccessor());
+              if (succFun == null) {
+                succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
+                nodeToARGState.put(leaveFun.getSuccessor(), succFun);
+                if (leaveFun.getSuccessor() != locContinueLoop) {
+                  waitlistFun.push(leaveFun.getSuccessor());
+                } else {
+                  waitlist.push(leaveFun.getSuccessor());
+                }
+              }
+
+              succFun.addParent(predFun);
+            }
+          }
+
+          assert (nodeToARGState.containsKey(locContinueLoop));
         }
       }
     }
