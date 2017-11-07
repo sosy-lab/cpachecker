@@ -269,12 +269,12 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
 
     def _handle_stderr_file(result_zip_file, files, output_path):
         if RESULT_FILE_STDERR in files:
-            result_zip_file.extract(RESULT_FILE_STDERR, output_path)
-            shutil.move(os.path.join(output_path, RESULT_FILE_STDERR), run.log_file + ".stdError")
-            os.rmdir(output_path)
+            log_dir = os.path.dirname(run.log_file)
+            result_zip_file.extract(RESULT_FILE_STDERR, log_dir)
+            shutil.move(os.path.join(log_dir, RESULT_FILE_STDERR), run.log_file + ".stdError")
 
     handle_result(
-        zip_content, run.log_file + ".output", run.identifier,
+        zip_content, run.result_files_folder, run.identifier,
         result_files_patterns=benchmark.result_files_patterns,
         open_output_log=_open_output_log,
         handle_run_info=_handle_run_info,
