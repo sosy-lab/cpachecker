@@ -317,7 +317,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** checks whether the location is the last node of a thread,
    * i.e. the current thread will terminate after this node. */
-  static boolean isLastNodeOfThread(CFANode node) {
+  public static boolean isLastNodeOfThread(CFANode node) {
 
     if (0 == node.getNumLeavingEdges()) {
       return true;

@@ -865,6 +865,7 @@ class WitnessWriter implements EdgeAppender {
       return Collections.singletonList(pResult);
     }
 
+    // handle direct creation or destruction of threads
     Optional<String> threadInitialFunctionName = Optional.empty();
     OptionalInt spawnedThreadId = OptionalInt.empty();
 
@@ -898,22 +899,6 @@ class WitnessWriter implements EdgeAppender {
                 }
                 break;
               }
-            case ThreadingTransferRelation.THREAD_JOIN:
-              {
-                // extract old thread-id from current state. we assume there is only 'one' match
-                ARGState child = getChildState(pState, pEdge);
-                // search the old deleted thread-id
-                ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
-                for (String threadId : threadingState.getThreadIds()) {
-                  if (!succThreadingState.getThreadIds().contains(threadId)) {
-                    // we found the old deleted thread-id. we assume there is only 'one' match
-                    pResult =
-                        pResult.putAndCopy(
-                            KeyDef.DESTROYTHREAD, Integer.toString(getUniqueThreadNum(threadId)));
-                  }
-                }
-                break;
-              }
             default:
               // nothing to do
           }
@@ -921,6 +906,21 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
+    List<TransitionCondition> result = Lists.newArrayList(pResult);
+
+    // handle threads that destroy themselves by exiting
+    for (String id : threadingState.getThreadIds()) {
+      if (ThreadingTransferRelation.isLastNodeOfThread(
+          threadingState.getThreadLocation(id).getLocationNode())) {
+        // destroy the thread itself, but on an edge that belongs to another active thread.
+        TransitionCondition extraTransition =
+            getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName)
+                .putAndCopy(KeyDef.DESTROYTHREAD, Integer.toString(getUniqueThreadNum(id)));
+        result.add(extraTransition);
+      }
+    }
+
+    // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
       TransitionCondition extraTransition =
           getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName);
@@ -931,11 +931,11 @@ class WitnessWriter implements EdgeAppender {
       }
 
       if (!extraTransition.getMapping().isEmpty()) {
-        return ImmutableList.of(pResult, extraTransition);
+        result.add(extraTransition);
       }
     }
 
-    return Collections.singletonList(pResult);
+    return result;
   }
 
   /** return the single successor state of a state along an edge. */
