@@ -859,10 +859,16 @@ class WitnessWriter implements EdgeAppender {
       boolean pIsDefaultCase) {
 
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
+
+    if (threadingState == null) {
+      // no data available
+      return Collections.singletonList(pResult);
+    }
+
     Optional<String> threadInitialFunctionName = Optional.empty();
     OptionalInt spawnedThreadId = OptionalInt.empty();
 
-    if (threadingState != null && pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) pEdge).getStatement();
       if (statement instanceof AFunctionCall) {
         AExpression functionNameExp =
