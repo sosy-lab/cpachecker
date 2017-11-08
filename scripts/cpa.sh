@@ -129,6 +129,7 @@ esac
 
 # Preliminary slicing as part of SV-COMP'18 CPA-BAM-Slicing submission
 
+HELP=1
 i=0
 while [[ i -lt ${#OPTIONS[@]} ]]; do
     key=${OPTIONS[i]}
