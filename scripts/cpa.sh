@@ -127,6 +127,50 @@ case "$platform" in
     ;;
 esac
 
+# Preliminary slicing as part of SV-COMP'18 CPA-BAM-Slicing submission
+
+i=0
+while [[ i -lt ${#OPTIONS[@]} ]]; do
+    key=${OPTIONS[i]}
+    case $key in
+        -help|-nolog|-noout|-stats|-cbmc|-32|-64|-skipRecursion|-preprocess|-java|-secureMode|-debug|-disable-java-assertions|-generateReport|-ldv-bam-svcomp|-sv-comp17-bam-bnb)
+            ((i++))
+            ;;
+        -spec)
+            PROPERTYFILE=${OPTIONS[i+1]}
+            ((i+=2))
+            ;;
+        -*)
+            ((i+=2))
+            ;;
+        *)
+            TASK=$key
+            ((i++))
+            ;;
+    esac
+done
+
+[[ ! -f ${PROPERTYFILE} ]] || grep -q 'CHECK(.*,.*LTL(G.*!.*call(.*).*).*)' "$PROPERTYFILE"
+SAFETYPROPERTY=$?
+
+if [[ $SAFETYPROPERTY -eq 0 ]]; then
+    cd ${PATH_TO_CPACHECKER}
+    ./frama-c-Crude_slicer.native \
+        -machdep gcc_x86_64 \
+        -crude_slicer \
+        -timeout 400 \
+        -no-recognize_wrecked_container_of \
+        -widening_threshold 2000 \
+        -no-summaries \
+        -no-assert_stratification \
+        -print \
+        -ocode ${TASK} \
+        ${TASK}
+
+    rm -rf "$(find . -name '**.graphml')"
+    EXEC=
+fi
+
 # Run CPAchecker.
 # Order of arguments for JVM:
 # - options hard-coded in this script (to allow overriding them)
@@ -146,3 +190,16 @@ $EXEC "$JAVA" \
 	$CPACHECKER_ARGUMENTS
 
 $POST_PROCESSING
+
+if [[ $SAFETYPROPERTY -eq 0 ]]; then
+    IWITNESSFILE=$(find `pwd` -name "**.graphml")
+    if [[ -f ${IWITNESSFILE} ]]; then
+        OWITNESSFILE="$(dirname ${IWITNESSFILE})/restored_$(basename ${IWITNESSFILE})"
+
+        ${PATH_TO_CPACHECKER}/filter_witness.native \
+            -progfile ${TASK} \
+            -o ${OWITNESSFILE} \
+            ${IWITNESSFILE}
+    fi
+    rm -rf ${IWITNESSFILE}
+fi
