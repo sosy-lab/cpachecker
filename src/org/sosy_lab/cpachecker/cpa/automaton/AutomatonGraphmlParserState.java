@@ -27,11 +27,13 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -43,13 +45,16 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class AutomatonGraphmlParserState {
 
+  private static final String CLONED_FUNCTION_INFIX = "__cloned_function__";
+
   protected static final Pattern CLONED_FUNCTION_NAME_PATTERN =
-      Pattern.compile("(.+)(__cloned_function__\\d+)");
+      Pattern.compile("(.+)(" + CLONED_FUNCTION_INFIX + ")(\\d+)");
 
   /** The name of the witness automaton. */
   private final String automatonName;
@@ -395,7 +400,7 @@ public class AutomatonGraphmlParserState {
     // If we have not yet computed the equivalence classes, we can try if we can do without them
     if (functionCopies.isEmpty()) {
       FunctionInstance originalFunction =
-          new FunctionInstance(pDesiredFunctionName, pDesiredFunctionName);
+          new FunctionInstance(pDesiredFunctionName, Integer.MIN_VALUE);
 
       // If the thread already owns the function, we can trivially hand it out
       if (occupiedFunctions.get(pThread).contains(originalFunction)) {
@@ -403,8 +408,9 @@ public class AutomatonGraphmlParserState {
       }
       // If the function is available, we mark it as occupied and hand it out
       if (!occupiedFunctions.values().contains(originalFunction)) {
-        occupiedFunctions.put(pThread, originalFunction);
-        return Optional.of(pDesiredFunctionName);
+        if (occupy(pThread, originalFunction)) {
+          return Optional.of(pDesiredFunctionName);
+        }
       }
 
       // If the previous checks were unsuccessful, we need the equivalence classes, so we can not
@@ -419,17 +425,36 @@ public class AutomatonGraphmlParserState {
     for (FunctionInstance functionInstance : functionCopies.get(pDesiredFunctionName)) {
       // If the thread already owns the instance, we can trivially hand it out
       if (occupiedFunctions.get(pThread).contains(functionInstance)) {
-        return Optional.of(functionInstance.cloneName);
+        return Optional.of(functionInstance.getCloneName());
       }
       // If the function instance is available, we mark it as occupied and hand it out
       if (!occupiedFunctions.values().contains(functionInstance)) {
-        occupiedFunctions.put(pThread, functionInstance);
-        return Optional.of(functionInstance.cloneName);
+        if (!occupy(pThread, functionInstance)) {
+          return Optional.empty();
+        }
+        return Optional.of(functionInstance.getCloneName());
       }
     }
 
     // If the function is not available, we cannot hand it out
     return Optional.empty();
+  }
+
+  private boolean occupy(GraphMLThread pThread, FunctionInstance pFunctionInstance) {
+    Collection<FunctionInstance> copies = Lists.newArrayListWithExpectedSize(5);
+    for (FunctionInstance copy : functionCopies.values()) {
+      if (copy.cloneNumber == pFunctionInstance.cloneNumber) {
+        if (!occupiedFunctions.get(pThread).contains(copy)
+            && occupiedFunctions.values().contains(pFunctionInstance)) {
+          return false;
+        }
+        copies.add(pFunctionInstance);
+      }
+    }
+    for (FunctionInstance copy : copies) {
+      occupiedFunctions.put(pThread, copy);
+    }
+    return true;
   }
 
   /**
@@ -466,11 +491,11 @@ public class AutomatonGraphmlParserState {
 
     private final String originalName;
 
-    private final String cloneName;
+    private final int cloneNumber;
 
-    public FunctionInstance(String pOriginalName, String pCloneName) {
+    public FunctionInstance(String pOriginalName, int pCloneNumber) {
       originalName = Objects.requireNonNull(pOriginalName);
-      cloneName = Objects.requireNonNull(pCloneName);
+      cloneNumber = pCloneNumber;
     }
 
     @Override
@@ -480,25 +505,33 @@ public class AutomatonGraphmlParserState {
       }
       if (pOther instanceof FunctionInstance) {
         FunctionInstance other = (FunctionInstance) pOther;
-        return originalName.equals(other.originalName) && cloneName.equals(other.cloneName);
+        return originalName.equals(other.originalName)
+            && cloneNumber == other.cloneNumber;
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(originalName, cloneName);
+      return Objects.hash(originalName, cloneNumber);
+    }
+
+    public String getCloneName() {
+      if (cloneNumber == Integer.MIN_VALUE) {
+        return originalName;
+      }
+      return originalName + CLONED_FUNCTION_INFIX + cloneNumber;
     }
 
     @Override
     public String toString() {
-      return cloneName;
+      return getCloneName();
     }
 
     @Override
     public int compareTo(FunctionInstance pOther) {
       return ComparisonChain.start()
-          .compare(cloneName, pOther.cloneName)
+          .compare(cloneNumber, pOther.cloneNumber)
           .compare(originalName, pOther.originalName)
           .result();
     }
@@ -507,6 +540,6 @@ public class AutomatonGraphmlParserState {
   private static FunctionInstance parseFunctionInstance(String pFunctionName) {
     Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
     String pOriginalName = matcher.matches() ? matcher.group(1) : pFunctionName;
-    return new FunctionInstance(pOriginalName, pFunctionName);
+    return new FunctionInstance(pOriginalName, Integer.parseInt(matcher.group(3)));
   }
 }
