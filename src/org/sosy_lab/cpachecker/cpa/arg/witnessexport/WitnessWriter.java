@@ -921,8 +921,9 @@ class WitnessWriter implements EdgeAppender {
           threadingState.getThreadLocation(id).getLocationNode())) {
         // destroy the thread itself, but on an edge that belongs to another active thread.
         TransitionCondition extraTransition =
-            getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName)
+            getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, Optional.empty())
                 .putAndCopy(KeyDef.DESTROYTHREAD, Integer.toString(getUniqueThreadNum(id)));
+        extraTransition = extraTransition.removeAndCopy(KeyDef.FUNCTIONENTRY);
         result.add(extraTransition);
       }
     }
