@@ -491,10 +491,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     statistics.cycleCheckTime.start();
     try {
       // set up specification
-      List<Automaton> automata = new ArrayList<>(3);
+      List<Automaton> automataSecondCheck = new ArrayList<>(4);
+      List<Automaton> automata = new ArrayList<>(5);
       // add witness automaton, but change initial state to beginning of recurrent set
       try {
-        automata.add(
+        automataSecondCheck.add(
             new Automaton(
                 witness.getName(),
                 witness.getInitialVariables(),
@@ -505,15 +506,16 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         return false;
       }
       // sink states as errors, if reached may leave recurrent set
-      automata.add(
+      automataSecondCheck.add(
           getSpecForErrorAt(
               witnessAutomatonName, BREAKSTATENAME, WITNESS_BREAK_OBSERVER_SPEC_NAME));
       // executing statements ending program as errors, if reached (i.e. executed) may leave
       // recurrent set
-      automata.add(terminationAutomaton);
-      automata.add(
+      automataSecondCheck.add(terminationAutomaton);
+      automataSecondCheck.add(
           getSpecForErrorAt(
               terminationAutomatonName, BREAKSTATENAME, TERMINATION_OBSERVER_SPEC_NAME));
+      automata.addAll(automataSecondCheck);
       // break when should be in recurrent set again
       // still allow successor computation along pNegInvCheck
       // i.e., visit stemEndLoc and  internal automaton state (multiple unrollings, edge
@@ -528,86 +530,126 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               ITERATION_OBSERVER_SPEC_NAME);
       automata.add(automatonRedetectRecurrentSet);
       Specification spec = Specification.fromAutomata(automata);
+      Specification spec2 = Specification.fromAutomata(automataSecondCheck);
 
       shutdown.shutdownIfNecessary();
 
-      // set up
-      ReachedSet reached;
-      ConfigurableProgramAnalysis cpa;
-      Algorithm algorithm;
-
-      ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-      singleConfigBuilder.loadFromFile(recurrentConfig);
-      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
-      singleConfigBuilder.setOption("output.disable", "true");
-      Configuration singleConfig = singleConfigBuilder.build();
-
-      CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
-      cpa = coreComponents.createCPA(cfa, spec);
-
-      Preconditions.checkArgument(
-          cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
-
-      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
-
-      shutdown.shutdownIfNecessary();
-
-      // build initial precision
-      Precision initialPrecision =
-          cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-
-      PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-      if (predCPA != null) {
-        PredicatePrecision predPrec = getPredicatePrecisionFromCandidateInvariants(predCPA);
-        // TODO unify with initial predicate precision instead of repLacement?
-        initialPrecision =
-            Precisions.replaceByType(
-                initialPrecision, predPrec, precision -> precision instanceof PredicatePrecision);
-      }
-
-      // build initial state which should be restricted to recurrent set
-      CAssumeEdge invCheckLoop =
-          new CAssumeEdge(
-              "!(" + pNegInvCheck.getRawStatement() + ")",
-              FileLocation.DUMMY,
-              pStemEndLoc,
-              pStemEndLoc,
-              pNegInvCheck.getExpression(),
-              true);
-      pStemEndLoc.addLeavingEdge(invCheckLoop);
-      AbstractState initialState =
-          setUpInitialAbstractStateForRecurrentSet(
-              pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
-      pStemEndLoc.removeLeavingEdge(invCheckLoop);
-      // TODO okay that initial states is non-abstraction state?
-
-      reached = coreComponents.createReachedSet();
-      reached.add(initialState, initialPrecision);
-
-      shutdown.shutdownIfNecessary();
-
-      // run analysis
       logger.log(
           Level.INFO, "Checking infinite part of non-termination witness, often the loop part");
-      AlgorithmStatus result = algorithm.run(reached);
-      if (!result.isSound()) {
+      logger.log(Level.INFO, "Try using complete witness information");
+
+      boolean confirmedRecurrentSet =
+          setUpAndRunAnalysisForRecurrentSetCheck(
+              spec, pStemEndLoc, pNegInvCheck, pStemEndCycleStart, automatonRedetectRecurrentSet);
+
+      if (!confirmedRecurrentSet) {
         logger.log(
-            Level.INFO, "Witness validation became unsound. As a precaution, decline witness.");
+            Level.INFO,
+            "First check of recurrent set check failed. "
+                + "Continue with check only relying on recurrent set information, but do not stop exploration at cyclehead.");
+        confirmedRecurrentSet =
+            setUpAndRunAnalysisForRecurrentSetCheck(
+                spec2, pStemEndLoc, pNegInvCheck, pStemEndCycleStart, null);
+      }
+
+      return confirmedRecurrentSet;
+
+    } catch (IOException | InvalidConfigurationException e) {
+      logger.logException(
+          Level.FINE,
+          e,
+          "Exception occurred while checking validity (closedness) of given recurrent set.");
+      return false;
+    } finally {
+      statistics.cycleCheckTime.stop();
+    }
+  }
+
+  private boolean setUpAndRunAnalysisForRecurrentSetCheck(
+      final Specification spec,
+      final CFANode pStemEndLoc,
+      final CAssumeEdge pNegInvCheck,
+      final AutomatonInternalState pStemEndCycleStart,
+      final @Nullable Automaton pAutomatonRedetectRecurrentSet)
+      throws InterruptedException {
+    // set up
+    try {
+    ReachedSet reached;
+    ConfigurableProgramAnalysis cpa;
+    Algorithm algorithm;
+
+    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
+    singleConfigBuilder.loadFromFile(recurrentConfig);
+    singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
+    singleConfigBuilder.setOption("output.disable", "true");
+    Configuration singleConfig = singleConfigBuilder.build();
+
+    CoreComponentsFactory coreComponents =
+        new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+    cpa = coreComponents.createCPA(cfa, spec);
+
+    Preconditions.checkArgument(
+        cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
+
+    ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
+
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+    algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
+
+    shutdown.shutdownIfNecessary();
+
+    // build initial precision
+    Precision initialPrecision =
+        cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+
+    PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+    if (predCPA != null) {
+      PredicatePrecision predPrec = getPredicatePrecisionFromCandidateInvariants(predCPA);
+      // TODO unify with initial predicate precision instead of replacement?
+      initialPrecision =
+          Precisions.replaceByType(
+              initialPrecision, predPrec, precision -> precision instanceof PredicatePrecision);
+    }
+
+    // build initial state which should be restricted to recurrent set
+    CAssumeEdge invCheckLoop =
+        new CAssumeEdge(
+            "!(" + pNegInvCheck.getRawStatement() + ")",
+            FileLocation.DUMMY,
+            pStemEndLoc,
+            pStemEndLoc,
+            pNegInvCheck.getExpression(),
+            true);
+    pStemEndLoc.addLeavingEdge(invCheckLoop);
+    AbstractState initialState =
+        setUpInitialAbstractStateForRecurrentSet(
+            pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
+    pStemEndLoc.removeLeavingEdge(invCheckLoop);
+    // TODO okay that initial states is non-abstraction state?
+
+    reached = coreComponents.createReachedSet();
+    reached.add(initialState, initialPrecision);
+
+    shutdown.shutdownIfNecessary();
+
+    // run analysis
+    logger.log(Level.INFO, "Start checking recurrent set");
+    AlgorithmStatus result = algorithm.run(reached);
+
+    if (!result.isSound()) {
+        logger.log(
+            Level.INFO,
+            "Current check became unsound. Do not use its result for witness valiation.");
         return false;
       }
 
       // check that no sink state is reachable from recurrent set
       if (from(reached).anyMatch(IS_TARGET_STATE)) {
-        logger.log(Level.INFO, "May leave recurrent set.");
-        return false;
-      }
+        logger.log(Level.INFO, "May leave recurrent set in current check.");
+      return false;
+    }
 
-      pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);
       for (AbstractState stateWithoutSucc :
           from(reached)
               .filter(
@@ -624,7 +666,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             if (((LocationState) compState).getLocationNode().getNumLeavingEdges() == 0) {
               // assume that analysis removed such infeasible successors, thus this state is
               // feasible
-              logger.log(Level.INFO, "May reach a terminating state from the recurrent set.");
+              logger.log(
+                  Level.INFO,
+                  "May reach a terminating state from the recurrent set in current check.");
               return false;
             }
 
@@ -637,7 +681,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 // know the correct successor
                 logger.log(
                     Level.INFO,
-                    "Function return without known caller found. May be unsound to continue. Abort non-termination witness validation.");
+                    "Function return without known caller found. May be unsound to continue. Abort current check.");
                 return false;
               }
             }
@@ -646,8 +690,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           } else if (compState instanceof AutomatonState) {
             AutomatonState amState = (AutomatonState) compState;
 
-            if (amState.getOwningAutomaton() == automatonRedetectRecurrentSet) {
+            if (amState.getOwningAutomaton() == pAutomatonRedetectRecurrentSet) {
               if (amState.getInternalStateName().equals(SuccessorState.FINISHED.toString())) {
+                pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);
 
                 // reached end of iteration, i.e., found cycle start at stem end location again
                 // check that after iteration remain in recurrent set
@@ -669,8 +714,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                               reached,
                               Functions.<AbstractState>identity(),
                               succ);
+                  pNegInvCheck.getPredecessor().removeLeavingEdge(pNegInvCheck);
                   if (precResult.isPresent()) {
-                    logger.log(Level.INFO, "May leave the recurrent set.");
+                    logger.log(Level.INFO, "May leave the recurrent set in current check.");
                     return false;
                   }
                 }
@@ -679,16 +725,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           }
         }
       }
-    } catch (CPAException | IOException | InvalidConfigurationException e) {
-      logger.logException(
-          Level.FINE,
-          e,
-          "Exception occurred while checking validity (closedness) of given recurrent set.");
+    } catch (CPAException | InvalidConfigurationException | IOException e) {
       return false;
-    } finally {
-      statistics.cycleCheckTime.stop();
     }
-
     return true;
   }
 
