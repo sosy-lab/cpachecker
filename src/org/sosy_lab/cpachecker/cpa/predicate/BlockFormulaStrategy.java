@@ -28,12 +28,10 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import com.google.common.base.Function;
-
+import java.util.List;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.List;
 
 /**
  * This class represents a strategy to get the sequence of block formulas
@@ -43,6 +41,40 @@ import java.util.List;
  * Typically {@link PredicateCPARefinerFactory} automatically creates the desired strategy.
  */
 public class BlockFormulaStrategy {
+
+  public static class BlockFormulas {
+    private List<BooleanFormula> formulas;
+    private BooleanFormula branchingFormula;
+
+    public BlockFormulas(List<BooleanFormula> pFormulas) {
+      this.formulas = pFormulas;
+    }
+
+    public BlockFormulas(List<BooleanFormula> pFormulas, BooleanFormula pBranchingFormula) {
+      this.formulas = pFormulas;
+      this.branchingFormula = pBranchingFormula;
+    }
+
+    public BlockFormulas withBranchingFormula(BooleanFormula pBranchingFormula) {
+      return new BlockFormulas(this.formulas, pBranchingFormula);
+    }
+
+    public List<BooleanFormula> getFormulas() {
+      return formulas;
+    }
+
+    public BooleanFormula getBranchingFormula() {
+      return branchingFormula;
+    }
+
+    public int getSize() {
+      return formulas.size();
+    }
+
+    public boolean hasBranchingFormula() {
+      return branchingFormula != null;
+    }
+  }
 
   static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
       e -> {
@@ -59,11 +91,11 @@ public class BlockFormulaStrategy {
    *    (should not happen because the main analyses analyzed them successfully).
    * @throws InterruptedException On shutdown request.
    */
-  List<BooleanFormula> getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)
+  BlockFormulas getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)
       throws CPATransferException, InterruptedException {
-    return from(abstractionStates)
+    return new BlockFormulas(from(abstractionStates)
         .transform(toState(PredicateAbstractState.class))
         .transform(GET_BLOCK_FORMULA)
-        .toList();
+        .toList());
   }
 }

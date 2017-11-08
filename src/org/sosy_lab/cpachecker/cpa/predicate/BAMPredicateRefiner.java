@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -126,7 +127,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
     }
 
     @Override
-    List<BooleanFormula> getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
+    BlockFormulas getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
         throws CPATransferException, InterruptedException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
@@ -136,6 +137,9 @@ public abstract class BAMPredicateRefiner implements Refiner {
       final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
       final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
       final Deque<ARGState> waitlist = new ArrayDeque<>();
+
+      //map from states to formulas for truth assumption path formula
+      final Map<Pair<ARGState,CFAEdge>, PathFormula> branchingFormulas = new HashMap<>();
 
       // initialize
       assert pRoot.getParents().isEmpty() : "rootState must be the first state of the program";
@@ -197,6 +201,12 @@ public abstract class BAMPredicateRefiner implements Refiner {
           PathFormula currentFormula = strengthen(currentState, parentFormula);
           for (CFAEdge edge : edges) {
             currentFormula = pfmgr.makeAnd(currentFormula, edge);
+            if(edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+              PathFormula f = pfmgr.makeEmptyPathFormula(parentFormula);
+              f = pfmgr.makeAnd(f, edge);
+              Pair<ARGState,CFAEdge> key = Pair.of(parentElement, edge);
+              branchingFormulas.put(key, f);
+            }
           }
           currentFormulas.add(currentFormula);
           currentStacks.add(prevCallState);
@@ -243,7 +253,8 @@ public abstract class BAMPredicateRefiner implements Refiner {
         finishedFormulas.put(currentState, currentFormula);
         waitlist.addAll(currentState.getChildren());
       }
-      return abstractionFormulas;
+      BooleanFormula branchingFormula = pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
+      return new BlockFormulas(abstractionFormulas, branchingFormula);
     }
 
     /** Add additional information from other CPAs. */

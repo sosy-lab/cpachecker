@@ -91,7 +91,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
   @Override
-  List<BooleanFormula> getFormulasForPath(ARGState initialState, List<ARGState> path)
+  BlockFormulas getFormulasForPath(ARGState initialState, List<ARGState> path)
       throws CPATransferException, InterruptedException {
     // This map contains all edges that are important.
     // We store the parent- and the child-ARGState, because they are unique,
@@ -139,7 +139,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       pfs.add(pf.getFormula());
     }
 
-    return pfs.build();
+    return new BlockFormulas(pfs.build());
   }
 
   /** This function returns all states, that are contained in a block.
