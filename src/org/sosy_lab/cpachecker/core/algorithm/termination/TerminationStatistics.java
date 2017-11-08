@@ -62,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -104,11 +105,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -537,6 +540,8 @@ public class TerminationStatistics implements Statistics {
     CFANode loc = AbstractStates.extractLocation(pLoopEntry);
     Preconditions.checkState(nonterminatingLoop.getLoopHeads().contains(loc));
 
+    Collection<ARGState> relevantARGStates = new HashSet<>();
+
     Map<CFANode, ARGState> nodeToARGState =
         Maps.newHashMapWithExpectedSize(nonterminatingLoop.getLoopNodes().size());
     nodeToARGState.put(loc, pLoopEntry);
@@ -545,9 +550,11 @@ public class TerminationStatistics implements Statistics {
 
     ARGState pred, succ;
 
-    CFANode locContinueLoop, locFun;
+    CFANode locContinueLoop;
+    Pair<CFANode, CallstackState> context, newContext;
     ARGState predFun, succFun;
-    Deque<CFANode> waitlistFun;
+    Deque<Pair<CFANode, CallstackState>> waitlistFun;
+    Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState;
 
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
@@ -565,38 +572,63 @@ public class TerminationStatistics implements Statistics {
 
           succ.addParent(pred);
 
-        } else if (leave instanceof FunctionCallEdge) {
+        } else if (leave instanceof FunctionCallEdge && pred.getChildren().size() == 0) {
+          // function calls are not considered to be part of the loop
           locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
+          contextToARGState = new HashMap<>();
+          context =
+              Pair.of(
+                  leave.getSuccessor(),
+                  new CallstackState(
+                      null, leave.getSuccessor().getFunctionName(), leave.getPredecessor()));
           waitlistFun = new ArrayDeque<>();
-          waitlistFun.push(leave.getSuccessor());
+          waitlistFun.push(context);
 
-          predFun = nodeToARGState.get(leave.getSuccessor());
-          if (predFun == null) {
-            predFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
-            nodeToARGState.put(leave.getSuccessor(), predFun);
-          }
+          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          contextToARGState.put(context, succFun);
 
-          predFun.addParent(pred);
+          succFun.addParent(pred);
 
           while (!waitlistFun.isEmpty()) {
-            locFun = waitlistFun.pop();
-            predFun = nodeToARGState.get(locFun);
+            context = waitlistFun.pop();
+            predFun = contextToARGState.get(context);
             assert (predFun != null);
 
-            for (CFAEdge leaveFun : CFAUtils.leavingEdges(locFun)) {
-              if (leaveFun instanceof FunctionReturnEdge
-                  && !nodeToARGState.containsKey(
-                      ((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
-                continue; // false context
+            for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
+              newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
+
+              if (leaveFun instanceof FunctionReturnEdge) {
+                if (context.getSecond().getCallNode()
+                    != ((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor()) {
+                  continue; // false context
+                }
+                newContext =
+                    Pair.of(leaveFun.getSuccessor(), context.getSecond().getPreviousState());
               }
 
-              succFun = nodeToARGState.get(leaveFun.getSuccessor());
+              if (leaveFun instanceof FunctionCallEdge) {
+                newContext =
+                    Pair.of(
+                        leaveFun.getSuccessor(),
+                        new CallstackState(
+                            context.getSecond(),
+                            leaveFun.getSuccessor().getFunctionName(),
+                            leaveFun.getPredecessor()));
+              }
+
+              if (leaveFun.getSuccessor() != locContinueLoop) {
+                succFun = contextToARGState.get(newContext);
+              } else {
+                succFun = nodeToARGState.get(locContinueLoop);
+                assert (newContext.getSecond() == null);
+              }
               if (succFun == null) {
                 succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
-                nodeToARGState.put(leaveFun.getSuccessor(), succFun);
                 if (leaveFun.getSuccessor() != locContinueLoop) {
-                  waitlistFun.push(leaveFun.getSuccessor());
+                  contextToARGState.put(newContext, succFun);
+                  waitlistFun.push(newContext);
                 } else {
+                  nodeToARGState.put(leaveFun.getSuccessor(), succFun);
                   waitlist.push(leaveFun.getSuccessor());
                 }
               }
@@ -606,10 +638,12 @@ public class TerminationStatistics implements Statistics {
           }
 
           assert (nodeToARGState.containsKey(locContinueLoop));
+          relevantARGStates.addAll(contextToARGState.values());
         }
       }
     }
-    return nodeToARGState.values();
+    relevantARGStates.addAll(nodeToARGState.values());
+    return relevantARGStates;
   }
 
   private ExpressionTree<Object> buildInvariantFrom(NonTerminationArgument pArg) {
