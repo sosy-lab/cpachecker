@@ -133,7 +133,11 @@ i=0
 while [[ i -lt ${#OPTIONS[@]} ]]; do
     key=${OPTIONS[i]}
     case $key in
-        -help|-nolog|-noout|-stats|-cbmc|-32|-64|-skipRecursion|-preprocess|-java|-secureMode|-debug|-disable-java-assertions|-generateReport|-ldv-bam-svcomp|-sv-comp17-bam-bnb)
+        -help)
+            HELP=0
+            ((i++))
+            ;;
+        -nolog|-noout|-stats|-cbmc|-32|-64|-skipRecursion|-preprocess|-java|-secureMode|-debug|-disable-java-assertions|-generateReport|-ldv-bam-svcomp|-sv-comp17-bam-bnb)
             ((i++))
             ;;
         -spec)
@@ -149,34 +153,40 @@ while [[ i -lt ${#OPTIONS[@]} ]]; do
             ;;
     esac
 done
-ATASK=$(readlink -f ${TASK})
 
-[[ ! -f ${PROPERTYFILE} ]] || grep -q 'CHECK(.*,.*LTL(G.*!.*call(.*).*).*)' "$PROPERTYFILE"
-SAFETYPROPERTY=$?
+# Don't try to run slicer in help (version) mode
 
-NATIVE_PATH="${PATH_TO_CPACHECKER}/lib/native/x86_64-linux"
-STASK=${PATH_TO_CPACHECKER}/task.c
+if [[ ! $HELP -eq 0 ]]; then
 
-if [[ $SAFETYPROPERTY -eq 0 ]]; then
-    cd ${NATIVE_PATH}
-    ./frama-c-Crude_slicer.native \
-        -machdep gcc_x86_64 \
-        -crude_slicer \
-        -timeout 400 \
-        -no-recognize_wrecked_container_of \
-        -widening_threshold 2000 \
-        -no-summaries \
-        -no-assert_stratification \
-        -print \
-        -ocode ${STASK} \
-        ${ATASK}
+    ATASK=$(readlink -f ${TASK})
 
-    cd ${PATH_TO_CPACHECKER}
-    rm -rf "$(find . -name '**.graphml')"
-    if [[ -f ${STASK} ]]; then
-        OPTIONS=(${OPTIONS[@]/${TASK}/${STASK}})
+    [[ ! -f ${PROPERTYFILE} ]] || grep -q 'CHECK(.*,.*LTL(G.*!.*call(.*).*).*)' "$PROPERTYFILE"
+    SAFETYPROPERTY=$?
+
+    NATIVE_PATH="${PATH_TO_CPACHECKER}/lib/native/x86_64-linux"
+    STASK=${PATH_TO_CPACHECKER}/task.c
+
+    if [[ $SAFETYPROPERTY -eq 0 ]]; then
+        cd ${NATIVE_PATH}
+        ./frama-c-Crude_slicer.native \
+            -machdep gcc_x86_64 \
+            -crude_slicer \
+            -timeout 400 \
+            -no-recognize_wrecked_container_of \
+            -widening_threshold 2000 \
+            -no-summaries \
+            -no-assert_stratification \
+            -print \
+            -ocode ${STASK} \
+            ${ATASK}
+
+        cd ${PATH_TO_CPACHECKER}
+        rm -rf "$(find . -name '**.graphml')"
+        if [[ -f ${STASK} ]]; then
+            OPTIONS=(${OPTIONS[@]/${TASK}/${STASK}})
+        fi
+        EXEC=
     fi
-    EXEC=
 fi
 
 # Run CPAchecker.
@@ -199,7 +209,7 @@ $EXEC "$JAVA" \
 
 $POST_PROCESSING
 
-if [[ $SAFETYPROPERTY -eq 0 ]]; then
+if [[ ! $HELP -eq 0 && $SAFETYPROPERTY -eq 0 ]]; then
     IWITNESSFILE=$(find `pwd` -name "**.graphml")
     if [[ -f ${IWITNESSFILE} ]]; then
         OWITNESSFILE="$(dirname ${IWITNESSFILE})/restored_$(basename ${IWITNESSFILE})"
