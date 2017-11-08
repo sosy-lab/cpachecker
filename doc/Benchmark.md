@@ -66,7 +66,7 @@ according to the characteristics of the input files to avoid wrong answers:
   and you are using a predicate-based analysis,
   set `cpa.predicate.memoryAllocationsAlwaysSucceed=true`.
   Note that this assumption is true for all SV-Comp files,
-  thus this option is already set in all `-sv-comp*` configurations.
+  thus this option is already set in all `-svcomp*` configurations.
 
 
 Specifying Resource Limits

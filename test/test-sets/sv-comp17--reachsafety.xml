@@ -5,7 +5,7 @@
   <option name="-heap">10000M</option>
 
   <rundefinition>
-    <option name="-sv-comp17"/>
+    <option name="-svcomp17"/>
   </rundefinition>
 
   <!-- Witness files are several GB in total, ignore them for now. Currently our BuildBot cannot handle this.

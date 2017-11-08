@@ -258,7 +258,7 @@ public class ConfigurationFilesTest {
 
       checkOption(config, "analysis.machineModel");
 
-      if (!configFile.toString().contains("sv-comp") && !configFile.toString().contains("svcomp")) {
+      if (!configFile.toString().contains("svcomp")) {
         checkOption(config, "cpa.predicate.memoryAllocationsAlwaysSucceed");
 
         // Should not be changed for SV-COMP configs, but was in 2016 and 2017
