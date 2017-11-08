@@ -153,8 +153,11 @@ done
 [[ ! -f ${PROPERTYFILE} ]] || grep -q 'CHECK(.*,.*LTL(G.*!.*call(.*).*).*)' "$PROPERTYFILE"
 SAFETYPROPERTY=$?
 
+NATIVE_PATH="${PATH_TO_CPACHECKER}/lib/native/x86_64-linux"
+STASK=${PATH_TO_CPACHECKER}/task.c
+
 if [[ $SAFETYPROPERTY -eq 0 ]]; then
-    cd ${PATH_TO_CPACHECKER}
+    cd ${NATIVE_PATH}
     ./frama-c-Crude_slicer.native \
         -machdep gcc_x86_64 \
         -crude_slicer \
@@ -164,10 +167,14 @@ if [[ $SAFETYPROPERTY -eq 0 ]]; then
         -no-summaries \
         -no-assert_stratification \
         -print \
-        -ocode ${TASK} \
+        -ocode ${STASK} \
         ${TASK}
 
+    cd ${PATH_TO_CPACHECKER}
     rm -rf "$(find . -name '**.graphml')"
+    if [[ -f ${STASK} ]]; then
+        CPACHECKER_ARGUMENTS=(${CPACHECKER_ARGUMENTS[@]/${TASK}/${STASK}})
+    fi
     EXEC=
 fi
 
@@ -196,7 +203,7 @@ if [[ $SAFETYPROPERTY -eq 0 ]]; then
     if [[ -f ${IWITNESSFILE} ]]; then
         OWITNESSFILE="$(dirname ${IWITNESSFILE})/restored_$(basename ${IWITNESSFILE})"
 
-        ${PATH_TO_CPACHECKER}/filter_witness.native \
+        ${NATIVE_PATH}/filter_witness.native \
             -progfile ${TASK} \
             -o ${OWITNESSFILE} \
             ${IWITNESSFILE}
