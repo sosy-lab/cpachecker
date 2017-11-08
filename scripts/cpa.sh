@@ -149,6 +149,7 @@ while [[ i -lt ${#OPTIONS[@]} ]]; do
             ;;
     esac
 done
+ATASK=$(readlink -f ${TASK})
 
 [[ ! -f ${PROPERTYFILE} ]] || grep -q 'CHECK(.*,.*LTL(G.*!.*call(.*).*).*)' "$PROPERTYFILE"
 SAFETYPROPERTY=$?
@@ -168,12 +169,12 @@ if [[ $SAFETYPROPERTY -eq 0 ]]; then
         -no-assert_stratification \
         -print \
         -ocode ${STASK} \
-        ${TASK}
+        ${ATASK}
 
     cd ${PATH_TO_CPACHECKER}
     rm -rf "$(find . -name '**.graphml')"
     if [[ -f ${STASK} ]]; then
-        CPACHECKER_ARGUMENTS=(${CPACHECKER_ARGUMENTS[@]/${TASK}/${STASK}})
+        OPTIONS=(${OPTIONS[@]/${TASK}/${STASK}})
     fi
     EXEC=
 fi
