@@ -118,8 +118,10 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -487,7 +489,7 @@ class WitnessWriter implements EdgeAppender {
 
     if (graphType != WitnessType.VIOLATION_WITNESS) {
       ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-      if (exportInvariant(pEdge)) {
+      if (exportInvariant(pEdge, pFromState)) {
         invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
       }
       putStateInvariant(pTo, invariant);
@@ -1629,7 +1631,17 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  private boolean exportInvariant(CFAEdge pEdge) {
+  private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
+    if (pFromState.isPresent()
+        && pFromState
+            .get()
+            .stream()
+            .anyMatch(
+                s ->
+                    AbstractStates.extractStateByType(s, PredicateAbstractState.class) != null
+                        && PredicateAbstractState.CONTAINS_ABSTRACTION_STATE.apply(s))) {
+      return true;
+    }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
       return false;
     }
