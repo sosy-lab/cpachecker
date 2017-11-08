@@ -362,7 +362,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
-    return buildBranchingFormula(elementsOnPath, Collections.<Pair<ARGState,CFAEdge>, PathFormula>emptySortedMap());
+    return buildBranchingFormula(elementsOnPath,
+        Collections.<Pair<ARGState, CFAEdge>, PathFormula> emptyMap());
   }
 
   /**
