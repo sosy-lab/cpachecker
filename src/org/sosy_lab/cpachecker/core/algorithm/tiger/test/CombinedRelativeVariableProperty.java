@@ -43,11 +43,8 @@ public class CombinedRelativeVariableProperty extends CombinedVariableProperty {
   @Override
   public boolean checkProperty(Map<String, BigInteger> pListToCheck, GoalPropertyType pInOrOut) {
     if (this.inOrOut != pInOrOut) { return true; }
-
     BigInteger combinedValue = combineVariables(pListToCheck);
-
     BigInteger compareValue = pListToCheck.get(compareVariable);
-
     return compareValues(combinedValue, compareValue, comp);
   }
 

@@ -46,7 +46,6 @@ public class TestSuite implements AlgorithmResult {
   private Map<TestCase, List<Goal>> mapping;
   private Map<Goal, Region> infeasibleGoals;
   private Map<Integer, Pair<Goal, Region>> timedOutGoals;
-  private int numberOfFeasibleGoals = 0;
   private NamedRegionManager bddCpaNamedRegionManager;
   private Map<Goal, List<TestCase>> coveringTestCases;
   private List<Goal> includedTestGoals;
@@ -70,7 +69,11 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public int getNumberOfFeasibleTestGoals() {
-    return numberOfFeasibleGoals;
+    return coveringTestCases.keySet().size();
+  }
+
+  public Map<TestCase, List<Goal>> getMapping(){
+    return mapping;
   }
 
   public int getNumberOfInfeasibleTestGoals() {
@@ -102,7 +105,6 @@ public class TestSuite implements AlgorithmResult {
 
   public boolean addTestCase(TestCase testcase, Goal goal) {
     if (testSuiteAlreadyContrainsTestCase(testcase, goal)) { return true; }
-    numberOfFeasibleGoals++;
 
     List<Goal> goals = mapping.get(testcase);
     List<TestCase> testcases = coveringTestCases.get(goal);
@@ -119,7 +121,6 @@ public class TestSuite implements AlgorithmResult {
       mapping.put(testcase, goals);
       testcaseExisted = false;
     }
-
     goals.add(goal);
     testcases.add(testcase);
 
@@ -127,7 +128,6 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void updateTestcaseToGoalMapping(TestCase testcase, Goal goal) {
-    numberOfFeasibleGoals++;
     List<Goal> goals = mapping.get(testcase);
     if (!goals.contains(goal)) {
       goals.add(goal);
@@ -138,9 +138,9 @@ public class TestSuite implements AlgorithmResult {
     if (testcases == null) {
       testcases = new LinkedList<>();
       coveringTestCases.put(goal, testcases);
+      mapping.put(testcase, goals);
     }
     testcases.add(testcase);
-    mapping.put(testcase, goals);
   }
 
 
@@ -226,19 +226,16 @@ public class TestSuite implements AlgorithmResult {
   @Override
   public String toString() {
     StringBuffer str = new StringBuffer();
-    str.append("Number of Testcases: ").append(mapping.entrySet().size()).append("\n");
+    str.append("Number of Testcases: ").append(mapping.entrySet().size()).append("\n\n");
     for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
       List<CFAEdge> errorPath = entry.getKey().getErrorPath();
-      if (errorPath != null) {
-        str.append("Errorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
-      }
 
-      str.append(entry.getKey().toString() + "\n");
+      str.append(entry.getKey().toString() + "\n\n");
 
-      str.append("Covered goals {\n");
+      str.append("\tCovered goals {\n");
       for (Goal goal : entry.getValue()) {
-        str.append("Goal ");
-        str.append(getTestGoalLabel(goal));
+        str.append("\t\t").append(goal.getIndex()).append("@");
+        str.append("(").append(getTestGoalLabel(goal)).append(")");
 
         Region presenceCondition = goal.getPresenceCondition();
         if (presenceCondition != null) {
@@ -247,9 +244,23 @@ public class TestSuite implements AlgorithmResult {
         }
         str.append("\n");
       }
-      str.append("}\n");
+      str.append("\t}\n\n");
 
+      str.append("\tCovered labels {\n");
+      List<String> labels = entry.getKey().calculateCoveredLabels();
+      str.append("\t\t");
+      for(String label : labels) {
+        str.append(label).append(", ");
+      }
+      str.delete(str.length()-2, str.length());
       str.append("\n");
+      str.append("\t}\n");
+      str.append("\n");
+
+      if (errorPath != null) {
+        str.append("\tErrorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
+      }
+      str.append("\n\n");
     }
 
     if (!infeasibleGoals.isEmpty()) {
@@ -298,7 +309,7 @@ public class TestSuite implements AlgorithmResult {
    * @return
    */
   @SuppressWarnings("javadoc")
-  private String getTestGoalLabel(Goal goal) {
+  public String getTestGoalLabel(Goal goal) {
     String label = "";
 
     CFANode predecessor = goal.getCriticalEdge().getPredecessor();

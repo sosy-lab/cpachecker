@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
@@ -113,19 +116,34 @@ public class TestCase {
     return str;
   }
 
+  public List<String> calculateCoveredLabels() {
+    List<String> result = Lists.newLinkedList();
+    for (CFAEdge edge : this.getPath()) {
+      if (edge == null) {
+        continue;
+      }
+      CFANode predecessor = edge.getPredecessor();
+      if (predecessor instanceof CLabelNode
+          && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+        result.add(((CLabelNode) predecessor).getLabel());
+      }
+    }
+    return result;
+  }
+
   @Override
   public String toString() {
     //String returnStr = inputs.toString();
 
-    String returnStr = "TestCase " + id + ":\n";
-    returnStr += "inputs and outputs {\n";
+    String returnStr = "TestCase " + id + ":\n\n";
+    returnStr += "\tinputs and outputs {\n";
     for (String variable : inputs.keySet()) {
-      returnStr += "-> " + variable + " = " + inputs.get(variable) + "\n";
+      returnStr += "\t\t-> " + variable + " = " + inputs.get(variable) + "\n";
     }
     for (String variable : outputs.keySet()) {
-      returnStr += "<- " + variable + " = " + outputs.get(variable) + "\n";
+      returnStr += "\t\t<- " + variable + " = " + outputs.get(variable) + "\n";
     }
-    returnStr += "}";
+    returnStr += "\t}";
     /* if (presenceCondition != null) {
       returnStr += " with configurations " + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition());
     }*/
@@ -137,7 +155,7 @@ public class TestCase {
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
       TestCase other = (TestCase) o;
-      return (inputs.equals(other.inputs) && path.equals(other.path) && (presenceCondition != null
+      return (id==other.id&&inputs.equals(other.inputs) && path.equals(other.path) && (presenceCondition != null
           ? presenceCondition.equals(other.getPresenceCondition()) : true));
     }
 

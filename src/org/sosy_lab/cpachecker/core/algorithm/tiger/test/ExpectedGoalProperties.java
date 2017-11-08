@@ -69,14 +69,19 @@ public class ExpectedGoalProperties {
       Map<String, BigInteger> inputsAndOutputs = Maps.newLinkedHashMap();
       inputsAndOutputs.putAll(inputs);
       inputsAndOutputs.putAll(outputs);
-
       for (VariableProperty r : variableProperties) {
         if (!r.checkProperty(inputs, GoalPropertyType.INPUT)) { throw new AssertionError(
             "Expected input property (" + r.toString() + ") for goal " + goalName
                 + " is not fullfilled in testCase " + testCase.getId()); }
+        if (!r.checkProperty(outputs, GoalPropertyType.OUTPUT)) { throw new AssertionError(
+            "Expected output property (" + r.toString() + ") for goal " + goalName
+                + " is not fullfilled in testCase " + testCase.getId()); }
+        if (!r.checkProperty(inputsAndOutputs, GoalPropertyType.INPUTANDOUTPUT)) { throw new AssertionError(
+            "Expected input/output property (" + r.toString() + ") for goal " + goalName
+                + " is not fullfilled in testCase " + testCase.getId()); }
+      }
       }
 
-    }
     return true;
   }
 
