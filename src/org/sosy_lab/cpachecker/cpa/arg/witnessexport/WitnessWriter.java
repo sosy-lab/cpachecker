@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -428,6 +429,12 @@ class WitnessWriter implements EdgeAppender {
 
     String from = pFrom;
     Iterator<TransitionCondition> transitionIterator = transitions.iterator();
+
+    // If we go to the sink anyway, we can ignore any extra transitions
+    if (nodeFlags.get(pTo).contains(NodeFlag.ISSINKNODE)) {
+      transitionIterator = Iterators.limit(transitionIterator, 1);
+    }
+
     int i = 0;
     while (transitionIterator.hasNext()) {
       TransitionCondition transition = transitionIterator.next();
