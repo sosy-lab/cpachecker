@@ -528,18 +528,19 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     }
   }
 
-  private ARGCPA buildCPAs(Goal pGoal) throws CPAException {
-    Automaton goalAutomaton = pGoal.createControlAutomaton();
-    Specification goalAutomatonSpecification =
-        Specification.fromAutomata(Lists.newArrayList(goalAutomaton));
 
+
+  private CPAFactory buildAutomataFactory(Automaton goalAutomaton) {
     CPAFactory automataFactory = ControlAutomatonCPA.factory();
     automataFactory
         .setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
     automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
     automataFactory.set(cfa, CFA.class);
     automataFactory.set(goalAutomaton, Automaton.class);
+    return automataFactory;
+  }
 
+  private LinkedList<ConfigurableProgramAnalysis> buildComponentAnalyses( CPAFactory automataFactory) throws CPAException {
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
     try {
       lAutomatonCPAs.add(automataFactory.createInstance());
@@ -558,7 +559,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     } else {
       lComponentAnalyses.add(cpa);
     }
+    return lComponentAnalyses;
+  }
 
+  private ARGCPA buildARGCPA(LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses,  Specification goalAutomatonSpecification) {
     ARGCPA lARTCPA;
     try {
       // create composite CPA
@@ -583,6 +587,17 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       throw new RuntimeException(e);
     }
     return lARTCPA;
+  }
+
+  private ARGCPA buildCPAs(Goal pGoal) throws CPAException {
+    Automaton goalAutomaton = pGoal.createControlAutomaton();
+    Specification goalAutomatonSpecification =
+        Specification.fromAutomata(Lists.newArrayList(goalAutomaton));
+
+    CPAFactory automataFactory = buildAutomataFactory(goalAutomaton);
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = buildComponentAnalyses(automataFactory);
+    return buildARGCPA(lComponentAnalyses, goalAutomatonSpecification);
+
   }
 
   private Algorithm buildAlgorithm(ShutdownManager algNotifier, ARGCPA lARTCPA) throws CPAException {
