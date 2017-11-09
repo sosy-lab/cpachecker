@@ -462,7 +462,7 @@ public class AutomatonGraphmlParserState {
       occupiedFunctions.put(pThread, pFunctionInstance);
       return true;
     }
-    Collection<FunctionInstance> copies = Lists.newArrayListWithExpectedSize(5);
+    Collection<FunctionInstance> copies = Lists.newArrayListWithCapacity(5);
     boolean desiredInstanceAvailable = false;
     for (String originalName : functionCopies.keySet()) {
       FunctionInstance copy = new FunctionInstance(originalName, pFunctionInstance.cloneNumber);
