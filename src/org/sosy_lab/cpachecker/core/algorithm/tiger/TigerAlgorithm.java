@@ -52,9 +52,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -80,7 +78,6 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
@@ -128,93 +125,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements AlgorithmWithResult {
 
-  @Option(
-      secure = true,
-      name = "fqlQuery",
-      description = "Coverage criterion given as an FQL query")
-  private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
 
-  @Option(
-      secure = true,
-      name = "optimizeGoalAutomata",
-      description = "Optimize the test goal automata")
-  private boolean optimizeGoalAutomata = true;
 
-  @Option(
-      secure = true,
-      name = "limitsPerGoal.time.cpu",
-      description = "Time limit per test goal in seconds (-1 for infinity).")
-  private long cpuTimelimitPerGoal = -1;
-
-  @Option(
-      secure = true,
-      name = "algorithmConfigurationFile",
-      description = "Configuration file for internal cpa algorithm.")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path algorithmConfigurationFile = Paths.get("config/tiger-internal-algorithm.properties");
-
-  @Option(secure = true, name = "reuseARG", description = "Reuse ARG across test goals")
-  private boolean reuseARG = true;
-
-  @Option(
-      secure = true,
-      name = "testsuiteFile",
-      description = "Filename for output of generated test suite")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path testsuiteFile = Paths.get("testsuite.txt");
-
-  @Option(
-      secure = true,
-      name = "checkCoverage",
-      description = "Checks whether a test case for one goal covers another test goal")
-  private boolean checkCoverage = true;
 
   enum TimeoutStrategy {
     SKIP_AFTER_TIMEOUT,
     RETRY_AFTER_TIMEOUT
   }
-
-  @Option(
-      secure = true,
-      name = "timeoutStrategy",
-      description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
-  private TimeoutStrategy timeoutStrategy = TimeoutStrategy.SKIP_AFTER_TIMEOUT;
-
-  @Option(
-      secure = true,
-      name = "limitsPerGoal.time.cpu.increment",
-      description = "Value for which timeout gets incremented if timed-out goals are re-processed.")
-  private int timeoutIncrement = 0;
-
-  @Option(
-      secure = true,
-      name = "inverseOrder",
-      description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
-  private boolean inverseOrder = true;
-
-  @Option(
-      secure = true,
-      name = "useOrder",
-      description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
-  private boolean useOrder = true;
-
-  @Option(
-      secure = true,
-      name = "inputInterface",
-      description = "List of input variables: v1,v2,v3...")
-  String inputInterface = "";
-
-  @Option(
-      secure = true,
-      name = "outputInterface",
-      description = "List of output variables: v1,v2,v3...")
-  String outputInterface = "";
-
-  @Option(
-      secure = true,
-      name = "allCoveredGoalsPerTestCase",
-      description = "Returns all test goals covered by a test case.")
-  private boolean allCoveredGoalsPerTestCase = false;
 
   private FQLSpecification fqlSpecification;
   private final LogManager logger;
@@ -239,6 +156,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
   private int currentTestCaseID;
 
+  private TigerAlgorithmConfiguration tigerConfig;
+
   enum ReachabilityAnalysisResult {
     SOUND,
     UNSOUND,
@@ -249,10 +168,11 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       String programDenotation, @Nullable final Specification stats)
       throws InvalidConfigurationException {
+    tigerConfig = new TigerAlgorithmConfiguration(pConfig);
     cfa = pCfa;
     cpa = pCpa;
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
-    startupConfig.getConfig().inject(this);
+    //startupConfig.getConfig().inject(this);
     logger = pLogger;
     assert TigerAlgorithm.originalMainFunction != null;
     mCoverageSpecificationTranslator =
@@ -264,17 +184,17 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
     config = pConfig;
     config.inject(this);
-    logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
-    fqlSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
+    logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
+    fqlSpecification = FQLSpecificationUtil.getFQLSpecification(tigerConfig.getFqlQuery());
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.programDenotation = programDenotation;
     this.stats = stats;
     inputVariables = new TreeSet<>();
-    for (String variable : inputInterface.split(",")) {
+    for (String variable : tigerConfig.getInputInterface().split(",")) {
       inputVariables.add(variable.trim());
     }
     outputVariables = new TreeSet<>();
-    for (String variable : outputInterface.split(",")) {
+    for (String variable : tigerConfig.getOutputInterface().split(",")) {
       outputVariables.add(variable.trim());
     }
     currentTestCaseID = 0;
@@ -307,7 +227,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
       Goal lGoal =
           constructGoal(goalIndex, pair.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-              optimizeGoalAutomata,
+              tigerConfig.shouldOptimizeGoalAutomata(),
               pair.getSecond());
       logger.log(Level.INFO, lGoal.getName());
       pGoalsToCover.add(lGoal);
@@ -359,16 +279,17 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         // retry timed-out goals
         boolean order = true;
 
-        if (timeoutIncrement > 0) {
-          long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
-          cpuTimelimitPerGoal += timeoutIncrement;
+        if (tigerConfig.getTimeoutIncrement() > 0) {
+          long oldCPUTimeLimitPerGoal = tigerConfig.getCpuTimelimitPerGoal();
+          tigerConfig.increaseCpuTimelimitPerGoal(tigerConfig.getTimeoutIncrement());
+          //tigerConfig.getCpuTimelimitPerGoal() += tigerConfig..getTimeoutIncrement();
           logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.",
               oldCPUTimeLimitPerGoal,
-              cpuTimelimitPerGoal);
+              tigerConfig.getCpuTimelimitPerGoal());
 
           Collection<Entry<Integer, Pair<Goal, Region>>> set;
-          if (useOrder) {
-            if (inverseOrder) {
+          if (tigerConfig.useOrder()) {
+            if (tigerConfig.useInverseOrder()) {
               order = !order;
             }
 
@@ -419,7 +340,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         logger.logf(Level.INFO, "There were no timed out goals.");
         retry = false;
       } else {
-        if (!timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
+        if (!tigerConfig.getTimeoutStrategy().equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
           logger.logf(Level.INFO,
               "There were timed out goals but retry after timeout strategy is disabled.");
         } else {
@@ -654,10 +575,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
             } else {
               TestCase testcase = createTestcase(cex, null);
               testsuite.addTestCase(testcase, pGoal);
-              if (checkCoverage) {
+              if (tigerConfig.shouldCheckCoverage()) {
                 removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
               }
-              if (allCoveredGoalsPerTestCase) {
+              if (tigerConfig.useMultipleGoalsPerTestcase()) {
                 List<Goal> allGoals = testsuite.getIncludedTestGoals();
                 checkGoalCoverageForTestCase(allGoals, testcase);
               }
@@ -959,7 +880,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
     try {
       Configuration internalConfiguration =
-          Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
+          Configuration.builder().loadFromFile(tigerConfig.getAlgorithmConfigurationFile()).build();
 
       Set<UnmodifiableReachedSet> unmodifiableReachedSets = new HashSet<>();
 
@@ -991,13 +912,13 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       throw new RuntimeException(e);
     }
 
-    if (cpuTimelimitPerGoal < 0) {
+    if (tigerConfig.getCpuTimelimitPerGoal() < 0) {
       // run algorithm without time limit
       analysisWasSound = algorithm.run(reachedSet).isSound();
     } else {
       // run algorithm with time limit
       WorkerRunnable workerRunnable =
-          new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
+          new WorkerRunnable(algorithm, reachedSet, tigerConfig.getCpuTimelimitPerGoal(), algNotifier);
 
       Thread workerThread = new Thread(workerRunnable);
 
