@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
@@ -98,7 +97,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 @Options(prefix = "tiger")
@@ -321,7 +319,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     boolean isFullyCovered = false;
     for (TestCase testcase : testsuite.getTestCases()) {
       ThreeValuedAnswer isCovered =
-          TigerAlgorithm.accepts(lGoal, testcase);
+          testcase.coversGoal(lGoal);
       if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
         logger.logf(Level.WARNING,
             "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
@@ -376,53 +374,6 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     return isFullyCovered;
   }
 
-  private static ThreeValuedAnswer accepts(Goal pGoal, TestCase pTestCase) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
-    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
-    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
-
-    lCurrentStates.add(lAutomaton.getInitialState());
-
-    boolean lHasPredicates = false;
-
-    for (CFAEdge lCFAEdge : pTestCase.getPath()) {
-      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-        // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (lAutomaton.getFinalStates()
-            .contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
-
-        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : lAutomaton
-            .getOutgoingEdges(lCurrentState)) {
-          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-
-          if (lLabel.hasGuards()) {
-            lHasPredicates = true;
-          } else {
-            if (lLabel.contains(lCFAEdge)) {
-              lNextStates.add(lOutgoingEdge.getTarget());
-            }
-          }
-        }
-      }
-
-      lCurrentStates.clear();
-
-      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
-      lCurrentStates = lNextStates;
-      lNextStates = lTmp;
-    }
-
-    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-      // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (lAutomaton.getFinalStates().contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
-    }
-
-    if (lHasPredicates) {
-      return ThreeValuedAnswer.UNKNOWN;
-    } else {
-      return ThreeValuedAnswer.REJECT;
-    }
-  }
 
 
 
@@ -565,7 +516,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
   private void checkGoalCoverageForTestCase(List<Goal> pAllGoals, TestCase testCase) {
     for (Goal goal : pAllGoals) {
-      ThreeValuedAnswer answer = TigerAlgorithm.accepts(goal, testCase);
+      ThreeValuedAnswer answer = testCase.coversGoal(goal);
       if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
         testsuite.updateTestcaseToGoalMapping(testCase, goal);
         logger.log(Level.INFO, "TestCase " + testCase.getId() + " covers goal " + goal.getName());
@@ -576,7 +527,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private void removeAllGoalsCoveredByTestcase(List<Goal> pGoalsToCover, TestCase pTestcase) {
     LinkedList<Goal> temp = new LinkedList<>(pGoalsToCover);
     for (Goal goal : temp) {
-      ThreeValuedAnswer answer = TigerAlgorithm.accepts(goal, pTestcase);
+      ThreeValuedAnswer answer = pTestcase.coversGoal(goal);
       if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
         pGoalsToCover.remove(goal);
         testsuite.updateTestcaseToGoalMapping(pTestcase, goal);
