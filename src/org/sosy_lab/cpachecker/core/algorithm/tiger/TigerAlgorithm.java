@@ -39,7 +39,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -56,20 +55,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -93,8 +79,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -151,8 +135,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private String programDenotation;
   private Specification stats;
   private TestSuite testsuite;
-  private Set<String> inputVariables;
-  private Set<String> outputVariables;
+  private Values values;
 
   private int currentTestCaseID;
 
@@ -189,14 +172,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.programDenotation = programDenotation;
     this.stats = stats;
-    inputVariables = new TreeSet<>();
-    for (String variable : tigerConfig.getInputInterface().split(",")) {
-      inputVariables.add(variable.trim());
-    }
-    outputVariables = new TreeSet<>();
-    for (String variable : tigerConfig.getOutputInterface().split(",")) {
-      outputVariables.add(variable.trim());
-    }
+    values = new Values(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
     currentTestCaseID = 0;
   }
 
@@ -503,6 +479,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     return lGoalPatterns;
   }
 
+
+
   private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex,
       LinkedList<Goal> pGoalsToCover)
       throws CPAException, InterruptedException {
@@ -626,168 +604,17 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   }
 
   private TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
-    Map<String, BigInteger> inputValues = extractInputValues(cex);
-    Map<String, BigInteger> outputValus = extractOutputValues(cex);
+    Map<String, BigInteger> inputValues = values.extractInputValues(cex);
+    Map<String, BigInteger> outputValues = values.extractOutputValues(cex);
     // calcualte shrinked error path
     List<CFAEdge> shrinkedErrorPath =
         new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
     TestCase testcase =
-        new TestCase(currentTestCaseID, inputValues, outputValus, cex.getTargetPath().asEdgesList(),
+        new TestCase(currentTestCaseID, inputValues, outputValues, cex.getTargetPath().asEdgesList(),
             shrinkedErrorPath,
             null);
     currentTestCaseID++;
     return testcase;
-  }
-
-  private Map<String, BigInteger> extractOutputValues(CounterexampleInfo cex) {
-    Set<String> tmpOutputVariables = new LinkedHashSet<>(outputVariables);
-    Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
-    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
-    int index = 0;
-    for (CFAEdgeWithAssumptions edge : path) {
-      if (edge.getCFAEdge() instanceof CFunctionCallEdge) {
-        CFunctionCallEdge fEdge = (CFunctionCallEdge) edge.getCFAEdge();
-        if (fEdge.getRawAST().get() instanceof CFunctionCallAssignmentStatement) {
-          CFunctionCallAssignmentStatement functionCall =
-              (CFunctionCallAssignmentStatement) fEdge.getRawAST().get();
-          /*boolean setNewTestStep = createAndAddVariableAssignment(functionCall, index, path,
-              AssignmentType.OUTPUT, outputVariables, outputAssignments, "", false, false);*/
-          CLeftHandSide cLeft = functionCall.getLeftHandSide();
-          CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
-
-          if (cld != null && tmpOutputVariables.contains(cld.getName())) {
-
-            tmpOutputVariables.remove(cld.getName());
-
-            BigInteger value;
-
-            value = getVariableValueFromFunctionCall(index, path);
-
-            if (value != null) {
-              variableToValueAssignments.put(cld.getName(), value);
-            }
-          }
-        }
-      }
-      index++;
-    }
-    return variableToValueAssignments;
-  }
-
-  private Map<String, BigInteger> extractInputValues(CounterexampleInfo cex) {
-    Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
-    Set<String> tempInputs = new LinkedHashSet<>(inputVariables);
-    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
-    for (CFAEdgeWithAssumptions edge : path) {
-      Collection<AExpressionStatement> expStmts = edge.getExpStmts();
-      for (AExpressionStatement expStmt : expStmts) {
-        if (expStmt.getExpression() instanceof CBinaryExpression) {
-          CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();
-          if (tempInputs.contains(exp.getOperand1().toString())
-              && (edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_"))) {
-            String variableName = exp.getOperand1().toString();
-            tempInputs.remove(variableName);
-            variableName = "relevant: " + variableName;
-            BigInteger value = new BigInteger(exp.getOperand2().toString());
-            variableToValueAssignments.put(variableName, value);
-          }
-        }
-      }
-    }
-
-    int index = 0;
-    for (CFAEdgeWithAssumptions edge : path) {
-      if (!edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_")) {
-        if (edge.getCFAEdge() instanceof CFunctionCallEdge) {
-          CFunctionCallEdge fEdge = (CFunctionCallEdge) edge.getCFAEdge();
-          if (fEdge.getRawAST().get() instanceof CFunctionCallAssignmentStatement) {
-            CFunctionCallAssignmentStatement functionCall =
-                (CFunctionCallAssignmentStatement) fEdge.getRawAST().get();
-            /*boolean setNewTestStep =
-                createAndAddVariableAssignment(functionCall, index, path, AssignmentType.INPUT,
-                    remaining_inputVariables, inputAssignments, "relevant: ", false, true);*/
-            CLeftHandSide cLeft = functionCall.getLeftHandSide();
-            CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
-
-            if (cld != null && tempInputs.contains(cld.getName())) {
-
-              tempInputs.remove(cld.getName());
-
-              BigInteger value;
-
-              value = getVariableValueFromFunctionCall(index, path);
-
-              if (value != null) {
-                variableToValueAssignments.put("relevant: " + cld.getName(), value);
-              }
-            }
-          }
-
-        }
-        index++;
-        continue;
-      }
-      if (edge.getCFAEdge() instanceof CStatementEdge) {
-        CStatementEdge statementEdge = (CStatementEdge) edge.getCFAEdge();
-        if (statementEdge.getRawAST().get() instanceof CFunctionCallAssignmentStatement) {
-          CFunctionCallAssignmentStatement functionCall =
-              (CFunctionCallAssignmentStatement) statementEdge.getRawAST().get();
-          /* boolean setNewTestStep =
-              createAndAddVariableAssignment(functionCall, index, path, AssignmentType.INPUT,
-                  remaining_inputVariables, inputAssignments, "irrelevant: ", true, false);*/
-          CLeftHandSide cLeft = functionCall.getLeftHandSide();
-          CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
-
-          if (cld != null && tempInputs.contains(cld.getName())) {
-
-            tempInputs.remove(cld.getName());
-
-            BigInteger value;
-
-            value = new BigInteger("0");
-            variableToValueAssignments.put("irrelevant: " + cld.getName(), value);
-          }
-        }
-      }
-      index++;
-    }
-    return variableToValueAssignments;
-  }
-
-  private BigInteger getVariableValueFromFunctionCall(int index, CFAPathWithAssumptions path) {
-    Set<AExpressionStatement> expStmts = new HashSet<>();
-    int nesting = -1;
-    for (int i = index; i < path.size(); i++) {
-      CFAEdgeWithAssumptions edge = path.get(i);
-      CFAEdge cfaEdge = edge.getCFAEdge();
-      expStmts.addAll(edge.getExpStmts());
-      if (cfaEdge instanceof CFunctionCallEdge) {
-        nesting++;
-      }
-      if (cfaEdge instanceof CReturnStatementEdge) {
-        if (nesting == 0) {
-          CReturnStatementEdge returnEdge = (CReturnStatementEdge) cfaEdge;
-          CReturnStatement returnStatement = returnEdge.getRawAST().get();
-          CAssignment assignment = returnStatement.asAssignment().get();
-          CRightHandSide rightHand = assignment.getRightHandSide();
-          if (rightHand instanceof CIntegerLiteralExpression) {
-            CIntegerLiteralExpression rightSide =
-                (CIntegerLiteralExpression) rightHand;
-            return rightSide.getValue();
-          }
-          if (assignment instanceof CExpressionAssignmentStatement) { return getValueFromComment(
-              edge); }
-        }
-        nesting--;
-      }
-    }
-    return null;
-  }
-
-  private BigInteger getValueFromComment(CFAEdgeWithAssumptions edge) {
-    String comment = edge.getComment().replaceAll("\\s+", "");
-    String[] resArray = comment.split("=");
-    return new BigInteger(resArray[resArray.length - 1]);
   }
 
   private void checkGoalCoverageForTestCase(List<Goal> pAllGoals, TestCase testCase) {
