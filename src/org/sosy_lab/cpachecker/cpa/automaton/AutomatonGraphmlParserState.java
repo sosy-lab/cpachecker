@@ -400,8 +400,7 @@ public class AutomatonGraphmlParserState {
     // If we have not yet computed the equivalence classes, we can try if we can do without them
     if (functionCopies.isEmpty()
         && (occupiedFunctions.isEmpty() || occupiedFunctions.keys().contains(pThread))) {
-      FunctionInstance originalFunction =
-          new FunctionInstance(pDesiredFunctionName, Integer.MIN_VALUE);
+      FunctionInstance originalFunction = new FunctionInstance(pDesiredFunctionName);
 
       // If the thread already owns the function, we can trivially hand it out
       if (occupiedFunctions.get(pThread).contains(originalFunction)) {
@@ -451,7 +450,7 @@ public class AutomatonGraphmlParserState {
         assert occupiedFunctions.keys().size() == 1;
         GraphMLThread originalFunctionThread = occupiedFunctions.keys().iterator().next();
         for (String originalName : functionCopies.keys()) {
-          FunctionInstance originalFunction = new FunctionInstance(originalName, Integer.MIN_VALUE);
+          FunctionInstance originalFunction = new FunctionInstance(originalName);
           occupiedFunctions.put(originalFunctionThread, originalFunction);
         }
       }
@@ -515,6 +514,10 @@ public class AutomatonGraphmlParserState {
 
     private final int cloneNumber;
 
+    public FunctionInstance(String pOriginalName) {
+      this(pOriginalName, Integer.MIN_VALUE);
+    }
+
     public FunctionInstance(String pOriginalName, int pCloneNumber) {
       originalName = Objects.requireNonNull(pOriginalName);
       cloneNumber = pCloneNumber;
@@ -566,7 +569,7 @@ public class AutomatonGraphmlParserState {
   private static FunctionInstance parseFunctionInstance(String pFunctionName) {
     Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
     if (!matcher.matches()) {
-      return new FunctionInstance(pFunctionName, Integer.MIN_VALUE);
+      return new FunctionInstance(pFunctionName);
     }
     return new FunctionInstance(matcher.group(1), Integer.parseInt(matcher.group(3)));
   }
