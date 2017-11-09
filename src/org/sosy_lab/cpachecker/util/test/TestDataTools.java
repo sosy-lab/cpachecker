@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -39,44 +40,20 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import java.io.IOException;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
 
 public class TestDataTools {
 
@@ -97,104 +74,12 @@ public class TestDataTools {
         .addConverter(FileOption.class, fileTypeConverter);
   }
 
-  private static int dummyNodeCounter = 0;
-
-  private static CFANode newDummyNode() {
-    return new CFANode("DUMMY" + dummyNodeCounter++);
-  }
-
-  public static final CInitializer INT_ZERO_INITIALIZER = new CInitializerExpression(
-      FileLocation.DUMMY,
-      CIntegerLiteralExpression.ZERO);
-
-  public static Triple<CDeclarationEdge, CFunctionDeclaration, CFunctionType> makeFunctionDeclaration(
-      String pFunctionName,
-      CType pFunctionReturnType,
-      List<CParameterDeclaration> pParameters) {
-
-    CFunctionType functionType = new CFunctionType(
-        false, false, checkNotNull(pFunctionReturnType), ImmutableList.<CType>of(), false);
-    CFunctionDeclaration fd = new CFunctionDeclaration(
-        FileLocation.DUMMY, functionType, pFunctionName, pParameters);
-    CDeclarationEdge declEdge = new CDeclarationEdge(
-        "", FileLocation.DUMMY, newDummyNode(), newDummyNode(), fd);
-
-    return Triple.of(declEdge, fd, functionType);
-  }
-
-  public static Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> makeDeclaration(
-      String varName, CType varType, @Nullable CInitializer initializer) {
-    final FileLocation loc = FileLocation.DUMMY;
-    final CVariableDeclaration decl = new CVariableDeclaration(
-        loc, true, CStorageClass.AUTO, varType, varName, varName, varName, initializer);
-
-    return Triple.of(
-        new CDeclarationEdge(
-            String.format("%s %s", "dummy", varName),
-            FileLocation.DUMMY,
-            newDummyNode(),
-            newDummyNode(),
-            decl),
-        decl,
-        new CIdExpression(
-            FileLocation.DUMMY,
-            decl));
-  }
-
-  public static CFAEdge makeBlankEdge(String pDescription) {
-    return new BlankEdge("", FileLocation.DUMMY, newDummyNode(), newDummyNode(), pDescription);
-  }
-
-  public static Pair<CFAEdge, CExpressionAssignmentStatement> makeAssignment(CLeftHandSide pLhs, CExpression pRhs) {
-    CExpressionAssignmentStatement stmt = new CExpressionAssignmentStatement(
-        FileLocation.DUMMY,
-        pLhs,
-        pRhs);
-
-    CFAEdge edge = new CStatementEdge(
-        "dummy := rhs",
-        stmt,
-        FileLocation.DUMMY,
-        newDummyNode(),
-        newDummyNode());
-
-    return Pair.of(edge, stmt);
-  }
-
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
     FileLocation loc = FileLocation.DUMMY;
     CVariableDeclaration decl = new CVariableDeclaration(
         loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
 
     return new CIdExpression(loc, decl);
-  }
-
-  public static Pair<CAssumeEdge, CExpression> makeNegatedAssume(CExpression pAssumeExr) {
-    CAssumeEdge assumeEdge = new CAssumeEdge(
-        "dummyassume",
-        FileLocation.DUMMY,
-        newDummyNode(),
-        newDummyNode(),
-        pAssumeExr,
-        false);
-
-    return Pair.of(assumeEdge, pAssumeExr);
-  }
-
-  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr, CFANode pPred, CFANode pSucc) {
-    CAssumeEdge assumeEdge = new CAssumeEdge(
-        "dummyassume",
-        FileLocation.DUMMY,
-        pPred,
-        pSucc,
-        pAssumeExr,
-        true);
-
-    return Pair.of(assumeEdge, pAssumeExr);
-  }
-
-  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
-    return makeAssume(pAssumeExr, newDummyNode(), newDummyNode());
   }
 
   public static CFA makeCFA(String... lines)
@@ -244,7 +129,7 @@ public class TestDataTools {
     );
 
     mapping.put(start, initial);
-    Deque<CFANode> queue = new LinkedList<>();
+    Deque<CFANode> queue = new ArrayDeque<>();
     queue.add(start);
 
     while (!queue.isEmpty()) {

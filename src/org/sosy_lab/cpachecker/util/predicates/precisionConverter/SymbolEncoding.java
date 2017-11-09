@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -196,7 +196,7 @@ public class SymbolEncoding {
    * that can be read again. */
   public void dump(Path symbolEncodingFile) throws IOException {
     if (symbolEncodingFile != null) {
-      MoreFiles.writeFile(
+      IO.writeFile(
           symbolEncodingFile,
           Charset.defaultCharset(),
           new Appender() {

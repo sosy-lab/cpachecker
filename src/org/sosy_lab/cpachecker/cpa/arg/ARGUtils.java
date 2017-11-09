@@ -57,7 +57,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -303,6 +302,47 @@ public class ARGUtils {
     if (!lastTransitionIsDifferent) { return Optional.empty(); }
 
     return Optional.of(new ARGPath(Lists.reverse(states)));
+  }
+
+  /**
+   * Create the shortest path in the ARG from root to the given element.
+   * If there are several such paths, one is chosen arbitrarily.
+   * This method is suited for analysis where {@link ARGUtils#getOnePathTo(ARGState)}
+   * is not fast enough due to the structure of the ARG.
+   *
+   * @param pLastElement The last element in the path.
+   * @return A path from root to lastElement.
+   */
+  public static ARGPath getShortestPathTo(final ARGState pLastElement) {
+    Map<ARGState,ARGState> searchTree = new HashMap<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    searchTree.put(pLastElement,null);
+    waitlist.add(pLastElement);
+    ARGState firstElement = null;
+    while (!waitlist.isEmpty()) {
+      ARGState currentState = waitlist.pop();
+      for (ARGState parent: currentState.getParents()) {
+        if (parent.getParents().isEmpty()) {
+          firstElement = parent;
+          searchTree.put(parent,currentState);
+          break;
+        }
+        if (!searchTree.containsKey(parent)) {
+          waitlist.add(parent);
+          searchTree.put(parent,currentState);
+        }
+      }
+      if (firstElement != null) {
+        break;
+      }
+    }
+    assert firstElement != null : "ARG seems to have no initial state (state without parents)!";
+    ImmutableList.Builder<ARGState> path = ImmutableList.builder();
+    while (firstElement != null) {
+      path.add(firstElement);
+      firstElement = searchTree.get(firstElement);
+    }
+    return new ARGPath(path.build());
   }
 
   public static Collection<PathPosition> getTracePrefixesBeforePostfix(
@@ -815,7 +855,7 @@ public class ARGUtils {
 
     ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
 
-    LinkedList<String> sortedFunctionOccurrence = new LinkedList<>();
+    Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
       CFANode node = extractLocation(s);
       if (!sortedFunctionOccurrence.isEmpty()

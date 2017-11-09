@@ -24,18 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.Iterables;
-
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 
 public class SMGAbstractionManagerTest {
@@ -74,8 +77,8 @@ public class SMGAbstractionManagerTest {
   }
 
   @Test
-  public void testExecute() throws SMGInconsistentException {
-    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false, null, 32, false, false);
+  public void testExecute() throws SMGInconsistentException, InvalidConfigurationException {
+    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, new SMGOptions(Configuration.defaultConfiguration()));
     SMGAbstractionManager manager = new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
     manager.execute();
 

@@ -653,6 +653,11 @@ class WebInterface:
                     elif option == "-setprop":
                         params.append(("option", next(i)))
 
+                    elif option == "-benchmark":
+                        params.append(("option", "coverage.enabled=true"))
+                        params.append(("option", "output.disable=true"))
+                        params.append(("option", "statistics.memory=false"));
+
                     elif option[0] == '-':
                         if config:
                             raise WebClientError("More than one configuration: '{}' and '{}'".format(config, option[1:]))

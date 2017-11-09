@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
@@ -36,76 +35,76 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
  */
 public class BuiltinFloatFunctions {
 
-  private static final List<String> INFINITY_FLOAT = of("inff");
-  private static final List<String> INFINITY = of("inf");
-  private static final List<String> INFINITY_LONG_DOUBLE = of("infl");
+  private static final ImmutableList<String> INFINITY_FLOAT = of("inff");
+  private static final ImmutableList<String> INFINITY = of("inf");
+  private static final ImmutableList<String> INFINITY_LONG_DOUBLE = of("infl");
 
-  private static final List<String> HUGE_VAL_FLOAT = of("huge_valf");
-  private static final List<String> HUGE_VAL = of("huge_val");
-  private static final List<String> HUGE_VAL_LONG_DOUBLE = of("huge_vall");
+  private static final ImmutableList<String> HUGE_VAL_FLOAT = of("huge_valf");
+  private static final ImmutableList<String> HUGE_VAL = of("huge_val");
+  private static final ImmutableList<String> HUGE_VAL_LONG_DOUBLE = of("huge_vall");
 
-  private static final List<String> NOT_A_NUMBER_FLOAT = of("nanf");
-  private static final List<String> NOT_A_NUMBER = of("nan");
-  private static final List<String> NOT_A_NUMBER_LONG_DOUBLE = of("nanl");
+  private static final ImmutableList<String> NOT_A_NUMBER_FLOAT = of("nanf");
+  private static final ImmutableList<String> NOT_A_NUMBER = of("nan");
+  private static final ImmutableList<String> NOT_A_NUMBER_LONG_DOUBLE = of("nanl");
 
-  private static final List<String> ABSOLUTE_VAL_FLOAT = of("fabsf");
-  private static final List<String> ABSOLUTE_VAL = of("fabs");
-  private static final List<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
+  private static final ImmutableList<String> ABSOLUTE_VAL_FLOAT = of("fabsf");
+  private static final ImmutableList<String> ABSOLUTE_VAL = of("fabs");
+  private static final ImmutableList<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
 
-  private static final List<String> FLOOR_FLOAT = of("floorf");
-  private static final List<String> FLOOR = of("floor");
-  private static final List<String> FLOOR_LONG_DOUBLE = of("floorl");
+  private static final ImmutableList<String> FLOOR_FLOAT = of("floorf");
+  private static final ImmutableList<String> FLOOR = of("floor");
+  private static final ImmutableList<String> FLOOR_LONG_DOUBLE = of("floorl");
 
-  private static final List<String> CEIL_FLOAT = of("ceilf");
-  private static final List<String> CEIL = of("ceil");
-  private static final List<String> CEIL_LONG_DOUBLE = of("ceill");
+  private static final ImmutableList<String> CEIL_FLOAT = of("ceilf");
+  private static final ImmutableList<String> CEIL = of("ceil");
+  private static final ImmutableList<String> CEIL_LONG_DOUBLE = of("ceill");
 
-  private static final List<String> ROUND_FLOAT = of("roundf");
-  private static final List<String> ROUND = of("round");
-  private static final List<String> ROUND_LONG_DOUBLE = of("roundl");
+  private static final ImmutableList<String> ROUND_FLOAT = of("roundf");
+  private static final ImmutableList<String> ROUND = of("round");
+  private static final ImmutableList<String> ROUND_LONG_DOUBLE = of("roundl");
 
-  private static final List<String> LROUND_FLOAT = of("lroundf");
-  private static final List<String> LROUND = of("lround");
-  private static final List<String> LROUND_LONG_DOUBLE = of("lroundl");
+  private static final ImmutableList<String> LROUND_FLOAT = of("lroundf");
+  private static final ImmutableList<String> LROUND = of("lround");
+  private static final ImmutableList<String> LROUND_LONG_DOUBLE = of("lroundl");
 
-  private static final List<String> LLROUND_FLOAT = of("llroundf");
-  private static final List<String> LLROUND = of("llround");
-  private static final List<String> LLROUND_LONG_DOUBLE = of("llroundl");
+  private static final ImmutableList<String> LLROUND_FLOAT = of("llroundf");
+  private static final ImmutableList<String> LLROUND = of("llround");
+  private static final ImmutableList<String> LLROUND_LONG_DOUBLE = of("llroundl");
 
-  private static final List<String> TRUNC_FLOAT = of("truncf");
-  private static final List<String> TRUNC = of("trunc");
-  private static final List<String> TRUNC_LONG_DOUBLE = of("truncl");
+  private static final ImmutableList<String> TRUNC_FLOAT = of("truncf");
+  private static final ImmutableList<String> TRUNC = of("trunc");
+  private static final ImmutableList<String> TRUNC_LONG_DOUBLE = of("truncl");
 
-  private static final List<String> FDIM_FLOAT = of("fdimf");
-  private static final List<String> FDIM = of("fdim");
-  private static final List<String> FDIM_LONG_DOUBLE = of("fdiml");
+  private static final ImmutableList<String> FDIM_FLOAT = of("fdimf");
+  private static final ImmutableList<String> FDIM = of("fdim");
+  private static final ImmutableList<String> FDIM_LONG_DOUBLE = of("fdiml");
 
-  private static final List<String> FMAX_FLOAT = of("fmaxf");
-  private static final List<String> FMAX = of("fmax");
-  private static final List<String> FMAX_LONG_DOUBLE = of("fmaxl");
+  private static final ImmutableList<String> FMAX_FLOAT = of("fmaxf");
+  private static final ImmutableList<String> FMAX = of("fmax");
+  private static final ImmutableList<String> FMAX_LONG_DOUBLE = of("fmaxl");
 
-  private static final List<String> FMIN_FLOAT = of("fminf");
-  private static final List<String> FMIN = of("fmin");
-  private static final List<String> FMIN_LONG_DOUBLE = of("fminl");
+  private static final ImmutableList<String> FMIN_FLOAT = of("fminf");
+  private static final ImmutableList<String> FMIN = of("fmin");
+  private static final ImmutableList<String> FMIN_LONG_DOUBLE = of("fminl");
 
-  private static final List<String> FMOD_FLOAT = of("fmodf");
-  private static final List<String> FMOD = of("fmod");
-  private static final List<String> FMOD_LONG_DOUBLE = of("fmodl");
+  private static final ImmutableList<String> FMOD_FLOAT = of("fmodf");
+  private static final ImmutableList<String> FMOD = of("fmod");
+  private static final ImmutableList<String> FMOD_LONG_DOUBLE = of("fmodl");
 
-  private static final List<String> MODF_FLOAT = of("modff");
-  private static final List<String> MODF = of("modf");
-  private static final List<String> MODF_LONG_DOUBLE = of("modfl");
+  private static final ImmutableList<String> MODF_FLOAT = of("modff");
+  private static final ImmutableList<String> MODF = of("modf");
+  private static final ImmutableList<String> MODF_LONG_DOUBLE = of("modfl");
 
-  private static final List<String> FREMAINDER_FLOAT = of("remainderf");
-  private static final List<String> FREMAINDER = of("remainder");
-  private static final List<String> FREMAINDER_LONG_DOUBLE = of("remainderl");
+  private static final ImmutableList<String> FREMAINDER_FLOAT = of("remainderf");
+  private static final ImmutableList<String> FREMAINDER = of("remainder");
+  private static final ImmutableList<String> FREMAINDER_LONG_DOUBLE = of("remainderl");
 
-  private static final List<String> ISGREATER = of("isgreater");
-  private static final List<String> ISGREATEREQUAL = of("isgreaterequal");
-  private static final List<String> ISLESS = of("isless");
-  private static final List<String> ISLESSEQUAL = of("islessequal");
-  private static final List<String> ISLESSGREATER = of("islessgreater");
-  private static final List<String> ISUNORDERED = of("isunordered");
+  private static final ImmutableList<String> ISGREATER = of("isgreater");
+  private static final ImmutableList<String> ISGREATEREQUAL = of("isgreaterequal");
+  private static final ImmutableList<String> ISLESS = of("isless");
+  private static final ImmutableList<String> ISLESSEQUAL = of("islessequal");
+  private static final ImmutableList<String> ISLESSGREATER = of("islessgreater");
+  private static final ImmutableList<String> ISUNORDERED = of("isunordered");
 
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";

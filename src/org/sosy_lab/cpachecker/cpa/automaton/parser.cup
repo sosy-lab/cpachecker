@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,12 +33,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Scanner;
@@ -117,11 +122,20 @@ parser code {:
   */
   public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
 
-    try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
-      return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+    try (InputStream inputStream = Files.newInputStream(pInputFile);
+         InputStream gzipInputStream = new GZIPInputStream(inputStream);
+         InputStreamReader unzippedInput = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8)
+    ) {
+      return parseAutomaton(unzippedInput, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
 
     } catch (IOException e) {
-      throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
+      try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
+        return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+
+      } catch (IOException e2) {
+        throw new InvalidConfigurationException(
+            "Could not load automaton from file " + e2.getMessage(), e2);
+      }
     }
   }
 
@@ -163,7 +177,7 @@ terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     ERROR, STOP, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
-    TARGET, IS_TARGET_STATE ;
+    TARGET, IS_TARGET_STATE, COVERS_LINES ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -175,6 +189,7 @@ non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
 non terminal List<AExpression> Assume ;
 non terminal List<AutomatonAction> Actions ;
+non terminal Set<Integer> Integers ;
 
 non terminal AutomatonVariable LocalDef ;
 non terminal AutomatonInternalState StateDef ;
@@ -344,8 +359,14 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString()); :}
             | CHECK OPEN_BRACKETS IS_TARGET_STATE CLOSE_BRACKETS
               {: RESULT = AutomatonBoolExpr.CheckAllCpasForTargetState.INSTANCE; :}
+            | COVERS_LINES OPEN_BRACKETS Integers:set CLOSE_BRACKETS
+              {: RESULT = new AutomatonBoolExpr.CheckCoversLines(set); :}
             ;
             
+Integers            ::= ConstantInt:i Integers:set {: set.add(i.getIntValue()); RESULT = set; :}
+                        | /* empty */ {: RESULT = new HashSet<Integer>(); :}
+                        ;
+
 Expression          ::= Int:i {: RESULT = i; :}
                         | Bool:b {: RESULT = b; :}
                         | STRING_LITERAL:lit {: RESULT = new AutomatonExpression.StringExpression(lit.toString()); :}

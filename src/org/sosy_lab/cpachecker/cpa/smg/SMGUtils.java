@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.base.Predicate;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -48,39 +47,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWithConcreteValue;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
  * This class contains smg utilities, for example filters.
  */
 public final class SMGUtils {
 
-
-  public static class FilterFieldsOfValue
-      implements Predicate<SMGEdgeHasValueTemplate> {
-
-    private final int value;
-
-    public FilterFieldsOfValue(int pValue) {
-      value = pValue;
-    }
-
-    @Override
-    public boolean apply(SMGEdgeHasValueTemplate pEdge) {
-      return value == pEdge.getAbstractValue();
-    }
-  }
-
   private SMGUtils() {}
 
   public static Set<SMGEdgeHasValue> getFieldsOfObject(SMGObject pSmgObject, SMG pInputSMG) {
-
     SMGEdgeHasValueFilter edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
     return pInputSMG.getHVEdges(edgeFilter);
   }
@@ -95,35 +77,7 @@ public final class SMGUtils {
     return pInputSMG.getHVEdges(valueFilter);
   }
 
-  public static class FilterTargetTemplate implements Predicate<SMGEdgePointsToTemplate> {
-
-    private final SMGObjectTemplate objectTemplate;
-
-    public FilterTargetTemplate(SMGObjectTemplate pObjectTemplate) {
-      objectTemplate = pObjectTemplate;
-    }
-
-    @Override
-    public boolean apply(SMGEdgePointsToTemplate ptEdge) {
-      return ptEdge.getObjectTemplate() == objectTemplate;
-    }
-  }
-
-  public static class FilterTemplateObjectFieldsWithConcreteValue implements Predicate<SMGEdgeHasValueTemplateWithConcreteValue> {
-
-    private final SMGObjectTemplate objectTemplate;
-
-    public FilterTemplateObjectFieldsWithConcreteValue(SMGObjectTemplate pObjectTemplate) {
-      objectTemplate = pObjectTemplate;
-    }
-
-    @Override
-    public boolean apply(SMGEdgeHasValueTemplateWithConcreteValue ptEdge) {
-      return ptEdge.getObjectTemplate() == objectTemplate;
-    }
-  }
-
-  public static boolean isRecursiveOnOffset(CType pType, int fieldOffset, MachineModel pModel) {
+  public static boolean isRecursiveOnOffset(CType pType, long fieldOffset, MachineModel pModel) {
 
     CFieldTypeVisitor v = new CFieldTypeVisitor(fieldOffset, pModel);
 
@@ -138,12 +92,12 @@ public final class SMGUtils {
 
   private static class CFieldTypeVisitor implements CTypeVisitor<CType, RuntimeException> {
 
-    private final int fieldOffset;
+    private final long fieldOffset;
     private final MachineModel model;
     private static final CType UNKNOWN = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
         false, false, false, false, false, false, false);
 
-    public CFieldTypeVisitor(int pFieldOffset, MachineModel pModel) {
+    public CFieldTypeVisitor(long pFieldOffset, MachineModel pModel) {
       fieldOffset = pFieldOffset;
       model = pModel;
     }
@@ -154,7 +108,7 @@ public final class SMGUtils {
 
     @Override
     public CType visit(CArrayType pArrayType) {
-      if (fieldOffset % model.getBitSizeof(pArrayType) == 0) {
+      if (fieldOffset % model.getSizeofInBits(pArrayType) == 0) {
         return pArrayType.getType();
       } else {
         return UNKNOWN;
@@ -166,7 +120,7 @@ public final class SMGUtils {
 
       List<CCompositeTypeMemberDeclaration> members = pCompositeType.getMembers();
 
-      int memberOffset = 0;
+      long memberOffset = 0;
       for (CCompositeTypeMemberDeclaration member : members) {
 
         if (fieldOffset == memberOffset) {
@@ -174,7 +128,7 @@ public final class SMGUtils {
         } else if (memberOffset > fieldOffset) {
           return UNKNOWN;
         } else {
-          memberOffset = memberOffset + model.getBitSizeof(member.getType());
+          memberOffset = memberOffset + model.getSizeofInBits(member.getType());
         }
       }
 
@@ -247,7 +201,7 @@ public final class SMGUtils {
       String location, Path pOutputFile) {
     try {
       String dot = getDot(currentState, location);
-      MoreFiles.writeFile(pOutputFile, Charset.defaultCharset(), dot);
+      IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
       pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }

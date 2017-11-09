@@ -56,6 +56,6 @@
   </tasks>
 
   <rundefinition name="sv-comp17-k-induction">
-    <option name="-sv-comp17-k-induction"/>
+    <option name="-svcomp17-k-induction"/>
   </rundefinition>
 </benchmark>

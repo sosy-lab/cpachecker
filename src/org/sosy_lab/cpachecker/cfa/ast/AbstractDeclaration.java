@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public abstract class AbstractDeclaration extends AbstractSimpleDeclaration implements ADeclaration {
 
+  private static final long serialVersionUID = 3218969369130423033L;
   private final boolean isGlobal;
 
   public AbstractDeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName) {

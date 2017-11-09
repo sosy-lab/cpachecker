@@ -792,7 +792,9 @@ public class AssignmentToEdgeAllocator {
         IDExpression name = getIDExpression(dcl);
 
         if (modelAtEdge
-            .hasAddressOfVaribable(name)) { return modelAtEdge.getVariableAddress(name); }
+            .hasAddressOfVariable(name)) {
+          return modelAtEdge.getVariableAddress(name);
+        }
 
         return null;
       }
@@ -849,7 +851,7 @@ public class AssignmentToEdgeAllocator {
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
-          if (modelAtEdge.hasAddressOfVaribable(
+          if (modelAtEdge.hasAddressOfVariable(
               fieldReferenceName)) { return modelAtEdge.getVariableAddress(fieldReferenceName); }
         }
 

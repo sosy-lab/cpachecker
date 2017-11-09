@@ -25,15 +25,13 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-
-import java.io.PrintStream;
-
-import javax.annotation.Nullable;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -62,23 +60,19 @@ public class CPAcheckerResult {
 
   private @Nullable Statistics proofGeneratorStats = null;
 
-  private final boolean programNeverTerminates;
-
   CPAcheckerResult(
       Result result,
       AlgorithmResult algorithmResult,
       String violatedPropertyDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
-      @Nullable Statistics stats,
-      boolean programNeverTerminates) {
+      @Nullable Statistics stats) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
     this.algorithmResult = algorithmResult;
     this.reached = reached;
     this.cfa = cfa;
     this.stats = stats;
-    this.programNeverTerminates = programNeverTerminates;
   }
 
   /**
@@ -129,10 +123,6 @@ public class CPAcheckerResult {
   public void printResult(PrintStream out) {
     if (result == Result.NOT_YET_STARTED) {
       return;
-    }
-
-    if (programNeverTerminates) {
-      out.println("The program will never terminate.");
     }
 
     out.println("Verification result: " + getResultString());

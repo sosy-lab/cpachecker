@@ -96,6 +96,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       description = "whether to keep covered states in the reached set as addition to keeping them in the ARG")
   private boolean keepCoveredStatesInReached = false;
 
+  private final MergeOperator merge;
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -113,6 +115,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     config.inject(this);
     this.logger = logger;
 
+    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+      merge =  MergeSepOperator.getInstance();
+    } else if (inCPAEnabledAnalysis) {
+      merge =  new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+    } else {
+      merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
+    }
+
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -128,14 +139,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeOperator() {
-    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-      return MergeSepOperator.getInstance();
-    } else if (inCPAEnabledAnalysis) {
-      return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
-    } else {
-      return new ARGMergeJoin(wrappedMergeOperator);
-    }
+    return merge;
   }
 
   @Override

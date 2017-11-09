@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-
+import java.util.Map;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -45,16 +45,16 @@ public abstract class PredicatePartition {
   final LogManager logger;
   final int partitionID = partitionCounter.getFreshId();
   final FormulaManagerView fmgr;
-  LinkedList<AbstractionPredicate> predicates;
+  final List<AbstractionPredicate> predicates;
   // mapping varID -> predicate in partition
-  HashMap<Integer, AbstractionPredicate> varIDToPredicate;
+  Map<Integer, AbstractionPredicate> varIDToPredicate;
   Solver solver;
 
   public PredicatePartition(FormulaManagerView fmgr, Solver solver, LogManager logger) {
     this.fmgr = fmgr;
     this.solver = solver;
     this.logger = logger;
-    predicates = new LinkedList<>();
+    predicates = new ArrayList<>();
     varIDToPredicate = new HashMap<>();
   }
 
@@ -92,7 +92,9 @@ public abstract class PredicatePartition {
    *
    * @return mapping of variable id to predicate.
    */
-  public HashMap<Integer, AbstractionPredicate> getVarIDToPredicate() { return varIDToPredicate; }
+  public Map<Integer, AbstractionPredicate> getVarIDToPredicate() {
+    return varIDToPredicate;
+  }
 
   @Override
   public int hashCode() {

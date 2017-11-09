@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.logging.Level.FINEST;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
@@ -35,7 +36,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
-
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -67,17 +76,6 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.Ranking
 import org.sosy_lab.cpachecker.cpa.termination.TerminationARGPath;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationTransferRelation;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * {@link TerminationLoopInformation} is used by the {@link TerminationAlgorithm} to store
@@ -192,8 +190,8 @@ public class TerminationLoopInformation {
   void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
     loop = Optional.of(pLoop);
     loopLeavingLocations =
-        pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(Collectors.toSet());
-    loopLeavingEdges = pLoop.getOutgoingEdges().stream().collect(Collectors.toSet());
+        pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(toImmutableSet());
+    loopLeavingEdges = pLoop.getOutgoingEdges().stream().collect(toImmutableSet());
     resetRankingRelation();
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();

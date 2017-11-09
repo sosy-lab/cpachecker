@@ -30,10 +30,12 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Streams;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
+import com.google.common.truth.Expect;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -46,8 +48,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -55,7 +55,6 @@ import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -75,7 +74,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -94,9 +93,11 @@ public class ConfigurationFilesTest {
           ".*File .* does not exist.*"
               + "|The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
+              + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
               + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*"
+              + "|.*Witness file is missing in specification.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -125,6 +126,7 @@ public class ConfigurationFilesTest {
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
+          "witness.stopNotBreakAtSinkStates",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -135,13 +137,19 @@ public class ConfigurationFilesTest {
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
           "counterexample.checker.config",
-          // LoopstackCPA can be removed from inhering configuration.
-          "cpa.loopstack.loopIterationsBeforeAbstraction");
+          // present in config files that derive their PCC validation configuration from the
+          // analysis configuration
+          "ARGCPA.cpa",
+          "cegar.refiner",
+          "cpa.predicate.refinement.performInitialStaticRefinement",
+          // options set with inject(...,...)
+          "pcc.proof",
+          "pcc.partial.stopAddingAtReachedSetSize");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C or Java?")
+    @Option(secure = true, description = "C, Java, or LLVM IR?")
     private Language language = Language.C;
 
     @Option(
@@ -214,6 +222,72 @@ public class ConfigurationFilesTest {
     return Configuration.builder().loadFromFile(configFile);
   }
 
+  @Rule public final Expect expect = Expect.create();
+
+  @Test
+  public void checkUndesiredOptions() {
+    Configuration config;
+    try {
+      config = parse(configFile).build();
+    } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
+      assume().fail(e.getMessage());
+      throw new AssertionError();
+    }
+    assume()
+        .withMessage("Test configs (which are loaded from URL resources) may contain any option")
+        .that(configFile)
+        .isNotInstanceOf(URL.class);
+
+    // All the following options encode some information about the program itself,
+    // so they need to be specified by the user and may occur only in certain configurations
+    // for specific use cases (e.g., SV-COMP).
+    // If you add config files for specific use cases (and this is clear from the config's name!),
+    // you can whitelist it here.
+    // Otherwise consider changing the default value of the option if the value makes sense in
+    // general, or remove it from the config file.
+
+    checkOption(config, "analysis.entryFunction");
+    checkOption(config, "analysis.programNames");
+    checkOption(config, "java.classpath");
+    checkOption(config, "java.sourcepath");
+    checkOption(config, "java.version");
+    checkOption(config, "parser.usePreprocessor");
+
+    if (!configFile.toString().contains("ldv")) {
+      // LDV configs are specific to their use case, so these options are allowed
+
+      checkOption(config, "analysis.machineModel");
+
+      if (!configFile.toString().contains("svcomp")) {
+        checkOption(config, "cpa.predicate.memoryAllocationsAlwaysSucceed");
+
+        // Should not be changed for SV-COMP configs, but was in 2016 and 2017
+        checkOption(config, "cpa.smg.arrayAllocationFunctions");
+        checkOption(config, "cpa.smg.deallocationFunctions");
+        checkOption(config, "cpa.smg.memoryAllocationFunctions");
+        checkOption(config, "cpa.smg.zeroingMemoryAllocation");
+      }
+
+      checkOption(config, "cfa.assumeFunctions");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctions");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctionsWithZeroing");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters");
+      checkOption(config, "cpa.predicate.memoryAllocationFunctions");
+      checkOption(config, "cpa.predicate.memoryFreeFunctionName");
+      checkOption(config, "cpa.predicate.nondetFunctionsRegexp");
+      checkOption(config, "cpa.smg.externalAllocationFunction");
+    }
+  }
+
+  @SuppressWarnings("deprecation") // for tests this usage is ok
+  private void checkOption(Configuration config, String option) {
+    if (config.hasProperty(option)) {
+      expect.fail(
+          "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+          option, config.getProperty(option));
+    }
+  }
+
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @BeforeClass
@@ -222,7 +296,7 @@ public class ConfigurationFilesTest {
     try (Reader r =
             Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
@@ -235,14 +309,14 @@ public class ConfigurationFilesTest {
     try (Reader r =
             Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
     try (Reader r =
         Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
@@ -252,7 +326,9 @@ public class ConfigurationFilesTest {
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
     if (configFile instanceof Path) {
-      assume().that((Iterable<?>) configFile).doesNotContain(Paths.get("includes"));
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -272,7 +348,7 @@ public class ConfigurationFilesTest {
 
     final CPAchecker cpachecker;
     try {
-      cpachecker = new CPAchecker(config, logger, ShutdownManager.create(), ImmutableSet.of());
+      cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
     } catch (InvalidConfigurationException e) {
       assert_()
           .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
@@ -280,7 +356,7 @@ public class ConfigurationFilesTest {
     }
 
     try {
-      cpachecker.run(createEmptyProgram(isJava));
+      cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().fail("Java frontend has a bug and cannot be run twice");
@@ -336,14 +412,14 @@ public class ConfigurationFilesTest {
   private String createEmptyProgram(boolean isJava) throws IOException {
     String program;
     if (isJava) {
-      MoreFiles.writeFile(
+      IO.writeFile(
           tempFolder.newFile("Main.java").toPath(),
           StandardCharsets.US_ASCII,
           "public class Main { public static void main(String... args) {} }");
       program = "Main";
     } else {
       File cFile = tempFolder.newFile("program.i");
-      MoreFiles.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
+      IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
       program = cFile.toString();
     }
     return program;
@@ -383,7 +459,7 @@ public class ConfigurationFilesTest {
         }
 
       };
-      logRecords = StreamSupport.stream(Spliterators.spliteratorUnknownSize(logRecordIterator, Spliterator.ORDERED), false);
+      logRecords = Streams.stream(logRecordIterator);
     }
     return logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())

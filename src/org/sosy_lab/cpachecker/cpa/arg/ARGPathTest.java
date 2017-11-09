@@ -27,10 +27,13 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,11 +41,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 
 public class ARGPathTest {
 
@@ -65,7 +63,7 @@ public class ARGPathTest {
   @Before
   public void setup() {
     // setup for the builder tests
-    edge = BlankEdge.buildNoopEdge(new CFANode("test"), new CFANode("test"));
+    edge = new BlankEdge("", FileLocation.DUMMY, new CFANode("test"), new CFANode("test"), "test");
     edge.getSuccessor().addEnteringEdge(edge);
     edge.getPredecessor().addLeavingEdge(edge);
     LocationState tmp = Mockito.mock(LocationState.class);
@@ -81,7 +79,7 @@ public class ARGPathTest {
 
     for (int i = 0; i < 10 ; i++) {
       CFANode secondNode = new CFANode("test");
-      CFAEdge edge = BlankEdge.buildNoopEdge(firstNode, secondNode);
+      CFAEdge edge = new BlankEdge("", FileLocation.DUMMY, firstNode, secondNode, "test");
       edges.add(edge);
       firstNode.addLeavingEdge(edge);
       secondNode.addEnteringEdge(edge);

@@ -73,10 +73,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     this.logger = logger;
     config.inject(this);
 
-    BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
-    if (bddCpa == null) {
-      throw new InvalidConfigurationException("BDD CPA needed for BDDCPARestrictionAlgorithm");
-    }
+    BDDCPA bddCpa = CPAs.retrieveCPAOrFail(pCpa, BDDCPA.class, BDDCPARestrictionAlgorithm.class);
     logger.log(Level.INFO, "using the BDDCPA Restriction Algorithm");
 
     manager = bddCpa.getManager();

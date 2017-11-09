@@ -22,14 +22,15 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Post-processings for the CFA that change the CFA structure,
- * executed (optionally) between parsing and returning the finished CFA.
- * The post-processings in this package all work only inside functions.
+ * Post-processings for the CFA that change the CFA structure, executed (optionally) between parsing
+ * and returning the finished CFA. The post-processings in this package all work only inside
+ * functions.
  *
- * Be careful when you want to add something here.
- * If possible, do not change the CFA,
- * but write you analysis such that it handles the unprocessed CFA.
- * If your analysis depends on a specifically post-processed CFA,
- * it may not be possible to combine it with other CPAs.
+ * <p>Be careful when you want to add something here. If possible, do not change the CFA, but write
+ * you analysis such that it handles the unprocessed CFA. If your analysis depends on a specifically
+ * post-processed CFA, it may not be possible to combine it with other CPAs.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;

@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nullable;
-
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.common.log.LogManager;
@@ -43,9 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 
 final class TypeHierarchy {
@@ -300,24 +299,11 @@ final class TypeHierarchy {
     }
 
     public Map<JClassOrInterfaceType, Set<JMethodDeclaration>> getMethodDeclarationsOfType() {
-
-      Map<JClassOrInterfaceType, Set<JMethodDeclaration>> tmp = new HashMap<>();
-
-      for (Map.Entry<JClassOrInterfaceType, Set<JMethodDeclaration>> entry : methodDeclarationsOfType.entrySet()) {
-        tmp.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
-      }
-
-      return ImmutableMap.copyOf(tmp);
+      return ImmutableMap.copyOf(Maps.transformValues(methodDeclarationsOfType, ImmutableSet::copyOf));
     }
 
     public Map<JClassOrInterfaceType, Set<JFieldDeclaration>> getFieldDeclarationsOfType() {
-      Map<JClassOrInterfaceType, Set<JFieldDeclaration>> tmp = new HashMap<>();
-
-      for (Map.Entry<JClassOrInterfaceType, Set<JFieldDeclaration>> entry : fieldDeclarationsOfType.entrySet()) {
-        tmp.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
-      }
-
-      return ImmutableMap.copyOf(tmp);
+      return ImmutableMap.copyOf(Maps.transformValues(fieldDeclarationsOfType, ImmutableSet::copyOf));
     }
 
     public void registerFieldDeclaration(Set<JFieldDeclaration> pDecl,

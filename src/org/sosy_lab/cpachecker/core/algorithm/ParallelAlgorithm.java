@@ -115,7 +115,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
   private final CFA cfa;
-  private final String filename;
   private final Specification specification;
   private final ParallelAlgorithmStatistics stats = new ParallelAlgorithmStatistics();
 
@@ -129,7 +128,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       CFA pCfa,
-      String pFilename,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -139,7 +137,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
     specification = checkNotNull(pSpecification);
     cfa = checkNotNull(pCfa);
-    filename = checkNotNull(pFilename);
 
     aggregatedReachedSetManager = new AggregatedReachedSetManager();
     aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
@@ -302,7 +299,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       // as it is a mutable singleton object
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
+      algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
 
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider) cpa).collectStatistics(subStats);
@@ -321,15 +318,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         return ParallelAnalysisResult.absent(singleConfigFileName.toString());
       }
 
-      ParallelAnalysisResult r = runParallelAnalysis(
-          singleConfigFileName.toString(),
-          algorithm,
-          reached,
-          singleLogger,
-          cpa,
-          supplyReached,
-          supplyRefinableReached,
-          coreComponents);
+      ParallelAnalysisResult r =
+          runParallelAnalysis(
+              singleConfigFileName.toString(),
+              algorithm,
+              reached,
+              singleLogger,
+              cpa,
+              supplyReached,
+              supplyRefinableReached,
+              coreComponents);
       terminated.set(true);
       return r;
     };

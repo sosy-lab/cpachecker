@@ -96,7 +96,7 @@ class LvalueToPointerTargetPatternVisitor
             final PointerTargetPatternBuilder result = operand1.accept(this);
         if (result != null) {
           final Integer offset = tryEvaluateExpression(operand2);
-          final Integer oldOffset = result.getProperOffset();
+          final Long oldOffset = result.getProperOffset();
           if (offset != null && oldOffset != null && offset < oldOffset) {
             result.setProperOffset(oldOffset - offset * typeHandler.getBitsPerByte());
           } else {
@@ -118,7 +118,7 @@ class LvalueToPointerTargetPatternVisitor
           offset = tryEvaluateExpression(operand2);
         }
         if (result != null) {
-          final Integer remaining = result.getRemainingOffset(typeHandler);
+          final Long remaining = result.getRemainingOffset(typeHandler);
           if (offset != null && remaining != null && offset < remaining) {
             assert result.getProperOffset() != null : "Unexpected nondet proper offset";
             result.setProperOffset(result.getProperOffset() + offset);

@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.Deque;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,13 +46,11 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Optional;
 
 /**
  * Strongest post-operator based on symbolic value analysis.
@@ -71,9 +71,14 @@ public class ValueTransferBasedStrongestPostOperator
       final ShutdownNotifier pShutdownNotifier
   ) throws InvalidConfigurationException {
 
-
     valueTransfer =
-        new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
+        new ValueAnalysisTransferRelation(
+            pLogger,
+            pCfa,
+            new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
+            new SymbolicValueAssigner(pConfig),
+            new ConstraintsStrengthenOperator(pConfig),
+            null);
 
     valueStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
 

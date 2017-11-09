@@ -40,12 +40,18 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
 import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
-
 import gmp.Mpfr;
-
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -58,17 +64,6 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -103,8 +98,8 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     logger = log;
     logger.log(Level.FINEST, "initial apron state");
 
-    integerToIndexMap = new LinkedList<>();
-    realToIndexMap = new LinkedList<>();
+    integerToIndexMap = new ArrayList<>();
+    realToIndexMap = new ArrayList<>();
     variableToTypeMap = new HashMap<>();
     isLoopHead = false;
   }
@@ -338,13 +333,14 @@ logger.log(Level.FINEST, "apron state: isEqual");
       return this;
     }
     logger.log(Level.FINEST, "apron state: forgetCopy: " + pVariableName);
-    return new ApronState(apronState.forgetCopy(apronManager.getManager(), varIdx, false),
-                          apronManager,
-                          new LinkedList<>(integerToIndexMap),
-                          new LinkedList<>(realToIndexMap),
-                          new HashMap<>(variableToTypeMap),
-                          false,
-                          logger);
+    return new ApronState(
+        apronState.forgetCopy(apronManager.getManager(), varIdx, false),
+        apronManager,
+        new ArrayList<>(integerToIndexMap),
+        new ArrayList<>(realToIndexMap),
+        new HashMap<>(variableToTypeMap),
+        false,
+        logger);
   }
 
   /**
@@ -401,13 +397,15 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
 
     logger.log(Level.FINEST, "apron state: addDimensionCopy: " + varName + " " + dimch);
-    ApronState newState = new ApronState(apronState.addDimensionsCopy(apronManager.getManager(), dimch, false),
-                                     apronManager,
-                                     new LinkedList<>(integerToIndexMap),
-                                     new LinkedList<>(realToIndexMap),
-                                     new HashMap<>(variableToTypeMap),
-                                     false,
-                                     logger);
+    ApronState newState =
+        new ApronState(
+            apronState.addDimensionsCopy(apronManager.getManager(), dimch, false),
+            apronManager,
+            new ArrayList<>(integerToIndexMap),
+            new ArrayList<>(realToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            false,
+            logger);
     if (type == Type.INT) {
       newState.integerToIndexMap.add(varName);
     } else {
@@ -533,13 +531,17 @@ logger.log(Level.FINEST, "apron state: isEqual");
       placesToRemove[i] = getVariableIndexFor(keysToRemove.get(i));
     }
     logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(intsRemoved, realsRemoved, placesToRemove));
-    ApronState newState = new ApronState(apronState.removeDimensionsCopy(apronManager.getManager(), new Dimchange(intsRemoved, realsRemoved, placesToRemove)),
-                                         apronManager,
-                                         new LinkedList<>(integerToIndexMap),
-                                         new LinkedList<>(realToIndexMap),
-                                         new HashMap<>(variableToTypeMap),
-                                         false,
-                                         logger);
+    ApronState newState =
+        new ApronState(
+            apronState.removeDimensionsCopy(
+                apronManager.getManager(),
+                new Dimchange(intsRemoved, realsRemoved, placesToRemove)),
+            apronManager,
+            new ArrayList<>(integerToIndexMap),
+            new ArrayList<>(realToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            false,
+            logger);
     newState.integerToIndexMap.removeAll(keysToRemove);
     newState.realToIndexMap.removeAll(keysToRemove);
     newState.variableToTypeMap.keySet().removeAll(keysToRemove);

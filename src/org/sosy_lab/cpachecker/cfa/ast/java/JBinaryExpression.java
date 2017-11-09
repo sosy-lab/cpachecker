@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JBinaryExpression extends ABinaryExpression implements JExpression {
 
+  private static final long serialVersionUID = 7830135105992595598L;
+
   public JBinaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
       BinaryOperator pOperator) {
     super(pFileLocation, pType, pOperand1, pOperand2, pOperator);

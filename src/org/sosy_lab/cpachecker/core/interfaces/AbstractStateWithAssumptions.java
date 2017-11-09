@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
-
-import java.util.List;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Sub-interface for {@link AbstractState}s that marks states
@@ -48,7 +50,30 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * "return N;" to "retVar == N", where "retVar" is the name of a pseudo variable
    * (just as {@link AReturnStatement#asAssignment()} does.
    *
-   * @return A (possibly empty list) of assume edges.
+   * @return A (possibly empty list) of expressions.
    */
   List<? extends AExpression> getAssumptions();
+
+  /**
+   * Get a list of assumptions that should hold in the previous (=parent) state,
+   * that means before the edge to this state is evaluated.
+   * For implementors, the same requirements hold as for
+   * {@link AbstractStateWithAssumptions#getAssumptions()}
+   * @return A (possibly empty list) of expressions.
+   */
+  default List<? extends AExpression> getPreconditionAssumptions() {
+    return ImmutableList.of();
+  }
+
+  /**
+   * Get the path formula with which the assumptions from
+   * {@link AbstractStateWithAssumptions#getPreconditionAssumptions()}
+   * should be instantiated.
+   * @param pPathFormula path formula for which the previous path formula
+            shall be returned
+   * @return a path formula (may be null)
+   */
+  default @Nullable PathFormula getPreviousPathFormula(PathFormula pPathFormula) {
+    return null;
+  }
 }

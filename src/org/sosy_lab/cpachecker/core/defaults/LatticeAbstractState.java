@@ -20,7 +20,7 @@ public interface LatticeAbstractState<T extends LatticeAbstractState<T>>
    * See {@link org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join}
    * for the description.
    */
-  T join(T other);
+  T join(T other) throws CPAException, InterruptedException;
 
   /**
    * Delegate method for convenience.

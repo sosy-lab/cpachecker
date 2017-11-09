@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Preconditions;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -37,20 +39,30 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   private final AbstractDomain abstractDomain;
-  private final String mergeType;
-  private final String stopType;
-  private final TransferRelation transferRelation;
 
-  protected AbstractCPA(String mergeType, String stopType, TransferRelation transfer) {
+  /* The operators can be overridden in sub-classes. Thus we allow Null as possible assignment. */
+  private final @Nullable String mergeType;
+  private final @Nullable String stopType;
+  private final @Nullable TransferRelation transferRelation;
+
+  protected AbstractCPA(String mergeType, String stopType, @Nullable TransferRelation transfer) {
     this(mergeType, stopType, new FlatLatticeDomain(), transfer);
   }
 
-  protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
+  /** When using this constructor, you have to override the methods for getting Merge- and StopOperator.
+   * This can be useful for cases where the operators are configurable or are initialized lazily. */
+  protected AbstractCPA(AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
+    this.mergeType = null;
+    this.stopType = null;
+    this.transferRelation = transfer;
+  }
 
+  /** Use this constructor, if Merge- and StopOperator are fixed. */
+  protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer) {
+    this.abstractDomain = domain;
     this.mergeType = mergeType;
     this.stopType = stopType;
-
     this.transferRelation = transfer;
   }
 
@@ -61,7 +73,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return buildMergeOperator(mergeType);
+    return buildMergeOperator(Preconditions.checkNotNull(mergeType));
   }
 
   protected MergeOperator buildMergeOperator(String pMergeType) {
@@ -70,7 +82,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
         return MergeSepOperator.getInstance();
 
       case "JOIN":
-        return new MergeJoinOperator(abstractDomain);
+        return new MergeJoinOperator(getAbstractDomain());
 
       default:
         throw new AssertionError("unknown merge operator");
@@ -79,16 +91,16 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public StopOperator getStopOperator() {
-    return buildStopOperator(stopType);
+    return buildStopOperator(Preconditions.checkNotNull(stopType));
   }
 
   protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
     switch (pStopType.toUpperCase()) {
       case "SEP":
-        return new StopSepOperator(abstractDomain);
+        return new StopSepOperator(getAbstractDomain());
 
       case "JOIN":
-        return new StopJoinOperator(abstractDomain);
+        return new StopJoinOperator(getAbstractDomain());
 
       case "NEVER":
         return new StopNeverOperator();
@@ -103,6 +115,6 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return Preconditions.checkNotNull(transferRelation);
   }
 }

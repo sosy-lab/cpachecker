@@ -113,7 +113,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -144,7 +144,12 @@ class CFAFunctionBuilder extends ASTVisitor {
   // Data structure for handling switch-statements
   private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
-  private final Deque<CFANode> switchDefaultStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
+
+  @SuppressWarnings("JdkObsolete") // ArrayDeque not possible because it does not allow null
+  private final Deque<CFANode> switchDefaultStack = new LinkedList<>();
+
+  @SuppressWarnings("JdkObsolete") // ArrayDeque not possible because it does not allow null
+  private final Deque<FileLocation> switchDefaultFileLocationStack = new LinkedList<>();
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
@@ -1167,33 +1172,17 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
      CExpression expression = exp;
-      if (flippedThenElse && !options.allowBranchSwapping()) {
-        expression = buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
-        CFANode tmp = thenNodeForLastThen;
-        thenNodeForLastThen = elseNodeForLastElse;
-        elseNodeForLastElse = tmp;
-      }
 
       if (ASTOperatorConverter.isBooleanExpression(expression)) {
         addConditionEdges(expression, rootNode, thenNodeForLastThen, elseNodeForLastElse,
-            loc);
+            loc, flippedThenElse);
         return Optional.of(exp);
 
-      } else if (options.allowBranchSwapping()) {
+      } else {
         // build new boolean expression: a==0 and swap branches
         CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
-        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen, loc);
-
-        return Optional.<CExpression>of(exp);
-      } else {
-        // build new double-negation boolean expression: (a==0)==0
-        CExpression conv = buildBinaryExpression(
-            buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS),
-            CIntegerLiteralExpression.ZERO,
-            BinaryOperator.EQUALS);
-
-        addConditionEdges(conv, rootNode, thenNodeForLastThen, elseNodeForLastElse, loc);
+        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen, loc, !flippedThenElse);
 
         return Optional.<CExpression>of(exp);
       }
@@ -1206,15 +1195,16 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category conditions
    */
   private void addConditionEdges(CExpression condition, CFANode rootNode,
-      CFANode thenNode, CFANode elseNode, FileLocation fileLocation) {
+      CFANode thenNode, CFANode elseNode, FileLocation fileLocation,
+      boolean pIsSwapped) {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
-        fileLocation, rootNode, thenNode, condition, true);
+        fileLocation, rootNode, thenNode, condition, true, pIsSwapped);
     addToCFA(trueEdge);
 
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
-        fileLocation, rootNode, elseNode, condition, false);
+        fileLocation, rootNode, elseNode, condition, false, pIsSwapped);
     addToCFA(falseEdge);
   }
 
@@ -1488,6 +1478,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(new CFANode(cfa.getFunctionName()));
 
     switchDefaultStack.push(null);
+    switchDefaultFileLocationStack.push(null);
 
     // visit only body, getBody() != getChildren()
     statement.getBody().accept(this);
@@ -1496,6 +1487,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode lastNodeInSwitch = locStack.pop();
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     final CFANode defaultCaseNode = switchDefaultStack.pop();
+    final FileLocation defaultCaseFileLocation = switchDefaultFileLocationStack.pop();
 
     switchExprStack.pop();
 
@@ -1514,7 +1506,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       // blank edge connecting rootNode with defaultCaseNode
       final BlankEdge defaultEdge = new BlankEdge(statement.getRawSignature(),
-          FileLocation.DUMMY, lastNotCaseNode, defaultCaseNode, "default");
+          defaultCaseFileLocation, lastNotCaseNode, defaultCaseNode, "default");
       addToCFA(defaultEdge);
     }
 
@@ -1597,7 +1589,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
-        addConditionEdges(exp, rootNode, caseNode, notCaseNode, fileLocation);
+        addConditionEdges(exp, rootNode, caseNode, notCaseNode, fileLocation, false);
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1648,8 +1640,8 @@ class CFAFunctionBuilder extends ASTVisitor {
               "either both conditions can be evaluated or not, but mixed is not allowed";
 
       final CFANode intermediateNode = newCFANode();
-      addConditionEdges(firstExp, rootNode, intermediateNode, notCaseNode, fileLocation);
-      addConditionEdges(secondExp, intermediateNode, caseNode, notCaseNode, fileLocation);
+      addConditionEdges(firstExp, rootNode, intermediateNode, notCaseNode, fileLocation, false);
+      addConditionEdges(secondExp, intermediateNode, caseNode, notCaseNode, fileLocation, false);
       nextCaseStartsAtNode = notCaseNode;
     }
 
@@ -1669,10 +1661,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();
-    if (oldDefaultNode != null) {
+    final FileLocation oldDefaultFileLocation = switchDefaultFileLocationStack.pop();
+    if (oldDefaultNode != null || oldDefaultFileLocation != null) {
       throw parseContext.parseError("Duplicate default statement in switch", statement);
     }
     switchDefaultStack.push(caseNode);
+    switchDefaultFileLocationStack.push(fileLocation);
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();

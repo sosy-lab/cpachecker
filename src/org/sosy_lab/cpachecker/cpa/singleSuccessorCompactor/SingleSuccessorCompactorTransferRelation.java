@@ -42,12 +42,17 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
   private final TransferRelation delegate;
   @Nullable private final BlockPartitioning partitioning;
   private final StatHist chainSizes;
+  private final int maxChainLength;
 
   SingleSuccessorCompactorTransferRelation(
-      TransferRelation pDelegate, BlockPartitioning pPartitioning, StatHist pChainSizes) {
+      TransferRelation pDelegate,
+      BlockPartitioning pPartitioning,
+      StatHist pChainSizes,
+      int pMaxChainLength) {
     delegate = pDelegate;
     partitioning = pPartitioning;
     chainSizes = pChainSizes;
+    maxChainLength = pMaxChainLength;
   }
 
   @Override
@@ -78,9 +83,17 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
       }
       states = delegate.getAbstractSuccessors(state, precision);
       state = Iterables.getFirst(states, null);
-    } while (states.size() == 1 && !AbstractStates.isTargetState(state) && !isAtBlockBorder(state));
+    } while (canExpandChain(state, states, chainSize));
     chainSizes.insertValue(chainSize);
     return states;
+  }
+
+  private boolean canExpandChain(
+      AbstractState state, Collection<? extends AbstractState> states, int chainSize) {
+    return states.size() == 1
+        && (maxChainLength == -1 || chainSize <= maxChainLength)
+        && !AbstractStates.isTargetState(state)
+        && !isAtBlockBorder(state);
   }
 
   private boolean isAtBlockBorder(AbstractState pState) {

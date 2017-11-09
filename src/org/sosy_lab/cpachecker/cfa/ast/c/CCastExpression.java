@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CCastExpression extends ACastExpression implements CExpression {
 
+  private static final long serialVersionUID = 3935774068573745972L;
+
   /**
    * @param pFileLocation where is this cast?
    * @param pExpressionType target-type of the cast

@@ -67,7 +67,7 @@ public class CPABuilder {
   private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
   @Option(secure=true, name=CPA_OPTION_NAME,
-      description="CPA to use (see doc/Configuration.txt for more documentation on this)")
+      description="CPA to use (see doc/Configuration.md for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   private final Configuration config;

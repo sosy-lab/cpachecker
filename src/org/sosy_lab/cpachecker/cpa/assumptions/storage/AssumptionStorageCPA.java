@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -67,7 +68,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
 
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
-  private final TransferRelation transferRelation;
+  private final AssumptionStorageTransferRelation transferRelation;
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
@@ -111,6 +112,11 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new AssumptionStoragePrecisionAdjustment(transferRelation);
   }
 
   @Override

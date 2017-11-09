@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -42,12 +43,11 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -141,7 +141,7 @@ public class AppliedCustomInstructionParser {
 
   private void writeCustomInstructionSpecification(final CustomInstruction ci,
       final Path signatureFile) throws IOException {
-    try (Writer br = MoreFiles.openOutputFile(signatureFile, Charset.defaultCharset())) {
+    try (Writer br = IO.openOutputFile(signatureFile, Charset.defaultCharset())) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
       br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
@@ -437,7 +437,7 @@ public class AppliedCustomInstructionParser {
     }
 
     pOutputVariables.addAll(edgeOutputVariables);
-    HashSet<String> returnRes = new HashSet<>(pPredOutputVars);
+    Set<String> returnRes = new HashSet<>(pPredOutputVars);
     returnRes.addAll(edgeOutputVariables);
 
     return returnRes;

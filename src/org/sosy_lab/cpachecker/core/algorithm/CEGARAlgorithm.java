@@ -155,6 +155,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
 
+  /* Widely used in CPALockator, as there are many error paths,
+   * and refinement all of them takes too much time, so,
+   * limit refinement iterations and remove at least some infeasible paths
+   */
+  @Option(name="maxIterations", description="Max number of refinement iterations, -1 for no limit")
+  private int maxRefinementNum = -1;
+
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -201,6 +208,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         // run algorithm
         status = status.update(algorithm.run(reached));
         notifyReachedSetUpdateListeners(reached);
+
+        if (stats.countRefinements == maxRefinementNum) {
+          logger.log(Level.WARNING, "Aborting analysis because maximum number of refinements " + maxRefinementNum + " used");
+          status = status.withPrecise(false);
+          break;
+        }
 
         // if there is any target state do refinement
         if (refinementNecessary(reached, previousLastState)) {

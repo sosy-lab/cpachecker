@@ -32,9 +32,9 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
-import com.google.common.truth.FailureStrategy;
+import com.google.common.io.MoreFiles;
+import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.Subject;
-import com.google.common.truth.SubjectFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Reader;
@@ -48,7 +48,6 @@ import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
@@ -282,11 +281,11 @@ public class AutomatonInternalTest {
     assert_().about(astMatcher).that("$? = $1($?);").doesNotMatch("f();");
   }
 
-  private final SubjectFactory<ASTMatcherSubject, String> astMatcher =
-      new SubjectFactory<ASTMatcherSubject, String>() {
+  private final Subject.Factory<ASTMatcherSubject, String> astMatcher =
+      new Subject.Factory<ASTMatcherSubject, String>() {
         @Override
-        public ASTMatcherSubject getSubject(FailureStrategy pFs, String pThat) {
-          return new ASTMatcherSubject(pFs, pThat).named("AST matcher pattern");
+        public ASTMatcherSubject createSubject(FailureMetadata pMd, String pThat) {
+          return new ASTMatcherSubject(pMd, pThat).named("AST matcher pattern");
         }
       };
 
@@ -299,8 +298,8 @@ public class AutomatonInternalTest {
 
     private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
-    public ASTMatcherSubject(FailureStrategy pFailureStrategy, String pPattern) {
-      super(pFailureStrategy, pPattern);
+    public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
+      super(pMetadata, pPattern);
     }
 
     private boolean matches0(String src) throws InvalidAutomatonException {
@@ -317,7 +316,7 @@ public class AutomatonInternalTest {
       try {
         matches = matches0(src);
       } catch (InvalidAutomatonException e) {
-        failureStrategy.fail("Cannot parse source or pattern", e);
+        failWithRawMessageAndCause("Cannot parse source or pattern", e);
         return new Matches() {
               @Override
               public void withVariableValue(int pVar, String pValue) {
@@ -358,7 +357,7 @@ public class AutomatonInternalTest {
           fail("does not match", src);
         }
       } catch (InvalidAutomatonException e) {
-        failureStrategy.fail("Cannot parse source or pattern", e);
+        failWithRawMessageAndCause("Cannot parse source or pattern", e);
       }
     }
   }

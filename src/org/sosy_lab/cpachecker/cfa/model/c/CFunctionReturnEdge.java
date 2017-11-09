@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 public class CFunctionReturnEdge extends FunctionReturnEdge {
 
 
+  private static final long serialVersionUID = 1988341560860570426L;
+
   public CFunctionReturnEdge(FileLocation pFileLocation,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       CFunctionSummaryEdge pSummaryEdge) {

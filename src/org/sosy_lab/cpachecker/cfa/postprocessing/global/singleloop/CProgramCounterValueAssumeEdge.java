@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
  */
 class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCounterValueAssumeEdge {
 
+  private static final long serialVersionUID = 914295017485509753L;
   /**
    * The program counter value assumed.
    */

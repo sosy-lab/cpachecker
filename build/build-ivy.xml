@@ -66,4 +66,11 @@
         <ivy:resolve conf="contrib" log="download-only"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
     </target>
+
+    <target name="update-lib" depends="load-ivy" description="Update the version of a library to the latest one">
+        <property name="update-lib.revision" value="latest.release"/>
+        <ivy:findrevision organisation="${update-lib.org}" module="${update-lib.module}" revision="${update-lib.revision}" property="update-lib.version"/>
+        <echo message="Found version ${update-lib.version} of ${update-lib.org}/${update-lib.module}"/>
+        <replaceregexp file="${ivy.dep.file.ivy.instance}" match='(org="${update-lib.org}" name="${update-lib.module}" rev=)"[0-9a-zA-Z+-.]*"' replace='\1"${update-lib.version}"' byline="true"/>
+    </target>
 </project>

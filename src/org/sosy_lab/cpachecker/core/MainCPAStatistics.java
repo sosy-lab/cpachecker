@@ -61,7 +61,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -78,7 +78,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -124,11 +127,20 @@ public class MainCPAStatistics implements Statistics {
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
 
+  @Option(
+    secure = true,
+    name = "coverage.enabled",
+    description = "Compute and export information about the verification coverage?"
+  )
+  private boolean exportCoverage = true;
+
+  @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputCoverageFile = Paths.get("coverage.info");
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
-  private final CoverageReport coverageReport;
-  private final String analyzedFiles;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
@@ -145,12 +157,9 @@ public class MainCPAStatistics implements Statistics {
   private @Nullable CFA cfa;
 
   public MainCPAStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      String pAnalyzedFiles, ShutdownNotifier pShutdownNotifier)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
-    analyzedFiles = pAnalyzedFiles;
     pConfig.inject(this);
 
     subStats = new ArrayList<>();
@@ -183,7 +192,6 @@ public class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     }
 
-    coverageReport = new CoverageReport(pConfig, pLogger);
     if (cInvariantsExport && cInvariantsPrefix != null) {
       cExpressionInvariantExporter =
           new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier, cInvariantsPrefix);
@@ -276,8 +284,21 @@ public class MainCPAStatistics implements Statistics {
 
       printSubStatistics(out, result, reached);
 
-      if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, reached, cfa);
+      if (exportCoverage && cfa != null) {
+        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
+
+        out.println("Code Coverage");
+        out.println("-----------------------------");
+        CoverageReportStdoutSummary.write(infosPerFile, out);
+
+        if (outputCoverageFile != null) {
+          try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+            CoverageReportGcov.write(infosPerFile, gcovOut);
+          } catch (IOException e) {
+            logger.logUserException(
+                Level.WARNING, e, "Could not write coverage information to file");
+          }
+        }
       }
     }
 
@@ -294,9 +315,9 @@ public class MainCPAStatistics implements Statistics {
             "Out of memory while generating statistics about final reached set");
       }
 
-      if (cExpressionInvariantExporter != null) {
+      if (cExpressionInvariantExporter != null && cfa != null) {
         try {
-          cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
+          cExpressionInvariantExporter.exportInvariant(cfa, reached);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING,
@@ -330,7 +351,7 @@ public class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(pOutputFile, Charset.defaultCharset())) {
 
         if (writeDotFormat) {
 
@@ -433,7 +454,7 @@ public class MainCPAStatistics implements Statistics {
       mostFrequentLocationCount = maxPartition.getValue().size();
 
     } else {
-      HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+      Multiset<CFANode> allLocations = HashMultiset.create(from(reached)
                                                                     .transform(EXTRACT_LOCATION)
                                                                     .filter(notNull()));
 

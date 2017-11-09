@@ -120,10 +120,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private ReachedSet outsideReachedSet = null;
   private ReachedSet reachedSet = null;
   private StartupConfig startupConfig;
-  private String programDenotation;
   private Specification stats;
   private TestSuite testsuite;
-  private Values values;
+  private InputOutputValues values;
 
   private int currentTestCaseID;
 
@@ -139,7 +138,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
   public TigerAlgorithm(LogManager pLogger, CFA pCfa, Configuration pConfig,
       ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
-      String programDenotation, @Nullable final Specification stats)
+      @Nullable final Specification stats)
       throws InvalidConfigurationException {
     tigerConfig = new TigerAlgorithmConfiguration(pConfig);
     cfa = pCfa;
@@ -155,9 +154,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
     fqlSpecification = FQLSpecificationUtil.getFQLSpecification(tigerConfig.getFqlQuery());
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
-    this.programDenotation = programDenotation;
     this.stats = stats;
-    values = new Values(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
+    values = new InputOutputValues(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
     currentTestCaseID = 0;
 
   }
@@ -616,7 +614,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger,
           algNotifier.getNotifier(), aggregatedReachedSets);
 
-      algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
+      algorithm = coreFactory.createAlgorithm(lARTCPA, cfa, stats);
 
       if (algorithm instanceof CEGARAlgorithm) {
         CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;

@@ -187,7 +187,7 @@ public class TestCase {
 
 
   public List<Goal> getCoveredGoals(List<Goal> pAllGoals) {
-    List<Goal> coveredGoals = new ArrayList<Goal>();
+    List<Goal> coveredGoals = new ArrayList<>();
     for (Goal goal : pAllGoals) {
       ThreeValuedAnswer answer = coversGoal(goal);
       if (answer.equals(ThreeValuedAnswer.ACCEPT)) {

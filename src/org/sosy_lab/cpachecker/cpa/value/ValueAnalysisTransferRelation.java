@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,7 +33,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -119,14 +115,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -136,7 +130,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -151,19 +144,16 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
     implements StatisticsProvider {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of();
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   @Options(prefix = "cpa.value")
-  static class ValueTransferOptions {
+  public static class ValueTransferOptions {
 
     @Option(
       secure = true,
@@ -198,7 +188,10 @@ public class ValueAnalysisTransferRelation
     )
     private boolean trackJavaArrayValues = true;
 
-    ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
+    @Option(secure=true, description="Track or not function pointer values")
+    private boolean ignoreFunctionValue = true;
+
+    public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
 
@@ -213,9 +206,14 @@ public class ValueAnalysisTransferRelation
     boolean isOptimizeBooleanVariables() {
       return optimizeBooleanVariables;
     }
+
+    boolean isIgnoreFunctionValue() {
+      return ignoreFunctionValue;
+    }
   }
 
   private final ValueTransferOptions options;
+  private final @Nullable ValueAnalysisCPAStatistics stats;
 
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
@@ -257,32 +255,17 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
-  private int currentNumberOfIterations = 0;
-
-  private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
-  private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
-
-  private Statistics transferStatistics = new Statistics() {
-
-    @Override
-    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      StatisticsWriter writer = writingStatisticsTo(out);
-
-      writer.put(totalAssumptions)
-            .put(deterministicAssumptions)
-            .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
-    }
-
-    @Override
-    public String getName() {
-      return ValueAnalysisTransferRelation.class.getSimpleName();
-    }
-  };
-
-  public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    options = new ValueTransferOptions(config);
+  public ValueAnalysisTransferRelation(
+      LogManager pLogger,
+      CFA pCfa,
+      ValueTransferOptions pOptions,
+      MemoryLocationValueHandler pUnknownValueHandler,
+      ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
+      @Nullable ValueAnalysisCPAStatistics pStats) {
+    options = pOptions;
     machineModel = pCfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
+    stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
@@ -292,20 +275,8 @@ public class ValueAnalysisTransferRelation
       booleanVariables   = ImmutableSet.of();
     }
 
-    unknownValueHandler = new SymbolicValueAssigner(config);
-    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
-  }
-
-  int getCurrentNumberOfIterations() {
-    return currentNumberOfIterations;
-  }
-
-  int getCurrentLevelOfDeterminism() {
-    if (totalAssumptions.getValue() == 0) {
-      return 100;
-    } else {
-      return (int) Math.round((deterministicAssumptions.getValue() * 100) / (double)totalAssumptions.getValue());
-    }
+    unknownValueHandler = pUnknownValueHandler;
+    constraintsStrengthenOperator = pConstraintsStrengthenOperator;
   }
 
   @Override
@@ -330,7 +301,9 @@ public class ValueAnalysisTransferRelation
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
     oldState = (ValueAnalysisState)pAbstractState;
-    currentNumberOfIterations++;
+    if (stats != null) {
+      stats.incrementIterations();
+    }
   }
 
   @Override
@@ -385,10 +358,6 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      assert "default return".equals(cfaEdge.getDescription())
-              || "skipped unnecessary edges".equals(cfaEdge.getDescription())
-              || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription());
-
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);
       state.dropFrame(functionName);
@@ -402,7 +371,7 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    ExpressionValueVisitor evv = getVisitor();
 
     // clone state, because will be changed through removing all variables of current function's scope.
     // The assignment of the global 'state' is safe, because the 'old state'
@@ -410,15 +379,15 @@ public class ValueAnalysisTransferRelation
     state = ValueAnalysisState.copyOf(state);
     state.dropFrame(functionName);
 
-    AExpression expression = returnEdge.getExpression().orElse(null);
+    AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
     final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
-    final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration
-        = functionEntryNode.getReturnVariable();
+    final com.google.common.base.Optional<? extends AVariableDeclaration>
+        optionalReturnVarDeclaration = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
 
     if (optionalReturnVarDeclaration.isPresent()) {
@@ -449,7 +418,8 @@ public class ValueAnalysisTransferRelation
 
     ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
 
-    Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
+    com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+        functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
     if (returnVarName.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
@@ -462,8 +432,7 @@ public class ValueAnalysisTransferRelation
 
       // we expect left hand side of the expression to be a variable
 
-      ExpressionValueVisitor v =
-          new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+      ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
 
       Value newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
@@ -607,7 +576,9 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleAssumption(AExpression expression, boolean truthValue)
       throws UnrecognizedCCodeException {
 
-    totalAssumptions.inc();
+    if (stats != null) {
+      stats.incrementAssumptions();
+    }
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     expression = simplifiedExpression.getFirst();
@@ -619,8 +590,8 @@ public class ValueAnalysisTransferRelation
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
 
-    if (value.isExplicitlyKnown()) {
-      deterministicAssumptions.inc();
+    if (value.isExplicitlyKnown() && stats != null) {
+      stats.incrementDeterministicAssumptions();
     }
 
     if (!value.isExplicitlyKnown()) {
@@ -1229,7 +1200,6 @@ public class ValueAnalysisTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(transferStatistics);
     statsCollection.add(constraintsStrengthenOperator);
   }
 
@@ -1773,7 +1743,15 @@ public class ValueAnalysisTransferRelation
   }
 
   /** returns an initialized, empty visitor */
+  private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
+    if (options.isIgnoreFunctionValue()) {
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+    } else {
+      return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+    }
+  }
+
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    return getVisitor(state, functionName);
   }
 }

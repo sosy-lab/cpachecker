@@ -28,7 +28,14 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -102,17 +109,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
 @SuppressWarnings("rawtypes")
 public class OctagonTransferRelation extends ForwardingTransferRelation<Collection<OctagonState>, OctagonState, VariableTrackingPrecision> {
 
@@ -128,12 +124,11 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
    * set of functions that may not appear in the source code
    * the value of the map entry is the explanation for the user
    */
-  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of();
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private final LogManager logger;
 
-  private final Set<CFANode> loopHeads;
+  private final ImmutableSet<CFANode> loopHeads;
 
   public OctagonTransferRelation(LogManager log, LoopStructure loops) {
     logger = log;
@@ -805,7 +800,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
                   cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
     }
 
-    List<Pair<MemoryLocation, CExpression>> handleAbleParams = new LinkedList<>();
+    List<Pair<MemoryLocation, CExpression>> handleAbleParams = new ArrayList<>();
 
     // declare all parameters as variables
     for (int i = 0; i < parameters.size(); i++) {

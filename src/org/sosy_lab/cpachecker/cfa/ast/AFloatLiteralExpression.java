@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
+  private static final long serialVersionUID = 8161363025296340648L;
   private final BigDecimal value;
 
   public AFloatLiteralExpression(FileLocation pFileLocation, Type pType, BigDecimal pValue) {

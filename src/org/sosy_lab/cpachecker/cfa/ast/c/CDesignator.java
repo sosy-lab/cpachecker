@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract class CDesignator extends AbstractAstNode implements CAstNode {
 
+  private static final long serialVersionUID = 6870178640888782994L;
+
   public CDesignator(FileLocation pFileLoc) {
     super(pFileLoc);
   }

@@ -35,7 +35,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -73,8 +72,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
  */
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA
-    implements ConfigurableProgramAnalysis,
-        StatisticsProvider,
+    implements StatisticsProvider,
         ConfigurableProgramAnalysisWithBAM,
         ProofCheckerCPA {
 
@@ -122,8 +120,9 @@ public class ControlAutomatonCPA
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  private final AutomatonTransferRelation transferRelation;
-  private final Statistics stats = new AutomatonStatistics(this);
+  final AutomatonStatistics stats = new AutomatonStatistics(this);
+  private final CFA cfa;
+  private final LogManager logger;
 
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
@@ -131,8 +130,8 @@ public class ControlAutomatonCPA
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger, pCFA.getMachineModel());
-
+    cfa = pCFA;
+    logger = pLogger;
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
 
@@ -147,8 +146,7 @@ public class ControlAutomatonCPA
 
     if (export && exportFile != null) {
       try (Writer w =
-          MoreFiles.openOutputFile(
-              exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
+          IO.openOutputFile(exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -226,7 +224,7 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return transferRelation ;
+    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
   }
 
   public AutomatonState getBottomState() {

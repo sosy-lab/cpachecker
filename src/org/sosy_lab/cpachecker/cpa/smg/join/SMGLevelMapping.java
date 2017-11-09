@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-
 import java.util.HashMap;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 public class SMGLevelMapping extends HashMap<SMGJoinLevel, Integer> {
 
@@ -37,13 +36,13 @@ public class SMGLevelMapping extends HashMap<SMGJoinLevel, Integer> {
     return result;
   }
 
+  /** a pair f two integers */
   public static class SMGJoinLevel {
 
     private final int level1;
     private final int level2;
 
     private SMGJoinLevel(int pLevel1, int pLevel2) {
-      super();
       level1 = pLevel1;
       level2 = pLevel2;
     }
@@ -67,11 +66,7 @@ public class SMGLevelMapping extends HashMap<SMGJoinLevel, Integer> {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + level1;
-      result = prime * result + level2;
-      return result;
+      return 31 * level1 + level2;
     }
 
     @Override
@@ -79,20 +74,11 @@ public class SMGLevelMapping extends HashMap<SMGJoinLevel, Integer> {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof SMGJoinLevel)) {
         return false;
       }
       SMGJoinLevel other = (SMGJoinLevel) obj;
-      if (level1 != other.level1) {
-        return false;
-      }
-      if (level2 != other.level2) {
-        return false;
-      }
-      return true;
+      return level1 == other.level1 && level2 == other.level2;
     }
   }
 }

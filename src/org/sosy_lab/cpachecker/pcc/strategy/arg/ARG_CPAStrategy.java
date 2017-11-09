@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -82,7 +81,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   @Override
   protected void initChecking(final ARGState pRoot) {
     if (!singleCheck) {
-      visitedStates = new LinkedList<>();
+      visitedStates = new ArrayList<>();
     }
 
   }

@@ -47,27 +47,12 @@ public abstract class PredicateExtractionRefiner implements Refiner {
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);
-    final PredicateCPA predicateCPA = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-
-    if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(
-          PredicateExtractionRefiner.class.getSimpleName()
-              + " needs a ValueAnalysisCPA");
-    }
-
-    if (constraintsCpa == null) {
-      throw new InvalidConfigurationException(
-          PredicateExtractionRefiner.class.getSimpleName()
-              + " needs a ConstraintsCPA");
-    }
-
-    if (predicateCPA == null) {
-      throw new InvalidConfigurationException(
-          PredicateExtractionRefiner.class.getSimpleName()
-              + " needs a PredicateCPA");
-    }
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, PredicateExtractionRefiner.class);
+    final ConstraintsCPA constraintsCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, PredicateExtractionRefiner.class);
+    final PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateExtractionRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
 

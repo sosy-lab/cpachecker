@@ -33,11 +33,11 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
@@ -61,16 +61,20 @@ public class PropertyFileParser {
   private final Path propertyFile;
 
   private String entryFunction;
-  private final Set<PropertyTypeWithEntryFunction> properties = Sets.newHashSetWithExpectedSize(1);
+  private final Set<PropertyType> properties = Sets.newHashSetWithExpectedSize(1);
 
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
+
+  private static Map<String, PropertyType> AVAILABLE_PROPERTIES =
+      Maps.<String, PropertyType>uniqueIndex(
+          EnumSet.allOf(PropertyType.class), PropertyType::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {
     propertyFile = pPropertyFile;
   }
 
-  public void parse() throws InvalidPropertyFileException {
+  public void parse() throws InvalidPropertyFileException, IOException {
     String rawProperty = null;
     try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
       while ((rawProperty = br.readLine()) != null) {
@@ -78,22 +82,18 @@ public class PropertyFileParser {
           properties.add(parsePropertyLine(rawProperty));
         }
       }
-    } catch (IOException e) {
-      throw new InvalidPropertyFileException("Could not read file: " + e.getMessage(), e);
     }
-
     if (properties.isEmpty()) {
       throw new InvalidPropertyFileException("No property in file.");
     }
   }
 
-  private PropertyTypeWithEntryFunction parsePropertyLine(String rawProperty)
-      throws InvalidPropertyFileException {
+  private PropertyType parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-      throw new InvalidPropertyFileException(String.format(
-          "The given property '%s' is not well-formed!", rawProperty));
+      throw new InvalidPropertyFileException(
+          String.format("The property '%s' is not well-formed!", rawProperty));
     }
 
     if (entryFunction == null) {
@@ -103,174 +103,19 @@ public class PropertyFileParser {
           "Specifying two different entry functions %s and %s is not supported.", entryFunction, matcher.group(1)));
     }
 
-    PropertyType propertyType = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
+    PropertyType propertyType = AVAILABLE_PROPERTIES.get(matcher.group(2));
     if (propertyType == null) {
       throw new InvalidPropertyFileException(String.format(
           "The property '%s' is not supported.", matcher.group(2)));
     }
-    return new PropertyTypeWithEntryFunction(propertyType, entryFunction);
+    return propertyType;
   }
 
   public String getEntryFunction() {
     return entryFunction;
   }
 
-  public Set<PropertyTypeWithEntryFunction> getProperties() {
+  public Set<PropertyType> getProperties() {
     return Collections.unmodifiableSet(properties);
-  }
-
-  public static enum PropertyType {
-
-    REACHABILITY_LABEL {
-
-      @Override
-      public String toString() {
-        return "G ! label(ERROR)";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitReachabilityLabel();
-      }
-    },
-
-    REACHABILITY {
-
-      @Override
-      public String toString() {
-        return "G ! call(__VERIFIER_error())";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitReachability();
-      }
-    },
-
-    VALID_FREE {
-
-      @Override
-      public String toString() {
-        return "G valid-free";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitValidFree();
-      }
-    },
-
-    VALID_DEREF {
-
-      @Override
-      public String toString() {
-        return "G valid-deref";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitValidDeref();
-      }
-    },
-
-    VALID_MEMTRACK {
-
-      @Override
-      public String toString() {
-        return "G valid-memtrack";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitValidMemtrack();
-      }
-    },
-
-
-    OVERFLOW {
-
-      @Override
-      public String toString() {
-        return "G ! overflow";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitOverflow();
-      }
-    },
-
-    DEADLOCK {
-
-      @Override
-      public String toString() {
-        return "G ! deadlock";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitDeadlock();
-      }
-    },
-
-    TERMINATION {
-
-      @Override
-      public String toString() {
-        return "F end";
-      }
-
-      @Override
-      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
-        return pVisitor.visitTermination();
-      }
-    },
-    ;
-
-    private static Map<String, PropertyType> AVAILABLE_PROPERTIES =
-        Maps.<String, PropertyType>uniqueIndex(
-            EnumSet.allOf(PropertyType.class), PropertyType::toString);
-
-    public abstract <T> T accept(PropertyTypeVisitor<T> pVisitor);
-  }
-
-  public static interface PropertyTypeVisitor<T> {
-
-    T visitReachabilityLabel();
-
-    T visitReachability();
-
-    T visitValidFree();
-
-    T visitValidDeref();
-
-    T visitValidMemtrack();
-
-    T visitOverflow();
-
-    T visitDeadlock();
-
-    T visitTermination();
-  }
-
-  public static class PropertyTypeWithEntryFunction {
-
-    private final PropertyType propertyType;
-
-    private final String entryFunctionName;
-
-    private PropertyTypeWithEntryFunction(PropertyType pPropertyType, String pEntryFunctionName) {
-      propertyType = Objects.requireNonNull(pPropertyType);
-      entryFunctionName = Objects.requireNonNull(pEntryFunctionName);
-    }
-
-    public PropertyType getPropertyType() {
-      return propertyType;
-    }
-
-    public String getEntryFunctionName() {
-      return entryFunctionName;
-    }
-
   }
 }

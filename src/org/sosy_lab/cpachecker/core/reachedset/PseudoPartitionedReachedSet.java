@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
  * is called (which is usually done by the CPAAlgorithm to get the candidates
  * for merging and coverage checks), it will return a subset of the set of all
  * reached states. This subset contains exactly those states,
- * that might be 'lessOrEqual' than the given state.
+ * where the given state might be 'lessOrEqual'.
  *
  * This type of reached-set might work best in combination with an analysis
  * that uses the operators merge_sep and stop_sep.
@@ -56,12 +56,11 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 public class PseudoPartitionedReachedSet extends DefaultReachedSet {
 
   /**
-   * the main storage:
-   * row/first key: the partition key, same as in {@link PartitionedReachedSet},
+   * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
    */
-  private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>> partitionedReached =
-      HashBasedTable.create(1,1);
+  private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>>
+      partitionedReached = HashBasedTable.create(1, 1);
 
   public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
@@ -128,9 +127,9 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
       states.addAll(partition.get(pseudoKey).get(pseudoHash));
     }
 
-    // add all states with a smaller pseudo-key, they might be "lessOrEqual".
+    // add all states with a smaller pseudo-key, we might be "lessOrEqual" than those.
     for (Entry<Comparable<?>, SetMultimap<Object, AbstractState>> entry : partition.entrySet()) {
-      if (pseudoKey.compareTo(entry.getKey()) < 0) {
+      if (pseudoKey.compareTo(entry.getKey()) > 0) { // pseudoKey is "greaterThan"
         states.addAll(entry.getValue().values());
       }
     }

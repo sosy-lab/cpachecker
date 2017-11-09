@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CBinaryExpression extends ABinaryExpression implements CExpression {
 
+  private static final long serialVersionUID = 1902123965106390020L;
   private final CType calculationType;
 
   public CBinaryExpression(final FileLocation pFileLocation,

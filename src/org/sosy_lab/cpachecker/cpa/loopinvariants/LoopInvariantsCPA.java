@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 /**
@@ -44,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
  * To compute the invariant an isympy installation is necessary.
  */
 @Options(prefix = "cpa.loopinvariants")
-public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class LoopInvariantsCPA extends AbstractCPA {
 
   /**
    * Gets a factory for creating LoopInvariantsCPAs.

@@ -32,6 +32,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Predicate;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -144,6 +147,18 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       } else if (parts[0].toLowerCase().equals("label")) {
         return this.locationNode instanceof CLabelNode ?
             ((CLabelNode) this.locationNode).getLabel().equals(parts[1]) : false;
+      } else if (parts[0].toLowerCase().equals("nodenumber")) {
+        try {
+          int queryNumber = Integer.parseInt(parts[1]);
+          return this.locationNode.getNodeNumber() == queryNumber;
+        } catch (NumberFormatException nfe) {
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Could not parse the integer \""
+                  + parts[1]
+                  + "\"");
+        }
       } else {
         throw new InvalidQueryException("The Query \"" + pProperty
             + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
@@ -178,6 +193,14 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private Object writeReplace() {
     return new SerialProxy(locationNode.getNodeNumber());
+  }
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in the input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerialProxy implements Serializable {

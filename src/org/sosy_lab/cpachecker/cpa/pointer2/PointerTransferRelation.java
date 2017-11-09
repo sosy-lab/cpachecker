@@ -263,7 +263,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!pCfaEdge.getExpression().isPresent()) {
       return pState;
     }
-    Optional<? extends AVariableDeclaration> returnVariable = pCfaEdge.getSuccessor().getEntryNode().getReturnVariable();
+    com.google.common.base.Optional<? extends AVariableDeclaration> returnVariable =
+        pCfaEdge.getSuccessor().getEntryNode().getReturnVariable();
     if (!returnVariable.isPresent()) {
       return pState;
     }

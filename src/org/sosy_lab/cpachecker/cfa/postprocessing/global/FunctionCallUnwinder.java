@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -31,8 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
-import org.sosy_lab.cpachecker.util.Pair;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -50,12 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "cfa.functionCalls")
 public class FunctionCallUnwinder {
@@ -143,7 +142,13 @@ public class FunctionCallUnwinder {
       }
     }
 
-    return new MutableCFA(cfa.getMachineModel(), functions, nodes, cfa.getMainFunction(), cfa.getLanguage());
+    return new MutableCFA(
+        cfa.getMachineModel(),
+        functions,
+        nodes,
+        cfa.getMainFunction(),
+        cfa.getFileNames(),
+        cfa.getLanguage());
   }
 
   static void replaceFunctionCall(final AStatementEdge functionCallEdge, final String newFunctionName) {
@@ -186,7 +191,7 @@ public class FunctionCallUnwinder {
     nodes.putAll(newFunctionname, newFunction.getSecond());
   }
 
-  static String getNameOfFunction(final AStatementEdge edge) {
+  static @Nullable String getNameOfFunction(final AStatementEdge edge) {
     if (!(edge instanceof CStatementEdge)) {
       return null;
     }

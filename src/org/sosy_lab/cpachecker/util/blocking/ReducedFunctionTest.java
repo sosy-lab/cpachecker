@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -55,11 +56,11 @@ public class ReducedFunctionTest {
     funct.removeEdge(n1, n2, e1);
     funct.removeEdge(n2, n3, e2);
 
-    assertEquals(2, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getAllActiveNodes().size());
-    assertEquals(1, funct.getLeavingEdges(n1).size());
-    assertEquals(1, funct.getNumEnteringEdges(n3));
-    assertEquals(0, funct.getLeavingEdges(n3).size());
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(2);
+    assertThat(funct.getAllActiveNodes()).hasSize(2);
+    assertThat(funct.getLeavingEdges(n1)).hasSize(1);
+    assertThat(funct.getNumEnteringEdges(n3)).isEqualTo(1);
+    assertThat(funct.getLeavingEdges(n3)).hasSize(0);
   }
 
   @Test
@@ -118,16 +119,16 @@ public class ReducedFunctionTest {
     funct.addEdge(n3, n4);
     funct.addEdge(n4, n5);
 
-    assertEquals(funct.getEntryNode(), entryNode);
-    assertEquals(funct.getExitNode(), exitNode);
+    assertThat(funct.getEntryNode()).isEqualTo(entryNode);
+    assertThat(funct.getExitNode()).isEqualTo(exitNode);
 
-    assertEquals(funct.getNumLeavingEdges(n1), 1);
-    assertEquals(funct.getNumLeavingEdges(n2), 1);
-    assertEquals(funct.getNumLeavingEdges(n3), 1);
-    assertEquals(funct.getNumLeavingEdges(n5), 0);
+    assertThat(funct.getNumLeavingEdges(n1)).isEqualTo(1);
+    assertThat(funct.getNumLeavingEdges(n2)).isEqualTo(1);
+    assertThat(funct.getNumLeavingEdges(n3)).isEqualTo(1);
+    assertThat(funct.getNumLeavingEdges(n5)).isEqualTo(0);
 
-    assertEquals(funct.getLeavingEdges(n1).size(), 1);
-    assertEquals(funct.getLeavingEdges(n5).size(), 0);
+    assertThat(funct.getLeavingEdges(n1)).hasSize(1);
+    assertThat(funct.getLeavingEdges(n5)).hasSize(0);
   }
 
   @Test

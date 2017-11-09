@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import java.util.Map;
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,14 +44,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Map;
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -74,9 +73,9 @@ public class CLangSMGTest {
   public void CLangSMGConstructorTest() {
     CLangSMG smg = getNewCLangSMG64();
 
-    Assert.assertEquals(0, smg.getStackFrames().size());
-    Assert.assertEquals(1, smg.getHeapObjects().size());
-    Assert.assertEquals(0, smg.getGlobalObjects().size());
+    assertThat(smg.getStackFrames()).hasSize(0);
+    assertThat(smg.getHeapObjects()).hasSize(1);
+    assertThat(smg.getGlobalObjects()).hasSize(0);
 
     SMGRegion obj1 = new SMGRegion(64, "obj1");
     SMGRegion obj2 = new SMGRegion(64, "obj2");
@@ -100,14 +99,14 @@ public class CLangSMGTest {
     CLangSMG smg_copy = new CLangSMG(smg);
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg_copy));
 
-    Assert.assertEquals(0, smg_copy.getStackFrames().size());
-    Assert.assertEquals(2, smg_copy.getHeapObjects().size());
-    Assert.assertEquals(1, smg_copy.getGlobalObjects().size());
+    assertThat(smg_copy.getStackFrames()).hasSize(0);
+    assertThat(smg_copy.getHeapObjects()).hasSize(2);
+    assertThat(smg_copy.getGlobalObjects()).hasSize(1);
 
-    Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
+    assertThat(smg_copy.getObjectPointedBy(val1)).isEqualTo(obj1);
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    Assert.assertEquals(hv, Iterables.getOnlyElement(smg_copy.getHVEdges(filter)));
+    assertThat(smg_copy.getHVEdges(filter)).containsExactly(hv);
   }
 
   @Test
@@ -120,17 +119,17 @@ public class CLangSMGTest {
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     Set<SMGObject> heap_objs = smg.getHeapObjects();
 
-    Assert.assertTrue(heap_objs.contains(obj1));
-    Assert.assertFalse(heap_objs.contains(obj2));
-    Assert.assertTrue(heap_objs.size() == 2);
+    assertThat(heap_objs).contains(obj1);
+    assertThat(heap_objs).doesNotContain(obj2);
+    assertThat(heap_objs).hasSize(2);
 
     smg.addHeapObject(obj2);
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     heap_objs = smg.getHeapObjects();
 
-    Assert.assertTrue(heap_objs.contains(obj1));
-    Assert.assertTrue(heap_objs.contains(obj2));
-    Assert.assertEquals(heap_objs.size(), 3);
+    assertThat(heap_objs).contains(obj1);
+    assertThat(heap_objs).contains(obj2);
+    assertThat(heap_objs).hasSize(3);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -163,16 +162,16 @@ public class CLangSMGTest {
     Map<String, SMGRegion> global_objects = smg.getGlobalObjects();
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-    Assert.assertEquals(global_objects.size(), 1);
-    Assert.assertTrue(global_objects.values().contains(obj1));
+    assertThat(global_objects).hasSize(1);
+    assertThat(global_objects.values()).contains(obj1);
 
     smg.addGlobalObject(obj2);
     global_objects = smg.getGlobalObjects();
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-    Assert.assertEquals(global_objects.size(), 2);
-    Assert.assertTrue(global_objects.values().contains(obj1));
-    Assert.assertTrue(global_objects.values().contains(obj2));
+    assertThat(global_objects).hasSize(2);
+    assertThat(global_objects.values()).contains(obj1);
+    assertThat(global_objects.values()).contains(obj2);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -203,19 +202,19 @@ public class CLangSMGTest {
     smg.addStackFrame(sf.getFunctionDeclaration());
 
     smg.addStackObject(obj1);
-    CLangStackFrame current_frame = smg.getStackFrames().peek();
+    CLangStackFrame current_frame = Iterables.get(smg.getStackFrames(), 0);
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-    Assert.assertEquals(current_frame.getVariable("label"), obj1);
-    Assert.assertEquals(current_frame.getVariables().size(), 1);
+    assertThat(current_frame.getVariable("label")).isEqualTo(obj1);
+    assertThat(current_frame.getVariables()).hasSize(1);
 
     smg.addStackObject(diffobj1);
-    current_frame = smg.getStackFrames().peek();
+    current_frame = Iterables.get(smg.getStackFrames(), 0);
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-    Assert.assertEquals(current_frame.getVariable("label"), obj1);
-    Assert.assertEquals(current_frame.getVariable("difflabel"), diffobj1);
-    Assert.assertEquals(current_frame.getVariables().size(), 2);
+    assertThat(current_frame.getVariable("label")).isEqualTo(obj1);
+    assertThat(current_frame.getVariable("difflabel")).isEqualTo(diffobj1);
+    assertThat(current_frame.getVariables()).hasSize(2);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -238,74 +237,74 @@ public class CLangSMGTest {
 
     Assert.assertNull(smg.getObjectForVisibleVariable(id_expression.getName()));
     smg.addGlobalObject(obj3);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj3);
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isEqualTo(obj3);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj1);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj1);
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isEqualTo(obj1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj2);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj2);
-    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj1);
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isEqualTo(obj2);
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isNotEqualTo(obj1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj3);
-    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj2);
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isEqualTo(obj3);
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isNotEqualTo(obj2);
   }
 
   @Test
   public void CLangSMGgetStackFramesTest() {
     CLangSMG smg = getNewCLangSMG64();
-    Assert.assertEquals(smg.getStackFrames().size(), 0);
+    assertThat(smg.getStackFrames()).hasSize(0);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(new SMGRegion(64, "frame1_1"));
     smg.addStackObject(new SMGRegion(64, "frame1_2"));
     smg.addStackObject(new SMGRegion(64, "frame1_3"));
-    Assert.assertEquals(smg.getStackFrames().size(), 1);
-    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 3);
+    assertThat(smg.getStackFrames()).hasSize(1);
+    assertThat(Iterables.get(smg.getStackFrames(), 0).getVariables()).hasSize(3);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(new SMGRegion(64, "frame2_1"));
     smg.addStackObject(new SMGRegion(64, "frame2_2"));
-    Assert.assertEquals(smg.getStackFrames().size(), 2);
-    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 2);
+    assertThat(smg.getStackFrames()).hasSize(2);
+    assertThat(Iterables.get(smg.getStackFrames(), 1).getVariables()).hasSize(2);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(new SMGRegion(64, "frame3_1"));
-    Assert.assertEquals(smg.getStackFrames().size(), 3);
-    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 1);
+    assertThat(smg.getStackFrames()).hasSize(3);
+    assertThat(Iterables.get(smg.getStackFrames(), 2).getVariables()).hasSize(1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    Assert.assertEquals(smg.getStackFrames().size(), 4);
-    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 0);
+    assertThat(smg.getStackFrames()).hasSize(4);
+    assertThat(Iterables.get(smg.getStackFrames(), 3).getVariables()).hasSize(0);
   }
 
   @Test
   public void CLangSMGgetHeapObjectsTest() {
     CLangSMG smg = getNewCLangSMG64();
-    Assert.assertEquals(smg.getHeapObjects().size(), 1);
+    assertThat(smg.getHeapObjects()).hasSize(1);
 
     smg.addHeapObject(new SMGRegion(64, "heap1"));
-    Assert.assertEquals(smg.getHeapObjects().size(), 2);
+    assertThat(smg.getHeapObjects()).hasSize(2);
 
     smg.addHeapObject(new SMGRegion(64, "heap2"));
     smg.addHeapObject(new SMGRegion(64, "heap3"));
-    Assert.assertEquals(smg.getHeapObjects().size(), 4);
+    assertThat(smg.getHeapObjects()).hasSize(4);
   }
 
   @Test
   public void CLangSMGgetGlobalObjectsTest() {
     CLangSMG smg = getNewCLangSMG64();
-    Assert.assertEquals(smg.getGlobalObjects().size(), 0);
+    assertThat(smg.getGlobalObjects()).hasSize(0);
 
     smg.addGlobalObject(new SMGRegion(64, "heap1"));
-    Assert.assertEquals(smg.getGlobalObjects().size(), 1);
+    assertThat(smg.getGlobalObjects()).hasSize(1);
 
     smg.addGlobalObject(new SMGRegion(64, "heap2"));
     smg.addGlobalObject(new SMGRegion(64, "heap3"));
-    Assert.assertEquals(smg.getGlobalObjects().size(), 3);
+    assertThat(smg.getGlobalObjects()).hasSize(3);
   }
 
   @Test

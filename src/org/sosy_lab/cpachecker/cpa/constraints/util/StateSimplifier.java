@@ -54,12 +54,19 @@ import com.google.common.collect.Iterables;
 @Options(prefix = "cpa.constraints")
 public class StateSimplifier {
 
-  @Option(description = "Whether to remove trivial constraints from constraints states during"
-      + " simplification")
+  @Option(
+    description =
+        "Whether to remove trivial constraints from constraints states during" + " simplification",
+    secure = true
+  )
   private boolean removeTrivial = false;
 
-  @Option(description = "Whether to remove constraints that can't add any more information to"
-      + "analysis during simplification")
+  @Option(
+    description =
+        "Whether to remove constraints that can't add any more information to"
+            + "analysis during simplification",
+    secure = true
+  )
   private boolean removeOutdated = true;
 
   public StateSimplifier(

@@ -210,7 +210,7 @@ public class HarnessExporter {
       codeAppender.append(vector);
     } else {
       logger.log(
-          Level.INFO, "Could not export a test harness, some test-vector values are missing.");
+          Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
     }
   }
 
@@ -782,8 +782,6 @@ public class HarnessExporter {
   private static CFunctionCallExpression callMalloc(CExpression pSize) {
     CFunctionType type =
         new CFunctionType(
-            false,
-            false,
             CPointerType.POINTER_TO_VOID,
             Collections.singletonList(CNumericTypes.INT),
             false);

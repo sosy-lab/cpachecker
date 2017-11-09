@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public class JMethodSummaryEdge extends FunctionSummaryEdge {
 
 
+  private static final long serialVersionUID = -8173820285051148491L;
+
   public JMethodSummaryEdge(String pRawStatement, FileLocation pFileLocation,
       CFANode pPredecessor, CFANode pSuccessor,
       JMethodOrConstructorInvocation pExpression, JMethodEntryNode pMethodEntry) {

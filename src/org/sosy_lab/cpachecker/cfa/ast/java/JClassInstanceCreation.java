@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 /**
  *
@@ -53,6 +51,8 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   // TODO refactor to be either abstract or final
 
   //TODO Type Variables , AnonymousClassDeclaration
+
+  private static final long serialVersionUID = -8480398251628288918L;
 
   public JClassInstanceCreation(
       FileLocation pFileLocation,

@@ -28,16 +28,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import com.google.common.base.Optional;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -71,8 +70,8 @@ class Scope {
   private final TypeHierarchy typeHierarchy;
 
   // symbolic table for  Variables and other Declarations
-  private final LinkedList<Map<String, JSimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final LinkedList<Map<String, JSimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final ArrayDeque<Map<String, JSimpleDeclaration>> varsStack = new ArrayDeque<>();
+  private final ArrayDeque<Map<String, JSimpleDeclaration>> varsList = new ArrayDeque<>();
 
   // Stores all found methods and constructors
   private Map<String, JMethodDeclaration> methods;
@@ -85,7 +84,7 @@ class Scope {
   private Optional<JVariableDeclaration> returnVariable;
 
   // Stores enclosing classes
-  private final Stack<JClassOrInterfaceType> classStack = new Stack<>();
+  private final Deque<JClassOrInterfaceType> classStack = new ArrayDeque<>();
 
   // fully Qualified main Class (not the ast name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
@@ -155,7 +154,7 @@ class Scope {
    */
   public void enterMethod(JMethodDeclaration methodDef) {
     currentMethodName = methodDef.getOrigName();
-    returnVariable = Optional.ofNullable(createFunctionReturnVariable(methodDef));
+    returnVariable = Optional.fromNullable(createFunctionReturnVariable(methodDef));
 
     enterBlock();
   }
@@ -377,7 +376,7 @@ class Scope {
     String className = NameConverter.convertClassOrInterfaceToFullName(classBinding);
     String topClassName = getTopLevelClass(classBinding);
 
-    Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<>();
+    Queue<JClassOrInterfaceType> toBeAdded = new ArrayDeque<>();
 
     if (!registeredClasses.contains(className)) {
 

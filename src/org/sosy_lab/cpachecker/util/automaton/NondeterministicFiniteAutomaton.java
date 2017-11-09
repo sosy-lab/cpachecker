@@ -175,7 +175,7 @@ public class NondeterministicFiniteAutomaton<T> {
   }
 
   private State mInitialState;
-  private HashSet<State> mFinalStates;
+  private Set<State> mFinalStates;
 
   private final ArrayList<Set<Edge>> mOutgoingEdges;
   private final ArrayList<Set<Edge>> mIncomingEdges;

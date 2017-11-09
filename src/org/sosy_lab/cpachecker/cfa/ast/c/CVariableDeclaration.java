@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  */
 public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
+  private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass    cStorageClass;
 
   public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,

@@ -23,11 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static org.junit.Assert.*;
-import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.greaterOrEqual;
+import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.lessOrEqual;
+import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.of;
+import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.singleton;
 
 import java.math.BigInteger;
-
 import org.junit.Test;
 
 public class SimpleIntervalTest {
@@ -61,6 +67,7 @@ public class SimpleIntervalTest {
     of(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MIN_VALUE));
   }
 
+  @Test
   public void testContains() {
     assertTrue(singleton(BigInteger.ZERO).contains(BigInteger.ZERO));
     assertTrue(singleton(BigInteger.TEN).contains(BigInteger.TEN));

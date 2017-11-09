@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import java.util.Stack;
 
 class Edge implements Comparable<Edge> {
 
   private final ARGState parentState;
   private final ARGState childState;
   private final CFAEdge edge;
-  private final Stack<FunctionBody> stack;
+  private final Deque<FunctionBody> stack;
 
   public Edge(
-      ARGState pChildElement, ARGState pParentElement, CFAEdge pEdge, Stack<FunctionBody> pStack) {
+      ARGState pChildElement, ARGState pParentElement, CFAEdge pEdge, Deque<FunctionBody> pStack) {
     childState = pChildElement;
     parentState = pParentElement;
     edge = pEdge;
@@ -55,7 +54,7 @@ class Edge implements Comparable<Edge> {
     return edge;
   }
 
-  public Stack<FunctionBody> getStack() {
+  public Deque<FunctionBody> getStack() {
     return stack;
   }
 

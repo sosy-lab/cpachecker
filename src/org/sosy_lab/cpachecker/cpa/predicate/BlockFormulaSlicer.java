@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -33,7 +34,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -65,16 +74,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 /**
  * Implementation of {@link BlockFormulaStrategy} that slices the formulas
  * (i.e., it removes irrelevant parts based on variable usage).
@@ -92,7 +91,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
   @Override
-  List<BooleanFormula> getFormulasForPath(ARGState initialState, List<ARGState> path)
+  BlockFormulas getFormulasForPath(ARGState initialState, List<ARGState> path)
       throws CPATransferException, InterruptedException {
     // This map contains all edges that are important.
     // We store the parent- and the child-ARGState, because they are unique,
@@ -140,7 +139,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       pfs.add(pf.getFormula());
     }
 
-    return pfs.build();
+    return new BlockFormulas(pfs.build());
   }
 
   /** This function returns all states, that are contained in a block.
@@ -153,10 +152,10 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     states.add(end); // end is the first state to be reachable backwards
 
     // backwards-bfs for parents, visit each state once
-    final List<ARGState> waitlist = new LinkedList<>();
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(end);
     while (!waitlist.isEmpty()) {
-      final ARGState current = waitlist.remove(0);
+      final ARGState current = waitlist.removeFirst();
       for (final ARGState parent : current.getParents()) {
         if (states.add(parent)) { // state was not seen before
           waitlist.add(parent);

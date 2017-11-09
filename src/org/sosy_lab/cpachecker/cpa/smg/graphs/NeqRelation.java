@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,27 +23,66 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SetMultimap;
-
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 
+/**
+ * This class tracks Pairs of Integers. Implemented as an immutable map.
+ * The Multimap is used as Bi-Map, i.e. for each pair (K,V) there exists also a pair (V,K).
+ */
 final class NeqRelation {
 
-  /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also
-   * inserted as pair (V,K). We avoid self-references like (A,A). */
-  private final SetMultimap<Integer, Integer> smgValues = HashMultimap.create();
+  private final PersistentMultimap<Integer, Integer> smgValues;
+
+  public NeqRelation() {
+    smgValues = PersistentMultimap.of();
+  }
+
+  private NeqRelation(PersistentMultimap<Integer, Integer> pMap) {
+    smgValues = pMap;
+  }
+
+  public Set<Integer> getNeqsForValue(Integer pV) {
+    return smgValues.get(pV);
+  }
+
+  public NeqRelation addRelationAndCopy(Integer pOne, Integer pTwo) {
+    return new NeqRelation(smgValues.putAndCopy(pOne, pTwo).putAndCopy(pTwo, pOne));
+  }
+
+  public NeqRelation removeRelationAndCopy(Integer pOne, Integer pTwo) {
+    return new NeqRelation(smgValues.removeAndCopy(pOne, pTwo).removeAndCopy(pTwo, pOne));
+  }
+
+  public boolean neq_exists(Integer pOne, Integer pTwo) {
+    return smgValues.get(pOne).contains(pTwo);
+  }
+
+  public NeqRelation removeValueAndCopy(Integer pOne) {
+    PersistentMultimap<Integer, Integer> newSet = smgValues.removeAndCopy(pOne);
+    for (Integer pTwo : smgValues.get(pOne)) {
+      newSet = newSet.removeAndCopy(pTwo, pOne);
+    }
+    return new NeqRelation(newSet);
+  }
+
+  /** transform all relations from (A->C) towards (A->B) and delete C */
+  public NeqRelation mergeValuesAndCopy(Integer pB, Integer pC) {
+    NeqRelation result = removeValueAndCopy(pC);
+    for (Integer value : getNeqsForValue(pC)) {
+      result = result.addRelationAndCopy(pB, value);
+    }
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    return "neq_rel=" + smgValues.toString();
+  }
 
   @Override
   public int hashCode() {
     return smgValues.hashCode();
-  }
-
-  public Set<Integer> getNeqsForValue(Integer pV) {
-    return Collections.unmodifiableSet(smgValues.get(pV));
   }
 
   @Override
@@ -53,54 +92,5 @@ final class NeqRelation {
     }
     NeqRelation other = (NeqRelation) obj;
     return other.smgValues != null && smgValues.equals(other.smgValues);
-  }
-
-  public void add_relation(Integer pOne, Integer pTwo) {
-
-    // we do not want self-references
-    if(pOne.intValue() == pTwo.intValue()) {
-      return;
-    }
-
-    smgValues.put(pOne, pTwo);
-    smgValues.put(pTwo, pOne);
-  }
-
-  public void putAll(NeqRelation pNeq) {
-    smgValues.putAll(pNeq.smgValues);
-  }
-
-  public void remove_relation(Integer pOne, Integer pTwo) {
-    smgValues.remove(pOne, pTwo);
-    smgValues.remove(pTwo, pOne);
-  }
-
-  public boolean neq_exists(Integer pOne, Integer pTwo) {
-    return smgValues.containsEntry(pOne, pTwo);
-  }
-
-  public void removeValue(Integer pOne) {
-    for (Integer other : smgValues.get(pOne)) {
-      smgValues.get(other).remove(pOne);
-    }
-    smgValues.removeAll(pOne);
-  }
-
-  /** transform all relations from (A->C) towards (A->B) and delete C */
-  public void mergeValues(Integer pB, Integer pC) {
-    List<Integer> values = ImmutableList.copyOf(smgValues.get(pC));
-    removeValue(pC);
-    for (Integer value : values) {
-      add_relation(pB, value);
-    }
-  }
-
-  @Override
-  public String toString() {
-    return "neq_rel=" + smgValues.toString();
-  }
-
-  public void clear() {
-    smgValues.clear();
   }
 }

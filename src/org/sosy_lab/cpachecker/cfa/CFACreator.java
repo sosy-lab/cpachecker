@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +52,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -77,7 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
@@ -107,8 +108,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -167,10 +169,12 @@ public class CFACreator {
       description = "add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(
-      secure = true,
-      name = "cfa.export",
-      description = "export CFA as .dot file")
+  @Option(secure=true, name="analysis.useLoopStructure",
+      description="add loop-structure information to CFA.")
+  private boolean useLoopStructure = true;
+
+  @Option(secure=true, name="cfa.export",
+      description="export CFA as .dot file")
   private boolean exportCfa = true;
 
   @Option(
@@ -266,7 +270,7 @@ public class CFACreator {
       description = "This option enables the computation of a classification of CFA nodes.")
   private boolean classifyNodes = false;
 
-  @Option(secure = true, description = "C or Java?")
+  @Option(secure=true, description="C, Java, or LLVM IR?")
   private Language language = Language.C;
 
   private final LogManager logger;
@@ -283,6 +287,7 @@ public class CFACreator {
     private final Timer processingTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
+    private @Nullable VariableClassificationStatistics varClassificationStats;
 
     @Override
     public String getName() {
@@ -299,6 +304,9 @@ public class CFACreator {
       out.println("    Time for post-processing: " + processingTime);
       if (variableClassificationTime.getNumberOfIntervals() > 0) {
         out.println("      Time for var class.:    " + variableClassificationTime);
+        if (varClassificationStats != null) {
+          varClassificationStats.printStatistics(out, pResult, pReached);
+        }
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -322,7 +330,7 @@ public class CFACreator {
 
     switch (language) {
       case JAVA:
-        parser = EclipseParsers.getJavaParser(logger, config);
+        parser = Parsers.getJavaParser(logger, config);
         break;
       case C:
         CParser outerParser =
@@ -340,6 +348,11 @@ public class CFACreator {
         parser = outerParser;
 
         break;
+      case LLVM:
+        parser = Parsers.getLlvmParser(logger, machineModel);
+        language = Language.C; // After parsing we will have a CFA representing C code
+        break;
+
       default:
         throw new AssertionError();
     }
@@ -441,8 +454,14 @@ public class CFACreator {
 
     assert mainFunction != null;
 
-    MutableCFA cfa = new MutableCFA(machineModel, pParseResult.getFunctions(),
-        pParseResult.getCFANodes(), mainFunction, language);
+    MutableCFA cfa =
+        new MutableCFA(
+            machineModel,
+            pParseResult.getFunctions(),
+            pParseResult.getCFANodes(),
+            mainFunction,
+            pParseResult.getFileNames(),
+            language);
 
     stats.checkTime.start();
 
@@ -474,7 +493,9 @@ public class CFACreator {
 
     // get loop information
     // (needs post-order information)
-    addLoopStructure(cfa);
+    if (useLoopStructure) {
+      addLoopStructure(cfa);
+    }
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
@@ -502,8 +523,9 @@ public class CFACreator {
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        varClassification =
-            Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
+        varClassification = Optional.of(builder.build(cfa));
+        stats.varClassificationStats = builder.getStatistics();
       } catch (UnrecognizedCCodeException e) {
         throw new CParserException(e);
       } finally {
@@ -775,7 +797,7 @@ public class CFACreator {
     Path file = Paths.get(fileDenotation);
 
     try {
-      MoreFiles.checkReadableFile(file);
+      IO.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
@@ -979,7 +1001,7 @@ public class CFACreator {
 
     // write CFA to file
     if (exportCfa && exportCfaFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(exportCfaFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(exportCfaFile, Charset.defaultCharset())) {
         DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -1001,7 +1023,7 @@ public class CFACreator {
     }
 
     if (exportFunctionCalls && exportFunctionCallsFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(exportFunctionCallsFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(exportFunctionCallsFile, Charset.defaultCharset())) {
         FunctionCallDumper.dump(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,

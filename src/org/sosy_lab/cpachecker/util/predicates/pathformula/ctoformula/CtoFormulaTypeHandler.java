@@ -27,29 +27,22 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.FormulaType;
-
 
 public class CtoFormulaTypeHandler {
 
   protected final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
 
-  private final BaseSizeofVisitor sizeofVisitor;
-
   private final FormulaType<?> pointerType;
 
   public CtoFormulaTypeHandler(LogManager pLogger, MachineModel pMachineModel) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-
-    sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
@@ -64,7 +57,7 @@ public class CtoFormulaTypeHandler {
    * @return the size in bytes of the given type.
    */
   public int getSizeof(CType pType) {
-    int size = pType.accept(sizeofVisitor);
+    int size = machineModel.getSizeof(pType);
     if (size == 0) {
       CType type = pType.getCanonicalType();
       if (type instanceof CArrayType) {
@@ -96,24 +89,6 @@ public class CtoFormulaTypeHandler {
       return ((CBitFieldType) pType).getBitFieldSize();
     }
     return getSizeof(pType) * machineModel.getSizeofCharInBits();
-  }
-
-  public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    if (type instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType)type;
-      switch (simpleType.getType()) {
-      case FLOAT:
-        return FormulaType.getSinglePrecisionFloatingPointType();
-      case DOUBLE:
-        return FormulaType.getDoublePrecisionFloatingPointType();
-      default:
-        break;
-      }
-    }
-
-    int bitSize = getBitSizeof(type);
-
-    return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
 
   public FormulaType<?> getPointerType() {

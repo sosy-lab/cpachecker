@@ -40,47 +40,9 @@ public class CFunctionTypeWithNamesTest {
     CParameterDeclaration param =
         new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.INT, "param");
     CFunctionTypeWithNames orig =
-        new CFunctionTypeWithNames(true, true, CNumericTypes.INT, ImmutableList.of(param), true);
+        new CFunctionTypeWithNames(CNumericTypes.INT, ImmutableList.of(param), true);
     Object reserialized = SerializableTester.reserialize(orig);
     assertThat(reserialized).isInstanceOf(CFunctionType.class);
     assertThat(reserialized).isEqualTo(orig); // this holds, orig.equals(reserialized) not
-  }
-
-  @Test
-  public void testStringRepr_FunctionReturningPointer() {
-    CType returnType = new CPointerType(false, false, CNumericTypes.DOUBLE);
-    CType type =
-        new CFunctionType(false, false, returnType, ImmutableList.of(CNumericTypes.INT), false);
-    assertThat(type.toASTString("test")).isEqualTo("double *test(int)");
-  }
-
-  @Test
-  public void testStringRepr_FunctionReturningFunctionPointer() {
-    CType returnType =
-        new CPointerType(
-            false,
-            false,
-            new CFunctionType(
-                false, false, CVoidType.VOID, ImmutableList.of(CNumericTypes.DOUBLE), false));
-    CType type =
-        new CFunctionType(false, false, returnType, ImmutableList.of(CNumericTypes.INT), false);
-    assertThat(type.toASTString("test")).isEqualTo("void (*test(int))(double)");
-  }
-
-  @Test
-  public void testStringRepr_FunctionReturningFunctionPointerReturningPointer() {
-    CType returnType =
-        new CPointerType(
-            false,
-            false,
-            new CFunctionType(
-                false,
-                false,
-                new CPointerType(false, false, CNumericTypes.CHAR),
-                ImmutableList.of(CNumericTypes.DOUBLE),
-                false));
-    CType type =
-        new CFunctionType(false, false, returnType, ImmutableList.of(CNumericTypes.INT), false);
-    assertThat(type.toASTString("test")).isEqualTo("char *(*test(int))(double)");
   }
 }

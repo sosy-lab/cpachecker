@@ -1,0 +1,485 @@
+html {
+	position: relative;
+	height: 100%;
+	overflow: hidden;
+}
+
+body {
+	padding-top: 50px;
+	height: 100%;
+	min-height: 300px;
+	min-width: 750px;
+	background-color: white;
+}
+
+.header {
+	position: absolute;
+	top: 0;
+	width: 100%;
+	min-width: 750px;
+	height: 50px;
+	background-color: whitesmoke;
+	border-bottom: solid 2px;
+	border-bottom-color: lightgrey;
+	padding: 7px;
+}
+
+.sections {
+	height: 100%;
+	padding: 0;
+}
+
+.btn {
+	cursor: pointer;
+}
+
+.header img.logo {
+	float: left;
+	height: 30px;
+	margin-right: 5px;
+}
+
+.header h1 {
+	display: inline;
+	font-size: 20px;
+}
+
+.header .generated {
+	float: right;
+	margin-left: 2em;
+	font-size: 80%;
+}
+
+.popover {
+	min-width: 500px;
+	max-height: 500px;
+	white-space: pre-line !important;
+	overflow: auto;
+	background-color: #f5fff8;
+	border: solid 2px;
+	border-color: #00d415;
+	font-family: monospace
+}
+
+.dropdown-menu a:hover {
+	background-color: #71afff !important;
+}
+
+.dropdown-menu a {
+	cursor: pointer;
+}
+
+#errorpath_section {
+    position:relative;
+    float: left;
+    width: 25%;
+    min-width: 70px;
+    height: inherit;
+    background-color: white;
+    border: solid 4px;
+    border-color: lightgrey;
+    padding: 5px;
+}
+
+#errorpath_section header .input-group {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+#errorpath_section .fileContent {
+    height: calc(100% - 110px);
+    margin: 5px;
+    overflow: auto;
+}
+
+#searchOptions label {
+    font-weight: normal;
+}
+
+#matches {
+    display: none;
+}
+
+.markedValues {
+    background-color: #83d480;
+    border-radius: 25px;
+    margin-bottom: 2px;
+    padding: 2px;
+    padding-left: 8px;
+    max-width: 270px;
+}
+
+.markedDescriptions {
+    background-color: #71afff;
+    border-radius: 20px;
+    padding: 2px;
+    padding-left: 8px;
+    margin-bottom: 2px;
+    max-width: 270px;
+}
+
+.markedTableElement {
+    border: solid 2px;
+    border-color: #00d415;
+}
+
+.markedValueElement pre {
+    background-color: #83d480 !important;
+}
+
+.markedDescElement pre {
+    background-color: #71afff !important;
+}
+
+.markedValueDescElement pre {
+    background: linear-gradient(#83d480, #71afff) !important;
+}
+
+#err-table td {
+    cursor: pointer;
+}
+
+#err-table td.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+#err-table td:hover {
+    font-weight: bold;
+}
+
+#err-table td:first-child {
+    border-radius: 6px;
+}
+
+#err-table td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+
+#err-table tr:nth-child(odd) td pre.make-pretty {
+    background-color: #f3f3f3;
+}
+
+#err-table tr.clickedErrPathElement {
+	outline: #df80ff solid 2px;
+}
+
+.marked-source-line {
+    background-color: #df80ff !important;
+}
+
+.marked-cfa-edge path {
+	stroke: #8B008B !important;
+	stroke-width: 3px !important;
+}
+
+.marked-arg-edge path {
+	stroke: #8B008B !important;
+	stroke-width: 3px !important;
+}
+
+.marked-cfa-node > rect {
+	outline: #8B008B solid thick !important;
+}
+
+.marked-cfa-node > polygon {
+	stroke: #8B008B !important;
+	stroke-width: 5px !important;
+}
+
+.marked-cfa-node > circle {
+	stroke: #8B008B !important;
+	stroke-width: 5px !important;
+}
+
+.marked-cfa-node-label {
+    fill: #ff00ff !important;
+}
+
+.marked-arg-node > rect {
+	outline: #8B008B solid thick !important;
+}
+
+#externalFiles_section {
+	float: right;
+	width: 100%;
+	height: 100%;
+	background-color: white;
+	padding: 5px;
+	border: solid 4px;
+	border-color: lightgrey;
+	overflow: hidden;
+	position: relative;
+}
+
+#externalFiles_section .popover {
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+#externalFiles_section .fileContent {
+	height: calc(100% - 50px);
+	width: 100%;
+	margin: 5px;
+	position: relative;
+}
+
+#externalFiles_section div.content {
+	overflow: scroll;
+	position: absolute;
+	top: 50px;
+	bottom: 5px;
+	left: 5px;
+	right: 5px;
+}
+
+#externalFiles_section div.cfa-content {
+	overflow: scroll;
+	position: absolute;
+	top: 100px;
+	bottom: 5px;
+	left: 5px;
+	right: 5px;	
+}
+
+#externalFiles_section div.arg-content {
+	overflow: scroll;
+	position: absolute;
+	top: 100px;
+	bottom: 5px;
+	left: 5px;
+	right: 5px;	
+}
+
+table {
+	border-collapse: separate;
+	border-spacing: 2px;
+}
+
+td:first-child {
+	background-color: #ccc;
+}
+
+.sourceContent td pre {
+	padding: 0px;
+	margin: 0px;
+	border: none;
+}
+
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
+	background-color: #f3f3f3;
+}
+
+.edit-line {
+    width: 100%;
+    background-color: white;
+    padding: 5px;
+}
+
+.edit-line div {
+    display: inline-block;
+}
+
+.edit-line label {
+    margin-right: 100px;
+    display: inline-block;
+}
+
+.edit-line p {
+    display: inline-block;
+}
+
+div pre {
+	background-color: transparent;
+	border: 0;
+	margin: 0;
+	padding: 0;
+	overflow: visible;
+}
+
+.help_button {
+	padding: 0px;
+	border: 0px;
+	margin: 0px;
+	display: inline-block;
+	float: right;
+}
+
+#externalFiles_section .help_button {
+	margin-left: 10px;
+	float: left;
+}
+
+.cfa-graph {
+	visibility: hidden;
+}
+
+.arg-graph {
+	visibility: hidden;
+}
+
+.loader {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 20px;
+	font-style: italic;
+	color: #663399;
+}
+
+#cfa-toolbar {
+    width: 95%;
+    background-color: white;
+    margin-top: 5px;
+	margin-left: 10px;
+    padding: 5px;
+    position: fixed;
+    display: inline-block;
+    visibility: hidden;
+}
+
+#cfa-toolbar select {
+	max-width: 150px;
+}
+
+#cfa-toolbar label {
+	margin-left: 20px;
+	margin-right: 5px;
+}
+
+#cfa-toolbar text {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 11px;
+}
+
+input[type=text] {
+	width: 80px;
+	height: 34px;
+}
+
+#arg-toolbar {
+    width: 95%;
+    background-color: white;
+    left: 20px;
+    top: 60px;
+    padding: 5px;
+    position: absolute;
+    display: inline-block;
+	visibility: hidden;
+}
+
+#arg-toolbar label {
+	margin-left: 20px;
+	margin-right: 5px;
+}
+
+#arg-toolbar text {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 11px;
+}
+
+text {
+	font-weight: bold;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 12px;
+}
+
+.arg-node.target > rect {
+	fill: red;
+}
+
+.arg-node.not-expanded > rect {
+	fill: orange;
+}
+
+.arg-node.highlighted > rect {
+	fill: cornflowerblue;
+}
+
+.arg-node.covered > rect {
+	fill: green;
+}
+
+.arg-node text {
+	text-anchor: middle;
+	font-family: "Times New Roman", serif;
+}
+
+.arg-node rect {
+	fill: #fff;
+}
+
+.cfa-node rect {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
+.cfa-node circle {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
+.cfa-node polygon {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
+.cfa-dummy rect {
+	fill: #fff;
+	stroke: #c0c0c0;
+	stroke-width: 0.5px;
+}
+
+.arg-dummy rect {
+	fill: #fff;
+	stroke: #c0c0c0;
+	stroke-width: 0.5px;
+}
+
+.fcall rect {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
+.edgePath path {
+	stroke: #A9A9A9;
+	fill: #ffffff;
+	stroke-width: 1.5px;
+}
+
+.error-edge path {
+	stroke: red;
+	fill: #ffffff;
+	stroke-width: 1.5px;
+}
+
+/* if we have display: none here Firefox cannot render the edges connecting to the dummy nodes */
+.dummy rect {
+	visibility: hidden;
+}
+
+#infoBox {
+	visibility: hidden;
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	z-index: 1;
+	width: 200px;
+	background-color: #FDFEFF;
+	border: 2px solid #000080;
+}
+
+#insideBox {
+	padding: 10px;
+}
+
+#boxContent {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: black;
+	line-height: 130%;
+}

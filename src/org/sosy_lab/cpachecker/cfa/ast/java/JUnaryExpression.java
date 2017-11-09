@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JUnaryExpression extends AUnaryExpression implements JExpression {
 
+  private static final long serialVersionUID = 7677831398229521071L;
+
   public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
 

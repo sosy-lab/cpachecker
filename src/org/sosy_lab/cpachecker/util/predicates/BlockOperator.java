@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,8 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class implements the blk operator from the paper
@@ -88,6 +87,9 @@ public class BlockOperator {
   @Option(secure=true, description="force abstractions at each branch node, regardless of threshold")
   private boolean alwaysAtBranch = false;
 
+  @Option(secure = true, description="force abstractions at program exit (program end, abort, etc.), regardless of threshold")
+  private boolean alwaysAtProgramExit = false;
+
   @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
@@ -104,6 +106,7 @@ public class BlockOperator {
   public int numBlkJoins = 0;
   public int numBlkBranch = 0;
   public int numBlkThreshold = 0;
+  public int numBlkExit = 0;
 
   /**
    * Check whether an abstraction should be computed.
@@ -161,6 +164,11 @@ public class BlockOperator {
 
     if (alwaysAtBranch && isBranchNode(loc)) {
       numBlkBranch++;
+      return true;
+    }
+
+    if (alwaysAtProgramExit && isProgramExit(loc)) {
+      numBlkExit++;
       return true;
     }
 
@@ -222,12 +230,12 @@ public class BlockOperator {
         && !alwaysAtLoops
         && !alwaysAtJoin
         && !alwaysAtBranch
+        && !alwaysAtProgramExit
         && (!alwaysAtExplicitNodes || explicitAbstractionNodes == null || explicitAbstractionNodes.isEmpty())
         && (threshold == 0)
         && !absOnFunction
         && !absOnLoop
-        && !absOnJoin
-        ;
+        && !absOnJoin;
   }
 
   protected boolean isJoinNode(CFANode pSuccLoc) {
@@ -266,6 +274,10 @@ public class BlockOperator {
 
   protected boolean isFunctionHead(CFANode succLoc) {
     return succLoc instanceof FunctionEntryNode;
+  }
+
+  protected boolean isProgramExit(CFANode pLoc) {
+    return pLoc.getNumLeavingEdges() == 0;
   }
 
   private boolean isBeforeFunctionCall(CFANode succLoc) {

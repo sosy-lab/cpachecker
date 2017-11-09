@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -43,7 +44,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -113,7 +114,7 @@ public class CParserWithLocationMapper implements CParser {
 
   private String tokenizeSourcefile(String pFilename,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
-    String code = MoreFiles.toString(Paths.get(pFilename), Charset.defaultCharset());
+    String code = MoreFiles.asCharSource(Paths.get(pFilename), Charset.defaultCharset()).read();
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
@@ -204,8 +205,7 @@ public class CParserWithLocationMapper implements CParser {
 
     String code = tokenizeCode ? tokenizedCode.toString() : pCode;
     if (tokenizeCode && dumpTokenizedProgramToFile != null) {
-      try (Writer out =
-          MoreFiles.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
+      try (Writer out = IO.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
         out.append(code);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write tokenized program to file");

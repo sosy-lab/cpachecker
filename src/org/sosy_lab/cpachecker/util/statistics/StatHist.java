@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.statistics;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
+import java.util.function.BiFunction;
 
 /**
  * Thread-safe implementation of numerical statistics.
@@ -50,10 +51,11 @@ public class StatHist extends AbstractStatValue {
 
   @Override
   public String toString() {
-    return String.format("%s (avg=%.2f, dev=%.2f)", hist, getAvg(), getStdDeviation());
+    return String.format(
+        "%s (cnt=%d, avg=%.2f, dev=%.2f)", hist, hist.size(), getAvg(), getStdDeviation());
   }
 
-  private double getStdDeviation() {
+  protected double getStdDeviation() {
     synchronized (hist) {
       final double avg = getAvg();
       double sum = 0;
@@ -61,23 +63,38 @@ public class StatHist extends AbstractStatValue {
         double deviation = avg - e.getElement();
         sum += (deviation * deviation * e.getCount());
       }
-      return sum / hist.size();
+      return Math.sqrt(sum / hist.size());
     }
   }
 
-  protected double getAvg() {
+  public double getAvg() {
     synchronized (hist) {
       return getSum() / hist.size();
     }
   }
 
+  /** returns the maximum value, or MIN_INT if no value is available. */
+  public int getMax() {
+    return reduce(Math::max, Integer.MIN_VALUE);
+  }
+
+  /** returns the minimum value, or MAX_INT if no value is available. */
+  public int getMin() {
+    return reduce(Math::min, Integer.MAX_VALUE);
+  }
+
+  /** returns the sum of all values, or 0 if no value is available. */
   public double getSum() {
+    return reduce((res, e) -> (res + e * hist.count(e)), 0.0);
+  }
+
+  private <T> T reduce(BiFunction<T, Integer, T> f, T neutral) {
     synchronized (hist) {
-      long sum = 0;
+      T result = neutral;
       for (Entry<Integer> e : hist.entrySet()) {
-        sum += (e.getElement() * e.getCount());
+        result = f.apply(result, e.getElement());
       }
-      return sum;
+      return result;
     }
   }
 

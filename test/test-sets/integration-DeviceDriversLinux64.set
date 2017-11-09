@@ -33,3 +33,5 @@
 ../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-uwb-i1480-dfu-i1480-dfu-usb.ko*.c
 ../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-vhost-vhost_net.ko*.c
 ../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-video-arkfb.ko*.c
+../programs/benchmarks/ldv-linux-3.4-simple/43_1a*true-unreach-call*.cil.out.c
+../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c

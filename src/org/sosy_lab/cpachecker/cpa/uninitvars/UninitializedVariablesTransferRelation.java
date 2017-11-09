@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -67,15 +74,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 /**
  * Needs typesCPA to properly deal with field references.
  * If run without typesCPA, uninitialized field references may not be detected.
@@ -117,8 +115,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       case ReturnStatementEdge:
         //this is the return-statement of a function
         //set a local variable tracking the return statement's initialization status
-        if (isExpressionUninitialized(successor, ((CReturnStatementEdge) cfaEdge).getExpression()
-            .orElse(null), cfaEdge)) {
+        if (isExpressionUninitialized(
+            successor, ((CReturnStatementEdge) cfaEdge).getExpression().orNull(), cfaEdge)) {
           setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
@@ -244,8 +242,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         }
       }
 
-      LinkedList<String> uninitParameters = new LinkedList<>();
-      LinkedList<String> initParameters = new LinkedList<>();
+      List<String> uninitParameters = new ArrayList<>();
+      List<String> initParameters = new ArrayList<>();
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {
@@ -381,6 +379,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         && ((CCompositeType)t).getKind() == ComplexTypeKind.STRUCT;
   }
 
+  @SuppressWarnings("ShortCircuitBoolean")
   private boolean isExpressionUninitialized(UninitializedVariablesState element,
                                             @Nullable CRightHandSide expression,
                                             CFAEdge cfaEdge) throws UnrecognizedCCodeException {

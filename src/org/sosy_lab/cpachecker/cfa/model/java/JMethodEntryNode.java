@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.java;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
@@ -31,9 +32,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 import java.util.List;
-import java.util.Optional;
 
 public class JMethodEntryNode extends FunctionEntryNode {
+
+  private static final long serialVersionUID = 169431882600055272L;
 
   public JMethodEntryNode(final FileLocation pFileLocation,
       final JMethodDeclaration pMethodDefinition,

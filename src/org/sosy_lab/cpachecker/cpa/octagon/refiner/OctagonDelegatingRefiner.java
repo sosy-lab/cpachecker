@@ -30,7 +30,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
@@ -39,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
@@ -49,15 +49,8 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 public abstract class OctagonDelegatingRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
-    if (!(cpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
-    }
-
-    OctagonCPA octagonCPA = ((WrapperCPA)cpa).retrieveWrappedCpa(OctagonCPA.class);
-    if (octagonCPA == null) {
-      throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " needs an OctagonCPA");
-    }
-
+    OctagonCPA octagonCPA =
+        CPAs.retrieveCPAOrFail(cpa, OctagonCPA.class, OctagonDelegatingRefiner.class);
     final LogManager logger = octagonCPA.getLogger();
     final Configuration config = octagonCPA.getConfiguration();
     final CFA cfa = octagonCPA.getCFA();
@@ -73,7 +66,7 @@ public abstract class OctagonDelegatingRefiner implements Refiner {
         new ValueAnalysisPathInterpolator(
             valueChecker,
             valuePostOp,
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new ValueAnalysisPrefixProvider(logger, cfa, config, shutdownNotifier),
             config,
             logger,
             shutdownNotifier,

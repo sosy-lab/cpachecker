@@ -23,19 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -107,7 +106,8 @@ public class UseDefBasedInterpolator {
     Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
-    LinkedList<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new LinkedList<>();
+    // reverse order!
+    List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayList<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
       iterator.advance();
@@ -119,7 +119,7 @@ public class UseDefBasedInterpolator {
           ? trivialItp
           : createInterpolant(uses);
 
-      interpolants.addFirst(Pair.of(state, interpolant));
+      interpolants.add(Pair.of(state, interpolant));
 
       // as the traversal goes backwards, once the interpolant was non-trivial once,
       // the next time it is trivial, it has to be TRUE, and no longer FALSE
@@ -128,7 +128,7 @@ public class UseDefBasedInterpolator {
       }
     }
 
-    return interpolants;
+    return Lists.reverse(interpolants);
   }
 
   /**
@@ -159,7 +159,7 @@ public class UseDefBasedInterpolator {
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
+    Map<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
 
@@ -328,7 +328,7 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
-      return createSingleMemoryLocation(new BaseSizeofVisitor(model).visit(pCompositeType));
+      return createSingleMemoryLocation(model.getSizeof(pCompositeType));
     }
 
     @Override

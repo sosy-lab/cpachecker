@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -75,7 +76,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
-  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
+  @Option(secure=true, description="which prefix of an actual counterexample trace should be used"
+      + " for interpolation", toUppercase = true)
   private List<PrefixPreference> prefixPreference = ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
@@ -183,6 +185,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPath,
       final I pInterpolant
   ) throws CPAException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
 
     prefixExtractionTime.start();
     List<InfeasiblePrefix> prefixes =
@@ -289,7 +292,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           startNode = originalEdge.getPredecessor();
           endNode = originalEdge.getSuccessor();
         }
-        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(startNode, endNode));
+        abstractEdges.set(
+            iterator.getIndex(),
+            new BlankEdge(
+                originalEdge == null ? "" : originalEdge.getRawStatement(),
+                originalEdge == null ? FileLocation.DUMMY : originalEdge.getFileLocation(),
+                startNode,
+                endNode,
+                "sliced edge"));
       }
 
       if (originalEdge != null) {

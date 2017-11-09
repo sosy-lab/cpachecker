@@ -27,6 +27,7 @@ import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,12 +42,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -81,8 +82,21 @@ public final class Specification {
       return Specification.alwaysSatisfied();
     }
 
-    Scope scope =
-        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+    Scope scope;
+    switch (cfa.getLanguage()) {
+      case C:
+        scope = new CProgramScope(cfa, logger);
+        break;
+      default:
+        scope = DummyScope.getInstance();
+        break;
+    }
+
+    Set<PropertyType> propertyTypes = Sets.newHashSetWithExpectedSize(pProperties.size());
+    for (SpecificationProperty property : pProperties) {
+      propertyTypes.add(property.getPropertyType());
+    }
+
     List<Automaton> allAutomata = new ArrayList<>();
 
     for (Path specFile : specFiles) {
@@ -99,8 +113,8 @@ public final class Specification {
 
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
-        automata = graphmlParser.parseAutomatonFile(specFile);
+            new AutomatonGraphmlParser(config, logger, cfa, scope);
+        automata = graphmlParser.parseAutomatonFile(specFile, propertyTypes);
 
       } else {
         automata =

@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class CExpressionStatement extends AExpressionStatement implements CStatement {
 
+  private static final long serialVersionUID = 536239630070098410L;
+
   public CExpressionStatement(final FileLocation pFileLocation,
                                  final CExpression pExpression) {
     super(pFileLocation,  pExpression);

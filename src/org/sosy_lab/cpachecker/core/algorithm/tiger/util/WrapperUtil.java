@@ -147,7 +147,11 @@ public class WrapperUtil {
     mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
     mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
 
-    return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
+    return new ParseResult(
+        mergedFunctions,
+        mergedCFANodes,
+        mergedGlobalDeclarations,
+        tmpParseResult.getFileNames());
   }
 
 }

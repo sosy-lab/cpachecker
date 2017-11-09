@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static org.sosy_lab.cpachecker.util.Pair.zipList;
-
 import com.google.common.annotations.VisibleForTesting;
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -39,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -54,19 +52,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -123,16 +116,21 @@ class AutomatonASTComparator {
     boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs);
   }
 
-  /**
-   * The visitor that generates a pre-compiled ASTMatcher from a pattern AST.
-   */
-  private static enum ASTMatcherGenerator implements CRightHandSideVisitor<ASTMatcher, InvalidAutomatonException>,
-                                                     CStatementVisitor<ASTMatcher, InvalidAutomatonException> {
+  private static interface CheckedASTMatcher<T extends CAstNode> {
+
+    boolean matches(T pSource, AutomatonExpressionArguments pArg);
+  }
+
+  /** The visitor that generates a pre-compiled ASTMatcher from a pattern AST. */
+  private static enum ASTMatcherGenerator
+      implements
+          CRightHandSideVisitor<ASTMatcher, RuntimeException>,
+          CStatementVisitor<ASTMatcher, RuntimeException> {
 
     INSTANCE;
 
     @Override
-    public ASTMatcher visit(CIdExpression exp) throws InvalidAutomatonException {
+    public ASTMatcher visit(CIdExpression exp) {
       String name = exp.getName();
 
       if (name.startsWith(JOKER_EXPR)) {
@@ -144,354 +142,260 @@ class AutomatonASTComparator {
         return new NumberedJokerMatcher(i);
 
       } else {
-        return new CIdExpressionMatcher(exp);
+        return createMatcher(CIdExpression.class, exp, compareField(exp, CIdExpression::getName));
       }
     }
 
     @Override
-    public ASTMatcher visit(CArraySubscriptExpression exp) throws InvalidAutomatonException {
-      return new ArraySubscriptExpressionMatcher(exp, exp.getArrayExpression().accept(this), exp.getSubscriptExpression().accept(this));
+    public ASTMatcher visit(CArraySubscriptExpression exp) {
+      return createMatcher(
+          CArraySubscriptExpression.class,
+          exp,
+          compareOperand(exp, CArraySubscriptExpression::getArrayExpression),
+          compareOperand(exp, CArraySubscriptExpression::getSubscriptExpression));
     }
 
     @Override
-    public ASTMatcher visit(CBinaryExpression exp) throws InvalidAutomatonException {
-      return new BinaryExpressionMatcher(exp, exp.getOperand1().accept(this), exp.getOperand2().accept(this));
+    public ASTMatcher visit(CBinaryExpression exp) {
+      return createMatcher(
+          CBinaryExpression.class,
+          exp,
+          compareField(exp, CBinaryExpression::getOperator),
+          compareOperand(exp, CBinaryExpression::getOperand1),
+          compareOperand(exp, CBinaryExpression::getOperand2));
     }
 
     @Override
-    public ASTMatcher visit(CCastExpression exp) throws InvalidAutomatonException {
-      return new CastExpressionMatcher(exp, exp.getOperand().accept(this));
+    public ASTMatcher visit(CCastExpression exp) {
+      return createMatcher(
+          CCastExpression.class,
+          exp,
+          compareField(exp, CCastExpression::getExpressionType),
+          compareOperand(exp, CCastExpression::getOperand));
     }
 
     @Override
-    public ASTMatcher visit(CComplexCastExpression exp) throws InvalidAutomatonException {
-      return new ComplexCastExpressionMatcher(exp, exp.getOperand().accept(this));
+    public ASTMatcher visit(CComplexCastExpression exp) {
+      return createMatcher(
+          CComplexCastExpression.class,
+          exp,
+          compareField(exp, CComplexCastExpression::isRealCast),
+          compareField(exp, CComplexCastExpression::getType),
+          compareOperand(exp, CComplexCastExpression::getOperand));
     }
 
     @Override
-    public ASTMatcher visit(CFieldReference exp) throws InvalidAutomatonException {
-      return new FieldReferenceMatcher(exp, exp.getFieldOwner().accept(this));
+    public ASTMatcher visit(CFieldReference exp) {
+      return createMatcher(
+          CFieldReference.class,
+          exp,
+          compareField(exp, CFieldReference::getFieldName),
+          compareOperand(exp, CFieldReference::getFieldOwner));
     }
 
     @Override
-    public ASTMatcher visit(CCharLiteralExpression exp) throws InvalidAutomatonException {
-      return new ExpressionWithFieldMatcher<CCharLiteralExpression, Character>(CCharLiteralExpression.class, exp) {
-
-        @Override
-        protected Character getFieldValueFrom(CCharLiteralExpression pSource) {
-          return pSource.getCharacter();
-        }
-      };
+    public ASTMatcher visit(CCharLiteralExpression exp) {
+      return createMatcher(
+          CCharLiteralExpression.class, exp, compareField(exp, CCharLiteralExpression::getValue));
     }
 
     @Override
-    public ASTMatcher visit(CFloatLiteralExpression exp) throws InvalidAutomatonException {
-      return new ExpressionWithFieldMatcher<CFloatLiteralExpression, BigDecimal>(CFloatLiteralExpression.class, exp) {
-
-        @Override
-        protected BigDecimal getFieldValueFrom(CFloatLiteralExpression pSource) {
-          return pSource.getValue();
-        }
-      };
+    public ASTMatcher visit(CFloatLiteralExpression exp) {
+      return createMatcher(
+          CFloatLiteralExpression.class, exp, compareField(exp, CFloatLiteralExpression::getValue));
     }
 
     @Override
-    public ASTMatcher visit(CImaginaryLiteralExpression exp) throws InvalidAutomatonException {
-      return new ExpressionWithFieldMatcher<CImaginaryLiteralExpression, CLiteralExpression>(CImaginaryLiteralExpression.class, exp) {
-
-        @Override
-        protected CLiteralExpression getFieldValueFrom(CImaginaryLiteralExpression pSource) {
-          return pSource.getValue();
-        }
-      };
+    public ASTMatcher visit(CImaginaryLiteralExpression exp) {
+      return createMatcher(
+          CImaginaryLiteralExpression.class,
+          exp,
+          compareField(exp, CImaginaryLiteralExpression::getValue));
     }
 
     @Override
-    public ASTMatcher visit(CIntegerLiteralExpression exp) throws InvalidAutomatonException {
-      return new ExpressionWithFieldMatcher<CIntegerLiteralExpression, BigInteger>(CIntegerLiteralExpression.class, exp) {
-
-        @Override
-        protected BigInteger getFieldValueFrom(CIntegerLiteralExpression pSource) {
-          return pSource.getValue();
-        }
-      };
+    public ASTMatcher visit(CIntegerLiteralExpression exp) {
+      return createMatcher(
+          CIntegerLiteralExpression.class,
+          exp,
+          compareField(exp, CIntegerLiteralExpression::getValue));
     }
 
     @Override
-    public ASTMatcher visit(CStringLiteralExpression exp) throws InvalidAutomatonException {
-      return new ExpressionWithFieldMatcher<CStringLiteralExpression, String>(CStringLiteralExpression.class, exp) {
-
-        @Override
-        protected String getFieldValueFrom(CStringLiteralExpression pSource) {
-          return pSource.getValue();
-        }
-      };
+    public ASTMatcher visit(CStringLiteralExpression exp) {
+      return createMatcher(
+          CStringLiteralExpression.class,
+          exp,
+          compareField(exp, CStringLiteralExpression::getValue));
     }
 
     @Override
     public ASTMatcher visit(CTypeIdExpression exp) {
-      return new TypeIdExpressionMatcher(exp);
+      return createMatcher(
+          CTypeIdExpression.class,
+          exp,
+          compareField(exp, CTypeIdExpression::getOperator),
+          compareField(exp, CTypeIdExpression::getType));
     }
 
     @Override
-    public ASTMatcher visit(CUnaryExpression exp) throws InvalidAutomatonException {
-      return new UnaryExpressionMatcher(exp, exp.getOperand().accept(this));
+    public ASTMatcher visit(CUnaryExpression exp) {
+      return createMatcher(
+          CUnaryExpression.class,
+          exp,
+          compareField(exp, CUnaryExpression::getOperator),
+          compareOperand(exp, CUnaryExpression::getOperand));
     }
 
     @Override
-    public ASTMatcher visit(CPointerExpression exp) throws InvalidAutomatonException {
-      return new PointerExpressionMatcher(exp, exp.getOperand().accept(this));
+    public ASTMatcher visit(CPointerExpression exp) {
+      return createMatcher(
+          CPointerExpression.class, exp, compareOperand(exp, CPointerExpression::getOperand));
     }
 
     @Override
-    public ASTMatcher visit(CAddressOfLabelExpression exp) throws InvalidAutomatonException {
-      return new AddressOfLabelExpressionMatcher(exp);
+    public ASTMatcher visit(CAddressOfLabelExpression exp) {
+      return createMatcher(
+          CAddressOfLabelExpression.class,
+          exp,
+          compareField(exp, CAddressOfLabelExpression::getLabelName));
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallExpression exp) throws InvalidAutomatonException {
+    public ASTMatcher visit(CFunctionCallExpression exp) {
       List<ASTMatcher> parameterPatterns = new ArrayList<>(exp.getParameterExpressions().size());
       for (CExpression parameter : exp.getParameterExpressions()) {
         parameterPatterns.add(parameter.accept(this));
       }
 
-      ASTMatcher functionNamePattern = exp.getFunctionNameExpression().accept(this);
-
       if ((parameterPatterns.size() == 1)
           && (parameterPatterns.get(0) == JokerMatcher.INSTANCE)) {
         // pattern is something like foo($?), this should match all calls of foo(),
         // regardless of the number of parameters
-        return new FunctionCallWildcardExpressionMatcher(exp, functionNamePattern);
+        return createMatcher(
+            CFunctionCallExpression.class,
+            exp,
+            compareOperand(exp, CFunctionCallExpression::getFunctionNameExpression));
+
       } else {
-        return new FunctionCallExpressionMatcher(exp, functionNamePattern, parameterPatterns);
+        return createMatcher(
+            CFunctionCallExpression.class,
+            exp,
+            compareOperand(exp, CFunctionCallExpression::getFunctionNameExpression),
+            new OperandListMatcher(parameterPatterns));
       }
     }
 
     @Override
-    public ASTMatcher visit(CExpressionStatement stmt) throws InvalidAutomatonException {
-      return new OneOperandExpressionMatcher<CExpressionStatement, Void>(
-          CExpressionStatement.class, stmt, stmt.getExpression().accept(this)) {
-
-        @Override
-        protected CExpression getOperandFrom(CExpressionStatement pSource) {
-          return pSource.getExpression();
-        }
-      };
+    public ASTMatcher visit(CExpressionStatement stmt) {
+      return createMatcher(
+          CExpressionStatement.class,
+          stmt,
+          compareOperand(stmt, CExpressionStatement::getExpression));
     }
 
-    private ASTMatcher visit(final CAssignment stmt) throws InvalidAutomatonException {
-      final ASTMatcher leftHandSide = stmt.getLeftHandSide().accept(this);
+    private ASTMatcher visit(final CAssignment stmt) {
       final ASTMatcher rightHandSide = stmt.getRightHandSide().accept(this);
 
       if (rightHandSide == JokerMatcher.INSTANCE) {
         // we don't care about right-hand side, it may be an expression or an assignment
-
-        return new ASTMatcher() {
-          @Override
-          public boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs) {
-            if (pSource instanceof CAssignment) {
-              CAssignment source = (CAssignment)pSource;
-
-              return leftHandSide.matches(source.getLeftHandSide(), pArgs);
-            } else {
-              return false;
-            }
-          }
-
-          @Override
-          public String toString() {
-            return stmt.toASTString();
-          }
-        };
+        return createMatcher(
+            CAssignment.class, stmt, compareOperand(stmt, CAssignment::getLeftHandSide));
 
       } else {
-        return new ASTMatcher() {
-          @Override
-          public boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs) {
-            if (pSource instanceof CAssignment) {
-              CAssignment source = (CAssignment)pSource;
-
-              return leftHandSide.matches(source.getLeftHandSide(), pArgs)
-                  && rightHandSide.matches(source.getRightHandSide(), pArgs);
-            } else {
-              return false;
-            }
-          }
-
-          @Override
-          public String toString() {
-            return stmt.toASTString();
-          }
-        };
+        return createMatcher(
+            CAssignment.class,
+            stmt,
+            compareOperand(stmt, CAssignment::getLeftHandSide),
+            (pSource, pArgs) -> rightHandSide.matches(pSource.getRightHandSide(), pArgs));
       }
     }
 
     @Override
-    public ASTMatcher visit(final CExpressionAssignmentStatement stmt) throws InvalidAutomatonException {
+    public ASTMatcher visit(final CExpressionAssignmentStatement stmt) {
       return visit((CAssignment)stmt);
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) throws InvalidAutomatonException {
+    public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) {
       return visit((CAssignment)stmt);
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallStatement stmt) throws InvalidAutomatonException {
-      return new OneOperandExpressionMatcher<CFunctionCallStatement, Void>(
-          CFunctionCallStatement.class, stmt, stmt.getFunctionCallExpression().accept(this)) {
+    public ASTMatcher visit(CFunctionCallStatement stmt) {
+      return createMatcher(
+          CFunctionCallStatement.class,
+          stmt,
+          compareOperand(stmt, CFunctionCallStatement::getFunctionCallExpression));
+    }
+
+    @SafeVarargs
+    private static <T extends CAstNode> ASTMatcher createMatcher(
+        Class<T> pCls, T pPattern, CheckedASTMatcher<T>... matchers) {
+      assert pCls.isInstance(pPattern);
+
+      return new ASTMatcher() {
 
         @Override
-        protected CRightHandSide getOperandFrom(CFunctionCallStatement pSource) {
-          return pSource.getFunctionCallExpression();
+        public boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs) {
+          if (pCls.isInstance(pSource)) {
+            T source = pCls.cast(pSource);
+            for (CheckedASTMatcher<T> matcher : matchers) {
+              if (!matcher.matches(source, pArgs)) {
+                return false;
+              }
+            }
+            return true;
+
+          } else {
+            return false;
+          }
+        }
+
+        @Override
+        public String toString() {
+          return pPattern.toASTString();
         }
       };
     }
+
+    private <T extends CAstNode> CheckedASTMatcher<T> compareField(
+        T pPattern, Function<T, ?> fieldAccess) {
+      Object field = fieldAccess.apply(pPattern);
+
+      return (pSource, pArgs) -> Objects.equals(field, fieldAccess.apply(pSource));
+    }
+
+    private <T extends CAstNode> CheckedASTMatcher<T> compareOperand(
+        T pPattern, Function<T, CRightHandSide> operandAccess) {
+      ASTMatcher pOperand = operandAccess.apply(pPattern).accept(this);
+
+      return (pSource, pArgs) -> pOperand.matches(operandAccess.apply(pSource), pArgs);
+    }
   }
 
-  // several abstract helper implementations of ASTMatcher
+  private static final class OperandListMatcher
+      implements CheckedASTMatcher<CFunctionCallExpression> {
 
-  private static abstract class CheckedExpressionMatcher<T extends CAstNode> implements ASTMatcher {
+    private final List<ASTMatcher> parameterPatterns;
 
-    private final Class<T> cls;
-    private final String rawSignature;
-
-    protected CheckedExpressionMatcher(Class<T> pCls, T pPattern) {
-      assert pCls.isInstance(pPattern);
-      cls = pCls;
-      rawSignature = pPattern.toASTString();
+    OperandListMatcher(List<ASTMatcher> pParameterPatterns) {
+      parameterPatterns = ImmutableList.copyOf(pParameterPatterns);
     }
 
     @Override
-    public final boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs) {
-      if (cls.isInstance(pSource)) {
-        return matches2(cls.cast(pSource), pArgs);
+    public boolean matches(CFunctionCallExpression pSource, AutomatonExpressionArguments pArg) {
 
-      } else {
+      if (parameterPatterns.size() != pSource.getParameterExpressions().size()) {
         return false;
       }
+
+      return Streams.zip(
+              parameterPatterns.stream(),
+              pSource.getParameterExpressions().stream(),
+              (pattern, parameter) -> pattern.matches(parameter, pArg))
+          .allMatch(match -> match);
     }
-
-    protected abstract boolean matches2(T pSource, AutomatonExpressionArguments pArg);
-
-    @Override
-    public String toString() {
-      return rawSignature;
-    }
-  }
-
-  private static abstract class ExpressionWithFieldMatcher<T extends CAstNode, F> extends CheckedExpressionMatcher<T> {
-
-    private final F field;
-
-    protected ExpressionWithFieldMatcher(Class<T> pCls, T pPattern) {
-      super(pCls, pPattern);
-      field = getFieldValueFrom(pPattern);
-    }
-
-    @Override
-    protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
-      return Objects.equals(field, getFieldValueFrom(pSource));
-    }
-
-    /**
-     * Returns the value of the field of a given source
-     * @param pSource the source
-     */
-    protected F getFieldValueFrom(T pSource) {
-      return null;
-    }
-  }
-
-  private static abstract class ExpressionWithTwoFieldsMatcher<T extends CAstNode, F, G> extends CheckedExpressionMatcher<T> {
-
-    private final F field1;
-    private final G field2;
-
-    protected ExpressionWithTwoFieldsMatcher(Class<T> pCls, T pPattern) {
-      super(pCls, pPattern);
-      field1 = getFieldValue1From(pPattern);
-      field2 = getFieldValue2From(pPattern);
-    }
-
-    @Override
-    protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
-      return Objects.equals(field1, getFieldValue1From(pSource)) && Objects.equals(field2, getFieldValue2From(pSource));
-    }
-
-    /**
-     * Returns the value of the field of a given source
-     * @param pSource the source
-     */
-    protected F getFieldValue1From(T pSource) {
-      return null;
-    }
-
-    /**
-     * Returns the value of the field of a given source
-     * @param pSource the source
-     */
-    protected G getFieldValue2From(T pSource) {
-      return null;
-    }
-  }
-
-  private static abstract class OneOperandExpressionMatcher<T extends CAstNode, F> extends ExpressionWithFieldMatcher<T, F> {
-
-    private final ASTMatcher operand;
-
-    protected OneOperandExpressionMatcher(Class<T> pCls, T pPattern, ASTMatcher pOperand) {
-      super(pCls, pPattern);
-      operand = pOperand;
-    }
-
-    @Override
-    protected boolean matches2(T pSource, AutomatonExpressionArguments pArgs) {
-      return super.matches2(pSource, pArgs)
-          && operand.matches(getOperandFrom(pSource), pArgs);
-    }
-
-    protected abstract CRightHandSide getOperandFrom(T pSource);
-  }
-
-  private static abstract class OneOperandExpressionWithTwoFieldsMatcher<T extends CAstNode, F, G> extends ExpressionWithTwoFieldsMatcher<T, F, G> {
-
-    private final ASTMatcher operand;
-
-    protected OneOperandExpressionWithTwoFieldsMatcher(Class<T> pCls, T pPattern, ASTMatcher pOperand) {
-      super(pCls, pPattern);
-      operand = pOperand;
-    }
-
-    @Override
-    protected boolean matches2(T pSource, AutomatonExpressionArguments pArgs) {
-      return super.matches2(pSource, pArgs)
-          && operand.matches(getOperandFrom(pSource), pArgs);
-    }
-
-    protected abstract CRightHandSide getOperandFrom(T pSource);
-  }
-
-  private static abstract class TwoOperandExpressionMatcher<T extends CAstNode, F> extends ExpressionWithFieldMatcher<T, F> {
-
-    private final ASTMatcher operand1;
-    private final ASTMatcher operand2;
-
-    protected TwoOperandExpressionMatcher(Class<T> pCls, T pPattern, ASTMatcher pOperand1, ASTMatcher pOperand2) {
-      super(pCls, pPattern);
-      operand1 = pOperand1;
-      operand2 = pOperand2;
-    }
-
-    @Override
-    public final boolean matches2(T pSource, AutomatonExpressionArguments pArgs) {
-      return super.matches2(pSource, pArgs)
-          && operand1.matches(getOperand1From(pSource), pArgs)
-          && operand2.matches(getOperand2From(pSource), pArgs);
-    }
-
-    protected abstract CRightHandSide getOperand1From(T pSource);
-    protected abstract CRightHandSide getOperand2From(T pSource);
   }
 
   // several concrete implementations of ASTMatcher
@@ -531,223 +435,6 @@ class AutomatonASTComparator {
     @Override
     public String toString() {
       return "$" + number;
-    }
-  }
-
-  private static class ArraySubscriptExpressionMatcher extends TwoOperandExpressionMatcher<CArraySubscriptExpression, Void> {
-
-    public ArraySubscriptExpressionMatcher(CArraySubscriptExpression pPattern, ASTMatcher pOperand1, ASTMatcher pOperand2) {
-      super(CArraySubscriptExpression.class, pPattern, pOperand1, pOperand2);
-    }
-
-    @Override
-    protected CExpression getOperand1From(CArraySubscriptExpression pSource) {
-      return pSource.getArrayExpression();
-    }
-
-    @Override
-    protected CExpression getOperand2From(CArraySubscriptExpression pSource) {
-      return pSource.getSubscriptExpression();
-    }
-  }
-
-  private static class BinaryExpressionMatcher extends TwoOperandExpressionMatcher<CBinaryExpression, BinaryOperator> {
-
-    public BinaryExpressionMatcher(CBinaryExpression pPattern, ASTMatcher pOperand1, ASTMatcher pOperand2) {
-      super(CBinaryExpression.class, pPattern, pOperand1, pOperand2);
-    }
-
-    @Override
-    protected CExpression getOperand1From(CBinaryExpression pSource) {
-      return pSource.getOperand1();
-    }
-
-    @Override
-    protected CExpression getOperand2From(CBinaryExpression pSource) {
-      return pSource.getOperand2();
-    }
-
-    @Override
-    protected BinaryOperator getFieldValueFrom(CBinaryExpression pSource) {
-      return pSource.getOperator();
-    }
-  }
-
-  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<CCastExpression, CType> {
-
-    public CastExpressionMatcher(CCastExpression pPattern, ASTMatcher pOperand) {
-      super(CCastExpression.class, pPattern, pOperand);
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CCastExpression pSource) {
-      return pSource.getOperand();
-    }
-
-    @Override
-    protected CType getFieldValueFrom(CCastExpression pSource) {
-      return pSource.getExpressionType();
-    }
-  }
-
-  private static class ComplexCastExpressionMatcher extends OneOperandExpressionWithTwoFieldsMatcher<CComplexCastExpression, Boolean, CType> {
-
-    public ComplexCastExpressionMatcher(CComplexCastExpression pPattern, ASTMatcher pOperand) {
-      super(CComplexCastExpression.class, pPattern, pOperand);
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CComplexCastExpression pSource) {
-      return pSource.getOperand();
-    }
-
-    @Override
-    protected Boolean getFieldValue1From(CComplexCastExpression pSource) {
-      return pSource.isRealCast();
-    }
-
-    @Override
-    protected CType getFieldValue2From(CComplexCastExpression pSource) {
-      return pSource.getType();
-    }
-  }
-
-  private static class FieldReferenceMatcher extends OneOperandExpressionMatcher<CFieldReference, String> {
-
-    public FieldReferenceMatcher(CFieldReference pPattern, ASTMatcher pOperand) {
-      super(CFieldReference.class, pPattern, pOperand);
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CFieldReference pSource) {
-      return pSource.getFieldOwner();
-    }
-
-    @Override
-    protected String getFieldValueFrom(CFieldReference pSource) {
-      return pSource.getFieldName();
-    }
-  }
-
-  private static class CIdExpressionMatcher extends ExpressionWithFieldMatcher<CIdExpression, String> {
-
-    public CIdExpressionMatcher(CIdExpression pPattern) {
-      super(CIdExpression.class, pPattern);
-    }
-
-    @Override
-    protected String getFieldValueFrom(CIdExpression pSource) {
-      return pSource.getName();
-    }
-  }
-
-  private static class UnaryExpressionMatcher extends OneOperandExpressionMatcher<CUnaryExpression, UnaryOperator> {
-
-    public UnaryExpressionMatcher(CUnaryExpression pPattern, ASTMatcher pOperand) {
-      super(CUnaryExpression.class, pPattern, pOperand);
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CUnaryExpression pSource) {
-      return pSource.getOperand();
-    }
-
-    @Override
-    protected UnaryOperator getFieldValueFrom(CUnaryExpression pSource) {
-      return pSource.getOperator();
-    }
-  }
-
-  private static class PointerExpressionMatcher extends OneOperandExpressionMatcher<CPointerExpression, Void> {
-
-    public PointerExpressionMatcher(CPointerExpression pPattern, ASTMatcher pOperand) {
-      super(CPointerExpression.class, pPattern, pOperand);
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CPointerExpression pSource) {
-      return pSource.getOperand();
-    }
-  }
-
-  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<CTypeIdExpression, CType> {
-
-    private final TypeIdOperator operator;
-
-    public TypeIdExpressionMatcher(CTypeIdExpression pPattern) {
-      super(CTypeIdExpression.class, pPattern);
-      operator = pPattern.getOperator();
-    }
-
-    @Override
-    protected boolean matches2(CTypeIdExpression pSource, AutomatonExpressionArguments pArg) {
-      return Objects.equals(operator, pSource.getOperator())
-          && super.matches2(pSource, pArg);
-    }
-
-    @Override
-    protected CType getFieldValueFrom(CTypeIdExpression pSource) {
-      return pSource.getType();
-    }
-  }
-
-  private static class AddressOfLabelExpressionMatcher extends ExpressionWithFieldMatcher<CAddressOfLabelExpression, String> {
-
-    public AddressOfLabelExpressionMatcher(CAddressOfLabelExpression pPattern) {
-      super(CAddressOfLabelExpression.class, pPattern);
-    }
-
-    @Override
-    protected String getFieldValueFrom(CAddressOfLabelExpression pSource) {
-      return pSource.getLabelName();
-    }
-  }
-
-  private static class FunctionCallWildcardExpressionMatcher extends OneOperandExpressionMatcher<CFunctionCallExpression, Void> {
-
-    // this matcher is for patterns like foo($?)
-    // it compares only the function name and ignores any parameters
-
-    protected FunctionCallWildcardExpressionMatcher(CFunctionCallExpression pPattern, ASTMatcher pFunctionNameExpression) {
-      super(CFunctionCallExpression.class, pPattern, pFunctionNameExpression);
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CFunctionCallExpression pSource) {
-      return pSource.getFunctionNameExpression();
-    }
-  }
-
-  private static class FunctionCallExpressionMatcher extends FunctionCallWildcardExpressionMatcher {
-
-    private final List<ASTMatcher> parameterPatterns;
-
-    protected FunctionCallExpressionMatcher(CFunctionCallExpression pPattern, ASTMatcher pFunctionNameExpression, List<ASTMatcher> pParameterPatterns) {
-      super(pPattern, pFunctionNameExpression);
-      parameterPatterns = pParameterPatterns;
-    }
-
-    @Override
-    protected boolean matches2(CFunctionCallExpression pSource, AutomatonExpressionArguments pArg) {
-      if (!super.matches2(pSource, pArg)) {
-        return false;
-      }
-
-      if (parameterPatterns.size() != pSource.getParameterExpressions().size()) {
-        return false;
-      }
-
-      for (Pair<ASTMatcher, CExpression> parameters : zipList(parameterPatterns, pSource.getParameterExpressions())) {
-        if (!parameters.getFirst().matches(parameters.getSecond(), pArg)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    protected CExpression getOperandFrom(CFunctionCallExpression pSource) {
-      return pSource.getFunctionNameExpression();
     }
   }
 }

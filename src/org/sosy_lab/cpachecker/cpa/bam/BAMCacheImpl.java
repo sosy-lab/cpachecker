@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
 
 @Options(prefix = "cpa.bam")
 public class BAMCacheImpl implements BAMCache {
@@ -93,7 +94,7 @@ public class BAMCacheImpl implements BAMCache {
   @Override
   public void put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    assert !preciseReachedCache.containsKey(hash);
+    // assert !preciseReachedCache.containsKey(hash);
     preciseReachedCache.put(hash, item);
   }
 
@@ -275,12 +276,19 @@ public class BAMCacheImpl implements BAMCache {
 
     int sumCalls = cacheMisses + partialCacheHits + fullCacheHits;
 
-    int sumARTElements = 0;
+    StatHist argStats = new StatHist("") {
+          @Override
+          public String toString() {
+            // overriding, because printing all sizes is not that interesting
+            return String.format("%.0f (#=%d, avg=%.2f, dev=%.2f, min=%d, max=%d)",
+                getSum(), getUpdateCount(), getAvg(), getStdDeviation(), getMin(), getMax());
+          }
+        };
     for (UnmodifiableReachedSet subreached : getAllCachedReachedStates()) {
-      sumARTElements += subreached.size();
+      argStats.insertValue(subreached.size());
     }
 
-    out.println("Total size of all ARGs:                              " + sumARTElements);
+    out.println("Total size of all ARGs:                              " + argStats);
     out.println("Total number of recursive CPA calls:                 " + sumCalls);
     out.println("  Number of cache misses:                            " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
     out.println("  Number of partial cache hits:                      " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");
@@ -298,5 +306,13 @@ public class BAMCacheImpl implements BAMCache {
   @Override
   public String getName() {
     return "BAMCache";
+  }
+
+  @Override
+  public void clear() {
+    preciseReachedCache.clear();
+    returnCache.clear();
+    blockARGCache.clear();
+    lastAnalyzedBlockCache = null;
   }
 }

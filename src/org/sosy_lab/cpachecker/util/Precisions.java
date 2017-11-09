@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeTraverser;
-
+import com.google.common.graph.Traverser;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
@@ -82,18 +81,13 @@ public class Precisions {
    *         that are wrapped in it, recursively
    */
   public static FluentIterable<Precision> asIterable(final Precision prec) {
-
-    return new TreeTraverser<Precision>() {
-
-      @Override
-      public Iterable<Precision> children(Precision precision) {
-        if (precision instanceof WrapperPrecision) {
-          return ((WrapperPrecision)precision).getWrappedPrecisions();
-        }
-
-        return ImmutableList.of();
-      }
-    }.preOrderTraversal(prec);
+    return FluentIterable.from(
+        Traverser.forTree(
+                (Precision precision) ->
+                    (precision instanceof WrapperPrecision)
+                        ? ((WrapperPrecision) precision).getWrappedPrecisions()
+                        : ImmutableList.of())
+            .depthFirstPreOrder(prec));
   }
 
   public static Precision replaceByType(Precision pOldPrecision, Precision pNewPrecision, Predicate<? super Precision> pPrecisionType) {
