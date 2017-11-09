@@ -49,14 +49,14 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
-public class Values {
+public class InputOutputValues {
 
 
 
   private Set<String> inputVariables;
   private Set<String> outputVariables;
 
-  public Values(String inputInterface, String outputInterface) {
+  public InputOutputValues(String inputInterface, String outputInterface) {
     inputVariables = new TreeSet<>();
     for (String variable : inputInterface.split(",")) {
       inputVariables.add(variable.trim());

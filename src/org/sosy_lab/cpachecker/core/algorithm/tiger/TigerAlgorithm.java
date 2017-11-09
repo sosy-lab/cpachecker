@@ -135,7 +135,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private String programDenotation;
   private Specification stats;
   private TestSuite testsuite;
-  private Values values;
+  private InputOutputValues values;
 
   private int currentTestCaseID;
 
@@ -172,7 +172,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.programDenotation = programDenotation;
     this.stats = stats;
-    values = new Values(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
+    values = new InputOutputValues(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
     currentTestCaseID = 0;
   }
 
