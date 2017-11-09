@@ -744,6 +744,8 @@ public class AutomatonGraphmlParser {
                 String.format(
                     "Trying to return from function %s, but current function on call stack is %s",
                     functionExit.get(), oldFunction));
+          } else if (newStack.isEmpty()) {
+            pGraphMLParserState.releaseFunctions(thread);
           }
         }
       }
