@@ -738,7 +738,13 @@ public class AutomatonGraphmlParser {
         } else {
           newStack = new ArrayDeque<>(newStack);
           String oldFunction = newStack.pop();
-          assert oldFunction.equals(functionExit.get());
+          if (!oldFunction.equals(functionExit.get())) {
+            logger.log(
+                Level.WARNING,
+                String.format(
+                    "Trying to return from function %s, but current function on call stack is %s",
+                    functionExit.get(), oldFunction));
+          }
         }
       }
       // Now enter the new function
