@@ -451,11 +451,13 @@ public class TigerAlgorithm implements AlgorithmWithResult {
               TestCase testcase = createTestcase(cex, null);
               testsuite.addTestCase(testcase, pGoal);
               if (tigerConfig.shouldCheckCoverage()) {
-                removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
+                checkGoalCoverage(pGoalsToCover, testcase, true);
+                //removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
               }
-              if (tigerConfig.useMultipleGoalsPerTestcase()) {
+              if (tigerConfig.useAllGoalsPerTestcase()) {
                 List<Goal> allGoals = testsuite.getIncludedTestGoals();
-                checkGoalCoverageForTestCase(allGoals, testcase);
+                checkGoalCoverage(allGoals, testcase, false);
+                //checkGoalCoverageForTestCase(allGoals, testcase);
               }
             }
 
@@ -514,26 +516,15 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     return testcase;
   }
 
-  private void checkGoalCoverageForTestCase(List<Goal> pAllGoals, TestCase testCase) {
-    for (Goal goal : pAllGoals) {
-      ThreeValuedAnswer answer = testCase.coversGoal(goal);
-      if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
-        testsuite.updateTestcaseToGoalMapping(testCase, goal);
-        logger.log(Level.INFO, "TestCase " + testCase.getId() + " covers goal " + goal.getName());
+  private void checkGoalCoverage(List<Goal> testGoals, TestCase testCase, boolean removeCoveredGoals) {
+    for (Goal goal : testCase.getCoveredGoals(testGoals)) {
+      testsuite.updateTestcaseToGoalMapping(testCase, goal);
+      String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
+      if(removeCoveredGoals) {
+        testGoals.remove(goal);
+        log += "and is removed from goal list";
       }
-    }
-  }
-
-  private void removeAllGoalsCoveredByTestcase(List<Goal> pGoalsToCover, TestCase pTestcase) {
-    LinkedList<Goal> temp = new LinkedList<>(pGoalsToCover);
-    for (Goal goal : temp) {
-      ThreeValuedAnswer answer = pTestcase.coversGoal(goal);
-      if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
-        pGoalsToCover.remove(goal);
-        testsuite.updateTestcaseToGoalMapping(pTestcase, goal);
-        logger.log(Level.INFO, "Goal " + goal.getName() + " is allready covered by testcase "
-            + pTestcase.getId() + " and is removed from goal list");
-      }
+      logger.log(Level.INFO, log);
     }
   }
 
