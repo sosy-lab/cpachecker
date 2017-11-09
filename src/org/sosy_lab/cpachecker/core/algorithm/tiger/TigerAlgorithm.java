@@ -37,7 +37,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,14 +65,10 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
@@ -121,13 +116,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private final LogManager logger;
   private final CFA cfa;
   private ConfigurableProgramAnalysis cpa;
-  private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   public static String originalMainFunction = null;
-  private int statistics_numberOfTestGoals;
+
   private Wrapper wrapper;
-  private GuardedEdgeLabel mAlphaLabel;
-  private GuardedEdgeLabel mOmegaLabel;
-  private InverseGuardedEdgeLabel mInverseAlphaLabel;
   private final Configuration config;
   private ReachedSet outsideReachedSet = null;
   private ReachedSet reachedSet = null;
@@ -135,17 +126,19 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private String programDenotation;
   private Specification stats;
   private TestSuite testsuite;
-  private InputOutputValues values;
+  private Values values;
 
   private int currentTestCaseID;
 
   private TigerAlgorithmConfiguration tigerConfig;
+  private TestGoalUtils testGoalUtils;
 
   enum ReachabilityAnalysisResult {
     SOUND,
     UNSOUND,
     TIMEDOUT
   }
+
 
   public TigerAlgorithm(LogManager pLogger, CFA pCfa, Configuration pConfig,
       ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
@@ -158,13 +151,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     //startupConfig.getConfig().inject(this);
     logger = pLogger;
     assert TigerAlgorithm.originalMainFunction != null;
-    mCoverageSpecificationTranslator =
-        new CoverageSpecificationTranslator(
-            pCfa.getFunctionHead(TigerAlgorithm.originalMainFunction));
     wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
-    mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
-    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
-    mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
+    testGoalUtils = new TestGoalUtils(logger, wrapper, pCfa, tigerConfig.shouldOptimizeGoalAutomata(), TigerAlgorithm.originalMainFunction);
     config = pConfig;
     config.inject(this);
     logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
@@ -172,8 +160,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.programDenotation = programDenotation;
     this.stats = stats;
-    values = new InputOutputValues(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
+    values = new Values(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
     currentTestCaseID = 0;
+
   }
 
   @Override
@@ -192,7 +181,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     outsideReachedSet = pReachedSet;
     outsideReachedSet.clear();
 
-    goalPatterns = extractTestGoalPatterns(fqlSpecification);
+    goalPatterns = testGoalUtils.extractTestGoalPatterns(fqlSpecification);
 
     for (int i = 0; i < goalPatterns.size(); i++) {
       pTestGoalPatterns.add(new Pair<>(goalPatterns.get(i), (Region) null));
@@ -202,9 +191,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     LinkedList<Goal> pGoalsToCover = new LinkedList<>();
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
       Goal lGoal =
-          constructGoal(goalIndex, pair.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-              tigerConfig.shouldOptimizeGoalAutomata(),
-              pair.getSecond());
+          testGoalUtils.constructGoal(goalIndex, pair.getFirst(), pair.getSecond());
       logger.log(Level.INFO, lGoal.getName());
       pGoalsToCover.add(lGoal);
       goalIndex++;
@@ -437,47 +424,6 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     }
   }
 
-  private Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
-      GuardedEdgeLabel pAlphaLabel, InverseGuardedEdgeLabel pInverseAlphaLabel,
-      GuardedEdgeLabel pOmegaLabel, boolean pUseAutomatonOptimization, Region pPresenceCondition) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
-        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
-            pOmegaLabel);
-    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
-
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition);
-
-    return lGoal;
-  }
-
-  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(
-      FQLSpecification pFqlSpecification) {
-    logger.logf(Level.INFO, "Extracting test goals.");
-
-
-    // TODO check for (temporarily) unsupported features
-
-    // TODO enable use of infeasibility propagation
-
-
-    IncrementalCoverageSpecificationTranslator lTranslator =
-        new IncrementalCoverageSpecificationTranslator(
-            mCoverageSpecificationTranslator.mPathPatternTranslator);
-
-    statistics_numberOfTestGoals =
-        lTranslator.getNumberOfTestGoals(pFqlSpecification.getCoverageSpecification());
-    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
-
-    Iterator<ElementaryCoveragePattern> lGoalIterator =
-        lTranslator.translate(pFqlSpecification.getCoverageSpecification());
-    LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
-
-    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
-      lGoalPatterns.add(lGoalIterator.next());
-    }
-
-    return lGoalPatterns;
-  }
 
 
 
@@ -604,13 +550,13 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   }
 
   private TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
-    Map<String, BigInteger> inputValues = values.extractInputValues(cex);
-    Map<String, BigInteger> outputValues = values.extractOutputValues(cex);
+    Map<String, BigInteger> inputValues  = values.extractInputValues(cex);
+    Map<String, BigInteger> outputValus = values.extractOutputValues(cex);
     // calcualte shrinked error path
     List<CFAEdge> shrinkedErrorPath =
         new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
     TestCase testcase =
-        new TestCase(currentTestCaseID, inputValues, outputValues, cex.getTargetPath().asEdgesList(),
+        new TestCase(currentTestCaseID, inputValues, outputValus, cex.getTargetPath().asEdgesList(),
             shrinkedErrorPath,
             null);
     currentTestCaseID++;

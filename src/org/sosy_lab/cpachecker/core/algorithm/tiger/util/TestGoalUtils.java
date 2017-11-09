@@ -24,21 +24,20 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -49,34 +48,36 @@ public class TestGoalUtils {
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
   private GuardedEdgeLabel mOmegaLabel;
   private boolean optimizeGoalAutomata;
+  private int statistics_numberOfTestGoals;
+  private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
 
 
+  public TestGoalUtils(LogManager pLogger, Wrapper wrapper, CFA cfa, boolean pOptimizeGoalAutomata, String originalMainFunction) {
 
-  public TestGoalUtils(LogManager pLogger, GuardedEdgeLabel pMAlphaLabel,
-      InverseGuardedEdgeLabel pMInverseAlphaLabel, GuardedEdgeLabel pMOmegaLabel,
-      boolean pOptimizeGoalAutomata) {
+    mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
+    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
+    mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
+    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(
+        cfa.getFunctionHead(originalMainFunction));
+
     logger = pLogger;
-    mAlphaLabel = pMAlphaLabel;
-    mInverseAlphaLabel = pMInverseAlphaLabel;
-    mOmegaLabel = pMOmegaLabel;
     optimizeGoalAutomata = pOptimizeGoalAutomata;
+
   }
 
 
-  private Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
-      GuardedEdgeLabel pAlphaLabel, InverseGuardedEdgeLabel pInverseAlphaLabel,
-      GuardedEdgeLabel pOmegaLabel, boolean pUseAutomatonOptimization, Region pPresenceCondition) {
+  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,Region pPresenceCondition) {
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
-        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
-            pOmegaLabel);
-    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
+        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, mAlphaLabel, mInverseAlphaLabel,
+            mOmegaLabel);
+    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, optimizeGoalAutomata);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition);
 
     return lGoal;
   }
 
-
+/*
   public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
 
@@ -121,6 +122,34 @@ public class TestGoalUtils {
     }
 
     return pGoalsToCover;
+  }*/
+
+  public LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFqlSpecification) {
+    logger.logf(Level.INFO, "Extracting test goals.");
+
+
+    // TODO check for (temporarily) unsupported features
+
+    // TODO enable use of infeasibility propagation
+
+
+    IncrementalCoverageSpecificationTranslator lTranslator =
+        new IncrementalCoverageSpecificationTranslator(
+            mCoverageSpecificationTranslator.mPathPatternTranslator);
+
+    statistics_numberOfTestGoals =
+        lTranslator.getNumberOfTestGoals(pFqlSpecification.getCoverageSpecification());
+    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
+
+    Iterator<ElementaryCoveragePattern> lGoalIterator =
+        lTranslator.translate(pFqlSpecification.getCoverageSpecification());
+    LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
+
+    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
+      lGoalPatterns.add(lGoalIterator.next());
+    }
+
+    return lGoalPatterns;
   }
 
 }
