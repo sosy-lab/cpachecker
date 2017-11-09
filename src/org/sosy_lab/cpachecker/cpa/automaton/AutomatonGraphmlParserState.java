@@ -463,14 +463,21 @@ public class AutomatonGraphmlParserState {
       return true;
     }
     Collection<FunctionInstance> copies = Lists.newArrayListWithExpectedSize(5);
-    for (FunctionInstance copy : functionCopies.values()) {
-      if (copy.cloneNumber == pFunctionInstance.cloneNumber) {
+    boolean desiredInstanceAvailable = false;
+    for (String originalName : functionCopies.keySet()) {
+      FunctionInstance copy = new FunctionInstance(originalName, pFunctionInstance.cloneNumber);
+      if (functionCopies.containsEntry(originalName, copy)) {
         if (!occupiedFunctions.get(pThread).contains(copy)
             && occupiedFunctions.values().contains(copy)) {
           return false;
         }
-        copies.add(copy);
+        if (copies.add(copy) && copy.equals(pFunctionInstance)) {
+          desiredInstanceAvailable = true;
+        }
       }
+    }
+    if (!desiredInstanceAvailable) {
+      return false;
     }
     for (FunctionInstance copy : copies) {
       occupiedFunctions.put(pThread, copy);
