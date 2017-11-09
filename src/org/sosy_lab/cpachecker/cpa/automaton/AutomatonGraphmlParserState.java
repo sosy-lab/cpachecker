@@ -399,7 +399,7 @@ public class AutomatonGraphmlParserState {
 
     // If we have not yet computed the equivalence classes, we can try if we can do without them
     if (functionCopies.isEmpty()
-        && (occupiedFunctions.isEmpty() || occupiedFunctions.keys().contains(pThread))) {
+        && (occupiedFunctions.isEmpty() || occupiedFunctions.keySet().contains(pThread))) {
       FunctionInstance originalFunction = new FunctionInstance(pDesiredFunctionName);
 
       // If the thread already owns the function, we can trivially hand it out
@@ -447,9 +447,9 @@ public class AutomatonGraphmlParserState {
       // If any function is already reserved for a thread, it must be the main
       // thread; reserve all other "original" functions for it.
       if (!occupiedFunctions.isEmpty()) {
-        assert occupiedFunctions.keys().size() == 1;
-        GraphMLThread originalFunctionThread = occupiedFunctions.keys().iterator().next();
-        for (String originalName : functionCopies.keys()) {
+        assert occupiedFunctions.keySet().size() == 1;
+        GraphMLThread originalFunctionThread = occupiedFunctions.keySet().iterator().next();
+        for (String originalName : functionCopies.keySet()) {
           FunctionInstance originalFunction = new FunctionInstance(originalName);
           occupiedFunctions.put(originalFunctionThread, originalFunction);
         }
