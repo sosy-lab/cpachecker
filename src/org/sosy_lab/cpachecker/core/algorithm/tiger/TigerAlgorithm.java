@@ -109,13 +109,12 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     SKIP_AFTER_TIMEOUT,
     RETRY_AFTER_TIMEOUT
   }
+  public static String originalMainFunction = null;
 
   private FQLSpecification fqlSpecification;
   private final LogManager logger;
   private final CFA cfa;
   private ConfigurableProgramAnalysis cpa;
-  public static String originalMainFunction = null;
-
   private Wrapper wrapper;
   private final Configuration config;
   private ReachedSet outsideReachedSet = null;
@@ -401,8 +400,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     startupConfig.getConfig();
 
     //run analysis
-    Pair<Boolean, Boolean> analysisWasSound_hasTimedOut =
-        buildAndRunAlgorithm(algNotifier, lARTCPA);
+    Algorithm algorithm = buildAlgorithm(algNotifier, lARTCPA);
+    Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, algNotifier);
+
 
     //write ARG to file
     Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
@@ -585,14 +585,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     return lARTCPA;
   }
 
-  private Pair<Boolean, Boolean> buildAndRunAlgorithm(ShutdownManager algNotifier, ARGCPA lARTCPA)
-      throws CPAException, InterruptedException {
-
+  private Algorithm buildAlgorithm(ShutdownManager algNotifier, ARGCPA lARTCPA) throws CPAException {
     Algorithm algorithm;
-
-    boolean analysisWasSound = false;
-    boolean hasTimedOut = false;
-
     try {
       Configuration internalConfiguration =
           Configuration.builder().loadFromFile(tigerConfig.getAlgorithmConfigurationFile()).build();
@@ -626,6 +620,12 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
+    return algorithm;
+  }
+
+  private Pair<Boolean, Boolean> runAlgorithm(Algorithm algorithm, ShutdownManager algNotifier) throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException{
+    boolean analysisWasSound = false;
+    boolean hasTimedOut = false;
 
     if (tigerConfig.getCpuTimelimitPerGoal() < 0) {
       // run algorithm without time limit
