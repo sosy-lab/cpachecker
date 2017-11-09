@@ -398,7 +398,8 @@ public class AutomatonGraphmlParserState {
     }
 
     // If we have not yet computed the equivalence classes, we can try if we can do without them
-    if (functionCopies.isEmpty()) {
+    if (functionCopies.isEmpty()
+        && (occupiedFunctions.isEmpty() || occupiedFunctions.keys().contains(pThread))) {
       FunctionInstance originalFunction =
           new FunctionInstance(pDesiredFunctionName, Integer.MIN_VALUE);
 
@@ -413,13 +414,11 @@ public class AutomatonGraphmlParserState {
         }
       }
 
-      // If the previous checks were unsuccessful, we need the equivalence classes, so we can not
-      // delay computing them any longer
-      for (String functionName : functionNames) {
-        FunctionInstance functionInstance = parseFunctionInstance(functionName);
-        functionCopies.put(functionInstance.originalName, functionInstance);
-      }
     }
+
+    // If the previous checks were unsuccessful, we need the equivalence classes, so we can not
+    // delay computing them any longer
+    computeFunctionCloneEquivalenceClasses();
 
     // Check the equivalence class of this function
     for (FunctionInstance functionInstance : functionCopies.get(pDesiredFunctionName)) {
@@ -440,15 +439,38 @@ public class AutomatonGraphmlParserState {
     return Optional.empty();
   }
 
+  private void computeFunctionCloneEquivalenceClasses() {
+    if (functionCopies.isEmpty()) {
+      for (String functionName : functionNames) {
+        FunctionInstance functionInstance = parseFunctionInstance(functionName);
+        functionCopies.put(functionInstance.originalName, functionInstance);
+      }
+      // If any function is already reserved for a thread, it must be the main
+      // thread; reserve all other "original" functions for it.
+      if (!occupiedFunctions.isEmpty()) {
+        assert occupiedFunctions.keys().size() == 1;
+        GraphMLThread originalFunctionThread = occupiedFunctions.keys().iterator().next();
+        for (String originalName : functionCopies.keys()) {
+          FunctionInstance originalFunction = new FunctionInstance(originalName, Integer.MIN_VALUE);
+          occupiedFunctions.put(originalFunctionThread, originalFunction);
+        }
+      }
+    }
+  }
+
   private boolean occupy(GraphMLThread pThread, FunctionInstance pFunctionInstance) {
+    if (functionCopies.isEmpty()) {
+      occupiedFunctions.put(pThread, pFunctionInstance);
+      return true;
+    }
     Collection<FunctionInstance> copies = Lists.newArrayListWithExpectedSize(5);
     for (FunctionInstance copy : functionCopies.values()) {
       if (copy.cloneNumber == pFunctionInstance.cloneNumber) {
         if (!occupiedFunctions.get(pThread).contains(copy)
-            && occupiedFunctions.values().contains(pFunctionInstance)) {
+            && occupiedFunctions.values().contains(copy)) {
           return false;
         }
-        copies.add(pFunctionInstance);
+        copies.add(copy);
       }
     }
     for (FunctionInstance copy : copies) {
@@ -498,6 +520,10 @@ public class AutomatonGraphmlParserState {
       cloneNumber = pCloneNumber;
     }
 
+    public boolean isOriginal() {
+      return cloneNumber == Integer.MIN_VALUE;
+    }
+
     @Override
     public boolean equals(Object pOther) {
       if (this == pOther) {
@@ -517,7 +543,7 @@ public class AutomatonGraphmlParserState {
     }
 
     public String getCloneName() {
-      if (cloneNumber == Integer.MIN_VALUE) {
+      if (isOriginal()) {
         return originalName;
       }
       return originalName + CLONED_FUNCTION_INFIX + cloneNumber;
@@ -539,7 +565,9 @@ public class AutomatonGraphmlParserState {
 
   private static FunctionInstance parseFunctionInstance(String pFunctionName) {
     Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
-    String pOriginalName = matcher.matches() ? matcher.group(1) : pFunctionName;
-    return new FunctionInstance(pOriginalName, Integer.parseInt(matcher.group(3)));
+    if (!matcher.matches()) {
+      return new FunctionInstance(pFunctionName, Integer.MIN_VALUE);
+    }
+    return new FunctionInstance(matcher.group(1), Integer.parseInt(matcher.group(3)));
   }
 }
