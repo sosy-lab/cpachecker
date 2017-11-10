@@ -518,11 +518,6 @@ public class AutomatonGraphmlParser {
       transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
     }
 
-    // Destroy thread, if necessary
-    if (pTransition.getDestroyedThread().isPresent()) {
-      pGraphMLParserState.releaseFunctions(pTransition.getDestroyedThread().get());
-    }
-
     // If the triggers do not apply, none of the above transitions is taken,
     // so we need to build the stutter condition
     // as the conjoined negations of the transition conditions.
@@ -1137,19 +1132,6 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Gets the thread specified to be destroyed on the given transition, if any.
-   *
-   * @param pTransition the transition to parse the thread id from.
-   * @param pNumericIdProvider a numeric id provider to map textual thread ids to numeric ones.
-   * @return the thread id specified on the transition with the given key, if any.
-   * @throws WitnessParseException if more than one thread id was specified.
-   */
-  private static Optional<GraphMLTransition.GraphMLThread> getDestroyedThread(
-      Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
-    return parseThreadId(pTransition, pNumericIdProvider, KeyDef.DESTROYTHREAD, "At most one thread can be destroyed on one transition.");
-  }
-
-  /**
    * Parses the thread specified on the given transition by the given key, if any.
    *
    * @param pTransition the transition to parse the thread id from.
@@ -1234,7 +1216,6 @@ public class AutomatonGraphmlParser {
         thread.isPresent()
             ? Optional.of(getThreadIdAssignment(thread.get().getId()))
             : Optional.empty();
-    Optional<GraphMLTransition.GraphMLThread> destroyedThread = getDestroyedThread(pTransition, pNumericThreadIdProvider);
 
     GraphMLTransition transition =
         new GraphMLTransition(
@@ -1247,7 +1228,6 @@ public class AutomatonGraphmlParser {
             getAssumeCaseMatcher(pTransition),
             thread.orElse(DEFAULT_THREAD),
             threadIdAssignment,
-            destroyedThread,
             GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ASSUMPTION),
             explicitAssumptionScope,
             assumptionResultFunction,

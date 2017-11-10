@@ -917,19 +917,6 @@ class WitnessWriter implements EdgeAppender {
 
     List<TransitionCondition> result = Lists.newArrayList(pResult);
 
-    // handle threads that destroy themselves by exiting
-    for (String id : threadingState.getThreadIds()) {
-      if (ThreadingTransferRelation.isLastNodeOfThread(
-          threadingState.getThreadLocation(id).getLocationNode())) {
-        // destroy the thread itself, but on an edge that belongs to another active thread.
-        TransitionCondition extraTransition =
-            getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, Optional.empty())
-                .putAndCopy(KeyDef.DESTROYTHREAD, Integer.toString(getUniqueThreadNum(id)));
-        extraTransition = extraTransition.removeAndCopy(KeyDef.FUNCTIONENTRY);
-        result.add(extraTransition);
-      }
-    }
-
     // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
       TransitionCondition extraTransition =

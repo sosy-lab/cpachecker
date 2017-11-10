@@ -134,7 +134,6 @@ public class AutomatonGraphmlCommon {
     THREADNAME("threadName", ElementType.EDGE, "threadName", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     CREATETHREAD("createThread", ElementType.EDGE, "createThread", "string"),
-    DESTROYTHREAD("destroyThread", ElementType.EDGE, "destroyThread", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
