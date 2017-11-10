@@ -880,6 +880,10 @@ cpa.arg.witness.exportFunctionCallsAndReturns = true
 # on the transitions?
 cpa.arg.witness.exportLineNumbers = true
 
+# Verification witness: Export labels for nodes in GraphML for easier visual
+# representation?
+cpa.arg.witness.exportNodeLabel = false
+
 # Verification witness: Include the offset within the file?
 cpa.arg.witness.exportOffset = true
 

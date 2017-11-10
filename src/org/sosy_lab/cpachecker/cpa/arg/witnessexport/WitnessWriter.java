@@ -1535,6 +1535,12 @@ class WitnessWriter implements EdgeAppender {
 
   private Element createNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
     Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
+
+    if (witnessOptions.exportNodeLabel()) {
+      // add a printable label that for example is shown in yEd
+      pDoc.addDataElementChild(result, KeyDef.LABEL, pEntryStateNodeId);
+    }
+
     for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
       pDoc.addDataElementChild(result, f.key, "true");
     }

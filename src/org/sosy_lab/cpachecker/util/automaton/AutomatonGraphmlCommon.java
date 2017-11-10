@@ -415,9 +415,6 @@ public class AutomatonGraphmlCommon {
       Element result = createElement(GraphMLTag.NODE);
       result.setAttribute("id", nodeId);
 
-      // add a printable label that for example is shown in yEd
-      addDataElementChild(result, KeyDef.LABEL, nodeId);
-
       if (nodeType != defaultNodeType) {
         addDataElementChild(result, KeyDef.NODETYPE, nodeType.toString());
       }

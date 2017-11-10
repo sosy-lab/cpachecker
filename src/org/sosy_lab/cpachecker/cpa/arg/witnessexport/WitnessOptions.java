@@ -80,6 +80,13 @@ class WitnessOptions {
   )
   private boolean revertThreadFunctionRenaming = false;
 
+  @Option(
+    secure = true,
+    description =
+        "Verification witness: Export labels for nodes in GraphML for easier visual representation?"
+  )
+  private boolean exportNodeLabel = false;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -118,5 +125,9 @@ class WitnessOptions {
 
   boolean revertThreadFunctionRenaming() {
     return revertThreadFunctionRenaming;
+  }
+
+  boolean exportNodeLabel() {
+    return exportNodeLabel;
   }
 }
