@@ -147,7 +147,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return (LocationState) Preconditions.checkNotNull(threads.get(id).getLocation());
   }
 
-  private Set<Integer> getThreadNums() {
+  Set<Integer> getThreadNums() {
     Set<Integer> result = new HashSet<>();
     for (ThreadState ts : threads.values()) {
       result.add(ts.getNum());
