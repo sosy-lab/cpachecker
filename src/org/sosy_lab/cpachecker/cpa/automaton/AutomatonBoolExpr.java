@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParserState.CLONED_FUNCTION_NAME_PATTERN;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -40,7 +39,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -72,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -372,27 +369,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       CFAEdge edge = pArgs.getCfaEdge();
       String functionNameFromEdge = edge.getSuccessor().getFunctionName();
 
-      // first check default cases like direct function calls and main-entry.
+      // check cases like direct function calls and main-entry.
       if (functionNameFromEdge.equals(functionName)) {
         if (edge instanceof FunctionCallEdge || AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
           return CONST_TRUE;
         }
       }
 
-      // check whether we are in concurrent context with "cloned functions"
-      Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(functionNameFromEdge);
-      String originalName = matcher.matches() ? matcher.group(1) : functionNameFromEdge;
-      if (originalName.equals(functionName)) {
-        return CONST_TRUE;
-      }
-
-      // check whether we are in concurrent context at a "pthreadcreate" statement
-      Optional<String> threadFunction = ThreadingTransferRelation.getCreatedThreadFunction(edge);
-      if (threadFunction.isPresent() && functionName.equals(threadFunction.get())) {
-        return CONST_TRUE;
-      }
-
-      // else nothing matches
       return CONST_FALSE;
     }
 
