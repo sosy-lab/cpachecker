@@ -486,8 +486,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         final long offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
-        if (hasIndex(newBaseName, memberType, ssa) &&
-            isRelevantField(compositeType, memberName)) {
+        if (isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
