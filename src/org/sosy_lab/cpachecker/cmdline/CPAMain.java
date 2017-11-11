@@ -400,6 +400,7 @@ public class CPAMain {
           .clearOption("output.disable")
           .clearOption("output.path")
           .clearOption("rootDirectory")
+          .clearOption("witness.validation.file")
           .build();
     }
     return config;
