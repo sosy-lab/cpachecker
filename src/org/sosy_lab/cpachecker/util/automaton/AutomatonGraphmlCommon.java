@@ -575,7 +575,8 @@ public class AutomatonGraphmlCommon {
     if (handleAsEpsilonEdge(pEdge)) {
       return Collections.emptySet();
     }
-    if (isMainFunctionEntry(pEdge)) {
+    if (isMainFunctionEntry(pEdge)
+        && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
       if (!FileLocation.DUMMY.equals(location)) {
         location = new FileLocation(
