@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
@@ -469,6 +470,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       } else if (edge instanceof AReturnStatementEdge) {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getSuccessor().getFunctionName().equals(functionName)) {
+          return CONST_TRUE;
+        }
+      } else if (edge instanceof BlankEdge) {
+        CFANode succ = edge.getSuccessor();
+        if (succ instanceof FunctionExitNode
+            && succ.getNumLeavingEdges() == 0
+            && succ.getFunctionName().equals(functionName)) {
+          assert "default return".equals(edge.getDescription());
           return CONST_TRUE;
         }
       }
