@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.relation.Pair;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
@@ -345,6 +350,15 @@ public class TestSuite implements AlgorithmResult {
     }
 
     return testSuiteData.toString();
+  }
+
+  public String toJsonString() throws JsonGenerationException, JsonMappingException, IOException {
+    if (testSuiteData == null) {
+      assembleTestSuiteData();
+    }
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.enable(SerializationConfig.Feature.INDENT_OUTPUT);
+    return mapper.writeValueAsString(testSuiteData);
   }
 
   /**

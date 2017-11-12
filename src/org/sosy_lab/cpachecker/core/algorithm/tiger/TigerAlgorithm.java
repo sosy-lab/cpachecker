@@ -220,6 +220,15 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       throw new RuntimeException(e);
     }
 
+    try (Writer writer =
+        new BufferedWriter(
+            new OutputStreamWriter(new FileOutputStream("output/testsuite.json"), "utf-8"))) {
+      writer.write(testsuite.toJsonString());
+      writer.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } else {
