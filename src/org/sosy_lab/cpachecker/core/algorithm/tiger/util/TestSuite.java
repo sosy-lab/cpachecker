@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.relation.Pair;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -33,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
@@ -49,6 +50,7 @@ public class TestSuite implements AlgorithmResult {
   private NamedRegionManager bddCpaNamedRegionManager;
   private Map<Goal, List<TestCase>> coveringTestCases;
   private List<Goal> includedTestGoals;
+  private TestSuiteData testSuiteData;
 
   public TestSuite(NamedRegionManager pBddCpaNamedRegionManager, List<Goal> includedTestGoals) {
     mapping = new LinkedHashMap<>();
@@ -58,6 +60,7 @@ public class TestSuite implements AlgorithmResult {
     coveringTestCases = new LinkedHashMap<>();
     this.includedTestGoals = Lists.newLinkedList();
     this.includedTestGoals.addAll(includedTestGoals);
+    testSuiteData = null;
   }
 
   public Set<Goal> getTestGoals() {
@@ -72,7 +75,7 @@ public class TestSuite implements AlgorithmResult {
     return coveringTestCases.keySet().size();
   }
 
-  public Map<TestCase, List<Goal>> getMapping(){
+  public Map<TestCase, List<Goal>> getMapping() {
     return mapping;
   }
 
@@ -88,7 +91,6 @@ public class TestSuite implements AlgorithmResult {
     return !timedOutGoals.isEmpty();
   }
 
-
   public void addTimedOutGoal(int index, Goal goal, Region presenceCondition) {
     timedOutGoals.put(index, new Pair<>(goal, presenceCondition));
   }
@@ -98,13 +100,16 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void addInfeasibleGoal(Goal goal, Region presenceCondition) {
-    if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {} else {
+    if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {
+    } else {
       infeasibleGoals.put(goal, presenceCondition);
     }
   }
 
   public boolean addTestCase(TestCase testcase, Goal goal) {
-    if (testSuiteAlreadyContrainsTestCase(testcase, goal)) { return true; }
+    if (testSuiteAlreadyContrainsTestCase(testcase, goal)) {
+      return true;
+    }
 
     List<Goal> goals = mapping.get(testcase);
     List<TestCase> testcases = coveringTestCases.get(goal);
@@ -143,14 +148,15 @@ public class TestSuite implements AlgorithmResult {
     testcases.add(testcase);
   }
 
-
   public List<Goal> getIncludedTestGoals() {
     return includedTestGoals;
   }
 
   public Goal getGoalByName(String name) {
     for (Goal goal : includedTestGoals) {
-      if (goal.getName().equals(name)) { return goal; }
+      if (goal.getName().equals(name)) {
+        return goal;
+      }
     }
     return null;
   }
@@ -170,13 +176,14 @@ public class TestSuite implements AlgorithmResult {
     } else {
       testgoalString += pGoal.getIndex();
     }
-    testgoalString +=
-        " " + pGoal.toSkeleton()
-            + (pGoal.getPresenceCondition() != null ? " with targetPC "
+    testgoalString += " "
+        + pGoal.toSkeleton()
+        + (pGoal.getPresenceCondition() != null
+            ? " with targetPC "
                 + bddCpaNamedRegionManager
                     .dumpRegion((org.sosy_lab.cpachecker.util.predicates.regions.Region) pGoal
                         .getPresenceCondition())
-                : "");
+            : "");
 
     for (Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
       String testcaseStringCmp = "Testcase " + entry.getKey().toString() + " covers";
@@ -190,14 +197,17 @@ public class TestSuite implements AlgorithmResult {
           } else {
             testgoalStringCmp += goal.getIndex();
           }
-          testgoalStringCmp +=
-              " " + goal.toSkeleton()
-                  + (goal.getPresenceCondition() != null ? " with targetPC "
+          testgoalStringCmp += " "
+              + goal.toSkeleton()
+              + (goal.getPresenceCondition() != null
+                  ? " with targetPC "
                       + bddCpaNamedRegionManager
                           .dumpRegion((org.sosy_lab.cpachecker.util.predicates.regions.Region) goal
                               .getPresenceCondition())
-                      : "");
-          if (testgoalString.equals(testgoalStringCmp)) { return true; }
+                  : "");
+          if (testgoalString.equals(testgoalStringCmp)) {
+            return true;
+          }
         }
       } else {
         continue;
@@ -214,7 +224,6 @@ public class TestSuite implements AlgorithmResult {
     return getTestCases().size();
   }
 
-
   public Map<Goal, Region> getInfeasibleGoals() {
     return infeasibleGoals;
   }
@@ -223,83 +232,119 @@ public class TestSuite implements AlgorithmResult {
     return mapping.get(testcase);
   }
 
+  private void assembleTestSuiteData() {
+    testSuiteData = new TestSuiteData();
+    testSuiteData.setNumberOfTestCases(mapping.entrySet().size());
+
+    List<TestCaseData> testCaseDatas = Lists.newLinkedList();
+
+    for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
+      TestCase testCase = entry.getKey();
+      TestCaseData testCaseData = new TestCaseData();
+      testCaseData.setId(testCase.getId());
+
+      Map<String, String> inputs = Maps.newLinkedHashMap();
+      Map<String, BigInteger> in = testCase.getInputs();
+      for (String key : in.keySet()) {
+        inputs.put(key, in.get(key).toString());
+      }
+      testCaseData.setInputs(inputs);
+
+      Map<String, String> outputs = Maps.newLinkedHashMap();
+      Map<String, BigInteger> out = testCase.getInputs();
+      for (String key : out.keySet()) {
+        outputs.put(key, out.get(key).toString());
+      }
+      testCaseData.setOutputs(outputs);
+
+      List<String> coveredGoals = Lists.newLinkedList();
+      for (Goal goal : entry.getValue()) {
+        String goalString = goal.getIndex() + "@(" + getTestGoalLabel(goal) + ")";
+        coveredGoals.add(goalString);
+      }
+      testCaseData.setCoveredGoals(coveredGoals);
+      testCaseData.setCoveredLabels(testCase.calculateCoveredLabels());
+      testCaseData.setErrorPathLength(testCase.getErrorPath().size());
+
+      testCaseDatas.add(testCaseData);
+    }
+
+    testSuiteData.setTestCases(testCaseDatas);
+
+    List<String> infeasibleGoalStrings = Lists.newLinkedList();
+    if (!infeasibleGoals.isEmpty()) {
+      for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) {
+        infeasibleGoalStrings.add(getTestGoalLabel(entry.getKey()));
+      }
+    }
+
+    testSuiteData.setInfeasibleGoals(infeasibleGoalStrings);
+
+    List<String> timedoutGoalStrings = Lists.newLinkedList();
+    if (!timedOutGoals.isEmpty()) {
+      for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
+        timedoutGoalStrings.add(getTestGoalLabel(entry.getValue().getFirst()));
+      }
+    }
+
+    testSuiteData.setTimedOutGoals(timedoutGoalStrings);
+  }
+
   @Override
   public String toString() {
-    StringBuffer str = new StringBuffer();
-    str.append("Number of Testcases: ").append(mapping.entrySet().size()).append("\n\n");
-    for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-      List<CFAEdge> errorPath = entry.getKey().getErrorPath();
-
-      str.append(entry.getKey().toString() + "\n\n");
-
-      str.append("\tCovered goals {\n");
-      for (Goal goal : entry.getValue()) {
-        str.append("\t\t").append(goal.getIndex()).append("@");
-        str.append("(").append(getTestGoalLabel(goal)).append(")");
-
-        Region presenceCondition = goal.getPresenceCondition();
-        if (presenceCondition != null) {
-          str.append(": " + bddCpaNamedRegionManager.dumpRegion(
-              (org.sosy_lab.cpachecker.util.predicates.regions.Region) presenceCondition));
-        }
-        str.append("\n");
-      }
-      str.append("\t}\n\n");
-
-      str.append("\tCovered labels {\n");
-      List<String> labels = entry.getKey().calculateCoveredLabels();
-      str.append("\t\t");
-      for(String label : labels) {
-        str.append(label).append(", ");
-      }
-      str.delete(str.length()-2, str.length());
-      str.append("\n");
-      str.append("\t}\n");
-      str.append("\n");
-
-      if (errorPath != null) {
-        str.append("\tErrorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
-      }
-      str.append("\n\n");
+    /*
+     * StringBuffer str = new StringBuffer();
+     * str.append("Number of Testcases: ").append(mapping.entrySet().size()).append("\n\n"); for
+     * (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) { List<CFAEdge> errorPath =
+     * entry.getKey().getErrorPath();
+     *
+     * str.append(entry.getKey().toString() + "\n\n");
+     *
+     * str.append("\tCovered goals {\n"); for (Goal goal : entry.getValue()) {
+     * str.append("\t\t").append(goal.getIndex()).append("@");
+     * str.append("(").append(getTestGoalLabel(goal)).append(")");
+     *
+     * Region presenceCondition = goal.getPresenceCondition(); if (presenceCondition != null) {
+     * str.append(": " + bddCpaNamedRegionManager.dumpRegion(
+     * (org.sosy_lab.cpachecker.util.predicates.regions.Region) presenceCondition)); }
+     * str.append("\n"); } str.append("\t}\n\n");
+     *
+     * str.append("\tCovered labels {\n"); List<String> labels =
+     * entry.getKey().calculateCoveredLabels(); str.append("\t\t"); for (String label : labels) {
+     * str.append(label).append(", "); } str.delete(str.length() - 2, str.length());
+     * str.append("\n"); str.append("\t}\n"); str.append("\n");
+     *
+     * if (errorPath != null) { str.append("\tErrorpath Length: " +
+     * entry.getKey().getErrorPath().size() + "\n"); } str.append("\n\n"); }
+     *
+     * if (!infeasibleGoals.isEmpty()) { str.append("infeasible:\n");
+     *
+     * for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) { str.append("Goal ");
+     * str.append(getTestGoalLabel(entry.getKey()));
+     *
+     * Region presenceCondition = entry.getValue(); if (presenceCondition != null) {
+     * str.append(": cannot be covered with PC "); //
+     * str.append(bddCpaNamedRegionManager.dumpRegion(presenceCondition)); } str.append("\n"); }
+     *
+     * str.append("\n"); }
+     *
+     * if (!timedOutGoals.isEmpty()) { str.append("timed out:\n");
+     *
+     * for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
+     * str.append("Goal "); str.append(getTestGoalLabel(entry.getValue().getFirst()));
+     *
+     * Region presenceCondition = entry.getValue().getSecond(); if (presenceCondition != null) {
+     * str.append(": timed out for PC "); str.append( bddCpaNamedRegionManager.dumpRegion(
+     * (org.sosy_lab.cpachecker.util.predicates.regions.Region) presenceCondition)); }
+     * str.append("\n"); }
+     *
+     * str.append("\n"); }
+     */
+    if (testSuiteData == null) {
+      assembleTestSuiteData();
     }
 
-    if (!infeasibleGoals.isEmpty()) {
-      str.append("infeasible:\n");
-
-      for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) {
-        str.append("Goal ");
-        str.append(getTestGoalLabel(entry.getKey()));
-
-        Region presenceCondition = entry.getValue();
-        if (presenceCondition != null) {
-          str.append(": cannot be covered with PC ");
-          // str.append(bddCpaNamedRegionManager.dumpRegion(presenceCondition));
-        }
-        str.append("\n");
-      }
-
-      str.append("\n");
-    }
-
-    if (!timedOutGoals.isEmpty()) {
-      str.append("timed out:\n");
-
-      for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
-        str.append("Goal ");
-        str.append(getTestGoalLabel(entry.getValue().getFirst()));
-
-        Region presenceCondition = entry.getValue().getSecond();
-        if (presenceCondition != null) {
-          str.append(": timed out for PC ");
-          str.append(bddCpaNamedRegionManager.dumpRegion(
-              (org.sosy_lab.cpachecker.util.predicates.regions.Region) presenceCondition));
-        }
-        str.append("\n");
-      }
-
-      str.append("\n");
-    }
-    return str.toString();
+    return testSuiteData.toString();
   }
 
   /**
@@ -323,14 +368,16 @@ public class TestSuite implements AlgorithmResult {
   }
 
   /**
-   * Summarizes the presence conditions of tests in this testsuite that cover the parameter test goal.
+   * Summarizes the presence conditions of tests in this testsuite that cover the parameter test
+   * goal.
    */
   public Region getGoalCoverage(Goal pGoal) {
     Region totalCoverage = (Region) bddCpaNamedRegionManager.makeFalse();
     for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
       if (entry.getValue().contains(pGoal)) {
         assert entry.getKey().getPresenceCondition() != null;
-        //totalCoverage = bddCpaNamedRegionManager.makeOr(totalCoverage, entry.getKey().getPresenceCondition());
+        // totalCoverage = bddCpaNamedRegionManager.makeOr(totalCoverage,
+        // entry.getKey().getPresenceCondition());
       }
     }
     return totalCoverage;
