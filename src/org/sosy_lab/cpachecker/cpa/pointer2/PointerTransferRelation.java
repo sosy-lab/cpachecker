@@ -306,162 +306,163 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   protected static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
-    return pExpression.accept(new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
+    return pExpression.accept(
+        new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
 
-      @Override
-      public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-          throws UnrecognizedCCodeException {
-        if (pIastArraySubscriptExpression.getSubscriptExpression() instanceof CLiteralExpression) {
-          CLiteralExpression literal = (CLiteralExpression) pIastArraySubscriptExpression.getSubscriptExpression();
+          @Override
+          public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+              throws UnrecognizedCCodeException {
+            if (pIastArraySubscriptExpression.getSubscriptExpression() instanceof CLiteralExpression) {
+              CLiteralExpression literal = (CLiteralExpression) pIastArraySubscriptExpression.getSubscriptExpression();
 
-          // former && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)
-          if (literal instanceof CIntegerLiteralExpression) {
-            LocationSet starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState, pDerefCounter);
-            if (starredLocations.isBot() || starredLocations.isTop()) {
-              return starredLocations;
+              // former && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)
+              if (literal instanceof CIntegerLiteralExpression) {
+                LocationSet starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState, pDerefCounter);
+                if (starredLocations.isBot() || starredLocations.isTop()) {
+                  return starredLocations;
+                }
+                if (!(starredLocations instanceof ExplicitLocationSet)) {
+                  return LocationSetTop.INSTANCE;
+                }
+                return starredLocations;
+              }
             }
-            if (!(starredLocations instanceof ExplicitLocationSet)) {
-              return LocationSetTop.INSTANCE;
+            return LocationSetTop.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
+            Type type = pIastFieldReference.getFieldOwner().getExpressionType().getCanonicalType();
+            // type is struct St
+            String prefix = type.toString();
+            String infix = pIastFieldReference.isPointerDereference() ? "->" : ".";
+            String suffix = pIastFieldReference.getFieldName();
+            // TODO use offsets instead
+            if (individualTracking) {
+              return toLocationSet(MemoryLocation.valueOf(prefix + " " + pIastFieldReference.getFieldOwner() + infix + suffix));
             }
-            return starredLocations;
+            return toLocationSet(MemoryLocation.valueOf(prefix + infix + suffix));
           }
-        }
-        return LocationSetTop.INSTANCE;
-      }
 
-      @Override
-      public LocationSet visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-        Type type = pIastFieldReference.getFieldOwner().getExpressionType().getCanonicalType();
-        // type is struct St
-        String prefix = type.toString();
-        String infix = pIastFieldReference.isPointerDereference() ? "->" : ".";
-        String suffix = pIastFieldReference.getFieldName();
-        // TODO use offsets instead
-        if (individualTracking) {
-          return toLocationSet(MemoryLocation.valueOf(prefix + " " + pIastFieldReference.getFieldOwner() + infix + suffix));
-        }
-        return toLocationSet(MemoryLocation.valueOf(prefix + infix + suffix));
-      }
-
-      @Override
-      public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
-        Type type = pIastIdExpression.getExpressionType();
-        final MemoryLocation location;
-        if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-          if (individualTracking) {
-            location = MemoryLocation.valueOf(type.toString() + " " + pIastIdExpression.getName()); // TODO find a better way to handle this
-          } else {
-            location = MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
-          }
-        } else {
-          CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
-          if (declaration != null) {
-            location = MemoryLocation.valueOf(declaration.getQualifiedName());
-          } else {
-            location = MemoryLocation.valueOf(pIastIdExpression.getName());
-          }
-        }
-        return visit(location);
-      }
-
-      private LocationSet visit(MemoryLocation pLocation) {
-        LocationSet pLocationSet = toLocationSet(pLocation);
-        for (int deref = pDerefCounter; deref > 0; --deref) {
-          pLocationSet = pState.getPointsToSet(pLocationSet);
-            if (pLocationSet.isTop() || pLocationSet.isBot()) {
-              return pLocationSet;
+          @Override
+          public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
+            Type type = pIastIdExpression.getExpressionType();
+            final MemoryLocation location;
+            if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
+              if (individualTracking) {
+                location = MemoryLocation.valueOf(type.toString() + " " + pIastIdExpression.getName()); // TODO find a better way to handle this
+              } else {
+                location = MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+              }
+            } else {
+              CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
+              if (declaration != null) {
+                location = MemoryLocation.valueOf(declaration.getQualifiedName());
+              } else {
+                location = MemoryLocation.valueOf(pIastIdExpression.getName());
+              }
             }
-            if (!(pLocationSet instanceof ExplicitLocationSet)) {
-              return LocationSetTop.INSTANCE;
-            }
-        }
-        return pLocationSet;
-      }
-
-      @Override
-      public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
-        return asLocations(pPointerExpression.getOperand(), pState, pDerefCounter + 1);
-      }
-
-      @Override
-      public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-        return asLocations(pComplexCastExpression.getOperand(), pState, pDerefCounter);
-      }
-
-      @Override
-      public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return toLocationSet(Sets.union(
-            toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
-            toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
-      }
-
-      @Override
-      public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
-        return asLocations(pIastCastExpression.getOperand(), pState, pDerefCounter);
-      }
-
-      @Override
-      public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-        if (pDerefCounter > 0 && pIastUnaryExpression.getOperator() == UnaryOperator.AMPER) {
-          return asLocations(pIastUnaryExpression.getOperand(), pState, pDerefCounter - 1);
-        }
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
-          throws UnrecognizedCCodeException {
-        CFunctionDeclaration declaration = pIastFunctionCallExpression.getDeclaration();
-        if (declaration == null) {
-          LocationSet result = pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
-          if (result.isTop() || result.isBot()) {
-            return result;
+            return visit(location);
           }
-          return toLocationSet(Sets.filter(toNormalSet(pState, result), Predicates.notNull()));
-        }
-        return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
-      }
 
-      @Override
-      public LocationSet visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCCodeException {
-        throw new UnrecognizedCCodeException("Address of labels not supported by pointer analysis", pAddressOfLabelExpression);
-      }
-    });
+          private LocationSet visit(MemoryLocation pLocation) {
+            LocationSet pLocationSet = toLocationSet(pLocation);
+            for (int deref = pDerefCounter; deref > 0; --deref) {
+              pLocationSet = pState.getPointsToSet(pLocationSet);
+                if (pLocationSet.isTop() || pLocationSet.isBot()) {
+                  return pLocationSet;
+                }
+                if (!(pLocationSet instanceof ExplicitLocationSet)) {
+                  return LocationSetTop.INSTANCE;
+                }
+            }
+            return pLocationSet;
+          }
+
+          @Override
+          public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
+            return asLocations(pPointerExpression.getOperand(), pState, pDerefCounter + 1);
+          }
+
+          @Override
+          public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
+            return asLocations(pComplexCastExpression.getOperand(), pState, pDerefCounter);
+          }
+
+          @Override
+          public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
+            return toLocationSet(Sets.union(
+                toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
+                toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
+          }
+
+          @Override
+          public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
+            return asLocations(pIastCastExpression.getOperand(), pState, pDerefCounter);
+          }
+
+          @Override
+          public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
+            if (pDerefCounter > 0 && pIastUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+              return asLocations(pIastUnaryExpression.getOperand(), pState, pDerefCounter - 1);
+            }
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
+              throws UnrecognizedCCodeException {
+            CFunctionDeclaration declaration = pIastFunctionCallExpression.getDeclaration();
+            if (declaration == null) {
+              LocationSet result = pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
+              if (result.isTop() || result.isBot()) {
+                return result;
+              }
+              return toLocationSet(Sets.filter(toNormalSet(pState, result), Predicates.notNull()));
+            }
+            return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
+          }
+
+          @Override
+          public LocationSet visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCCodeException {
+            throw new UnrecognizedCCodeException("Address of labels not supported by pointer analysis", pAddressOfLabelExpression);
+          }
+        });
   }
 
   /**
