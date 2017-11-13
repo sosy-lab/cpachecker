@@ -295,7 +295,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
    *
    * @return the locations represented by the given location set.
    */
-  public static Set<MemoryLocation> toNormalSet(PointerState pState, LocationSet pLocationSet) {
+  private static Set<MemoryLocation> toNormalSet(PointerState pState, LocationSet pLocationSet) {
     if (pLocationSet.isBot()) {
       return Collections.emptySet();
     }
@@ -305,7 +305,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return ((ExplicitLocationSet) pLocationSet).getExplicitLocations();
   }
 
-  protected static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
+  private static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
     return pExpression.accept(
         new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
 
