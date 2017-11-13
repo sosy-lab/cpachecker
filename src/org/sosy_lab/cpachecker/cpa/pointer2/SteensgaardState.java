@@ -77,7 +77,7 @@ public class SteensgaardState extends PointerState {
     return new SteensgaardState(newLocations);
   }
 
-  public PersistentSortedMap<LocationSet, LocationSet> join(
+  private PersistentSortedMap<LocationSet, LocationSet> join(
       PersistentSortedMap<LocationSet, LocationSet> currentMap,
       LocationSet pLhs,
       LocationSet pRhs) {
@@ -97,7 +97,7 @@ public class SteensgaardState extends PointerState {
   /**
    * Updates the map accordingly to the new merged nodes.
    */
-  private PersistentSortedMap<LocationSet, LocationSet> unify(PersistentSortedMap<LocationSet, LocationSet> currentMap, LocationSet pMergeLeft, LocationSet pMergeRight) {
+  private static PersistentSortedMap<LocationSet, LocationSet> unify(PersistentSortedMap<LocationSet, LocationSet> currentMap, LocationSet pMergeLeft, LocationSet pMergeRight) {
     LocationSet resultLocation = pMergeLeft.addElements(pMergeRight);
     LocationSet referencedValues = new LocationSetBot();
     for (LocationSet pKey : currentMap.keySet()) {
