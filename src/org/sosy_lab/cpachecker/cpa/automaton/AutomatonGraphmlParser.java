@@ -819,14 +819,25 @@ public class AutomatonGraphmlParser {
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = HashMultimap.create();
     Multimap<GraphMLState, GraphMLTransition> leavingTransitions = HashMultimap.create();
     NumericIdProvider numericIdProvider = NumericIdProvider.create();
+    Set<GraphMLState> entryStates = Sets.newHashSet();
     for (Node transition : docDat.getTransitions()) {
-      collectEdgeData(docDat,
+      collectEdgeData(
+          docDat,
           states,
+          entryStates,
           leavingTransitions,
           enteringTransitions,
           numericIdProvider,
           transition);
     }
+    if (states.size() < docDat.idToNodeMap.size()) {
+      for (String stateId : docDat.idToNodeMap.keySet()) {
+        if (!states.containsKey(stateId)) {
+          states.put(stateId, parseState(docDat, states, stateId, Optional.empty()));
+        }
+      }
+    }
+
     AutomatonGraphmlParserState state =
         AutomatonGraphmlParserState.initialize(
             automatonName,
@@ -1173,6 +1184,7 @@ public class AutomatonGraphmlParser {
    *
    * @param pDocDat the GraphML-document-data helper.
    * @param pStates the map from state identifiers to parsed states.
+   * @param pEntryStates the set of entry states.
    * @param pLeavingEdges the map from predecessor states to transitions leaving these states that
    *     the given transition will be entered into.
    * @param pEnteringEdges the map from successor states to transitions entering these states that
@@ -1184,6 +1196,7 @@ public class AutomatonGraphmlParser {
   private void collectEdgeData(
       GraphMLDocumentData pDocDat,
       Map<String, GraphMLState> pStates,
+      Set<GraphMLState> pEntryStates,
       Multimap<GraphMLState, GraphMLTransition> pLeavingEdges,
       Multimap<GraphMLState, GraphMLTransition> pEnteringEdges,
       NumericIdProvider pNumericThreadIdProvider,
@@ -1192,14 +1205,12 @@ public class AutomatonGraphmlParser {
     String sourceStateId =
         GraphMLDocumentData.getAttributeValue(
             pTransition, "source", "Every transition needs a source!");
-    GraphMLState source =
-        parseState(pDocDat, pStates, sourceStateId, pTransition);
+    GraphMLState source = parseState(pDocDat, pStates, sourceStateId, Optional.of(pTransition));
 
     String targetStateId =
         GraphMLDocumentData.getAttributeValue(
             pTransition, "target", "Every transition needs a target!");
-    GraphMLState target =
-        parseState(pDocDat, pStates, targetStateId, pTransition);
+    GraphMLState target = parseState(pDocDat, pStates, targetStateId, Optional.of(pTransition));
 
     Optional<String> functionEntry = parseSingleDataValue(pTransition, KeyDef.FUNCTIONENTRY,
         "At most one function can be entered by one transition.");
@@ -1266,12 +1277,21 @@ public class AutomatonGraphmlParser {
               "Source %s of transition %s is a sink state. No outgoing edges expected.",
               sourceStateId, transitionToString(pTransition)));
     }
+
+    if (source.isEntryState()) {
+      pEntryStates.add(source);
+    }
+    if (target.isEntryState()) {
+      pEntryStates.add(target);
+    }
   }
 
-  private GraphMLState parseState(GraphMLDocumentData pDocDat,
+  private GraphMLState parseState(
+      GraphMLDocumentData pDocDat,
       Map<String, GraphMLState> pStates,
       String pStateId,
-      Node pReference) throws WitnessParseException {
+      Optional<Node> pReference)
+      throws WitnessParseException {
     GraphMLState result = pStates.get(pStateId);
     if (result != null) {
       return result;
@@ -1279,11 +1299,16 @@ public class AutomatonGraphmlParser {
 
     Element stateNode = pDocDat.getNodeWithId(pStateId);
     if (stateNode == null) {
-      throw new WitnessParseException(
-        String.format(
-            "The state with id <%s> does not exist, but is referenced in the transition <%s>",
-            pStateId,
-            transitionToString(pReference)));
+      final String message;
+      if (pReference.isPresent()) {
+        message =
+            String.format(
+                "The state with id <%s> does not exist, but is referenced in the transition <%s>",
+                pStateId, transitionToString(pReference.get()));
+      } else {
+        message = String.format("The state with if <%s> does not exist.", pStateId);
+      }
+      throw new WitnessParseException(message);
     }
 
     Set<String> candidates = GraphMLDocumentData.getDataOnNode(stateNode, KeyDef.INVARIANT);
