@@ -77,15 +77,19 @@ public class SteensgaardState extends PointerState {
     return new SteensgaardState(newLocations);
   }
 
-  public PersistentSortedMap<LocationSet, LocationSet> join(PersistentSortedMap<LocationSet, LocationSet> currentMap, LocationSet pLhs, LocationSet pRhs) {
+  public PersistentSortedMap<LocationSet, LocationSet> join(
+      PersistentSortedMap<LocationSet, LocationSet> currentMap,
+      LocationSet pLhs,
+      LocationSet pRhs) {
     if (pLhs.equals(pRhs)) {
       return currentMap;
     }
     LocationSet pLhsNext = getPointsToSet(pLhs);
     LocationSet pRhsNext = getPointsToSet(pRhs);
     currentMap = unify(currentMap, pLhs, pRhs);
-    if (!(pRhsNext instanceof LocationSetBot || pLhsNext instanceof LocationSetBot) && (!pRhsNext.containsAll(pLhsNext) && pLhs.containsAll(pRhsNext))) {
-    currentMap = join(currentMap, pLhsNext, pRhsNext);
+    if (!(pRhsNext instanceof LocationSetBot || pLhsNext instanceof LocationSetBot)
+        && (!pRhsNext.containsAll(pLhsNext) && pLhs.containsAll(pRhsNext))) {
+      currentMap = join(currentMap, pLhsNext, pRhsNext);
     }
     return currentMap;
   }
@@ -97,17 +101,20 @@ public class SteensgaardState extends PointerState {
     LocationSet resultLocation = pMergeLeft.addElements(pMergeRight);
     LocationSet referencedValues = new LocationSetBot();
     for (LocationSet pKey : currentMap.keySet()) {
-      if ((currentMap.get(pKey).containsAll(pMergeLeft) || currentMap.get(pKey).containsAll(pMergeRight)) && !pKey.containsAll(resultLocation)) {
+      if ((currentMap.get(pKey).containsAll(pMergeLeft) || currentMap.get(pKey).containsAll(pMergeRight))
+          && !pKey.containsAll(resultLocation)) {
         currentMap = currentMap.removeAndCopy(pKey);
         currentMap = currentMap.putAndCopy(pKey, resultLocation);
       }
-      if ((pKey.containsAll(pMergeLeft) || pKey.containsAll(pMergeRight)) && !pKey.containsAll(resultLocation)) {
+      if ((pKey.containsAll(pMergeLeft) || pKey.containsAll(pMergeRight))
+          && !pKey.containsAll(resultLocation)) {
         referencedValues = referencedValues.addElements(currentMap.get(pKey));
         currentMap = currentMap.removeAndCopy(pKey);
       }
     }
-    if (referencedValues instanceof ExplicitLocationSet || referencedValues instanceof LocationSetTop) {
-    currentMap = currentMap.putAndCopy(resultLocation, referencedValues);
+    if (referencedValues instanceof ExplicitLocationSet
+        || referencedValues instanceof LocationSetTop) {
+      currentMap = currentMap.putAndCopy(resultLocation, referencedValues);
     }
     return currentMap;
   }
