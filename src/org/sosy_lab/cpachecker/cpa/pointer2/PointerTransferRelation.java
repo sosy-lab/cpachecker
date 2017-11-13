@@ -265,9 +265,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
       return MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
     }
-
-
-
     return MemoryLocation.valueOf(pDeclaration.getQualifiedName());
   }
 
@@ -283,26 +280,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       return LocationSetBot.INSTANCE;
     }
     return ExplicitLocationSet.from(pLocations);
-  }
-
-  /**
-   * Gets the locations represented by the given location set considering the
-   * context of the given state. The returned iterable is guaranteed to be free
-   * of duplicates.
-   *
-   * @param pState the context.
-   * @param pLocationSet the location set.
-   *
-   * @return the locations represented by the given location set.
-   */
-  private static Set<MemoryLocation> toNormalSet(PointerState pState, LocationSet pLocationSet) {
-    if (pLocationSet.isBot()) {
-      return Collections.emptySet();
-    }
-    if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
-      return pState.getKnownLocations();
-    }
-    return ((ExplicitLocationSet) pLocationSet).getExplicitLocations();
   }
 
   private static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
@@ -392,8 +369,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           @Override
           public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
             return toLocationSet(Sets.union(
-                toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
-                toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
+                pState.toExplicitSet(asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
+                pState.toExplicitSet(asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
           }
 
           @Override
@@ -453,7 +430,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               if (result.isTop() || result.isBot()) {
                 return result;
               }
-              return toLocationSet(Sets.filter(toNormalSet(pState, result), Predicates.notNull()));
+              return toLocationSet(Sets.filter(pState.toExplicitSet(result), Predicates.notNull()));
             }
             return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
           }

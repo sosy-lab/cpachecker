@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -192,6 +193,16 @@ public abstract class PointerState implements AbstractState {
   @Override
   public String toString() {
     return pointsToMap.toString();
+  }
+
+  public Set<MemoryLocation> toExplicitSet(LocationSet pLocationSet) {
+    if (pLocationSet.isBot()) {
+      return Collections.emptySet();
+    }
+    if (pLocationSet.isTop()) {
+      return getKnownLocations();
+    }
+    return ((ExplicitLocationSet) pLocationSet).getExplicitLocations();
   }
 
 }
