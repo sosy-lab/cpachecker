@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -337,7 +338,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                 new CFANode(pthreadCreateEdge.getPredecessor().getFunctionName()),
                 firstEdgeOfThread.getSuccessor(),
                 "Function start dummy edge");
-        result.addAll(getAbstractSuccessorsForEdge(state, pPrecision, dummyCallEdge));
+        Collection<AutomatonState> newStates =
+            getAbstractSuccessorsForEdge(state, pPrecision, dummyCallEdge);
+
+        // Assumption: "Every thread creation is directly followed by a function entry."
+        // The witness automaton checks function names of CFA clones, thus the next line
+        // cuts off all non-matching threads and limits the state space for the validation.
+        newStates = Collections2.filter(newStates, s -> !state.equals(s));
+
+        result.addAll(newStates);
       } else {
         result.add(state);
       }
