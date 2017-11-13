@@ -40,6 +40,8 @@ public class TestCaseData {
 
   private List<String> coveredLabels;
 
+  private String presenceCondition;
+
   private int errorPathLength;
 
   public TestCaseData() {
@@ -54,6 +56,14 @@ public class TestCaseData {
     coveredLabels = Lists.newLinkedList();
 
     errorPathLength = -1;
+  }
+
+  public String getPresenceCondition() {
+    return presenceCondition;
+  }
+
+  public void setPresenceCondition(String condition) {
+    presenceCondition = condition;
   }
 
   public int getId() {
@@ -108,7 +118,16 @@ public class TestCaseData {
   public String toString() {
     StringBuffer str = new StringBuffer();
 
-    str.append("TestCase ").append(id).append(":\n\n");
+    str.append("TestCase ").append(id);
+    if (presenceCondition != null && !presenceCondition.isEmpty()) {
+      str.append(" with configurations ").append(
+          presenceCondition
+              .toString()
+              .replace("__SELECTED_FEATURE_", "")
+              .replace(" & TRUE", ""));
+    }
+
+    str.append(":\n\n");
 
     str.append("\tinputs and outputs {\n");
 

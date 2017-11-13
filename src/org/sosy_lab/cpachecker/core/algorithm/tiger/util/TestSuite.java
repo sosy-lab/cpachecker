@@ -303,6 +303,10 @@ public class TestSuite implements AlgorithmResult {
       TestCase testCase = entry.getKey();
       TestCaseData testCaseData = new TestCaseData();
       testCaseData.setId(testCase.getId());
+      if(testCase.getPresenceCondition() != null) {
+        testCaseData.setPresenceCondition(
+            bddCpaNamedRegionManager.dumpRegion(testCase.getPresenceCondition()).toString());
+      }
 
       Map<String, String> inputs = Maps.newLinkedHashMap();
       Map<String, BigInteger> in = testCase.getInputs();
