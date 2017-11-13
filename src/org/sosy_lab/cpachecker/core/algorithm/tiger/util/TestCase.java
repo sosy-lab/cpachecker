@@ -205,15 +205,23 @@ public class TestCase {
   public String toString() {
     //String returnStr = inputs.toString();
 
+
     String returnStr =
         "TestCase "
-            + id
-            + " with configurations "
-            + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition())
-                .toString()
-                .replace("__SELECTED_FEATURE_", "")
-                .replace(" & TRUE", "")
-            + ":\n\n";
+            + id;
+
+    if (getPresenceCondition() != null) {
+      returnStr +=
+          "TestCase "
+              + id
+              + " with configurations "
+              + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition())
+                  .toString()
+                  .replace("__SELECTED_FEATURE_", "")
+                  .replace(" & TRUE", "");
+    }
+
+    returnStr += ":\n\n";
     returnStr += "\tinputs and outputs {\n";
     for (String variable : inputs.keySet()) {
       returnStr += "\t\t-> " + variable + " = " + inputs.get(variable) + "\n";
