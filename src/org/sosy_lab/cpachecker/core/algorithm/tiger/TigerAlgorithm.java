@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.collect.Lists;
-import de.uni_freiburg.informatik.ultimate.util.datastructures.relation.Pair;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -63,9 +62,12 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
@@ -80,6 +82,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -93,11 +96,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements AlgorithmWithResult {
@@ -129,6 +136,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private int currentTestCaseID;
   private TigerAlgorithmConfiguration tigerConfig;
   private TestGoalUtils testGoalUtils;
+
+  // new
+  NamedRegionManager bddCpaNamedRegionManager = null;
 
   public TigerAlgorithm(
       LogManager pLogger,
@@ -163,6 +173,11 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         new InputOutputValues(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
     currentTestCaseID = 0;
 
+    // Check if BDD is enabled for variability-aware test-suite generation
+    bddCpaNamedRegionManager =
+        BDDUtils
+            .getBddCpaNamedRegionManagerFromCpa(cpa, tigerConfig.shouldUseTigerAlgorithm_with_pc());
+
   }
 
   @Override
@@ -182,10 +197,14 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     outsideReachedSet = pReachedSet;
     outsideReachedSet.clear();
 
+    // TODO
+    // Optimization: Infeasibility propagation
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation =
+        initializeInfisabilityPropagation();
     goalPatterns = testGoalUtils.extractTestGoalPatterns(fqlSpecification);
 
     for (int i = 0; i < goalPatterns.size(); i++) {
-      pTestGoalPatterns.add(new Pair<>(goalPatterns.get(i), (Region) null));
+      pTestGoalPatterns.add(Pair.of(goalPatterns.get(i), (Region) null));
     }
 
     int goalIndex = 1;
@@ -197,7 +216,11 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       goalIndex++;
     }
 
-    testsuite = new TestSuite(null, pGoalsToCover);
+    testsuite =
+        new TestSuite(
+            bddCpaNamedRegionManager,
+            pGoalsToCover,
+            tigerConfig.shouldUseTigerAlgorithm_with_pc());
     /*
      * for (Goal goal : pGoalsToCover) { try { runReachabilityAnalysis(goal, goal.getIndex()); }
      * catch (InvalidConfigurationException e) { logger.log(Level.SEVERE,
@@ -206,7 +229,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
-    if (!testGeneration(pGoalsToCover)) {
+    if (!testGeneration(pGoalsToCover, lInfeasibilityPropagation)) {
       logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
       wasSound = false;
     }
@@ -236,8 +259,26 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     }
   }
 
+  private Pair<Boolean, LinkedList<Edges>> initializeInfisabilityPropagation() {
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
+
+    if (tigerConfig.shouldUseInfeasibilityPropagation()) {
+      lInfeasibilityPropagation =
+          InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
+    } else {
+      lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
+    }
+
+    return lInfeasibilityPropagation;
+  }
+
+  // TODO add pc to log output
+  // TODO add parameter LinkedList<Edges>> pInfeasibilityPropagation
+  // TODO add the parameter to runreachabilityanalysis
   @SuppressWarnings("unchecked")
-  private boolean testGeneration(LinkedList<Goal> pGoalsToCover)
+  private boolean testGeneration(
+      LinkedList<Goal> pGoalsToCover,
+      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
       throws CPAException, InterruptedException {
     boolean wasSound = true;
     boolean retry = false;
@@ -290,7 +331,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
         logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
-        ReachabilityAnalysisResult result = runReachabilityAnalysis(goal, goalIndex, pGoalsToCover);
+        ReachabilityAnalysisResult result =
+            runReachabilityAnalysis(goal, goalIndex, pGoalsToCover, pInfeasibilityPropagation);
 
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -371,7 +413,11 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   }
 
   private ReachabilityAnalysisResult
-      runReachabilityAnalysis(Goal pGoal, int goalIndex, LinkedList<Goal> pGoalsToCover)
+      runReachabilityAnalysis(
+          Goal pGoal,
+          int goalIndex,
+          LinkedList<Goal> pGoalsToCover,
+          Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
           throws CPAException, InterruptedException {
 
     // build CPAs for the goal
@@ -380,6 +426,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does
                                                                              // TOPSORT not exist
                                                                              // anymore?
+
     AbstractState lInitialElement =
         lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
     Precision lInitialPrecision =
@@ -390,13 +437,33 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
     outsideReachedSet.add(lInitialElement, lInitialPrecision);
 
+    // TODO reuse prediccates option
+    // if (reusePredicates) {
+    // // initialize reused predicate precision
+    // PredicateCPA predicateCPA = pArgCPA.retrieveWrappedCpa(PredicateCPA.class);
+    //
+    // if (predicateCPA != null) {
+    // reusedPrecision = (PredicatePrecision)
+    // predicateCPA.getInitialPrecision(cfa.getMainFunction(),
+    // StateSpacePartition.getDefaultPartition());
+    // } else {
+    // logger.logf(Level.INFO, "No predicate CPA available to reuse predicates!");
+    // }
+    // }
+
     ShutdownManager algNotifier =
         ShutdownManager.createWithParent(startupConfig.getShutdownNotifier());
 
     startupConfig.getConfig();
 
     // run analysis
-    Algorithm algorithm = buildAlgorithm(algNotifier, lARTCPA);
+    Region presenceConditionToCover =
+        BDDUtils.composeRemainingPresenceConditions(
+            pGoalsToCover,
+            testsuite,
+            bddCpaNamedRegionManager);
+    Algorithm algorithm = buildAlgorithm(presenceConditionToCover, algNotifier, lARTCPA);
+    // TODO hier schleife einfügen
     Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, algNotifier);
 
     // write ARG to file
@@ -431,11 +498,20 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           @SuppressWarnings("unused")
           Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
+          Region testCasePresenceCondition =
+              tigerConfig.shouldUseTigerAlgorithm_with_pc()
+                  ? BDDUtils.getRegionFromWrappedBDDstate(lastState)
+                  : null;
+
           if (!cexi.isPresent()/* counterexamples.isEmpty() */) {
 
+            // TODO presence condition hier auch?
             TestCase testcase = handleUnavailableCounterexample(criticalEdge, lastState);
 
-            testsuite.addTestCase(testcase, pGoal);
+            testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition);
+            // TODO BDD Testsuite
+            // testsuite = new TestSuite(bddCpaNamedRegionManager, printLabels,
+            // useTigerAlgorithm_with_pc);
           } else {
             // test goal is feasible
             logger.logf(Level.INFO, "Counterexample is available.");
@@ -443,8 +519,13 @@ public class TigerAlgorithm implements AlgorithmWithResult {
             if (cex.isSpurious()) {
               logger.logf(Level.WARNING, "Counterexample is spurious!");
             } else {
-              TestCase testcase = createTestcase(cex, null);
-              testsuite.addTestCase(testcase, pGoal);
+
+
+
+              TestCase testcase = createTestcase(cex, testCasePresenceCondition);
+              // TODO methode addtesttosuite hier einbauen
+              testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition);
+              // TODO add infeasibilitypropagarion to checkgoalcoverage
               if (tigerConfig.shouldCheckCoverage()) {
                 checkGoalCoverage(pGoalsToCover, testcase, true);
                 // removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
@@ -507,7 +588,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
             outputValus,
             cex.getTargetPath().asEdgesList(),
             shrinkedErrorPath,
-            null);
+            pPresenceCondition,
+            bddCpaNamedRegionManager);
     currentTestCaseID++;
     return testcase;
   }
@@ -515,6 +597,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private void
       checkGoalCoverage(List<Goal> testGoals, TestCase testCase, boolean removeCoveredGoals) {
     for (Goal goal : testCase.getCoveredGoals(testGoals)) {
+      // TODO add infeasiblitpropagaion to testsuite
       testsuite.updateTestcaseToGoalMapping(testCase, goal);
       String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
       if (removeCoveredGoals) {
@@ -599,7 +682,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
   }
 
-  private Algorithm buildAlgorithm(ShutdownManager algNotifier, ARGCPA lARTCPA)
+  private Algorithm buildAlgorithm(
+      Region pRemainingPresenceCondition,
+      ShutdownManager algNotifier,
+      ARGCPA lARTCPA)
       throws CPAException {
     Algorithm algorithm;
     try {
@@ -635,10 +721,32 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         lStatistics.add(lARTStatistics);
         cegarAlg.collectStatistics(lStatistics);
       }
+      if (tigerConfig.shouldUseTigerAlgorithm_with_pc()) {
+        restrictBdd(pRemainingPresenceCondition);
+      }
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
     return algorithm;
+  }
+
+  private void restrictBdd(Region pRemainingPresenceCondition) {
+
+      // inject goal Presence Condition in BDDCPA
+      BDDCPA bddcpa = null;
+      if (cpa instanceof WrapperCPA) {
+        // must be non-null, otherwise Exception in constructor of this class
+        bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
+      } else if (cpa instanceof BDDCPA) {
+        bddcpa = (BDDCPA) cpa;
+      }
+      if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
+      BDDTransferRelation transferRelation = ((BDDTransferRelation) bddcpa.getTransferRelation());
+      transferRelation.setGlobalConstraint(pRemainingPresenceCondition);
+        logger.logf(Level.INFO, "Restrict global BDD.");
+        // logger.logf(Level.INFO, "Restrict BDD to %s.",
+        // bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
+      }
   }
 
   private Pair<Boolean, Boolean> runAlgorithm(Algorithm algorithm, ShutdownManager algNotifier)
@@ -676,7 +784,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         }
       }
     }
-    return new Pair<>(analysisWasSound, hasTimedOut);
+    return Pair.of(analysisWasSound, hasTimedOut);
   }
 
   private TestCase handleUnavailableCounterexample(CFAEdge criticalEdge, AbstractState lastState) {
@@ -724,7 +832,14 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     Map<String, BigInteger> outputValues = new LinkedHashMap<>();
 
     TestCase result =
-        new TestCase(currentTestCaseID, inputValues, outputValues, trace, shrinkedErrorPath, null);
+        new TestCase(
+            currentTestCaseID,
+            inputValues,
+            outputValues,
+            trace,
+            shrinkedErrorPath,
+            null,
+            bddCpaNamedRegionManager);
     currentTestCaseID++;
     return result;
   }

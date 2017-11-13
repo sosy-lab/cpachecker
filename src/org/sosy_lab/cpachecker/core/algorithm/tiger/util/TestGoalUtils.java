@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class TestGoalUtils {
 
@@ -51,7 +51,8 @@ public class TestGoalUtils {
   private int statistics_numberOfTestGoals;
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
 
-
+  // TODO add variablewhitelist from new parameter String bdpvwl.. or maybe it is not used
+  //
   public TestGoalUtils(LogManager pLogger, Wrapper wrapper, CFA cfa, boolean pOptimizeGoalAutomata, String originalMainFunction) {
 
     mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import de.uni_freiburg.informatik.ultimate.util.datastructures.relation.Pair;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -44,8 +43,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class TestSuite implements AlgorithmResult {
 
@@ -57,15 +57,30 @@ public class TestSuite implements AlgorithmResult {
   private List<Goal> includedTestGoals;
   private TestSuiteData testSuiteData;
 
-  public TestSuite(NamedRegionManager pBddCpaNamedRegionManager, List<Goal> includedTestGoals) {
+  // new
+  private Map<org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal, Region> remainingPresenceConditions;
+  private Map<org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal, Region> infeasiblePresenceConditions;
+  boolean useTigerAlgorithm_with_pc;
+  private Map<Pair<TestCase, Goal>, Region> coveringPresenceConditions;
+  private int numberOfFeasibleGoals = 0;
+
+  public TestSuite(
+      NamedRegionManager pBddCpaNamedRegionManager,
+      List<Goal> includedTestGoals,
+      boolean pUseTigerAlgorithm_with_pc) {
     mapping = new LinkedHashMap<>();
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
+    useTigerAlgorithm_with_pc = pUseTigerAlgorithm_with_pc;
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     coveringTestCases = new LinkedHashMap<>();
     this.includedTestGoals = Lists.newLinkedList();
     this.includedTestGoals.addAll(includedTestGoals);
+    coveringPresenceConditions = new HashMap<>();
+    remainingPresenceConditions = new HashMap<>();
+    infeasiblePresenceConditions = new HashMap<>();
     testSuiteData = null;
+
   }
 
   public Set<Goal> getTestGoals() {
@@ -97,7 +112,7 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void addTimedOutGoal(int index, Goal goal, Region presenceCondition) {
-    timedOutGoals.put(index, new Pair<>(goal, presenceCondition));
+    timedOutGoals.put(index, Pair.of(goal, presenceCondition));
   }
 
   public Map<Integer, Pair<Goal, Region>> getTimedOutGoals() {
@@ -105,15 +120,24 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void addInfeasibleGoal(Goal goal, Region presenceCondition) {
-    if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {
+    if (presenceCondition != null
+        && infeasibleGoals.containsKey(goal)
+        && useTigerAlgorithm_with_pc) {
+      infeasibleGoals.put(
+          goal,
+          bddCpaNamedRegionManager
+              .makeOr(infeasiblePresenceConditions.get(goal), presenceCondition));
     } else {
       infeasibleGoals.put(goal, presenceCondition);
     }
   }
 
-  public boolean addTestCase(TestCase testcase, Goal goal) {
+  public boolean addTestCase(TestCase testcase, Goal goal, Region pPresenceCondition) {
     if (testSuiteAlreadyContrainsTestCase(testcase, goal)) {
       return true;
+    }
+    if (!isGoalPariallyCovered(goal)) {
+      numberOfFeasibleGoals++;
     }
 
     List<Goal> goals = mapping.get(testcase);
@@ -134,13 +158,45 @@ public class TestSuite implements AlgorithmResult {
     goals.add(goal);
     testcases.add(testcase);
 
+    if (useTigerAlgorithm_with_pc) {
+      // goal.setPresenceCondition(pPresenceCondition);
+      coveringPresenceConditions.put(Pair.of(testcase, goal), pPresenceCondition);
+
+      setRemainingPresenceCondition(
+          goal,
+          bddCpaNamedRegionManager.makeAnd(
+              getRemainingPresenceCondition(goal, bddCpaNamedRegionManager),
+              bddCpaNamedRegionManager.makeNot(pPresenceCondition)));
+    }
+
     return testcaseExisted;
+  }
+
+  public void setRemainingPresenceCondition(Goal pGoal, Region presenceCondtion) {
+    remainingPresenceConditions.put(pGoal, presenceCondtion);
+  }
+
+  private boolean isGoalPariallyCovered(Goal pGoal) {
+    if (useTigerAlgorithm_with_pc) {
+      if (remainingPresenceConditions.get(pGoal) != null
+          && remainingPresenceConditions.get(pGoal).isFalse()) {
+        return true;
+      }
+    }
+
+    List<TestCase> testCases = coveringTestCases.get(pGoal);
+    return (testCases != null && testCases.size() > 0);
+
   }
 
   public void updateTestcaseToGoalMapping(TestCase testcase, Goal goal) {
     List<Goal> goals = mapping.get(testcase);
     if (!goals.contains(goal)) {
       goals.add(goal);
+    }
+
+    if (useTigerAlgorithm_with_pc) {
+      remainingPresenceConditions.put(goal, bddCpaNamedRegionManager.makeTrue());
     }
 
     List<TestCase> testcases = coveringTestCases.get(goal);
@@ -186,7 +242,7 @@ public class TestSuite implements AlgorithmResult {
         + (pGoal.getPresenceCondition() != null
             ? " with targetPC "
                 + bddCpaNamedRegionManager
-                    .dumpRegion((org.sosy_lab.cpachecker.util.predicates.regions.Region) pGoal
+                    .dumpRegion(pGoal
                         .getPresenceCondition())
             : "");
 
@@ -207,7 +263,7 @@ public class TestSuite implements AlgorithmResult {
               + (goal.getPresenceCondition() != null
                   ? " with targetPC "
                       + bddCpaNamedRegionManager
-                          .dumpRegion((org.sosy_lab.cpachecker.util.predicates.regions.Region) goal
+                          .dumpRegion(goal
                               .getPresenceCondition())
                   : "");
           if (testgoalString.equals(testgoalStringCmp)) {
@@ -252,6 +308,7 @@ public class TestSuite implements AlgorithmResult {
       Map<String, BigInteger> in = testCase.getInputs();
       for (String key : in.keySet()) {
         inputs.put(key, in.get(key).toString());
+
       }
       testCaseData.setInputs(inputs);
 
@@ -289,6 +346,7 @@ public class TestSuite implements AlgorithmResult {
     if (!timedOutGoals.isEmpty()) {
       for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
         timedoutGoalStrings.add(getTestGoalLabel(entry.getValue().getFirst()));
+
       }
     }
 
@@ -386,7 +444,7 @@ public class TestSuite implements AlgorithmResult {
    * goal.
    */
   public Region getGoalCoverage(Goal pGoal) {
-    Region totalCoverage = (Region) bddCpaNamedRegionManager.makeFalse();
+    Region totalCoverage = bddCpaNamedRegionManager.makeFalse();
     for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
       if (entry.getValue().contains(pGoal)) {
         assert entry.getKey().getPresenceCondition() != null;
@@ -402,8 +460,12 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public boolean isGoalCovered(Goal pGoal) {
+    if (useTigerAlgorithm_with_pc) {
+      return remainingPresenceConditions.get(pGoal).isFalse();
+    } else {
     List<TestCase> testCases = coveringTestCases.get(pGoal);
     return (testCases != null && testCases.size() > 0);
+    }
 
   }
 
@@ -411,4 +473,15 @@ public class TestSuite implements AlgorithmResult {
     return coveringTestCases.get(goal);
   }
 
+  public boolean isVariabilityAware() {
+    return useTigerAlgorithm_with_pc;
+  }
+
+  public Region
+      getRemainingPresenceCondition(Goal pGoal, NamedRegionManager pBddCpaNamedRegionManager) {
+    if (!remainingPresenceConditions.containsKey(pGoal)) {
+      return pBddCpaNamedRegionManager.makeTrue();
+    }
+    return remainingPresenceConditions.get(pGoal);
+  }
 }

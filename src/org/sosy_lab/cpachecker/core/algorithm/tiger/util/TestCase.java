@@ -54,17 +54,20 @@ public class TestCase {
   private List<CFAEdge> errorPath;
   private Region presenceCondition;
   private ARGPath argPath;
+  NamedRegionManager bddCpaNamedRegionManager;
 
   public TestCase(int pI, Map<String, BigInteger> pInputs, Map<String, BigInteger> pOutputs,
       List<CFAEdge> pPath,
       List<CFAEdge> pShrinkedErrorPath,
-      Region pPresenceCondition) {
+      Region pPresenceCondition,
+      NamedRegionManager pBddCpaNamedRegionManager) {
     inputs = pInputs;
     outputs = pOutputs;
     path = pPath;
     errorPath = pShrinkedErrorPath;
     presenceCondition = pPresenceCondition;
     id = pI;
+    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
   }
 
   public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,
@@ -78,6 +81,7 @@ public class TestCase {
     errorPath = pList;
     presenceCondition = pPresenceCondition;
     inputs = pInputValues;
+    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
   }
 
   public int getId() {
@@ -201,7 +205,15 @@ public class TestCase {
   public String toString() {
     //String returnStr = inputs.toString();
 
-    String returnStr = "TestCase " + id + ":\n\n";
+    String returnStr =
+        "TestCase "
+            + id
+            + " with configurations "
+            + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition())
+                .toString()
+                .replace("__SELECTED_FEATURE_", "")
+                .replace(" & TRUE", "")
+            + ":\n\n";
     returnStr += "\tinputs and outputs {\n";
     for (String variable : inputs.keySet()) {
       returnStr += "\t\t-> " + variable + " = " + inputs.get(variable) + "\n";

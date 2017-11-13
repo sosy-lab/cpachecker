@@ -40,6 +40,17 @@ public class TigerAlgorithmConfiguration {
     config.inject(this);
   }
 
+  // TODO
+  // @Option(secure = true, name = "reusePredicates", description = "Reuse predicates across
+  // modifications of an ARG.")
+  // private boolean reusePredicates = true;
+
+  // @Option(
+  // secure = true,
+  // name = "useInfeasibilityPropagation",
+  // description = "Map information on infeasibility of one test goal to other test goals.")
+  // private boolean useInfeasibilityPropagation = false;
+
   @Option(
       secure = true,
       name = "fqlQuery",
@@ -122,6 +133,26 @@ public class TigerAlgorithmConfiguration {
       name = "allCoveredGoalsPerTestCase",
       description = "Returns all test goals covered by a test case.")
   private boolean allCoveredGoalsPerTestCase = false;
+
+  @Option(
+    secure = true,
+    name = "tiger_with_presenceConditions",
+    description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions.")
+  private boolean useTigerAlgorithm_with_pc = false;
+
+  @Option(
+    secure = true,
+    name = "useInfeasibilityPropagation",
+    description = "Map information on infeasibility of one test goal to other test goals.")
+  private boolean useInfeasibilityPropagation = false;
+
+  public boolean shouldUseInfeasibilityPropagation() {
+    return useInfeasibilityPropagation;
+  }
+
+  public boolean shouldUseTigerAlgorithm_with_pc() {
+    return useTigerAlgorithm_with_pc;
+  }
 
   public boolean useAllGoalsPerTestcase() {
     return allCoveredGoalsPerTestCase;
