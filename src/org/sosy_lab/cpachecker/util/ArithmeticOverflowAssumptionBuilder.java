@@ -101,7 +101,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   private boolean trackSignedIntegers = true;
 
   @Option(description = "Track undefined behavior in left-shift operations.")
-  private boolean trackLeftShifts = false;
+  private boolean trackLeftShifts = true;
 
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
