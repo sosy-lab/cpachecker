@@ -168,10 +168,12 @@ public class ARGToDotWriter {
       sb.append(determineStateHint(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
-        edges.append(covered.getStateId());
-        edges.append(" -> ");
-        edges.append(currentElement.getStateId());
-        edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
+        if (displayedElements.apply(covered)) {
+          edges.append(covered.getStateId());
+          edges.append(" -> ");
+          edges.append(currentElement.getStateId());
+          edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
+        }
       }
 
       for (ARGState child : successorFunction.apply(currentElement)) {
