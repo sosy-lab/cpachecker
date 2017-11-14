@@ -427,19 +427,24 @@ public class AutomatonGraphmlParser {
     // conditions can conveniently be conjoined to it later
     AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
 
-    // Never match on the dummy edge directly after the main function entry node
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
-    // Never match on artificially split declarations
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
-
-    // Add a source-code guard for a specified loop head
-    if (pTransition.entersLoopHead()) {
-      transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+    // Add a source-code guard for specified line numbers
+    if (matchOriginLine) {
+      transitionCondition = and(
+          transitionCondition,
+          getLocationMatcher(
+              pTransition.getLineMatcherPredicate()));
     }
 
-    // Add a source-code guard for function-call statements if an explicit result function is specified
+    // Add a source-code guard for specified character offsets
+    if (matchOffset) {
+      transitionCondition = and(
+          transitionCondition,
+          getLocationMatcher(
+              pTransition.getOffsetMatcherPredicate()));
+    }
+
+    // Add a source-code guard for function-call statements if an explicit result function is
+    // specified
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName =
@@ -449,26 +454,9 @@ public class AutomatonGraphmlParser {
                   pTransition.getExplicitAssumptionResultFunction())
               .get();
       transitionCondition =
-          and(transitionCondition,
+          and(
+              transitionCondition,
               new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
-    }
-
-    // Add a source-code guard for specified line numbers
-    if (matchOriginLine) {
-      transitionCondition = and(
-          transitionCondition,
-          getLocationMatcher(
-              pTransition.entersLoopHead(),
-              pTransition.getLineMatcherPredicate()));
-    }
-
-    // Add a source-code guard for specified character offsets
-    if (matchOffset) {
-      transitionCondition = and(
-          transitionCondition,
-          getLocationMatcher(
-              pTransition.entersLoopHead(),
-              pTransition.getOffsetMatcherPredicate()));
     }
 
     // Add a source-code guard for specified function exits
@@ -477,9 +465,50 @@ public class AutomatonGraphmlParser {
           and(
               transitionCondition,
               getFunctionExitMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit()).get(),
-                  pTransition.entersLoopHead()));
+                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit())
+                      .get()));
     }
+
+    // Add a source-code guard for specified function entries
+    if (pTransition.getFunctionEntry().isPresent()) {
+      transitionCondition =
+          and(
+              transitionCondition,
+              getFunctionCallMatcher(
+                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
+                      .get()));
+    }
+
+    // Add a source-code guard for specified branching information
+    if (matchAssumeCase) {
+      transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
+    }
+
+    // Add a source-code guard for a specified loop head
+    if (pTransition.entersLoopHead()) {
+      // Unfortunately, we have a blank edge entering most of our loop heads;
+      // (a) sometimes the transition needs to match the successor state to the loop head,
+      // (b) sometimes the transition needs to match the edge before the blank edge,
+      // sometimes the transition even needs to match "both" of the above.
+      // Therefore, we do exactly that (match "both");
+      AutomatonBoolExpr conditionA =
+          and(
+              AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(transitionCondition, true),
+              AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+      AutomatonBoolExpr conditionB =
+          and(
+              transitionCondition,
+              AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                  AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
+      transitionCondition = or(conditionA, conditionB);
+    }
+
+    // Never match on the dummy edge directly after the main function entry node
+    transitionCondition =
+        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
+    // Never match on artificially split declarations
+    transitionCondition =
+        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
     // If the transition represents a function call, add a sink transition
     // in case it is a function pointer call,
@@ -491,31 +520,16 @@ public class AutomatonGraphmlParser {
           and(
               transitionCondition,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get(),
-                  pTransition.getTarget().isSinkState(),
-                  pTransition.entersLoopHead()));
+                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
+                      .get(),
+                  pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
               fpElseTrigger,
-              Collections.<AutomatonBoolExpr> emptyList(),
+              Collections.<AutomatonBoolExpr>emptyList(),
               actions,
               false,
               stopNotBreakAtSinkStates));
-    }
-
-    // Add a source-code guard for specified function entries
-    if (pTransition.getFunctionEntry().isPresent()) {
-      transitionCondition =
-          and(
-              transitionCondition,
-              getFunctionCallMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get(),
-                  pTransition.entersLoopHead()));
-    }
-
-    // Add a source-code guard for specified branching information
-    if (matchAssumeCase) {
-      transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
     }
 
     // If the triggers do not apply, none of the above transitions is taken,
@@ -903,37 +917,25 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private static AutomatonBoolExpr getFunctionCallMatcher(String pEnteredFunction, boolean pEntersLoopHead) {
+  private static AutomatonBoolExpr getFunctionCallMatcher(String pEnteredFunction) {
     AutomatonBoolExpr functionEntryMatcher =
         new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction);
-    if (pEntersLoopHead) {
-      functionEntryMatcher =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionEntryMatcher, true);
-    }
     return functionEntryMatcher;
   }
 
-  private static AutomatonBoolExpr getFunctionPointerAssumeCaseMatcher(String pEnteredFunction,
-      boolean pIsSinkNode, boolean pEntersLoopHead) {
+  private static AutomatonBoolExpr getFunctionPointerAssumeCaseMatcher(
+      String pEnteredFunction, boolean pIsSinkNode) {
     AutomatonBoolExpr functionPointerAssumeCaseMatcher =
       new AutomatonBoolExpr.MatchFunctionPointerAssumeCase(
           new AutomatonBoolExpr.MatchAssumeCase(pIsSinkNode),
           new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction));
-    if (pEntersLoopHead) {
-      functionPointerAssumeCaseMatcher =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionPointerAssumeCaseMatcher, true);
-    }
     return functionPointerAssumeCaseMatcher;
   }
 
-  private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction, boolean pEntersLoopHead) {
+  private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction) {
     AutomatonBoolExpr functionExitMatcher = or(
         new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
         new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
-    if (pEntersLoopHead) {
-      functionExitMatcher =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionExitMatcher, true);
-    }
     return functionExitMatcher;
   }
 
@@ -960,28 +962,19 @@ public class AutomatonGraphmlParser {
   /**
    * Creates an automaton-transition condition to match a specific file location.
    *
-   * <p>If no predicate is specified, the resulting condition is
-   * {@code AutomatonBoolExpr#TRUE}.</p>
-   *
-   * @param pEntersLoopHead if {@code true} and a predicate is specified,
-   * the condition is wrapped as a backward epsilon match.
+   * <p>If no predicate is specified, the resulting condition is {@code AutomatonBoolExpr#TRUE}.
    *
    * @return an automaton-transition condition to match a specific file location.
    */
-  private AutomatonBoolExpr getLocationMatcher(boolean pEntersLoopHead, Optional<Predicate<FileLocation>> pMatcherPredicate) {
+  private AutomatonBoolExpr getLocationMatcher(
+      Optional<Predicate<FileLocation>> pMatcherPredicate) {
 
     if (!pMatcherPredicate.isPresent()) {
       return AutomatonBoolExpr.TRUE;
     }
 
-    AutomatonBoolExpr offsetMatchingExpr =
-        new AutomatonBoolExpr.MatchLocationDescriptor(cfa.getMainFunction(), pMatcherPredicate.get());
-
-    if (pEntersLoopHead) {
-      offsetMatchingExpr =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
-    }
-    return offsetMatchingExpr;
+    return new AutomatonBoolExpr.MatchLocationDescriptor(
+        cfa.getMainFunction(), pMatcherPredicate.get());
   }
 
   /**
@@ -1118,13 +1111,7 @@ public class AutomatonGraphmlParser {
         throw new WitnessParseException("Unrecognized assume case: " + assumeCaseStr);
       }
 
-      AutomatonBoolExpr assumeCaseMatchingExpr = new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
-      if (entersLoopHead(pTransition)) {
-        assumeCaseMatchingExpr =
-            AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(assumeCaseMatchingExpr, true);
-      }
-
-      return assumeCaseMatchingExpr;
+      return new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
     }
     return AutomatonBoolExpr.TRUE;
   }
