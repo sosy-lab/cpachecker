@@ -693,12 +693,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(
-          new ExpressionTreeLocationInvariant(
-              expressionTreeLocationInvariant.getGroupId(),
-              expressionTreeLocationInvariant.getLocation(),
-              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-              toCodeVisitorCache));
+      for (CFANode location :
+          candidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        candidates.add(
+            new ExpressionTreeLocationInvariant(
+                expressionTreeLocationInvariant.getGroupId(),
+                location,
+                expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+                toCodeVisitorCache));
+      }
     }
   }
 
