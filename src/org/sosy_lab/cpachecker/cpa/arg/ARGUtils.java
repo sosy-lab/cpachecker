@@ -49,6 +49,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.graph.Traverser;
 import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
@@ -104,24 +105,9 @@ public class ARGUtils {
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
-  public static Set<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
-
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> waitList = new ArrayDeque<>();
-
-    result.add(pLastElement);
-    waitList.add(pLastElement);
-
-    while (!waitList.isEmpty()) {
-      ARGState currentElement = waitList.poll();
-      for (ARGState parent : currentElement.getParents()) {
-        if (result.add(parent)) {
-          waitList.push(parent);
-        }
-      }
-    }
-
-    return result;
+  public static ImmutableSet<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
+    return ImmutableSet.copyOf(
+        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElement));
   }
 
   /** Get all abstract states without parents. */
