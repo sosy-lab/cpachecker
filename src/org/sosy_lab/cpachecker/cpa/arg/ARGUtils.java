@@ -40,6 +40,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -123,12 +124,10 @@ public class ARGUtils {
     return result;
   }
 
-  /**
-   * Get all abstract states without parents.
-   */
-  public static Set<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
+  /** Get all abstract states without parents. */
+  public static ImmutableSet<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
 
-    Set<ARGState> result = new HashSet<>();
+    ImmutableSet.Builder<ARGState> result = ImmutableSet.builder();
 
     for (AbstractState e : pReached) {
       ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
@@ -137,7 +136,7 @@ public class ARGUtils {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   /**
