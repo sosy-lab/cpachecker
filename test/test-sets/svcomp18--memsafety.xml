@@ -25,4 +25,8 @@
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
+  <tasks name="MemSafety-LinkedLists">
+    <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+  </tasks>
 </benchmark>
