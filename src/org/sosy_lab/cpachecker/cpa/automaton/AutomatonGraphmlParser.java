@@ -53,7 +53,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -280,10 +279,7 @@ public class AutomatonGraphmlParser {
    */
   private AutomatonInternalState createAutomatonState(
       AutomatonGraphmlParserState pGraphMLParserState, GraphMLState pState) {
-    List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions().get(pState);
-    if (transitions == null) {
-      transitions = new ArrayList<>();
-    }
+    List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions(pState);
 
     // If the transition conditions do not apply, none of the above transitions is taken,
     // and instead, the stutter condition applies.
@@ -390,12 +386,8 @@ public class AutomatonGraphmlParser {
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
-    LinkedList<AutomatonTransition> transitions =
-        pGraphMLParserState.getStateTransitions().get(pTransition.getSource());
-    if (transitions == null) {
-      transitions = Lists.newLinkedList();
-      pGraphMLParserState.getStateTransitions().put(pTransition.getSource(), transitions);
-    }
+    List<AutomatonTransition> transitions =
+        pGraphMLParserState.getStateTransitions(pTransition.getSource());
 
     // Handle call stack
     Deque<String> newStack = handleCallStack(pGraphMLParserState, pTransition);

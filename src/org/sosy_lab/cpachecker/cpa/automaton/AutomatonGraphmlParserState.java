@@ -33,10 +33,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -109,8 +110,7 @@ public class AutomatonGraphmlParserState {
    * States (represented in the GraphML model) and the transitions leaving them (in our automaton
    * model).
    */
-  private final Map<GraphMLState, LinkedList<AutomatonTransition>> stateTransitions =
-      Maps.newHashMap();
+  private final Map<GraphMLState, List<AutomatonTransition>> stateTransitions = Maps.newHashMap();
 
   /**
    * Initializes a new {@link AutomatonGraphmlParserState}.
@@ -495,14 +495,20 @@ public class AutomatonGraphmlParserState {
   }
 
   /**
-   * Gets the currently collected list of state transitions (in our automaton model) leaving each
-   * states (represented in the GraphML model).
+   * Gets the currently collected list of state transitions (in our automaton model) leaving the
+   * given state.
    *
-   * @return the currently collected list of state transitions (in our automaton model) leaving each
-   *     states (represented in the GraphML model).
+   * @param pGraphMLState the state to get the leaving transitions for.
+   * @return the currently collected list of state transitions (in our automaton model) leaving the
+   *     given state (represented in the GraphML model).
    */
-  public Map<GraphMLState, LinkedList<AutomatonTransition>> getStateTransitions() {
-    return stateTransitions;
+  public List<AutomatonTransition> getStateTransitions(GraphMLState pGraphMLState) {
+    List<AutomatonTransition> result = stateTransitions.get(pGraphMLState);
+    if (result == null) {
+      result = new ArrayList<>(4);
+      stateTransitions.put(pGraphMLState, result);
+    }
+    return result;
   }
 
   /**
