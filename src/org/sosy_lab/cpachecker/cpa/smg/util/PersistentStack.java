@@ -81,6 +81,10 @@ public class PersistentStack<T> implements Iterable<T> {
     return delegate.size();
   }
 
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
+
   @Override
   public Iterator<T> iterator() {
     return delegate.values().iterator();
