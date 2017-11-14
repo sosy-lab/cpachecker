@@ -44,19 +44,19 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class TigerTest {
 
-  private static final String EXAMPLE_C = "test/programs/tiger/simulator/example.c";
+  private static final String EXAMPLE_C = "test/programs/tiger/products/example_v0.c";
 
-  private static final String EXAMPLE_V1_C = "test/programs/tiger/simulator/example_v1.c";
+  private static final String EXAMPLE_V1_C = "test/programs/tiger/products/example_v1.c";
 
   private static final String EMAIL_SIMULATOR_C = "test/programs/tiger/simulator/email_simulator.c";
 
-  private static final String EXAMPLE_LOOP = "test/programs/tiger/simulator/example_loop.c";
+  private static final String EXAMPLE_LOOP = "test/programs/tiger/products/example_loop.c";
 
   private static final String EXAMPLE_ONLY_INFEASIBLE =
-      "test/programs/tiger/simulator/example_only_infeasible.c";
+      "test/programs/tiger/products/example_only_infeasible.c";
 
   private static final String EXAMPLE_IfCOMBINATIONS =
-      "test/programs/tiger/simulator/example_ifCombinations.c";
+      "test/programs/tiger/products/example_ifCombinations.c";
 
   private static List<ExpectedGoalProperties> exampleGoalProperties;
 

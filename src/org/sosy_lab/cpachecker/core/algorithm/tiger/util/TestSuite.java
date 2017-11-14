@@ -317,7 +317,7 @@ public class TestSuite implements AlgorithmResult {
       testCaseData.setInputs(inputs);
 
       Map<String, String> outputs = Maps.newLinkedHashMap();
-      Map<String, BigInteger> out = testCase.getInputs();
+      Map<String, BigInteger> out = testCase.getOutputs();
       for (String key : out.keySet()) {
         outputs.put(key, out.get(key).toString());
       }
