@@ -30,6 +30,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -382,7 +383,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
-    BooleanFormula branchingFormula = bfmgr.makeTrue();
+    List<BooleanFormula> branchingFormula = new ArrayList<>();
     for (final ARGState pathElement : elementsOnPath) {
       Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
       Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
@@ -448,10 +449,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
         }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
-        branchingFormula = bfmgr.and(branchingFormula, equiv);
+        branchingFormula.add(equiv);
       }
     }
-    return branchingFormula;
+    return bfmgr.and(branchingFormula);
   }
 
   /**
