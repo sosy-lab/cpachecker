@@ -2136,7 +2136,7 @@ cpa.smg.handleExternVariableAsExternalAllocation = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
-cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
+cpa.smg.handleNonFreedMemoryInMainAsMemLeak = true
 
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT

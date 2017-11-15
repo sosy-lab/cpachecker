@@ -41,9 +41,11 @@ public class SMGOptions {
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
   @Option(
-      secure = true,
-      description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
-  private boolean handleNonFreedMemoryInMainAsMemLeak = false;
+    secure = true,
+    description =
+        "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main"
+  )
+  private boolean handleNonFreedMemoryInMainAsMemLeak = true;
 
   @Option(
       secure = true,
