@@ -144,21 +144,21 @@ public class ARGState extends AbstractSingleWrapperState
     final AbstractStateWithLocations childLocs =
         extractStateByType(pChild, AbstractStateWithLocations.class);
 
-    // first try to get a normal edge
-    // consider only the actual analysis direction
-    Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
-    for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-      if (ingoingEdgesOfChild.contains(edge)) {
-        return edge;
+    if (currentLocs != null && childLocs != null) {
+      // first try to get a normal edge
+      // consider only the actual analysis direction
+      Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
+      for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
+        if (ingoingEdgesOfChild.contains(edge)) { return edge; }
       }
-    }
 
-    // then try to get a special edge, just to have some edge.
-    for (CFANode currentLoc : currentLocs.getLocationNodes()) {
-      for (CFANode childLoc : childLocs.getLocationNodes()) {
-        if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
-          return currentLoc.getLeavingSummaryEdge();
+      // then try to get a special edge, just to have some edge.
+      for (CFANode currentLoc : currentLocs.getLocationNodes()) {
+        for (CFANode childLoc : childLocs.getLocationNodes()) {
+          if (currentLoc.getLeavingSummaryEdge() != null
+              && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
+            return currentLoc.getLeavingSummaryEdge();
+          }
         }
       }
     }
@@ -196,15 +196,17 @@ public class ARGState extends AbstractSingleWrapperState
       CFANode currentLoc = AbstractStates.extractLocation(this);
       CFANode childLoc = AbstractStates.extractLocation(pChild);
 
-      while (!currentLoc.equals(childLoc)) {
-        // we didn't find a proper connection to the child so we return an empty list
-        if (currentLoc.getNumLeavingEdges() != 1) {
-          return Collections.emptyList();
-        }
+      if (currentLoc != null && childLoc != null) {
+        while (!currentLoc.equals(childLoc)) {
+          // we didn't find a proper connection to the child so we return an empty list
+          if (currentLoc.getNumLeavingEdges() != 1) {
+            return Collections.emptyList();
+          }
 
-        final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
-        allEdges.add(leavingEdge);
-        currentLoc = leavingEdge.getSuccessor();
+          final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+          allEdges.add(leavingEdge);
+          currentLoc = leavingEdge.getSuccessor();
+        }
       }
       return allEdges;
     } else {
