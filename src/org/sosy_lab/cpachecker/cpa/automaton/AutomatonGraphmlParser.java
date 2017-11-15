@@ -890,7 +890,6 @@ public class AutomatonGraphmlParser {
     } catch (ParserConfigurationException | SAXException e) {
       throw new WitnessParseException(e);
     }
-    doc.getDocumentElement().normalize();
 
     return new GraphMLDocumentData(doc);
   }
@@ -1740,7 +1739,6 @@ public class AutomatonGraphmlParser {
     } catch (ParserConfigurationException | SAXException e) {
       throw new WitnessParseException(e);
     }
-    doc.getDocumentElement().normalize();
 
     // (The one) root node of the graph ----
     NodeList graphs = doc.getElementsByTagName(GraphMLTag.GRAPH.toString());
