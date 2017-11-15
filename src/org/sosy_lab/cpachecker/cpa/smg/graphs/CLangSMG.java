@@ -261,14 +261,6 @@ public class CLangSMG extends SMG {
     for (SMGObject object : frame.getAllObjects()) {
       removeObjectAndEdges(object);
     }
-    // If the stack becomes empty again, we left the program
-    // and so all global objects are no longer visible
-    if (stack_objects.isEmpty()) {
-      for (SMGObject object : global_objects.values()) {
-        removeObjectAndEdges(object);
-      }
-      global_objects = PathCopyingPersistentTreeMap.of();
-    }
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);

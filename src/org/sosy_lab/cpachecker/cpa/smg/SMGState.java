@@ -1755,13 +1755,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public List<SMGObject> getInvalidObjects() {
     return heap.getInvalidObjects();
   }
-
-  public void clearStack() throws SMGInconsistentException {
-    while (!heap.getStackFrames().isEmpty()) {
-      dropStackFrame();
-    }
-  }
-
   /**
    * Drop the stack frame representing the stack of
    * the function with the given name

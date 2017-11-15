@@ -240,7 +240,7 @@ public class SMGTransferRelation
       // TODO: Handle leaks at any program exit point (abort, etc.)
       for (SMGState successor : successors) {
         if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-          successor.clearStack();
+          successor.dropStackFrame();
         }
         successor.pruneUnreachable();
       }
