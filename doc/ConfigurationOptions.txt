@@ -2633,7 +2633,7 @@ merge = "JOIN"
 overflow.config = no default value
 
 # Track undefined behavior in left-shift operations.
-overflow.trackLeftShifts = false
+overflow.trackLeftShifts = true
 
 # Track overflow for signed integers.
 overflow.trackSignedIntegers = true
