@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -40,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -50,10 +54,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -64,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
@@ -171,6 +178,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.errorConditions = errorConditions;
     this.pts = pts;
     this.regionMgr = regionMgr;
+    this.function = function;
   }
 
   /**
@@ -640,6 +648,47 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           throw CtoFormulaConverter.propagateInterruptedException(exc);
         }
       }
+
+      // modf, modff, and modfl raise a side-effect by writing
+      // the integral part of their first parameter into the
+      // pointer-address given as the second parameter,
+      // which is handled here
+      if (BuiltinFloatFunctions.matchesModf(functionName)) {
+        final CType returnType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+        final List<CExpression> parameters = e.getParameterExpressions();
+
+        final String trunc = BuiltinFloatFunctions.getAppropriateTruncName(returnType);
+        final FileLocation dummy = FileLocation.DUMMY;
+
+        CLeftHandSide lhs = new CPointerExpression(dummy, returnType, parameters.get(1));
+
+        CFunctionDeclaration functionDecl =
+            new CFunctionDeclaration(
+                dummy,
+                CFunctionType.functionTypeWithReturnType(returnType),
+                trunc,
+                Collections.singletonList(
+                    new CParameterDeclaration(dummy, returnType, "irrelevant_parameter_name")));
+
+        CRightHandSide rhs =
+            new CFunctionCallExpression(
+                dummy,
+                returnType,
+                new CIdExpression(dummy, functionDecl),
+                Collections.<CExpression>singletonList(parameters.get(0)),
+                functionDecl);
+
+        BooleanFormula form = null;
+        try {
+          form =
+              conv.makeAssignment(
+                  lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+        } catch (InterruptedException e1) {
+          throw new AssertionError(e1);
+        }
+
+        constraints.addConstraint(checkNotNull(form));
+      }
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
@@ -650,6 +699,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                            "Extern function %s returning a composite is treated as nondet.", e);
       return Value.nondetValue();
     }
+
 
     // Delegate
     return Value.ofValue(delegate.visit(e));
@@ -699,6 +749,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final ErrorConditions errorConditions;
   private final PointerTargetSetBuilder pts;
   private final MemoryRegionManager regionMgr;
+  private String function;
 
   private final ExpressionToFormulaVisitor delegate;
 
