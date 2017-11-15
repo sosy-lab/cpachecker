@@ -110,7 +110,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
-  protected final FormulaManagerView fmgr;
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
   private final AnalysisDirection direction;
