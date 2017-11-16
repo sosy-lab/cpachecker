@@ -491,18 +491,21 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       CLiteralExpression limit, CLiteralExpression width,
       Set<CExpression> result) throws UnrecognizedCCodeException {
 
-    // For no overflow, both operands need to be positive:
-    result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand1,
+    // For no undefined behavior, both operands need to be positive:
+    // But this is (currently) not considered as overflow!
+    /*result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand1,
         CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
     result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand2,
-        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
+        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));*/
 
     // Shifting the precision of the type or a bigger number of bits  is undefined behavior:
     // operand2 < width
-    result.add(
-        cBinaryExpressionBuilder.buildBinaryExpression(operand2, width, BinaryOperator.LESS_THAN));
+    // But this is (currently) not considered as overflow!
+    /*result.add(
+    cBinaryExpressionBuilder.buildBinaryExpression(operand2, width, BinaryOperator.LESS_THAN));*/
 
-    // Shifting out set bits is undefined behaviour. This is equivalent to the assumption:
+    // Shifting out set bits is undefined behavior that is considered to be an overflow.
+    // This is equivalent to the assumption:
     // operand1 <= (limit >> operand2)
     CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(limit, operand2, BinaryOperator.SHIFT_RIGHT);
     result.add(
