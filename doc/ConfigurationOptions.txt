@@ -2632,8 +2632,17 @@ merge = "JOIN"
 # instead of the current one.
 overflow.config = no default value
 
-# Track undefined behavior in left-shift operations.
+# Track overflows in additive(+/-) operations.
+overflow.trackAdditiveOperations = true
+
+# Track overflows in division(/ or %) operations.
+overflow.trackDivisions = true
+
+# Track overflows in left-shift operations.
 overflow.trackLeftShifts = true
+
+# Track overflows in multiplication operations.
+overflow.trackMultiplications = true
 
 # Track overflow for signed integers.
 overflow.trackSignedIntegers = true
