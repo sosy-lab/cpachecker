@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -52,6 +53,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -64,6 +66,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -80,6 +83,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "residualprogram")
 public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
@@ -107,6 +111,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   @Option(secure = true, name = "assumptionFile", description = "set path to file which contains the condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path condition = null;
+
+  @Option(
+    secure = true,
+    name = "statistics",
+    description = "Collect statistical data about size of residual program"
+  )
+  private boolean collectResidualProgramStatistics = false;
 
   private final CFA cfa;
   private final Specification spec;
@@ -417,8 +428,50 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return conditionSpec;
   }
 
+  private class ProgramGenerationStatistics implements Statistics {
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter statWriter = StatisticsWriter.writingStatisticsTo(pOut);
+      try {
+        CFACreator cfaCreator =
+            new CFACreator(
+                Configuration.builder()
+                    .setOption(
+                        "analysis.entryFunction",
+                        AbstractStates.extractLocation(pReached.getFirstState()).getFunctionName())
+                    .setOption("parser.usePreprocessor", "true")
+                    .setOption("analysis.useLoopStructure", "false")
+                    .build(),
+                logger,
+                shutdown);
+
+      CFA residProg =
+          cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
+
+      statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
+      statWriter.put("Generated program size (#loc)", residProg.getAllNodes().size());
+      statWriter.put(
+          "Size increase", ((double) cfa.getAllNodes().size()) / residProg.getAllNodes().size());
+      } catch (InterruptedException
+          | InvalidConfigurationException
+          | IOException
+          | ParserException e) {
+      }
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "Residual Program Generation";
+    }
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     cpaAlgorithm.collectStatistics(pStatsCollection);
+
+    if (collectResidualProgramStatistics) {
+      pStatsCollection.add(new ProgramGenerationStatistics());
+    }
   }
 }

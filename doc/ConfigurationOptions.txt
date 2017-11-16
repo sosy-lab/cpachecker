@@ -2930,6 +2930,9 @@ residualprogram.file = "residualProgram.c"
 residualprogram.folderType = CFA
   enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
 
+# Collect statistical data about size of residual program
+residualprogram.statistics = false
+
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
