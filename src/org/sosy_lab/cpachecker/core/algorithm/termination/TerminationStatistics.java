@@ -103,6 +103,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -499,9 +500,10 @@ public class TerminationStatistics implements Statistics {
 
     ARGState loopStartInCEX =
         new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
-    for (ARGState parent : loopStart.getParents()) {
-      loopStartInCEX.addParent(parent);
-    }
+
+    ARGState newRoot = new ARGState(root.getWrappedState(), null);
+    Collection<ARGState> cexStates =
+        copyStem(cexInfo.getTargetPath(), newRoot, loopStart, loopStartInCEX);
 
     NonTerminationArgument arg = nonTerminationArguments.get(nonterminatingLoop);
     ExpressionTree<Object> quasiInvariant = buildInvariantFrom(arg);
@@ -514,19 +516,14 @@ public class TerminationStatistics implements Statistics {
           return ExpressionTrees.getTrue();
         };
 
-    Collection<ARGState> loopStates = addCEXLoopingPartToARG(loopStartInCEX);
+    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX));
 
-    Predicate<? super ARGState> relevantStates =
-        Predicates.or(
-            Predicates.in(loopStates),
-            Predicates.and(
-                Predicates.in(cexInfo.getTargetPath().asStatesList()),
-                Predicates.not(Predicates.equalTo(loopStart))));
+    Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
     try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
       witnessExporter.writeTerminationErrorWitness(
           writer,
-          root,
+          newRoot,
           relevantStates,
           edge -> relevantStates.apply(edge.getFirst()) && relevantStates.apply(edge.getSecond()),
           state -> state == loopStartInCEX,
@@ -534,6 +531,36 @@ public class TerminationStatistics implements Statistics {
     } catch (IOException e) {
       logger.logException(WARNING, e, "Violation witness export failed.");
     }
+  }
+
+  private Collection<ARGState> copyStem(
+      final ARGPath pStem,
+      final ARGState newRoot,
+      final ARGState loopStart,
+      final ARGState newLoopStart) {
+    Collection<ARGState> newStates = new HashSet<>();
+    boolean first = true;
+    ARGState child, parent = newRoot;
+    newStates.add(newRoot);
+
+    for (ARGState state : pStem.asStatesList()) {
+      if (first) {
+        first = false;
+        continue;
+      }
+
+      if (state == loopStart) {
+        newLoopStart.addParent(parent);
+        newStates.add(newLoopStart);
+        break;
+      }
+
+      child = new ARGState(state.getWrappedState(), parent);
+      parent = child;
+      newStates.add(parent);
+    }
+
+    return newStates;
   }
 
   private Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry) {
