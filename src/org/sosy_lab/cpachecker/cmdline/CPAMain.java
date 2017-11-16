@@ -413,7 +413,7 @@ public class CPAMain {
           .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
           .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
           .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(PropertyType.OVERFLOW, "overflow")
+          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
           .put(PropertyType.DEADLOCK, "deadlock")
           //.put(PropertyType.TERMINATION, "none needed")
           .build();
