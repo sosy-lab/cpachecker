@@ -812,7 +812,7 @@ class AssignmentHandler {
       assert newLhsLocation.isUnaliasedLocation();
 
       final Expression newRhsExpression;
-      final CType newRhsType;
+      final CType newRhsType = newLhsType;
       if (CTypeUtils.isSimpleType(newLhsType)
           && CTypeUtils.isSimpleType(rhsType)
           && !rhsExpression.isNondetValue()) {
@@ -820,10 +820,8 @@ class AssignmentHandler {
         rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
         rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
         newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
-        newRhsType = newLhsType;
       } else {
         newRhsExpression = Value.nondetValue();
-        newRhsType = rhsType;
       }
 
       constraints.addConstraint(
