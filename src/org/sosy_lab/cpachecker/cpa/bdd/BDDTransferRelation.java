@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -71,7 +74,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -587,5 +599,117 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     protected Boolean visitDefault(CExpression pExp) {
       return false;
     }
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state, List<AbstractState> states, CFAEdge cfaEdge, Precision precision)
+      throws CPATransferException {
+    BDDState bddState = (BDDState) state;
+
+    for (AbstractState otherState : states) {
+      if (otherState instanceof PointerState) {
+        super.setInfo(bddState, precision, cfaEdge);
+        bddState = strengthenWithPointerInformation(bddState, (PointerState) otherState, cfaEdge);
+        super.resetInfo();
+      }
+    }
+    return Collections.singleton(bddState);
+  }
+
+  private BDDState strengthenWithPointerInformation(
+      BDDState bddState, PointerState pPointerInfo, CFAEdge cfaEdge)
+      throws UnrecognizedCCodeException {
+
+    // get target for LHS
+    MemoryLocation target = null;
+    ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(cfaEdge);
+    if (leftHandSide instanceof CIdExpression) {
+      target =
+          MemoryLocation.valueOf(
+              ((CIdExpression) leftHandSide).getDeclaration().getQualifiedName());
+    } else if (leftHandSide instanceof CPointerExpression) {
+      ExplicitLocationSet explicitSet =
+          getLocationsForLhs(pPointerInfo, (CPointerExpression) leftHandSide);
+      if (explicitSet != null && explicitSet.getSize() == 1) {
+        target = Iterables.getOnlyElement(explicitSet);
+      }
+    }
+
+    // without a target, nothing can be done.
+    if (target == null) {
+      return bddState;
+    }
+
+    // get value for RHS
+    MemoryLocation value = null;
+    CType valueType = null;
+    ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
+    if (rightHandSide instanceof CIdExpression) {
+      CIdExpression idExpr = (CIdExpression) rightHandSide;
+      value = MemoryLocation.valueOf(idExpr.getDeclaration().getQualifiedName());
+      valueType = idExpr.getDeclaration().getType();
+    } else if (rightHandSide instanceof CPointerExpression) {
+      CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;
+      value = getLocationForRhs(pPointerInfo, ptrExpr);
+      valueType = ptrExpr.getExpressionType().getCanonicalType();
+    }
+
+    // without a value, nothing can be done.
+    if (value == null) {
+      return bddState;
+    }
+
+    final Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    int size = getBitsize(partition, valueType);
+
+    final Region[] rhs =
+        predmgr.createPredicate(
+            target.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
+
+    final Region[] evaluation =
+        predmgr.createPredicate(
+            value.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
+    BDDState newState = bddState.forget(rhs);
+    return newState.addAssignment(rhs, evaluation);
+  }
+
+  /** get all possible explicit targets for a pointer, or NULL if they are unknown. */
+  private @Nullable ExplicitLocationSet getLocationsForLhs(
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+    LocationSet directLocation = PointerTransferRelation.asLocations(pPointer, pPointerInfo);
+    if (!(directLocation instanceof ExplicitLocationSet)) {
+      LocationSet indirectLocation =
+          PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
+      if (indirectLocation instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
+        if (explicitSet.getSize() == 1) {
+          directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+        }
+      }
+    }
+    if (directLocation instanceof ExplicitLocationSet) {
+      return (ExplicitLocationSet) directLocation;
+    }
+    return null;
+  }
+
+  private @Nullable MemoryLocation getLocationForRhs(
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+    LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
+    if (fullSet instanceof ExplicitLocationSet) {
+      ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
+      if (explicitSet.getSize() == 1) {
+        LocationSet pointsToSet =
+            pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+        if (pointsToSet instanceof ExplicitLocationSet) {
+          ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
+          if (explicitPointsToSet.getSize() == 1) {
+            return Iterables.getOnlyElement(explicitPointsToSet);
+          }
+        }
+      }
+    }
+    return null;
   }
 }
