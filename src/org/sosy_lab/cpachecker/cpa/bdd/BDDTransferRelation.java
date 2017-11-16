@@ -458,6 +458,35 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
+  private BDDState handleAssumption(
+      CAssumeEdge cfaEdge,
+      CExpression expression,
+      boolean truthAssumption,
+      PointerState pPointerInfo)
+      throws UnsupportedCCodeException {
+
+    Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    final Region[] operand =
+        evaluateVectorExpressionWithPointerState(
+            partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor(), pPointerInfo);
+    if (operand == null) {
+      return state;
+    } // assumption cannot be evaluated
+    Region evaluated = bvmgr.makeOr(operand);
+
+    if (!truthAssumption) { // if false-branch
+      evaluated = rmgr.makeNot(evaluated);
+    }
+
+    // get information from region into evaluated region
+    Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
+    if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
+      return null;
+    } else {
+      return new BDDState(rmgr, bvmgr, newRegion);
+    }
+  }
+
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
@@ -472,6 +501,57 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return exp.accept(new BDDCompressExpressionVisitor(predmgr, precision, getBitsize(partition, null), location, bvmgr, partition));
     } else {
       Region[] value = exp.accept(new BDDVectorCExpressionVisitor(predmgr, precision, bvmgr, machineModel, location));
+      targetType = targetType.getCanonicalType();
+      if (value != null && targetType instanceof CSimpleType) {
+        // cast to correct length
+        final CType sourceType = exp.getExpressionType().getCanonicalType();
+        value =
+            bvmgr.toBitsize(
+                machineModel.getSizeofInBits((CSimpleType) targetType),
+                sourceType instanceof CSimpleType
+                    && machineModel.isSigned((CSimpleType) sourceType),
+                value);
+      }
+      return value;
+    }
+  }
+
+  /**
+   * This function returns a bitvector, that represents the expression. The partition chooses the
+   * compression of the bitvector.
+   */
+  private @Nullable Region[] evaluateVectorExpressionWithPointerState(
+      final Partition partition,
+      final CExpression exp,
+      CType targetType,
+      final CFANode location,
+      final PointerState pPointerInfo)
+      throws UnsupportedCCodeException {
+    final boolean compress =
+        (partition != null)
+            && compressIntEqual
+            && varClass.getIntEqualPartitions().contains(partition);
+    if (varClass.getIntBoolPartitions().contains(partition)) {
+      Region booleanResult =
+          exp.accept(
+              new BDDPointerBooleanExpressionVisitor(
+                  predmgr, rmgr, precision, location, pPointerInfo));
+      return (booleanResult == null) ? null : new Region[] {booleanResult};
+    } else if (compress) {
+      return exp.accept(
+          new BDDPointerCompressExpressionVisitor(
+              predmgr,
+              precision,
+              getBitsize(partition, null),
+              location,
+              bvmgr,
+              partition,
+              pPointerInfo));
+    } else {
+      Region[] value =
+          exp.accept(
+              new BDDPointerVectorCExpressionVisitor(
+                  predmgr, precision, bvmgr, machineModel, location, pPointerInfo));
       targetType = targetType.getCanonicalType();
       if (value != null && targetType instanceof CSimpleType) {
         // cast to correct length
@@ -612,6 +692,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         super.setInfo(bddState, precision, cfaEdge);
         bddState = strengthenWithPointerInformation(bddState, (PointerState) otherState, cfaEdge);
         super.resetInfo();
+        if (bddState == null) {
+          return Collections.emptyList();
+        }
       }
     }
     return Collections.singleton(bddState);
@@ -620,6 +703,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private BDDState strengthenWithPointerInformation(
       BDDState bddState, PointerState pPointerInfo, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
+
+    if (cfaEdge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+      return handleAssumption(
+          assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption(), pPointerInfo);
+    }
 
     // get target for LHS
     MemoryLocation target = null;
@@ -675,7 +764,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   /** get all possible explicit targets for a pointer, or NULL if they are unknown. */
-  private @Nullable ExplicitLocationSet getLocationsForLhs(
+  static @Nullable ExplicitLocationSet getLocationsForLhs(
       PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
     LocationSet directLocation = PointerTransferRelation.asLocations(pPointer, pPointerInfo);
     if (!(directLocation instanceof ExplicitLocationSet)) {
@@ -694,7 +783,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return null;
   }
 
-  private @Nullable MemoryLocation getLocationForRhs(
+  static @Nullable MemoryLocation getLocationForRhs(
       PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
     if (fullSet instanceof ExplicitLocationSet) {
