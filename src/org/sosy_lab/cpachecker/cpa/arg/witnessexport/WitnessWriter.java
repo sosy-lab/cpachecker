@@ -1172,11 +1172,11 @@ class WitnessWriter implements EdgeAppender {
       if (leavingEdges.size() > 1) {
 
         // Determine all siblings that go to the sink
-        List<Edge> toSink = new ArrayList<>();
-        leavingEdges
-            .stream()
-            .filter(e -> e.target.equals(SINK_NODE_ID))
-            .collect(Collectors.toCollection(() -> toSink));
+        List<Edge> toSink =
+            leavingEdges
+                .stream()
+                .filter(e -> e.target.equals(SINK_NODE_ID))
+                .collect(Collectors.toCollection(ArrayList::new));
 
         // If multiple siblings go to the sink, we want to try to merge them
         if (toSink.size() > 1) {
