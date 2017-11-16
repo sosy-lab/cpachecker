@@ -410,9 +410,9 @@ public class CPAMain {
       ImmutableMap.<PropertyType, String>builder()
           .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
           .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "memorysafety-free")
-          .put(PropertyType.VALID_DEREF, "memorysafety-deref")
-          .put(PropertyType.VALID_MEMTRACK, "memorysafety-memtrack")
+          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(PropertyType.OVERFLOW, "overflow")
           .put(PropertyType.DEADLOCK, "deadlock")
           //.put(PropertyType.TERMINATION, "none needed")
@@ -463,7 +463,10 @@ public class CPAMain {
 
     String specFiles =
         Optionals.presentInstances(
-                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
+                properties
+                    .stream()
+                    .map(SpecificationProperty::getInternalSpecificationPath)
+                    .distinct())
             .collect(Collectors.joining(","));
     cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {

@@ -5,4 +5,4 @@
 // and also implements some functions which usually lead to a program abort.
 
 #include cpalien-leaks.spc
-#include TerminatingFunctions.spc
+#include sv-comp-terminatingfunctions.spc
