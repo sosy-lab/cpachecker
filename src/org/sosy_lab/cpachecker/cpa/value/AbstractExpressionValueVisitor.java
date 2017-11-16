@@ -2354,7 +2354,7 @@ public abstract class AbstractExpressionValueVisitor
           // 64 bit means Java double
           result = new NumericValue(doubleValue);
         } else {
-          throw new AssertionError("Trying to cast to unsupported floating point type: " + st);
+          return value;
         }
 
         return result;
