@@ -1137,16 +1137,18 @@ class WitnessWriter implements EdgeAppender {
    * </p>
    */
   private void removeUnnecessarySinkEdges() {
-    final Collection<Edge> toRemove = Sets.newHashSet();
-    for (Edge edge : leavingEdges.values()) {
-      if (edge.target.equals(SINK_NODE_ID)) {
-        for (Edge otherEdge : leavingEdges.get(edge.source)) {
-          // ignore the edge itself, as well as already handled edges.
-          if (!edge.equals(otherEdge) && !toRemove.contains(otherEdge)) {
-            // remove edges with either identical labels or redundant edge-transition
-            if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
-              toRemove.add(edge);
-              break;
+    final Collection<Edge> toRemove = Sets.newIdentityHashSet();
+    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
+      for (Edge edge : leavingEdges) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges) {
+            // ignore the edge itself, as well as already handled edges.
+            if (edge != otherEdge && !toRemove.contains(otherEdge)) {
+              // remove edges with either identical labels or redundant edge-transition
+              if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
+                toRemove.add(edge);
+                break;
+              }
             }
           }
         }
