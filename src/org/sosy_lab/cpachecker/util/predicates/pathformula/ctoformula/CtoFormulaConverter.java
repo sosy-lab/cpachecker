@@ -556,7 +556,6 @@ public class CtoFormulaConverter {
     if (fromFormulaType.isBitvectorType() && toFormulaType.isFloatingPointType()) {
       int sourceSize = ((BitvectorType) fromFormulaType).getSize();
       int targetSize = ((FloatingPointType) toFormulaType).getTotalSize();
-      if (targetSize < ((BitvectorType) fromFormulaType).getSize()) {}
 
       if (sourceSize > targetSize) {
         formula =
