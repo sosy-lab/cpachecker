@@ -169,9 +169,14 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
           // continue with feasible prefix
           if (iterator.hasNext()) {
-            feasiblePrefixBuilder.add(currentState,
-                                      BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
-                                                              outgoingEdge.getSuccessor()));
+            feasiblePrefixBuilder.add(
+                currentState,
+                new BlankEdge(
+                    outgoingEdge.getRawStatement(),
+                    outgoingEdge.getFileLocation(),
+                    outgoingEdge.getPredecessor(),
+                    outgoingEdge.getSuccessor(),
+                    "sliced infeasible condition"));
           }
 
           successor = Optional.of(next);

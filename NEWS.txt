@@ -1,5 +1,11 @@
 Changes since CPAchecker 1.6.1
 ------------------------------
+* The predicate analysis now uses an improved encoding of program semantics
+  that is more precise for bitvector operations, overflows, and pointers.
+  The default SMT solver is now MathSAT5, for which only a Linux binary is bundled.
+  Additional binaries are available from the MathSAT homepage: http://mathsat.fbk.eu/
+  Please note that the bundled license of MathSAT permits
+  only research and evaluation purposes.
 * The HTML report has been updated and is now produced directly by CPAchecker
   (no need to call report-generator.py anymore).
 * CPAchecker requires Java 8.

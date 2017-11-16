@@ -56,11 +56,11 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -170,7 +170,7 @@ public class CEXExporter {
   private final CounterexampleFilter cexFilter;
 
   private final LogManager logger;
-  private final ARGPathExporter witnessExporter;
+  private final WitnessExporter witnessExporter;
   private final HarnessExporter harnessExporter;
 
   public CEXExporter(
@@ -185,7 +185,7 @@ public class CEXExporter {
 
     cexFilter =
         CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
-    witnessExporter = new ARGPathExporter(config, logger, pSpecification, cfa);
+    witnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
     harnessExporter = new HarnessExporter(config, logger, cfa);
 
     if (!exportSource) {
@@ -249,8 +249,7 @@ public class CEXExporter {
     if (exportCounterexampleCoverage && coveragePrefixTemplate != null) {
       Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
       try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
-        CoverageReportGcov.write(
-            CoverageCollector.fromCounterexample(targetPath).collectCoverage(), gcovFile);
+        CoverageReportGcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write coverage information for counterexample to file");

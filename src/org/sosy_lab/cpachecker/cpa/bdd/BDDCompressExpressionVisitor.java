@@ -38,10 +38,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 

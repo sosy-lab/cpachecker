@@ -31,27 +31,22 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -60,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -75,7 +71,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -125,7 +121,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
 
       CFAEdge edge = pArgs.getCfaEdge();
-      if (!CoverageCollector.coversLine(edge)) {
+      if (!CoverageData.coversLine(edge)) {
         return CONST_FALSE;
       }
       if (linesToCover.contains(edge.getFileLocation().getStartingLineInOrigin())) {
@@ -363,15 +359,15 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge instanceof FunctionCallEdge) {
-        FunctionCallEdge callEdge = (FunctionCallEdge) edge;
-        if (callEdge.getSuccessor().getFunctionName().equals(functionName)) {
+      String functionNameFromEdge = edge.getSuccessor().getFunctionName();
+
+      // check cases like direct function calls and main-entry.
+      if (functionNameFromEdge.equals(functionName)) {
+        if (edge instanceof FunctionCallEdge || AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
           return CONST_TRUE;
         }
-      } else if (AutomatonGraphmlCommon.isMainFunctionEntry(edge)
-          && edge.getSuccessor().getFunctionName().equals(functionName)) {
-        return CONST_TRUE;
       }
+
       return CONST_FALSE;
     }
 
@@ -465,6 +461,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       } else if (edge instanceof AReturnStatementEdge) {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getSuccessor().getFunctionName().equals(functionName)) {
+          return CONST_TRUE;
+        }
+      } else if (edge instanceof BlankEdge) {
+        CFANode succ = edge.getSuccessor();
+        if (succ instanceof FunctionExitNode
+            && succ.getNumLeavingEdges() == 0
+            && succ.getFunctionName().equals(functionName)) {
+          assert "default return".equals(edge.getDescription());
           return CONST_TRUE;
         }
       }
@@ -747,17 +751,23 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
           AFunctionCall call = summaryEdge.getExpression();
           if (call instanceof AFunctionCallAssignmentStatement) {
+            Iterable<? extends CFAEdge> potentialFurtherMatches =
+                CFAUtils.enteringEdges(summaryEdge.getSuccessor())
+                .filter(e ->
+                    (e instanceof AStatementEdge && call.equals(((AStatementEdge) e).getStatement()))
+                 || (e instanceof FunctionReturnEdge && summaryEdge.equals(((FunctionReturnEdge) e).getSummaryEdge())));
             leavingEdges = Iterables.concat(
                 leavingEdges,
-                CFAUtils.enteringEdges(summaryEdge.getSuccessor())
-                  .filter(AStatementEdge.class)
-                  .filter(statementEdge -> call.equals(statementEdge.getStatement())));
+                potentialFurtherMatches);
           }
         }
       }
       if (Iterables.isEmpty(leavingEdges)) {
         return CONST_FALSE;
       }
+
+      leavingEdges = skipSplitDeclarationEdges(leavingEdges, pArgs);
+
       ResultValue<Boolean> result = null;
       for (CFAEdge successorEdge : leavingEdges) {
         result = operandExpression.eval(
@@ -773,6 +783,25 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
       assert result != null;
       return result;
+    }
+
+    private Collection<CFAEdge> skipSplitDeclarationEdges(
+        Iterable<CFAEdge> pEdges, AutomatonExpressionArguments pArgs) throws CPATransferException {
+      List<CFAEdge> edges = new ArrayList<>();
+      for (CFAEdge edge : pEdges) {
+        if (CONST_TRUE.equals(MatchSplitDeclaration.INSTANCE.eval(
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                edge,
+                pArgs.getLogger())))) {
+          edges.addAll(skipSplitDeclarationEdges(CFAUtils.leavingEdges(edge.getSuccessor()), pArgs));
+        } else {
+          edges.add(edge);
+        }
+      }
+      return edges;
     }
 
     @Override
@@ -812,48 +841,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge instanceof ADeclarationEdge) {
-        ADeclarationEdge declEdge = (ADeclarationEdge) edge;
-        ADeclaration decl = declEdge.getDeclaration();
-        if (decl instanceof AFunctionDeclaration) {
-          return CONST_FALSE;
-        } else if (decl instanceof CTypeDeclaration) {
-          return CONST_FALSE;
-        } else if (decl instanceof AVariableDeclaration) {
-          AVariableDeclaration varDecl = (AVariableDeclaration) decl;
-          CFANode successor = edge.getSuccessor();
-          Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
-          if (!leavingEdges.hasNext()) {
-            return CONST_FALSE;
-          }
-          CFAEdge successorEdge = leavingEdges.next();
-          if (leavingEdges.hasNext()) {
-            return CONST_FALSE;
-          }
-          if (successorEdge instanceof AStatementEdge) {
-            AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-            if (statementEdge.getFileLocation().equals(edge.getFileLocation())
-                && statementEdge.getStatement() instanceof AAssignment) {
-              AAssignment assignment = (AAssignment) statementEdge.getStatement();
-              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-              if (leftHandSide instanceof AIdExpression) {
-                AIdExpression lhs = (AIdExpression) leftHandSide;
-                if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
-                  return CONST_TRUE;
-                }
-              }
-            }
-          }
-        }
-      }
-      return CONST_FALSE;
+      return AutomatonGraphmlCommon.isSplitDeclaration(edge) ? CONST_TRUE : CONST_FALSE;
     }
 
     @Override
     public String toString() {
       return "MATCH SPLIT DECLARATION";
     }
-
   }
 
   static class MatchLocationDescriptor implements AutomatonBoolExpr {
@@ -929,8 +923,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         if (modifiedQueryString == null) {
           return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
         }
+        int exceptionFreeCallCount = 0;
         for (AbstractState ae : pArgs.getAbstractStates()) {
           if (ae instanceof AbstractQueryableState) {
+            exceptionFreeCallCount = exceptionFreeCallCount + 1;
             AbstractQueryableState aqe = (AbstractQueryableState) ae;
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -948,11 +944,19 @@ interface AutomatonBoolExpr extends AutomatonExpression {
                 }
               }
             } catch (InvalidQueryException e) {
-              // do nothing;
+              exceptionFreeCallCount = exceptionFreeCallCount - 1;
             }
           }
         }
-        return CONST_FALSE;
+        if (exceptionFreeCallCount == 0) {
+          // No CPA feels responsible => returning CONST_FALSE would not be right here
+          return new ResultValue<>(
+              "None of the states sees \"" + modifiedQueryString + "\" as a valid query!",
+              "AutomatonBoolExpr.ALLCPAQuery");
+        } else {
+          // At least one CPA considers the query valid, but none answered with true
+          return CONST_FALSE;
+        }
       }
     }
 

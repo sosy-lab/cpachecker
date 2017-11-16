@@ -99,6 +99,10 @@ public class PredicateAbstractDomain implements AbstractDomain {
       return false;
 
     } else {
+
+      if (e1.getPathFormula().equals(e2.getPathFormula())) {
+        return true;
+      }
       // only the fast check which returns true if a merge occurred for this element
       return e1.getMergedInto() == e2;
     }

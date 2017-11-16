@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -89,6 +91,13 @@ public class ARGStatistics implements Statistics {
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path proofWitness = null;
+
+  @Option(
+    secure = true,
+    name = "compressWitness",
+    description = "compress the produced correctness-witness automata using GZIP compression."
+  )
+  private boolean compressWitness = true;
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -115,7 +124,7 @@ public class ARGStatistics implements Statistics {
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
-  private final ARGPathExporter argPathExporter;
+  private final WitnessExporter argWitnessExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
 
@@ -133,9 +142,9 @@ public class ARGStatistics implements Statistics {
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
-        new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
+        AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
     cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
-    argPathExporter = new ARGPathExporter(config, logger, pSpecification, cfa);
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
@@ -271,12 +280,16 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (proofWitness != null && pResult == Result.TRUE) {
-      try (Writer w =
-          IO.openOutputFile(
-              adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
-        argPathExporter.writeProofWitness(w, rootState,
-            Predicates.alwaysTrue(),
+      try {
+        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+        Appender content = pAppendable -> argWitnessExporter.writeProofWitness(pAppendable, rootState, Predicates.alwaysTrue(),
             Predicates.alwaysTrue());
+        if (!compressWitness) {
+          IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
+        } else {
+          witnessFile = witnessFile.resolveSibling(witnessFile.getFileName() + ".gz");
+          IO.writeGZIPFile(witnessFile, StandardCharsets.UTF_8, content);
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }

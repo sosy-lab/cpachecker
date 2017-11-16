@@ -339,6 +339,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
+      List<ARGState> abstractionStatesTrace,
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
 

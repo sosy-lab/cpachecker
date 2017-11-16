@@ -119,11 +119,6 @@
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=MATHSAT5</option>
   </rundefinition>
-  <rundefinition name="MathSAT5-oldarray">
-    <option name="-predicateAnalysis"/>
-    <option name="-setprop">solver.solver=MATHSAT5</option>
-    <option name="-setprop">cpa.predicate.handleArrays=true</option>
-  </rundefinition>
   <rundefinition name="PRINCESS-heaparray">
     <option name="-predicateAnalysis-heaparray"/>
     <option name="-setprop">solver.solver=PRINCESS</option>
@@ -140,12 +135,6 @@
     <option name="-setprop">solver.solver=PRINCESS</option>
     <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
   </rundefinition>
-  <rundefinition name="PRINCESS-oldarray">
-    <option name="-predicateAnalysis"/>
-    <option name="-setprop">solver.solver=PRINCESS</option>
-    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
-    <option name="-setprop">cpa.predicate.handleArrays=true</option>
-  </rundefinition>
   <rundefinition name="SMTInterpol-heaparray">
     <option name="-predicateAnalysis-heaparray"/>
     <option name="-setprop">solver.solver=SMTINTERPOL</option>
@@ -153,11 +142,6 @@
   <rundefinition name="SMTInterpol-uf">
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=SMTINTERPOL</option>
-  </rundefinition>
-  <rundefinition name="SMTInterpol-oldarray">
-    <option name="-predicateAnalysis"/>
-    <option name="-setprop">solver.solver=SMTINTERPOL</option>
-    <option name="-setprop">cpa.predicate.handleArrays=true</option>
   </rundefinition>
   <rundefinition name="Z3-heaparray">
     <option name="-predicateAnalysis-heaparray"/>
@@ -171,11 +155,6 @@
   <rundefinition name="Z3-uf">
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=Z3</option>
-  </rundefinition>
-  <rundefinition name="Z3-oldarray">
-    <option name="-predicateAnalysis"/>
-    <option name="-setprop">solver.solver=Z3</option>
-    <option name="-setprop">cpa.predicate.handleArrays=true</option>
   </rundefinition>
 
 </benchmark>

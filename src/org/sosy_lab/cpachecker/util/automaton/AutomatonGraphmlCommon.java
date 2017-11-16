@@ -59,16 +59,20 @@ import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -91,6 +95,7 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 public class AutomatonGraphmlCommon {
 
@@ -121,16 +126,18 @@ public class AutomatonGraphmlCommon {
     INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
     INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
     NAMED("named", ElementType.NODE, "namedValue", "string"),
+    LABEL("label", ElementType.NODE, "label", "string"),
     NODETYPE("nodetype", ElementType.NODE, "nodeType", "string", NodeType.ONPATH),
     ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean", false),
     ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean", false),
     ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean", false),
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
+    ISCYCLEHEAD("cyclehead", ElementType.NODE, "isCycleHead", "boolean", false),
     ENTERLOOPHEAD("enterLoopHead", ElementType.EDGE, "enterLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
+    THREADNAME("threadName", ElementType.EDGE, "threadName", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
-    THREAD("thread", ElementType.EDGE, "thread", "int"),
-    CREATETHREAD("createThread", ElementType.EDGE, "thread", "int"),
+    CREATETHREAD("createThread", ElementType.EDGE, "createThread", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
@@ -165,19 +172,16 @@ public class AutomatonGraphmlCommon {
     @Nullable public final String defaultValue;
 
     private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
-      this.id = id;
-      this.keyFor = pKeyFor;
-      this.attrName = attrName;
-      this.attrType = attrType;
-      this.defaultValue = null;
+      this(id, pKeyFor, attrName, attrType, null);
     }
 
-    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType, Object defaultValue) {
-      this.id = id;
-      this.keyFor = pKeyFor;
-      this.attrName = attrName;
-      this.attrType = attrType;
-      this.defaultValue = defaultValue.toString();
+    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType,
+        @Nullable Object defaultValue) {
+      this.id = Preconditions.checkNotNull(id);
+      this.keyFor = Preconditions.checkNotNull(pKeyFor);
+      this.attrName = Preconditions.checkNotNull(attrName);
+      this.attrType = Preconditions.checkNotNull(attrType);
+      this.defaultValue = defaultValue == null ? null : defaultValue.toString();
     }
 
     @Override
@@ -205,7 +209,8 @@ public class AutomatonGraphmlCommon {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
-    ISSINKNODE(KeyDef.ISSINKNODE);
+    ISSINKNODE(KeyDef.ISSINKNODE),
+    ISCYCLEHEAD(KeyDef.ISCYCLEHEAD);
 
     public final KeyDef key;
 
@@ -316,10 +321,12 @@ public class AutomatonGraphmlCommon {
 
     private final Document doc;
     private final Element graph;
+    private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
+    private final Map<KeyDef, Node> keyDefsToAppend = Maps.newEnumMap(KeyDef.class);
 
     public GraphMlBuilder(
         WitnessType pGraphType,
-        String pDefaultSourceFileName,
+        @Nullable String pDefaultSourceFileName,
         CFA pCfa,
         VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
@@ -332,11 +339,11 @@ public class AutomatonGraphmlCommon {
       root.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
       root.setAttribute("xmlns", "http://graphml.graphdrawing.org/xmlns");
 
-      EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
-      root.appendChild(createKeyDefElement(KeyDef.ORIGINFILE, pDefaultSourceFileName));
-      keyDefs.remove(KeyDef.ORIGINFILE);
-      for (KeyDef keyDef : keyDefs) {
-        root.appendChild(createKeyDefElement(keyDef, keyDef.defaultValue));
+      defineKey(KeyDef.ORIGINFILE, Optional.of(pDefaultSourceFileName));
+      for (KeyDef keyDef : KeyDef.values()) {
+        if (keyDef.keyFor == ElementType.GRAPH) {
+          defineKey(keyDef);
+        }
       }
 
       graph = doc.createElement("graph");
@@ -377,11 +384,23 @@ public class AutomatonGraphmlCommon {
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
     }
 
+    private void defineKey(KeyDef pKeyDef) {
+      defineKey(pKeyDef, Optional.empty());
+    }
+
+    private void defineKey(KeyDef pKeyDef, Optional<String> pOverrideDefaultValue) {
+      if (definedKeys.add(pKeyDef)) {
+        keyDefsToAppend.put(pKeyDef,
+            createKeyDefElement(pKeyDef, pOverrideDefaultValue));
+      }
+    }
+
     private Element createElement(GraphMLTag tag) {
       return doc.createElement(tag.toString());
     }
 
     private Element createDataElement(final KeyDef key, final String value) {
+      defineKey(key);
       Element result = createElement(GraphMLTag.DATA);
       result.setAttribute("key", key.id);
       result.setTextContent(value);
@@ -409,31 +428,16 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    private Element createKeyDefElement(KeyDef keyDef, @Nullable String defaultValue) {
-      return createKeyDefElement(
-          keyDef.id, keyDef.keyFor, keyDef.attrName, keyDef.attrType, defaultValue);
-    }
-
-    private Element createKeyDefElement(
-        String id,
-        ElementType keyFor,
-        String attrName,
-        String attrType,
-        @Nullable String defaultValue) {
-
-      Preconditions.checkNotNull(doc);
-      Preconditions.checkNotNull(id);
-      Preconditions.checkNotNull(keyFor);
-      Preconditions.checkNotNull(attrName);
-      Preconditions.checkNotNull(attrType);
+    private Element createKeyDefElement(KeyDef pKeyDef, Optional<String> pDefaultValue) {
 
       Element result = createElement(GraphMLTag.KEY);
 
-      result.setAttribute("id", id);
-      result.setAttribute("for", keyFor.toString());
-      result.setAttribute("attr.name", attrName);
-      result.setAttribute("attr.type", attrType);
+      result.setAttribute("id", pKeyDef.id);
+      result.setAttribute("for", pKeyDef.keyFor.toString());
+      result.setAttribute("attr.name", pKeyDef.attrName);
+      result.setAttribute("attr.type", pKeyDef.attrType);
 
+      String defaultValue = pDefaultValue.orElse(pKeyDef.defaultValue);
       if (defaultValue != null) {
         Element defaultValueElement = createElement(GraphMLTag.DEFAULT);
         defaultValueElement.setTextContent(defaultValue);
@@ -449,6 +453,17 @@ public class AutomatonGraphmlCommon {
     }
 
     public void appendTo(Appendable pTarget) throws IOException {
+      Node root = doc.getFirstChild();
+      Node insertionLocation = root.getFirstChild();
+      for (Node graphMLKeyDefNode : Iterables
+          .consumingIterable(keyDefsToAppend.values())) {
+        while (insertionLocation != null
+            && insertionLocation.getNodeName().equals(GraphMLTag.KEY.toString())) {
+          insertionLocation = insertionLocation.getNextSibling();
+        }
+        root.insertBefore(graphMLKeyDefNode, insertionLocation);
+      }
+
       try {
         pTarget.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 
@@ -499,30 +514,9 @@ public class AutomatonGraphmlCommon {
         if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
-        CFANode successor = edge.getSuccessor();
-        Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
-        if (!leavingEdges.hasNext()) {
-          return false;
+        if (isSplitDeclaration(edge)) {
+          return true;
         }
-        CFAEdge successorEdge = leavingEdges.next();
-        if (leavingEdges.hasNext()) {
-          return false;
-        }
-        if (successorEdge instanceof AStatementEdge) {
-          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-          if (statementEdge.getFileLocation().equals(edge.getFileLocation())
-              && statementEdge.getStatement() instanceof AAssignment) {
-            AAssignment assignment = (AAssignment) statementEdge.getStatement();
-            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-            if (leftHandSide instanceof AIdExpression) {
-              AIdExpression lhs = (AIdExpression) leftHandSide;
-              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
       }
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
       return true;
@@ -564,7 +558,8 @@ public class AutomatonGraphmlCommon {
     if (handleAsEpsilonEdge(pEdge)) {
       return Collections.emptySet();
     }
-    if (isMainFunctionEntry(pEdge)) {
+    if (isMainFunctionEntry(pEdge)
+        && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
       if (!FileLocation.DUMMY.equals(location)) {
         location = new FileLocation(
@@ -741,6 +736,66 @@ public class AutomatonGraphmlCommon {
       return TraversalProcess.CONTINUE;
     }
 
+  }
+
+  /**
+   * Checks if the given edge is a variable declaration edge without initializer that has the same
+   * file location as its sole successor edge, which in turn provides the initialization of the
+   * declared variable.
+   *
+   * <p>Basically, this detects the first part of declarations with initializers that we split
+   * during CFA construction.
+   *
+   * @param pEdge the edge to check.
+   * @return {@code true} if the edge is part of a split declaration, {@code false} otherwise.
+   */
+  public static boolean isSplitDeclaration(CFAEdge pEdge) {
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declEdge = (ADeclarationEdge) pEdge;
+      ADeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof AFunctionDeclaration) {
+        return false;
+      } else if (decl instanceof CTypeDeclaration) {
+        return false;
+      } else if (decl instanceof AVariableDeclaration) {
+        AVariableDeclaration varDecl = (AVariableDeclaration) decl;
+        CFANode successor = pEdge.getSuccessor();
+        Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
+        if (!leavingEdges.hasNext()) {
+          return false;
+        }
+        CFAEdge successorEdge = leavingEdges.next();
+        if (leavingEdges.hasNext()) {
+          CFAEdge alternativeSuccessorEdge = leavingEdges.next();
+          if (leavingEdges.hasNext()) {
+            return false;
+          } else if (successorEdge instanceof FunctionCallEdge
+              && alternativeSuccessorEdge instanceof CFunctionSummaryStatementEdge) {
+            successorEdge = alternativeSuccessorEdge;
+          } else if (successorEdge instanceof CFunctionSummaryStatementEdge
+              && alternativeSuccessorEdge instanceof FunctionCallEdge) {
+            // nothing to do
+          } else {
+            return false;
+          }
+        }
+        if (successorEdge instanceof AStatementEdge) {
+          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+          if (statementEdge.getFileLocation().equals(pEdge.getFileLocation())
+              && statementEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) statementEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            if (leftHandSide instanceof AIdExpression) {
+              AIdExpression lhs = (AIdExpression) leftHandSide;
+              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
 }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -138,7 +137,7 @@ public class BitVectorInfo implements TypeInfo {
       } else {
         int sizeInChars = 0;
         if (!cType.isIncomplete()) {
-          sizeInChars = cType.accept(new BaseSizeofVisitor(pMachineModel));
+          sizeInChars = pMachineModel.getSizeof(cType);
         }
         if (sizeInChars == 0) {
           sizeInChars = pMachineModel.getSizeofPtr();

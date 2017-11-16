@@ -34,9 +34,9 @@ public class SMGMemoryPath {
   private final String functionName;
   private final Integer locationOnStack;
   private final boolean globalStart;
-  private final List<Integer> pathOffsets;
+  private final List<Long> pathOffsets;
 
-  private SMGMemoryPath(String pVariableName, String pFunctionName, Integer pPathOffset,
+  private SMGMemoryPath(String pVariableName, String pFunctionName, Long pPathOffset,
       Integer pLocationOnStack) {
     globalStart = false;
     variableName = pVariableName;
@@ -45,7 +45,7 @@ public class SMGMemoryPath {
     locationOnStack = pLocationOnStack;
   }
 
-  private SMGMemoryPath(String pVariableName, Integer pPathOffset) {
+  private SMGMemoryPath(String pVariableName, Long pPathOffset) {
     globalStart = true;
     variableName = pVariableName;
     functionName = null;
@@ -53,13 +53,13 @@ public class SMGMemoryPath {
     pathOffsets = ImmutableList.of(pPathOffset);
   }
 
-  public SMGMemoryPath(SMGMemoryPath pParent, Integer pOffset) {
+  public SMGMemoryPath(SMGMemoryPath pParent, Long pOffset) {
     globalStart = pParent.globalStart;
     variableName = pParent.variableName;
     functionName = pParent.functionName;
     locationOnStack = pParent.locationOnStack;
 
-    List<Integer> offsets = new ArrayList<>(pParent.getPathOffset());
+    List<Long> offsets = new ArrayList<>(pParent.getPathOffset());
     offsets.add(pOffset);
     pathOffsets = ImmutableList.copyOf(offsets);
   }
@@ -76,7 +76,7 @@ public class SMGMemoryPath {
     return variableName;
   }
 
-  public List<Integer> getPathOffset() {
+  public List<Long> getPathOffset() {
     return pathOffsets;
   }
 
@@ -96,7 +96,7 @@ public class SMGMemoryPath {
 
     result.append(variableName);
 
-    for (Integer offset : pathOffsets) {
+    for (Long offset : pathOffsets) {
       result.append("->");
       result.append(offset);
     }
@@ -118,7 +118,7 @@ public class SMGMemoryPath {
       return false;
     }
     SMGMemoryPath other = (SMGMemoryPath) obj;
-    return globalStart != other.globalStart
+    return globalStart == other.globalStart
         && Objects.equal(locationOnStack, other.locationOnStack)
         && Objects.equal(functionName, other.functionName)
         && Objects.equal(pathOffsets, other.pathOffsets)
@@ -126,15 +126,15 @@ public class SMGMemoryPath {
   }
 
   public static SMGMemoryPath valueOf(String pVariableName, String pFunctionName,
-      Integer pPathOffset, Integer pLocationOnStack) {
+                                      Long pPathOffset, Integer pLocationOnStack) {
     return new SMGMemoryPath(pVariableName, pFunctionName, pPathOffset, pLocationOnStack);
   }
 
-  public static SMGMemoryPath valueOf(String pVariableName, Integer pPathOffset) {
+  public static SMGMemoryPath valueOf(String pVariableName, Long pPathOffset) {
     return new SMGMemoryPath(pVariableName, pPathOffset);
   }
 
-  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Integer pOffset) {
+  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Long pOffset) {
     return new SMGMemoryPath(pParent, pOffset);
   }
 }

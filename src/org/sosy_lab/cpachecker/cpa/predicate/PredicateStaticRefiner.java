@@ -76,8 +76,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -209,15 +212,19 @@ public class PredicateStaticRefiner extends StaticRefiner
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
-    final List<BooleanFormula> formulas =
+    BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
+    if(!formulas.hasBranchingFormula()) {
+      formulas = formulas.withBranchingFormula(
+          itpManager.buildBranchingFormula(elementsOnPath));
+    }
 
     CounterexampleTraceInfo counterexample;
     satCheckTime.start();
     try {
       counterexample =
-          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas, elementsOnPath);
+          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas);
     } finally {
       satCheckTime.stop();
     }
@@ -236,7 +243,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       try {
         heuristicPrecision = extractPrecisionFromCfa(pReached.asReachedSet(), targetState);
       } catch (CPATransferException | SolverException e) {
-        throw new CPAException("Static refinement failed", e);
+        throw new RefinementFailedException(Reason.StaticRefinementFailed, allStatesTrace, e);
       } finally {
         predicateExtractionTime.stop();
       }

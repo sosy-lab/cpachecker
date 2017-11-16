@@ -125,4 +125,9 @@ class TimedReducer implements Reducer {
       AbstractState expandedState, FunctionExitNode exitLocation) {
     return wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState, exitLocation);
   }
+
+  @Override
+  public boolean canBeUsedInCache(AbstractState pState) {
+    return wrappedReducer.canBeUsedInCache(pState);
+  }
 }

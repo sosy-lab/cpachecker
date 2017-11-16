@@ -17,7 +17,10 @@
     </And></Match>
     <Match>
         <!-- Handled by Eclipse. -->
-        <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
+        <Or>
+          <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
+          <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
+        </Or>
     </Match>
 
     <Match><And>

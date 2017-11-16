@@ -161,8 +161,11 @@ public class PredicateProvider {
 
     StringBuilder in = new StringBuilder();
     Converter converter = Converter.getConverter(PrecisionConverter.INT2BV, cfa, logger);
-    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(
-        pOldPredicateState.getAbstractionFormula().asFormula());
+    Appender app =
+        oldPredicateCPA
+            .getSolver()
+            .getFormulaManager()
+            .dumpFormula(pOldPredicateState.getAbstractionFormula().asFormula());
 
     try {
       app.appendTo(in);

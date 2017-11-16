@@ -35,12 +35,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 
 public class SMGTest {
@@ -93,8 +93,8 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMG.NULL_ADDRESS);
     smg.addHasValueEdge(hv);
 
-    TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
-    assertThat(nullEdges).containsExactly(32, 32);
+    TreeMap<Long, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
+    assertThat(nullEdges).containsExactly(32L, 32);
   }
 
   @Test
@@ -126,7 +126,7 @@ public class SMGTest {
     assertThat(smg.getValues()).hasSize(1);
     assertThat(smg.getValues()).contains(Integer.valueOf(nullAddress));
 
-    assertThat(smg.getPTEdges().asMap()).hasSize(1);
+    assertThat(smg.getPTEdges().size()).isEqualTo(1);
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 
@@ -154,8 +154,8 @@ public class SMGTest {
     assertThat(smg_copy.getValues()).hasSize(2);
     assertThat(smg_copy.getValues()).contains(third_value);
 
-    assertThat(smg.getPTEdges().asSet()).hasSize(1);
-    assertThat(smg_copy.getPTEdges().asSet()).hasSize(2);
+    assertThat(smg.getPTEdges().size()).isEqualTo(1);
+    assertThat(smg_copy.getPTEdges().size()).isEqualTo(2);
     SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
     Assert.assertEquals(third_object, target_object_for_third);
 
@@ -198,7 +198,7 @@ public class SMGTest {
     assertThat(smg.getObjects()).doesNotContain(object);
     assertThat(smg.getHVEdges()).contains(hv0);
     assertThat(smg.getHVEdges()).contains(hv4);
-    assertThat(smg.getPTEdges().asSet()).contains(pt);
+    assertThat(smg.getPTEdges()).contains(pt);
   }
 
   @Test
@@ -222,7 +222,7 @@ public class SMGTest {
     assertThat(smg.getObjects()).doesNotContain(object);
     assertThat(smg.getHVEdges()).doesNotContain(hv0);
     assertThat(smg.getHVEdges()).doesNotContain(hv4);
-    assertThat(smg.getPTEdges().asSet()).doesNotContain(pt);
+    assertThat(smg.getPTEdges()).doesNotContain(pt);
   }
 
   @Test
@@ -392,7 +392,7 @@ public class SMGTest {
 
   @Test
   public void getObjectsTest() {
-    HashSet<SMGObject> set = new HashSet<>();
+    Set<SMGObject> set = new HashSet<>();
     set.add(obj1);
     set.add(obj2);
     set.add(SMGNullObject.INSTANCE);
@@ -409,7 +409,7 @@ public class SMGTest {
 
   @Test
   public void getValuesTest() {
-    HashSet<Integer> set = new HashSet<>();
+    Set<Integer> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
     set.add(SMG.NULL_ADDRESS);
@@ -419,7 +419,7 @@ public class SMGTest {
 
   @Test
   public void getHVEdgesTest() {
-    HashSet<SMGEdgeHasValue> set = new HashSet<>();
+    Set<SMGEdgeHasValue> set = new HashSet<>();
     set.add(hv2has2at0);
     set.add(hv2has1at4);
 
@@ -428,10 +428,10 @@ public class SMGTest {
 
   @Test
   public void getPTEdgesTest() {
-    HashSet<SMGEdgePointsTo> set = new HashSet<>();
+    Set<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
-    assertThat(smg.getPTEdges().asSet()).containsAllIn(set);
+    assertThat(smg.getPTEdges()).containsAllIn(set);
   }
 
   @Test

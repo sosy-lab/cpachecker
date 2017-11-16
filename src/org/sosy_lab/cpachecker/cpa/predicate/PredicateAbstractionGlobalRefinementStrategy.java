@@ -337,6 +337,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       ARGState infeasiblePartOfART,
       List<ARGState> changedElements,
       ARGReachedSet pReached,
+      List<ARGState> abstractionStatesTrace,
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     // only thing to do here is adding the false predicate for unreacheable states

@@ -72,11 +72,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {

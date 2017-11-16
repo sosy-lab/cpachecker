@@ -32,8 +32,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -92,8 +92,8 @@ class BAMARGUtils {
       for (ARGState child : currentElement.getChildren()) {
         List<CFAEdge> edges = currentElement.getEdgesToChild(child);
         if (edges.isEmpty()) {
-          //this is a summary edge
-          Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement);
+          // this is a summary edge
+          Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement, child);
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
         if (!worklist.contains(child)) {
@@ -105,11 +105,12 @@ class BAMARGUtils {
     }
   }
 
-  private static Pair<Block, ReachedSet> getCachedReachedSet(BAMCPA cpa, ARGState root) {
+  private static Pair<Block, ReachedSet> getCachedReachedSet(
+      BAMCPA cpa, ARGState root, ARGState exitState) {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
 
-    ReachedSet reachSet = cpa.getData().getReachedSetForInitialState(root);
+    ReachedSet reachSet = cpa.getData().getReachedSetForInitialState(root, exitState);
     assert reachSet != null;
     return Pair.of(rootSubtree, reachSet);
   }
@@ -118,9 +119,9 @@ class BAMARGUtils {
    * Only used for PCC.
    */
   public static ARGState copyARG(ARGState pRoot) {
-    HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<>();
-    HashSet<ARGState> visited = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Map<ARGState, ARGState> stateToCopyElem = new HashMap<>();
+    Set<ARGState> visited = new HashSet<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     ARGState current, copyState, copyStateInner;
 
     visited.add(pRoot);

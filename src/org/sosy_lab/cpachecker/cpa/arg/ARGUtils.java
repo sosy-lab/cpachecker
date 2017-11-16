@@ -40,6 +40,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -48,6 +49,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.graph.Traverser;
 import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
@@ -57,7 +59,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -104,32 +105,15 @@ public class ARGUtils {
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
-  public static Set<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
-
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> waitList = new ArrayDeque<>();
-
-    result.add(pLastElement);
-    waitList.add(pLastElement);
-
-    while (!waitList.isEmpty()) {
-      ARGState currentElement = waitList.poll();
-      for (ARGState parent : currentElement.getParents()) {
-        if (result.add(parent)) {
-          waitList.push(parent);
-        }
-      }
-    }
-
-    return result;
+  public static ImmutableSet<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
+    return ImmutableSet.copyOf(
+        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElement));
   }
 
-  /**
-   * Get all abstract states without parents.
-   */
-  public static Set<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
+  /** Get all abstract states without parents. */
+  public static ImmutableSet<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
 
-    Set<ARGState> result = new HashSet<>();
+    ImmutableSet.Builder<ARGState> result = ImmutableSet.builder();
 
     for (AbstractState e : pReached) {
       ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
@@ -138,7 +122,7 @@ public class ARGUtils {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   /**
@@ -286,6 +270,47 @@ public class ARGUtils {
     }
 
     return Optional.of(new ARGPath(Lists.reverse(states)));
+  }
+
+  /**
+   * Create the shortest path in the ARG from root to the given element.
+   * If there are several such paths, one is chosen arbitrarily.
+   * This method is suited for analysis where {@link ARGUtils#getOnePathTo(ARGState)}
+   * is not fast enough due to the structure of the ARG.
+   *
+   * @param pLastElement The last element in the path.
+   * @return A path from root to lastElement.
+   */
+  public static ARGPath getShortestPathTo(final ARGState pLastElement) {
+    Map<ARGState,ARGState> searchTree = new HashMap<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    searchTree.put(pLastElement,null);
+    waitlist.add(pLastElement);
+    ARGState firstElement = null;
+    while (!waitlist.isEmpty()) {
+      ARGState currentState = waitlist.pop();
+      for (ARGState parent: currentState.getParents()) {
+        if (parent.getParents().isEmpty()) {
+          firstElement = parent;
+          searchTree.put(parent,currentState);
+          break;
+        }
+        if (!searchTree.containsKey(parent)) {
+          waitlist.add(parent);
+          searchTree.put(parent,currentState);
+        }
+      }
+      if (firstElement != null) {
+        break;
+      }
+    }
+    assert firstElement != null : "ARG seems to have no initial state (state without parents)!";
+    ImmutableList.Builder<ARGState> path = ImmutableList.builder();
+    while (firstElement != null) {
+      path.add(firstElement);
+      firstElement = searchTree.get(firstElement);
+    }
+    return new ARGPath(path.build());
   }
 
   public static Collection<PathPosition> getTracePrefixesBeforePostfix(
@@ -801,7 +826,7 @@ public class ARGUtils {
 
     ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
 
-    LinkedList<String> sortedFunctionOccurrence = new LinkedList<>();
+    Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
       CFANode node = extractLocation(s);
       if (!sortedFunctionOccurrence.isEmpty()

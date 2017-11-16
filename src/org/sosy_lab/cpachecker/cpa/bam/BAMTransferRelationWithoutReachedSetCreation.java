@@ -126,7 +126,7 @@ public class BAMTransferRelationWithoutReachedSetCreation
     }
 
     assert cachedReached != null;
-    data.registerInitialState(initialState, cachedReached);
+    registerInitalAndExitStates(initialState, cachedReturnStates, cachedReached);
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)

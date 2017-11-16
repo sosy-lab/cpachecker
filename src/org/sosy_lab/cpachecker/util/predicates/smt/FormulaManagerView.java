@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -122,6 +121,14 @@ public class FormulaManagerView {
     BITVECTOR,
     FLOAT,
     ;
+
+    String description() {
+      if (this == INTEGER) {
+        return "unbounded integers";
+      } else {
+        return name().toLowerCase() + "s";
+      }
+    }
   }
 
   private final LogManager logger;
@@ -149,12 +156,12 @@ public class FormulaManagerView {
   @Option(secure=true, description="Theory to use as backend for bitvectors."
       + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
       + " This can be used for solvers that do not support bitvectors, or for increased performance.")
-  private Theory encodeBitvectorAs = Theory.INTEGER;
+  private Theory encodeBitvectorAs = Theory.BITVECTOR;
 
   @Option(secure=true, description="Theory to use as backend for floats."
       + " If different from FLOAT, the specified theory is used to approximate floats."
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
-  private Theory encodeFloatAs = Theory.RATIONAL;
+  private Theory encodeFloatAs = Theory.FLOAT;
 
   @Option(secure=true, description="Enable fallback to UFs if a solver does not "
       + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")
@@ -171,6 +178,24 @@ public class FormulaManagerView {
 
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
+
+    StringBuilder approximations = new StringBuilder();
+    if (encodeBitvectorAs != Theory.BITVECTOR) {
+      approximations.append("ints with ").append(encodeBitvectorAs.description());
+    }
+    if (encodeFloatAs != Theory.FLOAT) {
+      if (approximations.length() > 0) {
+        approximations.append(" and ");
+      }
+      approximations.append("floats with ").append(encodeFloatAs.description());
+    }
+    if (approximations.length() > 0) {
+      logger.log(
+          Level.WARNING,
+          "Using unsound approximation of",
+          approximations,
+          "for encoding program semantics.");
+    }
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
@@ -845,8 +870,18 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
+  /** Create a variable with an SSA index. */
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
+  }
+
+  /**
+   * Create a variable that should never get an SSA index, even when calling {@link
+   * #instantiate(Formula, SSAMap)}.
+   */
+  public <T extends Formula> T makeVariableWithoutSSAIndex(
+      FormulaType<T> formulaType, String name) {
+    return makeVariable(formulaType, makeNameNoIndex(name));
   }
 
   public IntegerFormulaManagerView getIntegerFormulaManager() {
@@ -931,29 +966,42 @@ public class FormulaManagerView {
     return name + INDEX_SEPARATOR + idx;
   }
 
+  static String makeNameNoIndex(String name) {
+    checkArgument(
+        name.indexOf(INDEX_SEPARATOR) == -1, "Variable with forbidden symbol '@': %s", name);
+    return name + INDEX_SEPARATOR;
+  }
+
 
   /**
    * Instantiate the variables in pF with the SSA indices in pSsa. Already instantiated variables
    * are not allowed in the formula.
    */
   public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
-    return wrap(getFormulaType(pF),
-        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<>(),
+    return wrap(
+        getFormulaType(pF),
+        myFreeVariableNodeTransformer(
+            unwrap(pF),
+            new HashMap<>(),
             pFullSymbolName -> {
-              checkArgument(
-                  pFullSymbolName.indexOf(INDEX_SEPARATOR) == -1,
-                  "already instantiated variable %s in formula",
-                  pFullSymbolName);
+              int sepPos = pFullSymbolName.indexOf(INDEX_SEPARATOR);
+              if (sepPos == pFullSymbolName.length() - 1) {
+                // variable should never be instantiated
+                // TODO check no index in SSAMap
+                return pFullSymbolName;
+              } else if (sepPos != -1) {
+                throw new IllegalArgumentException(
+                    "already instantiated variable " + pFullSymbolName + " in formula");
+              }
               final int reInstantiateWithIndex = pSsa.getIndex(pFullSymbolName);
 
               if (reInstantiateWithIndex > 0) {
                 return makeName(pFullSymbolName, reInstantiateWithIndex);
               } else {
-                // the variable is not used in the SSA, keep it as is
+                // TODO throw exception
                 return pFullSymbolName;
               }
-            })
-        );
+            }));
   }
 
   // various caches for speeding up expensive tasks
@@ -972,8 +1020,13 @@ public class FormulaManagerView {
     checkArgument(name.length() > 0, "Invalid empty name");
     List<String> parts = INDEX_SPLITTER.splitToList(name);
     if (parts.size() == 2) {
+      if (parts.get(1).isEmpty()) {
+        // Variable name ending in @ marks variables that should not be instantiated
+        return Pair.of(parts.get(0), OptionalInt.empty());
+      }
       return Pair.of(parts.get(0), OptionalInt.of(Integer.parseInt(parts.get(1))));
     } else if (parts.size() == 1) {
+      // TODO throw exception after forbidding such variable names
       return Pair.of(parts.get(0), OptionalInt.empty());
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
@@ -996,10 +1049,15 @@ public class FormulaManagerView {
    * @return    Uninstantiated formula
    */
   public <F extends Formula> F uninstantiate(F f) {
-    return wrap(getFormulaType(f),
-        myFreeVariableNodeTransformer(unwrap(f), uninstantiateCache,
-            pArg0 -> parseName(pArg0).getFirst())
-        );
+    return wrap(
+        getFormulaType(f),
+        myFreeVariableNodeTransformer(
+            unwrap(f),
+            uninstantiateCache,
+            pArg0 ->
+                pArg0.charAt(pArg0.length() - 1) == INDEX_SEPARATOR
+                    ? pArg0
+                    : parseName(pArg0).getFirst()));
   }
 
   /**
@@ -1218,7 +1276,8 @@ public class FormulaManagerView {
           Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
         if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
             || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
-            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
+            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()
+            && !functionDeclaration.getArgumentTypes().get(0).isArrayType()) {
 
           Formula arg1 = args.get(0);
           Formula arg2;
@@ -1756,5 +1815,46 @@ public class FormulaManagerView {
       return delegate.visitQuantifier(pF, pQuantifier, pBoundVariables, pTransformedBody);
     }
 
+  }
+
+  private static final String DUMMY_VAR = "__dummy_variable_dumping_formulas__";
+
+  /**
+   * Dump an arbitrary formula into a string, in contrast to {@link #dumpFormula(BooleanFormula)}
+   * this works with non-boolean formulas. No guarantees are made about the output format, except
+   * that it can be parsed by {@link #parseArbitraryFormula(String)}.
+   */
+  public String dumpArbitraryFormula(Formula f) {
+    Formula dummyVar = makeVariable(getFormulaType(f), DUMMY_VAR);
+    return dumpFormula(makeEqual(dummyVar, f)).toString();
+  }
+
+  /** Parse a string with a formula that was created by {@link #dumpArbitraryFormula(Formula)}. */
+  public Formula parseArbitraryFormula(String s) {
+    BooleanFormula f = parse(s);
+    return visit(
+        f,
+        new DefaultFormulaVisitor<Formula>() {
+
+          @Override
+          protected Formula visitDefault(Formula pF) {
+            throw new AssertionError("Unexpected formula " + pF);
+          }
+
+          @Override
+          public Formula visitFunction(
+              Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pDecl) {
+            if (pDecl.getKind() != FunctionDeclarationKind.EQ && pArgs.size() != 2) {
+              return visitDefault(pF);
+            }
+            Formula dummyVar = makeVariable(getFormulaType(pArgs.get(0)), DUMMY_VAR);
+            if (pArgs.get(0).equals(dummyVar)) {
+              return pArgs.get(1);
+            } else if (pArgs.get(1).equals(dummyVar)) {
+              return pArgs.get(0);
+            }
+            return visitDefault(pF);
+          }
+        });
   }
 }

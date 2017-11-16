@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -184,20 +184,15 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
           addressOfField.getOffset().getAsInt(), smgRightHandSideEvaluator.getRealExpressionType(lValue), rSymValue, edge);
     }
     int size = smgRightHandSideEvaluator.getBitSizeof(edge, smgRightHandSideEvaluator.getRealExpressionType(lValue), assignableState);
+    assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {
-        assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
         assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
-      } else {
-        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
     } else {
       if (op == BinaryOperator.NOT_EQUALS) {
-        assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
         assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
         //TODO more precise
-      } else {
-        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
     }
   }

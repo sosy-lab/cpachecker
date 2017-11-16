@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -56,8 +57,10 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    final ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisGlobalRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisGlobalRefiner.class);
 
     valueAnalysisCpa.injectRefinablePrecision();
 

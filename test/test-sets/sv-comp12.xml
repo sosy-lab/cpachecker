@@ -14,7 +14,7 @@
       <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-64"/>
     </tasks>
-    <option name="-sv-comp12"/>
+    <option name="-svcomp12"/>
     <option name="-heap">12500M</option>
   </rundefinition>
 

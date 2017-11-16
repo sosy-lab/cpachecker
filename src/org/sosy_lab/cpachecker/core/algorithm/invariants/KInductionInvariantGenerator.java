@@ -349,10 +349,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             statisticsCandidateGenerator,
             pAggregatedReachedSets);
 
-    PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    if (predicateCPA == null) {
-      throw new InvalidConfigurationException("Predicate CPA required");
-    }
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, KInductionInvariantGenerator.class);
     String solverVersion = predicateCPA.getSolver().getVersion().toLowerCase();
     if (async && !(solverVersion.contains("smtinterpol")
         || solverVersion.contains("z3"))) {
@@ -695,12 +693,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(
-          new ExpressionTreeLocationInvariant(
-              expressionTreeLocationInvariant.getGroupId(),
-              expressionTreeLocationInvariant.getLocation(),
-              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-              toCodeVisitorCache));
+      for (CFANode location :
+          candidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        candidates.add(
+            new ExpressionTreeLocationInvariant(
+                expressionTreeLocationInvariant.getGroupId(),
+                location,
+                expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+                toCodeVisitorCache));
+      }
     }
   }
 

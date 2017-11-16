@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -106,6 +105,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
@@ -115,7 +115,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-
 
 /**
  * This Visitor implements an evaluation strategy
@@ -230,6 +229,10 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
+    if (lVal instanceof FunctionValue || rVal instanceof FunctionValue) {
+      return calculateExpressionWithFunctionValue(binaryOperator, rVal, lVal);
+    }
+
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
       return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
     }
@@ -300,6 +303,29 @@ public abstract class AbstractExpressionValueVisitor
 
     return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
         expressionType, calculationType);
+  }
+
+  public static Value calculateExpressionWithFunctionValue(BinaryOperator binaryOperator, Value val1, Value val2) {
+    if (val1 instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
+    } else if (val2 instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val2, val1);
+    } else {
+      return new Value.UnknownValue();
+    }
+  }
+
+  private static NumericValue calculateOperationWithFunctionValue(BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
+    switch (binaryOperator) {
+    case EQUALS:
+      return new NumericValue(val1.equals(val2) ? 1 : 0);
+
+    case NOT_EQUALS:
+      return new NumericValue(val1.equals(val2) ? 0 : 1);
+
+    default:
+      throw new AssertionError("Operation " + binaryOperator + " is not supported for function values");
+    }
   }
 
   private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
@@ -1645,7 +1671,8 @@ public abstract class AbstractExpressionValueVisitor
       // int or long, so we have to cast if the actual type is int.
       case SHIFT_LEFT:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) << rVal;
+          final int intResult = ((int) lVal) << rVal;
+          numResult = intResult;
         } else {
           numResult = lVal << rVal;
         }
@@ -1653,7 +1680,8 @@ public abstract class AbstractExpressionValueVisitor
 
       case SHIFT_RIGHT_SIGNED:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) >> rVal;
+          final int intResult = ((int) lVal) >> rVal;
+          numResult = intResult;
         } else {
           numResult = lVal >> rVal;
         }
@@ -1661,7 +1689,8 @@ public abstract class AbstractExpressionValueVisitor
 
       case SHIFT_RIGHT_UNSIGNED:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) >>> rVal;
+          final int intResult = ((int) lVal) >>> rVal;
+          numResult = intResult;
         } else {
           numResult = lVal >>> rVal;
         }
@@ -2034,15 +2063,13 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JArrayCreationExpression pJArrayCreationExpression) {
-    List<JExpression> arraySizeExpressions = new ArrayList<>(pJArrayCreationExpression.getLength());
     Value lastArrayValue;
     Value currentArrayValue = null;
     int currentDimension = 0;
     long concreteArraySize;
     final JType elementType = pJArrayCreationExpression.getExpressionType().getElementType();
 
-    Collections.reverse(arraySizeExpressions);
-    for (JExpression sizeExpression : arraySizeExpressions) {
+    for (JExpression sizeExpression : Lists.reverse(pJArrayCreationExpression.getLength())) {
       currentDimension++;
       lastArrayValue = currentArrayValue;
       Value sizeValue = sizeExpression.accept(this);
@@ -2089,7 +2116,7 @@ public abstract class AbstractExpressionValueVisitor
     final List<JExpression> initializerExpressions = pJArrayInitializer.getInitializerExpressions();
 
     // this list stores the values in the array's slots, in occurring order
-    List<Value> slotValues = new LinkedList<>();
+    List<Value> slotValues = new ArrayList<>();
 
     for (JExpression currentExpression : initializerExpressions) {
       slotValues.add(currentExpression.accept(this));
@@ -2138,10 +2165,6 @@ public abstract class AbstractExpressionValueVisitor
 
   public String getFunctionName() {
     return functionName;
-  }
-
-  public long getBitSizeof(CType pType) {
-    return machineModel.getBitSizeof(pType);
   }
 
   protected MachineModel getMachineModel() {

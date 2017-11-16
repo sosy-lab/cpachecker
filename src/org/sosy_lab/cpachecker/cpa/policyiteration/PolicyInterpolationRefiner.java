@@ -88,12 +88,12 @@ public class PolicyInterpolationRefiner implements Refiner {
   public static PolicyInterpolationRefiner create(
       ConfigurableProgramAnalysis pConfigurableProgramAnalysis
   ) throws InvalidConfigurationException {
-    PolicyCPA policyCPA = CPAs.retrieveCPA(pConfigurableProgramAnalysis,
-        PolicyCPA.class);
-    Preconditions.checkNotNull(policyCPA);
-    ARGCPA argCPA = CPAs.retrieveCPA(pConfigurableProgramAnalysis,
-        ARGCPA.class);
-    Preconditions.checkNotNull(argCPA);
+    PolicyCPA policyCPA =
+        CPAs.retrieveCPAOrFail(
+            pConfigurableProgramAnalysis, PolicyCPA.class, PolicyInterpolationRefiner.class);
+    ARGCPA argCPA =
+        CPAs.retrieveCPAOrFail(
+            pConfigurableProgramAnalysis, ARGCPA.class, PolicyInterpolationRefiner.class);
 
     Configuration config = policyCPA.getConfig();
     LogManager logger = policyCPA.getLogger();

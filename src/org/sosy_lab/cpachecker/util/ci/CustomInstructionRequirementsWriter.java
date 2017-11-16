@@ -24,7 +24,13 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
@@ -45,14 +51,6 @@ import org.sosy_lab.cpachecker.util.ci.translators.IntervalRequirementsTranslato
 import org.sosy_lab.cpachecker.util.ci.translators.PredicateRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.SignRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.ValueRequirementsTranslator;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 public class CustomInstructionRequirementsWriter {
 
@@ -139,7 +137,8 @@ public class CustomInstructionRequirementsWriter {
       }
       if (pCpa == null) { throw new CPAException(
           "Cannot extract analysis which was responsible for construction PredicateAbstract States"); }
-      abstractReqTranslator = new PredicateRequirementsTranslator(pCpa);
+      abstractReqTranslator =
+          new PredicateRequirementsTranslator(pCpa.getSolver().getFormulaManager());
     } else {
       throw new CPAException("There is no suitable requirementTranslator available.");
     }

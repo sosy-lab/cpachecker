@@ -8,16 +8,16 @@
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-      <option name="-sv-comp12-bam"/>
+      <option name="-svcomp12-bam"/>
     </tasks>
     <tasks>
       <includesfile>../programs/benchmarks/DeviceDrivers.set</includesfile>
-      <option name="-sv-comp12-bam-funpoint"/>
+      <option name="-svcomp12-bam-funpoint"/>
     </tasks>
     <tasks>
       <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-64"/>
-      <option name="-sv-comp12-bam"/>
+      <option name="-svcomp12-bam"/>
     </tasks>    
     <option name="-heap">12500M</option>
   </rundefinition>

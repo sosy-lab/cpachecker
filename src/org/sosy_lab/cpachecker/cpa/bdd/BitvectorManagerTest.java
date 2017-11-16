@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import static com.google.common.truth.TruthJUnit.assume;
+
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -185,7 +187,7 @@ public class BitvectorManagerTest {
 
   @Test
   public void signedLen4() {
-    assert bitsize >= 4 : "test is designed for a minimal bitsize of 4";
+    assume().withMessage("test is designed for a minimal bitsize of 4").that(bitsize).isAtLeast(4);
 
     assertEqualwithLen4(zero, bvmgr.makeAdd(neg1, one));
     assertEqualwithLen4(one, bvmgr.makeAdd(neg1, two));

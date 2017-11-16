@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -894,6 +895,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 List<BooleanFormula> interpolants;
                 try {
                   List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+                  BlockFormulas formulas =
+                      new BlockFormulas(pathFormula).withBranchingFormula(
+                          imgr.buildBranchingFormula(elementsOnPath));
                   // the prefix is not filled up with trues if it is shorter than
                   // the path so we need to do it ourselves
                   while (pathFormula.size() < abstractionStatesTrace.size()) {
@@ -901,9 +905,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   }
                   interpolants =
                       imgr.buildCounterexampleTrace(
-                              pInput.getPathFormulae(),
-                              ImmutableList.copyOf(abstractionStatesTrace),
-                              elementsOnPath)
+                              formulas,
+                              ImmutableList.copyOf(abstractionStatesTrace))
                           .getInterpolants();
 
                 } catch (CPAException | InterruptedException e) {

@@ -30,7 +30,7 @@ import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Class implements so called B&B memory model.
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
  */
 class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
   private static final String GLOBAL = "global";
-  private static final String SEPARATOR = "_";
+  private static final String SEPARATOR = ":";
 
 
   private static class GlobalBnBRegion implements MemoryRegion {
@@ -160,7 +160,11 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
   private final Optional<VariableClassification> varClassification;
   private final Multimap<CType, String> fieldRegions;
 
-  BnBRegionManager(Optional<VariableClassification> var, Multimap<CType, String> fieldRegions) {
+  BnBRegionManager(
+      Optional<VariableClassification> var,
+      Multimap<CType, String> fieldRegions,
+      TypeHandlerWithPointerAliasing pTypeHandler) {
+    super(pTypeHandler);
     this.fieldRegions = fieldRegions;
     this.varClassification = var;
   }

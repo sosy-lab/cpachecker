@@ -47,19 +47,11 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
   }
 
   private final PowerSetDomain domain;
-  private final TransferRelation relation;
-  private final StopOperator stop;
-  private final MergeOperator merge;
-  private final PrecisionAdjustment prec;
+  // TODO: domain depends on current initial precision. This might be wrong!
 
   public PowerSetCPA(final ConfigurableProgramAnalysis pCpa) {
     super(pCpa);
-
     domain = new PowerSetDomain(pCpa.getStopOperator());
-    relation = new PowerSetTransferRelation(pCpa.getTransferRelation());
-    stop = new StopSepOperator(domain);
-    merge = new MergeJoinOperator(domain);
-    prec = new PowerSetPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }
 
   @Override
@@ -69,22 +61,22 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return relation;
+    return new PowerSetTransferRelation(getWrappedCpa().getTransferRelation());
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return new MergeJoinOperator(getAbstractDomain());
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return new PowerSetPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
   }
 
 
@@ -101,6 +93,4 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
     domain.setPrecision(prec);
     return prec;
   }
-
-
 }

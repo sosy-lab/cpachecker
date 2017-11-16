@@ -110,7 +110,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
-  protected final FormulaManagerView fmgr;
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
   private final AnalysisDirection direction;
@@ -366,6 +366,36 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
 
     PathFormula pf = pElement.getPathFormula();
+
+    PathFormula previousPathFormula = pAssumeElement.getPreviousPathFormula(pf);
+    if (previousPathFormula != null) {
+      for (CExpression preconditionAssumption : from(pAssumeElement.getPreconditionAssumptions())
+          .filter(CExpression.class)) {
+        if (CFAUtils.getIdExpressionsOfExpression(preconditionAssumption)
+            .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
+          continue;
+        }
+        pathFormulaTimer.start();
+        try {
+          // compute a pathFormula where the SSAMap/ PointerTargetSet is set back to the previous state:
+          PathFormula temp = new PathFormula(
+              pf.getFormula(),
+              previousPathFormula.getSsa(),
+              previousPathFormula.getPointerTargetSet(),
+              previousPathFormula.getLength());
+          // add the assumption, which is now instantiated with the right indices:
+          temp = pathFormulaManager.makeAnd(temp, preconditionAssumption);
+          // add back the original SSAMap ant PointerTargetSet:
+          pf = new PathFormula(
+              temp.getFormula(),
+              pf.getSsa(),
+              pf.getPointerTargetSet(),
+              pf.getLength() + 1);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      }
+    }
 
     for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
       // assumptions do not contain compete type nor scope information

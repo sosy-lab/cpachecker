@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
+import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Paths;
@@ -39,10 +40,10 @@ public class CoverageReportGcov {
   private final static String FUNCTIONDATA = "FNDA:";
   private final static String LINEDATA = "DA:";
 
-  public static void write(Map<String, FileCoverageInformation> pCoverage, Writer w)
-      throws IOException {
+  public static void write(CoverageData pCoverage, Writer w) throws IOException {
 
-    for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
+    for (Map.Entry<String, FileCoverageInformation> entry :
+        pCoverage.getInfosPerFile().entrySet()) {
       String sourcefile = entry.getKey();
       FileCoverageInformation fileInfos = entry.getValue();
 
@@ -57,8 +58,8 @@ public class CoverageReportGcov {
         w.append("#" + FUNCTION + info.lastLine + "\n");
       }
 
-      for (String name : fileInfos.visitedFunctions.keySet()) {
-        w.append(FUNCTIONDATA + fileInfos.visitedFunctions.get(name) + "," + name + "\n");
+      for (Multiset.Entry<String> functionEntry : fileInfos.visitedFunctions.entrySet()) {
+        w.append(FUNCTIONDATA + functionEntry.getCount() + "," + functionEntry.getElement() + "\n");
       }
 
       /* Now save information about lines

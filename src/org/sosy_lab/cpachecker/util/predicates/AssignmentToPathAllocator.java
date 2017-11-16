@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-
 public class AssignmentToPathAllocator {
 
   private static final int IS_NOT_GLOBAL = 2;
@@ -100,7 +99,8 @@ public class AssignmentToPathAllocator {
 
   public AssignmentToPathAllocator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.shutdownNotifier = pShutdownNotifier;
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
+    this.assumptionToEdgeAllocator =
+        AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
 
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
@@ -552,7 +552,8 @@ public class AssignmentToPathAllocator {
         Address address = Address.valueOf(constant.getValue());
 
         //TODO ugly, refactor?
-        String constantName = PointerTargetSet.getBase(name);
+        String constantName =
+            PointerTargetSet.getBase(FormulaManagerView.parseName(name).getFirst());
         LeftHandSide leftHandSide = createLeftHandSide(constantName);
         addressOfVariables.put(leftHandSide, address);
       }

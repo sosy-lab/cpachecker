@@ -400,6 +400,7 @@ public class CPAMain {
           .clearOption("output.disable")
           .clearOption("output.path")
           .clearOption("rootDirectory")
+          .clearOption("witness.validation.file")
           .build();
     }
     return config;
@@ -409,10 +410,10 @@ public class CPAMain {
       ImmutableMap.<PropertyType, String>builder()
           .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
           .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "memorysafety-free")
-          .put(PropertyType.VALID_DEREF, "memorysafety-deref")
-          .put(PropertyType.VALID_MEMTRACK, "memorysafety-memtrack")
-          .put(PropertyType.OVERFLOW, "overflow")
+          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
           .put(PropertyType.DEADLOCK, "deadlock")
           //.put(PropertyType.TERMINATION, "none needed")
           .build();
@@ -462,7 +463,10 @@ public class CPAMain {
 
     String specFiles =
         Optionals.presentInstances(
-                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
+                properties
+                    .stream()
+                    .map(SpecificationProperty::getInternalSpecificationPath)
+                    .distinct())
             .collect(Collectors.joining(","));
     cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
@@ -522,7 +526,8 @@ public class CPAMain {
       case VIOLATION_WITNESS:
         validationConfigFile = options.violationWitnessValidationConfig;
         String specs = overrideOptions.get(SPECIFICATION_OPTION);
-        specs = Joiner.on(',').join(specs, options.witness.toString());
+        String witnessSpec = options.witness.toString();
+        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec.toString());
         overrideOptions.put(SPECIFICATION_OPTION, specs);
         break;
       case CORRECTNESS_WITNESS:

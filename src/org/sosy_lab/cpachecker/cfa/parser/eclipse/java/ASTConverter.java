@@ -29,14 +29,16 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -161,9 +163,9 @@ class ASTConverter {
 
   private final ASTTypeConverter typeConverter;
 
-  private LinkedList<JDeclaration> forInitDeclarations = new LinkedList<>();
-  private LinkedList<JAstNode> preSideAssignments = new LinkedList<>();
-  private LinkedList<JAstNode> postSideAssignments = new LinkedList<>();
+  private List<JDeclaration> forInitDeclarations = new ArrayList<>();
+  private Deque<JAstNode> preSideAssignments = new ArrayDeque<>();
+  private Deque<JAstNode> postSideAssignments = new ArrayDeque<>();
 
   private ConditionalExpression conditionalExpression = null;
   private JIdExpression conditionalTemporaryVariable = null;
@@ -2298,10 +2300,9 @@ class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(pExpr);
 
-    //TODO correct JMethodExpression when standard Library will be
-    //              supported
+    // TODO correct JMethodExpression when standard Library will be supported
 
-    List<JExpression> parameters = new LinkedList<>();
+    List<JExpression> parameters = ImmutableList.of();
 
     JInterfaceType iteratorTyp = JInterfaceType.createUnresolvableType();
 
@@ -2351,7 +2352,7 @@ class ASTConverter {
 
     JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
 
-    List<JExpression> parameters = new LinkedList<>();
+    List<JExpression> parameters = ImmutableList.of();
 
     JReferencedMethodInvocationExpression mi =
         new JReferencedMethodInvocationExpression(
@@ -2381,10 +2382,9 @@ class ASTConverter {
                                             param.getName(),
                                             param);
 
-    //TODO correct JMethodExpression when standard Library will be
-    //              supported
+    // TODO correct JMethodExpression when standard Library will be supported
 
-    List<JExpression> parameters = new LinkedList<>();
+    List<JExpression> parameters = ImmutableList.of();
 
     JIdExpression name = new JIdExpression(fileLoc, param.getType(), "next", null);
 
@@ -2522,8 +2522,8 @@ class ASTConverter {
    */
   public JMethodDeclaration createDefaultConstructor(ITypeBinding classBinding) {
 
-    List<JType> paramTypes = new LinkedList<>();
-    List<JParameterDeclaration> param = new LinkedList<>();
+    List<JType> paramTypes = ImmutableList.of();
+    List<JParameterDeclaration> param = ImmutableList.of();
 
     JConstructorType type = new JConstructorType((JClassType)
         convert(classBinding), paramTypes, false);

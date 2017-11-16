@@ -26,23 +26,25 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
 
 public final class SMGIntersectStates {
 
@@ -60,9 +62,7 @@ public final class SMGIntersectStates {
     mapping2.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
 
     Map<String, SMGRegion> globals_in_smg1 = pHeap1.getGlobalObjects();
-    Deque<CLangStackFrame> stack_in_smg1 = pHeap1.getStackFrames();
     Map<String, SMGRegion> globals_in_smg2 = pHeap2.getGlobalObjects();
-    Deque<CLangStackFrame> stack_in_smg2 = pHeap2.getStackFrames();
 
     Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
     Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
@@ -83,8 +83,8 @@ public final class SMGIntersectStates {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
+    Iterator<CLangStackFrame> smg1stackIterator = pHeap1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = pHeap2.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -129,8 +129,8 @@ public final class SMGIntersectStates {
       }
     }
 
-    smg1stackIterator = stack_in_smg1.descendingIterator();
-    smg2stackIterator = stack_in_smg2.descendingIterator();
+    smg1stackIterator = pHeap1.getStackFrames().iterator();
+    smg2stackIterator = pHeap2.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -264,23 +264,23 @@ public final class SMGIntersectStates {
     Set<SMGEdgeHasValue> hves1 = pSmg1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
     Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve1Map =
+    Map<Long, SMGEdgeHasValue> offsetToHve1Map =
         FluentIterable.from(hves1).uniqueIndex(
             (SMGEdgeHasValue hve) -> {
               return hve.getOffset();
             });
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve2Map =
+    Map<Long, SMGEdgeHasValue> offsetToHve2Map =
         FluentIterable.from(hves2).uniqueIndex(
             (SMGEdgeHasValue hve) -> {
               return hve.getOffset();
             });
 
-    Set<Integer> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
+    Set<Long> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
     offsetSet.addAll(offsetToHve1Map.keySet());
     offsetSet.addAll(offsetToHve2Map.keySet());
 
-    for (Integer offset : offsetSet) {
+    for (long offset : offsetSet) {
       if (offsetToHve1Map.containsKey(offset)) {
         if (offsetToHve2Map.containsKey(offset)) {
           SMGEdgeHasValue hve1 = offsetToHve1Map.get(offset);
@@ -416,8 +416,8 @@ public final class SMGIntersectStates {
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
 
-    int offset1 = pPte1.getOffset();
-    int offset2 = pPte2.getOffset();
+    long offset1 = pPte1.getOffset();
+    long offset2 = pPte2.getOffset();
 
     if (offset1 != offset2) {
       return false;

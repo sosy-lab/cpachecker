@@ -50,11 +50,11 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -202,7 +202,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
           SMGExplicitValue arrayOffset = arrayAddress.getOffset();
           int typeSize = smgExpressionEvaluator.getBitSizeof(getCfaEdge(), smgExpressionEvaluator.getRealExpressionType(lValue), newState, lValue);
           SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
-          SMGExplicitValue offset = arrayOffset.add(subscriptValue).multiply(sizeOfType);
+          SMGExplicitValue offset = arrayOffset.add(subscriptValue.multiply(sizeOfType));
           SMGAddressValueAndStateList resultAddressAndState = smgExpressionEvaluator.createAddress(newState, arrayAddress.getObject(), offset);
           result.addAll(resultAddressAndState.asAddressValueAndStateList());
         }

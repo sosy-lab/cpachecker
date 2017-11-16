@@ -282,7 +282,7 @@ public abstract class SMGPrecision implements Precision {
       SMGPrecisionAbstractionOptions other = (SMGPrecisionAbstractionOptions) obj;
       return fieldAbstraction == other.fieldAbstraction
           && heapAbstraction == other.heapAbstraction
-          && stackAbstraction != other.stackAbstraction;
+          && stackAbstraction == other.stackAbstraction;
     }
 
     @Override

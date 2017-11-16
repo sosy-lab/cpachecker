@@ -107,6 +107,11 @@ public class CFunctionPointerResolver {
       description="Use as targets for call edges only those shich are assigned to the particular expression (structure field).")
   private boolean matchAssignedFunctionPointers = false;
 
+  @Option(secure=true, name="analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments",
+      description="If a no target function was assigned to a function pointer,"
+          + " use the origin heuristic instead of replacing with empty calls")
+  private boolean ignoreUnknownAssignments = false;
+
   private enum FunctionSet {
     // The items here need to be declared in the order they should be used when checking function.
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
@@ -133,6 +138,7 @@ public class CFunctionPointerResolver {
   private final Collection<FunctionEntryNode> candidateFunctions;
 
   private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForField;
+  private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForGlobals;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
@@ -177,8 +183,13 @@ public class CFunctionPointerResolver {
             ImmutableSetMultimap.copyOf(
                 ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
                     .getFieldMatching());
+        candidateFunctionsForGlobals =
+            ImmutableSetMultimap.copyOf(
+                ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
+                    .getGlobalsMatching());
       } else {
         candidateFunctionsForField = null;
+        candidateFunctionsForGlobals = null;
       }
 
       if (logger.wouldBeLogged(Level.ALL)) {
@@ -189,6 +200,7 @@ public class CFunctionPointerResolver {
     } else {
       candidateFunctions = cfa.getAllFunctionHeads();
       candidateFunctionsForField = null;
+      candidateFunctionsForGlobals = null;
     }
   }
 
@@ -303,17 +315,34 @@ public class CFunctionPointerResolver {
       if (expression instanceof CPointerExpression) {
         expression = ((CPointerExpression) expression).getOperand();
       }
+      Set<String> matchedFuncs;
       if( expression instanceof CFieldReference) {
         String fieldName = ((CFieldReference)expression).getFieldName();
-        Set<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
-        if (matchedFuncs.isEmpty()) {
-          //TODO means, that our heuristics missed something
-          funcs = Collections.emptySet();
+        matchedFuncs = candidateFunctionsForField.get(fieldName);
+
+      } else if (expression instanceof CIdExpression) {
+        String variableName = ((CIdExpression)expression).getName();
+        CSimpleDeclaration cDecl = ((CIdExpression)expression).getDeclaration();
+        if (cDecl instanceof CVariableDeclaration &&
+            ((CVariableDeclaration)cDecl).isGlobal()) {
+          matchedFuncs = candidateFunctionsForGlobals.get(variableName);
         } else {
-          funcs = from(funcs).
-              filter(f -> matchedFuncs.contains(f.getFunctionName())).
-              toSet();
+          matchedFuncs = null;
         }
+
+      } else {
+        matchedFuncs = null;
+      }
+
+      /* 'null means, that the heuristics can not be applied, use the origin procedure
+       * 'empty' means, we have found empty set of matched functions in case, when the heuristics may be applied
+       */
+      if (matchedFuncs != null && matchedFuncs.isEmpty() && !ignoreUnknownAssignments) {
+        funcs = Collections.emptySet();
+      } else if (matchedFuncs != null) {
+        funcs = from(funcs).
+            filter(f -> matchedFuncs.contains(f.getFunctionName())).
+            toSet();
       }
     }
 

@@ -22,6 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
+
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
@@ -118,11 +119,25 @@ public interface CType extends Type {
       CType leftPointedToType = pointerLeft.getType();
       CType rightPointedToType = pointerRight.getType();
 
-      // Cf. C-Standard §6.5.16.1 (1), third and forth constraint.
-      return pointerLeft.isConst() == pointerRight.isConst() && pointerLeft.isVolatile() == pointerRight.isVolatile()
-          && ((leftPointedToType instanceof CVoidType && !(rightPointedToType instanceof CVoidType))
-              || (rightPointedToType instanceof CVoidType && !(leftPointedToType instanceof CVoidType))
-              || CTypes.areTypesCompatible(leftHandSide, rightHandSide));
+      if (leftPointedToType instanceof CProblemType || rightPointedToType instanceof CProblemType) {
+        return true;
+      }
+
+      // Cf. C-Standard §6.5.16.1 (1), third and fourth constraint.
+      return (((leftPointedToType.isConst() || !rightPointedToType.isConst())
+              && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile()))
+          && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
+              || CTypes.areTypesCompatible(
+                  CTypes.copyDequalified(leftPointedToType),
+                  CTypes.copyDequalified(rightPointedToType))));
+    }
+
+    // Cf. C-Standard §6.3.2.1 (3)
+    if (leftHandSide instanceof CPointerType && rightHandSide instanceof CArrayType) {
+      CPointerType pointerLeft = (CPointerType) leftHandSide;
+      CArrayType arrayRight = (CArrayType) rightHandSide;
+
+      return CTypes.areTypesCompatible(pointerLeft.getType(), arrayRight.getType());
     }
 
     // default case

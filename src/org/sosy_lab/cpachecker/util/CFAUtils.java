@@ -36,8 +36,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
-import com.google.common.collect.TreeTraverser;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -520,7 +520,7 @@ public class CFAUtils {
    * (in pre-order).
    */
   public static FluentIterable<AAstNode> traverseRecursively(AAstNode root) {
-    return AstNodeTraverser.REGULAR_INSTANCE.preOrderTraversal(root);
+    return FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
   /**
@@ -531,7 +531,7 @@ public class CFAUtils {
       "unchecked") // by construction, we only get CAstNodes if we start with a CAstNode
   public static FluentIterable<CAstNode> traverseRecursively(CAstNode root) {
     return (FluentIterable<CAstNode>)
-        (FluentIterable<?>) AstNodeTraverser.REGULAR_INSTANCE.preOrderTraversal(root);
+        (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
   /**
@@ -542,7 +542,7 @@ public class CFAUtils {
       "unchecked") // by construction, we only get JAstNodes if we start with a jAstNode
   public static FluentIterable<JAstNode> traverseRecursively(JAstNode root) {
     return (FluentIterable<JAstNode>)
-        (FluentIterable<?>) AstNodeTraverser.REGULAR_INSTANCE.preOrderTraversal(root);
+        (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
   /**
@@ -552,7 +552,7 @@ public class CFAUtils {
   @SuppressWarnings("unchecked") // by construction, we only get CRHS if we start with a CRHS
   public static FluentIterable<CRightHandSide> traverseRecursively(CRightHandSide root) {
     return (FluentIterable<CRightHandSide>)
-        (FluentIterable<?>) AstNodeTraverser.REGULAR_INSTANCE.preOrderTraversal(root);
+        (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
   /**
@@ -562,7 +562,7 @@ public class CFAUtils {
   @SuppressWarnings("unchecked") // by construction, we only get CExps if we start with a CExp
   public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
     return (FluentIterable<CExpression>)
-        (FluentIterable<?>) AstNodeTraverser.REGULAR_INSTANCE.preOrderTraversal(root);
+        (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
   /**
@@ -576,30 +576,18 @@ public class CFAUtils {
   @SuppressWarnings("unchecked") // by construction, we only get AExps if we start with a ALHS
   public static FluentIterable<AExpression> traverseLeftHandSideRecursively(ALeftHandSide root) {
     return (FluentIterable<AExpression>)
-        (FluentIterable<?>) AstNodeTraverser.LHS_INSTANCE.preOrderTraversal(root);
+        (FluentIterable<?>) FluentIterable.from(AST_LHS_TRAVERSER.depthFirstPreOrder(root));
   }
 
-  private static final class AstNodeTraverser extends TreeTraverser<AAstNode> {
+  private static final Traverser<AAstNode> AST_LHS_TRAVERSER =
+      Traverser.forTree(node -> node.accept_(LeftHandSideVisitor.INSTANCE));
 
-    private final AAstNodeVisitor<Iterable<? extends AAstNode>, RuntimeException> visitor;
-
-    private AstNodeTraverser(AAstNodeVisitor<Iterable<? extends AAstNode>, RuntimeException> pV) {
-      visitor = pV;
-    }
-
-    private static final AstNodeTraverser REGULAR_INSTANCE =
-        new AstNodeTraverser(new ChildExpressionVisitor());
-    private static final AstNodeTraverser LHS_INSTANCE =
-        new AstNodeTraverser(new LeftHandSideVisitor());
-
-    @SuppressWarnings("unchecked") // cast is safe for iterable
-    @Override
-    public Iterable<AAstNode> children(AAstNode pRoot) {
-      return (Iterable<AAstNode>) pRoot.accept_(visitor);
-    }
-  }
+  private static final Traverser<AAstNode> AST_TRAVERSER =
+      Traverser.forTree(node -> node.accept_(ChildExpressionVisitor.INSTANCE));
 
   private static final class LeftHandSideVisitor extends ChildExpressionVisitor {
+
+    private static final LeftHandSideVisitor INSTANCE = new LeftHandSideVisitor();
 
     @Override
     public Iterable<AAstNode> visit(AArraySubscriptExpression pE) {
@@ -609,6 +597,8 @@ public class CFAUtils {
 
   private static class ChildExpressionVisitor
       extends AAstNodeVisitor<Iterable<? extends AAstNode>, RuntimeException> {
+
+    private static final ChildExpressionVisitor INSTANCE = new ChildExpressionVisitor();
 
     @Override
     public Iterable<AAstNode> visit(AArraySubscriptExpression pE) {

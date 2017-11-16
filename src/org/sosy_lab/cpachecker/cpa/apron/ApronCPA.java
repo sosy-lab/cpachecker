@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -75,7 +74,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.apron")
 public final class ApronCPA
-    implements ConfigurableProgramAnalysis, ProofCheckerCPA, StatisticsProvider {
+    implements ProofCheckerCPA, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);

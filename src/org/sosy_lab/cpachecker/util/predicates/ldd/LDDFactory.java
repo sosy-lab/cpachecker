@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ldd;
 
-import java.util.Collection;
-import java.util.LinkedList;
-
-import org.sosy_lab.cpachecker.util.Pair;
-
 import edu.cmu.sei.rtss.jldd.swig.CIntArray;
 import edu.cmu.sei.rtss.jldd.swig.JLDD;
 import edu.cmu.sei.rtss.jldd.swig.theory_t;
+import java.util.ArrayList;
+import java.util.Collection;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 class LDDFactory {
@@ -241,7 +239,7 @@ class LDDFactory {
    */
   public LDD makeConstantAssignment(Collection<Pair<Integer, Integer>> varCoeffs, int varCount, int constValue) {
     LDD positive = makeNode(varCoeffs, varCount, true, constValue);
-    Collection<Pair<Integer, Integer>> negVarCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> negVarCoeffs = new ArrayList<>();
     for (Pair<Integer, Integer> varCoefficient : varCoeffs) {
       negVarCoeffs.add(Pair.of(varCoefficient.getFirst(), -varCoefficient.getSecond()));
     }

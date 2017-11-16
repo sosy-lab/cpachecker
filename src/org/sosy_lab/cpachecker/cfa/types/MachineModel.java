@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -84,7 +84,7 @@ public enum MachineModel {
       1, // void
       1, //bool
       4 //pointer
-      ),
+  ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
@@ -115,7 +115,38 @@ public enum MachineModel {
       1, // void
       1, // bool
       8 // pointer
-      );
+  ),
+
+  /** Machine model representing an ARM machine with alignment: */
+  ARM(
+      // numeric types
+      2, // short
+      4, // int
+      4, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      8, // long double
+
+      // other
+      1, // void
+      1, // bool
+      4, // pointer
+
+      //  alignof numeric types
+      2, // short
+      4, // int
+      4, // long int
+      4, // long long int
+      4, // float
+      4, // double
+      4, // long double
+
+      // alignof other
+      1, // void
+      4, // bool
+      4 // pointer
+  );
   // numeric types
   private final int sizeofShort;
   private final int sizeofInt;
@@ -399,36 +430,6 @@ public enum MachineModel {
     return alignofPtr;
   }
 
-  public int getAlignof(CSimpleType type) {
-    switch (type.getType()) {
-      case BOOL:
-        return getAlignofBool();
-      case CHAR:
-        return getAlignofChar();
-      case FLOAT:
-        return getAlignofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
-        if (type.isLongLong()) {
-          return getAlignofLongLongInt();
-        } else if (type.isLong()) {
-          return getAlignofLongInt();
-        } else if (type.isShort()) {
-          return getAlignofShort();
-        } else {
-          return getAlignofInt();
-        }
-      case DOUBLE:
-        if (type.isLong()) {
-          return getAlignofLongDouble();
-        } else {
-          return getAlignofDouble();
-        }
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + type.getType());
-    }
-  }
-
   /** returns INT, if the type is smaller than INT, else the type itself. */
   public CSimpleType getPromotedCType(CSimpleType pType) {
 
@@ -485,6 +486,7 @@ public enum MachineModel {
     return result;
   }
 
+  @SuppressFBWarnings("SE_BAD_FIELD")
   @SuppressWarnings("ImmutableEnumChecker")
   private final BaseSizeofVisitor sizeofVisitor =
       new BaseSizeofVisitor(this);
@@ -492,7 +494,7 @@ public enum MachineModel {
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
 
-    public BaseSizeofVisitor(MachineModel model) {
+    protected BaseSizeofVisitor(MachineModel model) {
       this.model = model;
     }
 
@@ -527,7 +529,7 @@ public enum MachineModel {
       }
     }
 
-    public int calculateByteSize(int pBitFieldsSize) {
+    private int calculateByteSize(int pBitFieldsSize) {
       if (pBitFieldsSize == 0) {
         return 0;
       }
@@ -540,13 +542,9 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      OptionalInt size =
-          model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, this, null);
+      long size = model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
 
-      if (!size.isPresent()) {
-        throw new IllegalArgumentException("Could not compute size of type " + pCompositeType);
-      }
-      return size.getAsInt();
+      return Math.toIntExact(size);
     }
 
     private Integer handleSizeOfUnion(CCompositeType pCompositeType) {
@@ -631,15 +629,15 @@ public enum MachineModel {
     return pType.accept(pSizeofVisitor);
   }
 
-  public int getBitSizeofPtr() {
+  public int getSizeofPtrInBits() {
     return getSizeofPtr() * getSizeofCharInBits();
   }
 
-  public int getBitSizeof(CType pType) {
-    return getBitSizeof(pType, sizeofVisitor);
+  public int getSizeofInBits(CType pType) {
+    return getSizeofInBits(pType, sizeofVisitor);
   }
 
-  public int getBitSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public int getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
@@ -648,15 +646,16 @@ public enum MachineModel {
     }
   }
 
+  @SuppressFBWarnings("SE_BAD_FIELD_STORE")
   @SuppressWarnings("ImmutableEnumChecker")
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
 
-  public static class BaseAlignofVisitor
+  private static class BaseAlignofVisitor
       implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
 
-    public BaseAlignofVisitor(MachineModel model) {
+    private BaseAlignofVisitor(MachineModel model) {
       this.model = model;
     }
 
@@ -726,7 +725,33 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return model.getAlignof(pSimpleType);
+      switch (pSimpleType.getType()) {
+        case BOOL:
+          return model.getAlignofBool();
+        case CHAR:
+          return model.getAlignofChar();
+        case FLOAT:
+          return model.getAlignofFloat();
+        case UNSPECIFIED: // unspecified is the same as int
+        case INT:
+          if (pSimpleType.isLongLong()) {
+            return model.getAlignofLongLongInt();
+          } else if (pSimpleType.isLong()) {
+            return model.getAlignofLongInt();
+          } else if (pSimpleType.isShort()) {
+            return model.getAlignofShort();
+          } else {
+            return model.getAlignofInt();
+          }
+        case DOUBLE:
+          if (pSimpleType.isLong()) {
+            return model.getAlignofLongDouble();
+          } else {
+            return model.getAlignofDouble();
+          }
+        default:
+          throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
+      }
     }
 
     @Override
@@ -758,15 +783,14 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
    * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
    */
-  public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
+  public Map<CCompositeTypeMemberDeclaration, Long> getAllFieldOffsetsInBits(
       CCompositeType pOwnerType) {
-    Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
-        Maps.newLinkedHashMapWithExpectedSize(pOwnerType.getMembers().size());
+    ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap =
+        ImmutableMap.builder();
 
-    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, null, sizeofVisitor, outParameterMap);
+    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
 
-    return outParameterMap;
+    return outParameterMap.build();
   }
 
   /**
@@ -774,29 +798,11 @@ public enum MachineModel {
    *
    * @param pOwnerType a {@link CCompositeType} to calculate its field offset
    * @param pFieldName the name of the field to calculate its offset
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
+   * @return the offset of the given field
    */
-  public OptionalInt getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
-    return getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
-  }
-
-  /**
-   * Does the same as {@link MachineModel#getFieldOffsetInBits(CCompositeType, String)}, but accepts
-   * a {@link BaseSizeofVisitor}
-   *
-   * @param pOwnerType a {@link CCompositeType} to calculate its field offset
-   * @param pFieldName the name of the field to calculate its offset
-   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
-   */
-  public OptionalInt getFieldOffsetInBits(
-      CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
+  public long getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
     checkNotNull(pFieldName);
-    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, pFieldName, pSizeofVisitor, null);
+    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null);
   }
 
   /**
@@ -807,19 +813,14 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
-   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model
    * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
    *     fields to offsets in; may be <code>null</code> if not required
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
+   * @return a long that is either the offset of the given field or the size of the whole type
    */
-  private OptionalInt getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+  private long getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
-      BaseSizeofVisitor pSizeofVisitor,
-      @Nullable Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
-    checkNotNull(pSizeofVisitor);
+      @Nullable ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap) {
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "
@@ -828,11 +829,10 @@ public enum MachineModel {
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
-    Integer bitOffset = null;
-    boolean found = false;
-    int sizeOfConsecutiveBitFields = 0;
+    long bitOffset = 0L;
+    long sizeOfConsecutiveBitFields = 0;
 
-    int sizeOfByte = getSizeofCharInBits();
+    long sizeOfByte = getSizeofCharInBits();
 
     if (ownerTypeKind == ComplexTypeKind.UNION) {
       if (outParameterMap == null) {
@@ -841,22 +841,20 @@ public enum MachineModel {
         // Otherwise, to indicate a problem, the return
         // will be null.
         if (typeMembers.stream().anyMatch(m -> m.getName().equals(pFieldName))) {
-          found = true;
-          bitOffset = 0;
+          return bitOffset;
         }
       } else {
         for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
-          outParameterMap.put(typeMember, BigInteger.ZERO);
+          outParameterMap.put(typeMember, 0L);
         }
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
-      bitOffset = 0;
 
       for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator(); iterator.hasNext();) {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 
-        int fieldSizeInBits = -1;
+        long fieldSizeInBits = -1;
         // If incomplete type at end of struct, just assume 0 for its size
         // and compute its offset as usual, since it isn't affected.
         //
@@ -864,8 +862,13 @@ public enum MachineModel {
         // and we return an empty Optional.
         if (type.isIncomplete()) {
           if (iterator.hasNext()) {
-            bitOffset = null;
-            break;
+            throw new AssertionError(
+                "unexpected incomplete type "
+                    + type
+                    + " for field "
+                    + pFieldName
+                    + " in "
+                    + pOwnerType);
           } else {
             // XXX: Should there be a check for CArrayType here
             // as there was in handleSizeOfStruct or is it
@@ -875,20 +878,14 @@ public enum MachineModel {
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits = getBitSizeof(type, pSizeofVisitor);
+          fieldSizeInBits = getSizeofInBits(type);
         }
 
         if (type instanceof CBitFieldType) {
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
-            found = true;
             bitOffset += sizeOfConsecutiveBitFields;
-            break;
-          }
-
-          if (outParameterMap != null) {
-            outParameterMap.put(
-                typeMember, BigInteger.valueOf(bitOffset + sizeOfConsecutiveBitFields));
+            return bitOffset;
           }
 
           CType innerType = ((CBitFieldType) type).getType();
@@ -920,47 +917,54 @@ public enum MachineModel {
             // will be aligned to size of char and occupy 2 Bytes
             // in memory, while the same struct without the
             // 'char : 0;' member would just occupy 1 Byte.
-            bitOffset +=
-                calculatePaddedBitsize(0, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
-            sizeOfConsecutiveBitFields = 0;
+            bitOffset =
+                calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
+            sizeOfConsecutiveBitFields = 0L;
           } else {
             sizeOfConsecutiveBitFields =
                 calculateNecessaryBitfieldOffset(
-                    sizeOfConsecutiveBitFields, innerType, sizeOfByte, fieldSizeInBits);
+                        sizeOfConsecutiveBitFields + bitOffset,
+                        innerType,
+                        sizeOfByte,
+                        fieldSizeInBits)
+                    - bitOffset;
             sizeOfConsecutiveBitFields += fieldSizeInBits;
+          }
+
+          // Put start offset of bitField to outParameterMap
+          if (outParameterMap != null) {
+            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields - fieldSizeInBits);
           }
         } else {
           bitOffset =
               calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
-          sizeOfConsecutiveBitFields = 0;
+          sizeOfConsecutiveBitFields = 0L;
 
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
-            found = true;
-            break;
+            return bitOffset;
           }
 
           if (outParameterMap != null) {
-            outParameterMap.put(typeMember, BigInteger.valueOf(bitOffset));
+            outParameterMap.put(typeMember, bitOffset);
           }
           bitOffset += fieldSizeInBits;
         }
       }
     }
 
-    if (bitOffset != null && found) {
-      return OptionalInt.of(bitOffset);
-    } else if (bitOffset != null && pFieldName == null) {
-      // call with byte size of 1 to return size in bytes instead of bits
-      bitOffset = calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
-      return OptionalInt.of(bitOffset);
-    } else {
-      return OptionalInt.empty();
+    if (pFieldName != null) {
+      throw new IllegalArgumentException(
+          "could not find field " + pFieldName + " in " + pOwnerType);
     }
+
+    // call with byte size of 1 to return size in bytes instead of bits
+    return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1L);
   }
 
-  public int calculateNecessaryBitfieldOffset(
-      int pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
+  @Deprecated
+  public long calculateNecessaryBitfieldOffset(
+      long pBitFieldOffset, CType pType, long pSizeOfByte, long pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
     // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
     // remainder of its own alignment unit that is already partially occupied by
@@ -971,7 +975,7 @@ public enum MachineModel {
     // On the other hand, in 'struct s { char a: 7; int b: 26; };', the 25 remaining
     // bits int the first integer alignment of 'struct s' are padded and 'b' is pushed
     // to the next integer-aligned unit, resulting in 'struct s' having 8 bytes size.
-    int paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
+    long paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
 
     if (paddingBitSpace < pBitFieldLength) {
       pBitFieldOffset += paddingBitSpace;
@@ -979,23 +983,25 @@ public enum MachineModel {
     return pBitFieldOffset;
   }
 
-  public Integer calculatePaddedBitsize(
-      Integer pBitOffset, int pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
+  @Deprecated
+  public long calculatePaddedBitsize(
+      long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, long pSizeOfByte) {
     pBitOffset += pSizeOfConsecutiveBitFields;
     // once pad the bits to full bytes, then pad bytes to the
     // alignment of the current type
-    pBitOffset = sizeofVisitor.calculateByteSize(pBitOffset);
+    pBitOffset = sizeofVisitor.calculateByteSize(Math.toIntExact(pBitOffset));
 
     return (pBitOffset + getPadding(pBitOffset, pType)) * pSizeOfByte;
   }
 
-  public int getPadding(int pOffset, CType pType) {
-    return getPaddingInBits(pOffset, pType, 1);
+  @Deprecated
+  public long getPadding(long pOffset, CType pType) {
+    return getPaddingInBits(pOffset, pType, 1L);
   }
 
-  private int getPaddingInBits(int pOffset, CType pType, int pSizeOfByte) {
-    int alignof = getAlignof(pType) * pSizeOfByte;
-    int padding = alignof - (pOffset % alignof);
+  private long getPaddingInBits(long pOffset, CType pType, long pSizeOfByte) {
+    long alignof = getAlignof(pType) * pSizeOfByte;
+    long padding = alignof - (pOffset % alignof);
     if (padding < alignof) {
       return padding;
     }

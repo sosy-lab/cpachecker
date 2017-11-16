@@ -304,14 +304,15 @@ public class PredicateAbstractionManager {
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
-    final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
+    final BooleanFormula f;
+    BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null
         && !abstractionReuseDisabledBecauseOfAmbiguity) {
       AbstractionFormula reused =
-          reuseAbstractionIfPossible(abstractionFormula, pathFormula, f, location);
+          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
       if (reused != null) {
         return reused;
       }
@@ -331,7 +332,15 @@ public class PredicateAbstractionManager {
     // Each step of our abstraction computation may be able to handle some predicates,
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
-        getRelevantPredicates(pPredicates, f, instantiator);
+        getRelevantPredicates(pPredicates, primaryFormula, instantiator);
+
+    if (fmgr.useBitwiseAxioms()) {
+      for (AbstractionPredicate predicate : remainingPredicates) {
+        primaryFormula = pfmgr.addBitwiseAxiomsIfNeeded(primaryFormula, predicate.getSymbolicAtom());
+      }
+    }
+
+    f = primaryFormula;
 
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
@@ -479,16 +488,7 @@ public class PredicateAbstractionManager {
   private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
     BooleanFormula symbFormula = pathFormula.getFormula();
 
-    if (fmgr.useBitwiseAxioms()) {
-      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bfmgr.isTrue(bitwiseAxioms)) {
-        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-
-    return symbFormula;
+    return pfmgr.addBitwiseAxiomsIfNeeded(symbFormula, symbFormula);
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -618,6 +618,7 @@ public class PredicateAbstractionManager {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
+    @SuppressWarnings("JdkObsolete")
     Collection<AbstractionPredicate> relevantPredicates = new LinkedList<>();
 
     for (AbstractionPredicate predicate : pPredicates) {

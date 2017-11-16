@@ -24,7 +24,18 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.truth.Truth;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -43,18 +54,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 public class AppliedCustomInstructionParserTest {
 
@@ -118,15 +117,12 @@ public class AppliedCustomInstructionParserTest {
   public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException {
     try {
       aciParser.getCFANode("N57", cfaInfo);
+      Assert.fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
     }
 
-    try {
-      aciParser.getCFANode("-1", cfaInfo);
-    } catch (CPAException e) {
-      Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
-    }
+    Truth.assertThat(aciParser.getCFANode("-1", cfaInfo)).isNull();
 
     Truth.assertThat(aciParser.getCFANode(cfa.getFunctionHead("main").getNodeNumber() + "", cfaInfo)).isEqualTo(cfa.getMainFunction());
   }
@@ -135,6 +131,7 @@ public class AppliedCustomInstructionParserTest {
   public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
     try {
       aciParser.readCustomInstruction("test4");
+      Assert.fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Function unknown in program");
@@ -142,6 +139,7 @@ public class AppliedCustomInstructionParserTest {
 
     try {
       aciParser.readCustomInstruction("test");
+      Assert.fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Missing label for start of custom instruction");
@@ -149,6 +147,7 @@ public class AppliedCustomInstructionParserTest {
 
     try {
       aciParser.readCustomInstruction("test2");
+      Assert.fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Missing label for end of custom instruction");

@@ -55,7 +55,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     offset = pOffset;
   }
 
-  private MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
+  protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pIdentifier);
 
     int separatorIndex = pIdentifier.indexOf("::");

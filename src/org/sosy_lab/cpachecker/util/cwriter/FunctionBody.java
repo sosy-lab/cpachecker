@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.Stack;
-
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 /**
- * A function is basically a stack of blocks, where the first element is the
- * outermost block of the function and the last element is the current block.
+ * A function is basically a stack of blocks, where the first element is the outermost block of the
+ * function and the last element is the current block.
  */
 class FunctionBody implements Iterable<BasicBlock> {
 
-  private final Stack<BasicBlock> stack = new Stack<>();
+  private final Deque<BasicBlock> stack = new ArrayDeque<>();
 
   public FunctionBody(int pElementId, String pFunctionName) {
     stack.push(new BasicBlock(pElementId, pFunctionName));
@@ -46,16 +46,16 @@ class FunctionBody implements Iterable<BasicBlock> {
 
   public void enterBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
     BasicBlock block = new BasicBlock(pElementId, pEdge, pConditionString);
-    stack.peek().write(block); // register the inner block in its outer block
-    stack.push(block);
+    stack.getLast().write(block); // register the inner block in its outer block
+    stack.addLast(block);
   }
 
   public void leaveBlock() {
-    stack.pop();
+    stack.removeLast();
   }
 
   public BasicBlock getCurrentBlock() {
-    return stack.peek();
+    return stack.getLast();
   }
 
   public int size() {
@@ -68,13 +68,13 @@ class FunctionBody implements Iterable<BasicBlock> {
   }
 
   public void write(String s) {
-    stack.peek().write(s);
+    stack.getLast().write(s);
   }
 
   @Override
   public String toString() {
     // To write the C code, we need only the outermost block of the function.
     // It will print its nested blocks automatically as needed.
-    return stack.get(0).getCode();
+    return stack.getFirst().getCode();
   }
 }

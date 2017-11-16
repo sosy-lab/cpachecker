@@ -22,7 +22,7 @@
 
   <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
-    <option name="-sv-comp14"/>
+    <option name="-svcomp14"/>
     <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
   </tasks>
   <rundefinition/>

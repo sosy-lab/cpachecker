@@ -66,7 +66,9 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -342,7 +344,7 @@ public class SMGConcreteErrorPathAllocator {
     private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
     private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
 
-    public Address calculateAddress(SMGObject pObject, int pOffset,
+    public Address calculateAddress(SMGObject pObject, long pOffset,
         SMGState pSMGState) {
 
       // Create a new base address for the object if necessary

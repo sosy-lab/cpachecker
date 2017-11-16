@@ -33,7 +33,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeTraverser;
+import com.google.common.graph.Traverser;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -140,7 +140,7 @@ public final class AbstractStates {
   }
 
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
-    return extractStateByType(pState, AbstractStateWithLocation.class).getOutgoingEdges();
+    return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
   }
 
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
@@ -200,12 +200,13 @@ public final class AbstractStates {
   }
 
   /**
-   * Creates a {@link FluentIterable} that enumerates all the <code>AbstractStates</code>
-   * contained in a given state pre-order. The root state itself is included, the states
-   * are unwrapped recursively.
+   * Creates a {@link FluentIterable} that enumerates all the <code>AbstractStates</code> contained
+   * in a given state pre-order. The root state itself is included, the states are unwrapped
+   * recursively.
    *
-   * <p><b>Example</b>: State A wraps states B and C. State B wraps states D and E.<br />
-   *             The resulting tree (see below) is traversed pre-order.
+   * <p><b>Example</b>: State A wraps states B and C. State B wraps states D and E.<br>
+   * The resulting tree (see below) is traversed pre-order.
+   *
    * <pre>
    *                  A
    *                 / \
@@ -213,32 +214,29 @@ public final class AbstractStates {
    *               / \
    *              D   E
    * </pre>
-   * The returned <code>FluentIterable</code> iterates over the items in the following
-   * order : A, B, D, E, C.
-   * </p>
+   *
+   * The returned <code>FluentIterable</code> iterates over the items in the following order : A, B,
+   * D, E, C.
    *
    * @param as the root state
-   *
-   * @return a <code>FluentIterable</code> over the given root state and all states
-   *         that are wrapped in it, recursively
+   * @return a <code>FluentIterable</code> over the given root state and all states that are wrapped
+   *     in it, recursively
    */
   public static FluentIterable<AbstractState> asIterable(final AbstractState as) {
+    return FluentIterable.from(
+        Traverser.forTree(
+                (AbstractState state) -> {
+                  if (state instanceof AbstractSingleWrapperState) {
+                    AbstractState wrapped = ((AbstractSingleWrapperState) state).getWrappedState();
+                    return ImmutableList.of(wrapped);
 
-    return new TreeTraverser<AbstractState>() {
+                  } else if (state instanceof AbstractWrapperState) {
+                    return ((AbstractWrapperState) state).getWrappedStates();
+                  }
 
-      @Override
-      public Iterable<AbstractState> children(AbstractState state) {
-        if (state instanceof AbstractSingleWrapperState) {
-          AbstractState wrapped = ((AbstractSingleWrapperState)state).getWrappedState();
-          return ImmutableList.of(wrapped);
-
-        } else if (state instanceof AbstractWrapperState) {
-          return ((AbstractWrapperState)state).getWrappedStates();
-        }
-
-        return ImmutableList.of();
-      }
-    }.preOrderTraversal(as);
+                  return ImmutableList.of();
+                })
+            .depthFirstPreOrder(as));
   }
 
   /**

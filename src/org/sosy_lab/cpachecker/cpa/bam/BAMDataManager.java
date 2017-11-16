@@ -26,10 +26,11 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 public interface BAMDataManager {
 
@@ -48,6 +49,8 @@ public interface BAMDataManager {
    **/
   ReachedSet createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context);
+
+  ReachedSetFactory getReachedSetFactory();
 
   /**
    * Register an expanded state in our data-manager,
@@ -82,16 +85,17 @@ public interface BAMDataManager {
   List<AbstractState> getExpandedStatesList(AbstractState state);
 
   /**
-   * Add a mapping of a non-reduced abstract state to a reached-set whose first state is the
-   * matching reduced abstract state.
+   * Add a mapping of a non-reduced abstract state and reduced exit state to a reached-set whose
+   * first state is the matching reduced abstract state. The exit state should be contained in the
+   * reached-set.
    */
-  void registerInitialState(AbstractState state, ReachedSet reachedSet);
+  void registerInitialState(AbstractState state, AbstractState exitState, ReachedSet reachedSet);
 
   /**
    * Receive the reached-set for a non-reduced initial state. We expect that the given abstract
    * state has a matching reached-set.
    */
-  ReachedSet getReachedSetForInitialState(AbstractState state);
+  ReachedSet getReachedSetForInitialState(AbstractState state, AbstractState exitState);
 
   /** CHech whether the given abstract state is the non-reduced initial state of a reached-set. */
   boolean hasInitialState(AbstractState state);
@@ -102,6 +106,9 @@ public interface BAMDataManager {
    */
   AbstractState getReducedStateForExpandedState(AbstractState state);
 
+  /** Returns the block from where the expanded state is an exit-state. */
+  Block getInnerBlockForExpandedState(AbstractState state);
+
   /** Check whether any abstract state was expanded to the given abstract state. */
   boolean hasExpandedState(AbstractState state);
 
@@ -109,7 +116,26 @@ public interface BAMDataManager {
 
   void clearExpandedStateToExpandedPrecision();
 
+  /** Some benchmarks are complicated and
+   *  all intermediate cache entries can not be stored due to large memory consumption,
+   *  then there is a way to clear all caches and to restore ARG completely. */
+  void clear();
+
   /** return a matching precision for the given state, or Null if state is not found. */
   @Nullable
   Precision getExpandedPrecisionForState(AbstractState pState);
+
+  /**
+   * The results from cache will never be used for corresponding block entry
+   * @param node The block entry
+   * @return success
+   */
+  boolean addUncachedBlockEntry(CFANode node);
+
+  /**
+   * If the corresponding block is 'uncached' the recursive analysis will not start
+   * @param node Block entry to check
+   * @return true if the block entry was added as 'uncached'
+   */
+  boolean isUncachedBlockEntry(CFANode node);
 }

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -58,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -143,17 +141,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
     pathExtractor = pPathExtractor;
-  }
-
-  /** retrieve the wrapped CPA or throw an exception. */
-  protected static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
-      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls)
-          throws InvalidConfigurationException {
-    final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
-    if (extractedCPA == null) {
-      throw new InvalidConfigurationException(retrieveCls.getSimpleName() + " cannot be retrieved.");
-    }
-    return extractedCPA;
   }
 
   private boolean madeProgress(ARGPath path) {

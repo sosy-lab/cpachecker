@@ -20,8 +20,13 @@ according to the style guide.
 For git users: You need to stage your changes first (with `git add`),
 then run `ant format-diff` and then stage the changes again.
 This allows you to view exactly what the reformatter changed after running it.
-Please do not use the Eclipse code formatter,
-it destroys a lot of meaningful manual formatting.
+
+IMPORTANT for Eclipse users:
+The automatic code formatter is enabled in our project whenever you save a file,
+so no need to run it manually.
+However, you must [install the google-java-format plugin](Developing.md#develop-cpachecker-from-within-eclipse)!
+Otherwise Eclipse will produce ugly code formatting.
+
 
 Additional rules and hints:
 

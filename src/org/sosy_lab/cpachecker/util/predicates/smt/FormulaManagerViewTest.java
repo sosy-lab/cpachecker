@@ -31,32 +31,26 @@ import com.google.common.collect.Sets;
 import com.google.common.truth.Truth;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Set;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.ArrayFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
-public class FormulaManagerViewTest extends SolverBasedTest0 {
+public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
@@ -64,29 +58,11 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   @Parameter(0)
-  public Solvers solver;
+  public Solvers solverToUse;
 
   @Override
   protected Solvers solverToUse() {
-    return solver;
-  }
-
-  private FormulaManagerView mgrv;
-  private BooleanFormulaManagerView bmgrv;
-  private IntegerFormulaManagerView imgrv;
-
-  @Before
-  public void setUp() throws InvalidConfigurationException {
-    Configuration viewConfig = Configuration.builder()
-        .copyFrom(config)
-        // use only theory supported by all solvers:
-        .setOption("cpa.predicate.encodeBitvectorAs", "INTEGER")
-        .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
-        .build();
-    mgrv = new FormulaManagerView(context.getFormulaManager(),
-        viewConfig, LogManager.createTestLogManager());
-    bmgrv = mgrv.getBooleanFormulaManager();
-    imgrv = mgrv.getIntegerFormulaManager();
+    return solverToUse;
   }
 
   /**
@@ -156,8 +132,10 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     testExtractAtoms_SplitEqualities_numeral(rmgr);
   }
 
-  private void testExtractAtoms_SplitEqualities_bitvectors(BitvectorFormulaManager bvmgr)
+  @Test
+  public void testExtractAtoms_SplitEqualities_bitvectors()
       throws SolverException, InterruptedException {
+    bvmgr = mgrv.getBitvectorFormulaManager();
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
     BooleanFormula atom1ineq =
         bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), true);
@@ -171,31 +149,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), true);
 
     testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
-  }
-
-  @Test
-  public void testExtractAtoms_SplitEqualities_bv() throws Exception {
-    requireBitvectors();
-
-    // Create a FormulaManagerView which does not re-wrap bitvectors.
-    Configuration viewConfig = Configuration.builder()
-        .copyFrom(config)
-        // use only theory supported by all solvers:
-        .setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR")
-        .setOption("cpa.predicate.encodeFloatAs", "FLOAT")
-        .build();
-    mgrv = new FormulaManagerView(context.getFormulaManager(),
-        viewConfig, LogManager.createTestLogManager());
-    bmgrv = mgrv.getBooleanFormulaManager();
-    imgrv = mgrv.getIntegerFormulaManager();
-    testExtractAtoms_SplitEqualities_bitvectors(bvmgr);
-  }
-
-  @Test
-  public void testExtractAtoms_SplitEqualities_bvReplaceByInt()
-      throws SolverException, InterruptedException {
-    // BitvectorFormulaManagerView here!
-    testExtractAtoms_SplitEqualities_bitvectors(mgrv.getBitvectorFormulaManager());
   }
 
   private void assertIsConjunctive(BooleanFormula f) {

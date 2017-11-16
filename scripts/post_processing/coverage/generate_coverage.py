@@ -108,7 +108,8 @@ def move_execution_spec_files(temp_dir, output_dir):
     os.makedirs(output_dir)
     all_cex_specs = counterexample_spec_files(temp_dir)
     for spec in all_cex_specs:
-        shutil.copy(src=spec, dst=output_dir)
+        bn = os.path.basename(spec)
+        shutil.copyfile(src=spec, dst=os.path.join(output_dir, bn))
 
 def move_execution_spec_and_cex_coverage_files(temp_dir, output_dir):
     if not os.path.exists(output_dir):
@@ -136,7 +137,7 @@ def move_execution_spec_and_cex_coverage_files(temp_dir, output_dir):
             i = i + 1
         new_spec = counterexample_filename(
             path=output_dir, i=i, ext=spec_extension)
-        shutil.copy(
+        shutil.copyfile(
             src=cex+spec_extension,
             dst=new_spec)
         new_specs.append(new_spec)
@@ -146,7 +147,7 @@ def move_execution_spec_and_cex_coverage_files(temp_dir, output_dir):
         assert not os.path.exists(
             counterexample_filename(
                 path=output_dir, i=i, ext=cov_extension))
-        shutil.copy(
+        shutil.copyfile(
             src=cex+cov_extension,
             dst=counterexample_filename(
                 path=output_dir, i=i, ext=cov_extension))
@@ -497,7 +498,8 @@ class GenerateFirstThenCollect(ComputeCoverage):
         # sanity check
         assert (cpachecker_result.found_property_violation() or
                 cex_generated == 0)
-        if cpachecker_result.found_bug():
+        if (cpachecker_result.found_property_violation() and 
+            cpachecker_result.found_bug()):
             self.logger.error(
                 'Found an assertion violation. Inspect counterexamples '
                 'before collecting a coverage measure.')
@@ -588,6 +590,7 @@ def create_arg_parser():
              File containing an assumption automaton.""")
     parser.add_argument(
         "-cex_dir",
+        required=True,
         help=("Directory where traces sampling the execution space are "
               "located. If the option -only_collect_coverage is not "
               "present, then this directory must not exist, since it will "

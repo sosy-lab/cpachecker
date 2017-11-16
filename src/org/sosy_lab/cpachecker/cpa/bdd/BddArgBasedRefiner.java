@@ -120,7 +120,8 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
 
 
     Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-    Pair<ARGState, CFAEdge> refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
+    Pair<ARGState, CFAEdge> refinementRoot =
+        interpolatingRefiner.determineRefinementRoot(errorPath, increment);
 
     // no increment - value-analysis refinement was not successful
     if (increment.isEmpty()) {

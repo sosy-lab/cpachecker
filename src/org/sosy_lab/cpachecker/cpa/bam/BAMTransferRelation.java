@@ -116,6 +116,15 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   }
 
   /**
+   * overriding super-method, because it is much faster to access the stack-element than searching
+   * for the last entry-state.
+   */
+  @Override
+  protected Block getBlockForState(ARGState state) {
+    return stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird();
+  }
+
+  /**
    * check if
    * - the current node is before a function-block and
    * - the block was entered before (and thus is part of the stack).
@@ -309,7 +318,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     assert reached != null;
-    data.registerInitialState(initialState, reached);
+    registerInitalAndExitStates(initialState, statesForFurtherAnalysis, reached);
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {

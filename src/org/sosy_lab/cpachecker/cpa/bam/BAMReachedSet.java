@@ -72,7 +72,12 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       throws InterruptedException {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
     assert path.getFirstState().getSubgraph().contains(element);
-    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    final ARGSubtreeRemover argSubtreeRemover;
+    if (bamCpa.useCopyOnWriteRefinement()) {
+      argSubtreeRemover = new ARGCopyOnWriteSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    } else {
+      argSubtreeRemover = new ARGInPlaceSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    }
     argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
 
     // post-processing, cleanup data-structures.
