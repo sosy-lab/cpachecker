@@ -42,13 +42,16 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -191,6 +194,23 @@ class AssignmentHandler {
     final BooleanFormula result =
         makeDestructiveAssignment(
             lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
+
+    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
+      CFieldReference fieldReference = (CFieldReference) lhs;
+      CType ownerType = typeHandler.getSimplifiedType(fieldReference.getFieldOwner());
+      if (!fieldReference.isPointerDereference()
+          && ownerType instanceof CCompositeType
+          && ((CCompositeType) ownerType).getKind() == ComplexTypeKind.UNION) {
+        addAssignmentsForOtherFieldsOfUnion(
+            lhsType,
+            (CCompositeType) ownerType,
+            rhsType,
+            rhsExpression,
+            useOldSSAIndices,
+            updatedRegions,
+            fieldReference);
+      }
+    }
 
     if (!useOldSSAIndices && !options.useArraysForHeap()) {
       if (lhsLocation.isAliased()) {
@@ -762,6 +782,58 @@ class AssignmentHandler {
         return Optional.empty();
       default:
         throw new AssertionError();
+    }
+  }
+
+  private void addAssignmentsForOtherFieldsOfUnion(
+      final CType lhsType,
+      final CCompositeType ownerType,
+      final CType rhsType,
+      final Expression rhsExpression,
+      final boolean useOldSSAIndices,
+      final Set<MemoryRegion> updatedRegions,
+      final CFieldReference fieldReference)
+      throws UnrecognizedCCodeException {
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+    for (CCompositeTypeMemberDeclaration member : ownerType.getMembers()) {
+      if (member.getName().equals(fieldReference.getFieldName())) {
+        continue; // handled already as the main assignment
+      }
+
+      final CType newLhsType = member.getType();
+      final CExpression newLhs =
+          new CFieldReference(
+              FileLocation.DUMMY,
+              newLhsType,
+              member.getName(),
+              fieldReference.getFieldOwner(),
+              false);
+      final Location newLhsLocation = newLhs.accept(lhsVisitor).asLocation();
+      assert newLhsLocation.isUnaliasedLocation();
+
+      final Expression newRhsExpression;
+      final CType newRhsType;
+      if (CTypeUtils.isSimpleType(newLhsType)
+          && CTypeUtils.isSimpleType(rhsType)
+          && !rhsExpression.isNondetValue()) {
+        Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
+        rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
+        rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
+        newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+        newRhsType = newLhsType;
+      } else {
+        newRhsExpression = Value.nondetValue();
+        newRhsType = rhsType;
+      }
+
+      constraints.addConstraint(
+          makeDestructiveAssignment(
+              newLhsType,
+              newRhsType,
+              newLhsLocation,
+              newRhsExpression,
+              useOldSSAIndices,
+              updatedRegions));
     }
   }
 

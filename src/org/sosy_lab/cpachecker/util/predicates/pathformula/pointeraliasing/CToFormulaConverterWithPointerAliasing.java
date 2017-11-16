@@ -1142,9 +1142,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.makeCast(pFromType, pToType, pFormula, constraints, pEdge);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
+  @Override
+  protected @Nullable Formula makeValueReinterpretation(
+      CType pFromType, CType pToType, Formula pFormula) {
+    return super.makeValueReinterpretation(pFromType, pToType, pFormula);
+  }
+
+  /** {@inheritDoc} */
   @Override
   protected Formula makeConstant(String pName, CType pType) {
     return super.makeConstant(pName, pType);
