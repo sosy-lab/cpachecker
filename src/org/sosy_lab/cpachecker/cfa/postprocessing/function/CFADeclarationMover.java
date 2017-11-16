@@ -138,13 +138,16 @@ public class CFADeclarationMover {
     succ.removeEnteringEdge(edge);
     switch (edge.getEdgeType()) {
     case AssumeEdge:
-      edge = new CAssumeEdge(((CAssumeEdge)edge).getRawStatement(),
-                             edge.getFileLocation(),
-                             pred,
-                             edge.getSuccessor(),
-                             ((CAssumeEdge)edge).getExpression(),
-                             ((CAssumeEdge)edge).getTruthAssumption(),
-                             ((CAssumeEdge)edge).isSwapped());
+        edge =
+            new CAssumeEdge(
+                ((CAssumeEdge) edge).getRawStatement(),
+                edge.getFileLocation(),
+                pred,
+                edge.getSuccessor(),
+                ((CAssumeEdge) edge).getExpression(),
+                ((CAssumeEdge) edge).getTruthAssumption(),
+                ((CAssumeEdge) edge).isSwapped(),
+                ((CAssumeEdge) edge).isArtificialIntermediate());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
       return edge;
