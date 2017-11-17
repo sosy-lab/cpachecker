@@ -2932,7 +2932,6 @@ residualprogram.assumptionFile = no default value
 residualprogram.assumptionGuider = no default value
 
 # write residual program to file
-residualprogram.file = no default value
 residualprogram.file = "residualProgram.c"
 
 # Define kind of folder to use when combining condition with folding approach
@@ -2944,9 +2943,6 @@ residualprogram.folderType = CFA
 residualprogram.statistics = false
 
 # which strategy to use to generate the residual program
-residualprogram.strategy = no default value
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_CFA_FOLD, CONDITION_PLUS_LOOP_FOLD,
-             COMBINATION]
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
