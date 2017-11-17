@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -563,10 +565,6 @@ public class AutomatonGraphmlCommon {
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
-      FileLocation endLocation = location;
-      if (pEdge.getSuccessor().getNumLeavingEdges() != 0) { // default case
-        endLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation();
-      }
       if (!FileLocation.DUMMY.equals(location)) {
         location = new FileLocation(
             location.getFileName(),
@@ -574,11 +572,15 @@ public class AutomatonGraphmlCommon {
             location.getNodeOffset(),
             pMainEntry.getFunctionDefinition().toString().length(),
             location.getStartingLineNumber(),
-            endLocation.getEndingLineNumber(),
+            location.getEndingLineNumber(),
             location.getStartingLineInOrigin(),
-            endLocation.getEndingLineInOrigin());
+            location.getEndingLineInOrigin());
       }
-      return Collections.singleton(location);
+      Set<FileLocation> result = Sets.newHashSet(location);
+      for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {
+        result.add(param.getFileLocation());
+      }
+      return result;
     }
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
