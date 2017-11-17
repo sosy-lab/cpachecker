@@ -563,6 +563,10 @@ public class AutomatonGraphmlCommon {
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
+      FileLocation endLocation = location;
+      if (pEdge.getSuccessor().getNumLeavingEdges() != 0) { // default case
+        endLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation();
+      }
       if (!FileLocation.DUMMY.equals(location)) {
         location = new FileLocation(
             location.getFileName(),
@@ -570,9 +574,9 @@ public class AutomatonGraphmlCommon {
             location.getNodeOffset(),
             pMainEntry.getFunctionDefinition().toString().length(),
             location.getStartingLineNumber(),
-            location.getEndingLineNumber(),
+            endLocation.getEndingLineNumber(),
             location.getStartingLineInOrigin(),
-            location.getEndingLineInOrigin());
+            endLocation.getEndingLineInOrigin());
       }
       return Collections.singleton(location);
     }
