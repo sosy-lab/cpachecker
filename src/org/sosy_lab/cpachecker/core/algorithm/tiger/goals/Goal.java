@@ -94,6 +94,11 @@ public class Goal {
     return mIndex;
   }
 
+  @Override
+  public String toString() {
+    return getName();
+  }
+
   public String getName() {
     CFAEdge ce = getCriticalEdge();
     CFANode pred = ce.getPredecessor();

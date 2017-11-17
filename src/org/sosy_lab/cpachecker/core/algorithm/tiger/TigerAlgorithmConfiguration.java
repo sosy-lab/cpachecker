@@ -142,12 +142,12 @@ public class TigerAlgorithmConfiguration {
 
   @Option(
     secure = true,
-    name = "useInfeasibilityPropagation",
-    description = "Map information on infeasibility of one test goal to other test goals.")
-  private boolean useInfeasibilityPropagation = false;
+    name = "useSingleFeatureGoalCoverage",
+    description = "Only need one Testcase with a valid feature configuration for each goal")
+  private boolean useSingleFeatureGoalCoverage = false;
 
-  public boolean shouldUseInfeasibilityPropagation() {
-    return useInfeasibilityPropagation;
+  public boolean shouldUseSingleFeatureGoalCoverage() {
+    return useSingleFeatureGoalCoverage;
   }
 
   public boolean shouldUseTigerAlgorithm_with_pc() {

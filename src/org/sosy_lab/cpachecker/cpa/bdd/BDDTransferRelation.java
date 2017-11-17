@@ -89,7 +89,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private final PredicateManager predmgr;
   private final MachineModel machineModel;
 
-  private Region globalConstraint;
+  private static Region globalConstraint;
 
   /**
    * The Constructor of BDDVectorTransferRelation sets the NamedRegionManager and the
@@ -102,6 +102,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CFA cfa,
       int pBitsize,
       boolean pCompressIntEqual) {
+    // no constraint; ignore nothing
     this.machineModel = cfa.getMachineModel();
     this.rmgr = manager;
     this.bvmgr = bvmgr;
@@ -110,9 +111,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     compressIntEqual = pCompressIntEqual;
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
+    if (globalConstraint == null) {
+      globalConstraint = manager.makeTrue();
+    }
 
-    this.globalConstraint = manager.makeTrue(); // no constraint; ignore nothing
   }
+
 
   @Override
   protected Collection<BDDState> preCheck(BDDState state, VariableTrackingPrecision precision) {
@@ -121,11 +125,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return Collections.singleton(state);
     }
     // the path is not fulfilled
-    if (state.getRegion().isFalse()) {
-      return Collections.emptyList();
-    }
-    if (globalConstraint.isFalse()) {
-      // the new state must be ignored
+    if (rmgr.makeAnd(globalConstraint, state.getRegion()).isFalse()) {
       return Collections.emptyList();
     }
 
@@ -133,7 +133,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   public void setGlobalConstraint(Region pConstraint) {
-    this.globalConstraint = pConstraint;
+    BDDTransferRelation.globalConstraint = pConstraint;
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;" and

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import com.google.common.base.Joiner;
-
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import javax.annotation.Nullable;
 
 public class BDDState implements AbstractQueryableState,
     LatticeAbstractState<BDDState> {
@@ -80,8 +78,8 @@ public class BDDState implements AbstractQueryableState,
 
   @Override
   public String toString() {
-    return //manager.dumpRegion(currentState) + "\n" +
-        manager.regionToDot(currentState);
+    return manager.dumpRegion(currentState) + "\n";// +
+    // manager.regionToDot(currentState);
   }
 
   public String toCompactString() {

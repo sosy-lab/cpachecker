@@ -52,6 +52,8 @@ public class TigerTest {
 
   private static final String EXAMPLE_LOOP = "test/programs/tiger/products/example_loop.c";
 
+
+
   private static final String EXAMPLE_ONLY_INFEASIBLE =
       "test/programs/tiger/products/example_only_infeasible.c";
 
@@ -211,7 +213,7 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfTestCases() == 2);
+    assertTrue(testSuite.getNumberOfTestCases() == 1);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
     assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
@@ -508,7 +510,7 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfTestCases() == 2);
+    assertTrue(testSuite.getNumberOfTestCases() == 1);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
     assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
@@ -530,5 +532,7 @@ public class TigerTest {
       }
     }
   }
+
+
 
 }

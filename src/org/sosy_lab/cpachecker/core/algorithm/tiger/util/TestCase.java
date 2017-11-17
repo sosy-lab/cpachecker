@@ -237,6 +237,63 @@ public class TestCase {
     return returnStr;
   }
 
+  private boolean
+      sameValues(Map<String, BigInteger> thisValues, Map<String, BigInteger> otherValues) {
+    // if both are null they are equal
+    if (thisValues == null && otherValues == null) {
+      return true;
+    }
+    // if only one is null they are not equal
+    if (thisValues == null || otherValues == null) {
+      return false;
+    }
+
+    for (Entry<String, BigInteger> input : thisValues.entrySet()) {
+      if (!otherValues.containsKey(input.getKey())) {
+        return false;
+      }
+      if (!otherValues.get(input.getKey()).equals(thisValues.get(input.getKey()))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean samePresenceCondition(Region otherPresenceCondition) {
+    if (this.getPresenceCondition() == null && otherPresenceCondition == null) {
+      return true;
+    }
+
+    if (this.getPresenceCondition() == null || otherPresenceCondition == null) {
+      return false;
+    }
+
+    if (!this.getPresenceCondition().equals(otherPresenceCondition)) {
+      return false;
+    }
+    return true;
+
+  }
+
+  public boolean isEquivalent(TestCase other) {
+
+    // equal input
+    if (!sameValues(this.getInputs(), other.getInputs())) {
+      return false;
+    }
+
+    // equal output
+    if (!sameValues(this.getOutputs(), other.getOutputs())) {
+      return false;
+    }
+
+    // equal presence condition
+    if (!samePresenceCondition(other.getPresenceCondition())) {
+      return false;
+    }
+    return true;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof TestCase) {

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/CPAchecker/src/org/sosy_lab/cpachecker/cmdline/CPAMain.java"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="1"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-tiger-simulators-value&#13;&#10;-setprop tiger.tiger_with_presenceConditions=true&#13;&#10;test/programs/tiger/simulator/FASE2015.c&#13;&#10;-setprop cpa.predicate.merge=SEP&#13;&#10;-setprop cpa.arg.dumpAfterIteration=true&#13;&#10;-setprop analysis.traversal.usePostorder=true&#13;&#10;-setprop tiger.inputInterface=&quot;x,y,z&quot;&#13;&#10;-setprop tiger.outputinterface=&quot;z&quot;&#13;&#10;-setprop tiger.fqlQuery=&quot;COVER (\&quot;EDGES(ID)*\&quot;.(EDGES(@LABEL(G1))).\&quot;EDGES(ID)*\&quot;)+(\&quot;EDGES(ID)*\&quot;.(EDGES(@LABEL(G5))).\&quot;EDGES(ID)*\&quot;)"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#13;&#10;-Xmx2400m"/>
+</launchConfiguration>

@@ -126,14 +126,23 @@ public class TestSuite implements AlgorithmResult {
       infeasibleGoals.put(
           goal,
           bddCpaNamedRegionManager
-              .makeOr(infeasiblePresenceConditions.get(goal), presenceCondition));
+              .makeOr(infeasibleGoals.get(goal), presenceCondition));
     } else {
       infeasibleGoals.put(goal, presenceCondition);
     }
   }
 
+  private void addCoveredPresenceCondition(Goal pGoal, Region pPresenceCondition) {
+
+    setRemainingPresenceCondition(
+        pGoal,
+        bddCpaNamedRegionManager.makeAnd(
+            getRemainingPresenceCondition(pGoal, bddCpaNamedRegionManager),
+            bddCpaNamedRegionManager.makeNot(pPresenceCondition)));
+  }
+
   public boolean addTestCase(TestCase testcase, Goal goal, Region pPresenceCondition) {
-    if (testSuiteAlreadyContrainsTestCase(testcase, goal)) {
+    if (testSuiteAlreadyContainsTestCase(testcase, goal)) {
       return true;
     }
     if (!isGoalPariallyCovered(goal)) {
@@ -162,13 +171,9 @@ public class TestSuite implements AlgorithmResult {
       // goal.setPresenceCondition(pPresenceCondition);
       coveringPresenceConditions.put(Pair.of(testcase, goal), pPresenceCondition);
 
-      setRemainingPresenceCondition(
-          goal,
-          bddCpaNamedRegionManager.makeAnd(
-              getRemainingPresenceCondition(goal, bddCpaNamedRegionManager),
-              bddCpaNamedRegionManager.makeNot(pPresenceCondition)));
-    }
+      addCoveredPresenceCondition(goal, pPresenceCondition);
 
+    }
     return testcaseExisted;
   }
 
@@ -195,9 +200,9 @@ public class TestSuite implements AlgorithmResult {
       goals.add(goal);
     }
 
-    if (useTigerAlgorithm_with_pc) {
-      remainingPresenceConditions.put(goal, bddCpaNamedRegionManager.makeTrue());
-    }
+    // if (useTigerAlgorithm_with_pc) {
+    // remainingPresenceConditions.put(goal, bddCpaNamedRegionManager.makeTrue());
+    // }
 
     List<TestCase> testcases = coveringTestCases.get(goal);
 
@@ -205,6 +210,10 @@ public class TestSuite implements AlgorithmResult {
       testcases = new LinkedList<>();
       coveringTestCases.put(goal, testcases);
       mapping.put(testcase, goals);
+      if (useTigerAlgorithm_with_pc) {
+        addCoveredPresenceCondition(goal, testcase.getPresenceCondition());
+      }
+
     }
     testcases.add(testcase);
   }
@@ -227,54 +236,44 @@ public class TestSuite implements AlgorithmResult {
     includedTestGoals.addAll(pIncludedTestGoals);
   }
 
-  private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {
-    // TODO make a real comparison and not just a string compare
-    String testcaseString = "Testcase " + pTestcase.toString() + " covers";
-    String testgoalString = "Goal ";
-    CFANode predecessor = pGoal.getCriticalEdge().getPredecessor();
-    if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
-      testgoalString += ((CLabelNode) predecessor).getLabel();
-    } else {
-      testgoalString += pGoal.getIndex();
-    }
-    testgoalString += " "
-        + pGoal.toSkeleton()
-        + (pGoal.getPresenceCondition() != null
-            ? " with targetPC "
-                + bddCpaNamedRegionManager
-                    .dumpRegion(pGoal
-                        .getPresenceCondition())
-            : "");
 
-    for (Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-      String testcaseStringCmp = "Testcase " + entry.getKey().toString() + " covers";
-      if (testcaseString.equals(testcaseStringCmp)) {
-        for (Goal goal : entry.getValue()) {
-          String testgoalStringCmp = "Goal ";
-          CFANode predecessorCmp = goal.getCriticalEdge().getPredecessor();
-          if (predecessorCmp instanceof CLabelNode
-              && !((CLabelNode) predecessorCmp).getLabel().isEmpty()) {
-            testgoalStringCmp += ((CLabelNode) predecessorCmp).getLabel();
-          } else {
-            testgoalStringCmp += goal.getIndex();
-          }
-          testgoalStringCmp += " "
-              + goal.toSkeleton()
-              + (goal.getPresenceCondition() != null
-                  ? " with targetPC "
-                      + bddCpaNamedRegionManager
-                          .dumpRegion(goal
-                              .getPresenceCondition())
-                  : "");
-          if (testgoalString.equals(testgoalStringCmp)) {
-            return true;
-          }
-        }
-      } else {
-        continue;
+  public boolean testSuiteAlreadyContainsTestCase(TestCase pTestcase, Goal pGoal) {
+
+    
+    for (TestCase containingTestcase : this.getTestCases()) {
+      if (pTestcase.isEquivalent(containingTestcase) && mapping.get(containingTestcase).contains(pGoal)) {
+        return true;
       }
     }
+
     return false;
+    /*
+     * Entry<TestCase, List<Goal>> entry : mapping.entrySet()
+     *
+     *
+     * pTestcase.get
+     *
+     *
+     * // TODO make a real comparison and not just a string compare String testcaseString =
+     * "Testcase " + pTestcase.toString() + " covers"; String testgoalString = "Goal "; CFANode
+     * predecessor = pGoal.getCriticalEdge().getPredecessor(); if (predecessor instanceof CLabelNode
+     * && !((CLabelNode) predecessor).getLabel().isEmpty()) { testgoalString += ((CLabelNode)
+     * predecessor).getLabel(); } else { testgoalString += pGoal.getIndex(); } testgoalString += " "
+     * + pGoal.toSkeleton() + (pGoal.getPresenceCondition() != null ? " with targetPC " +
+     * bddCpaNamedRegionManager .dumpRegion(pGoal .getPresenceCondition()) : "");
+     *
+     * for (Entry<TestCase, List<Goal>> entry : mapping.entrySet()) { String testcaseStringCmp =
+     * "Testcase " + entry.getKey().toString() + " covers"; if
+     * (testcaseString.equals(testcaseStringCmp)) { for (Goal goal : entry.getValue()) { String
+     * testgoalStringCmp = "Goal "; CFANode predecessorCmp =
+     * goal.getCriticalEdge().getPredecessor(); if (predecessorCmp instanceof CLabelNode &&
+     * !((CLabelNode) predecessorCmp).getLabel().isEmpty()) { testgoalStringCmp += ((CLabelNode)
+     * predecessorCmp).getLabel(); } else { testgoalStringCmp += goal.getIndex(); }
+     * testgoalStringCmp += " " + goal.toSkeleton() + (goal.getPresenceCondition() != null ?
+     * " with targetPC " + bddCpaNamedRegionManager .dumpRegion(goal .getPresenceCondition()) : "");
+     * if (testgoalString.equals(testgoalStringCmp)) { return true; } } } else { continue; } }
+     * return false;
+     */
   }
 
   public Set<TestCase> getTestCases() {
@@ -465,7 +464,11 @@ public class TestSuite implements AlgorithmResult {
 
   public boolean isGoalCovered(Goal pGoal) {
     if (useTigerAlgorithm_with_pc) {
-      return remainingPresenceConditions.get(pGoal).isFalse();
+      if (remainingPresenceConditions.get(pGoal) != null) {
+        return remainingPresenceConditions.get(pGoal).isFalse();
+      } else {
+        return false;
+      }
     } else {
     List<TestCase> testCases = coveringTestCases.get(pGoal);
     return (testCases != null && testCases.size() > 0);
@@ -487,5 +490,14 @@ public class TestSuite implements AlgorithmResult {
       return pBddCpaNamedRegionManager.makeTrue();
     }
     return remainingPresenceConditions.get(pGoal);
+  }
+
+  public boolean areGoalsCoveredOrInfeasible(LinkedList<Goal> pGoalsToCover) {
+    for (Goal goal : pGoalsToCover) {
+      if (!isGoalCovered(goal) || isInfeasible(goal)) {
+        return false;
+      }
+    }
+    return true;
   }
 }
