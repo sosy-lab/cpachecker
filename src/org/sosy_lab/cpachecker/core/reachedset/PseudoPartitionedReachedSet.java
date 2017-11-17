@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -58,8 +59,11 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   /**
    * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
+   *
+   * Since a partition key may be null, but HashBasedTable does not support null keys,
+   * we use Optionals.
    */
-  private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>>
+  private final Table<Optional<Object>, Comparable<?>, SetMultimap<Object, AbstractState>>
       partitionedReached = HashBasedTable.create(1, 1);
 
   public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
@@ -70,7 +74,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   public void add(AbstractState pState, Precision pPrecision) {
     super.add(pState, pPrecision);
 
-    Object key = getPartitionKey(pState);
+    Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
     SetMultimap<Object, AbstractState> states = partitionedReached.get(key, pseudoKey);
@@ -86,10 +90,11 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   public void remove(AbstractState pState) {
     super.remove(pState);
 
-    Object key = getPartitionKey(pState);
+    Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
-    SetMultimap<Object, AbstractState> states = partitionedReached.get(key, pseudoKey);
+    SetMultimap<Object, AbstractState> states =
+        partitionedReached.get(key, pseudoKey);
     if (states != null) {
       states.remove(pseudoHash, pState);
       if (states.isEmpty()) {
@@ -108,7 +113,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
   public Set<AbstractState> getReached(AbstractState pState) {
-    Object key = getPartitionKey(pState);
+    Optional<Object> key = getPartitionKey(pState);
     Comparable pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
     Map<Comparable<?>, SetMultimap<Object, AbstractState>> partition = partitionedReached.row(key);
@@ -149,9 +154,9 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
     return ((PseudoPartitionable) pState).getPseudoHashCode();
   }
 
-  private static Object getPartitionKey(AbstractState pState) {
+  private static Optional<Object> getPartitionKey(AbstractState pState) {
     assert pState instanceof Partitionable
         : "Partitionable states necessary for PartitionedReachedSet";
-    return ((Partitionable) pState).getPartitionKey();
+    return Optional.ofNullable(((Partitionable) pState).getPartitionKey());
   }
 }
