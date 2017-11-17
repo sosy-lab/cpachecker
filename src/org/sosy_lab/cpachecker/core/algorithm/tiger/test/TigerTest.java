@@ -152,7 +152,7 @@ public class TigerTest {
         new File("config/tiger-variants.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
     prop.put("tiger.outputInterface", "tmp");
-    prop.put("tiger.checkCoverage", "false");
+    prop.put("tiger.coverageCheck", "None");
     prop.put("tiger.fqlQuery",
         "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
 
@@ -177,7 +177,7 @@ public class TigerTest {
         new File("config/tiger-variants.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
     prop.put("tiger.outputInterface", "tmp");
-    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.coverageCheck", "Single");
     prop.put("tiger.fqlQuery",
         "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
 
@@ -202,8 +202,7 @@ public class TigerTest {
         new File("config/tiger-variants.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
     prop.put("tiger.outputInterface", "tmp");
-    prop.put("tiger.checkCoverage", "false");
-    prop.put("tiger.allCoveredGoalsPerTestCase", "true");
+    prop.put("tiger.coverageCheck", "All");
     prop.put("tiger.fqlQuery",
         "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
 
@@ -474,7 +473,7 @@ public class TigerTest {
         new File("config/tiger-variants-value.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
     prop.put("tiger.outputInterface", "tmp");
-    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.CoverageCheck", "Single");
     prop.put("tiger.fqlQuery",
         "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
 
@@ -483,7 +482,6 @@ public class TigerTest {
 
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
-
     assertTrue(testSuite.getNumberOfTestCases() == 1);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 2);
     assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
@@ -499,8 +497,7 @@ public class TigerTest {
         new File("config/tiger-variants-value.properties"));
     prop.put("tiger.inputInterface", "x,y,z");
     prop.put("tiger.outputInterface", "tmp");
-    prop.put("tiger.checkCoverage", "false");
-    prop.put("tiger.allCoveredGoalsPerTestCase", "true");
+    prop.put("tiger.coverageCheck", "All");
     prop.put("tiger.fqlQuery",
         "COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")");
 

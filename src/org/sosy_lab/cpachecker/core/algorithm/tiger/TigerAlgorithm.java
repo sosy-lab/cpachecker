@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
@@ -509,16 +510,23 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           // only add new Testcase and check for coverage if it does not already exist
           if (!testsuite.testSuiteAlreadyContainsTestCase(testcase, pGoal)) {
             testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition);
-          if (tigerConfig.shouldCheckCoverage()) {
-              checkGoalCoverage(pGoalsToCover, testcase, true);
-            // removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
+
+            if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
+                || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+
+              // remove covered goals from goalstocover if
+              // we want only one featureconfiguration per goal
+              // or do not want variability at all
+              boolean removeGoalsToCover =
+                  !tigerConfig.shouldUseTigerAlgorithm_with_pc()
+                      || tigerConfig.shouldUseSingleFeatureGoalCoverage();
+              LinkedList<Goal> goalsToCheckCoverage = new LinkedList<>(pGoalsToCover);
+              if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+                goalsToCheckCoverage.addAll(testsuite.getIncludedTestGoals());
+              }
+              checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);
+            }
           }
-          if (tigerConfig.useAllGoalsPerTestcase()) {
-            List<Goal> allGoals = testsuite.getIncludedTestGoals();
-            checkGoalCoverage(allGoals, testcase, false);
-            // checkGoalCoverageForTestCase(allGoals, testcase);
-          }
-        }
         }
 
       }

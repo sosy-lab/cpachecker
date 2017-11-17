@@ -33,8 +33,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm.TimeoutStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 
+
 @Options(prefix = "tiger")
 public class TigerAlgorithmConfiguration {
+
+  public enum CoverageCheck {
+    NONE,
+    SINGLE,
+    ALL
+  }
 
   public TigerAlgorithmConfiguration(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -88,12 +95,6 @@ public class TigerAlgorithmConfiguration {
 
   @Option(
       secure = true,
-      name = "checkCoverage",
-      description = "Checks whether a test case for one goal covers another test goal")
-  private boolean checkCoverage = true;
-
-  @Option(
-      secure = true,
       name = "timeoutStrategy",
       description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
   private TimeoutStrategy timeoutStrategy = TimeoutStrategy.SKIP_AFTER_TIMEOUT;
@@ -129,12 +130,6 @@ public class TigerAlgorithmConfiguration {
   String outputInterface = "";
 
   @Option(
-      secure = true,
-      name = "allCoveredGoalsPerTestCase",
-      description = "Returns all test goals covered by a test case.")
-  private boolean allCoveredGoalsPerTestCase = false;
-
-  @Option(
     secure = true,
     name = "tiger_with_presenceConditions",
     description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions.")
@@ -146,16 +141,19 @@ public class TigerAlgorithmConfiguration {
     description = "Only need one Testcase with a valid feature configuration for each goal")
   private boolean useSingleFeatureGoalCoverage = false;
 
+  @Option(secure = true, name = "coverageCheck", description = "")
+  private CoverageCheck coverageCheck = CoverageCheck.SINGLE;
+
+  public CoverageCheck getCoverageCheck() {
+    return coverageCheck;
+  }
+
   public boolean shouldUseSingleFeatureGoalCoverage() {
     return useSingleFeatureGoalCoverage;
   }
 
   public boolean shouldUseTigerAlgorithm_with_pc() {
     return useTigerAlgorithm_with_pc;
-  }
-
-  public boolean useAllGoalsPerTestcase() {
-    return allCoveredGoalsPerTestCase;
   }
 
   public String getOutputInterface() {
@@ -182,9 +180,6 @@ public class TigerAlgorithmConfiguration {
     return timeoutStrategy;
   }
 
-  public boolean shouldCheckCoverage(){
-    return checkCoverage;
-   }
    public Path getTestsuiteFile(){
     return testsuiteFile;
    }
