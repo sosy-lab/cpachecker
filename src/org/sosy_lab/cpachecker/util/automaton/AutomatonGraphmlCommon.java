@@ -570,9 +570,9 @@ public class AutomatonGraphmlCommon {
             location.getNodeOffset(),
             pMainEntry.getFunctionDefinition().toString().length(),
             location.getStartingLineNumber(),
-            location.getStartingLineNumber(),
+            location.getEndingLineNumber(),
             location.getStartingLineInOrigin(),
-            location.getStartingLineInOrigin());
+            location.getEndingLineInOrigin());
       }
       return Collections.singleton(location);
     }
