@@ -60,6 +60,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * "Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim Musa,
  * Alexander Nutz, Andreas Podelski
  */
+@SuppressWarnings("options")
 @Options(prefix = "cpa.predicate.refinement")
 public class NewtonRefinementManager {
   private final LogManager logger;
