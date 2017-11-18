@@ -60,11 +60,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableOrField.Variable;
 
 /**
  * The class computes global control-flow and context-insensitive over-approximation of sets of
@@ -471,6 +473,17 @@ final class VariableAndFieldRelevancyComputer {
           final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
           if (!(decl instanceof CVariableDeclaration)) {
             break;
+          }
+          CType declType = decl.getType().getCanonicalType();
+          if (declType instanceof CArrayType) {
+            CExpression length = ((CArrayType) declType).getLength();
+            if (length != null) {
+              result =
+                  result.withDependencies(
+                      length.accept(
+                          CollectingRHSVisitor.create(
+                              Variable.newVariable(decl.getQualifiedName()))));
+            }
           }
           for (CExpressionAssignmentStatement init :
               CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
