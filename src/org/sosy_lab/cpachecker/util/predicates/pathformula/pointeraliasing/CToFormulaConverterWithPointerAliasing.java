@@ -424,26 +424,55 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * Declares a shared base on a declaration.
    *
    * @param declaration The declaration.
-   * @param originalDeclaration the declaration used to determine if the base corresponds to a function parameter
-   *        (needed to distinguish real (non-moving) arrays from pointers)
+   * @param originalDeclaration the declaration used to determine if the base corresponds to a
+   *     function parameter (needed to distinguish real (non-moving) arrays from pointers)
    * @param constraints Additional constraints.
    * @param pts The underlying pointer target set.
    */
   private void declareSharedBase(
       final CDeclaration declaration,
       final CSimpleDeclaration originalDeclaration,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
       final Constraints constraints,
-      final PointerTargetSetBuilder pts) {
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException {
     assert declaration.getType().equals(originalDeclaration.getType());
     CType type = typeHandler.getSimplifiedType(declaration);
     CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
     if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
       decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
     }
-    Formula size =
-        decayedType.isIncomplete()
-            ? null
-            : fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+    Formula size;
+    if (decayedType.isIncomplete()) {
+      size = null;
+    } else if (decayedType instanceof CArrayType
+        && !((CArrayType) decayedType).getLengthAsInt().isPresent()) {
+      CArrayType arrayType = (CArrayType) decayedType;
+      Formula elementSize =
+          fmgr.makeNumber(
+              voidPointerFormulaType, typeHandler.getSizeof(arrayType.getType()));
+      Formula elementCount = buildTerm(
+          arrayType.getLength(),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
+      elementCount =
+          makeCast(
+              arrayType.getLength().getExpressionType(),
+              CPointerType.POINTER_TO_VOID,
+              elementCount,
+              constraints,
+              edge);
+      size = fmgr.makeMultiply(elementSize, elementCount);
+    } else {
+      size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+    }
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.addBase(declaration.getQualifiedName(), type, size, constraints);
@@ -764,7 +793,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CVariableDeclaration returnVariableDeclaraton =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
 
-      declareSharedBase(returnVariableDeclaraton, returnVariableDeclaraton, constraints, pts);
+      declareSharedBase(
+          returnVariableDeclaraton,
+          returnVariableDeclaraton,
+          returnEdge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
     return result;
   }
@@ -932,7 +969,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    declareSharedBase(declaration, declaration, constraints, pts);
+    declareSharedBase(
+        declaration,
+        declaration,
+        declarationEdge,
+        function,
+        ssa,
+        pts,
+        constraints,
+        errorConditions);
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
@@ -1055,8 +1100,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       declareSharedBase(
           declaration,
           formalParameter,
+          edge,
+          entryNode.getFunctionName(),
+          ssa,
+          pts,
           constraints,
-          pts);
+          errorConditions);
     }
 
     BooleanFormula result =
