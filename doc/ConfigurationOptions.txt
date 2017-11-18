@@ -1914,6 +1914,9 @@ cpa.predicate.refinement.timelimit = 0ms
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
 
+# use Newton-based Algorithm for the CPA-Refinement, experimental feature!
+cpa.predicate.refinement.useNewtonRefinement = false
+
 # Should the path invariants be created and used (potentially additionally to
 # the other invariants)
 cpa.predicate.refinement.usePathInvariants = false
