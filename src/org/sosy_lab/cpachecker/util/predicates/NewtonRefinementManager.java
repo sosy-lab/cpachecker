@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -60,8 +59,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  * "Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim Musa,
  * Alexander Nutz, Andreas Podelski
  */
-@SuppressWarnings("options")
-@Options(prefix = "cpa.predicate.refinement")
 public class NewtonRefinementManager {
   private final LogManager logger;
   private final Solver solver;
