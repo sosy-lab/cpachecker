@@ -70,8 +70,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CFAEdge pCfaEdge, CRightHandSide rVal)
       throws UnrecognizedCCodeException {
 
-    ForceExplicitValueVisitor v = new ForceExplicitValueVisitor(this, this, smgState,
-        null, machineModel, logger, pCfaEdge);
+    ForceExplicitValueVisitor v =
+        new ForceExplicitValueVisitor(
+            this, this, smgState, null, machineModel, logger, pCfaEdge, options);
 
     Value val = rVal.accept(v);
 

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
@@ -47,13 +48,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
-  private final static SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(2);
+  private final SMGKnownExpValue guessSize;
 
-  public ForceExplicitValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGExpressionEvaluator pSmgExpressionEvaluator,
-      SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {
+  public ForceExplicitValueVisitor(
+      SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      SMGExpressionEvaluator pSmgExpressionEvaluator,
+      SMGState pSmgState,
+      String pFunctionName,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger,
+      CFAEdge pEdge,
+      SMGOptions pOptions) {
     super(pSmgExpressionEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
+    guessSize = SMGKnownExpValue.valueOf(pOptions.getGuessSize());
   }
 
   @Override
@@ -118,8 +126,8 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
       return UnknownValue.getInstance();
     }
 
-    getNewState().putExplicit((SMGKnownSymValue) value, GUESS);
+    getNewState().putExplicit((SMGKnownSymValue) value, guessSize);
 
-    return new NumericValue(GUESS.getValue());
+    return new NumericValue(guessSize.getValue());
   }
 }
