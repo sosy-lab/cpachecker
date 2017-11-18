@@ -572,9 +572,9 @@ public class AutomatonGraphmlCommon {
             location.getNodeOffset(),
             pMainEntry.getFunctionDefinition().toString().length(),
             location.getStartingLineNumber(),
-            location.getEndingLineNumber(),
+            location.getStartingLineNumber(),
             location.getStartingLineInOrigin(),
-            location.getEndingLineInOrigin());
+            location.getStartingLineInOrigin());
       }
       Set<FileLocation> result = Sets.newHashSet(location);
       for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {
