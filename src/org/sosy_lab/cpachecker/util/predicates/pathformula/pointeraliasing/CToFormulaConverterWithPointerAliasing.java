@@ -990,6 +990,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
+        if (options.handleStringLiteralInitializers()) {
+          // TODO: see if this can be simplified, this block is just copied from the case
+          // (initializer instanceof CInitializerList). Both cases might be unifyable by using
+          // CInitializers.convertToAssignments
+          List<CExpressionAssignmentStatement> assignments =
+              CInitializers.convertToAssignments(declaration, declarationEdge);
+          // Special handling for string literal initializers -- convert them into character arrays
+          assignments = expandStringLiterals(assignments);
+          return assignmentHandler.handleInitializationAssignments(
+              lhs, declarationType, assignments);
+        }
         result =
             assignmentHandler.handleAssignment(
                 lhs, lhs, ((CInitializerExpression) initializer).getExpression(), true);
