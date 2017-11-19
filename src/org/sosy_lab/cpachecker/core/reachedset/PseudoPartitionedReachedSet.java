@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -123,19 +124,23 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
       return Collections.emptySet();
     }
 
-    Set<AbstractState> states = new LinkedHashSet<>();
+    Set<AbstractState> states;
 
     // here happens the trick, if the comparable is "equal" (matching pseudoKey):
     // if the state is also "equal", we use the state, otherwise state is definitely not "lessOrEqual".
-    // TODO this trick might contradict the specification of this method -> view of changing data?
     if (partition.containsKey(pseudoKey)) {
-      states.addAll(partition.get(pseudoKey).get(pseudoHash));
+      states = partition.get(pseudoKey).get(pseudoHash);
+    } else {
+      states = ImmutableSet.of();
     }
 
     // add all states with a smaller pseudo-key, we might be "lessOrEqual" than those.
     for (Entry<Comparable<?>, SetMultimap<Object, AbstractState>> entry : partition.entrySet()) {
       if (pseudoKey.compareTo(entry.getKey()) > 0) { // pseudoKey is "greaterThan"
-        states.addAll(entry.getValue().values());
+        SetMultimap<Object, AbstractState> m = entry.getValue();
+        for (Object mKey : m.keySet()) {
+          states = Sets.union(states, m.get(mKey));
+        }
       }
     }
 
