@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Preconditions;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -90,8 +91,15 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
           object = state.addGlobalVariable(smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
               varDcl.getName());
         } else {
-          object = state.addLocalVariable(smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
-              varDcl.getName());
+          Optional<SMGObject> addedLocalVariable =
+              state.addLocalVariable(
+                  smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
+                  varDcl.getName());
+          if (addedLocalVariable.isPresent()) {
+            object = addedLocalVariable.get();
+          } else {
+            return SMGAddressAndState.listOf(getInitialSmgState(), SMGAddress.UNKNOWN);
+          }
         }
       }
     }
