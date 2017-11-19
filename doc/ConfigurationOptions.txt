@@ -1720,6 +1720,11 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = -1
 
+# When then builtin strlen is called, approximate it up to length set by this
+# option.If the string passed to strlen is longer, the return value will be
+# overapproximated via nondet.
+cpa.predicate.maxPreciseStrlenSize = 3
+
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
