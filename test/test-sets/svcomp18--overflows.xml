@@ -19,8 +19,6 @@
     <includesfile>../programs/benchmarks/Systems_BusyBox_NoOverflows.set</includesfile>
     <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
     <option name="-64"/>
-    <option name="-setprop">cpa.predicate.handleStringLiteralInitializers=true</option>
-    <option name="-setprop">cpa.predicate.maxPreciseStrlenSize=50</option>
   </tasks>
   <tasks name="Overflows-Other">
     <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
