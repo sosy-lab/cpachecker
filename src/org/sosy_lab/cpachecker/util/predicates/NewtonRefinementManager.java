@@ -26,18 +26,17 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -64,14 +63,11 @@ public class NewtonRefinementManager {
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
+
   public NewtonRefinementManager(
-      Configuration pConfig,
       LogManager pLogger,
       Solver pSolver,
-      PathFormulaManager pPfmgr)
-      throws InvalidConfigurationException {
-
-    pConfig.inject(this, NewtonRefinementManager.class);
+      PathFormulaManager pPfmgr) {
     logger = pLogger;
     solver = pSolver;
     fmgr = solver.getFormulaManager();
@@ -101,10 +97,10 @@ public class NewtonRefinementManager {
     } else {
       // TODO: Compute the infeasible core
       // TODO: Manipulate Path in such way, that unnecessary parts of the predicates are removed
-
+      List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
       // Calculate StrongestPost
       List<BooleanFormula> predicates =
-          this.calculateStrongestPostCondition(pFormulas, pAllStatesTrace);
+          this.calculateStrongestPostCondition(pathLocations);
 
       // TODO: Remove parts of the predicates that are not future live
       return CounterexampleTraceInfo.infeasible(predicates);
@@ -140,101 +136,142 @@ public class NewtonRefinementManager {
    *
    * When applied to the Predicate states, they assure that the same error-trace won't occur again.
    *
-   * @param pFormulas The Block-formulas as computed before
-   * @param allStatesTrace The trace to the error location
+   * @param pPathLocations A list with the necessary information to all path locations
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
    * @throws CPAException In case the Algorithm failed unexpected
    * @throws InterruptedException In case of interruption
    */
   private List<BooleanFormula>
-      calculateStrongestPostCondition(BlockFormulas pFormulas, ARGPath allStatesTrace)
+      calculateStrongestPostCondition(List<PathLocation> pPathLocations)
           throws CPAException, InterruptedException {
+    logger.log(Level.INFO, "Calculate Strongest Postcondition for the error trace.");
     // First Predicate is always true
     BooleanFormula preCondition = fmgr.getBooleanFormulaManager().makeTrue();
-    PathIterator pathiterator = allStatesTrace.fullPathIterator();
-    Iterator<BooleanFormula> formulaIterator = pFormulas.getFormulas().iterator();
 
     // Initialize the predicate list(first preCondition not assigned as always true and not needed
     // in CounterexampleTraceinfo
     List<BooleanFormula> predicates = new ArrayList<>();
 
-    // Initialize the path
-    List<CFAEdge> path = new ArrayList<>();
-    while (pathiterator.hasNext()) {
-      assert formulaIterator.hasNext();
-      BooleanFormula blockFormula = formulaIterator.next();
-      pfmgr.makeFormulaForPath(path);
+    for (PathLocation location : pPathLocations) {
+      BooleanFormula postCondition;
 
-      // Get the edges between this state and and the surrounding states
-      List<CFAEdge> edges = new ArrayList<>();
-      edges.add(pathiterator.getOutgoingEdge());
-      pathiterator.advance();
+      CFAEdge edge = location.getLastEdge();
+      PathFormula pathFormula = location.getPathFormula();
 
-      while (!pathiterator.isPositionWithState()) {
-        edges.add(pathiterator.getOutgoingEdge());
-        assert pathiterator.hasNext();
-        pathiterator.advance();
-      }
-
-      // Get the pathformula
-      path.addAll(edges);
-      PathFormula pathFormula = pfmgr.makeFormulaForPath(path);
-
-      // Build the strongest Postcondition based on the type of the edge
-      BooleanFormula postCondition = preCondition;
-
-      for (CFAEdge edge : edges) {
-        if (edge == null) {
-          if (fmgr.getBooleanFormulaManager().isTrue(blockFormula)) {
-            postCondition = preCondition;
-          }else {
-            logger.log(Level.SEVERE, "Could not determine the postcondition, as CFAEdge is null.");
-            throw new CPAException(
-                "NewtonRefinement-Postcondition failed: Could not determine the postcondition of, as CFAEdge is null.");
-          }
-        } else if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          postCondition = fmgr.makeAnd(preCondition, blockFormula);
-        } else if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-
-          BooleanFormula toExist = fmgr.makeAnd(blockFormula, preCondition);
+      // Calculate Postcondition based on the edgeType
+      switch (edge.getEdgeType()) {
+        case AssumeEdge:
+          postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+          break;
+        case StatementEdge:
+          BooleanFormula toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
           try {
             // Use Existential-Quantifier-Elimination on dead variables
             // FIXME: Fails while quantification with Z3(in apply tactics);
-            postCondition =
-                fmgr.eliminateDeadVariables(
-                    toExist,
-                    pathFormula.getSsa());
+            postCondition = fmgr.eliminateDeadVariables(toExist, pathFormula.getSsa());
           } catch (SolverException e) {
-            // logger.log(Level.SEVERE, "Solver failed to compute existence-quantor.");
             throw new CPAException("Solver failed to compute existence-quantor.", e);
           }
-        } else {
-          // TODO: Determine if it is necessary to do something
-          logger.log(
-              java.util.logging.Level.INFO,
-              "Unhandled EdgeType: "
-                  + edge.getEdgeType()
-                  + " with formula :"
-                  + pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(), edge));
+          break;
+        default:
+          // TODO: Determine if it is necessary to do something for other edgetypes
           postCondition = preCondition;
-        }
-        // Set postCondition as preCondition for next loop iteration
-        preCondition = postCondition;
+          break;
       }
-
-      // If we are in the last state assert unsatisfiability
-      if (pathiterator.hasNext()) {
+      if (location.hasCorrespondingARGState()) {
         predicates.add(postCondition);
-      } else {
-        try {
-          assert solver.isUnsat(postCondition);
-        } catch (SolverException e) {
-          // logger.log(Level.SEVERE, "Solver failed to solve the unsatisfiable last predicate.");
-          throw new CPAException("Solver failed to solve the unsatisfiable last predicate", e);
-        }
       }
-
+      // PostCondition is preCondition for next location
+      preCondition = postCondition;
     }
-    return ImmutableList.copyOf(predicates);
+    // Check the unsatisfiability of the last predicate
+    try {
+      assert solver.isUnsat(predicates.get(predicates.size() - 1));
+    } catch (SolverException e) {
+      throw new CPAException("Solver failed to solve the unsatisfiability of the last predicate");
+    }
+    // Remove the last predicate as always false
+    return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
+  }
+
+
+  /**
+   * Builds a list of Path Location. Each Position holds information about its incoming CFAEdge,
+   * corresponding PathFormula and the state. Designed for easier access at corresponding
+   * information. The initial state is not stored.
+   *
+   * @param pPath The Path to build the path locations for.
+   * @return A list of PathLocations
+   * @throws CPAException if the calculation of a pathformula fails
+   * @throws InterruptedException if interrupted
+   */
+  private List<PathLocation> buildPathLocationList(ARGPath pPath)
+      throws CPAException, InterruptedException {
+    List<PathLocation> pathLocationList = new ArrayList<>();
+
+    // First state does not have an incoming edge. And it is not needed, as first predicate is
+    // always true.
+    PathIterator pathIterator = pPath.fullPathIterator();
+    PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
+
+    while(pathIterator.hasNext()) {
+      pathIterator.advance();
+      CFAEdge lastEdge = pathIterator.getIncomingEdge();
+      Optional<ARGState> state = pathIterator.isPositionWithState() ? Optional.of(pathIterator.getAbstractState())
+              : Optional.empty();
+      try {
+        pathFormula =
+            pfmgr.makeAnd(
+                pfmgr.makeNewPathFormula(pfmgr.makeEmptyPathFormula(), pathFormula.getSsa()),
+                lastEdge);
+      } catch (CPATransferException e) {
+        throw new CPAException(
+            "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")",
+            e);
+      }
+      pathLocationList.add(new PathLocation(lastEdge, pathFormula, state));
+    }
+    return pathLocationList;
+  }
+
+  private static class PathLocation {
+    final CFAEdge lastEdge;
+    final PathFormula pathFormula;
+    final Optional<ARGState> state;
+
+    PathLocation(
+        final CFAEdge pLastEdge,
+        final PathFormula pPathFormula,
+        final Optional<ARGState> pState) {
+      lastEdge = pLastEdge;
+      pathFormula = pPathFormula;
+      state = pState;
+    }
+
+    CFAEdge getLastEdge() {
+      return lastEdge;
+    }
+
+    PathFormula getPathFormula() {
+      return pathFormula;
+    }
+
+    boolean hasCorrespondingARGState() {
+      return state.isPresent();
+    }
+
+    // Optional<ARGState> getARGState() {
+    // return state;
+    // }
+
+    @Override
+    public String toString() {
+      return (lastEdge != null
+          ? lastEdge.toString()
+          : ("First State: " + state.get().toDOTLabel()))
+          + ", PathFormula: "
+          + pathFormula.toString();
+    }
+
   }
 }

@@ -203,7 +203,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (useNewtonRefinement) {
       newtonManager =
           Optional.of(
-              new NewtonRefinementManager(pConfig, logger, solver, pfmgr));
+              new NewtonRefinementManager(logger, solver, pfmgr));
     } else {
       newtonManager = Optional.empty();
     }
