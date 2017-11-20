@@ -3048,6 +3048,10 @@ statistics.print = false
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# consider counterexamples for loops for which only pointer variables are
+# relevant to be imprecise
+termination.cexForLoopsWithRelevantPointerVariablesImprecise = false
+
 # When checking for the termination property, use this configuration file
 # instead of the current one.
 termination.config = no default value

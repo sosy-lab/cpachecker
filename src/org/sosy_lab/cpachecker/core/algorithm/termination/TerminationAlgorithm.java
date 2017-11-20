@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -139,6 +140,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   )
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 10;
+
+  @Option(
+    secure = true,
+    description =
+        "consider counterexamples for loops for which only pointer variables are relevant to be imprecise"
+  )
+  private boolean cexForLoopsWithRelevantPointerVariablesImprecise = false;
 
   private final TerminationStatistics statistics;
 
@@ -401,7 +409,27 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
     }
 
+    if (cexForLoopsWithRelevantPointerVariablesImprecise
+        && result == Result.FALSE
+        && allRelevantVarsArePointers(relevantVariables)) {
+      return Result.UNKNOWN;
+    }
+
     return result;
+  }
+
+  private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {
+    if (pRelevantVariables.size() == 0) {
+      return false;
+    }
+    boolean allPointers = true;
+    for (CVariableDeclaration var : pRelevantVariables) {
+      if (!(var.getType() instanceof CPointerType)) {
+        allPointers = false;
+        break;
+      }
+    }
+    return allPointers;
   }
 
   private void addInvariantsToAggregatedReachedSet(
