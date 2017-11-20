@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
@@ -223,7 +224,7 @@ public class TigerTest {
     goalsToBeCovered.add("G1");
     goalsToBeCovered.add("G2");
     for(TestCase t : testSuite.getMapping().keySet()){
-      List<Goal> coveredGoals = testSuite.getMapping().get(t);
+      Set<Goal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
       List<String> goalLabels = Lists.newLinkedList();
       for(Goal g : coveredGoals) {
         goalLabels.add(testSuite.getTestGoalLabel(g));
@@ -518,7 +519,7 @@ public class TigerTest {
     goalsToBeCovered.add("G1");
     goalsToBeCovered.add("G2");
     for(TestCase t : testSuite.getMapping().keySet()){
-      List<Goal> coveredGoals = testSuite.getMapping().get(t);
+      Set<Goal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
       List<String> goalLabels = Lists.newLinkedList();
       for(Goal g : coveredGoals) {
         goalLabels.add(testSuite.getTestGoalLabel(g));

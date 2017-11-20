@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -190,7 +191,7 @@ public class TestCase {
   }
 
 
-  public List<Goal> getCoveredGoals(List<Goal> pAllGoals) {
+  public List<Goal> getCoveredGoals(Collection<Goal> pAllGoals) {
     List<Goal> coveredGoals = new ArrayList<>();
     for (Goal goal : pAllGoals) {
       ThreeValuedAnswer answer = coversGoal(goal);

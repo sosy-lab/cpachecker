@@ -120,11 +120,7 @@ public class TestCaseData {
 
     str.append("TestCase ").append(id);
     if (presenceCondition != null && !presenceCondition.isEmpty()) {
-      str.append(" with configurations ").append(
-          presenceCondition
-              .toString()
-              .replace("__SELECTED_FEATURE_", "")
-              .replace(" & TRUE", ""));
+      str.append(" with configurations ").append(presenceCondition);
     }
 
     str.append(":\n\n");

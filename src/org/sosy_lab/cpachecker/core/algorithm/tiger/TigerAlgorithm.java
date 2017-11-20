@@ -53,7 +53,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -89,6 +92,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -215,7 +219,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         new TestSuite(
             bddCpaNamedRegionManager,
             pGoalsToCover,
-            tigerConfig.shouldUseTigerAlgorithm_with_pc());
+            tigerConfig.shouldUseTigerAlgorithm_with_pc(),
+            tigerConfig);
     /*
      * for (Goal goal : pGoalsToCover) { try { runReachabilityAnalysis(goal, goal.getIndex()); }
      * catch (InvalidConfigurationException e) { logger.log(Level.SEVERE,
@@ -454,6 +459,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
       analysisWasSound_hasTimedOut = runAlgorithm(algorithm, algNotifier);
 
+
       // fully explored reachedset, therefore the last "testcase" was already added to the testsuite
       // in this case we break out of the loop, since the goal does not have more feasable goals
       if (!reachedSet.hasWaitingState()) {
@@ -497,7 +503,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
         TestCase testcase =
             handleUnavailableCounterexample(criticalEdge, lastState, testCasePresenceCondition);
-        testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition);
+        testsuite
+            .addTestCase(testcase, pGoal, testCasePresenceCondition, null);
       } else {
         // test goal is feasible
         logger.logf(Level.INFO, "Counterexample is available.");
@@ -505,11 +512,17 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         if (cex.isSpurious()) {
           logger.logf(Level.WARNING, "Counterexample is spurious!");
         } else {
-
+          // HashMap<String, Boolean> features =
+          Region simplifiedPresenceCondition =
+              getPresenceConditionforGoal(cex, pGoal);
           TestCase testcase = createTestcase(cex, testCasePresenceCondition);
           // only add new Testcase and check for coverage if it does not already exist
           if (!testsuite.testSuiteAlreadyContainsTestCase(testcase, pGoal)) {
-            testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition);
+            testsuite.addTestCase(
+                testcase,
+                pGoal,
+                testCasePresenceCondition,
+                simplifiedPresenceCondition);
 
             if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
                 || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
@@ -520,11 +533,12 @@ public class TigerAlgorithm implements AlgorithmWithResult {
               boolean removeGoalsToCover =
                   !tigerConfig.shouldUseTigerAlgorithm_with_pc()
                       || tigerConfig.shouldUseSingleFeatureGoalCoverage();
-              LinkedList<Goal> goalsToCheckCoverage = new LinkedList<>(pGoalsToCover);
+              HashSet<Goal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
               if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
-                goalsToCheckCoverage.addAll(testsuite.getIncludedTestGoals());
+                goalsToCheckCoverage.addAll(testsuite.getTestGoals());
               }
-              checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);
+              goalsToCheckCoverage.remove(pGoal);
+              checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
             }
           }
         }
@@ -575,7 +589,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           || testsuite.getCoveringTestCases(pGoal).isEmpty()) {
         testsuite.addInfeasibleGoal(pGoal, null);
       }
-
+    }
+    if (!tigerConfig.shouldUseTigerAlgorithm_with_pc()) {
+      pGoalsToCover.removeAll(testsuite.getTestGoals());
     }
 
     if(analysisWasSound_hasTimedOut.getSecond() == true) {
@@ -587,6 +603,63 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     } else {
       return ReachabilityAnalysisResult.UNSOUND;
     }
+  }
+
+
+  public Region getPresenceConditionforGoal(CounterexampleInfo cex, Goal pGoal) {
+    CFAEdge criticalEdge = pGoal.getCriticalEdge();
+
+    Region pred = null;
+
+    PathIterator iter = cex.getTargetPath().fullPathIterator();
+    CFANode lastNode = null;
+    while (iter.hasNext()) {
+      CFANode node = iter.getLocation();
+      if(!node.getFunctionName().contains(tigerConfig.getValidProductMethodName())) {
+        if (lastNode != null) {
+          CFAEdge edge = lastNode.getEdgeTo(node);
+          if (criticalEdge != null && edge == criticalEdge) {
+            break;
+          }
+
+          if(edge instanceof CAssumeEdge) {
+            CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+            if(assumeEdge.getExpression() instanceof CBinaryExpression) {
+
+            CBinaryExpression expression = (CBinaryExpression)assumeEdge.getExpression();
+              String name = expression.getOperand1().toString() + "@0";
+              // transfer.evaluateVectorExpression(partition, expression,
+              // org.sosy_lab.cpachecker.cfa.types.c.CSimpleType, node)
+
+              if (name.contains("__SELECTED_FEATURE")) {
+                Region predNew = bddCpaNamedRegionManager.createPredicate(name);
+                if (assumeEdge.getTruthAssumption()) {
+                  predNew = bddCpaNamedRegionManager.makeNot(predNew);
+                }
+                if (pred == null) {
+                  pred = predNew;
+                } else {
+                  pred = bddCpaNamedRegionManager.makeAnd(pred, predNew);
+                }
+
+            }
+            }
+          }
+
+        }
+
+
+      }
+      lastNode = node;
+      iter.advance();
+    }
+
+    if (pred == null) {
+      return bddCpaNamedRegionManager.makeTrue();
+    }
+
+    return pred;
+
   }
 
   private TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
@@ -608,13 +681,18 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   }
 
   private void
-      checkGoalCoverage(List<Goal> testGoals, TestCase testCase, boolean removeCoveredGoals) {
-    for (Goal goal : testCase.getCoveredGoals(testGoals)) {
+      checkGoalCoverage(
+          Set<Goal> pGoalsToCheckCoverage,
+          TestCase testCase,
+          boolean removeCoveredGoals,
+          CounterexampleInfo cex) {
+    for (Goal goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
       // TODO add infeasiblitpropagaion to testsuite
-      testsuite.updateTestcaseToGoalMapping(testCase, goal);
+      Region simplifiedPresenceCOndition = getPresenceConditionforGoal(cex, goal);
+      testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCOndition);
       String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
       if (removeCoveredGoals && !tigerConfig.shouldUseTigerAlgorithm_with_pc()) {
-        testGoals.remove(goal);
+        pGoalsToCheckCoverage.remove(goal);
         log += "and is removed from goal list";
       }
       logger.log(Level.INFO, log);

@@ -144,6 +144,26 @@ public class TigerAlgorithmConfiguration {
   @Option(secure = true, name = "coverageCheck", description = "")
   private CoverageCheck coverageCheck = CoverageCheck.SINGLE;
 
+  @Option(
+    secure = true,
+    name = "validProductMethodName",
+    description = "Name of the method to validate the feature model")
+  private String validProductMethodName = "validProduct";
+
+  @Option(
+    secure = true,
+    name = "featureVariablePrefix",
+    description = "Prefix of the feature variables")
+  private String featureVariablePrefix = "__SELECTED_FEATURE_";
+
+  public String getFeatureVariablePrefix() {
+    return featureVariablePrefix;
+  }
+
+  public String getValidProductMethodName() {
+    return validProductMethodName;
+  }
+
   public CoverageCheck getCoverageCheck() {
     return coverageCheck;
   }
