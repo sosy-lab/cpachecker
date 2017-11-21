@@ -872,6 +872,9 @@ public class TigerAlgorithm
                 "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
                 goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
+            logger.logf(Level.WARNING, "Remaining PC for Goal %d: %s!",
+                goal.getIndex(), bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(goal)));
+
             if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
               coveredGoals.add(goal);
             }
