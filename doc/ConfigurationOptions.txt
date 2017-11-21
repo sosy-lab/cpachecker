@@ -3048,10 +3048,6 @@ statistics.print = false
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
-# consider counterexamples for loops for which only pointer variables are
-# relevant to be imprecise
-termination.cexForLoopsWithRelevantPointerVariablesImprecise = false
-
 # When checking for the termination property, use this configuration file
 # instead of the current one.
 termination.config = no default value
@@ -3106,6 +3102,11 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # A human readable representation of the synthesized (non-)termination
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
+
+# consider counterexamples for loops for which only pointer variables are
+# relevant or which check that pointer is unequal to null pointer to be
+# imprecise
+termination.useCexImpreciseHeuristic = false
 
 # Export termination counterexample to file as GraphML automaton 
 termination.violation.witness = "nontermination_witness.graphml"

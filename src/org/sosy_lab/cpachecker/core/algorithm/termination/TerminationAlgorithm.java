@@ -60,11 +60,17 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -144,9 +150,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   @Option(
     secure = true,
     description =
-        "consider counterexamples for loops for which only pointer variables are relevant to be imprecise"
+        "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
   )
-  private boolean cexForLoopsWithRelevantPointerVariablesImprecise = false;
+  private boolean useCexImpreciseHeuristic = false;
 
   private final TerminationStatistics statistics;
 
@@ -409,10 +415,17 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
     }
 
-    if (cexForLoopsWithRelevantPointerVariablesImprecise
-        && result == Result.FALSE
-        && allRelevantVarsArePointers(relevantVariables)) {
-      return Result.UNKNOWN;
+    if (useCexImpreciseHeuristic && result == Result.FALSE) {
+      if (allRelevantVarsArePointers(relevantVariables)) {
+        return Result.UNKNOWN;
+      } else {
+        for (CFAEdge edge : pLoop.getOutgoingEdges()) {
+          if (edge instanceof CAssumeEdge
+              && possiblyNotEqualsNullPointer(((CAssumeEdge) edge).getExpression())) {
+            return Result.UNKNOWN;
+          }
+        }
+      }
     }
 
     return result;
@@ -430,6 +443,19 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
     }
     return allPointers;
+  }
+
+  private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
+    if (expr instanceof CBinaryExpression) {
+      CBinaryExpression binExpr = (CBinaryExpression) expr;
+      if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
+          && binExpr.getOperand2() instanceof CCastExpression
+          && ((CCastExpression) binExpr.getOperand2()).getExpressionType() instanceof CPointerType
+          && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void addInvariantsToAggregatedReachedSet(
