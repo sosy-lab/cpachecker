@@ -337,7 +337,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
     if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
       long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
-      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo);
+      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
       if (!bfmgr.isTrue(modularCongruence)) {
         constraints.addConstraint(modularCongruence);
       }

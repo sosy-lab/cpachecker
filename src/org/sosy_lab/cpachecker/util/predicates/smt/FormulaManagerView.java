@@ -585,7 +585,8 @@ public class FormulaManagerView {
     return (T) t;
   }
 
-  public <T extends Formula> BooleanFormula makeModularCongruence(T pF1, T pF2, long pModulo) {
+  public <T extends Formula> BooleanFormula makeModularCongruence(
+      T pF1, T pF2, long pModulo, boolean pSigned) {
     BooleanFormula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
@@ -600,10 +601,10 @@ public class FormulaManagerView {
       } else {
         BitvectorFormula constant = bitvectorFormulaManager.makeBitvector(
             bitvectorFormulaManager.getLength((BitvectorFormula) pF1), pModulo);
-        t = bitvectorFormulaManager.equal(
-            bitvectorFormulaManager.modulo((BitvectorFormula) pF1, constant, true),
-            bitvectorFormulaManager.modulo((BitvectorFormula) pF2, constant, true)
-        );
+        t =
+            bitvectorFormulaManager.equal(
+                bitvectorFormulaManager.modulo((BitvectorFormula) pF1, constant, pSigned),
+                bitvectorFormulaManager.modulo((BitvectorFormula) pF2, constant, pSigned));
       }
     } else {
       throw new IllegalArgumentException("Not supported interface");

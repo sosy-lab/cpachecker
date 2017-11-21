@@ -161,7 +161,9 @@ public class CongruenceManager implements
 
         // Test odd <=> isEven is UNSAT.
         try {
-          env.push(fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 0), 2));
+          env.push(
+              fmgr.makeModularCongruence(
+                  formula, makeBv(bvfmgr, formula, 0), 2, !template.isUnsigned()));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.ODD);
             continue;
@@ -173,7 +175,8 @@ public class CongruenceManager implements
         // Test even <=> isOdd is UNSAT.
         try {
           env.push(
-              fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 1), 2));
+              fmgr.makeModularCongruence(
+                  formula, makeBv(bvfmgr, formula, 1), 2, !template.isUnsigned()));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.EVEN);
           }
@@ -265,7 +268,7 @@ public class CongruenceManager implements
           throw new AssertionError("Unexpected case");
       }
 
-      constraints.add(fmgr.makeModularCongruence(formula, remainder, 2));
+      constraints.add(fmgr.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
     }
     return fmgr.getBooleanFormulaManager().and(constraints);
   }
