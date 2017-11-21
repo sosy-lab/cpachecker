@@ -57,12 +57,8 @@ class TestCoverageWhile(TestCoverage):
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
-        # These are the actual assertions:
-        # self.assertEqual(lines_covered, set([3,4]))
-        # self.assertEqual(lines_to_cover, set([3,4,5,6,7,8]))
-        # These assertions show the current (incorrect) behavior:
-        self.assertEqual(lines_covered, set([3,4,5,6,7,8]))
-        self.assertEqual(lines_to_cover, set([3,4,5,6,7,8]))
+        self.assertEqual(lines_covered, set([3,4]))
+        self.assertEqual(lines_to_cover, set([3,4,5,6,7]))
 
 class TestCoverageIf(TestCoverage):
     def test(self):
@@ -103,16 +99,8 @@ class TestCoverageSwitch(TestCoverage):
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
-        # These are the actual assertions:
-        # self.assertEqual(lines_covered, set([3,4,5,6,8,14,15,16]))
-        # self.assertEqual(lines_to_cover, set([3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21]))
-        # These assertions show the current (incorrect) behavior:
-        # - then block of if (line 6) is not covered (this works properly 
-        #   and is separately tested)
-        # - switch block is considered entirely covered, while only
-        #   case 0 is reachable.
-        self.assertEqual(lines_covered, set([3,4,5,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]))
-        self.assertEqual(lines_to_cover, set([3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]))
+        self.assertEqual(lines_covered, set([3,4,5,8,9,14,15,16]))
+        self.assertEqual(lines_to_cover, set([3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21]))
 
 class TestCoverageWhileWithCall(TestCoverage):
     def test(self):
@@ -132,13 +120,51 @@ class TestCoverageWhileWithCall(TestCoverage):
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
-        # These are the actual assertions:
-        # self.assertEqual(lines_covered, set([4,5]))
-        # self.assertEqual(lines_to_cover, set([4,5,6,7,8,9,10,14,15,16,17]))
-        # These assertions show the current (incorrect) behavior:
-        # - Lines within called function are not reported as covered.
-        self.assertEqual(lines_covered, set([4,5,6,7,8,9,10]))
-        self.assertEqual(lines_to_cover, set([4,5,6,7,8,9,10,14,15,16,17]))
+        self.assertEqual(lines_covered, set([4,5]))
+        self.assertEqual(lines_to_cover, set([4,5,6,7,8,9,14,15,16,17]))
+
+class TestCoverageMultilineSwitchExpression(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'multiline_switch.c')
+        aa_file = os.path.join(
+            self.aux_root, os.pardir, 'true_aa.spc')
+        with patch.object(self.logger, 'info') as mock_info:
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
+            lines_covered, lines_to_cover = \
+                c.collect_coverage()
+
+        self.assertEqual(lines_covered, set([3,4,5,6,7,8,14,15,16,17,18,23,24,25]))
+        self.assertEqual(lines_to_cover, set([3,4,5,6,7,8,9,10,11,12,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]))
+
+class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'multiline_switch_and_call.c')
+        aa_file = os.path.join(
+            self.aux_root, os.pardir, 'true_aa.spc')
+        with patch.object(self.logger, 'info') as mock_info:
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
+            lines_covered, lines_to_cover = \
+                c.collect_coverage()
+        # Compound expression in cond (lines 3-4) is considered as fully
+        # evaluated even though line 4 cannot be reached.
+        self.assertEqual(lines_covered, set([3,4,7,8,9,10,11,12,18,19,20,21,22,27,28,29]))
+        self.assertEqual(lines_to_cover, set([3,4,7,8,9,10,11,12,13,14,15,16,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34]))
 
 if __name__ == '__main__':
     unittest.main()
