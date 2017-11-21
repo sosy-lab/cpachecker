@@ -451,8 +451,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
       statWriter.put("Generated program size (#loc)", residProg.getAllNodes().size());
-      statWriter.put(
-          "Size increase", ((double) cfa.getAllNodes().size()) / residProg.getAllNodes().size());
+        statWriter.put(
+            "Size increase", ((double) residProg.getAllNodes().size() / cfa.getAllNodes().size()));
       } catch (InterruptedException
           | InvalidConfigurationException
           | IOException
