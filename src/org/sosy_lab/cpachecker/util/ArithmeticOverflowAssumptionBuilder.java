@@ -100,8 +100,17 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   @Option(description = "Track overflow for signed integers.")
   private boolean trackSignedIntegers = true;
 
-  @Option(description = "Track undefined behavior in left-shift operations.")
+  @Option(description = "Track overflows in left-shift operations.")
   private boolean trackLeftShifts = true;
+
+  @Option(description = "Track overflows in additive(+/-) operations.")
+  private boolean trackAdditiveOperations = true;
+
+  @Option(description = "Track overflows in multiplication operations.")
+  private boolean trackMultiplications = true;
+
+  @Option(description = "Track overflows in division(/ or %) operations.")
+  private boolean trackDivisions = true;
 
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
@@ -248,19 +257,21 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       BinaryOperator binop = binexp.getOperator();
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
-      if (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS)) {
+      if (trackAdditiveOperations
+          && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
         if (lowerBounds.get(typ) != null) {
           result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(typ)));
         }
         if (upperBounds.get(typ) != null) {
           result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(typ)));
         }
-      } else if (binop.equals(BinaryOperator.MULTIPLY)) {
+      } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
         if (lowerBounds.get(typ) != null && upperBounds.get(typ) != null) {
           addMultiplicationAssumptions(op1, op2, lowerBounds.get(typ), upperBounds.get(typ),
               result);
         }
-      } else if (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO)) {
+      } else if (trackDivisions
+          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
         if (lowerBounds.get(typ) != null) {
           addDivisionAssumption(op1, op2, lowerBounds.get(typ), result);
         }
@@ -491,18 +502,21 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       CLiteralExpression limit, CLiteralExpression width,
       Set<CExpression> result) throws UnrecognizedCCodeException {
 
-    // For no overflow, both operands need to be positive:
-    result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand1,
+    // For no undefined behavior, both operands need to be positive:
+    // But this is (currently) not considered as overflow!
+    /*result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand1,
         CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
     result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand2,
-        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
+        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));*/
 
     // Shifting the precision of the type or a bigger number of bits  is undefined behavior:
     // operand2 < width
-    result.add(
-        cBinaryExpressionBuilder.buildBinaryExpression(operand2, width, BinaryOperator.LESS_THAN));
+    // But this is (currently) not considered as overflow!
+    /*result.add(
+    cBinaryExpressionBuilder.buildBinaryExpression(operand2, width, BinaryOperator.LESS_THAN));*/
 
-    // Shifting out set bits is undefined behaviour. This is equivalent to the assumption:
+    // Shifting out set bits is undefined behavior that is considered to be an overflow.
+    // This is equivalent to the assumption:
     // operand1 <= (limit >> operand2)
     CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(limit, operand2, BinaryOperator.SHIFT_RIGHT);
     result.add(

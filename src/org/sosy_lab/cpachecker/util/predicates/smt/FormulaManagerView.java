@@ -198,7 +198,9 @@ public class FormulaManagerView {
     }
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
-    floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
+    floatingPointFormulaManager =
+        new FloatingPointFormulaManagerView(
+            wrappingHandler, rawFloatingPointFormulaManager, manager.getUFManager());
     integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
 
     try {

@@ -302,17 +302,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pTypeSize Size of the type the new local variable
    * @param pVarName Name of the local variable
    * @return Newly created object
-   *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(int pTypeSize, String pVarName)
+  public Optional<SMGObject> addLocalVariable(int pTypeSize, String pVarName)
       throws SMGInconsistentException {
+    if (heap.isStackEmpty()) {
+      return Optional.empty();
+    }
+
     SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
     heap.addStackObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return new_object;
+    return Optional.of(new_object);
   }
 
   /**
@@ -1890,16 +1893,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *  which could not be resolved.
    */
   public SMGState setUnknownDereference() {
-    if (isTrackPredicatesEnabled()) {
-      //TODO: accurate define SMG change on unknown dereference with predicate knowledge
-      //doesn't stop analysis on unknown dereference
-      return this;
-    } else {
+    // TODO: accurate define SMG change on unknown dereference with predicate knowledge
+    // (if isTrackPredicatesEnabled())
+    // doesn't stop analysis on unknown dereference
 
-      //TODO: This can actually be an invalid read too
-      //      The flagging mechanism should be improved
-      return new SMGState(this, Property.INVALID_WRITE);
-    }
+    // TODO: This can actually be an invalid read too
+    //      The flagging mechanism should be improved
+    return new SMGState(this, Property.INVALID_WRITE);
   }
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {

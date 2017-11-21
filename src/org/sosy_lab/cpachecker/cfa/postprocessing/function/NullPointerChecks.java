@@ -232,10 +232,15 @@ public class NullPointerChecks {
   private static CFAEdge createOldEdgeWithNewNodes(CFANode predecessor, CFANode successor, CFAEdge edge) {
     switch (edge.getEdgeType()) {
     case AssumeEdge:
-      return new CAssumeEdge(edge.getRawStatement(), edge.getFileLocation(),
-                             predecessor, successor, ((CAssumeEdge)edge).getExpression(),
-                             ((CAssumeEdge)edge).getTruthAssumption(),
-                             ((CAssumeEdge)edge).isSwapped());
+        return new CAssumeEdge(
+            edge.getRawStatement(),
+            edge.getFileLocation(),
+            predecessor,
+            successor,
+            ((CAssumeEdge) edge).getExpression(),
+            ((CAssumeEdge) edge).getTruthAssumption(),
+            ((CAssumeEdge) edge).isSwapped(),
+            ((CAssumeEdge) edge).isArtificialIntermediate());
     case ReturnStatementEdge:
       return new CReturnStatementEdge(edge.getRawStatement(),
                                       ((CReturnStatementEdge)edge).getRawAST().get(),

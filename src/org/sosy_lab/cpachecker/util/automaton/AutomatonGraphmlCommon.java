@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -518,6 +520,8 @@ public class AutomatonGraphmlCommon {
           return true;
         }
       }
+    } else if (isSplitAssumption(edge)) {
+      return true;
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
       return true;
     }
@@ -572,7 +576,11 @@ public class AutomatonGraphmlCommon {
             location.getStartingLineInOrigin(),
             location.getStartingLineInOrigin());
       }
-      return Collections.singleton(location);
+      Set<FileLocation> result = Sets.newHashSet(location);
+      for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {
+        result.add(param.getFileLocation());
+      }
+      return result;
     }
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
@@ -798,4 +806,10 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
+  private static boolean isSplitAssumption(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    return ((AssumeEdge) pEdge).isArtificialIntermediate();
+  }
 }

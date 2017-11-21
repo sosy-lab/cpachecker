@@ -507,7 +507,7 @@ public class AutomatonGraphmlParser {
     // where we can eliminate the other branch
     AutomatonBoolExpr fpElseTrigger = null;
     if (pTransition.getFunctionEntry().isPresent()
-        && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
+        && pGraphMLParserState.getWitnessType() != WitnessType.CORRECTNESS_WITNESS) {
       fpElseTrigger =
           and(
               transitionCondition,

@@ -1029,7 +1029,12 @@ public class SMGTransferRelation
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
-        newObject = pState.addLocalVariable(typeSize, varName);
+        java.util.Optional<SMGObject> addedLocalVariable =
+            pState.addLocalVariable(typeSize, varName);
+        if (!addedLocalVariable.isPresent()) {
+          throw new SMGInconsistentException("Cannot add a local variable to an empty stack.");
+        }
+        newObject = addedLocalVariable.get();
       }
     }
 

@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.util.List;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import java.util.List;
 
 /**
  * Abstract helper class that does nothing more than providing access
@@ -38,6 +37,10 @@ abstract class BaseManagerView {
 
   BaseManagerView(FormulaWrappingHandler pWrappingHandler) {
     wrappingHandler = pWrappingHandler;
+  }
+
+  final boolean useBitvectors() {
+    return wrappingHandler.useBitvectors();
   }
 
   final <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {

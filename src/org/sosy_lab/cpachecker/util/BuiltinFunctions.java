@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 public class BuiltinFunctions {
 
   private static final String FREE = "free";
+  private static final String STRLEN = "strlen";
 
   private static final CType UNSPECIFIED_TYPE = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
       false, false, false, false, false, false, false);
@@ -44,6 +45,7 @@ public class BuiltinFunctions {
   public static boolean isBuiltinFunction(String pFunctionName) {
     return pFunctionName.startsWith("__builtin_")
         || pFunctionName.equals(FREE)
+        || matchesStrlen(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);
   }
 
@@ -65,5 +67,9 @@ public class BuiltinFunctions {
     }
 
     return UNSPECIFIED_TYPE;
+  }
+
+  public static boolean matchesStrlen(String pFunctionName) {
+    return pFunctionName.equals(STRLEN);
   }
 }

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -55,11 +56,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -689,6 +692,25 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
         constraints.addConstraint(checkNotNull(form));
       }
+
+      // check strlen up to specific index maxIndex and return nondet otherwise
+      if (BuiltinFunctions.matchesStrlen(functionName)) {
+        // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
+        // terminating 0 of a string.
+        final int maxIndex = conv.options.maxPreciseStrlenSize();
+        List<CExpression> parameters = e.getParameterExpressions();
+        assert parameters.size() == 1;
+        CExpression parameter = parameters.get(0);
+        final CType returnType = e.getExpressionType();
+
+        Formula f = conv.makeNondet(functionName, returnType, ssa, constraints);
+        // for maxIndex=1, after the loop f has the form
+        // parameter[0]==0?0:(parameter[1]==0?1:nondet())
+        for (long i = maxIndex; i >= 0; i--) {
+          f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
+        }
+        return Value.ofValue(f);
+      }
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
@@ -703,6 +725,35 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     // Delegate
     return Value.ofValue(delegate.visit(e));
+  }
+
+  /**
+   * This method is used to approximate the built-in function strlen.
+   *
+   * @param parameter the string to be checked
+   * @param index the index to be checked
+   * @param otherwise a formula returned in case of a negative match
+   * @param returnType the type of the index returned on positive match (strlen return type)
+   * @return the formula parameter[index]==0?index:otherwise
+   */
+  private Formula stringEndsAtIndexOrOtherwise(
+      CExpression parameter, Long index, Formula otherwise, CType returnType)
+      throws UnrecognizedCCodeException {
+    AliasedLocation parameterAtIndex =
+        this.visit(
+            new CArraySubscriptExpression(
+                FileLocation.DUMMY,
+                CNumericTypes.CHAR,
+                parameter,
+                CIntegerLiteralExpression.createDummyLiteral(index, CNumericTypes.UNSIGNED_INT)));
+    Formula nullTerminator =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.CHAR));
+    BooleanFormula condition =
+        conv.fmgr.makeEqual(asValueFormula(parameterAtIndex, CNumericTypes.CHAR), nullTerminator);
+    return conv.bfmgr.ifThenElse(
+        condition,
+        conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(returnType), index),
+        otherwise);
   }
 
   /**
