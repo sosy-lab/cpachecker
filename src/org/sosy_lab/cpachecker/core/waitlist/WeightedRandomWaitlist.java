@@ -24,22 +24,30 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
-import org.sosy_lab.common.collect.SkipList;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
+import org.sosy_lab.common.collect.OrderStatisticSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.RandomProvider;
 
 public class WeightedRandomWaitlist implements Waitlist {
 
-  public SkipList<AbstractState> states;
+  public OrderStatisticSet<AbstractState> states;
 
-  public static Random random = RandomProvider.random();
+  public static Random random = RandomProvider.get();
 
   public WeightedRandomWaitlist(final Comparator<AbstractState> pComparator) {
-    states = new SkipList<>(pComparator);
-    states.reinitialize(random);
+    /*SkipList<AbstractState> skipList = new SkipList<>(pComparator);
+    skipList.reinitialize(random);
+    states = skipList;*/
+
+    states = new ConcurrentOrderStatisticSet(pComparator);
   }
 
   @Override
@@ -64,7 +72,7 @@ public class WeightedRandomWaitlist implements Waitlist {
   }
 
   /**
-   * Return a random level between 0 and the size of the waitlist. The probability distribution is
+   * Return a get level between 0 and the size of the waitlist. The probability distribution is
    * logarithmic (i.e., higher values are less likely).
    */
   private int getRandomIndex() {
@@ -96,5 +104,45 @@ public class WeightedRandomWaitlist implements Waitlist {
   }
 
 
+  private static class ConcurrentOrderStatisticSet extends ConcurrentSkipListSet<AbstractState>
+      implements OrderStatisticSet<AbstractState> {
+
+    private static final long serialVersionUID = 1L;
+
+    public ConcurrentOrderStatisticSet() {
+    }
+
+    public ConcurrentOrderStatisticSet(Comparator<? super AbstractState> comparator) {
+      super(comparator);
+    }
+
+    public ConcurrentOrderStatisticSet(Collection<? extends AbstractState> c) {
+      super(c);
+    }
+
+    public ConcurrentOrderStatisticSet(SortedSet<AbstractState> s) {
+      super(s);
+    }
+
+    @Override
+    public AbstractState getByRank(int pI) {
+      List<AbstractState> l = new ArrayList<>(this);
+      return l.get(pI);
+    }
+
+    @Override
+    public AbstractState removeByRank(int pI) {
+      List<AbstractState> l = new ArrayList<>(this);
+      AbstractState toRemove = l.get(pI);
+      remove(toRemove);
+      return toRemove;
+    }
+
+    @Override
+    public int rankOf(AbstractState pAbstractState) {
+      List<AbstractState> l = new ArrayList<>(this);
+      return l.indexOf(pAbstractState);
+    }
+  }
 }
 

@@ -33,7 +33,7 @@ public class RandomProvider {
   private static Random random = new Random(SEED);
 
 
-  public static Random random() {
+  public static Random get() {
     return random;
   }
 }
