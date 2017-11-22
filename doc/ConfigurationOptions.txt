@@ -2951,7 +2951,7 @@ residualprogram.folderType = CFA
   enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
 
 # Collect statistical data about size of residual program
-residualprogram.statistics = false
+residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION

@@ -115,7 +115,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   @Option(
     secure = true,
-    name = "statistics",
+    name = "statistics.size",
     description = "Collect statistical data about size of residual program"
   )
   private boolean collectResidualProgramSizeStatistics = false;
@@ -460,6 +460,21 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter statWriter = StatisticsWriter.writingStatisticsTo(pOut);
+
+      statWriter.put("Time for residual program model construction", modelBuildTimer.getSumTime());
+      if (getStrategy() == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
+        statWriter.beginLevel();
+        statWriter.put("Time for folding", foldTimer.getSumTime());
+        statWriter.endLevel();
+      }
+
+      if (getStrategy() == ResidualGenStrategy.SLICING
+          || getStrategy() == ResidualGenStrategy.COMBINATION) {
+        statWriter.put(
+            "Time for identifying pragma locations", collectPragmaPointsTimer.getSumTime());
+      }
+
+      statWriter.put("Time for C translation", translationTimer.getSumTime());
 
       if (collectResidualProgramSizeStatistics) {
         int residProgSize = getResidualProgramSizeInLocations(pReached.getFirstState());
