@@ -106,6 +106,7 @@ public interface Waitlist extends Iterable<AbstractState> {
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     RANDOM_PATH { @Override public Waitlist createWaitlistInstance() { return new RandomPathWaitlist(); } },
+    RANDOM_WEIGHTED { @Override public Waitlist createWaitlistInstance() { return new DepthBasedWeightedWaitlist(); }}
     ;
   }
 }
