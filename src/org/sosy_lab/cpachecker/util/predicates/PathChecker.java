@@ -312,7 +312,6 @@ public class PathChecker {
       AbstractStateWithAssumptions assumptionState =
           AbstractStates.extractStateByType(nextState, AbstractStateWithAssumptions.class);
       if (assumptionState != null) {
-        List<? extends AExpression> l = assumptionState.getPreconditionAssumptions();
         for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
           assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
           pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
