@@ -84,6 +84,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int   countStop         = 0;
     private int   countBreak        = 0;
 
+    private List<Statistics> reachedSetStatistics = new ArrayList<>(1);
+
     @Override
     public String getName() {
       return "CPA algorithm";
@@ -100,6 +102,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);
+      for (Statistics s : reachedSetStatistics) {
+        s.printStatistics(out, pResult, pReached);
+      }
       out.println("Number of computed successors:   " + countSuccessors);
       out.println("Max successors for one state:    " + maxSuccessors);
       out.println("Number of times merged:          " + countMerge);
@@ -118,6 +123,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
       out.println("  Time for stop operator:         " + stopTimer);
       out.println("  Time for adding to reached set: " + addTimer);
+
     }
   }
 
@@ -214,6 +220,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.stopTimer.stopIfRunning();
       stats.addTimer.stopIfRunning();
       stats.forcedCoveringTimer.stopIfRunning();
+
+      if (reachedSet instanceof StatisticsProvider) {
+        ((StatisticsProvider) reachedSet).collectStatistics(stats.reachedSetStatistics);
+      }
     }
   }
 

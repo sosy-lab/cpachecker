@@ -23,16 +23,24 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.ForOverride;
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-import com.google.errorprone.annotations.ForOverride;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
  * Default implementation of a sorted waitlist.
@@ -46,7 +54,8 @@ import com.google.errorprone.annotations.ForOverride;
  *
  * The iterators created by this class are unmodifiable.
  */
-public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements Waitlist {
+public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements Waitlist,
+                                                                                 StatisticsProvider {
 
   private final WaitlistFactory wrappedWaitlist;
 
@@ -55,12 +64,23 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   private int size = 0;
 
+  private final StatCounter popCount;
+  private final StatCounter delegationCount;
+  private final StatInt wrappedWaitlistDelegated;
+
   /**
    * Constructor that needs a factory for the waitlist implementation that
    * should be used to store states with the same sorting key.
    */
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
+    popCount = new StatCounter("Pop requests to waitlist (" + getClass().getSimpleName() + ")");
+    delegationCount = new StatCounter(
+        "Pops delegated to wrapped waitlists (" + wrappedWaitlist.getClass().getSimpleName() +
+            ")");
+    wrappedWaitlistDelegated = new StatInt(StatKind.SUM,
+        "Pops delegated by wrapped waitlists (" + wrappedWaitlist.getClass().getSimpleName() +
+            ")");
   }
 
   /**
@@ -117,6 +137,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   @Override
   public final AbstractState pop() {
+    popCount.inc();
     Entry<K, Waitlist> highestEntry = null;
     highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
@@ -124,9 +145,20 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     AbstractState result = localWaitlist.pop();
     if (localWaitlist.isEmpty()) {
       waitlist.remove(highestEntry.getKey());
+      addStatistics(localWaitlist);
+    } else {
+      delegationCount.inc();
     }
     size--;
     return result;
+  }
+
+  private void addStatistics(Waitlist pWaitlist) {
+    if (pWaitlist instanceof AbstractSortedWaitlist) {
+      assert ((AbstractSortedWaitlist<?>) pWaitlist).getDelegationCount() <= Integer.MAX_VALUE;
+      wrappedWaitlistDelegated.setNextValue(
+          (int) ((AbstractSortedWaitlist<?>) pWaitlist).getDelegationCount());
+    }
   }
 
   @Override
@@ -155,5 +187,30 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   @Override
   public String toString() {
     return waitlist.toString();
+  }
+
+  private long getDelegationCount() {
+    return delegationCount.getValue();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(new Statistics() {
+
+      @Override
+      public void printStatistics(
+          PrintStream out, Result result, UnmodifiableReachedSet reached) {
+
+        StatisticsWriter.writingStatisticsTo(out).put(popCount);
+        StatisticsWriter.writingStatisticsTo(out).put(delegationCount);
+        StatisticsWriter.writingStatisticsTo(out).put(wrappedWaitlistDelegated);
+      }
+
+
+      @Override
+      public String getName() {
+        return AbstractSortedWaitlist.this.getClass().getSimpleName();
+      }
+    });
   }
 }

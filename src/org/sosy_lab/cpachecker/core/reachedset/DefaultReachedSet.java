@@ -31,6 +31,8 @@ import com.google.common.collect.Iterators;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -49,7 +51,7 @@ import javax.annotation.Nullable;
  * Basic implementation of ReachedSet.
  * It does not group states by location or any other key.
  */
-class DefaultReachedSet implements ReachedSet {
+class DefaultReachedSet implements ReachedSet, StatisticsProvider {
 
   private final LinkedHashMap<AbstractState, Precision> reached;
   private final Set<AbstractState> unmodifiableReached;
@@ -285,5 +287,12 @@ class DefaultReachedSet implements ReachedSet {
   @Override
   public String toString() {
     return reached.keySet().toString();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    if (waitlist instanceof StatisticsProvider) {
+      ((StatisticsProvider) waitlist).collectStatistics(statsCollection);
+    }
   }
 }
