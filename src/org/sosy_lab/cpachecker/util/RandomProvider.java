@@ -23,17 +23,45 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.Preconditions;
 import java.util.Random;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 
+@Options(prefix="random")
 public class RandomProvider {
 
-  private RandomProvider() {}
+  private static RandomProvider provider;
 
-  private final static long SEED = 5000;
-  private static Random random = new Random(SEED);
+  @Option(name="seed", description="Random seed to use. Uses a random number if null is given",
+      secure=true)
+  private Long randomSeed = null;
 
+  private Random random;
+
+  private RandomProvider(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    if (randomSeed == null){
+      random = new Random();
+    } else {
+      random = new Random(randomSeed);
+    }
+  }
+
+  private Random getRandom() {
+    return random;
+  }
+
+  public static void initialize(Configuration pConfig) throws InvalidConfigurationException {
+    Preconditions.checkState(provider == null);
+    provider = new RandomProvider(pConfig);
+  }
 
   public static Random get() {
-    return random;
+    Preconditions.checkState(provider != null,
+        RandomProvider.class.getSimpleName() + " not initialized");
+    return provider.getRandom();
   }
 }

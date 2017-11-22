@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.RandomProvider;
 public class WeightedRandomWaitlist implements Waitlist {
 
   private OrderStatisticSet<AbstractState> states;
-  private static Random random = RandomProvider.get();
+  private Random random = RandomProvider.get();
 
   public WeightedRandomWaitlist(Comparator<AbstractState> pComparator) {
     /*SkipList<AbstractState> skipList = new SkipList<>(pComparator);
