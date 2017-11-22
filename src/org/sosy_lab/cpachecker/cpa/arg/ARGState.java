@@ -65,8 +65,6 @@ public class ARGState extends AbstractSingleWrapperState
   private final Collection<ARGState> children = new ArrayList<>(1);
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
-  private int branchingCount = 0;
-
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
@@ -90,19 +88,10 @@ public class ARGState extends AbstractSingleWrapperState
     stateId = idGenerator.getFreshId();
     if (pParentElement != null) {
       addParent(pParentElement);
-      branchingCount = pParentElement.branchingCount;
     }
   }
 
   // parent & child relations
-
-  public void increaseBranchingCount() {
-    branchingCount++;
-  }
-
-  public int getBranchingCount() {
-    return branchingCount;
-  }
 
   /**
    * Get the parent elements of this state.

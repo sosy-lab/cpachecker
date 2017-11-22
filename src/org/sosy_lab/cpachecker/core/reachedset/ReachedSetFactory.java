@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -30,6 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
@@ -38,8 +40,6 @@ import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
-
-import javax.annotation.Nullable;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -93,6 +93,10 @@ public class ReachedSetFactory {
       description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
   boolean useNumberOfThreads = false;
 
+  @Option(secure=true, name="traversal.weightedDepth",
+      description = "perform a weighted random selection based on the branching depth")
+  boolean useWeightedDepthOrder = false;
+
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -103,12 +107,20 @@ public class ReachedSetFactory {
       + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
+  private Configuration config;
+
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+
+    this.config = config;
   }
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
+
+    if (useWeightedDepthOrder) {
+      waitlistFactory = DepthBasedWeightedWaitlist.factory(waitlistFactory, config);
+    }
 
     if (useAutomatonInformation) {
       waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);

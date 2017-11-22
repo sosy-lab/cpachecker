@@ -24,31 +24,51 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
-import java.util.SortedSet;
-import java.util.concurrent.ConcurrentSkipListSet;
-import org.sosy_lab.common.collect.OrderStatisticSet;
+import java.util.TreeMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.OrderStatisticMap;
+import org.sosy_lab.cpachecker.util.OrderStatisticMap.OrderStatisticsMapProxy;
 import org.sosy_lab.cpachecker.util.RandomProvider;
 
+@Options(prefix="analysis.traversal.random")
 public class WeightedRandomWaitlist implements Waitlist {
 
-  private OrderStatisticSet<AbstractState> states;
+  @Option(secure=true, description="Exponent of random function."
+      + "This value influences the probability distribution over the waitlist elements"
+      + "when choosing the next element."
+      + "Has to be a double in the range [0, INF)")
+  private double exponent = 1;
+
+  private OrderStatisticMap<AbstractState, Waitlist> states;
+  private WaitlistFactory waitlistFactory;
   private Comparator<AbstractState> comparator;
   private Random random = RandomProvider.get();
 
-  public WeightedRandomWaitlist(Comparator<AbstractState> pComparator) {
-    comparator = pComparator;
-    /*SkipList<AbstractState> skipList = new SkipList<>(pComparator);
-    skipList.reinitialize(random);
-    states = skipList;*/
+  private Configuration config;
 
-    states = new ConcurrentOrderStatisticSet(comparator);
+  public WeightedRandomWaitlist(Comparator<AbstractState> pComparator, WaitlistFactory pFactory,
+                                Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this, WeightedRandomWaitlist.class);
+
+    if (exponent < 0) {
+      throw new InvalidConfigurationException("analysis.traversal.random.exponent has to be "
+          + "a double greater or equal to 0");
+    }
+
+    config = pConfig;
+
+    comparator = pComparator;
+    states = new OrderStatisticsMapProxy<>(new TreeMap<>(comparator));
+
+    waitlistFactory = pFactory;
   }
 
   /**
@@ -56,18 +76,24 @@ public class WeightedRandomWaitlist implements Waitlist {
    * This operation runs in O(n) for n elements in the waitlist,
    * thus this method should be used with only few elements in the list.
    */
-  public WeightedRandomWaitlist reversed() {
-    WeightedRandomWaitlist revWaitlist = new WeightedRandomWaitlist(comparator.reversed());
-    for (AbstractState s: states) {
-      revWaitlist.add(s);
+  public WeightedRandomWaitlist reversed() throws InvalidConfigurationException {
+    WeightedRandomWaitlist revWaitlist =
+        new WeightedRandomWaitlist(comparator.reversed(), waitlistFactory, config);
+    for (Waitlist w : states.values()) {
+      for (AbstractState s : w) {
+        revWaitlist.add(s);
+      }
     }
     return revWaitlist;
   }
 
   @Override
   public void add(AbstractState state) {
-    boolean added = states.add(state);
-    Preconditions.checkState(added);
+    if (!states.containsKey(state)) {
+      states.put(state, waitlistFactory.createWaitlistInstance());
+    }
+    Waitlist w = states.get(state);
+    w.add(state);
   }
 
   @Override
@@ -77,7 +103,7 @@ public class WeightedRandomWaitlist implements Waitlist {
 
   @Override
   public boolean contains(AbstractState state) {
-    return states.contains(state);
+    return states.containsKey(state) && states.get(state).contains(state);
   }
 
   @Override
@@ -86,77 +112,80 @@ public class WeightedRandomWaitlist implements Waitlist {
   }
 
   /**
-   * Return a get level between 0 and the size of the waitlist. The probability distribution is
+   * Return a get level between 0 and the size of the waitlist - 1. The probability distribution is
    * logarithmic (i.e., higher values are less likely).
    */
   private int getRandomIndex() {
     double r = random.nextDouble();
-    return ((int) Math.round(Math.pow(size(), r))) - 1;
+    double x = Math.pow(r, exponent);
+    int s = states.size() - 1;
+    return ((int) Math.round(s * x));
   }
 
   @Override
   public AbstractState pop() {
     assert size() > 0;
     int idx = getRandomIndex();
-    assert idx >= 0;
-    return states.removeByRank(idx);
+    Preconditions.checkElementIndex(idx, states.size());
+    Waitlist chosenWaitlist = states.getEntryByRank(idx).getValue();
+    AbstractState poppedState = chosenWaitlist.pop();
+    if (chosenWaitlist.isEmpty()) {
+      states.removeByRank(idx);
+    }
+    return poppedState;
   }
 
   @Override
   public boolean remove(AbstractState state) {
-    return states.remove(state);
+    if (states.containsKey(state)) {
+      Waitlist containingWaitlist = states.get(state);
+      boolean removed = containingWaitlist.remove(state);
+      if (containingWaitlist.isEmpty()) {
+        states.remove(state);
+      }
+      return removed;
+    }
+     else {
+      return false;
+    }
   }
 
   @Override
   public int size() {
-    return states.size();
+    int sum = 0;
+    for (Waitlist w : states.values()) {
+      sum += w.size();
+    }
+    return sum;
   }
 
   @Override
   public Iterator<AbstractState> iterator() {
-    return states.iterator();
-  }
+    return new Iterator<AbstractState>() {
 
+      private Iterator<AbstractState> currIt = states.firstEntry().getValue().iterator();
+      private int currRank = 0;
+      private int maxRank = states.size() - 1;
 
-  private static class ConcurrentOrderStatisticSet extends ConcurrentSkipListSet<AbstractState>
-      implements OrderStatisticSet<AbstractState> {
+      @Override
+      public boolean hasNext() {
+        return currIt.hasNext() || currRank < maxRank;
+      }
 
-    private static final long serialVersionUID = 3612216595012784841L;
+      @Override
+      public AbstractState next() {
+        if (!currIt.hasNext()) {
+          currRank++;
+          currIt = states.getEntryByRank(currRank).getValue().iterator();
+        }
+        return currIt.next();
+      }
 
-    public ConcurrentOrderStatisticSet() {
-    }
-
-    public ConcurrentOrderStatisticSet(Comparator<? super AbstractState> comparator) {
-      super(comparator);
-    }
-
-    public ConcurrentOrderStatisticSet(Collection<? extends AbstractState> c) {
-      super(c);
-    }
-
-    public ConcurrentOrderStatisticSet(SortedSet<AbstractState> s) {
-      super(s);
-    }
-
-    @Override
-    public AbstractState getByRank(int pI) {
-      List<AbstractState> l = new ArrayList<>(this);
-      return l.get(pI);
-    }
-
-    @Override
-    public AbstractState removeByRank(int pI) {
-      List<AbstractState> l = new ArrayList<>(this);
-      AbstractState toRemove = l.get(pI);
-      remove(toRemove);
-      return toRemove;
-    }
-
-    @Override
-    public int rankOf(AbstractState pAbstractState) {
-      List<AbstractState> l = new ArrayList<>(this);
-      return l.indexOf(pAbstractState);
-    }
+      @Override
+      public void remove() {
+        currIt.remove();
+      }
+    };
   }
 }
 

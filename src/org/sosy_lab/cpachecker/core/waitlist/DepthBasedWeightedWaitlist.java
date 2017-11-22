@@ -23,23 +23,59 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import java.io.Serializable;
 import java.util.Comparator;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DepthBasedWeightedWaitlist extends WeightedRandomWaitlist {
 
-  public DepthBasedWeightedWaitlist() {
-    super(new BranchingComparator());
+  public DepthBasedWeightedWaitlist(WaitlistFactory pFactory, Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(new DepthBasedComparator(), pFactory, pConfig);
   }
 
-  private static class BranchingComparator implements Comparator<AbstractState> {
+  /**
+   * Compares abstract states by their depth in the ARG.
+   * A state that is deeper in the ARG is 'greater than' a state that is higher in the ARG
+   */
+  private static class DepthBasedComparator implements Comparator<AbstractState>, Serializable {
+
+    private final static long serialVersionUID = 151646346L;
 
     @Override
     public int compare(AbstractState o1, AbstractState o2) {
       ARGState s1 = (ARGState) o1;
       ARGState s2 = (ARGState) o2;
-      return s1.getBranchingCount() - s2.getBranchingCount();
+
+      int id1 = AbstractStates.extractLocation(s1).getReversePostorderId();
+      int id2 = AbstractStates.extractLocation(s2).getReversePostorderId();
+
+      int callStackDepth1 = AbstractStates.extractStateByType(s1, CallstackState.class).getDepth();
+      int callStackDepth2 = AbstractStates.extractStateByType(s2, CallstackState.class).getDepth();
+
+      int comp = id1 - id2;
+
+      if (comp == 0) {
+        return callStackDepth1 - callStackDepth2;
+      } else {
+        return comp;
+      }
     }
+  }
+
+  public static WaitlistFactory factory(WaitlistFactory pDelegate, Configuration pConfig) {
+    return () -> {
+      try {
+        return new DepthBasedWeightedWaitlist(pDelegate, pConfig);
+
+      } catch (InvalidConfigurationException pE) {
+        throw new AssertionError(pE);
+      }
+    };
   }
 }

@@ -70,12 +70,8 @@ public class ARGTransferRelation implements TransferRelation {
     }
 
     Collection<ARGState> wrappedSuccessors = new ArrayList<>();
-    boolean branching = successors.size() > 1;
     for (AbstractState absElement : successors) {
       ARGState successorElem = new ARGState(absElement, element);
-      if (branching) {
-        successorElem.increaseBranchingCount();
-      }
       wrappedSuccessors.add(successorElem);
     }
 
