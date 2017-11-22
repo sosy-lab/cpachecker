@@ -29,15 +29,17 @@ import java.util.Iterator;
 import java.util.Random;
 import org.sosy_lab.common.collect.SkipList;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.RandomProvider;
 
 public class WeightedRandomWaitlist implements Waitlist {
 
   public SkipList<AbstractState> states;
 
-  public static Random random = new Random();
+  public static Random random = RandomProvider.random();
 
   public WeightedRandomWaitlist(final Comparator<AbstractState> pComparator) {
     states = new SkipList<>(pComparator);
+    states.reinitialize(random);
   }
 
   @Override
