@@ -81,6 +81,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.util.RandomProvider;
 
 /**
  * Test that the bundled configuration files are all valid.
@@ -289,6 +290,11 @@ public class ConfigurationFilesTest {
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @BeforeClass
+  public static void setup() throws InvalidConfigurationException {
+    RandomProvider.initialize(Configuration.defaultConfiguration());
+  }
 
   @BeforeClass
   public static void createDummyInputFiles() throws IOException {
