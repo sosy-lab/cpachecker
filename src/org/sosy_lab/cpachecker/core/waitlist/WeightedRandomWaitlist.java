@@ -39,14 +39,29 @@ import org.sosy_lab.cpachecker.util.RandomProvider;
 public class WeightedRandomWaitlist implements Waitlist {
 
   private OrderStatisticSet<AbstractState> states;
+  private Comparator<AbstractState> comparator;
   private Random random = RandomProvider.get();
 
   public WeightedRandomWaitlist(Comparator<AbstractState> pComparator) {
+    comparator = pComparator;
     /*SkipList<AbstractState> skipList = new SkipList<>(pComparator);
     skipList.reinitialize(random);
     states = skipList;*/
 
-    states = new ConcurrentOrderStatisticSet(pComparator);
+    states = new ConcurrentOrderStatisticSet(comparator);
+  }
+
+  /**
+   * Creates a new {@code WeightedRandomWaitlist} with the reversed order of this waitlist.
+   * This operation runs in O(n) for n elements in the waitlist,
+   * thus this method should be used with only few elements in the list.
+   */
+  public WeightedRandomWaitlist reversed() {
+    WeightedRandomWaitlist revWaitlist = new WeightedRandomWaitlist(comparator.reversed());
+    for (AbstractState s: states) {
+      revWaitlist.add(s);
+    }
+    return revWaitlist;
   }
 
   @Override
