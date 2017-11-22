@@ -463,9 +463,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       statWriter.put("Time for residual program model construction", modelBuildTimer.getSumTime());
       if (getStrategy() == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
-        statWriter.beginLevel();
+        statWriter = statWriter.beginLevel();
         statWriter.put("Time for folding", foldTimer.getSumTime());
-        statWriter.endLevel();
+        statWriter = statWriter.endLevel();
       }
 
       if (getStrategy() == ResidualGenStrategy.SLICING
