@@ -15,6 +15,8 @@
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/loops/matrix_false-unreach-call_true-termination.i</exclude> <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/loops/invert_string_false-unreach-call_true-termination.i</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/string_false-unreach-call_true-termination.i</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loops/sum_array_false-unreach-call.i</exclude> <!-- flapping timeout -->
   </tasks>
 </benchmark>
