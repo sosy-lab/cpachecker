@@ -5,6 +5,7 @@ import os
 import os.path
 import shutil
 import sys
+import time
 import unittest
 import unittest.mock
 from io import StringIO
@@ -44,6 +45,7 @@ class TestCoverageWhile(TestCoverage):
         instance = os.path.join(self.aux_root, 'while.c')
         aa_file = os.path.join(
             self.aux_root, os.pardir, 'true_aa.spc')
+        start_time = time.time()
         with patch.object(self.logger, 'info') as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
@@ -53,7 +55,8 @@ class TestCoverageWhile(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -65,6 +68,7 @@ class TestCoverageIf(TestCoverage):
         instance = os.path.join(self.aux_root, 'if.c')
         aa_file = os.path.join(
             self.aux_root, os.pardir, 'true_aa.spc')
+        start_time = time.time()
         with patch.object(self.logger, 'info') as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
@@ -74,7 +78,8 @@ class TestCoverageIf(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -86,6 +91,7 @@ class TestCoverageSwitch(TestCoverage):
         instance = os.path.join(self.aux_root, 'switch.c')
         aa_file = os.path.join(
             self.aux_root, os.pardir, 'true_aa.spc')
+        start_time = time.time()
         with patch.object(self.logger, 'info') as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
@@ -95,7 +101,8 @@ class TestCoverageSwitch(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -107,6 +114,7 @@ class TestCoverageWhileWithCall(TestCoverage):
         instance = os.path.join(self.aux_root, 'while_with_call.c')
         aa_file = os.path.join(
             self.aux_root, os.pardir, 'true_aa.spc')
+        start_time = time.time()
         with patch.object(self.logger, 'info') as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
@@ -116,7 +124,8 @@ class TestCoverageWhileWithCall(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -128,6 +137,7 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
         instance = os.path.join(self.aux_root, 'multiline_switch.c')
         aa_file = os.path.join(
             self.aux_root, os.pardir, 'true_aa.spc')
+        start_time = time.time()
         with patch.object(self.logger, 'info') as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
@@ -137,7 +147,8 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -149,6 +160,7 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
         instance = os.path.join(self.aux_root, 'multiline_switch_and_call.c')
         aa_file = os.path.join(
             self.aux_root, os.pardir, 'true_aa.spc')
+        start_time = time.time()
         with patch.object(self.logger, 'info') as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
@@ -158,7 +170,8 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
         # Compound expression in cond (lines 3-4) is considered as fully
