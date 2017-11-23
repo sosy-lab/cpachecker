@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.util.test.BasicTestWithCPA;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import java.lang.reflect.Field;
@@ -48,7 +49,7 @@ import java.net.URLClassLoader;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-public class PredicateCPATest {
+public class PredicateCPATest extends BasicTestWithCPA {
 
   private static final Pattern PREDICATECPA_CLASSES =
       Pattern.compile(

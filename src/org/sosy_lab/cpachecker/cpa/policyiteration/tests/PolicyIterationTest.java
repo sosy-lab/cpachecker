@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.test.BasicTestWithCPA;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -15,7 +16,7 @@ import java.util.Map;
 /**
  * Integration testing for policy iteration.
  */
-public class PolicyIterationTest {
+public class PolicyIterationTest extends BasicTestWithCPA {
 
   private static final String TEST_DIR_PATH = "test/programs/policyiteration/";
 

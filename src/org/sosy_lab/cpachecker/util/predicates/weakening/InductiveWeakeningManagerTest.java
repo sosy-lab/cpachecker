@@ -28,13 +28,17 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.util.RandomProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -64,6 +68,11 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
   private InductiveWeakeningManager inductiveWeakeningManager;
   private IntegerFormulaManagerView ifmgr;
   private BooleanFormulaManagerView bfmgr;
+
+  @BeforeClass
+  public static void setup() throws InvalidConfigurationException {
+    RandomProvider.initializeForTesting(Configuration.defaultConfiguration());
+  }
 
   @Before
   public void setUp() throws Exception {
