@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompa
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.RandomProvider;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -146,8 +145,6 @@ public class CPAsTest {
             .setOption("cpa.conditions.path.condition", "PathLengthCondition")
             .setOption("cpa.automaton.inputFile", "test/config/automata/AssumptionAutomaton.spc")
             .build();
-
-    RandomProvider.initialize(config);
 
     // Create dummy files necessary for PolicyEnforcementCPA
     tempFolder.newFile("betamap.conf");
