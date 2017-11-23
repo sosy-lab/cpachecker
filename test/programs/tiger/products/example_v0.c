@@ -1,26 +1,22 @@
 extern int __VERIFIER_nondet_int();
 
-int foobar(int x, int y, int z) {
-	int a = 0;
-	int b = 0;
+int foobar(int x, int y) {
+	G1: int a = 0;
 
 	if (x < y) {
-		G1: a = x;
-		G2: b = y;
-	} 
-	
-	int z = a + b;
-
-	return z;
+		G2: a = x;
+	} else{
+		G3: a = y;
+	}
+	return a;
 }
 
 
 int main() {
 	int x = __VERIFIER_nondet_int();
 	int y = __VERIFIER_nondet_int();
-	int z = __VERIFIER_nondet_int();
 
-	int tmp = foobar(x, y, z);
+	int tmp = foobar(x, y);
 	
 	return 0;
 }

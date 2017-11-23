@@ -169,7 +169,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     config = pConfig;
     config.inject(this);
     logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
-    fqlSpecification = FQLSpecificationUtil.getFQLSpecification(tigerConfig.getFqlQuery());
+    fqlSpecification =
+        FQLSpecificationUtil.getFQLSpecification(preprocessFQL(tigerConfig.getFqlQuery()));
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.stats = stats;
     values =
@@ -181,6 +182,31 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         BDDUtils
             .getBddCpaNamedRegionManagerFromCpa(cpa, tigerConfig.shouldUseTigerAlgorithm_with_pc());
 
+  }
+
+  public String preprocessFQL(String fqlString) {
+    String goals = "goals:";
+    if (!fqlString.trim().toLowerCase().startsWith(goals)) {
+      return fqlString;
+    }
+    try {
+      String fql = "COVER ";
+      String goalListString = fqlString.trim().substring(goals.length());
+      String[] goalList = goalListString.split(",");
+      boolean first = true;
+      for (String goal : goalList) {
+        if (!first) {
+          fql += "+";
+        }
+        fql += "(\"EDGES(ID)*\".(EDGES(@LABEL(" + goal.trim() + "))).\"EDGES(ID)*\")";
+        first = false;
+      }
+
+      return fql;
+    } catch (Exception ex) {
+      return fqlString;
+    }
+    /*-setprop tiger.fqlQuery="COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G3))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G4))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G5))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G6))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G7))).\"EDGES(ID)*\")*/
   }
 
   @Override

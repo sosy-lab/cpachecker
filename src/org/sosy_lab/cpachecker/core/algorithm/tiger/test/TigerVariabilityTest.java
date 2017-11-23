@@ -87,7 +87,7 @@ public class TigerVariabilityTest {
     prop.put("cpa.predicate.merge", "SEP");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery", "Goals: G1");
 
     TestResults results = CPATestRunner.run(prop, MINI_FASE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -114,9 +114,7 @@ public class TigerVariabilityTest {
     prop.put("cpa.predicate.merge", "SEP");
     prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put(
-        "tiger.fqlQuery",
-        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery", "Goals: G1, G2, G3, G4, G5, G6, G7");
 
     TestResults results = CPATestRunner.run(prop, FASE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
