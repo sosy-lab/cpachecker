@@ -1295,12 +1295,11 @@ public class ARGUtils {
       return Optional.empty();
     }
 
-    CFAPathWithAssumptions assignments =
-        CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
-    // we use the imprecise version of the CounterexampleInfo, due to the possible
-    // merges which are done in the used CPAs, but if we can compute a path with assignments,
-    // it is probably precise
-    if (!assignments.isEmpty()) {
+    // We should not claim that the counterexample is precise unless we have one unique path
+    Set<ARGState> states = path.getStateSet();
+    if (states.stream().allMatch(s -> s.getParents().stream().allMatch(p -> states.contains(p)))) {
+      CFAPathWithAssumptions assignments =
+          CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
       return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments));
     }
     return Optional.of(CounterexampleInfo.feasibleImprecise(path));
