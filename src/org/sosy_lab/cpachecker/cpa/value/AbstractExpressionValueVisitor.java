@@ -2277,7 +2277,7 @@ public abstract class AbstractExpressionValueVisitor
             }
           } else {
             // unsigned value must be put in interval [0, maxValue-1]
-            if (longValue < 0) {
+            if (result < 0) {
               // value is negative, so adding maxValue makes it positive
               result += maxValue;
             }
