@@ -657,8 +657,12 @@ public class ARGToCTranslator {
       String tempVariableName = "__tmp_" + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
 
-      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " = " + actualParamSignature + ";"));
-      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + " = " + tempVariableName + ";"));
+      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + ";"));
+      actualParamAssignStatements.add(
+          new SimpleStatement(tempVariableName + " = " + actualParamSignature + ";"));
+      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + ";"));
+      formalParamAssignStatements.add(
+          new SimpleStatement(formalParam.getName() + " = " + tempVariableName + ";"));
     }
 
     for(Statement stmt : actualParamAssignStatements) {
