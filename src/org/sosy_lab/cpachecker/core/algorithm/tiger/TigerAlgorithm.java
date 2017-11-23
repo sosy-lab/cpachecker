@@ -654,7 +654,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       iter.advance();
     }
 
-    if (pred == null) {
+    if (pred == null && bddCpaNamedRegionManager != null) {
       return bddCpaNamedRegionManager.makeTrue();
     }
 
@@ -688,8 +688,8 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           CounterexampleInfo cex) {
     for (Goal goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
       // TODO add infeasiblitpropagaion to testsuite
-      Region simplifiedPresenceCOndition = getPresenceConditionforGoal(cex, goal);
-      testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCOndition);
+      Region simplifiedPresenceCondition = getPresenceConditionforGoal(cex, goal);
+      testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCondition);
       String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
       if (removeCoveredGoals && !tigerConfig.shouldUseTigerAlgorithm_with_pc()) {
         pGoalsToCheckCoverage.remove(goal);

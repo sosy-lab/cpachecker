@@ -58,6 +58,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -67,6 +68,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -917,19 +919,6 @@ class WitnessWriter implements EdgeAppender {
 
     List<TransitionCondition> result = Lists.newArrayList(pResult);
 
-    // handle threads that destroy themselves by exiting
-    for (String id : threadingState.getThreadIds()) {
-      if (ThreadingTransferRelation.isLastNodeOfThread(
-          threadingState.getThreadLocation(id).getLocationNode())) {
-        // destroy the thread itself, but on an edge that belongs to another active thread.
-        TransitionCondition extraTransition =
-            getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, Optional.empty())
-                .putAndCopy(KeyDef.DESTROYTHREAD, Integer.toString(getUniqueThreadNum(id)));
-        extraTransition = extraTransition.removeAndCopy(KeyDef.FUNCTIONENTRY);
-        result.add(extraTransition);
-      }
-    }
-
     // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
       TransitionCondition extraTransition =
@@ -1123,7 +1112,7 @@ class WitnessWriter implements EdgeAppender {
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
-    // remove redundant edges leading to sink
+    // remove unnecessary edges leading to sink
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
@@ -1136,6 +1125,9 @@ class WitnessWriter implements EdgeAppender {
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
     }
+
+    // merge redundant sibling edges leading to the sink together, if possible
+    mergeRedundantSinkEdges();
 
     // Write elements
     writeElementsOfGraphToDoc(doc, entryStateNodeId);
@@ -1150,16 +1142,18 @@ class WitnessWriter implements EdgeAppender {
    * </p>
    */
   private void removeUnnecessarySinkEdges() {
-    final Collection<Edge> toRemove = Sets.newHashSet();
-    for (Edge edge : leavingEdges.values()) {
-      if (edge.target.equals(SINK_NODE_ID)) {
-        for (Edge otherEdge : leavingEdges.get(edge.source)) {
-          // ignore the edge itself, as well as already handled edges.
-          if (!edge.equals(otherEdge) && !toRemove.contains(otherEdge)) {
-            // remove edges with either identical labels or redundant edge-transition
-            if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
-              toRemove.add(edge);
-              break;
+    final Collection<Edge> toRemove = Sets.newIdentityHashSet();
+    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
+      for (Edge edge : leavingEdges) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges) {
+            // ignore the edge itself, as well as already handled edges.
+            if (edge != otherEdge && !toRemove.contains(otherEdge)) {
+              // remove edges with either identical labels or redundant edge-transition
+              if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
+                toRemove.add(edge);
+                break;
+              }
             }
           }
         }
@@ -1168,6 +1162,70 @@ class WitnessWriter implements EdgeAppender {
     for (Edge edge : toRemove) {
       boolean removed = removeEdge(edge);
       assert removed;
+    }
+  }
+
+  /** Merge sibling edges (with the same source) that lead to the sink if possible. */
+  private void mergeRedundantSinkEdges() {
+    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
+      // We only need to do something if we have siblings
+      if (leavingEdges.size() > 1) {
+
+        // Determine all siblings that go to the sink
+        List<Edge> toSink =
+            leavingEdges
+                .stream()
+                .filter(e -> e.target.equals(SINK_NODE_ID))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // If multiple siblings go to the sink, we want to try to merge them
+        if (toSink.size() > 1) {
+
+          ListIterator<Edge> edgeToSinkIterator = toSink.listIterator();
+          Set<Edge> removed = Sets.newIdentityHashSet();
+          while (edgeToSinkIterator.hasNext()) {
+            Edge edge = edgeToSinkIterator.next();
+
+            // If the edge has already been marked as removed, throw it out
+            if (removed.contains(edge)) {
+              edgeToSinkIterator.remove();
+              continue;
+            }
+
+            // Search a viable merge partner for the current edge
+            Optional<Edge> merged = Optional.empty();
+            Edge other = null;
+            for (Edge otherEdge : toSink) {
+              if (edge != otherEdge && !removed.contains(otherEdge)) {
+                merged = edge.tryMerge(otherEdge);
+                if (merged.isPresent()) {
+                  other = otherEdge;
+                  break;
+                }
+              }
+            }
+
+            // If we determined a merge partner, apply the merge result
+            if (merged.isPresent()) {
+              // Remove the two merge partners
+              removeEdge(edge);
+              removeEdge(other);
+
+              // Directly remove the old version of the current edge
+              // and mark the other edge as removed
+              edgeToSinkIterator.remove();
+              removed.add(other);
+
+              // Add the merged edge to the graph
+              putEdge(merged.get());
+
+              // Add the merged edge to the set of siblings to consider it for further merges
+              edgeToSinkIterator.add(merged.get());
+              edgeToSinkIterator.previous();
+            }
+          }
+        }
+      }
     }
   }
 
@@ -1548,6 +1606,12 @@ class WitnessWriter implements EdgeAppender {
 
   private Element createNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
     Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
+
+    if (witnessOptions.exportNodeLabel()) {
+      // add a printable label that for example is shown in yEd
+      pDoc.addDataElementChild(result, KeyDef.LABEL, pEntryStateNodeId);
+    }
+
     for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
       pDoc.addDataElementChild(result, f.key, "true");
     }

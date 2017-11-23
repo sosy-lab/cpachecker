@@ -44,7 +44,6 @@ public abstract class AbstractStatValue {
    */
   public abstract int getUpdateCount();
 
-
   public StatKind getMainStatisticKind() {
     return mainStatisticKind;
   }

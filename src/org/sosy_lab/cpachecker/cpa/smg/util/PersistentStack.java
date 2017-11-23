@@ -100,4 +100,8 @@ public class PersistentStack<T> implements Iterable<T> {
   public String toString() {
     return "[" + Joiner.on(", ").join(delegate.values()) + "]";
   }
+
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
 }

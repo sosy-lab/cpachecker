@@ -35,7 +35,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
@@ -160,6 +163,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
           StringBuilder comment = new StringBuilder("");
 
+          if (!isEmptyDeclaration(singleState.getCfaEdge())) {
           for (IntermediateConcreteState intermediates : currentIntermediateStates) {
             CFAEdgeWithAssumptions assumptionForedge =
                 pAllocator.allocateAssumptionsToEdge(intermediates.getCfaEdge(), lastState);
@@ -167,7 +171,12 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
           }
 
           // add assumptions for last edge if necessary
-          addAssumptionsIfNecessary(assumptions, assumptionCodes, comment, pAllocator.allocateAssumptionsToEdge(singleState.getCfaEdge(), lastState));
+            addAssumptionsIfNecessary(
+                assumptions,
+                assumptionCodes,
+                comment,
+                pAllocator.allocateAssumptionsToEdge(singleState.getCfaEdge(), lastState));
+          }
 
           // Finally create Last edge and multi edge
           edge =
@@ -184,6 +193,19 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     }
 
     return new CFAPathWithAssumptions(result);
+  }
+
+  private static boolean isEmptyDeclaration(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
+      ADeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof AVariableDeclaration) {
+        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+        return variableDeclaration.getInitializer() == null && !variableDeclaration.isGlobal();
+      }
+      return true;
+    }
+    return false;
   }
 
   private static void addAssumptionsIfNecessary(Set<AExpressionStatement> assumptions, Set<String> assumptionCodes,

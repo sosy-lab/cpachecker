@@ -140,7 +140,7 @@ public final class AbstractStates {
   }
 
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
-    return extractStateByType(pState, AbstractStateWithLocation.class).getOutgoingEdges();
+    return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
   }
 
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =

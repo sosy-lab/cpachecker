@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -273,6 +274,8 @@ public class VariableClassificationBuilder {
         w.append(intAddVars.toString());
         w.append("\n\nALL\n\n");
         w.append(allVars.toString());
+        w.append("\n\nDEPENDENCIES\n\n");
+        w.append(dependencies.toString());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
       }
@@ -569,7 +572,16 @@ public class VariableClassificationBuilder {
     CRightHandSide rhs = assignment.getRightHandSide();
     CExpression lhs = assignment.getLeftHandSide();
     String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+
+    // If we have a simple pointer, we handle it like a simple variable.
+    // This allows us to track dependencies between simple references.
     String varName = scopeVar(function, lhs.toASTString());
+    if (lhs instanceof CPointerExpression && lhs.getExpressionType() instanceof CSimpleType) {
+      CExpression operand = ((CPointerExpression) lhs).getOperand();
+      if (operand instanceof CIdExpression) {
+        varName = scopeVar(function, operand.toASTString());
+      }
+    }
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {

@@ -25,6 +25,12 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.MapDifference.ValueDifference;
+import com.google.common.collect.Maps;
+import java.util.Map;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /**
  * An edge corresponds to the transfer from one node to another.
@@ -86,5 +92,42 @@ class Edge implements Comparable<Edge> {
           && label.equals(other.label);
     }
     return false;
+  }
+
+  public Optional<Edge> tryMerge(Edge pOther) {
+    if (!source.equals(pOther.source)) {
+      return Optional.empty();
+    }
+    if (!target.equals(pOther.target)) {
+      return Optional.empty();
+    }
+    MapDifference<KeyDef, String> difference =
+        Maps.difference(label.getMapping(), pOther.label.getMapping());
+    TransitionCondition newLabel = pOther.label;
+    newLabel = newLabel.putAllAndCopy(label);
+    for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :
+        difference.entriesDiffering().entrySet()) {
+      KeyDef key = diffEntry.getKey();
+      ValueDifference<String> diff = diffEntry.getValue();
+      final String result;
+      switch (key) {
+        case STARTLINE:
+        case OFFSET:
+          int lowA = Integer.parseInt(diff.leftValue());
+          int lowB = Integer.parseInt(diff.rightValue());
+          result = Integer.toString(Math.min(lowA, lowB));
+          break;
+        case ENDLINE:
+        case ENDOFFSET:
+          int highA = Integer.parseInt(diff.leftValue());
+          int highB = Integer.parseInt(diff.rightValue());
+          result = Integer.toString(Math.max(highA, highB));
+          break;
+        default:
+          return Optional.empty();
+      }
+      newLabel = newLabel.putAndCopy(key, result);
+    }
+    return Optional.of(new Edge(source, target, newLabel));
   }
 }

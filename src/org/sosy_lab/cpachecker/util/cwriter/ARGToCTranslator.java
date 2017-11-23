@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -582,42 +585,61 @@ public class ARGToCTranslator {
         return statementText + (statementText.endsWith(";") ? "" : ";");
       }
 
-      case DeclarationEdge: {
-        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
-        String declaration;
-        // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-        if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
-          declaration = lDeclarationEdge.getDeclaration().toASTString();
-        } else {
-          declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
-          if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
-              if (predEdge.getRawStatement().equals(declaration)) {
-                declaration = "";
-                break;
+      case DeclarationEdge:
+        {
+          CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+          String declaration;
+          // TODO adapt if String in
+          // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+          if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
+            declaration = lDeclarationEdge.getDeclaration().toASTString();
+          } else {
+            declaration =
+                lDeclarationEdge
+                    .getCode(); // TODO check if works without lDeclarationEdge.getRawStatement();
+
+            if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+              CVariableDeclaration varDecl =
+                  (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+              if (varDecl.getType() instanceof CArrayType
+                  && varDecl.getInitializer() instanceof CInitializerExpression) {
+                int assignAfterPos = declaration.indexOf("=") + 1;
+                declaration =
+                    declaration.substring(0, assignAfterPos)
+                        + "{"
+                        + declaration.substring(assignAfterPos, declaration.lastIndexOf(";"))
+                        + "};";
               }
             }
-          }
-          if (includeHeader && declaration.contains("assert")
-              && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
-            declaration = "";
-          }
-        }
 
-        if (declaration.contains(
-            "org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
-          throw new CPAException(
+            if (declaration.contains(",")) {
+              for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+                if (predEdge.getRawStatement().equals(declaration)) {
+                  declaration = "";
+                  break;
+                }
+              }
+            }
+            if (includeHeader
+                && declaration.contains("assert")
+                && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
+              declaration = "";
+            }
+          }
+
+          if (declaration.contains("org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+            throw new CPAException(
                 "Failed to translate ARG into program because a type could not be properly resolved.");
-        }
+          }
 
-        if (lDeclarationEdge.getDeclaration().isGlobal()) {
-          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-        } else {
-          return declaration;
-        }
+          if (lDeclarationEdge.getDeclaration().isGlobal()) {
+            globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+          } else {
+            return declaration;
+          }
 
-        break;
-      }
+          break;
+        }
 
       case CallToReturnEdge: {
         //          this should not have been taken
@@ -657,8 +679,12 @@ public class ARGToCTranslator {
       String tempVariableName = "__tmp_" + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
 
-      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " = " + actualParamSignature + ";"));
-      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + " = " + tempVariableName + ";"));
+      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + ";"));
+      actualParamAssignStatements.add(
+          new SimpleStatement(tempVariableName + " = " + actualParamSignature + ";"));
+      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + ";"));
+      formalParamAssignStatements.add(
+          new SimpleStatement(formalParam.getName() + " = " + tempVariableName + ";"));
     }
 
     for(Statement stmt : actualParamAssignStatements) {

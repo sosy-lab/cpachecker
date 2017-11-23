@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -86,6 +87,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -560,7 +562,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractState> pOtherElements, CFAEdge pCfaEdge, InvariantsState state)
       throws UnrecognizedCCodeException {
     CFAEdge edge = pCfaEdge;
-    CLeftHandSide leftHandSide = getLeftHandSide(edge);
+    ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression
         || (leftHandSide instanceof CFieldReference
             && ((CFieldReference) leftHandSide).isPointerDereference())) {
@@ -570,7 +572,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       InvariantsState result = state;
       for (PointerState pointerState : pointerStates) {
-        LocationSet locationSet = PointerTransferRelation.asLocations(leftHandSide, pointerState);
+        LocationSet locationSet =
+            PointerTransferRelation.asLocations((CExpression) leftHandSide, pointerState);
         if (locationSet.isTop()) {
           return Collections.singleton(state.clear());
         }
@@ -631,24 +634,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return false;
-  }
-
-  private static CLeftHandSide getLeftHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CStatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge) pEdge;
-      if (statementEdge.getStatement() instanceof CAssignment) {
-        CAssignment assignment = (CAssignment)statementEdge.getStatement();
-        return assignment.getLeftHandSide();
-      }
-    } else if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
-      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) functionCall;
-        return assignment.getLeftHandSide();
-      }
-    }
-    return null;
   }
 
   private static boolean hasMoreThanNElements(Iterable<?> pIterable, int pN) {

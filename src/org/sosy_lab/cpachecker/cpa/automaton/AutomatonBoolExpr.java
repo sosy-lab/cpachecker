@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParserState.CLONED_FUNCTION_NAME_PATTERN;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -35,28 +34,19 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -65,14 +55,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -372,27 +361,13 @@ public interface AutomatonBoolExpr extends AutomatonExpression {
       CFAEdge edge = pArgs.getCfaEdge();
       String functionNameFromEdge = edge.getSuccessor().getFunctionName();
 
-      // first check default cases like direct function calls and main-entry.
+      // check cases like direct function calls and main-entry.
       if (functionNameFromEdge.equals(functionName)) {
         if (edge instanceof FunctionCallEdge || AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
           return CONST_TRUE;
         }
       }
 
-      // check whether we are in concurrent context with "cloned functions"
-      Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(functionNameFromEdge);
-      String originalName = matcher.matches() ? matcher.group(1) : functionNameFromEdge;
-      if (originalName.equals(functionName)) {
-        return CONST_TRUE;
-      }
-
-      // check whether we are in concurrent context at a "pthreadcreate" statement
-      Optional<String> threadFunction = ThreadingTransferRelation.getCreatedThreadFunction(edge);
-      if (threadFunction.isPresent() && functionName.equals(threadFunction.get())) {
-        return CONST_TRUE;
-      }
-
-      // else nothing matches
       return CONST_FALSE;
     }
 
@@ -488,6 +463,14 @@ public interface AutomatonBoolExpr extends AutomatonExpression {
         if (returnStatementEdge.getSuccessor().getFunctionName().equals(functionName)) {
           return CONST_TRUE;
         }
+      } else if (edge instanceof BlankEdge) {
+        CFANode succ = edge.getSuccessor();
+        if (succ instanceof FunctionExitNode
+            && succ.getNumLeavingEdges() == 0
+            && succ.getFunctionName().equals(functionName)) {
+          assert "default return".equals(edge.getDescription());
+          return CONST_TRUE;
+      }
       }
       return CONST_FALSE;
     }
@@ -858,60 +841,13 @@ public interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge instanceof ADeclarationEdge) {
-        ADeclarationEdge declEdge = (ADeclarationEdge) edge;
-        ADeclaration decl = declEdge.getDeclaration();
-        if (decl instanceof AFunctionDeclaration) {
-          return CONST_FALSE;
-        } else if (decl instanceof CTypeDeclaration) {
-          return CONST_FALSE;
-        } else if (decl instanceof AVariableDeclaration) {
-          AVariableDeclaration varDecl = (AVariableDeclaration) decl;
-          CFANode successor = edge.getSuccessor();
-          Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
-          if (!leavingEdges.hasNext()) {
-            return CONST_FALSE;
+      return AutomatonGraphmlCommon.isSplitDeclaration(edge) ? CONST_TRUE : CONST_FALSE;
           }
-          CFAEdge successorEdge = leavingEdges.next();
-          if (leavingEdges.hasNext()) {
-            CFAEdge alternativeSuccessorEdge = leavingEdges.next();
-            if (leavingEdges.hasNext()) {
-              return CONST_FALSE;
-            } else if (successorEdge instanceof FunctionCallEdge
-                && alternativeSuccessorEdge instanceof CFunctionSummaryStatementEdge) {
-              successorEdge = alternativeSuccessorEdge;
-            } else if (successorEdge instanceof CFunctionSummaryStatementEdge
-                && alternativeSuccessorEdge instanceof FunctionCallEdge) {
-              // nothing to do
-            }
-            else {
-              return CONST_FALSE;
-            }
-          }
-          if (successorEdge instanceof AStatementEdge) {
-            AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-            if (statementEdge.getFileLocation().equals(edge.getFileLocation())
-                && statementEdge.getStatement() instanceof AAssignment) {
-              AAssignment assignment = (AAssignment) statementEdge.getStatement();
-              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-              if (leftHandSide instanceof AIdExpression) {
-                AIdExpression lhs = (AIdExpression) leftHandSide;
-                if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
-                  return CONST_TRUE;
-                }
-              }
-            }
-          }
-        }
-      }
-      return CONST_FALSE;
-    }
 
     @Override
     public String toString() {
       return "MATCH SPLIT DECLARATION";
     }
-
   }
 
   static class MatchLocationDescriptor implements AutomatonBoolExpr {

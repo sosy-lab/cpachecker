@@ -38,6 +38,13 @@ public class StatInt extends AbstractStatValue {
     super(pMainStatisticKind, pTitle);
   }
 
+  public void add(StatInt pOther) {
+    valueSum.add(pOther.getValueSum());
+    valueCount.add(pOther.getValueCount());
+    maxValue.accumulate(pOther.getMaxValue());
+    minValue.accumulate(pOther.getMinValue());
+  }
+
   public void setNextValue(int newValue) {
     valueSum.add(newValue);
     valueCount.increment();

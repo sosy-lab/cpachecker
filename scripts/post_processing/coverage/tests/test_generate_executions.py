@@ -5,6 +5,7 @@ import os
 import os.path
 import shutil
 import sys
+import time
 import unittest
 import unittest.mock
 from io import StringIO
@@ -26,6 +27,7 @@ class TestCoverage(unittest.TestCase):
         cpachecker_root, 'config', 'specification', 'ErrorLabel.spc')
     default_timelimit = 10
     temp_folder = os.path.join(script_path, 'temp_folder')
+
     def setUp(self):
         try:
             shutil.rmtree(self.temp_folder)
@@ -33,6 +35,8 @@ class TestCoverage(unittest.TestCase):
             pass
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
+        self.start_time = time.time()
+
     def tearDown(self):
         try:
             shutil.rmtree(self.temp_folder)
@@ -56,7 +60,8 @@ class TestGenerateOnlyPossibleExecution(TestGenerateExecutions):
                 heap_size=None,
                 timelimit=self.default_timelimit,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             cex_generated = len(list(g.generate_executions()))
             mock_logger.assert_called_once_with('Generated 1 executions.')
 
@@ -69,6 +74,7 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'contains_error.c')
         cex_count = 2 # Will only produce one, checking the output though.
         aa_file = os.path.join(self.aux_root, 'dummy_aa.spc')
+
         with patch.object(self.logger, 'error') as mock_logger, \
              patch.object(self.logger, 'info') as mock_info:
             try:
@@ -80,10 +86,11 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
                     heap_size=None,
                     timelimit=self.default_timelimit,
                     logger=self.logger,
-                    aa_file=aa_file)
+                    aa_file=aa_file,
+                    start_time=self.start_time)
                 cex_generated = len(list(g.generate_executions()))
                 self.fail('Should have raised FoundBugException.')
-            except:
+            except generate_coverage.FoundBugException as e:
                 pass
             mock_logger.assert_called_once_with(
                 'Found an assertion violation. '
@@ -110,7 +117,8 @@ class TestGenerateAllPaths(TestGenerateExecutions):
                 heap_size=None,
                 timelimit=self.default_timelimit,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             cex_generated = len(list(g.generate_executions()))
             mock_info.assert_called_once_with('Generated 3 executions.')
 
@@ -137,7 +145,8 @@ class TestDocumentExpectedShortcoming(TestGenerateExecutions):
                 heap_size=None,
                 timelimit=self.default_timelimit,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             cex_generated = len(list(g.generate_executions()))
             mock_info.assert_called_once_with('Generated 1 executions.')
 
@@ -161,7 +170,8 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
             expected_calls =  [
@@ -192,7 +202,8 @@ class TestCoveragePathAAFixPoint(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
             expected_calls =  [
@@ -224,7 +235,8 @@ class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
             expected_calls =  [
@@ -259,7 +271,8 @@ class TestCoverageFixPointProducesExecutions(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             cex_generated = list(g.generate_executions())
             expected_calls =  [
                 call('Generated 1 executions.'),
@@ -284,7 +297,8 @@ class TestCoverageFixPointProducesAllPossibleExecutions(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             cex_generated = [next(g.generate_executions())]
             # Updating covered lines, to force the generator to cover
             # other lines.
@@ -319,7 +333,8 @@ class TestCoverageFixPointWithinAssumptionAutomatonPath(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             # Updating covered lines, to force the generator to cover
             # the only other possible path.
             g.lines_covered.update([3,4,5,9])
@@ -351,7 +366,8 @@ class TestCoverageFixPointAlreadyReached(TestCoverage):
                 heap_size=None,
                 timelimit=None,
                 logger=self.logger,
-                aa_file=aa_file)
+                aa_file=aa_file,
+                start_time=self.start_time)
             # Updating covered lines such that it is impossible to
             # cover more lines.
             g.lines_covered.update([3,4,5,6,9])
@@ -497,6 +513,80 @@ class TestOutputParsingExceptionThrown(unittest.TestCase):
             self.fail()
         except:
             pass
+
+class TestCoverageIntegrationCexCountOptional(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'three_paths.c')
+        aa_file = os.path.join(
+            self.aux_root, 'aa_three_paths_inner_if_both_blocks.spc')
+        non_existent_dir = self.temp_folder
+        argv = [ str(x) for x in [
+            '-assumption_automaton_file', aa_file,
+            '-cex_dir', non_existent_dir,
+            '-spec', self.default_spec,
+            '-timelimit', str(30),
+            '-generator_type', 'fixpoint',
+            instance
+        ]]
+        # ch = logging.StreamHandler()
+        # ch.setLevel(logging.DEBUG)
+        # self.logger.addHandler(ch)
+        # self.logger.setLevel(logging.DEBUG)
+        with patch.object(self.logger, 'info') as mock_info:
+            generate_coverage.main(argv, self.logger)
+            expected_calls =  [
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 1 executions:'),
+                call('Lines covered: 1'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 2 executions:'),
+                call('Lines covered: 4'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 3 executions:'),
+                call('Lines covered: 5'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 0 executions.'),
+                call('Total lines covered: 5'),
+                call('Total lines to cover: 10')
+            ]
+            self.assertEqual(mock_info.mock_calls, expected_calls)
+
+class TestCoverageIntegrationTimeout(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'loop_many_paths.c')
+        aa_file = os.path.join(self.aux_root, 'true_aa.spc')
+        non_existent_dir = self.temp_folder
+        timelimit = 10
+        argv = [ str(x) for x in [
+            '-assumption_automaton_file', aa_file,
+            '-cex_dir', non_existent_dir,
+            '-spec', self.default_spec,
+            '-timelimit', str(timelimit),
+            '-generator_type', 'fixpoint',
+            instance
+        ]]
+        start_time = time.time()
+        lines_covered = 0
+        def side_effect(info_msg):
+            import re
+            nonlocal lines_covered
+            m = re.search(pattern="Total lines covered: (.*)", string=info_msg)
+            if m:
+                lines_covered = int(m.group(1))
+
+        with patch.object(self.logger, 'info') as mock_info, patch.object(self.logger, 'error') as mock_error:
+            mock_info.side_effect = side_effect
+            generate_coverage.main(argv, self.logger)
+            mock_error.assert_not_called()
+        self.assertGreater(lines_covered, 0)
+        self.assertGreater(25, lines_covered)
+        elapsed_time = time.time() - start_time
+        self.assertGreater(2 * timelimit, elapsed_time)
 
 if __name__ == '__main__':
     unittest.main()

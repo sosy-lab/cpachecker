@@ -40,6 +40,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -48,6 +49,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.graph.Traverser;
 import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
@@ -103,24 +105,24 @@ public class ARGUtils {
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
-  public static Set<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
+  public static ImmutableSet<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
+    return ImmutableSet.copyOf(
+        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElement));
+  }
 
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> waitList = new ArrayDeque<>();
+  /** Get all abstract states without parents. */
+  public static ImmutableSet<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
 
-    result.add(pLastElement);
-    waitList.add(pLastElement);
+    ImmutableSet.Builder<ARGState> result = ImmutableSet.builder();
 
-    while (!waitList.isEmpty()) {
-      ARGState currentElement = waitList.poll();
-      for (ARGState parent : currentElement.getParents()) {
-        if (result.add(parent)) {
-          waitList.push(parent);
-        }
+    for (AbstractState e : pReached) {
+      ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
+      if (state.getParents().isEmpty()) {
+        result.add(state);
       }
     }
 
-    return result;
+    return result.build();
   }
 
   public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE =
@@ -131,38 +133,22 @@ public class ARGUtils {
           return pInput.getChildren();
         }
       };
-
   /**
    * Writes the ARG with the root state pRootState to pSb as a graphviz dot file
    *
    */
   public static void writeARGAsDot(Appendable pSb, ARGState pRootState) throws IOException {
-    ARGToDotWriter.write(pSb, pRootState,
+    ARGToDotWriter.write(
+        pSb,
+        pRootState,
         ARGUtils.CHILDREN_OF_STATE,
         Predicates.alwaysTrue(),
         Predicates.alwaysFalse());
   }
 
   /**
-   * Get all abstract states without parents.
-   */
-  public static Set<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
-
-    Set<ARGState> result = new HashSet<>();
-
-    for (AbstractState e : pReached) {
-      ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
-      if (state.getParents().isEmpty()) {
-        result.add(state);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Create a path in the ARG from root to the given element.
-   * If there are several such paths, one is chosen arbitrarily.
+   * Create a path in the ARG from root to the given element. If there are several such paths, one
+   * is chosen arbitrarily.
    *
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.

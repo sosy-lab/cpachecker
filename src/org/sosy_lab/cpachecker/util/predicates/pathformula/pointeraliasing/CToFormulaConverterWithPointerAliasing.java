@@ -424,26 +424,55 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * Declares a shared base on a declaration.
    *
    * @param declaration The declaration.
-   * @param originalDeclaration the declaration used to determine if the base corresponds to a function parameter
-   *        (needed to distinguish real (non-moving) arrays from pointers)
+   * @param originalDeclaration the declaration used to determine if the base corresponds to a
+   *     function parameter (needed to distinguish real (non-moving) arrays from pointers)
    * @param constraints Additional constraints.
    * @param pts The underlying pointer target set.
    */
   private void declareSharedBase(
       final CDeclaration declaration,
       final CSimpleDeclaration originalDeclaration,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
       final Constraints constraints,
-      final PointerTargetSetBuilder pts) {
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException {
     assert declaration.getType().equals(originalDeclaration.getType());
     CType type = typeHandler.getSimplifiedType(declaration);
     CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
     if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
       decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
     }
-    Formula size =
-        decayedType.isIncomplete()
-            ? null
-            : fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+    Formula size;
+    if (decayedType.isIncomplete()) {
+      size = null;
+    } else if (decayedType instanceof CArrayType
+        && !((CArrayType) decayedType).getLengthAsInt().isPresent()) {
+      CArrayType arrayType = (CArrayType) decayedType;
+      Formula elementSize =
+          fmgr.makeNumber(
+              voidPointerFormulaType, typeHandler.getSizeof(arrayType.getType()));
+      Formula elementCount = buildTerm(
+          arrayType.getLength(),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
+      elementCount =
+          makeCast(
+              arrayType.getLength().getExpressionType(),
+              CPointerType.POINTER_TO_VOID,
+              elementCount,
+              constraints,
+              edge);
+      size = fmgr.makeMultiply(elementSize, elementCount);
+    } else {
+      size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+    }
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.addBase(declaration.getQualifiedName(), type, size, constraints);
@@ -486,8 +515,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         final long offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
-        if (hasIndex(newBaseName, memberType, ssa) &&
-            isRelevantField(compositeType, memberName)) {
+        if (isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
@@ -765,7 +793,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CVariableDeclaration returnVariableDeclaraton =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
 
-      declareSharedBase(returnVariableDeclaraton, returnVariableDeclaraton, constraints, pts);
+      declareSharedBase(
+          returnVariableDeclaraton,
+          returnVariableDeclaraton,
+          returnEdge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
     return result;
   }
@@ -933,7 +969,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    declareSharedBase(declaration, declaration, constraints, pts);
+    declareSharedBase(
+        declaration,
+        declaration,
+        declarationEdge,
+        function,
+        ssa,
+        pts,
+        constraints,
+        errorConditions);
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
@@ -946,6 +990,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
+        if (options.handleStringLiteralInitializers()) {
+          // TODO: see if this can be simplified, this block is just copied from the case
+          // (initializer instanceof CInitializerList). Both cases might be unifyable by using
+          // CInitializers.convertToAssignments
+          List<CExpressionAssignmentStatement> assignments =
+              CInitializers.convertToAssignments(declaration, declarationEdge);
+          // Special handling for string literal initializers -- convert them into character arrays
+          assignments = expandStringLiterals(assignments);
+          return assignmentHandler.handleInitializationAssignments(
+              lhs, declarationType, assignments);
+        }
         result =
             assignmentHandler.handleAssignment(
                 lhs, lhs, ((CInitializerExpression) initializer).getExpression(), true);
@@ -1056,8 +1111,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       declareSharedBase(
           declaration,
           formalParameter,
+          edge,
+          entryNode.getFunctionName(),
+          ssa,
+          pts,
           constraints,
-          pts);
+          errorConditions);
     }
 
     BooleanFormula result =
@@ -1143,9 +1202,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.makeCast(pFromType, pToType, pFormula, constraints, pEdge);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
+  @Override
+  protected @Nullable Formula makeValueReinterpretation(
+      CType pFromType, CType pToType, Formula pFormula) {
+    return super.makeValueReinterpretation(pFromType, pToType, pFormula);
+  }
+
+  /** {@inheritDoc} */
   @Override
   protected Formula makeConstant(String pName, CType pType) {
     return super.makeConstant(pName, pType);

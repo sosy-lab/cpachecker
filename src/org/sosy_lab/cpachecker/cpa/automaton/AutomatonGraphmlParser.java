@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -53,13 +52,13 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -280,10 +279,7 @@ public class AutomatonGraphmlParser {
    */
   private AutomatonInternalState createAutomatonState(
       AutomatonGraphmlParserState pGraphMLParserState, GraphMLState pState) {
-    List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions().get(pState);
-    if (transitions == null) {
-      transitions = new ArrayList<>();
-    }
+    List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions(pState);
 
     // If the transition conditions do not apply, none of the above transitions is taken,
     // and instead, the stutter condition applies.
@@ -390,12 +386,8 @@ public class AutomatonGraphmlParser {
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
-    LinkedList<AutomatonTransition> transitions =
-        pGraphMLParserState.getStateTransitions().get(pTransition.getSource());
-    if (transitions == null) {
-      transitions = Lists.newLinkedList();
-      pGraphMLParserState.getStateTransitions().put(pTransition.getSource(), transitions);
-    }
+    List<AutomatonTransition> transitions =
+        pGraphMLParserState.getStateTransitions(pTransition.getSource());
 
     // Handle call stack
     Deque<String> newStack = handleCallStack(pGraphMLParserState, pTransition);
@@ -423,23 +415,23 @@ public class AutomatonGraphmlParser {
           "Invariants are not allowed for violation witnesses.");
     }
 
-    // Initialize the transition condition to TRUE, so that all individual
-    // conditions can conveniently be conjoined to it later
-    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
+    List<Function<AutomatonBoolExpr, AutomatonBoolExpr>> conditionTransformations =
+        Lists.newArrayList();
 
-    // Never match on the dummy edge directly after the main function entry node
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
-    // Never match on artificially split declarations
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
-
-    // Add a source-code guard for a specified loop head
-    if (pTransition.entersLoopHead()) {
-      transitionCondition = and(transitionCondition, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+    // Add a source-code guard for specified line numbers
+    if (matchOriginLine) {
+      conditionTransformations.add(
+          condition -> and(condition, getLocationMatcher(pTransition.getLineMatcherPredicate())));
     }
 
-    // Add a source-code guard for function-call statements if an explicit result function is specified
+    // Add a source-code guard for specified character offsets
+    if (matchOffset) {
+      conditionTransformations.add(
+          condition -> and(condition, getLocationMatcher(pTransition.getOffsetMatcherPredicate())));
+    }
+
+    // Add a source-code guard for function-call statements if an explicit result function is
+    // specified
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName =
@@ -448,37 +440,72 @@ public class AutomatonGraphmlParser {
                   pTransition,
                   pTransition.getExplicitAssumptionResultFunction())
               .get();
-      transitionCondition =
-          and(transitionCondition,
-              new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
-    }
-
-    // Add a source-code guard for specified line numbers
-    if (matchOriginLine) {
-      transitionCondition = and(
-          transitionCondition,
-          getLocationMatcher(
-              pTransition.entersLoopHead(),
-              pTransition.getLineMatcherPredicate()));
-    }
-
-    // Add a source-code guard for specified character offsets
-    if (matchOffset) {
-      transitionCondition = and(
-          transitionCondition,
-          getLocationMatcher(
-              pTransition.entersLoopHead(),
-              pTransition.getOffsetMatcherPredicate()));
+      conditionTransformations.add(
+          condition ->
+              and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
     }
 
     // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
-      transitionCondition =
-          and(
-              transitionCondition,
-              getFunctionExitMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit()).get(),
-                  pTransition.entersLoopHead()));
+      String function =
+          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit()).get();
+      conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
+    }
+
+    // Add a source-code guard for specified function entries
+    Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
+    if (pTransition.getFunctionEntry().isPresent()) {
+      String function =
+          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get();
+      applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
+      conditionTransformations.add(applyMatchFunctionEntry);
+    }
+
+    // Add a source-code guard for specified branching information
+    if (matchAssumeCase) {
+      conditionTransformations.add(condition -> and(condition, pTransition.getAssumeCaseMatcher()));
+    }
+
+    // Add a source-code guard for a specified loop head
+    if (pTransition.entersLoopHead()) {
+      // Unfortunately, we have a blank edge entering most of our loop heads;
+      // (a) sometimes the transition needs to match the successor state to the loop head,
+      // (b) sometimes the transition needs to match the edge before the blank edge,
+      // sometimes the transition even needs to match "both" of the above.
+      // Therefore, we do exactly that (match "both");
+      conditionTransformations.add(
+          condition -> {
+            AutomatonBoolExpr conditionA =
+                and(
+                    AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(condition, true),
+                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+            AutomatonBoolExpr conditionB =
+                and(
+                    condition,
+                    AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                        AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
+            return or(conditionA, conditionB);
+          });
+    }
+
+    // Never match on the dummy edge directly after the main function entry node
+    conditionTransformations.add(
+        condition -> and(condition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE)));
+    // Never match on artificially split declarations
+    conditionTransformations.add(
+        condition -> and(condition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE)));
+
+    // Initialize the transition condition to TRUE, so that all individual
+    // conditions can conveniently be conjoined to it later
+    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
+    AutomatonBoolExpr transitionConditionWithoutFunctionEntry = AutomatonBoolExpr.TRUE;
+    for (Function<AutomatonBoolExpr, AutomatonBoolExpr> conditionTransformation :
+        conditionTransformations) {
+      transitionCondition = conditionTransformation.apply(transitionCondition);
+      if (conditionTransformation != applyMatchFunctionEntry) {
+        transitionConditionWithoutFunctionEntry =
+            conditionTransformation.apply(transitionConditionWithoutFunctionEntry);
+      }
     }
 
     // If the transition represents a function call, add a sink transition
@@ -486,41 +513,21 @@ public class AutomatonGraphmlParser {
     // where we can eliminate the other branch
     AutomatonBoolExpr fpElseTrigger = null;
     if (pTransition.getFunctionEntry().isPresent()
-        && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
+        && pGraphMLParserState.getWitnessType() != WitnessType.CORRECTNESS_WITNESS) {
       fpElseTrigger =
           and(
-              transitionCondition,
+              transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get(),
-                  pTransition.getTarget().isSinkState(),
-                  pTransition.entersLoopHead()));
+                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
+                      .get(),
+                  pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
               fpElseTrigger,
-              Collections.<AutomatonBoolExpr> emptyList(),
+              Collections.<AutomatonBoolExpr>emptyList(),
               actions,
               false,
               stopNotBreakAtSinkStates));
-    }
-
-    // Add a source-code guard for specified function entries
-    if (pTransition.getFunctionEntry().isPresent()) {
-      transitionCondition =
-          and(
-              transitionCondition,
-              getFunctionCallMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get(),
-                  pTransition.entersLoopHead()));
-    }
-
-    // Add a source-code guard for specified branching information
-    if (matchAssumeCase) {
-      transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
-    }
-
-    // Destroy thread, if necessary
-    if (pTransition.getDestroyedThread().isPresent()) {
-      pGraphMLParserState.releaseFunctions(pTransition.getDestroyedThread().get());
     }
 
     // If the triggers do not apply, none of the above transitions is taken,
@@ -824,14 +831,25 @@ public class AutomatonGraphmlParser {
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = HashMultimap.create();
     Multimap<GraphMLState, GraphMLTransition> leavingTransitions = HashMultimap.create();
     NumericIdProvider numericIdProvider = NumericIdProvider.create();
+    Set<GraphMLState> entryStates = Sets.newHashSet();
     for (Node transition : docDat.getTransitions()) {
-      collectEdgeData(docDat,
+      collectEdgeData(
+          docDat,
           states,
+          entryStates,
           leavingTransitions,
           enteringTransitions,
           numericIdProvider,
           transition);
     }
+    if (states.size() < docDat.idToNodeMap.size()) {
+      for (String stateId : docDat.idToNodeMap.keySet()) {
+        if (!states.containsKey(stateId)) {
+          states.put(stateId, parseState(docDat, states, stateId, Optional.empty()));
+        }
+      }
+    }
+
     AutomatonGraphmlParserState state =
         AutomatonGraphmlParserState.initialize(
             automatonName,
@@ -878,7 +896,6 @@ public class AutomatonGraphmlParser {
     } catch (ParserConfigurationException | SAXException e) {
       throw new WitnessParseException(e);
     }
-    doc.getDocumentElement().normalize();
 
     return new GraphMLDocumentData(doc);
   }
@@ -897,37 +914,25 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private static AutomatonBoolExpr getFunctionCallMatcher(String pEnteredFunction, boolean pEntersLoopHead) {
+  private static AutomatonBoolExpr getFunctionCallMatcher(String pEnteredFunction) {
     AutomatonBoolExpr functionEntryMatcher =
         new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction);
-    if (pEntersLoopHead) {
-      functionEntryMatcher =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionEntryMatcher, true);
-    }
     return functionEntryMatcher;
   }
 
-  private static AutomatonBoolExpr getFunctionPointerAssumeCaseMatcher(String pEnteredFunction,
-      boolean pIsSinkNode, boolean pEntersLoopHead) {
+  private static AutomatonBoolExpr getFunctionPointerAssumeCaseMatcher(
+      String pEnteredFunction, boolean pIsSinkNode) {
     AutomatonBoolExpr functionPointerAssumeCaseMatcher =
       new AutomatonBoolExpr.MatchFunctionPointerAssumeCase(
           new AutomatonBoolExpr.MatchAssumeCase(pIsSinkNode),
           new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction));
-    if (pEntersLoopHead) {
-      functionPointerAssumeCaseMatcher =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionPointerAssumeCaseMatcher, true);
-    }
     return functionPointerAssumeCaseMatcher;
   }
 
-  private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction, boolean pEntersLoopHead) {
+  private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction) {
     AutomatonBoolExpr functionExitMatcher = or(
         new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
         new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
-    if (pEntersLoopHead) {
-      functionExitMatcher =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionExitMatcher, true);
-    }
     return functionExitMatcher;
   }
 
@@ -954,28 +959,19 @@ public class AutomatonGraphmlParser {
   /**
    * Creates an automaton-transition condition to match a specific file location.
    *
-   * <p>If no predicate is specified, the resulting condition is
-   * {@code AutomatonBoolExpr#TRUE}.</p>
-   *
-   * @param pEntersLoopHead if {@code true} and a predicate is specified,
-   * the condition is wrapped as a backward epsilon match.
+   * <p>If no predicate is specified, the resulting condition is {@code AutomatonBoolExpr#TRUE}.
    *
    * @return an automaton-transition condition to match a specific file location.
    */
-  private AutomatonBoolExpr getLocationMatcher(boolean pEntersLoopHead, Optional<Predicate<FileLocation>> pMatcherPredicate) {
+  private AutomatonBoolExpr getLocationMatcher(
+      Optional<Predicate<FileLocation>> pMatcherPredicate) {
 
     if (!pMatcherPredicate.isPresent()) {
       return AutomatonBoolExpr.TRUE;
     }
 
-    AutomatonBoolExpr offsetMatchingExpr =
-        new AutomatonBoolExpr.MatchLocationDescriptor(cfa.getMainFunction(), pMatcherPredicate.get());
-
-    if (pEntersLoopHead) {
-      offsetMatchingExpr =
-          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
-    }
-    return offsetMatchingExpr;
+    return new AutomatonBoolExpr.MatchLocationDescriptor(
+        cfa.getMainFunction(), pMatcherPredicate.get());
   }
 
   /**
@@ -1112,13 +1108,7 @@ public class AutomatonGraphmlParser {
         throw new WitnessParseException("Unrecognized assume case: " + assumeCaseStr);
       }
 
-      AutomatonBoolExpr assumeCaseMatchingExpr = new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
-      if (entersLoopHead(pTransition)) {
-        assumeCaseMatchingExpr =
-            AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(assumeCaseMatchingExpr, true);
-      }
-
-      return assumeCaseMatchingExpr;
+      return new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
     }
     return AutomatonBoolExpr.TRUE;
   }
@@ -1134,19 +1124,6 @@ public class AutomatonGraphmlParser {
   private static Optional<GraphMLTransition.GraphMLThread> getThread(
       Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
     return parseThreadId(pTransition, pNumericIdProvider, KeyDef.THREADID, "At most one threadId tag must be provided for each transition.");
-  }
-
-  /**
-   * Gets the thread specified to be destroyed on the given transition, if any.
-   *
-   * @param pTransition the transition to parse the thread id from.
-   * @param pNumericIdProvider a numeric id provider to map textual thread ids to numeric ones.
-   * @return the thread id specified on the transition with the given key, if any.
-   * @throws WitnessParseException if more than one thread id was specified.
-   */
-  private static Optional<GraphMLTransition.GraphMLThread> getDestroyedThread(
-      Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
-    return parseThreadId(pTransition, pNumericIdProvider, KeyDef.DESTROYTHREAD, "At most one thread can be destroyed on one transition.");
   }
 
   /**
@@ -1191,6 +1168,7 @@ public class AutomatonGraphmlParser {
    *
    * @param pDocDat the GraphML-document-data helper.
    * @param pStates the map from state identifiers to parsed states.
+   * @param pEntryStates the set of entry states.
    * @param pLeavingEdges the map from predecessor states to transitions leaving these states that
    *     the given transition will be entered into.
    * @param pEnteringEdges the map from successor states to transitions entering these states that
@@ -1202,6 +1180,7 @@ public class AutomatonGraphmlParser {
   private void collectEdgeData(
       GraphMLDocumentData pDocDat,
       Map<String, GraphMLState> pStates,
+      Set<GraphMLState> pEntryStates,
       Multimap<GraphMLState, GraphMLTransition> pLeavingEdges,
       Multimap<GraphMLState, GraphMLTransition> pEnteringEdges,
       NumericIdProvider pNumericThreadIdProvider,
@@ -1210,14 +1189,12 @@ public class AutomatonGraphmlParser {
     String sourceStateId =
         GraphMLDocumentData.getAttributeValue(
             pTransition, "source", "Every transition needs a source!");
-    GraphMLState source =
-        parseState(pDocDat, pStates, sourceStateId, pTransition);
+    GraphMLState source = parseState(pDocDat, pStates, sourceStateId, Optional.of(pTransition));
 
     String targetStateId =
         GraphMLDocumentData.getAttributeValue(
             pTransition, "target", "Every transition needs a target!");
-    GraphMLState target =
-        parseState(pDocDat, pStates, targetStateId, pTransition);
+    GraphMLState target = parseState(pDocDat, pStates, targetStateId, Optional.of(pTransition));
 
     Optional<String> functionEntry = parseSingleDataValue(pTransition, KeyDef.FUNCTIONENTRY,
         "At most one function can be entered by one transition.");
@@ -1234,7 +1211,6 @@ public class AutomatonGraphmlParser {
         thread.isPresent()
             ? Optional.of(getThreadIdAssignment(thread.get().getId()))
             : Optional.empty();
-    Optional<GraphMLTransition.GraphMLThread> destroyedThread = getDestroyedThread(pTransition, pNumericThreadIdProvider);
 
     GraphMLTransition transition =
         new GraphMLTransition(
@@ -1247,7 +1223,6 @@ public class AutomatonGraphmlParser {
             getAssumeCaseMatcher(pTransition),
             thread.orElse(DEFAULT_THREAD),
             threadIdAssignment,
-            destroyedThread,
             GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ASSUMPTION),
             explicitAssumptionScope,
             assumptionResultFunction,
@@ -1286,12 +1261,21 @@ public class AutomatonGraphmlParser {
               "Source %s of transition %s is a sink state. No outgoing edges expected.",
               sourceStateId, transitionToString(pTransition)));
     }
+
+    if (source.isEntryState()) {
+      pEntryStates.add(source);
+    }
+    if (target.isEntryState()) {
+      pEntryStates.add(target);
+    }
   }
 
-  private GraphMLState parseState(GraphMLDocumentData pDocDat,
+  private GraphMLState parseState(
+      GraphMLDocumentData pDocDat,
       Map<String, GraphMLState> pStates,
       String pStateId,
-      Node pReference) throws WitnessParseException {
+      Optional<Node> pReference)
+      throws WitnessParseException {
     GraphMLState result = pStates.get(pStateId);
     if (result != null) {
       return result;
@@ -1299,11 +1283,16 @@ public class AutomatonGraphmlParser {
 
     Element stateNode = pDocDat.getNodeWithId(pStateId);
     if (stateNode == null) {
-      throw new WitnessParseException(
-        String.format(
-            "The state with id <%s> does not exist, but is referenced in the transition <%s>",
-            pStateId,
-            transitionToString(pReference)));
+      final String message;
+      if (pReference.isPresent()) {
+        message =
+            String.format(
+                "The state with id <%s> does not exist, but is referenced in the transition <%s>",
+                pStateId, transitionToString(pReference.get()));
+      } else {
+        message = String.format("The state with if <%s> does not exist.", pStateId);
+      }
+      throw new WitnessParseException(message);
     }
 
     Set<String> candidates = GraphMLDocumentData.getDataOnNode(stateNode, KeyDef.INVARIANT);
@@ -1756,7 +1745,6 @@ public class AutomatonGraphmlParser {
     } catch (ParserConfigurationException | SAXException e) {
       throw new WitnessParseException(e);
     }
-    doc.getDocumentElement().normalize();
 
     // (The one) root node of the graph ----
     NodeList graphs = doc.getElementsByTagName(GraphMLTag.GRAPH.toString());

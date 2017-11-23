@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -49,9 +50,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -64,6 +67,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -80,6 +84,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "residualprogram")
 public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
@@ -108,6 +113,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path condition = null;
 
+  @Option(
+    secure = true,
+    name = "statistics.size",
+    description = "Collect statistical data about size of residual program"
+  )
+  private boolean collectResidualProgramSizeStatistics = false;
+
   private final CFA cfa;
   private final Specification spec;
   protected final LogManager logger;
@@ -117,6 +129,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private final ARGToCTranslator translator;
   private final @Nullable ConditionFolder folder;
+
+  protected final ProgramGenerationStatistics statistic = new ProgramGenerationStatistics();
 
   public ResidualProgramConstructionAlgorithm(final CFA pCfa, final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdown, final Specification pSpec,
@@ -164,7 +178,12 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     status = status.withPrecise(false);
 
     logger.log(Level.INFO, "Start construction of residual program.");
-    cpaAlgorithm.run(pReachedSet);
+    try {
+      statistic.modelBuildTimer.start();
+      cpaAlgorithm.run(pReachedSet);
+    } finally {
+      statistic.modelBuildTimer.stop();
+    }
 
     ARGState argRoot = (ARGState) pReachedSet.getFirstState();
 
@@ -178,15 +197,20 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
 
     Set<ARGState> addPragma;
-    switch (constructionStrategy) {
-      case COMBINATION:
-        addPragma = getAllTargetStates(pReachedSet);
-        break;
-      case SLICING:
-        addPragma = getAllTargetStatesNotFullyExplored(pReachedSet);
-        break;
-      default: // CONDITION, CONDITION_PLUS_FOLD no effect
-        addPragma = null;
+    try {
+      statistic.collectPragmaPointsTimer.start();
+      switch (constructionStrategy) {
+        case COMBINATION:
+          addPragma = getAllTargetStates(pReachedSet);
+          break;
+        case SLICING:
+          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet);
+          break;
+        default: // CONDITION, CONDITION_PLUS_FOLD no effect
+          addPragma = null;
+      }
+    } finally {
+      statistic.collectPragmaPointsTimer.stop();
     }
 
     logger.log(Level.INFO, "Write residual program to file.");
@@ -280,19 +304,28 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
   }
 
-
-
-
-
-  private String getResidualProgramText(final ARGState pARGRoot,
-      @Nullable final Set<ARGState> pAddPragma) throws CPAException {
+  private String getResidualProgramText(
+      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma) throws CPAException {
+    ARGState root = pARGRoot;
     if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
       Preconditions.checkState(pAddPragma == null);
       Preconditions.checkNotNull(folder);
 
-      return translator.translateARG(folder.foldARG(pARGRoot));
+      try {
+        statistic.foldTimer.start();
+        statistic.modelBuildTimer.start();
+        root = folder.foldARG(pARGRoot);
+      } finally {
+        statistic.modelBuildTimer.stop();
+        statistic.foldTimer.stop();
+      }
     }
-    return translator.translateARG(pARGRoot, pAddPragma);
+    try {
+      statistic.translationTimer.start();
+      return translator.translateARG(root, pAddPragma);
+    } finally {
+      statistic.translationTimer.stop();
+    }
   }
 
   protected boolean writeResidualProgram(final ARGState pArgRoot,
@@ -417,8 +450,80 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return conditionSpec;
   }
 
+  protected class ProgramGenerationStatistics implements Statistics {
+
+    private final Timer translationTimer = new Timer();
+    private final Timer foldTimer = new Timer();
+    protected final Timer modelBuildTimer = new Timer();
+    protected final Timer collectPragmaPointsTimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter statWriter = StatisticsWriter.writingStatisticsTo(pOut);
+
+      statWriter.put("Time for residual program model construction", modelBuildTimer);
+      if (getStrategy() == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
+        statWriter = statWriter.beginLevel();
+        statWriter.put("Time for folding", foldTimer);
+        statWriter = statWriter.endLevel();
+      }
+
+      if (getStrategy() == ResidualGenStrategy.SLICING
+          || getStrategy() == ResidualGenStrategy.COMBINATION) {
+        statWriter.put("Time for identifying pragma locations", collectPragmaPointsTimer);
+      }
+
+      statWriter.put("Time for C translation", translationTimer);
+
+      if (collectResidualProgramSizeStatistics) {
+        int residProgSize = getResidualProgramSizeInLocations(pReached.getFirstState());
+
+        if (residProgSize >= 0) {
+          statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
+          statWriter.put("Generated program size (#loc)", residProgSize);
+          statWriter.put("Size increase", ((double) residProgSize / cfa.getAllNodes().size()));
+        }
+      }
+    }
+
+    private int getResidualProgramSizeInLocations(final AbstractState root) {
+      try {
+        CFACreator cfaCreator =
+            new CFACreator(
+                Configuration.builder()
+                    .setOption(
+                        "analysis.entryFunction",
+                        AbstractStates.extractLocation(root).getFunctionName())
+                    .setOption("parser.usePreprocessor", "true")
+                    .setOption("analysis.useLoopStructure", "false")
+                    .build(),
+                logger,
+                shutdown);
+
+        CFA residProg =
+            cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
+
+        return residProg.getAllNodes().size();
+
+      } catch (InterruptedException
+          | InvalidConfigurationException
+          | IOException
+          | ParserException e) {
+      }
+
+      return -1;
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "Residual Program Generation";
+    }
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     cpaAlgorithm.collectStatistics(pStatsCollection);
+
+    pStatsCollection.add(statistic);
   }
 }

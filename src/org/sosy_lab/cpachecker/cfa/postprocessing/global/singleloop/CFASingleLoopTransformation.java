@@ -1318,7 +1318,15 @@ public class CFASingleLoopTransformation {
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      return new CAssumeEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, assumeEdge.getExpression(), assumeEdge.getTruthAssumption(), assumeEdge.isSwapped());
+        return new CAssumeEdge(
+            rawStatement,
+            fileLocation,
+            pNewPredecessor,
+            pNewSuccessor,
+            assumeEdge.getExpression(),
+            assumeEdge.getTruthAssumption(),
+            assumeEdge.isSwapped(),
+            assumeEdge.isArtificialIntermediate());
     case BlankEdge:
       return new BlankEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, pEdge.getDescription());
     case DeclarationEdge:

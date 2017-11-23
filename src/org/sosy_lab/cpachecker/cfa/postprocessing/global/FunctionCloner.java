@@ -192,7 +192,16 @@ class FunctionCloner implements CFAVisitor {
       case AssumeEdge: {
         if (edge instanceof CAssumeEdge) {
           final CAssumeEdge e = (CAssumeEdge) edge;
-          newEdge = new CAssumeEdge(rawStatement, loc, start, end, cloneAst(e.getExpression()), e.getTruthAssumption(), e.isSwapped());
+            newEdge =
+                new CAssumeEdge(
+                    rawStatement,
+                    loc,
+                    start,
+                    end,
+                    cloneAst(e.getExpression()),
+                    e.getTruthAssumption(),
+                    e.isSwapped(),
+                    e.isArtificialIntermediate());
         } else {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }

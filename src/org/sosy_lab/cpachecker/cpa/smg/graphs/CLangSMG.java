@@ -217,6 +217,10 @@ public class CLangSMG extends SMG {
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
+  public boolean isStackEmpty() {
+    return stack_objects.isEmpty();
+  }
+
   /**
    * Add a new stack frame for the passed function.
    *

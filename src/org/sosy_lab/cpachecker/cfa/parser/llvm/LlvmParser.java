@@ -70,14 +70,15 @@ public class LlvmParser implements Parser {
       llvmModule = Module.parseIR(pFilename);
 
     } catch (LLVMException pE) {
-      throw new LLVMParserException(pE);
+      throw new LLVMParserException("Input program has invalid bitcode signature or is no bitcode "
+          + "file");
 
     } finally {
       parseTimer.stop();
     }
 
     if (llvmModule == null) {
-      throw new LLVMParserException("Error while parsing");
+      throw new LLVMParserException("Unknown error while parsing");
     }
     // TODO: Handle/show errors in parser
 

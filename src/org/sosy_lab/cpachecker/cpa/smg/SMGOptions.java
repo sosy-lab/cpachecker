@@ -41,9 +41,11 @@ public class SMGOptions {
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
   @Option(
-      secure = true,
-      description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
-  private boolean handleNonFreedMemoryInMainAsMemLeak = false;
+    secure = true,
+    description =
+        "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main"
+  )
+  private boolean handleNonFreedMemoryInMainAsMemLeak = true;
 
   @Option(
       secure = true,
@@ -84,9 +86,17 @@ public class SMGOptions {
   private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
-      secure = true,
-      name = "memoryAllocationFunctionsSizeParameter",
-      description = "Size parameter of memory allocation functions")
+    secure = true,
+    name = "guessSize",
+    description = "Allocation size of memory that cannot be calculated."
+  )
+  private int guessSize = 2;
+
+  @Option(
+    secure = true,
+    name = "memoryAllocationFunctionsSizeParameter",
+    description = "Size parameter of memory allocation functions"
+  )
   private int memoryAllocationFunctionsSizeParameter = 0;
 
   @Option(
@@ -210,6 +220,10 @@ public class SMGOptions {
 
   public boolean isGuessSizeOfUnknownMemorySize() {
     return guessSizeOfUnknownMemorySize;
+  }
+
+  public int getGuessSize() {
+    return guessSize;
   }
 
   public ImmutableSet<String> getMemoryAllocationFunctions() {

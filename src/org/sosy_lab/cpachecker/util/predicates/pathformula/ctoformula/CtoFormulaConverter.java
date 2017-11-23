@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.areEqualWithMatchingPointerArray;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
@@ -41,6 +42,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -122,6 +124,8 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
 /**
@@ -535,6 +539,66 @@ public class CtoFormulaConverter {
     }
 
     return result;
+  }
+
+  /**
+   * Create a formula that reinterprets the raw bit values as a different type Returns {@code null}
+   * if this is not implemented for the given types. Both types need to have the same size
+   */
+  protected @Nullable Formula makeValueReinterpretation(
+      final CType pFromType, final CType pToType, Formula formula) {
+    CType fromType = handlePointerAndEnumAsInt(pFromType);
+    CType toType = handlePointerAndEnumAsInt(pToType);
+
+    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+
+    if (fromFormulaType.isBitvectorType() && toFormulaType.isFloatingPointType()) {
+      int sourceSize = ((BitvectorType) fromFormulaType).getSize();
+      int targetSize = ((FloatingPointType) toFormulaType).getTotalSize();
+
+      if (sourceSize > targetSize) {
+        formula =
+            fmgr.getBitvectorFormulaManager()
+                .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+      } else if (sourceSize < targetSize) {
+        return null; // TODO extend with nondet bits
+      }
+
+      verify(
+          fmgr.getFormulaType(formula).equals(FormulaType.getBitvectorTypeWithSize(targetSize)),
+          "Unexpected result type for %s",
+          formula);
+
+      return fmgr.getFloatingPointFormulaManager()
+          .fromIeeeBitvector((BitvectorFormula) formula, (FloatingPointType) toFormulaType);
+
+    } else if (fromFormulaType.isFloatingPointType() && toFormulaType.isBitvectorType()) {
+      int sourceSize = ((FloatingPointType) fromFormulaType).getTotalSize();
+      int targetSize = ((BitvectorType) toFormulaType).getSize();
+
+      formula =
+          fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+
+      if (sourceSize > targetSize) {
+        formula =
+            fmgr.getBitvectorFormulaManager()
+                .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+      } else if (sourceSize < targetSize) {
+        return null; // TODO extend with nondet bits
+      }
+
+      verify(
+          fmgr.getFormulaType(formula).equals(toFormulaType),
+          "Unexpected result type %s for %s",
+          fmgr.getFormulaType(formula),
+          formula);
+
+      return formula;
+
+    } else {
+      return null; // TODO use UF
+    }
   }
 
   /**

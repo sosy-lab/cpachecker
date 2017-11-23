@@ -102,6 +102,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       secure=true)
   private boolean useLocalAccessLocks = true;
 
+  @Option(
+    description =
+        "in case of witness validation we need to check all possible function calls of cloned CFAs.",
+    secure = true
+  )
+  private boolean useAllPossibleClones = false;
+
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
@@ -400,8 +407,33 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
     String functionName = ((CIdExpression) expr2).getName();
-    int newThreadNum = threadingState.getSmallestMissingThreadNum();
 
+    if (useAllPossibleClones) {
+      // for witness validation we need to produce all possible successors,
+      // the witness automaton should then limit their number by checking function-entries..
+      final Collection<ThreadingState> newResults = new ArrayList<>();
+      Set<Integer> usedNumbers = threadingState.getThreadNums();
+      for (int i = ThreadingState.MIN_THREAD_NUM; i < maxNumberOfThreads; i++) {
+        if (!usedNumbers.contains(i)) {
+          newResults.addAll(createThreadWithNumber(threadingState, id, functionName, i, results));
+        }
+      }
+      return newResults;
+
+    } else {
+      // a default reachability analysis can determine the thread-number on its own.
+      int newThreadNum = threadingState.getSmallestMissingThreadNum();
+      return createThreadWithNumber(threadingState, id, functionName, newThreadNum, results);
+    }
+  }
+
+  private Collection<ThreadingState> createThreadWithNumber(
+      final ThreadingState threadingState,
+      CIdExpression id,
+      String functionName,
+      int newThreadNum,
+      final Collection<ThreadingState> results)
+      throws UnrecognizedCodeException, InterruptedException {
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }

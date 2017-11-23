@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -66,6 +69,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
@@ -85,6 +89,16 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
   private final Algorithm innerAlgorithm;
 
   private final Collection<Statistics> stats = new ArrayList<>();
+
+  private final Predicate<? super AbstractState> IS_STOP =
+      (AbstractState e) -> {
+        AssumptionStorageState ass =
+            AbstractStates.extractStateByType(e, AssumptionStorageState.class);
+        if (ass == null) {
+          return false;
+        }
+        return ass.isStop();
+      };
 
   public ResidualProgramConstructionAfterAnalysisAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
       final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
@@ -115,7 +129,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     } catch (InfeasibleCounterexampleException | RefinementFailedException e) {
     }
 
-    if (!pReachedSet.hasWaitingState()) {
+    if (!pReachedSet.hasWaitingState() && !from(pReachedSet).anyMatch(IS_STOP)) {
       logger.log(Level.INFO, "Analysis complete");
       // analysis alone succeeded
       return status;
@@ -135,9 +149,13 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
         try (Writer automatonWriter =
             IO.openOutputFile(assumptionAutomaton, Charset.defaultCharset())) {
-          AssumptionCollectorAlgorithm.writeAutomaton(automatonWriter, argRoot,
-              computeRelevantStates(pReachedSet.getWaitlist()),
-              Sets.newHashSet(pReachedSet.getWaitlist()), 0, true);
+          AssumptionCollectorAlgorithm.writeAutomaton(
+              automatonWriter,
+              argRoot,
+              computeRelevantStates(pReachedSet),
+              Sets.newHashSet(pReachedSet.getWaitlist()),
+              0,
+              true);
         }
       } catch (IOException e1) {
         throw new CPAException(
@@ -155,15 +173,20 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     argRoot = result.getFirst();
 
     Set<ARGState> addPragma;
-    switch (getStrategy()) {
-      case COMBINATION:
-        addPragma = getAllTargetStates(result.getSecond());
-        break;
-      case SLICING:
-        addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
-        break;
-      default: // CONDITION no effect
-        addPragma = null;
+    try {
+      statistic.collectPragmaPointsTimer.stop();
+      switch (getStrategy()) {
+        case COMBINATION:
+          addPragma = getAllTargetStates(result.getSecond());
+          break;
+        case SLICING:
+          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
+          break;
+        default: // CONDITION no effect
+          addPragma = null;
+      }
+    } finally {
+      statistic.collectPragmaPointsTimer.stop();
     }
 
     if(!writeResidualProgram(argRoot, addPragma)) {
@@ -173,12 +196,16 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     return status;
   }
 
-  private Set<ARGState> computeRelevantStates(final Collection<AbstractState> pWaitlist) {
+  private Set<ARGState> computeRelevantStates(final ReachedSet pReachedSet) {
     TreeSet<ARGState> uncoveredAncestors = new TreeSet<>();
     Deque<ARGState> toAdd = new ArrayDeque<>();
 
-    for (AbstractState unexplored : pWaitlist) {
+    for (AbstractState unexplored : pReachedSet.getWaitlist()) {
       toAdd.push((ARGState) unexplored);
+    }
+
+    for (AbstractState stop : from(pReachedSet).filter(IS_STOP)) {
+      toAdd.push((ARGState) stop);
     }
 
     while (!toAdd.isEmpty()) {
@@ -328,7 +355,13 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 
       Algorithm algo = CPAAlgorithm.create(cpa, logger, config, shutdown);
-      algo.run(reached);
+
+      try {
+        statistic.modelBuildTimer.start();
+        algo.run(reached);
+      } finally {
+        statistic.modelBuildTimer.stop();
+      }
 
       if (reached.hasWaitingState()) {
         logger.log(Level.SEVERE, "Analysis run to get structure of residual program is incomplete");

@@ -63,10 +63,10 @@ public class BDDVectorCExpressionVisitor
     extends DefaultCExpressionVisitor<Region[], UnsupportedCCodeException> {
 
   private final MachineModel machineModel;
-  private final PredicateManager predMgr;
-  private final VariableTrackingPrecision precision;
+  protected final PredicateManager predMgr;
+  protected final VariableTrackingPrecision precision;
   protected final BitvectorManager bvmgr;
-  private final CFANode location;
+  protected final CFANode location;
 
   /** This Visitor returns the numeral value for an expression.
    * @param pMachineModel where to get info about types, for casting and overflows
@@ -351,7 +351,7 @@ public class BDDVectorCExpressionVisitor
     return bvmgr.makeNumber(machineModel.getSizeof(pType), machineModel.getSizeofInt());
   }
 
-  private int getSize(CType pType) {
+  protected int getSize(CType pType) {
     return machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
   }
 

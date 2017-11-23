@@ -599,32 +599,27 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           }
 
           @Override
-          public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression)
-              throws UnrecognizedCCodeException {
+          public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression) {
             return LocationSetBot.INSTANCE;
           }
 
           @Override
-          public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-              throws UnrecognizedCCodeException {
+          public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
             return LocationSetBot.INSTANCE;
           }
 
           @Override
-          public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-              throws UnrecognizedCCodeException {
+          public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
             return LocationSetBot.INSTANCE;
           }
 
           @Override
-          public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
-              throws UnrecognizedCCodeException {
+          public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression) {
             return LocationSetBot.INSTANCE;
           }
 
           @Override
-          public LocationSet visit(CTypeIdExpression pIastTypeIdExpression)
-              throws UnrecognizedCCodeException {
+          public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) {
             return LocationSetBot.INSTANCE;
           }
 
@@ -638,8 +633,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           }
 
           @Override
-          public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression)
-              throws UnrecognizedCCodeException {
+          public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression) {
             return LocationSetBot.INSTANCE;
           }
 

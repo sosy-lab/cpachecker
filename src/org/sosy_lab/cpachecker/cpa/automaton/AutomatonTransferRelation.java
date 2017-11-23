@@ -26,28 +26,35 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -85,9 +92,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-                      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
-                      throws CPATransferException {
+  public Collection<AutomatonState> getAbstractSuccessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
 
@@ -98,8 +104,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(top);
     }
 
-    Collection<? extends AbstractState> result =
-        getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge);
+    Collection<AutomatonState> result = getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge);
     automatonSuccessors.setNextValue(result.size());
     return result;
   }
@@ -288,19 +293,65 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return successors;
     }
 
-    if ("WitnessAutomaton".equals(((AutomatonState) pElement).getOwningAutomatonName())) {
+    AutomatonState state = (AutomatonState) pElement;
+    if ("WitnessAutomaton".equals(state.getOwningAutomatonName())) {
       /* In case of concurrent tasks, we need to go two steps:
        * The first step is the createThread edge of the witness.
        * The second step is the enterFunction edge of the witness.
        * As we currently only use one edge in the CFA to do both, we must execute transfer twice.
        */
-      Optional<String> threadFunction =
-          ThreadingTransferRelation.getCreatedThreadFunction(pCfaEdge);
-      if (threadFunction.isPresent()) {
-        return getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
+      if (ThreadingTransferRelation.getCreatedThreadFunction(pCfaEdge).isPresent()) {
+        Iterator<ThreadingState> possibleThreadingState =
+            Iterables.filter(pOtherElements, ThreadingState.class).iterator();
+        if (possibleThreadingState.hasNext()) {
+          return handleThreadCreationForWitnessValidation(
+              pCfaEdge, pPrecision, state, possibleThreadingState.next());
+        }
       }
     }
     return Collections.singleton(pElement);
+  }
+
+  private Collection<? extends AbstractState> handleThreadCreationForWitnessValidation(
+      CFAEdge pthreadCreateEdge,
+      Precision pPrecision,
+      AutomatonState state,
+      ThreadingState threadingState)
+      throws CPATransferException {
+    Collection<AutomatonState> result = new LinkedHashSet<>();
+    for (CFAEdge firstEdgeOfThread : threadingState.getOutgoingEdges()) {
+      if (firstEdgeOfThread.getPredecessor() instanceof FunctionEntryNode
+          && firstEdgeOfThread.getPredecessor().getNumEnteringEdges() == 0) {
+        assert firstEdgeOfThread instanceof BlankEdge
+            : String.format(
+                "unexpected type for edge '%s' of type '%s'",
+                firstEdgeOfThread, firstEdgeOfThread.getClass());
+        // create a complete function call for the new thread.
+        // the new edge must fulfill several requirements, such that the matching succeeds:
+        // - functionStart with correct location (source line, offset) of 'pthreadCreate' edge.
+        // - no match on 'entry of main function'.
+        // The simplest matching edge is a BlankEdge with a special description.
+        CFAEdge dummyCallEdge =
+            new BlankEdge(
+                firstEdgeOfThread.getRawStatement(),
+                pthreadCreateEdge.getFileLocation(),
+                new CFANode(pthreadCreateEdge.getPredecessor().getFunctionName()),
+                firstEdgeOfThread.getSuccessor(),
+                "Function start dummy edge");
+        Collection<AutomatonState> newStates =
+            getAbstractSuccessorsForEdge(state, pPrecision, dummyCallEdge);
+
+        // Assumption: "Every thread creation is directly followed by a function entry."
+        // The witness automaton checks function names of CFA clones, thus the next line
+        // cuts off all non-matching threads and limits the state space for the validation.
+        newStates = Collections2.filter(newStates, s -> !state.equals(s));
+
+        result.addAll(newStates);
+      } else {
+        result.add(state);
+      }
+    }
+    return result;
   }
 
   /**

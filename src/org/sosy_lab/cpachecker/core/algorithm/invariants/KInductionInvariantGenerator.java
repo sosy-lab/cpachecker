@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -348,16 +347,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             stats,
             statisticsCandidateGenerator,
             pAggregatedReachedSets);
-
-    PredicateCPA predicateCPA =
-        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, KInductionInvariantGenerator.class);
-    String solverVersion = predicateCPA.getSolver().getVersion().toLowerCase();
-    if (async && !(solverVersion.contains("smtinterpol")
-        || solverVersion.contains("z3"))) {
-      throw new InvalidConfigurationException(
-          "Only SMTInterpol and Z3 are known to support concurrent execution "
-              + "at this time.");
-    }
   }
 
   @Override
@@ -693,12 +682,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(
-          new ExpressionTreeLocationInvariant(
-              expressionTreeLocationInvariant.getGroupId(),
-              expressionTreeLocationInvariant.getLocation(),
-              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-              toCodeVisitorCache));
+      for (CFANode location :
+          candidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        candidates.add(
+            new ExpressionTreeLocationInvariant(
+                expressionTreeLocationInvariant.getGroupId(),
+                location,
+                expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+                toCodeVisitorCache));
+      }
     }
   }
 

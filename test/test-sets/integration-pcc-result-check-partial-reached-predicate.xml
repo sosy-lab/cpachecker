@@ -22,7 +22,9 @@
     <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/ssh/*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call_false-termination.cil.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclsss>../programs/benchmarks/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</exclude> <!-- flapping timeout / error -->
   </tasks>
   
   <!-- need to test if these work at all -->
@@ -87,7 +89,18 @@
     <!-- only tasks which fulfill property -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/*_false-unreach-call*.c</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--i2c--busses--i2c-diolan-u2c_false-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--common--tuners--mxl5007t.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--common--tuners--tda9887.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--cxd2820r.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--dib3000mc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--rtl2830_false-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--video--gspca--gspca_stv0680.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--mtd--inftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / error -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--mtd--mtdblock.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--net--phy--broadcom.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--serial--iuu_phoenix.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--regulator--wm831x-dcdc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
 
   <columns>

@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -59,16 +60,21 @@ import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -134,7 +140,6 @@ public class AutomatonGraphmlCommon {
     THREADNAME("threadName", ElementType.EDGE, "threadName", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     CREATETHREAD("createThread", ElementType.EDGE, "createThread", "string"),
-    DESTROYTHREAD("destroyThread", ElementType.EDGE, "destroyThread", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
@@ -416,9 +421,6 @@ public class AutomatonGraphmlCommon {
       Element result = createElement(GraphMLTag.NODE);
       result.setAttribute("id", nodeId);
 
-      // add a printable label that for example is shown in yEd
-      addDataElementChild(result, KeyDef.LABEL, nodeId);
-
       if (nodeType != defaultNodeType) {
         addDataElementChild(result, KeyDef.NODETYPE, nodeType.toString());
       }
@@ -514,31 +516,12 @@ public class AutomatonGraphmlCommon {
         if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
-        CFANode successor = edge.getSuccessor();
-        Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
-        if (!leavingEdges.hasNext()) {
-          return false;
+        if (isSplitDeclaration(edge)) {
+          return true;
         }
-        CFAEdge successorEdge = leavingEdges.next();
-        if (leavingEdges.hasNext()) {
-          return false;
-        }
-        if (successorEdge instanceof AStatementEdge) {
-          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-          if (statementEdge.getFileLocation().equals(edge.getFileLocation())
-              && statementEdge.getStatement() instanceof AAssignment) {
-            AAssignment assignment = (AAssignment) statementEdge.getStatement();
-            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-            if (leftHandSide instanceof AIdExpression) {
-              AIdExpression lhs = (AIdExpression) leftHandSide;
-              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
       }
+    } else if (isSplitAssumption(edge)) {
+      return true;
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
       return true;
     }
@@ -579,7 +562,8 @@ public class AutomatonGraphmlCommon {
     if (handleAsEpsilonEdge(pEdge)) {
       return Collections.emptySet();
     }
-    if (isMainFunctionEntry(pEdge)) {
+    if (isMainFunctionEntry(pEdge)
+        && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
       if (!FileLocation.DUMMY.equals(location)) {
         location = new FileLocation(
@@ -592,7 +576,11 @@ public class AutomatonGraphmlCommon {
             location.getStartingLineInOrigin(),
             location.getStartingLineInOrigin());
       }
-      return Collections.singleton(location);
+      Set<FileLocation> result = Sets.newHashSet(location);
+      for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {
+        result.add(param.getFileLocation());
+      }
+      return result;
     }
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
@@ -758,4 +746,70 @@ public class AutomatonGraphmlCommon {
 
   }
 
+  /**
+   * Checks if the given edge is a variable declaration edge without initializer that has the same
+   * file location as its sole successor edge, which in turn provides the initialization of the
+   * declared variable.
+   *
+   * <p>Basically, this detects the first part of declarations with initializers that we split
+   * during CFA construction.
+   *
+   * @param pEdge the edge to check.
+   * @return {@code true} if the edge is part of a split declaration, {@code false} otherwise.
+   */
+  public static boolean isSplitDeclaration(CFAEdge pEdge) {
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declEdge = (ADeclarationEdge) pEdge;
+      ADeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof AFunctionDeclaration) {
+        return false;
+      } else if (decl instanceof CTypeDeclaration) {
+        return false;
+      } else if (decl instanceof AVariableDeclaration) {
+        AVariableDeclaration varDecl = (AVariableDeclaration) decl;
+        CFANode successor = pEdge.getSuccessor();
+        Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
+        if (!leavingEdges.hasNext()) {
+          return false;
+        }
+        CFAEdge successorEdge = leavingEdges.next();
+        if (leavingEdges.hasNext()) {
+          CFAEdge alternativeSuccessorEdge = leavingEdges.next();
+          if (leavingEdges.hasNext()) {
+            return false;
+          } else if (successorEdge instanceof FunctionCallEdge
+              && alternativeSuccessorEdge instanceof CFunctionSummaryStatementEdge) {
+            successorEdge = alternativeSuccessorEdge;
+          } else if (successorEdge instanceof CFunctionSummaryStatementEdge
+              && alternativeSuccessorEdge instanceof FunctionCallEdge) {
+            // nothing to do
+          } else {
+            return false;
+          }
+        }
+        if (successorEdge instanceof AStatementEdge) {
+          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+          if (statementEdge.getFileLocation().equals(pEdge.getFileLocation())
+              && statementEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) statementEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            if (leftHandSide instanceof AIdExpression) {
+              AIdExpression lhs = (AIdExpression) leftHandSide;
+              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private static boolean isSplitAssumption(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    return ((AssumeEdge) pEdge).isArtificialIntermediate();
+  }
 }

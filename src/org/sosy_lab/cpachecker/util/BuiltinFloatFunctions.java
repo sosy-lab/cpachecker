@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class provides methods for checking whether a function is a specific builtin
@@ -468,4 +469,25 @@ public class BuiltinFloatFunctions {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY);
   }
 
+  /**
+   * In some case we have a type and need to invoke the appropriate trunc-function for it.<br>
+   * This method is used to derive the name of that trunc-function and throws an <code>
+   * AssertionError</code> if an unsupported type is asked for.
+   *
+   * @param pReturnType the wanted return type for the used trunc-function
+   * @return the name of the appropriately typed trunc-function
+   */
+  public static String getAppropriateTruncName(CType pReturnType) {
+    if (pReturnType == CNumericTypes.DOUBLE) {
+      return TRUNC.get(1);
+    }
+    if (pReturnType == CNumericTypes.FLOAT) {
+      return TRUNC_FLOAT.get(1);
+    }
+    if (pReturnType == CNumericTypes.LONG_DOUBLE) {
+      return TRUNC_LONG_DOUBLE.get(1);
+    }
+    throw new AssertionError(
+        "There is no built-in function 'trunc' with the parameter- or return-type " + pReturnType);
+  }
 }

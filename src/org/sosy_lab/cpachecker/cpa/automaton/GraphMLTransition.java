@@ -51,8 +51,6 @@ class GraphMLTransition {
 
   private final Optional<AutomatonAction> threadAssignment;
 
-  private final Optional<GraphMLThread> destroyedThread;
-
   private final Set<String> assumptions;
 
   private final Optional<String> explicitAssumptionScope;
@@ -71,7 +69,6 @@ class GraphMLTransition {
       AutomatonBoolExpr pAssumeCaseMatcher,
       GraphMLThread pThread,
       Optional<AutomatonAction> pThreadAssignment,
-      Optional<GraphMLThread> pDestroyedThread,
       Set<String> pAssumptions,
       Optional<String> pExplicitAssumptionScope,
       Optional<String> pAssumptionResultFunction,
@@ -85,7 +82,6 @@ class GraphMLTransition {
     assumeCaseMatcher = Objects.requireNonNull(pAssumeCaseMatcher);
     thread = Objects.requireNonNull(pThread);
     threadAssignment = Objects.requireNonNull(pThreadAssignment);
-    destroyedThread = Objects.requireNonNull(pDestroyedThread);
     assumptions = ImmutableSet.copyOf(pAssumptions);
     explicitAssumptionScope = Objects.requireNonNull(pExplicitAssumptionScope);
     explicitAssumptionResultFunction = Objects.requireNonNull(pAssumptionResultFunction);
@@ -106,7 +102,6 @@ class GraphMLTransition {
           && getAssumeCaseMatcher().equals(other.getAssumeCaseMatcher())
           && getThread().equals(other.getThread())
           && getThreadAssignment().equals(other.getThreadAssignment())
-          && getDestroyedThread().equals(other.getDestroyedThread())
           && getAssumptions().equals(other.getAssumptions())
           && getExplicitAssumptionScope().equals(other.getExplicitAssumptionScope())
           && getExplicitAssumptionResultFunction()
@@ -128,7 +123,6 @@ class GraphMLTransition {
         getAssumeCaseMatcher(),
         getThread(),
         getThreadAssignment(),
-        getDestroyedThread(),
         getAssumptions(),
         getExplicitAssumptionScope(),
         getExplicitAssumptionResultFunction(),
@@ -174,10 +168,6 @@ class GraphMLTransition {
 
   public Optional<AutomatonAction> getThreadAssignment() {
     return threadAssignment;
-  }
-
-  public Optional<GraphMLThread> getDestroyedThread() {
-    return destroyedThread;
   }
 
   public Set<String> getAssumptions() {
