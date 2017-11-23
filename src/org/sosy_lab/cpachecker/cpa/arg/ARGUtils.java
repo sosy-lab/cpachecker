@@ -1300,7 +1300,9 @@ public class ARGUtils {
     if (states.stream().allMatch(s -> s.getParents().stream().allMatch(p -> states.contains(p)))) {
       CFAPathWithAssumptions assignments =
           CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
-      return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments));
+      if (!assignments.isEmpty()) {
+        return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments));
+      }
     }
     return Optional.of(CounterexampleInfo.feasibleImprecise(path));
   }
