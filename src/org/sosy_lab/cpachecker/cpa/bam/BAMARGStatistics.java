@@ -101,11 +101,17 @@ public class BAMARGStatistics extends ARGStatistics {
         && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s)));
 
     if (targets.isEmpty()) {
-      logger.log(
-          Level.INFO,
-          "could not compute full reached set graph (missing block), "
-              + "some output or statistics might be missing");
-      return; // invalid ARG, ignore output.
+      if (pResult.equals(Result.FALSE)) {
+        logger.log(
+            Level.INFO,
+            "could not compute full reached set graph (missing block), "
+                + "some output or statistics might be missing");
+        // invalid ARG, ignore output.
+      } else if (pResult.equals(Result.TRUE)) {
+        // In case of TRUE verdict we do not need a target to print super statistics
+        super.printStatistics(pOut, pResult, pReached);
+      }
+      return;
     }
 
     // assertion disabled, because it happens with BAM-parallel (reason unknown).
