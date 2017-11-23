@@ -461,7 +461,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter statWriter = StatisticsWriter.writingStatisticsTo(pOut);
 
-      statWriter.put("Time for residual program model construction", modelBuildTimer.getSumTime());
+      statWriter.put("Time for residual program model construction", modelBuildTimer);
       if (getStrategy() == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
         statWriter = statWriter.beginLevel();
         statWriter.put("Time for folding", foldTimer);
