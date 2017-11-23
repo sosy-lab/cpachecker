@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 public class RandomProvider {
 
   private static RandomProvider provider = new RandomProvider();
+  private static boolean initialized = false;
 
   @Option(name="seed", description="Random seed to use. Uses a random number if null is given",
       secure=true)
@@ -66,7 +67,10 @@ public class RandomProvider {
   /** This method allows initialization more than once. For use in tests only! */
   public static void initializeForTesting(Configuration pConfig)
       throws InvalidConfigurationException {
+    Preconditions.checkState(!initialized,
+        RandomProvider.class.getSimpleName() + " already initialized");
     provider = new RandomProvider(pConfig);
+    initialized = true;
   }
 
   public static Random get() {
