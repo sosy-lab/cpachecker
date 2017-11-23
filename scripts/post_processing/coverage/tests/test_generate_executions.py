@@ -25,7 +25,7 @@ class TestCoverage(unittest.TestCase):
         script_path, os.pardir, os.pardir, os.pardir, os.pardir)
     default_spec = os.path.join(
         cpachecker_root, 'config', 'specification', 'ErrorLabel.spc')
-    default_timelimit = 10
+    default_timelimit = 20
     temp_folder = os.path.join(script_path, 'temp_folder')
 
     def setUp(self):
@@ -524,7 +524,7 @@ class TestCoverageIntegrationCexCountOptional(TestCoverage):
             '-assumption_automaton_file', aa_file,
             '-cex_dir', non_existent_dir,
             '-spec', self.default_spec,
-            '-timelimit', str(30),
+            '-timelimit', str(900),
             '-generator_type', 'fixpoint',
             instance
         ]]
@@ -561,7 +561,7 @@ class TestCoverageIntegrationTimeout(TestCoverage):
         instance = os.path.join(self.aux_root, 'loop_many_paths.c')
         aa_file = os.path.join(self.aux_root, 'true_aa.spc')
         non_existent_dir = self.temp_folder
-        timelimit = 10
+        timelimit = 20
         argv = [ str(x) for x in [
             '-assumption_automaton_file', aa_file,
             '-cex_dir', non_existent_dir,
