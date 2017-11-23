@@ -487,32 +487,53 @@ class TestCoverageIntegrationFixPoint(TestCoverage):
 class TestOutputParsingNoBugFound(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: FALSE. Property violation (Found covering test case) found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
+            mock_error.assert_never_called()
         self.assertFalse(cpachecker_result.found_bug())
         self.assertTrue(cpachecker_result.found_property_violation())
 
 class TestOutputParsingFoundBug(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: FALSE. Property violation (Found covering test case, some error in line 4) found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
+            mock_error.assert_never_called()
         self.assertTrue(cpachecker_result.found_bug())
         self.assertTrue(cpachecker_result.found_property_violation())
 
 class TestOutputParsingWithoutPropertyViolation(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: TRUE. No property violation found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
+            mock_error.assert_never_called()
         self.assertFalse(cpachecker_result.found_property_violation())
 
 class TestOutputParsingExceptionThrown(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: TRUE. No property violation found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
+            mock_error.assert_never_called()
         try:
             cpachecker_result.found_bug()
             self.fail()
         except:
             pass
+
+class TestOutputParsingIncompleteOutput(unittest.TestCase):
+    output = """Output ending prematurely... (result cannot be parsed)"""
+    def test(self):
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            mock_error.assert_called_with("Failed to parse CPAchecker output.")
+        self.assertFalse(cpachecker_result.found_property_violation())
 
 class TestCoverageIntegrationCexCountOptional(TestCoverage):
     def test(self):

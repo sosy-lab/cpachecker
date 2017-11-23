@@ -189,19 +189,21 @@ class NoPropertyViolationFound():
     def found_bug(self):
         raise Exception('This method should not have been called')
 
-def parse_result(output):
+def parse_result(output, logger):
     pattern = r'Verification result: [^(]*\((?P<message>[^)]*)\).*'
     result_pattern = r'Verification result: (?P<result>.*)'
     m_result = re.search(pattern=result_pattern, string=str(output))
     m = re.search(pattern=pattern, string=str(output))
     if not m_result:
-        raise Exception("Failed to parse CPAchecker output.")
+        logger.error("Failed to parse CPAchecker output.")
+        return NoPropertyViolationFound()
     if (m_result.group('result').startswith('TRUE') or
         m_result.group('result').startswith('UNKNOWN')):
         return NoPropertyViolationFound()
     else:
         if not m:
-            raise Exception("Failed to parse CPAchecker output.")
+            logger.error("Failed to parse CPAchecker output.")
+            return NoPropertyViolationFound()
         if m.group('message') == coverage_test_case_message:
             return OnlyGeneratedSuccessfulExecutions()
         else:
@@ -450,7 +452,7 @@ class FixPointOnCoveredLines(ComputeCoverage):
             msg = 'Generated ' + str(len(specs_generated)) + ' executions.'
             self.logger.info(msg)
 
-            cpachecker_result = parse_result(output)
+            cpachecker_result = parse_result(output, self.logger)
             # sanity check
             assert (cpachecker_result.found_property_violation() or
                     len(specs_generated) == 0)
@@ -549,7 +551,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
         msg = 'Generated ' + str(cex_generated) + ' executions.'
         self.logger.info(msg)
 
-        cpachecker_result = parse_result(output)
+        cpachecker_result = parse_result(output, self.logger)
         # sanity check
         assert (cpachecker_result.found_property_violation() or
                 cex_generated == 0)
