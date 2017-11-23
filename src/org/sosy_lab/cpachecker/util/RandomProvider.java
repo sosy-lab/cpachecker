@@ -64,15 +64,6 @@ public class RandomProvider {
     provider = new RandomProvider(pConfig);
   }
 
-  /** This method allows initialization more than once. For use in tests only! */
-  public static void initializeForTesting(Configuration pConfig)
-      throws InvalidConfigurationException {
-    Preconditions.checkState(!initialized,
-        RandomProvider.class.getSimpleName() + " already initialized");
-    provider = new RandomProvider(pConfig);
-    initialized = true;
-  }
-
   public static Random get() {
     Preconditions.checkState(provider != null,
         RandomProvider.class.getSimpleName() + " not initialized");

@@ -42,7 +42,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.test.BasicTestWithCPA;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -51,7 +50,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
  * Integration testing for Slicing Abstractions.
  */
 @RunWith(Parameterized.class)
-public class SlicingAbstractionsTest extends BasicTestWithCPA {
+public class SlicingAbstractionsTest {
 
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";

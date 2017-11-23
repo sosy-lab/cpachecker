@@ -13,13 +13,12 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
-import org.sosy_lab.cpachecker.util.test.BasicTestWithCPA;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
-public class FormulaSlicingTest extends BasicTestWithCPA {
+public class FormulaSlicingTest {
 
   @Parameters(name="{0}")
   public static Object[] getWeakeningStrategies() {
