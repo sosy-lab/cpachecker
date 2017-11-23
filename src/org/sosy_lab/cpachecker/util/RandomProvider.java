@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Options;
 public class RandomProvider {
 
   private static RandomProvider provider = new RandomProvider();
-  private static boolean initialized = false;
 
   @Option(name="seed", description="Random seed to use. Uses a random number if null is given",
       secure=true)
