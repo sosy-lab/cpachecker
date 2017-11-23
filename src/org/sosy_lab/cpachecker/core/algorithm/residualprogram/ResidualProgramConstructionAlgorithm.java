@@ -464,17 +464,16 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       statWriter.put("Time for residual program model construction", modelBuildTimer.getSumTime());
       if (getStrategy() == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
         statWriter = statWriter.beginLevel();
-        statWriter.put("Time for folding", foldTimer.getSumTime());
+        statWriter.put("Time for folding", foldTimer);
         statWriter = statWriter.endLevel();
       }
 
       if (getStrategy() == ResidualGenStrategy.SLICING
           || getStrategy() == ResidualGenStrategy.COMBINATION) {
-        statWriter.put(
-            "Time for identifying pragma locations", collectPragmaPointsTimer.getSumTime());
+        statWriter.put("Time for identifying pragma locations", collectPragmaPointsTimer);
       }
 
-      statWriter.put("Time for C translation", translationTimer.getSumTime());
+      statWriter.put("Time for C translation", translationTimer);
 
       if (collectResidualProgramSizeStatistics) {
         int residProgSize = getResidualProgramSizeInLocations(pReached.getFirstState());
