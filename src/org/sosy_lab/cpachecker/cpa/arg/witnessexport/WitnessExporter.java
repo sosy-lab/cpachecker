@@ -225,8 +225,7 @@ public class WitnessExporter {
                         e -> {
                           for (String name : fmgr.extractVariableNames(e)) {
                             if (name.contains(FUNCTION_DELIMITER)
-                                && !name.startsWith(prefix)
-                                && !name.equals("main")) {
+                                && !name.startsWith(prefix)) {
                               return false;
                             }
                           }
