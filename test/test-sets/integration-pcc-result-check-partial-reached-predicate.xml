@@ -24,7 +24,7 @@
     <exclude>../programs/benchmarks/ssh/*</exclude>
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call_false-termination.cil.c</exclude> <!-- flapping timeout / wrong result -->
     <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclsss>../programs/benchmarks/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</exclude> <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</exclude> <!-- flapping timeout / error -->
   </tasks>
   
   <!-- need to test if these work at all -->
