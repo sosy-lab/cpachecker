@@ -60,7 +60,6 @@ public class RandomProvider {
   }
 
   public static void initialize(Configuration pConfig) throws InvalidConfigurationException {
-    Preconditions.checkState(provider == null);
     provider = new RandomProvider(pConfig);
   }
 
