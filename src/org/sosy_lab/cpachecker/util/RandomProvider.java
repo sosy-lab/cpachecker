@@ -33,13 +33,18 @@ import org.sosy_lab.common.configuration.Options;
 @Options(prefix="random")
 public class RandomProvider {
 
-  private static RandomProvider provider;
+  private static RandomProvider provider = new RandomProvider();
 
   @Option(name="seed", description="Random seed to use. Uses a random number if null is given",
       secure=true)
   private Long randomSeed = null;
 
   private Random random;
+
+  private RandomProvider() {
+    randomSeed = 42L;
+    random = new Random(randomSeed);
+  }
 
   private RandomProvider(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
