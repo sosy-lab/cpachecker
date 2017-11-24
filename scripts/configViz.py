@@ -30,8 +30,9 @@ import re
 import sys
 
 
-def warn(msg):
-    print("WARNING: " + msg, file=sys.stderr)
+def log(msg, level=1):
+    if level <= logLevel:
+      print("WARNING: " + msg, file=sys.stderr)
 
 
 class Node:
@@ -87,16 +88,19 @@ def getFilenamesFromLine(line):
 
 def collectChildren(filename):
   children = set()
-  for line in open(filename,"r"):
-    # TODO multiline statements?
-    if not line.startswith(('#','//')) and line.rstrip() != line and line.rstrip() != line[:-1]:
-      warn("trailing whitespace in config '%s' in line '%s'" % (filename, line.strip()))
-    for child in getFilenamesFromLine(line):
-      child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
-      if os.path.exists(child):
-        children.add(child)
-      else:
-        warn("file '%s' referenced in '%s' does not exists" % (child, filename))
+  try:
+    for line in open(filename,"r"):
+      # TODO multiline statements?
+      if not line.startswith(('#','//')) and line.rstrip() != line and line.rstrip() != line[:-1]:
+        log("trailing whitespace in config '%s' in line '%s'" % (filename, line.strip()), level=2)
+      for child in getFilenamesFromLine(line):
+        child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
+        if os.path.exists(child):
+          children.add(child)
+        else:
+          log("file '%s' referenced in '%s' does not exists" % (child, filename))
+  except UnicodeDecodeError:
+    log("Cannot read file '%s'" % filename, level=3)
   return children
 
 
@@ -120,10 +124,14 @@ def writeDot(nodes, out):
     relFilename = normPath(filename)
 
     if os.path.isfile(filename):
-      content = re.sub("\n", "&#10;", open(filename,"r").read())
+      content = ""
+      try:
+        content = re.sub("\n", "&#10;", open(filename,"r").read())
+      except UnicodeDecodeError:
+        log("Cannot read file '%s'" % filename, level=3)
       content = re.sub('"','\\"', content)
     else:
-      warn("File does not exist: '%s'" % (filename))
+      log("File does not exist: '%s'" % (filename))
 
     if os.path.splitext(filename)[1] == ".properties":
       out.write('"%s"[tooltip = "%s"];\n' % (relFilename, content))
@@ -161,18 +169,20 @@ Examples:
     python3 scripts/configViz.py --root config/predicateAnalysis.properties --depend config/predicateAnalysis.properties > graph.dot
     """)
     parser.add_argument("--dir", metavar="DIRECTORY", default='config/',
-        help = "directory where the configuration files reside")
+        help="directory where the configuration files reside")
     parser.add_argument("--root", metavar="ROOT", default=None,
-        help = "configuration file for which a graph should be generated. " +
+        help="configuration file for which a graph should be generated. " +
             "When specified, only files included (directly or indirectely) from this file are shown")
     parser.add_argument("--depend", metavar="DEPEND", default=None,
-        help = "configuration file for which a graph should be generated. " +
+        help="configuration file for which a graph should be generated. " +
             "When specified, only files depending (directly or indirectely) on this file are shown")
     parser.add_argument("--filter", metavar="FILTER", default=None,
-        help = "String to filter nodes. " +
+        help="String to filter nodes. " +
             "When specified, only matching nodes are shown")
     parser.add_argument("--ranksep", metavar="NUM", default=3,
-        help = "ranksep to use in the graphviz output file")
+        help="ranksep to use in the graphviz output file")
+    parser.add_argument("--logLevel", metavar="LEVEL", default=1,
+        help="a higher value enables more warnings, 0 is OFF")
     return parser.parse_args()
 
 
@@ -199,12 +209,16 @@ def getNodes(configDirectory):
 
 if __name__ == "__main__":
   args = parseArgs()
+
+  global logLevel
+  logLevel = int(args.logLevel)
+
   nodes = getNodes(args.dir)
 
   nodesFromRoot = {}
   if args.root != None:
     if args.root not in nodes:
-      warn("Root file '%s' not found." % args.root)
+      log("Root file '%s' not found." % args.root)
     else:
       children = getTransitiveChildren(args.root, nodes)
       nodesFromRoot = dict((k,v) for k,v in nodes.items() if k in children)
@@ -212,7 +226,7 @@ if __name__ == "__main__":
   nodesFromDepend = {}
   if args.depend != None:
     if args.depend not in nodes:
-      warn("Depend file '%s' not found." % args.depend)
+      log("Depend file '%s' not found." % args.depend)
     else:
       parents = getTransitiveParents(args.depend, nodes)
       nodesFromDepend = dict((k,v) for k,v in nodes.items() if k in parents)
