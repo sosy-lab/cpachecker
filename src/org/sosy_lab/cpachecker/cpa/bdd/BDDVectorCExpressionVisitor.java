@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -266,6 +267,16 @@ public class BDDVectorCExpressionVisitor
   @Override
   public Region[] visit(CCharLiteralExpression pE) {
     return bvmgr.makeNumber(pE.getCharacter(), getSize(pE.getExpressionType()));
+  }
+
+  @Override
+  public Region[] visit(CFieldReference pE) {
+    String name = BDDTransferRelation.getCanonicalName(pE);
+    if (name == null) {
+      return visitDefault(pE);
+    }
+    return predMgr.createPredicate(
+        name, pE.getExpressionType(), location, getSize(pE.getExpressionType()), precision);
   }
 
   @Override
