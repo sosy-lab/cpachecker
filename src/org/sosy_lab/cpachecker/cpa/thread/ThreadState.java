@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreate
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -45,11 +46,12 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 
-public class ThreadState implements AbstractState, AbstractStateWithLocation, Partitionable,
+public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractStateWithLocation, Partitionable,
     AbstractWrapperState, UsageTreeNode {
 
   public static class ThreadStateBuilder {
@@ -293,5 +295,17 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
   @Override
   public boolean hasEmptyLockSet() {
     return true;
+  }
+
+  @Override
+  public ThreadState join(ThreadState pOther) {
+    Preconditions.checkArgument(false, "Join of Thread states is not supported");
+    return null;
+  }
+
+  @Override
+  public boolean isLessOrEqual(ThreadState pOther) throws CPAException, InterruptedException {
+    return Objects.equals(removedSet, pOther.removedSet)
+        && pOther.threadSet.containsAll(threadSet);
   }
 }
