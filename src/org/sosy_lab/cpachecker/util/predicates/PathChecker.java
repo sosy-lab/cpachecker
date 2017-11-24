@@ -39,15 +39,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -291,6 +295,7 @@ public class PathChecker {
     PathIterator pathIt = pPath.fullPathIterator();
 
     while (pathIt.hasNext()) {
+      pathFormula = handlePreconditionAssumptions(pathFormula, pathIt.getNextAbstractState());
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
 
@@ -299,6 +304,21 @@ public class PathChecker {
     }
 
     return Pair.of(pathFormula, ssaMaps);
+  }
+
+  private PathFormula handlePreconditionAssumptions(PathFormula pathFormula, ARGState nextState)
+      throws CPATransferException, InterruptedException {
+    if (nextState != null) {
+      AbstractStateWithAssumptions assumptionState =
+          AbstractStates.extractStateByType(nextState, AbstractStateWithAssumptions.class);
+      if (assumptionState != null) {
+        for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
+          assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
+          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+        }
+      }
+    }
+    return pathFormula;
   }
 
   private List<ValueAssignment> getModel(ProverEnvironment thmProver) {

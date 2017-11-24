@@ -284,6 +284,11 @@ analysis.traversal.byAutomatonVariable = no default value
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, RAND, RANDOM_PATH]
 
+# Exponent of random function.This value influences the probability
+# distribution over the waitlist elementswhen choosing the next element.Has
+# to be a double in the range [0, INF)
+analysis.traversal.random.exponent = 1
+
 # handle abstract states with more automaton matches first? (only if
 # AutomatonCPA enabled)
 analysis.traversal.useAutomatonInformation = false
@@ -317,6 +322,9 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# perform a weighted random selection based on the branching depth
+analysis.traversal.weightedDepth = false
 
 # After an incomplete analysis constructs a residual program which contains
 # all program paths which are not fully explored
@@ -2908,6 +2916,9 @@ precision.variableBlacklist = ""
 # this precision
 precision.variableWhitelist = ""
 
+# Random seed to use. Uses a random number if null is given
+random.seed = no default value
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -2951,7 +2962,7 @@ residualprogram.folderType = CFA
   enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
 
 # Collect statistical data about size of residual program
-residualprogram.statistics = false
+residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION

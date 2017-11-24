@@ -340,7 +340,7 @@ public abstract class ConditionFolder {
       loopMap.put(cfa.getMainFunction(), null);
       List<Loop> loopStack, succLoopStack;
       CFANode node;
-      Loop l;
+      Loop l, lsucc;
 
       while (!toVisit.isEmpty()) {
         node = toVisit.peek().getFirst();
@@ -356,39 +356,41 @@ public abstract class ConditionFolder {
             continue;
           }
 
+          succLoopStack = loopStack;
+          lsucc = l;
+
           if (edge instanceof CFunctionReturnEdge) {
             continue; // successor treated by FunctionSummaryEdge
           }
 
           if (edge instanceof CFunctionCallEdge) {
-            l = null;
+            lsucc = null;
             succLoopStack = Collections.emptyList();
           }
 
-          succLoopStack = loopStack;
-          while (l != null && l.getOutgoingEdges().contains(edge)) {
+          while (lsucc != null && lsucc.getOutgoingEdges().contains(edge)) {
             // leave edge
             succLoopStack = new ArrayList<>(succLoopStack);
             succLoopStack.remove(succLoopStack.size() - 1);
             if (succLoopStack.isEmpty()) {
-              l = null;
+              lsucc = null;
             } else {
-              l = succLoopStack.get(succLoopStack.size() - 1);
+              lsucc = succLoopStack.get(succLoopStack.size() - 1);
             }
           }
 
           if (cfa.getAllLoopHeads().get().contains(edge.getSuccessor())) {
             Set<Loop> loop = cfa.getLoopStructure().get().getLoopsForLoopHead(edge.getSuccessor());
             assert (loop.size() >= 1);
-            l = loop.iterator().next();
+            lsucc = loop.iterator().next();
 
             if (succLoopStack == loopStack) {
               succLoopStack = new ArrayList<>(succLoopStack);
             }
-            succLoopStack.add(l);
+            succLoopStack.add(lsucc);
           }
 
-          loopMap.put(edge.getSuccessor(), l);
+          loopMap.put(edge.getSuccessor(), lsucc);
           toVisit.push(Pair.of(edge.getSuccessor(), succLoopStack));
         }
       }
@@ -459,6 +461,7 @@ public abstract class ConditionFolder {
             if (loopHeads.contains(locChild)
                 && loopContextToFoldedARGState.containsKey(loopContextChild)) {
               foldedNode = loopContextToFoldedARGState.get(loopContextChild);
+              assert (locChild == AbstractStates.extractLocation(foldedNode));
             } else {
               foldedNode = null;
               newState = oldARGToFoldedState.get(oldState);
@@ -518,9 +521,14 @@ public abstract class ConditionFolder {
 
     private String extendLoopContext(final CFAEdge pEdge, final String pLoopContext) {
       String newLoopContext = pLoopContext;
-      // leave loop, finish iteration
-      if ((leaveLoop(pEdge) || startNewLoopIteation(pEdge)) && newLoopContext.contains("|")) {
+      // leave loop
+      if (leaveLoop(pEdge) && newLoopContext.contains("|")) {
         newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|"));
+      }
+
+      // next loop iteration
+      if (startNewLoopIteation(pEdge) && newLoopContext.contains("|")) {
+        newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|") + 1);
       }
 
       if (pEdge instanceof FunctionReturnEdge && newLoopContext.contains("/")) {
@@ -549,9 +557,12 @@ public abstract class ConditionFolder {
     }
 
     private boolean leaveLoop(final CFAEdge pEdge) {
-      return !(pEdge instanceof CFunctionCallEdge)
+      Loop l = loopMap.get(pEdge.getPredecessor());
+      return l != null
+          && !(pEdge instanceof CFunctionCallEdge)
           && !(pEdge instanceof CFunctionReturnEdge)
-          && loopMap.get(pEdge.getPredecessor()) != loopMap.get(pEdge.getSuccessor());
+          && l != loopMap.get(pEdge.getSuccessor())
+          && !l.getLoopNodes().contains(pEdge.getSuccessor());
     }
 
     private boolean startNewLoopIteation(final CFAEdge pEdge) {

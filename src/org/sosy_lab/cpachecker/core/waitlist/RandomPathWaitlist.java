@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.RandomProvider;
 
 /**
  * Waitlist that implements DFS behavior with random selection of branching path.
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @SuppressWarnings("JdkObsolete")
 public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
-  private final Random rand = new Random();
+  private final Random rand = RandomProvider.get();
   private int successorsOfParent;
   private @Nullable CFANode parent;
 

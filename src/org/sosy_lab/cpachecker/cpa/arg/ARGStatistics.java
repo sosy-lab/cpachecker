@@ -32,6 +32,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -204,7 +205,12 @@ public class ARGStatistics implements Statistics {
       return;
     }
 
-    final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
+    Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
+    final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
+        Maps.filterValues(counterexamples, cex -> cex.isPreciseCounterExample());
+    if (!preciseCounterexamples.isEmpty()) {
+      counterexamples = preciseCounterexamples;
+    }
 
     if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {

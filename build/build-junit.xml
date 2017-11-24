@@ -10,6 +10,9 @@
     <!-- Can be overridden from including file. -->
     <property name="junit.dir" value="junit"/>
 
+    <!-- Can be overridden from including file. -->
+    <property name="configuration-unit.dir" value="configuration-unit"/>
+
     <!-- Define property that contains the Ant version for getting the matching ant-junit version. -->
     <antversion property="ant.version.exact"/>
 
@@ -26,7 +29,7 @@
                  classpath="${ivy.jar.dir}/ant-junit.jar:${ivy.jar.dir}/ant-junit4.jar"/>
     </target>
 
-    <target name="init-unit-tests">
+    <target name="init-java-unit-tests">
         <!-- Provide default classpath if none is specified. -->
         <path id="classpath.junit">
             <path refid="classpath"/>
@@ -35,7 +38,9 @@
         <mkdir dir="${junit.dir}"/>
     </target>
 
-    <target name="unit-tests" depends="build, load-junit, init-unit-tests" description="Run all JUnit tests">
+    <target name="unit-tests" depends="java-unit-tests, configuration-unit-tests" description="Run all unit tests"/>
+
+    <target name="java-unit-tests" depends="build, load-junit, init-java-unit-tests" description="Run Java unit tests">
         <delete dir="{junit.dir}"/>
         <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="1000000">
             <assertions><enable/></assertions>
@@ -45,6 +50,7 @@
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
                     <exclude name="**/*$*Test.*"/>
+                    <exclude name="org/sosy_lab/cpachecker/cmdline/ConfigurationFilesTest.*"/>
                 </fileset>
             </batchtest>
         </junit>
@@ -56,13 +62,43 @@
         <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
     </target>
 
+    <target name="init-configuration-unit-tests">
+        <!-- Provide default classpath if none is specified. -->
+        <path id="classpath.junit">
+            <path refid="classpath"/>
+        </path>
+
+        <mkdir dir="${configuration-unit.dir}"/>
+    </target>
+
+    <target name="configuration-unit-tests" depends="build, load-junit, init-configuration-unit-tests" description="Run configuration unit tests">
+        <delete dir="{configuration-unit.dir}"/>
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="configuration-unit.failed" timeout="1000000">
+            <assertions><enable/></assertions>
+            <formatter type="xml"/>
+            <classpath refid="classpath.junit"/>
+            <batchtest fork="true" todir="${configuration-unit.dir}">
+                <fileset dir="${class.dir}">
+                    <include name="org/sosy_lab/cpachecker/cmdline/ConfigurationFilesTest.*"/>
+                    <exclude name="**/*$*Test.*"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <junitreport todir="${configuration-unit.dir}">
+            <fileset dir="${configuration-unit.dir}" includes="TEST-*.xml"/>
+            <report format="noframes"/>
+        </junitreport>
+        <move file="junit-noframes.html" tofile="ConfigurationUnit.html"/>
+        <fail if="configuration-unit.failed" message="ConfigurationUnit tests failed, look at ConfigurationUnit.html"/>
+    </target>
+
     <target name="load-jacoco" depends="resolve-dependencies">
         <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
             <classpath><fileset dir="${ivy.jar.dir}" includes="org.jacoco.*.jar asm-debug-all.jar"/></classpath>
         </taskdef>
     </target>
 
-    <target name="unit-tests-coverage" depends="build, load-junit, load-jacoco, init-unit-tests" description="Run all JUnit tests with coverage report">
+    <target name="unit-tests-coverage" depends="build, load-junit, load-jacoco, init-java-unit-tests" description="Run all JUnit tests with coverage report">
         <jacoco:coverage destfile="${junit.dir}/jacoco.exec" excludes="**/*Test*:**/Dummy*">
             <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
                 <assertions><enable/></assertions>
