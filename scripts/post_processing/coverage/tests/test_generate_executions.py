@@ -489,8 +489,8 @@ class TestOutputParsingNoBugFound(unittest.TestCase):
     def test(self):
         logger = logging.getLogger()
         with patch.object(logger, 'error') as mock_error:
-            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
-            mock_error.assert_never_called()
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertFalse(cpachecker_result.found_bug())
         self.assertTrue(cpachecker_result.found_property_violation())
 
@@ -499,8 +499,8 @@ class TestOutputParsingFoundBug(unittest.TestCase):
     def test(self):
         logger = logging.getLogger()
         with patch.object(logger, 'error') as mock_error:
-            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
-            mock_error.assert_never_called()
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertTrue(cpachecker_result.found_bug())
         self.assertTrue(cpachecker_result.found_property_violation())
 
@@ -509,8 +509,8 @@ class TestOutputParsingWithoutPropertyViolation(unittest.TestCase):
     def test(self):
         logger = logging.getLogger()
         with patch.object(logger, 'error') as mock_error:
-            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
-            mock_error.assert_never_called()
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertFalse(cpachecker_result.found_property_violation())
 
 class TestOutputParsingExceptionThrown(unittest.TestCase):
@@ -518,8 +518,8 @@ class TestOutputParsingExceptionThrown(unittest.TestCase):
     def test(self):
         logger = logging.getLogger()
         with patch.object(logger, 'error') as mock_error:
-            cpachecker_result = generate_coverage.parse_result(self.output, mock_error)
-            mock_error.assert_never_called()
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         try:
             cpachecker_result.found_bug()
             self.fail()
@@ -603,7 +603,7 @@ class TestCoverageIntegrationTimeout(TestCoverage):
         with patch.object(self.logger, 'info') as mock_info, patch.object(self.logger, 'error') as mock_error:
             mock_info.side_effect = side_effect
             generate_coverage.main(argv, self.logger)
-            mock_error.assert_not_called()
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertGreater(lines_covered, 0)
         self.assertGreater(25, lines_covered)
         elapsed_time = time.time() - start_time
