@@ -684,7 +684,8 @@ public class ARGToCTranslator {
           new SimpleStatement(tempVariableName + " = " + actualParamSignature + ";"));
       formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + ";"));
       formalParamAssignStatements.add(
-          new SimpleStatement(formalParam.getName() + " = " + tempVariableName + ";"));
+          new SimpleStatement(
+              formalParam.getQualifiedName().replace("::", "_") + " = " + tempVariableName + ";"));
     }
 
     for(Statement stmt : actualParamAssignStatements) {
