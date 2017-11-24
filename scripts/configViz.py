@@ -30,144 +30,205 @@ import re
 import sys
 
 
-# abort when reaching deeply nested configurations
-MAX_NESTING = 30
+def warn(msg):
+    print("WARNING: " + msg, file=sys.stderr)
+
 
 class Node:
-  nodes = dict()
-  def __init__(self,name):
-    assert not name in Node.nodes
-    self.children = []
-    self.parents = []
+  def __init__(self, name):
     self.name = name
-    self.path = os.path.split(name)[0]
-    self.recursionwarnings = 0
-    Node.nodes[name] = self
-    self.addChildren()
+    self.children = collectChildren(name) # collect names of children
+    self.parents = [] # filled later
 
-  def contains(self, name, i = 0):
-    if i > MAX_NESTING:
-      raise Exception("RECURSION")
-    if self.name == name:
-      return True
-    for child in self.children:
-      try:
-        if child != self and child.contains(name, i + 1):
-          return True
-      except Exception as e:
-        if i==0:
-          if self.recursionwarnings == 0:
-            print("WARNING: Recursion in %s trying to find %s" % (self.name, name), file=sys.stderr)
-          self.recursionwarnings += 1
-        else:
-          raise e
-    return False
 
-  @staticmethod
-  def filter(filename):
-    return "README" not in filename
+def getTransitiveChildren(start, nodes):
+  '''return all children including start node'''
+  transitiveChildren = set()
+  waitlist = [start]
+  while waitlist:
+    node = nodes[waitlist.pop()]
+    if node.name not in transitiveChildren:
+      transitiveChildren.add(node.name)
+      waitlist.extend(node.children)
+  return transitiveChildren
 
-  def addChildren(self):
-    if self.name ==".":
-      return
-    for line in open(self.name,"r"):
-      fname = None
-      if line[:8]=="#include":
-        fname = line.split()[1]
+
+def getTransitiveParents(start, nodes):
+  '''return all parents including start node'''
+  transitiveParents= set()
+  waitlist = [start]
+  while waitlist:
+    node = nodes[waitlist.pop()]
+    if node.name not in transitiveParents:
+      transitiveParents.add(node.name)
+      waitlist.extend(node.parents)
+  return transitiveParents
+
+
+def getFilenamesFromLine(line):
+  '''extract all filenames from a line'''
+  fname = None
+  if line[:8]=="#include":
+    fname = line.split()[1]
+  else:
+    m = re.search("^[a-zA-Z\.]*\.config(?:Files|)\s*=\s*(.*)\s*",line)
+    if m != None:
+      fname = m.group(1)
+    else:
+      m = re.search("^specification\s*=\s*(.*)\s*",line)
+      if m != None:
+        fname = m.group(1)
+  if not fname:
+    return []
+  fnames = [name.strip().split("::")[0] for name in fname.split(",")]
+  assert all(fnames), line
+  return fnames
+
+
+def collectChildren(filename):
+  children = set()
+  for line in open(filename,"r"):
+    # TODO multiline statements?
+    if not line.startswith(('#','//')) and line.rstrip() != line and line.rstrip() != line[:-1]:
+      warn("trailing whitespace in config '%s' in line '%s'" % (filename, line.strip()))
+    for child in getFilenamesFromLine(line):
+      child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
+      if os.path.exists(child):
+        children.add(child)
       else:
-        m = re.search("^[a-zA-Z\.]*\.config(?:Files|)\s*=\s*(.*)\s*",line)
-        if m != None:
-          fname = m.group(1)
-        else:
-          m = re.search("^specification\s*=\s*(.*)\s*",line)
-          if m != None:
-            fname = m.group(1)
-      if fname == None:
-        continue
-      if fname.rstrip() != fname:
-        print("WARNING: trailing whitespace in config reference '%s' in %s" % (fname, self.name), file=sys.stderr)
-        fname = fname.rstrip()
-      fnames = fname.split(",")
-      for name in fnames:
-        name = name.strip().split("::")[0]
-        if name != "":
-          name = os.path.join(self.path,name)
-        name = os.path.normpath(name)
-        if self.filter(name):
-          if name not in Node.nodes:
-            if not os.path.exists(name):
-              print("WARNING: file %s referenced in %s does not exists" % (name, self.name), file=sys.stderr)
-              continue
-            else:
-              child = Node(name)
-          else:
-            child = Node.nodes[name]
-          self.children.append(child)
-          child.parents.append(self)
+        warn("file '%s' referenced in '%s' does not exists" % (child, filename))
+  return children
 
 
-def listfiles(path):
+def listFiles(path):
   '''recursively traverse the given path and collect all files'''
   for root, subFolders, files in os.walk(path):
     for item in files:
-      yield os.path.normpath(os.path.join(root,item))
+      if not "README" in item: # filter unwanted files
+        yield os.path.normpath(os.path.join(root,item))
+
+
+def writeDot(nodes, out):
+  '''print dot file for limited set of nodes'''
+  def normPath(f):
+    return os.path.relpath(f, args.dir)
+
+  out.write('digraph configs {\n')
+  out.write('graph [ranksep="%s" rankdir="LR"];\n' % (args.ranksep))
+  out.write('node [shape=box]\n')
+  for filename,v in sorted(nodes.items()):
+    relFilename = normPath(filename)
+
+    if os.path.isfile(filename):
+      content = re.sub("\n", "&#10;", open(filename,"r").read())
+      content = re.sub('"','\\"', content)
+    else:
+      warn("File does not exist: '%s'" % (filename))
+
+    if os.path.splitext(filename)[1] == ".properties":
+      out.write('"%s"[tooltip = "%s"];\n' % (relFilename, content))
+    else:
+      out.write('"%s"[style=filled fillcolor="grey" color="dodgerblue"];\n' % relFilename)
+
+    for child in v.children:
+      if child in nodes:
+        out.write('"%s" -> "%s";\n' % (relFilename, normPath(nodes[child].name)))
+
+  out.write("}\n")
 
 
 def parseArgs():
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,description=
-"""Visualize config file dependencies. This will output a graphviz graph on stdout.
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+        description="""
+Visualize config file dependencies. This will output a graphviz graph on stdout.
 The graphviz file contains tooltips displaying the content of each config file!
 (but xdot fails to show them, try converting it to svg and open it in a browser)
-Examples
+
+If multiple otions are used, they are applied in the following way:
+The union of ROOT-files and DEPEND-files is FILTERED.
+
+Examples:
     # graph with all files in the configuration folder:
-    python3 scripts/configViz.py ./config > graph.dot && xdot graph.dot
-    # graph just showing everything on which svcomp18.properties depends:
-    python3 scripts/configViz.py ./config config/svcomp18.properties --ranksep 1 >graph.dot && xdot graph.dot""")
-    parser.add_argument("configdir", help = "directory where the configuration files reside")
-    parser.add_argument("rootfile", nargs = '?', help = "optional configuration file for which a graph should be generated. When specified, only files included (directly or indirectely) from this file are shown")
-    parser.add_argument("--filter" ,metavar="FILTER", help = "String to filter nodes. When specified, only matching nodes or nodes connected to matching nodes are shown")
-    parser.add_argument("--ranksep", help = "ranksep to use in the graphviz output file", default = 8)
+    python3 scripts/configViz.py > graph.dot && xdot graph.dot
+
+    # graph showing everything included in 'svcomp18.properties':
+    python3 scripts/configViz.py --root config/svcomp18.properties > graph.dot && xdot graph.dot
+
+    # graph showing everything depending on 'specification/default.spc':
+    python3 scripts/configViz.py --depend config/specification/default.spc > graph.dot && xdot graph.dot
+
+    # graph showing everything included in or depending on 'predicateAnalysis.properties':
+    python3 scripts/configViz.py --root config/predicateAnalysis.properties --depend config/predicateAnalysis.properties > graph.dot
+    """)
+    parser.add_argument("--dir", metavar="DIRECTORY", default='config/',
+        help = "directory where the configuration files reside")
+    parser.add_argument("--root", metavar="ROOT", default=None,
+        help = "configuration file for which a graph should be generated. " +
+            "When specified, only files included (directly or indirectely) from this file are shown")
+    parser.add_argument("--depend", metavar="DEPEND", default=None,
+        help = "configuration file for which a graph should be generated. " +
+            "When specified, only files depending (directly or indirectely) on this file are shown")
+    parser.add_argument("--filter", metavar="FILTER", default=None,
+        help = "String to filter nodes. " +
+            "When specified, only matching nodes are shown")
+    parser.add_argument("--ranksep", metavar="NUM", default=3,
+        help = "ranksep to use in the graphviz output file")
     return parser.parse_args()
+
+
+def getNodes(configDirectory):
+  '''collect all files and build a graph'''
+  nodes = {}
+
+  # collect nodes and their children
+  waitlist = list(listFiles(configDirectory))
+  while waitlist:
+    name = waitlist.pop()
+    if name not in nodes:
+      node = Node(name)
+      nodes[name] = node
+      waitlist.extend(node.children)
+
+  # insert parents
+  for name,node in nodes.items():
+    for child in node.children:
+      nodes[child].parents.append(name)
+
+  return nodes
+
 
 if __name__ == "__main__":
   args = parseArgs()
-  if len(sys.argv) <2:
-    print("specify path!")
-    exit()
+  nodes = getNodes(args.dir)
 
-  # collect all files
-  trees = []
-  for f in listfiles(args.configdir):
-    if Node.filter(f) and f not in Node.nodes:
-      trees.append(Node(f))
-  for t in trees[::]:
-    for ot in trees:
-      if ot!=t and ot.contains(t.name):
-        trees.remove(t)
-        break
-
-  graph = sys.stdout #open("configViz.dot","w")
-  graph.write("digraph configs {\n")
-  graph.write('graph [ranksep="%s" rankdir="LR"];\n' % (args.ranksep))
-  graph.write('node [shape=box]\n')
-  for (k,v) in Node.nodes.items():
-    parentname = k
-    relparentname = os.path.relpath(parentname,args.configdir)
-    if args.filter != None:
-      if not args.filter in parentname and not any([args.filter in child.name for child in v.children]):
-        continue
-    if args.rootfile != None:
-      if not Node.nodes[args.rootfile].contains(parentname):
-        continue
-    if os.path.isfile(parentname):
-      parentcontent = re.sub("\n", "&#10;", open(parentname,"r").read())
-      parentcontent = re.sub('"','\\"',parentcontent)
-    if parentname.split(".")[-1] != "properties":
-      graph.write('"%s"[style=filled fillcolor="grey" color="dodgerblue"];\n' % relparentname)
+  nodesFromRoot = {}
+  if args.root != None:
+    if args.root not in nodes:
+      warn("Root file '%s' not found." % args.root)
     else:
-      graph.write('"%s"[tooltip = "%s"];\n' % (relparentname, parentcontent))
-    for child in v.children:
-      childname = child.name
-      relchildname = os.path.relpath(childname,args.configdir)
-      graph.write('"%s" -> "%s";\n' % (relparentname, relchildname))
-  graph.write("}\n")
+      children = getTransitiveChildren(args.root, nodes)
+      nodesFromRoot = dict((k,v) for k,v in nodes.items() if k in children)
+
+  nodesFromDepend = {}
+  if args.depend != None:
+    if args.depend not in nodes:
+      warn("Depend file '%s' not found." % args.depend)
+    else:
+      parents = getTransitiveParents(args.depend, nodes)
+      nodesFromDepend = dict((k,v) for k,v in nodes.items() if k in parents)
+
+  # if any option is set, use its output
+  if nodesFromRoot:
+    nodes = nodesFromRoot
+    if nodesFromDepend:
+      nodes.update(nodesFromDepend) # union of maps
+  elif nodesFromDepend:
+    nodes = nodesFromDepend
+
+  if args.filter != None:
+    nodes = dict((k,v) for k,v in nodes.items()
+        if args.filter in k or any(args.filter in child for child in v.children))
+
+  # write dot-output
+  out = sys.stdout #open("configViz.dot","w")
+  writeDot(nodes, out)
