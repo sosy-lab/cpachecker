@@ -29,22 +29,25 @@ import os
 import re
 import sys
 
+
+# abort when reaching deeply nested configurations
+MAX_NESTING = 30
+
 class Node:
   nodes = dict()
   def __init__(self,name):
-    if name in Node.nodes:
-      assert False
-      return
-    self.children = list()
-    self.parents = list()
+    assert not name in Node.nodes
+    self.children = []
+    self.parents = []
     self.name = name
     self.path = os.path.split(name)[0]
     self.recursionwarnings = 0
     Node.nodes[name] = self
     self.addChildren()
+
   def contains(self, name, i = 0):
-    if i > 30:
-        raise Exception("RECURSION")
+    if i > MAX_NESTING:
+      raise Exception("RECURSION")
     if self.name == name:
       return True
     for child in self.children:
@@ -59,11 +62,11 @@ class Node:
         else:
           raise e
     return False
+
   @staticmethod
   def filter(filename):
-    if "README" in filename:
-      return False
-    return True
+    return "README" not in filename
+
   def addChildren(self):
     if self.name ==".":
       return
@@ -78,10 +81,7 @@ class Node:
         else:
           m = re.search("^specification\s*=\s*(.*)\s*",line)
           if m != None:
-            if m.group(1)=="":
-              fname = ""
-            else:
-              fname = m.group(1)
+            fname = m.group(1)
       if fname == None:
         continue
       if fname.rstrip() != fname:
@@ -105,13 +105,12 @@ class Node:
           self.children.append(child)
           child.parents.append(self)
 
-def listfiles(path):
-  files =  [os.path.join(path,i) for i in os.listdir(path)]
-  f =  [os.path.normpath(i) for i in files if os.path.isfile(i)]
-  for j in [i for i in files if os.path.isdir(i)]:
-    f += listfiles(j)
-  return f
 
+def listfiles(path):
+  '''recursively traverse the given path and collect all files'''
+  for root, subFolders, files in os.walk(path):
+    for item in files:
+      yield os.path.normpath(os.path.join(root,item))
 
 
 def parseArgs():
@@ -132,17 +131,15 @@ Examples
 
 if __name__ == "__main__":
   args = parseArgs()
-  trees  = list()
   if len(sys.argv) <2:
     print("specify path!")
     exit()
-  files = listfiles(args.configdir)
 
-  for f in files:
-    if not Node.filter(f) or f in Node.nodes:
-      continue
-    tree = Node(f)
-    trees.append(tree)
+  # collect all files
+  trees = []
+  for f in listfiles(args.configdir):
+    if Node.filter(f) and f not in Node.nodes:
+      trees.append(Node(f))
   for t in trees[::]:
     for ot in trees:
       if ot!=t and ot.contains(t.name):
