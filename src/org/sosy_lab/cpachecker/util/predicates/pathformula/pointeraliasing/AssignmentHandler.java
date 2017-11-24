@@ -875,8 +875,7 @@ class AssignmentHandler {
           rhsFormula =
               fmgr.makeExtract(
                   rhsFormula, endIndex, startIndex, ((CSimpleType) rhsType).isSigned());
-          Expression newRhsExpression =
-              rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+          Expression newRhsExpression = Value.ofValue(rhsFormula);
 
           // we need innerMember as location for the lvalue of makeDestructiveAssignment:
           final CExpression innerMemberCFieldReference =
