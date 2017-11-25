@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -500,10 +501,17 @@ public class AutomatonGraphmlCommon {
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
     if (edge instanceof BlankEdge) {
-      return !(edge.getSuccessor() instanceof FunctionExitNode)
-          && !isMainFunctionEntry(edge);
+      if (isMainFunctionEntry(edge)) {
+        return false;
+      }
+      if (edge.getSuccessor() instanceof FunctionExitNode) {
+        return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
+      }
+      return true;
+    } else if (edge instanceof CFunctionCallEdge) {
+      return isEmptyStub(((CFunctionCallEdge) edge).getSuccessor());
     } else if (edge instanceof CFunctionReturnEdge) {
-      return false;
+      return isEmptyStub(((CFunctionReturnEdge) edge).getFunctionEntry());
     } else if (edge instanceof CDeclarationEdge) {
       CDeclarationEdge declEdge = (CDeclarationEdge) edge;
       CDeclaration decl = declEdge.getDeclaration();
@@ -811,5 +819,26 @@ public class AutomatonGraphmlCommon {
       return false;
     }
     return ((AssumeEdge) pEdge).isArtificialIntermediate();
+  }
+
+  private static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
+    Iterator<CFAEdge> startEdges = CFAUtils.leavingEdges(pEntryNode).iterator();
+    if (!startEdges.hasNext()) {
+      return false;
+    }
+    CFAEdge startEdge = startEdges.next();
+    if (startEdges.hasNext() || !(startEdge instanceof BlankEdge)) {
+      return false;
+    }
+    CFANode innerNode = startEdge.getSuccessor();
+    Iterator<CFAEdge> defaultReturnEdges = CFAUtils.leavingEdges(innerNode).iterator();
+    if (!defaultReturnEdges.hasNext()) {
+      return false;
+    }
+    CFAEdge defaultReturnEdge = defaultReturnEdges.next();
+    if (defaultReturnEdges.hasNext() || !(defaultReturnEdge instanceof BlankEdge)) {
+      return false;
+    }
+    return pEntryNode.getExitNode().equals(defaultReturnEdge.getSuccessor());
   }
 }
