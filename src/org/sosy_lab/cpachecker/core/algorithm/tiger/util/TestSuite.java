@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class TestSuite implements AlgorithmResult {
 
-  private class GoalCondition {
+  public class GoalCondition {
     public GoalCondition(
         Goal pGoal,
         Region pSimplifiedPresenceCondition,
@@ -119,6 +119,13 @@ public class TestSuite implements AlgorithmResult {
     testSuiteData = null;
     tigerConfig = pTigerConfig;
 
+  }
+
+  public String getGoalPresenceCondition(GoalCondition gc) {
+    if (gc == null || gc.simplifiedPresenceCondition == null || bddCpaNamedRegionManager == null) {
+      return "";
+    }
+    return bddCpaNamedRegionManager.dumpRegion(gc.simplifiedPresenceCondition).toString();
   }
 
   public Set<Goal> getTestGoals() {
@@ -566,5 +573,26 @@ public class TestSuite implements AlgorithmResult {
       }
     }
     return true;
+  }
+
+  public String getPresenceConditionOfGoalInTestcase(Goal goal, TestCase testCase) {
+    if (bddCpaNamedRegionManager == null || goal == null || testCase == null || mapping == null) {
+      return "";
+    }
+
+    List<GoalCondition> goals = mapping.get(testCase);
+    if (goals == null) {
+      return "";
+    }
+    GoalCondition goalCondition = null;
+    for (GoalCondition gc : goals) {
+      if (gc.goal == goal) {
+        goalCondition = gc;
+        break;
+      }
+    }
+    return goalCondition == null
+        ? ""
+        : bddCpaNamedRegionManager.dumpRegion(goalCondition.simplifiedPresenceCondition).toString();
   }
 }

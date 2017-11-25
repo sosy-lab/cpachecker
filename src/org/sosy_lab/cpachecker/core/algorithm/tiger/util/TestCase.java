@@ -71,6 +71,13 @@ public class TestCase {
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
   }
 
+  public String dumpPresenceCondition() {
+    if (bddCpaNamedRegionManager == null || presenceCondition == null) {
+      return "";
+    }
+    return bddCpaNamedRegionManager.dumpRegion(presenceCondition).toString();
+  }
+
   public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,
       ARGPath pTargetPath, List<CFAEdge> pList,
       Region pPresenceCondition,

@@ -539,6 +539,9 @@ public class TigerAlgorithm implements AlgorithmWithResult {
           logger.logf(Level.WARNING, "Counterexample is spurious!");
         } else {
           // HashMap<String, Boolean> features =
+          // for null goal get the presencecondition without the validProduct method
+          testCasePresenceCondition = getPresenceConditionforGoal(cex, null);
+
           Region simplifiedPresenceCondition =
               getPresenceConditionforGoal(cex, pGoal);
           TestCase testcase = createTestcase(cex, testCasePresenceCondition);
@@ -633,7 +636,10 @@ public class TigerAlgorithm implements AlgorithmWithResult {
 
 
   public Region getPresenceConditionforGoal(CounterexampleInfo cex, Goal pGoal) {
-    CFAEdge criticalEdge = pGoal.getCriticalEdge();
+    CFAEdge criticalEdge = null;
+    if (pGoal != null) {
+      criticalEdge = pGoal.getCriticalEdge();
+    }
 
     Region pred = null;
 
