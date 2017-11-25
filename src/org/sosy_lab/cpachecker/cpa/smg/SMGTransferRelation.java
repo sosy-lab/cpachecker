@@ -1375,7 +1375,7 @@ public class SMGTransferRelation
         newElement = null;
         break;
       } else {
-        newElement = newElements.get(0);
+        newElement = newElements.get(0).withViolationsOf(newElement);
       }
     }
 
