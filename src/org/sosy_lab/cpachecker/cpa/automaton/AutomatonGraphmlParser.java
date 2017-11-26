@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -659,7 +660,12 @@ public class AutomatonGraphmlParser {
                 cfa.getMachineModel(),
                 logger);
       } catch (InvalidAutomatonException e) {
-        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
+        String reason = e.getMessage();
+        if (e.getCause() instanceof ParserException) {
+          reason =
+              String.format("Cannot parse <%s>", Joiner.on(" ").join(pTransition.getAssumptions()));
+        }
+        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE + " Reason: " + reason, e);
       }
     }
     return Collections.emptyList();
@@ -680,9 +686,8 @@ public class AutomatonGraphmlParser {
     }
     throw new WitnessParseException(
         String.format(
-            "Unable to assign function %s to thread %s.",
-            pFunctionName.get(),
-            pTransition.getThread()));
+            "Unable to assign function <%s> to thread <%s>.",
+            pFunctionName.get(), pTransition.getThread()));
   }
 
   /**
