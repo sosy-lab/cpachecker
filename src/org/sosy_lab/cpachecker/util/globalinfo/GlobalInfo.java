@@ -96,7 +96,7 @@ public class GlobalInfo {
           apronManager = apron.getManager();
           apronLogger = apron.getLogger();
         } else if (c instanceof AssumptionStorageCPA) {
-          Preconditions.checkState(assumptionFormulaManagerView == null);
+          // override the existing manager
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         } else if (c instanceof PredicateCPA) {
           Preconditions.checkState(absManager == null);
