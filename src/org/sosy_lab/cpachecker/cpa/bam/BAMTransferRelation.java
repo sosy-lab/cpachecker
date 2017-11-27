@@ -87,6 +87,8 @@ public class BAMTransferRelation implements TransferRelation {
 
   final boolean failInCaseOfRecursion = false;
 
+  private final boolean useDynamicAdjustment;
+
   public BAMTransferRelation(
       Configuration pConfig,
       BAMCPA bamCpa,
@@ -101,6 +103,8 @@ public class BAMTransferRelation implements TransferRelation {
     bamCPA = bamCpa;
     data = bamCpa.getData();
     partitioning = bamCpa.getBlockPartitioning();
+
+    useDynamicAdjustment = bamCpa.useDynamicAdjustment();
 
     assert wrappedReducer != null;
     bamPccManager = new BAMPCCManager(
@@ -190,7 +194,7 @@ public class BAMTransferRelation implements TransferRelation {
             .getBlockForCallNode(node)
             .equals(stack.isEmpty() ? null : stack.peek().getThird());
 
-    if (result) {
+    if (useDynamicAdjustment && result) {
       if (data.shouldBeSkipped(node)) {
         return false;
       }
@@ -386,7 +390,6 @@ public class BAMTransferRelation implements TransferRelation {
 
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
     boolean needToSkip = false;
-    BAMPrecision BAMPrec = (BAMPrecision) precision;
     for (AbstractState reducedState : reducedResult) {
       Precision reducedPrecision = reached.getPrecision(reducedState);
 
