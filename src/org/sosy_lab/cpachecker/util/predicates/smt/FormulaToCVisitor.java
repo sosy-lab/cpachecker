@@ -183,6 +183,10 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       case DIV:
         op = "/";
         break;
+      case BV_SREM:
+        bvSigned = true;
+        // $FALL-THROUGH$
+      case BV_UREM:
       case BV_MODULO:
       case MODULO:
         op = "%";
@@ -252,12 +256,26 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       case EQ_ZERO:
         op = "0 ==";
         break;
+      case ITE:
+        op = "?";
+        break;
       default:
         return Boolean.FALSE;
     }
-
-    if (pArgs.size() == 2) {
-      builder.append("( ");
+    builder.append("( ");
+    if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
+      builder.append(" ? ");
+      if (!fmgr.visit(pArgs.get(1), this)) {
+        return Boolean.FALSE;
+      }
+      builder.append(" : ");
+      if (!fmgr.visit(pArgs.get(2), this)) {
+        return Boolean.FALSE;
+      }
+    } else if (pArgs.size() == 2) {
       if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
@@ -265,16 +283,15 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       if (!fmgr.visit(pArgs.get(1), this)) {
         return Boolean.FALSE;
       }
-      builder.append(" )");
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
-      builder.append("( ").append(op).append(" ");
+      builder.append(op).append(" ");
       if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
-      builder.append(" )");
     } else {
       throw new AssertionError("Function call without arguments " + pFunctionDeclaration.getName());
     }
+    builder.append(" )");
 
     // (re-)set bvSigned appropriately for the current state
     // of the translation
