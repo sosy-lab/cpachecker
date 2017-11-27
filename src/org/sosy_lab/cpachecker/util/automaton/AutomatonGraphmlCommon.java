@@ -776,36 +776,55 @@ public class AutomatonGraphmlCommon {
       } else if (decl instanceof AVariableDeclaration) {
         AVariableDeclaration varDecl = (AVariableDeclaration) decl;
         CFANode successor = pEdge.getSuccessor();
-        Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
-        if (!leavingEdges.hasNext()) {
-          return false;
-        }
-        CFAEdge successorEdge = leavingEdges.next();
-        if (leavingEdges.hasNext()) {
-          CFAEdge alternativeSuccessorEdge = leavingEdges.next();
-          if (leavingEdges.hasNext()) {
-            return false;
-          } else if (successorEdge instanceof FunctionCallEdge
-              && alternativeSuccessorEdge instanceof CFunctionSummaryStatementEdge) {
-            successorEdge = alternativeSuccessorEdge;
-          } else if (successorEdge instanceof CFunctionSummaryStatementEdge
-              && alternativeSuccessorEdge instanceof FunctionCallEdge) {
-            // nothing to do
-          } else {
+        boolean intermediateDeclarationsExpected = true;
+        boolean cont = true;
+        while (cont) {
+          cont = false;
+          Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
+          if (!leavingEdges.hasNext()) {
             return false;
           }
-        }
-        if (successorEdge instanceof AStatementEdge) {
-          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-          if (statementEdge.getFileLocation().equals(pEdge.getFileLocation())
-              && statementEdge.getStatement() instanceof AAssignment) {
-            AAssignment assignment = (AAssignment) statementEdge.getStatement();
-            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-            if (leftHandSide instanceof AIdExpression) {
-              AIdExpression lhs = (AIdExpression) leftHandSide;
-              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
-                return true;
+          CFAEdge successorEdge = leavingEdges.next();
+          if (leavingEdges.hasNext()) {
+            CFAEdge alternativeSuccessorEdge = leavingEdges.next();
+            if (leavingEdges.hasNext()) {
+              return false;
+            } else if (successorEdge instanceof FunctionCallEdge
+                && alternativeSuccessorEdge instanceof CFunctionSummaryStatementEdge) {
+              successorEdge = alternativeSuccessorEdge;
+            } else if (successorEdge instanceof CFunctionSummaryStatementEdge
+                && alternativeSuccessorEdge instanceof FunctionCallEdge) {
+              // nothing to do
+            } else {
+              return false;
+            }
+          }
+          if (successorEdge instanceof AStatementEdge) {
+            intermediateDeclarationsExpected = false;
+            AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+            if (statementEdge.getFileLocation().equals(pEdge.getFileLocation())
+                && statementEdge.getStatement() instanceof AAssignment) {
+              AAssignment assignment = (AAssignment) statementEdge.getStatement();
+              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+              if (leftHandSide instanceof AIdExpression) {
+                AIdExpression lhs = (AIdExpression) leftHandSide;
+                if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                  return true;
+                }
+                // The current edge may just be the matching initialization of a preceding
+                // split declaration, e.g. in a line originally written as "int x = 0, y = 1";
+                cont = true;
+                successor = successorEdge.getSuccessor();
               }
+            }
+          } else if (intermediateDeclarationsExpected
+              && successorEdge instanceof ADeclarationEdge) {
+            ADeclarationEdge otherDeclEdge = (ADeclarationEdge) successorEdge;
+            if (otherDeclEdge.getDeclaration() instanceof AVariableDeclaration) {
+              // The current edge may just be the matching declaration of a preceding
+              // split declaration, e.g. in a line originally written as "int x = 0, y = 1";
+              cont = true;
+              successor = successorEdge.getSuccessor();
             }
           }
         }
