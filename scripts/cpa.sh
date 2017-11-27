@@ -138,7 +138,7 @@ while [[ i -lt ${#OPTIONS[@]} ]]; do
             HELP=0
             ((i++))
             ;;
-        -nolog|-noout|-stats|-cbmc|-32|-64|-skipRecursion|-preprocess|-java|-secureMode|-debug|-disable-java-assertions|-generateReport|-ldv-bam-svcomp|-sv-comp17-bam-bnb)
+        -nolog|-noout|-stats|-cbmc|-32|-64|-skipRecursion|-preprocess|-java|-secureMode|-debug|-disable-java-assertions|-generateReport|-ldv-bam-svcomp|-svcomp18-bam-bnb|-ldv)
             ((i++))
             ;;
         -spec)
@@ -169,7 +169,10 @@ if [[ ! $HELP -eq 0 ]]; then
 
     if [[ $SAFETYPROPERTY -eq 0 ]]; then
         cd ${NATIVE_PATH}
-        ./frama-c-Crude_slicer.native \
+        ./frama-c.native \
+            -no-autoload-plugins \
+            -no-findlib \
+            -load-module Crude_slicer.cmxs \
             -machdep gcc_x86_64 \
             -crude_slicer \
             -timeout 400 \
