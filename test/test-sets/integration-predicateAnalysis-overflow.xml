@@ -18,6 +18,7 @@
     <includesfile>../programs/benchmarks/Systems_BusyBox_NoOverflows.set</includesfile>
     <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
     <option name="-64"/>
+    <exclude>../programs/benchmarks/busybox-1.22.0/chroot-incomplete_false-no-overflow.i</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="Overflows-Other">
     <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
