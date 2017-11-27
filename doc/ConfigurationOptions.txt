@@ -1036,6 +1036,7 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
+  allowed values: [sep, join]
 
 # depth of recursion bound
 cpa.callstack.depth = 0
