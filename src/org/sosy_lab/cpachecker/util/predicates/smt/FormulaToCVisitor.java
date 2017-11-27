@@ -187,7 +187,6 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         bvSigned = true;
         // $FALL-THROUGH$
       case BV_UREM:
-      case BV_MODULO:
       case MODULO:
         op = "%";
         break;
@@ -257,7 +256,15 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "0 ==";
         break;
       case ITE:
-        op = "?";
+        // Special-case that is to be handled separately
+        // below
+        break;
+      case BV_SHL:
+        op = "<<";
+        break;
+      case BV_LSHR:
+      case BV_ASHR:
+        op = ">>";
         break;
       default:
         return Boolean.FALSE;

@@ -107,7 +107,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-170-g4e63747" conf="runtime->runtime; contrib->sources">
+        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-180-g5d91e5ba" conf="runtime->runtime; contrib->sources">
           <!-- Old version of java-cup conflicts with our newer version of java-cup-runtime -->
           <exclude org="net.sf.squirrel-sql.thirdparty-non-maven" module="java-cup"/>
         </dependency>
