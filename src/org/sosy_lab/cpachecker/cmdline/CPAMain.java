@@ -146,8 +146,6 @@ public class CPAMain {
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
-      RandomProvider.initialize(cpaConfig);
-
       cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager);
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
