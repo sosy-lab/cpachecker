@@ -224,20 +224,25 @@ public class WitnessExporter {
                         inv,
                         e -> {
                           for (String name : fmgr.extractVariableNames(e)) {
-                            if (name.contains(FUNCTION_DELIMITER)
-                                && !name.startsWith(prefix)) {
+                            if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
                               return false;
                             }
                           }
                           return true;
                         });
 
-                invString = fmgr.visit(inv, new FormulaToCVisitor(fmgr)).toString();
+                FormulaToCVisitor v = new FormulaToCVisitor(fmgr);
+                Boolean isValid = fmgr.visit(inv, v);
+                if (isValid) {
+                  invString = v.getString();
+                }
               } catch (InterruptedException e) {
                 throw new AssertionError(
                     "Witnessexport was interrupted for generation of Proofwitness", e);
               }
-              stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+              if (invString != null) {
+                stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+              }
             }
             return stateInvariant;
           }
