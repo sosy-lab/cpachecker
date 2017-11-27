@@ -869,13 +869,16 @@ class AssignmentHandler {
           Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
           rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
           rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
-          assert rhsFormula instanceof BitvectorFormula;
+          assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
 
           // "AndExtractInnerMemberValue"
-          rhsFormula =
-              fmgr.makeExtract(
-                  rhsFormula, endIndex, startIndex, ((CSimpleType) rhsType).isSigned());
-          Expression newRhsExpression = Value.ofValue(rhsFormula);
+          if (rhsFormula != null) {
+            rhsFormula =
+                fmgr.makeExtract(
+                    rhsFormula, endIndex, startIndex, ((CSimpleType) rhsType).isSigned());
+          }
+          Expression newRhsExpression =
+              rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
 
           // we need innerMember as location for the lvalue of makeDestructiveAssignment:
           final CExpression innerMemberCFieldReference =
