@@ -109,6 +109,9 @@ public class AutomatonGraphmlParser {
 
   private static final String AMBIGUOUS_TYPE_ERROR_MESSAGE = "Witness type must be unambiguous";
 
+  private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
+      GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
+
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
@@ -1223,7 +1226,7 @@ public class AutomatonGraphmlParser {
             getOffsetMatcherPredicate(pTransition),
             getOriginLineMatcherPredicate(pTransition),
             getAssumeCaseMatcher(pTransition),
-            thread.orElse(GraphMLTransition.DEFAULT_THREAD),
+            thread.orElse(DEFAULT_THREAD),
             threadIdAssignment,
             GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ASSUMPTION),
             explicitAssumptionScope,
