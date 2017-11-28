@@ -294,8 +294,13 @@ public class CtoFormulaConverter {
       }
     }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      return var.getName().equals(RETURN_VARIABLE_NAME) ||
-           variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      boolean isRelevantVariable = var.getName().equals(RETURN_VARIABLE_NAME) ||
+          variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      if (options.overflowVariablesAreRelevant()) {
+        isRelevantVariable |=
+            variableClassification.get().getIntOverflowVars().contains(var.getQualifiedName());
+      }
+      return isRelevantVariable;
     }
     return true;
   }

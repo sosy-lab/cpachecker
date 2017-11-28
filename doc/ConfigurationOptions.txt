@@ -1774,6 +1774,10 @@ cpa.predicate.nondetFunctions = {
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 
+# Do not ignore variables that could lead to an overflow (only makes sense if
+# ignoreIrrelevantVariables is set to true)
+cpa.predicate.overflowVariablesAreRelevant = false
+
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
