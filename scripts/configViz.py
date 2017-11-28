@@ -29,9 +29,13 @@ import os
 import re
 import sys
 
+# global flag for return code
+errorFound = False
 
 def log(msg, level=1):
     if level <= logLevel:
+      global errorFound
+      errorFound = True
       print("WARNING: " + msg, file=sys.stderr)
 
 
@@ -246,3 +250,5 @@ if __name__ == "__main__":
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
   writeDot(nodes, out)
+
+  exit(errorFound)
