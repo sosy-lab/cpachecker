@@ -33,6 +33,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class GraphMLTransition {
 
+  static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
+      GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
+
   private final GraphMLState source;
 
   private final GraphMLState target;

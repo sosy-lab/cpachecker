@@ -399,6 +399,7 @@ public class AutomatonGraphmlParserState {
 
     // If we have not yet computed the equivalence classes, we can try if we can do without them
     if (functionCopies.isEmpty()
+        && pThread.equals(GraphMLTransition.DEFAULT_THREAD)
         && (occupiedFunctions.isEmpty() || occupiedFunctions.keySet().contains(pThread))) {
       FunctionInstance originalFunction = new FunctionInstance(pDesiredFunctionName);
 
@@ -462,6 +463,7 @@ public class AutomatonGraphmlParserState {
       occupiedFunctions.put(pThread, pFunctionInstance);
       return true;
     }
+
     Collection<FunctionInstance> copies = Lists.newArrayListWithCapacity(5);
     boolean desiredInstanceAvailable = false;
     for (String originalName : functionCopies.keySet()) {
@@ -528,7 +530,7 @@ public class AutomatonGraphmlParserState {
     private final int cloneNumber;
 
     public FunctionInstance(String pOriginalName) {
-      this(pOriginalName, Integer.MIN_VALUE);
+      this(pOriginalName, Integer.MAX_VALUE);
     }
 
     public FunctionInstance(String pOriginalName, int pCloneNumber) {
@@ -537,7 +539,7 @@ public class AutomatonGraphmlParserState {
     }
 
     public boolean isOriginal() {
-      return cloneNumber == Integer.MIN_VALUE;
+      return cloneNumber == Integer.MAX_VALUE;
     }
 
     @Override
