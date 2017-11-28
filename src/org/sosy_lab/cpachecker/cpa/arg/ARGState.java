@@ -30,12 +30,10 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.Sets;
-import java.util.ArrayDeque;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -216,19 +214,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> workList = new ArrayDeque<>();
-
-    workList.add(this);
-
-    while (!workList.isEmpty()) {
-      ARGState currentElement = workList.removeFirst();
-      if (result.add(currentElement)) {
-        // currentElement was not in result
-        workList.addAll(currentElement.children);
-      }
-    }
-    return result;
+    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
   }
 
   // coverage
