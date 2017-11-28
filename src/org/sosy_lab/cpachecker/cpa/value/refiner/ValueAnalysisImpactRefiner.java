@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -260,10 +259,8 @@ public class ValueAnalysisImpactRefiner
     }
 
     if (coverageRoot != null) {
-      for (ARGState children : coverageRoot.getSubgraph()) {
-        if (!children.isCovered()) {
-          children.setCovered(coverageRoot);
-        }
+      for (ARGState children : ARGUtils.getNonCoveredStatesInSubgraph(coverageRoot)) {
+        children.setCovered(coverageRoot);
       }
     }
   }
@@ -280,7 +277,7 @@ public class ValueAnalysisImpactRefiner
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
 
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       if(pReached.asReachedSet().contains(descendant)) {
         uniquePrecisions.add(extractValuePrecision(pReached, descendant));
       }
@@ -304,16 +301,6 @@ public class ValueAnalysisImpactRefiner
     return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
         .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
         .get(0);
-  }
-
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for(ARGState state : pRoot.getSubgraph()) {
-      if(!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
   }
 
   @Override
