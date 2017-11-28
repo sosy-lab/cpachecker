@@ -24,15 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collections;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Queue;
-import java.util.Set;
 
 
 public class InvariantsPrecision implements Precision {
@@ -69,7 +65,8 @@ public class InvariantsPrecision implements Precision {
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
       AbstractionStrategy pAbstractionStrategy) {
-    this(asImmutableRelevantEdges(pRelevantEdges),
+    this(
+        pRelevantEdges == null ? null : ImmutableSet.copyOf(pRelevantEdges),
         ImmutableSet.<MemoryLocation>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
         pAbstractionStrategy);
@@ -123,18 +120,4 @@ public class InvariantsPrecision implements Precision {
   public AbstractionStrategy getAbstractionStrategy() {
     return this.abstractionStrategy;
   }
-
-  private static ImmutableSet<CFAEdge> asImmutableRelevantEdges(Set<CFAEdge> pRelevantEdges) {
-    if (pRelevantEdges == null) {
-      return null;
-    }
-    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    Queue<CFAEdge> waitlist = new ArrayDeque<>(pRelevantEdges);
-    while (!waitlist.isEmpty()) {
-      CFAEdge relevantEdge = waitlist.poll();
-      builder.add(relevantEdge);
-    }
-    return builder.build();
-  }
-
 }
