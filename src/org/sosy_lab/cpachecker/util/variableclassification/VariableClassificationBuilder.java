@@ -206,7 +206,6 @@ public class VariableClassificationBuilder {
     final Set<Partition> intBoolPartitions = new HashSet<>();
     final Set<Partition> intEqualPartitions = new HashSet<>();
     final Set<Partition> intAddPartitions = new HashSet<>();
-    final Set<Partition> intOverflowPartitions = new HashSet<>();
 
     stats.hierarchyTimer.start();
     for (final String var : allVars) {
@@ -229,11 +228,6 @@ public class VariableClassificationBuilder {
       } else if (!nonIntAddVars.contains(var)) {
         intAddVars.add(var);
         intAddPartitions.add(dependencies.getPartitionForVar(var));
-      }
-
-      // Special handling of variables where an overflow can occur:
-      if (!intOverflowVars.contains(var)) {
-        intOverflowPartitions.add(dependencies.getPartitionForVar(var));
       }
     }
     stats.hierarchyTimer.stop();
