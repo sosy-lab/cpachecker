@@ -217,6 +217,10 @@ public class CLangSMG extends SMG {
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
+  public boolean isStackEmpty() {
+    return stack_objects.isEmpty();
+  }
+
   /**
    * Add a new stack frame for the passed function.
    *
@@ -260,14 +264,6 @@ public class CLangSMG extends SMG {
     stack_objects = stack_objects.popAndCopy();
     for (SMGObject object : frame.getAllObjects()) {
       removeObjectAndEdges(object);
-    }
-    // If the stack becomes empty again, we left the program
-    // and so all global objects are no longer visible
-    if (stack_objects.isEmpty()) {
-      for (SMGObject object : global_objects.values()) {
-        removeObjectAndEdges(object);
-      }
-      global_objects = PathCopyingPersistentTreeMap.of();
     }
 
     if (CLangSMG.performChecks()) {

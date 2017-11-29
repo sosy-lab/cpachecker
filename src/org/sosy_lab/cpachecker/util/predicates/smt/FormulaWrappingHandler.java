@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
-
+import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingBitvectorFormula;
@@ -37,8 +37,6 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-
-import java.util.List;
 
 /**
  * Class that takes care of all the (un-)wrapping of formulas and types
@@ -58,6 +56,10 @@ final class FormulaWrappingHandler {
     encodeFloatAs = checkNotNull(pEncodeFloatAs);
     assert encodeBitvectorAs != Theory.FLOAT;
     assert encodeFloatAs != Theory.BITVECTOR;
+  }
+
+  boolean useBitvectors() {
+    return encodeBitvectorAs == Theory.BITVECTOR;
   }
 
   @SuppressWarnings("unchecked")

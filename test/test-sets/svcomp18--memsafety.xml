@@ -29,4 +29,8 @@
     <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
+  <tasks name="MemSafety-Other">
+    <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+  </tasks>
 </benchmark>

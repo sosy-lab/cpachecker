@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from subprocess import check_output
 from textwrap import wrap
 
@@ -188,19 +189,21 @@ class NoPropertyViolationFound():
     def found_bug(self):
         raise Exception('This method should not have been called')
 
-def parse_result(output):
+def parse_result(output, logger):
     pattern = r'Verification result: [^(]*\((?P<message>[^)]*)\).*'
     result_pattern = r'Verification result: (?P<result>.*)'
     m_result = re.search(pattern=result_pattern, string=str(output))
     m = re.search(pattern=pattern, string=str(output))
     if not m_result:
-        raise Exception("Failed to parse CPAchecker output.")
+        logger.error("Failed to parse CPAchecker output.")
+        return NoPropertyViolationFound()
     if (m_result.group('result').startswith('TRUE') or
         m_result.group('result').startswith('UNKNOWN')):
         return NoPropertyViolationFound()
     else:
         if not m:
-            raise Exception("Failed to parse CPAchecker output.")
+            logger.error("Failed to parse CPAchecker output.")
+            return NoPropertyViolationFound()
         if m.group('message') == coverage_test_case_message:
             return OnlyGeneratedSuccessfulExecutions()
         else:
@@ -216,7 +219,8 @@ class ComputeCoverage():
         heap_size,
         timelimit,
         logger,
-        aa_file):
+        aa_file,
+        start_time):
         self.instance = instance
         self.output_dir = output_dir
         self.cex_count = cex_count
@@ -229,6 +233,7 @@ class ComputeCoverage():
         self.lines_covered = set()
         self.lines_to_cover = self.compute_lines_to_cover(
             self.instance, self.logger)
+        self.start_time = start_time
 
     @staticmethod
     def compute_lines_to_cover(instance, logger):
@@ -268,8 +273,12 @@ class ComputeCoverage():
             []  if stop_after_error else \
             ['-setprop', 'analysis.stopAfterError=false']
         timelimit_prop = []
-        if timelimit is not None:
+        if timelimit is None:
+            # No time limit (see doc/ConfigurationOptions.txt)
+            timelimit_prop = ['-setprop', 'limits.time.cpu=-1ns']
+        else:
             timelimit_prop = ['-setprop', 'limits.time.cpu='+str(timelimit)+'s']
+
         return [
             os.path.join(cpachecker_root, 'scripts', 'cpa.sh'),
             '-config' , conf,
@@ -330,7 +339,8 @@ def create_generator(
     heap_size,
     timelimit,
     logger,
-    aa_file):
+    aa_file,
+    start_time):
     if name not in available_generators:
         raise Exception('Invalid generator name.')
     if name == 'fixpoint':
@@ -342,8 +352,15 @@ def create_generator(
             heap_size=heap_size,
             timelimit=timelimit,
             logger=logger,
-            aa_file=aa_file)
+            aa_file=aa_file,
+            start_time=start_time)
     if name == 'blind':
+        if not cex_count:
+            logger.error((
+                "Invalid option: when using '-generator_type blind', "
+                'a limit to the number of counterexamples has to be provided '
+                'using -cex_count.'))
+            sys.exit(0)
         return GenerateFirstThenCollect(
             instance=instance,
             output_dir=output_dir,
@@ -352,8 +369,19 @@ def create_generator(
             heap_size=heap_size,
             timelimit=timelimit,
             logger=logger,
-            aa_file=aa_file)
+            aa_file=aa_file,
+            start_time=start_time)
     raise Exception('Missing generator constructor.')
+
+def define_iteration_timelimit_from_global_timelimit(
+    start_time, global_timelimit):
+    if global_timelimit:
+        assert start_time and global_timelimit
+        elapsed_time = time.time() - start_time
+        return str(int(float(global_timelimit) - elapsed_time))
+    else:
+        return None
+
 
 class FixPointOnCoveredLines(ComputeCoverage):
     def __init__(
@@ -365,9 +393,18 @@ class FixPointOnCoveredLines(ComputeCoverage):
         heap_size,
         timelimit,
         logger,
-        aa_file):
+        aa_file,
+        start_time):
         super().__init__(
-            instance, output_dir, cex_count, spec, heap_size, timelimit, logger, aa_file)
+            instance=instance,
+            output_dir=output_dir,
+            cex_count=cex_count,
+            spec=spec,
+            heap_size=heap_size,
+            timelimit=timelimit,
+            logger=logger,
+            aa_file=aa_file,
+            start_time=start_time)
 
     def generate_executions(self):
         last_difference_size = None
@@ -390,12 +427,17 @@ class FixPointOnCoveredLines(ComputeCoverage):
             specs = [cover_line_then_reach_exit_spec_file,
                      self.spec,
                      self.aa_file]
-
+            timelimit = define_iteration_timelimit_from_global_timelimit(
+                start_time=self.start_time,
+                global_timelimit=self.timelimit)
+            if timelimit and float(timelimit) < 5:
+                self.logger.debug("Preemptively quitting. Less than 10 seconds left.")
+                break
             command = self.cpachecker_command(
                 temp_dir=temp_dir,
                 specs=specs,
                 heap_size=self.heap_size,
-                timelimit=self.timelimit,
+                timelimit=timelimit,
                 instance=self.instance,
                 export_coverage=True,
                 stop_after_error=True)
@@ -410,7 +452,7 @@ class FixPointOnCoveredLines(ComputeCoverage):
             msg = 'Generated ' + str(len(specs_generated)) + ' executions.'
             self.logger.info(msg)
 
-            cpachecker_result = parse_result(output)
+            cpachecker_result = parse_result(output, self.logger)
             # sanity check
             assert (cpachecker_result.found_property_violation() or
                     len(specs_generated) == 0)
@@ -428,10 +470,10 @@ class FixPointOnCoveredLines(ComputeCoverage):
                 # if we generate more than once at a time (this is not
                 # the case yet)
                 cex_created += 1
-                if cex_created >= self.cex_count:
+                if self.cex_count and cex_created >= self.cex_count:
                     break
             # Also need to leave the main loop
-            if cex_created >= self.cex_count:
+            if self.cex_count and cex_created >= self.cex_count:
                 break
 
 
@@ -445,9 +487,18 @@ class GenerateFirstThenCollect(ComputeCoverage):
         heap_size,
         timelimit,
         logger,
-        aa_file):
+        aa_file,
+        start_time):
         super().__init__(
-            instance, output_dir, cex_count, spec, heap_size, timelimit, logger, aa_file)
+            instance=instance,
+            output_dir=output_dir,
+            cex_count=cex_count,
+            spec=spec,
+            heap_size=heap_size,
+            timelimit=timelimit,
+            logger=logger,
+            aa_file=aa_file,
+            start_time=start_time)
 
     def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
         create_temp_dir(temp_dir)
@@ -475,13 +526,19 @@ class GenerateFirstThenCollect(ComputeCoverage):
         reach_exit_spec_file = create_spec(spec_folder=temp_dir)
 
         specs = [reach_exit_spec_file, self.spec]
-
+        timelimit = define_iteration_timelimit_from_global_timelimit(
+            start_time=self.start_time,
+            global_timelimit=self.timelimit)
+        if timelimit and float(timelimit) < 0:
+            # using alternative time limit of 10s, this should not be used
+            # under normal circumstances
+            timelimit = 10
         command = self.cpachecker_command(
             temp_dir=temp_dir,
             specs=specs,
             heap_size=self.heap_size,
             cex_count=self.cex_count,
-            timelimit=self.timelimit,
+            timelimit=timelimit,
             instance=self.instance)
 
         try:
@@ -494,7 +551,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
         msg = 'Generated ' + str(cex_generated) + ' executions.'
         self.logger.info(msg)
 
-        cpachecker_result = parse_result(output)
+        cpachecker_result = parse_result(output, self.logger)
         # sanity check
         assert (cpachecker_result.found_property_violation() or
                 cex_generated == 0)
@@ -514,9 +571,10 @@ class CollectFromExistingExecutions(GenerateFirstThenCollect):
         heap_size,
         timelimit,
         logger,
-        aa_file):
+        aa_file,
+        start_time):
         super().__init__(
-            instance, output_dir=cex_dir, cex_count=None, spec=None, heap_size=heap_size, timelimit=timelimit, logger=logger, aa_file=aa_file)
+            instance=instance, output_dir=cex_dir, cex_count=None, spec=None, heap_size=heap_size, timelimit=timelimit, logger=logger, aa_file=aa_file, start_time=start_time)
 
     def generate_executions(self):
         return gen_specs_from_dir(self.output_dir)
@@ -598,7 +656,7 @@ def create_arg_parser():
     parser.add_argument(
         "-cex_count",
         type=int,
-        help="Only applicable (and required) when -only_collect_coverage "
+        help="Only applicable when -only_collect_coverage "
         "is not present. Indicates the number of traces to be generated.""")
     parser.add_argument(
         "-only_collect_coverage",
@@ -648,11 +706,6 @@ def check_args(args, logger):
             'present when -only_collect_coverage is not present.'))
         sys.exit(0)
     if not args.only_collect_coverage:
-        if not args.cex_count:
-            logger.error((
-                'Option -cex_count is required with -only_collect_coverage '
-                'is not present.'))
-            sys.exit(0)
         if os.path.exists(args.cex_dir):
             logger.error((
                 'Invalid option: when not using -only_collect_coverage, the '
@@ -681,6 +734,7 @@ def main(argv, logger):
         logger.setLevel(logging.DEBUG)
     check_args(args, logger)
 
+    start_time = time.time()
     if args.only_collect_coverage:
         compute_coverage = CollectFromExistingExecutions(
             instance=args.instance_filename,
@@ -688,7 +742,8 @@ def main(argv, logger):
             heap_size=args.heap,
             timelimit=args.timelimit,
             logger=logger,
-            aa_file=args.assumption_automaton_file)
+            aa_file=args.assumption_automaton_file,
+            start_time=start_time)
     else:
         compute_coverage = create_generator(
             name=args.generator_type,
@@ -699,5 +754,6 @@ def main(argv, logger):
             heap_size=args.heap,
             timelimit=args.timelimit,
             logger=logger,
-            aa_file=args.assumption_automaton_file)
+            aa_file=args.assumption_automaton_file,
+            start_time=start_time)
     compute_coverage.collect_coverage()

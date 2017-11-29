@@ -173,15 +173,20 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     argRoot = result.getFirst();
 
     Set<ARGState> addPragma;
-    switch (getStrategy()) {
-      case COMBINATION:
-        addPragma = getAllTargetStates(result.getSecond());
-        break;
-      case SLICING:
-        addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
-        break;
-      default: // CONDITION no effect
-        addPragma = null;
+    try {
+      statistic.collectPragmaPointsTimer.stop();
+      switch (getStrategy()) {
+        case COMBINATION:
+          addPragma = getAllTargetStates(result.getSecond());
+          break;
+        case SLICING:
+          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
+          break;
+        default: // CONDITION no effect
+          addPragma = null;
+      }
+    } finally {
+      statistic.collectPragmaPointsTimer.stop();
     }
 
     if(!writeResidualProgram(argRoot, addPragma)) {
@@ -350,7 +355,13 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 
       Algorithm algo = CPAAlgorithm.create(cpa, logger, config, shutdown);
-      algo.run(reached);
+
+      try {
+        statistic.modelBuildTimer.start();
+        algo.run(reached);
+      } finally {
+        statistic.modelBuildTimer.stop();
+      }
 
       if (reached.hasWaitingState()) {
         logger.log(Level.SEVERE, "Analysis run to get structure of residual program is incomplete");

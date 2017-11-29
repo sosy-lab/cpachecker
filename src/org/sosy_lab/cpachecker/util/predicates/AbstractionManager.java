@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.RandomProvider;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
@@ -66,6 +67,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
   private final LogManager logger;
+  private final Random random = RandomProvider.get();
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
   private final Solver solver;
@@ -177,7 +179,7 @@ public final class AbstractionManager {
 
       if (!this.varOrderMethod.getIsFrameworkStrategy()) {
         if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
-          int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
+          int randomIndex = random.nextInt(randomListOfVarIDs.size() + 1);
           randomListOfVarIDs.add(randomIndex, numberOfPredicates);
         } else if (multiplePartitions) {
           updatePartitions(result);

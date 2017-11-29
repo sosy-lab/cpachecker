@@ -31,7 +31,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -380,7 +379,7 @@ public class SMGRefiner implements Refiner {
   ) {
     // get all unique precisions from the subtree
     Set<SMGPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(SMGCEGARUtils.extractSMGPrecision(pReached, descendant));
     }
 
@@ -391,16 +390,6 @@ public class SMGRefiner implements Refiner {
     }
 
     return mergedPrecision;
-  }
-
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for (ARGState state : pRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
   }
 
   private boolean isErrorPathFeasible(ARGPath pErrorPath)

@@ -272,6 +272,26 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     blockEnded = pOriginalState.blockEnded;
   }
 
+  public SMGState withViolationsOf(SMGState pOther) {
+    if (invalidFree == pOther.invalidFree
+        && invalidRead == pOther.invalidRead
+        && invalidWrite == pOther.invalidWrite) {
+      return this;
+    }
+    SMGState result =
+        new SMGState(logger, options, heap, ID_COUNTER.getAndIncrement(), explicitValues);
+    if (pOther.invalidFree) {
+      result = new SMGState(result, Property.INVALID_FREE);
+    }
+    if (pOther.invalidRead) {
+      result = new SMGState(result, Property.INVALID_READ);
+    }
+    if (pOther.invalidWrite) {
+      result = new SMGState(result, Property.INVALID_WRITE);
+    }
+    return result;
+  }
+
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *
@@ -302,17 +322,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pTypeSize Size of the type the new local variable
    * @param pVarName Name of the local variable
    * @return Newly created object
-   *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(int pTypeSize, String pVarName)
+  public Optional<SMGObject> addLocalVariable(int pTypeSize, String pVarName)
       throws SMGInconsistentException {
+    if (heap.isStackEmpty()) {
+      return Optional.empty();
+    }
+
     SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
     heap.addStackObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return new_object;
+    return Optional.of(new_object);
   }
 
   /**
@@ -1755,13 +1778,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public List<SMGObject> getInvalidObjects() {
     return heap.getInvalidObjects();
   }
-
-  public void clearStack() throws SMGInconsistentException {
-    while (!heap.getStackFrames().isEmpty()) {
-      dropStackFrame();
-    }
-  }
-
   /**
    * Drop the stack frame representing the stack of
    * the function with the given name
@@ -1897,16 +1913,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *  which could not be resolved.
    */
   public SMGState setUnknownDereference() {
-    if (isTrackPredicatesEnabled()) {
-      //TODO: accurate define SMG change on unknown dereference with predicate knowledge
-      //doesn't stop analysis on unknown dereference
-      return this;
-    } else {
+    // TODO: accurate define SMG change on unknown dereference with predicate knowledge
+    // (if isTrackPredicatesEnabled())
+    // doesn't stop analysis on unknown dereference
 
-      //TODO: This can actually be an invalid read too
-      //      The flagging mechanism should be improved
-      return new SMGState(this, Property.INVALID_WRITE);
-    }
+    // TODO: This can actually be an invalid read too
+    //      The flagging mechanism should be improved
+    return new SMGState(this, Property.INVALID_WRITE);
   }
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {

@@ -240,7 +240,7 @@ public class SMGTransferRelation
       // TODO: Handle leaks at any program exit point (abort, etc.)
       for (SMGState successor : successors) {
         if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-          successor.clearStack();
+          successor.dropStackFrame();
         }
         successor.pruneUnreachable();
       }
@@ -1029,7 +1029,12 @@ public class SMGTransferRelation
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
-        newObject = pState.addLocalVariable(typeSize, varName);
+        java.util.Optional<SMGObject> addedLocalVariable =
+            pState.addLocalVariable(typeSize, varName);
+        if (!addedLocalVariable.isPresent()) {
+          throw new SMGInconsistentException("Cannot add a local variable to an empty stack.");
+        }
+        newObject = addedLocalVariable.get();
       }
     }
 
@@ -1370,7 +1375,7 @@ public class SMGTransferRelation
         newElement = null;
         break;
       } else {
-        newElement = newElements.get(0);
+        newElement = newElements.get(0).withViolationsOf(newElement);
       }
     }
 

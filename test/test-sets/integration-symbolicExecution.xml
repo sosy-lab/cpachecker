@@ -52,6 +52,7 @@
     <exclude>../programs/benchmarks/systemc/token_ring.*true-unreach-call*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/cs_time_var_mutex_true-unreach-call.i</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_queue_false-unreach-call.i</exclude> <!-- flapping timeout -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 

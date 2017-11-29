@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -98,14 +97,21 @@ public class BAMARGStatistics extends ARGStatistics {
         // and it seems that those states are "not" contained in the reachedSet.
         // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
         // Possible case: entry state of an infinite loop, loop is a block without exit-state.
-        && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s)));
+        // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
+        );
 
     if (targets.isEmpty()) {
-      logger.log(
-          Level.INFO,
-          "could not compute full reached set graph (missing block), "
-              + "some output or statistics might be missing");
-      return; // invalid ARG, ignore output.
+      if (pResult.equals(Result.FALSE)) {
+        logger.log(
+            Level.INFO,
+            "could not compute full reached set graph (missing block), "
+                + "some output or statistics might be missing");
+        // invalid ARG, ignore output.
+      } else if (pResult.equals(Result.TRUE)) {
+        // In case of TRUE verdict we do not need a target to print super statistics
+        super.printStatistics(pOut, pResult, pReached);
+      }
+      return;
     }
 
     // assertion disabled, because it happens with BAM-parallel (reason unknown).

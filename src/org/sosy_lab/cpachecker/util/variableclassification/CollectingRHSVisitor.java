@@ -37,6 +37,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 final class CollectingRHSVisitor
@@ -68,10 +71,19 @@ final class CollectingRHSVisitor
 
   @Override
   public VarFieldDependencies visit(final CFieldReference e) {
-    VariableOrField.Field field =
-        VariableOrField.newField(
-            VariableAndFieldRelevancyComputer.getCanonicalFieldOwnerType(e), e.getFieldName());
-    VarFieldDependencies result = e.getFieldOwner().accept(this).withDependency(lhs, field);
+    CCompositeType ownerType = VariableAndFieldRelevancyComputer.getCanonicalFieldOwnerType(e);
+    VariableOrField.Field field = VariableOrField.newField(ownerType, e.getFieldName());
+    VarFieldDependencies result = e.getFieldOwner().accept(this);
+
+    if (ownerType.getKind() == ComplexTypeKind.UNION) {
+      // For unions, we add a dependency on all fields, because writes to all of them are relevant
+      for (CCompositeTypeMemberDeclaration member : ownerType.getMembers()) {
+        result = result.withDependency(lhs, VariableOrField.newField(ownerType, member.getName()));
+      }
+    } else {
+      result = result.withDependency(lhs, field);
+    }
+
     if (addressed) {
       return result.withAddressedField(field);
     } else {

@@ -282,9 +282,10 @@ enum GraphBuilder {
         }
         for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
           CFANode predecessor = enteringEdge.getPredecessor();
+          CFANode successor = enteringEdge.getSuccessor();
           final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(predecessor)) {
-            locationStates = Optional.of(states.get(predecessor));
+          if (subProgramNodes.contains(successor)) {
+            locationStates = Optional.of(states.get(successor));
           } else {
             locationStates = Optional.empty();
           }

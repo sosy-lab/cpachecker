@@ -42,17 +42,21 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -67,9 +71,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 /**
  * Implements a handler for assignments.
@@ -191,6 +197,23 @@ class AssignmentHandler {
     final BooleanFormula result =
         makeDestructiveAssignment(
             lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
+
+    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
+      CFieldReference fieldReference = (CFieldReference) lhs;
+      CType ownerType = typeHandler.getSimplifiedType(fieldReference.getFieldOwner());
+      if (!fieldReference.isPointerDereference()
+          && ownerType instanceof CCompositeType
+          && ((CCompositeType) ownerType).getKind() == ComplexTypeKind.UNION) {
+        addAssignmentsForOtherFieldsOfUnion(
+            lhsType,
+            (CCompositeType) ownerType,
+            rhsType,
+            rhsExpression,
+            useOldSSAIndices,
+            updatedRegions,
+            fieldReference);
+      }
+    }
 
     if (!useOldSSAIndices && !options.useArraysForHeap()) {
       if (lhsLocation.isAliased()) {
@@ -762,6 +785,122 @@ class AssignmentHandler {
         return Optional.empty();
       default:
         throw new AssertionError();
+    }
+  }
+
+  private void addAssignmentsForOtherFieldsOfUnion(
+      final CType lhsType,
+      final CCompositeType ownerType,
+      final CType rhsType,
+      final Expression rhsExpression,
+      final boolean useOldSSAIndices,
+      final Set<MemoryRegion> updatedRegions,
+      final CFieldReference fieldReference)
+      throws UnrecognizedCCodeException {
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+    for (CCompositeTypeMemberDeclaration member : ownerType.getMembers()) {
+      if (member.getName().equals(fieldReference.getFieldName())) {
+        continue; // handled already as the main assignment
+      }
+
+      final CType newLhsType = member.getType();
+      final CExpression newLhs =
+          new CFieldReference(
+              FileLocation.DUMMY,
+              newLhsType,
+              member.getName(),
+              fieldReference.getFieldOwner(),
+              false);
+      final Location newLhsLocation = newLhs.accept(lhsVisitor).asLocation();
+      assert newLhsLocation.isUnaliasedLocation();
+
+      if (CTypeUtils.isSimpleType(newLhsType)) {
+        final Expression newRhsExpression;
+        final CType newRhsType = newLhsType;
+        if (CTypeUtils.isSimpleType(rhsType) && !rhsExpression.isNondetValue()) {
+          Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
+          rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
+          rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
+          newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+        } else {
+          newRhsExpression = Value.nondetValue();
+        }
+        constraints.addConstraint(
+            makeDestructiveAssignment(
+                newLhsType,
+                newRhsType,
+                newLhsLocation,
+                newRhsExpression,
+                useOldSSAIndices,
+                updatedRegions));
+      }
+
+      if (newLhsType instanceof CCompositeType
+          && CTypeUtils.isSimpleType(rhsType)
+          && !rhsExpression.isNondetValue()) {
+        // Use different name in this block as newLhsType is confusing. newLhsType was computed as
+        // member.getType() -> call it memberType here (note we will also have an innerMember)
+        final CType memberType = newLhsType;
+        // newLhs is a CFieldReference to member:
+        final CExpression memberCFieldReference = newLhs;
+
+        // for each innerMember of member we need to add a (destructive!) constraint like:
+        // union.member.innerMember := treatAsMemberTypeAndExtractInnerMemberValue(rhsExpression);
+        for (CCompositeTypeMemberDeclaration innerMember :
+            ((CCompositeType) memberType).getMembers()) {
+
+          // calculate right indices. GCC orders fields in structs the other way around!
+          // C11 6.7.2.1 (11) allows for arbitrary ordering, but we will stick to GCC behavior
+          int fieldOffset =
+              (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember.getName());
+          int fieldSize = typeHandler.getBitSizeof(innerMember.getType());
+          assert fieldSize > 0;
+          int structSize = ((BitvectorType) conv.getFormulaTypeFromCType(memberType)).getSize();
+          boolean invertMemberOrdering = true; // for GCC-like behavior this has to be set to true
+          int startIndex = fieldOffset;
+          int endIndex = fieldOffset + fieldSize - 1;
+          if (invertMemberOrdering) {
+            int tmp = startIndex;
+            startIndex = structSize - 1 - endIndex;
+            endIndex = structSize - 1 - tmp;
+          }
+
+          // "treatAsMemberType"
+          Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
+          rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
+          rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
+          assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
+
+          // "AndExtractInnerMemberValue"
+          if (rhsFormula != null) {
+            rhsFormula =
+                fmgr.makeExtract(
+                    rhsFormula, endIndex, startIndex, ((CSimpleType) rhsType).isSigned());
+          }
+          Expression newRhsExpression =
+              rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+
+          // we need innerMember as location for the lvalue of makeDestructiveAssignment:
+          final CExpression innerMemberCFieldReference =
+              new CFieldReference(
+                  FileLocation.DUMMY,
+                  member.getType(),
+                  innerMember.getName(),
+                  memberCFieldReference,
+                  false);
+          final Location innerMemberLocation =
+              innerMemberCFieldReference.accept(lhsVisitor).asLocation();
+
+          constraints.addConstraint(
+              makeDestructiveAssignment(
+                  innerMember.getType(),
+                  innerMember.getType(),
+                  innerMemberLocation,
+                  newRhsExpression,
+                  useOldSSAIndices,
+                  updatedRegions));
+        }
+      }
     }
   }
 

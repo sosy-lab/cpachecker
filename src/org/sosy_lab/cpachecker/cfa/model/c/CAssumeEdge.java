@@ -37,13 +37,36 @@ public class CAssumeEdge extends AssumeEdge {
   public CAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
-    this(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pTruthAssumption, false);
+    this(
+        pRawStatement,
+        pFileLocation,
+        pPredecessor,
+        pSuccessor,
+        pExpression,
+        pTruthAssumption,
+        false,
+        false);
   }
 
-  public CAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
-      CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption, boolean pSwapped) {
+  public CAssumeEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CExpression pExpression,
+      boolean pTruthAssumption,
+      boolean pSwapped,
+      boolean pArtificial) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pTruthAssumption, pSwapped);
+    super(
+        pRawStatement,
+        pFileLocation,
+        pPredecessor,
+        pSuccessor,
+        pExpression,
+        pTruthAssumption,
+        pSwapped,
+        pArtificial);
   }
 
   @Override

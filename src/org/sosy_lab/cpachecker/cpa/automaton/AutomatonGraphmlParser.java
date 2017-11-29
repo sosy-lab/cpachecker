@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -59,6 +58,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -415,24 +416,19 @@ public class AutomatonGraphmlParser {
           "Invariants are not allowed for violation witnesses.");
     }
 
-    // Initialize the transition condition to TRUE, so that all individual
-    // conditions can conveniently be conjoined to it later
-    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
+    List<Function<AutomatonBoolExpr, AutomatonBoolExpr>> conditionTransformations =
+        Lists.newArrayList();
 
     // Add a source-code guard for specified line numbers
     if (matchOriginLine) {
-      transitionCondition = and(
-          transitionCondition,
-          getLocationMatcher(
-              pTransition.getLineMatcherPredicate()));
+      conditionTransformations.add(
+          condition -> and(condition, getLocationMatcher(pTransition.getLineMatcherPredicate())));
     }
 
     // Add a source-code guard for specified character offsets
     if (matchOffset) {
-      transitionCondition = and(
-          transitionCondition,
-          getLocationMatcher(
-              pTransition.getOffsetMatcherPredicate()));
+      conditionTransformations.add(
+          condition -> and(condition, getLocationMatcher(pTransition.getOffsetMatcherPredicate())));
     }
 
     // Add a source-code guard for function-call statements if an explicit result function is
@@ -445,35 +441,30 @@ public class AutomatonGraphmlParser {
                   pTransition,
                   pTransition.getExplicitAssumptionResultFunction())
               .get();
-      transitionCondition =
-          and(
-              transitionCondition,
-              new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
+      conditionTransformations.add(
+          condition ->
+              and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
     }
 
     // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
-      transitionCondition =
-          and(
-              transitionCondition,
-              getFunctionExitMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit())
-                      .get()));
+      String function =
+          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit()).get();
+      conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
     }
 
     // Add a source-code guard for specified function entries
+    Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
     if (pTransition.getFunctionEntry().isPresent()) {
-      transitionCondition =
-          and(
-              transitionCondition,
-              getFunctionCallMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
-                      .get()));
+      String function =
+          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get();
+      applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
+      conditionTransformations.add(applyMatchFunctionEntry);
     }
 
     // Add a source-code guard for specified branching information
     if (matchAssumeCase) {
-      transitionCondition = and(transitionCondition, pTransition.getAssumeCaseMatcher());
+      conditionTransformations.add(condition -> and(condition, pTransition.getAssumeCaseMatcher()));
     }
 
     // Add a source-code guard for a specified loop head
@@ -483,34 +474,50 @@ public class AutomatonGraphmlParser {
       // (b) sometimes the transition needs to match the edge before the blank edge,
       // sometimes the transition even needs to match "both" of the above.
       // Therefore, we do exactly that (match "both");
-      AutomatonBoolExpr conditionA =
-          and(
-              AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(transitionCondition, true),
-              AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-      AutomatonBoolExpr conditionB =
-          and(
-              transitionCondition,
-              AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
-                  AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
-      transitionCondition = or(conditionA, conditionB);
+      conditionTransformations.add(
+          condition -> {
+            AutomatonBoolExpr conditionA =
+                and(
+                    AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(condition, true),
+                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+            AutomatonBoolExpr conditionB =
+                and(
+                    condition,
+                    AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                        AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
+            return or(conditionA, conditionB);
+          });
     }
 
     // Never match on the dummy edge directly after the main function entry node
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE));
+    conditionTransformations.add(
+        condition -> and(condition, not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE)));
     // Never match on artificially split declarations
-    transitionCondition =
-        and(transitionCondition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
+    conditionTransformations.add(
+        condition -> and(condition, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE)));
+
+    // Initialize the transition condition to TRUE, so that all individual
+    // conditions can conveniently be conjoined to it later
+    AutomatonBoolExpr transitionCondition = AutomatonBoolExpr.TRUE;
+    AutomatonBoolExpr transitionConditionWithoutFunctionEntry = AutomatonBoolExpr.TRUE;
+    for (Function<AutomatonBoolExpr, AutomatonBoolExpr> conditionTransformation :
+        conditionTransformations) {
+      transitionCondition = conditionTransformation.apply(transitionCondition);
+      if (conditionTransformation != applyMatchFunctionEntry) {
+        transitionConditionWithoutFunctionEntry =
+            conditionTransformation.apply(transitionConditionWithoutFunctionEntry);
+      }
+    }
 
     // If the transition represents a function call, add a sink transition
     // in case it is a function pointer call,
     // where we can eliminate the other branch
     AutomatonBoolExpr fpElseTrigger = null;
     if (pTransition.getFunctionEntry().isPresent()
-        && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
+        && pGraphMLParserState.getWitnessType() != WitnessType.CORRECTNESS_WITNESS) {
       fpElseTrigger =
           and(
-              transitionCondition,
+              transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
                   getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
                       .get(),
@@ -653,7 +660,12 @@ public class AutomatonGraphmlParser {
                 cfa.getMachineModel(),
                 logger);
       } catch (InvalidAutomatonException e) {
-        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
+        String reason = e.getMessage();
+        if (e.getCause() instanceof ParserException) {
+          reason =
+              String.format("Cannot parse <%s>", Joiner.on(" ").join(pTransition.getAssumptions()));
+        }
+        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE + " Reason: " + reason, e);
       }
     }
     return Collections.emptyList();
@@ -674,9 +686,8 @@ public class AutomatonGraphmlParser {
     }
     throw new WitnessParseException(
         String.format(
-            "Unable to assign function %s to thread %s.",
-            pFunctionName.get(),
-            pTransition.getThread()));
+            "Unable to assign function <%s> to thread <%s>.",
+            pFunctionName.get(), pTransition.getThread()));
   }
 
   /**
@@ -890,7 +901,6 @@ public class AutomatonGraphmlParser {
     } catch (ParserConfigurationException | SAXException e) {
       throw new WitnessParseException(e);
     }
-    doc.getDocumentElement().normalize();
 
     return new GraphMLDocumentData(doc);
   }
@@ -1740,7 +1750,6 @@ public class AutomatonGraphmlParser {
     } catch (ParserConfigurationException | SAXException e) {
       throw new WitnessParseException(e);
     }
-    doc.getDocumentElement().normalize();
 
     // (The one) root node of the graph ----
     NodeList graphs = doc.getElementsByTagName(GraphMLTag.GRAPH.toString());

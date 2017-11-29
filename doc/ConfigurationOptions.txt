@@ -284,6 +284,11 @@ analysis.traversal.byAutomatonVariable = no default value
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, RAND, RANDOM_PATH]
 
+# Exponent of random function.This value influences the probability
+# distribution over the waitlist elementswhen choosing the next element.Has
+# to be a double in the range [0, INF)
+analysis.traversal.random.exponent = 1
+
 # handle abstract states with more automaton matches first? (only if
 # AutomatonCPA enabled)
 analysis.traversal.useAutomatonInformation = false
@@ -317,6 +322,9 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# perform a weighted random selection based on the branching depth
+analysis.traversal.weightedDepth = false
 
 # After an incomplete analysis constructs a residual program which contains
 # all program paths which are not fully explored
@@ -1028,6 +1036,7 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
+  allowed values: [sep, join]
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -1720,6 +1729,11 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = -1
 
+# When then builtin strlen is called, approximate it up to length set by this
+# option.If the string passed to strlen is longer, the return value will be
+# overapproximated via nondet.
+cpa.predicate.maxPreciseStrlenSize = 3
+
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
@@ -1759,6 +1773,10 @@ cpa.predicate.nondetFunctions = {
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
+
+# Do not ignore variables that could lead to an overflow (only makes sense if
+# ignoreIrrelevantVariables is set to true)
+cpa.predicate.overflowVariablesAreRelevant = false
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
@@ -1913,6 +1931,9 @@ cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
+
+# use Newton-based Algorithm for the CPA-Refinement, experimental feature!
+cpa.predicate.refinement.useNewtonRefinement = false
 
 # Should the path invariants be created and used (potentially additionally to
 # the other invariants)
@@ -2127,6 +2148,9 @@ cpa.smg.externalAllocationFunction = {"ext_allocation"}
 # Default size of externally allocated memory
 cpa.smg.externalAllocationSize = Integer.MAX_VALUE
 
+# Allocation size of memory that cannot be calculated.
+cpa.smg.guessSize = 2
+
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
@@ -2136,7 +2160,7 @@ cpa.smg.handleExternVariableAsExternalAllocation = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
-cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
+cpa.smg.handleNonFreedMemoryInMainAsMemLeak = true
 
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT
@@ -2632,8 +2656,17 @@ merge = "JOIN"
 # instead of the current one.
 overflow.config = no default value
 
-# Track undefined behavior in left-shift operations.
+# Track overflows in additive(+/-) operations.
+overflow.trackAdditiveOperations = true
+
+# Track overflows in division(/ or %) operations.
+overflow.trackDivisions = true
+
+# Track overflows in left-shift operations.
 overflow.trackLeftShifts = true
+
+# Track overflows in multiplication operations.
+overflow.trackMultiplications = true
 
 # Track overflow for signed integers.
 overflow.trackSignedIntegers = true
@@ -2888,6 +2921,9 @@ precision.variableBlacklist = ""
 # this precision
 precision.variableWhitelist = ""
 
+# Random seed to use. Uses a random number if null is given
+random.seed = no default value
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -2929,6 +2965,9 @@ residualprogram.file = "residualProgram.c"
 # in residual program generation
 residualprogram.folderType = CFA
   enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
+
+# Collect statistical data about size of residual program
+residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
@@ -3079,6 +3118,11 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # A human readable representation of the synthesized (non-)termination
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
+
+# consider counterexamples for loops for which only pointer variables are
+# relevant or which check that pointer is unequal to null pointer to be
+# imprecise
+termination.useCexImpreciseHeuristic = false
 
 # Export termination counterexample to file as GraphML automaton 
 termination.violation.witness = "nontermination_witness.graphml"
