@@ -732,6 +732,11 @@ public class AutomatonGraphmlParser {
 
     Optional<String> functionEntry =
         getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry());
+    if (!functionEntry.isPresent() && pTransition.getSource().isEntryState()) {
+      functionEntry =
+          getFunction(
+              pGraphMLParserState, thread, Optional.of(cfa.getMainFunction().getFunctionName()));
+    }
     Optional<String> functionExit =
         getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit());
 
