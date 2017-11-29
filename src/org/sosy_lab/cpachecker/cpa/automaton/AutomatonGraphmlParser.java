@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -404,6 +405,8 @@ public class AutomatonGraphmlParser {
             "Assumptions are not allowed for correctness witnesses.");
     }
 
+    GraphMLThread thread = pTransition.getThread();
+
     // Parse the invariants of the witness
     ExpressionTree<AExpression> candidateInvariants =
         getInvariants(pCParser, pGraphMLParserState, pTransition, newStack);
@@ -437,9 +440,7 @@ public class AutomatonGraphmlParser {
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName =
           getFunction(
-                  pGraphMLParserState,
-                  pTransition,
-                  pTransition.getExplicitAssumptionResultFunction())
+                  pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction())
               .get();
       conditionTransformations.add(
           condition ->
@@ -449,7 +450,7 @@ public class AutomatonGraphmlParser {
     // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit()).get();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).get();
       conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
     }
 
@@ -457,7 +458,7 @@ public class AutomatonGraphmlParser {
     Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
     if (pTransition.getFunctionEntry().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get();
       applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
       conditionTransformations.add(applyMatchFunctionEntry);
     }
@@ -519,8 +520,7 @@ public class AutomatonGraphmlParser {
           and(
               transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
-                      .get(),
+                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get(),
                   pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
@@ -599,17 +599,16 @@ public class AutomatonGraphmlParser {
       Deque<String> pCallstack)
       throws WitnessParseException {
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
+      GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitInvariantScope =
           getFunction(
-              pGraphMLParserState,
-              pTransition,
-              pTransition.getTarget().getExplicitInvariantScope());
+              pGraphMLParserState, thread, pTransition.getTarget().getExplicitInvariantScope());
       Scope candidateScope =
           determineScope(
               explicitInvariantScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
           getFunction(
-              pGraphMLParserState, pTransition, pTransition.getExplicitAssumptionResultFunction());
+              pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> resultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
       return CParserUtils.parseStatementsAsExpressionTree(
@@ -639,14 +638,15 @@ public class AutomatonGraphmlParser {
       Deque<String> pCallstack)
       throws WitnessParseException {
     if (considerAssumptions) {
+      GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitAssumptionScope =
-          getFunction(pGraphMLParserState, pTransition, pTransition.getExplicitAssumptionScope());
+          getFunction(pGraphMLParserState, thread, pTransition.getExplicitAssumptionScope());
       Scope scope =
           determineScope(
               explicitAssumptionScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
           getFunction(
-              pGraphMLParserState, pTransition, pTransition.getExplicitAssumptionResultFunction());
+              pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> assumptionResultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
       try {
@@ -673,21 +673,20 @@ public class AutomatonGraphmlParser {
 
   private Optional<String> getFunction(
       AutomatonGraphmlParserState pGraphmlParserState,
-      GraphMLTransition pTransition,
+      GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
     if (!pFunctionName.isPresent() || !cfa.getAllFunctionNames().contains(pFunctionName.get())) {
       return pFunctionName;
     }
     Optional<String> functionName =
-        pGraphmlParserState.getFunctionForThread(pTransition.getThread(), pFunctionName.get());
+        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.get());
     if (functionName.isPresent()) {
       return functionName;
     }
     throw new WitnessParseException(
         String.format(
-            "Unable to assign function <%s> to thread <%s>.",
-            pFunctionName.get(), pTransition.getThread()));
+            "Unable to assign function <%s> to thread <%s>.", pFunctionName.get(), pThread));
   }
 
   /**
@@ -732,9 +731,9 @@ public class AutomatonGraphmlParser {
     Deque<String> newStack = currentStack;
 
     Optional<String> functionEntry =
-        getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry());
+        getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry());
     Optional<String> functionExit =
-        getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit());
+        getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit());
 
     // If the same function is entered and exited, the stack remains unchanged.
     // Otherwise, adjust the stack accordingly:
@@ -1203,6 +1202,7 @@ public class AutomatonGraphmlParser {
 
     Optional<String> functionEntry = parseSingleDataValue(pTransition, KeyDef.FUNCTIONENTRY,
         "At most one function can be entered by one transition.");
+
     Optional<String> functionExit = parseSingleDataValue(pTransition, KeyDef.FUNCTIONEXIT,
         "At most one function can be exited by one transition.");
     Optional<String> explicitAssumptionScope = parseSingleDataValue(pTransition, KeyDef.ASSUMPTIONSCOPE,
