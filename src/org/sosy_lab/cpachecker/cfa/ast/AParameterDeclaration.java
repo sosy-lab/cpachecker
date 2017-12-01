@@ -40,7 +40,7 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
   @Override
   public String toASTString() {
-    return getType().toASTString(getQualifiedName().replace("::", "_"));
+    return getType().toASTString(getQualifiedName().replace("::", "__"));
   }
 
   @Override

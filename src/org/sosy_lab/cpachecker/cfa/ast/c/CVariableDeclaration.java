@@ -95,7 +95,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
-    lASTString.append(getType().toASTString(getQualifiedName().replace("::", "_")));
+    lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
 
     if (getInitializer() != null) {
       lASTString.append(" = ");

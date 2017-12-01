@@ -63,7 +63,7 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
     if (decl != null) {
       String qualName = decl.getQualifiedName();
       if (qualName != null) {
-        return qualName.replace("::", "_");
+        return qualName.replace("::", "__");
       } else {
         return name;
       }

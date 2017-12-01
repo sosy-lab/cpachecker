@@ -215,7 +215,7 @@ public final class CEnumType implements CComplexType {
 
     @Override
     public String toASTString() {
-      return getQualifiedName().replace("::", "_")
+      return getQualifiedName().replace("::", "__")
           + (hasValue() ? " = " + String.valueOf(value) : "");
     }
 
