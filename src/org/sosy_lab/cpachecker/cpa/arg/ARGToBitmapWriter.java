@@ -234,16 +234,10 @@ public class ARGToBitmapWriter {
       Path pOutputFile,
       Predicate<? super ARGState> pHighlightEdge
   ) throws IOException, InvalidConfigurationException {
-    FileImageOutputStream out = null;
-    try {
-      RenderedImage img = createImage(getStructure(pRoot, pHighlightEdge));
-      out = new FileImageOutputStream(pOutputFile.toFile());
+    try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
+      ARGStructure structure = getStructure(pRoot, pHighlightEdge);
+      RenderedImage img = createImage(structure);
       ImageIO.write(img, IMAGE_FORMAT, out);
-
-    } finally {
-      if (out != null) {
-        out.close();
-      }
     }
   }
 
