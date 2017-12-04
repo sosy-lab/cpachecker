@@ -52,6 +52,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1599,7 +1600,7 @@ public class AutomatonGraphmlParser {
     @Override
     public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
       String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
-      List<String> violatedPropertyDescriptions = new ArrayList<>();
+      Set<String> violatedPropertyDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
         violatedPropertyDescriptions.add(own);
