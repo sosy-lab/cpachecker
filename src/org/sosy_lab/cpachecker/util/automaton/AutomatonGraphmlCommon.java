@@ -315,6 +315,11 @@ public class AutomatonGraphmlCommon {
   }
 
   public static String computeHash(Path pPath) throws IOException {
+    HashCode hash = MoreFiles.asByteSource(pPath).hash(Hashing.sha256());
+    return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
+  }
+
+  public static String computeSha1Hash(Path pPath) throws IOException {
     @SuppressWarnings("deprecation") // SHA1 is required by witness format
     HashCode hash = MoreFiles.asByteSource(pPath).hash(Hashing.sha1());
     return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
