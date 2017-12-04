@@ -818,6 +818,32 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
+# Height of the bitmap in pixels. If set to -1, height is  computed in
+# relation to the width. If both are set to -1, the optimal bitmap size to
+# represent the ARG is used. The final height is height*scaling
+cpa.arg.bitmap.height = -1
+
+# Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
+# to 2, 2 * 2 pixels represent one ARG node, and so on.
+cpa.arg.bitmap.scaling = 2
+
+# Width of the bitmap in pixels. If set to -1, width is computed in relation
+# to the height. If both are set to -1, the optimal bitmap size to represent
+# the ARG is used. The final width is width*scaling
+cpa.arg.bitmap.width = -1
+
+# Padding of the bitmap on the left and right (each) in pixels
+cpa.arg.bitmap.xPadding = 2
+
+# Padding of the bitmap on the top and bottom (each) in pixels
+cpa.arg.bitmap.yPadding = 2
+
+# output file for bitmap of ARG
+cpa.arg.bitmapFile = "ARG.gif"
+
+# export final ARG as bitmap
+cpa.arg.bitmapGraphic = false
+
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
