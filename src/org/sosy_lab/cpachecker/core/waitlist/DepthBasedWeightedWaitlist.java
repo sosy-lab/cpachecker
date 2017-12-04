@@ -58,13 +58,15 @@ public class DepthBasedWeightedWaitlist extends WeightedRandomWaitlist {
       int callStackDepth1 = AbstractStates.extractStateByType(s1, CallstackState.class).getDepth();
       int callStackDepth2 = AbstractStates.extractStateByType(s2, CallstackState.class).getDepth();
 
-      int comp = id1 - id2;
+      int comp = Integer.compare(id1, id2);
 
       if (comp == 0) {
-        return callStackDepth1 - callStackDepth2;
+        return Integer.compare(callStackDepth1, callStackDepth2);
       } else {
         return comp;
       }
+
+
     }
   }
 
