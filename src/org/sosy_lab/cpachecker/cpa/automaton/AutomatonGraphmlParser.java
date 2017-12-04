@@ -1846,9 +1846,14 @@ public class AutomatonGraphmlParser {
   }
 
   private static String getMessage(Throwable pException) {
-    String message = ACCESS_ERROR_MESSAGE;
-    String infix = pException.getMessage();
-    return String.format(message, infix);
+    String message = pException.getMessage();
+    if (message == null) {
+      message = "Exception occurred, but details are unknown: " + pException.toString();
+    }
+    if (pException instanceof IOException) {
+      return String.format(ACCESS_ERROR_MESSAGE, message);
+    }
+    return message;
   }
 
   private static interface InputHandler<T, E extends Throwable> {
