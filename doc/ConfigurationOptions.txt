@@ -827,6 +827,11 @@ cpa.arg.bitmap.height = -1
 # to 2, 2 * 2 pixels represent one ARG node, and so on.
 cpa.arg.bitmap.scaling = 2
 
+# Highlight not only corresponding ARG nodes, but background of corresponding
+# line, too. This may give an better overview, but also introduces more
+# clutter
+cpa.arg.bitmap.strongHighlight = true
+
 # Width of the bitmap in pixels. If set to -1, width is computed in relation
 # to the height. If both are set to -1, the optimal bitmap size to represent
 # the ARG is used. The final width is width*scaling

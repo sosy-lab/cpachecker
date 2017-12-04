@@ -81,6 +81,11 @@ public class ARGToBitmapWriter {
       + "ARG node. If set to 2, 2 * 2 pixels represent one ARG node, and so on.")
   private int scaling = 2;
 
+  @Option(secure=true, description="Highlight not only corresponding ARG nodes, but background of"
+      + " corresponding line, too. This may give an better overview, but also introduces more"
+      + " clutter")
+  private boolean strongHighlight = true;
+
   private static final String IMAGE_FORMAT = "gif";
 
   private static final Color COLOR_BACKGROUND = Color.LIGHT_GRAY;
@@ -205,6 +210,17 @@ public class ARGToBitmapWriter {
       int lineWidth = stateNum * widthFactor;
 
       xPos = middle - lineWidth / 2;
+
+      if (strongHighlight) {
+        if (!level.getTargetIndices().isEmpty()) {
+          g.setColor(COLOR_TARGET);
+          g.fillRect(0, yPos, finalWidth, heightFactor);
+
+        } else if (!level.getHighlightIndices().isEmpty()) {
+          g.setColor(COLOR_HIGHLIGHT);
+          g.fillRect(0, yPos, finalWidth, heightFactor);
+        }
+      }
 
       g.setColor(COLOR_NODE);
       g.fillRect(xPos, yPos, lineWidth, heightFactor);
