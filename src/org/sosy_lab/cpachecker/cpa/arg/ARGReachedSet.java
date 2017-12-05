@@ -456,7 +456,9 @@ public class ARGReachedSet {
   public boolean tryToCover(ARGState v) throws CPAException, InterruptedException {
     assert v.mayCover();
 
-    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
+    boolean stop = cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    Preconditions.checkState(!stop);
     // ignore return value of stop, because it will always be false
 
     if (v.isCovered()) {
@@ -510,6 +512,7 @@ public class ARGReachedSet {
     assert v.mayCover();
 
     if (beUnsound) {
+      // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
       cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
       return v.isCovered();
     }
