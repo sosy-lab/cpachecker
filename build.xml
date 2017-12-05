@@ -12,7 +12,6 @@
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
-    <property name="ivy.settings.file" value="lib/ivysettings.xml"/>
     <property name="junit.dir" value="output/junit"/>
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
