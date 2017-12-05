@@ -164,14 +164,12 @@ public class SymbolicValueAnalysisRefiner
       throws InterruptedException {
     final Collection<ARGState> roots = pInterpolants.obtainRefinementRoots(restartStrategy);
 
-    ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();
-
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
       ConstraintsPrecision.Increment constrPrecInc =
           getConstraintsIncrement(r, pInterpolants);
 
-      precUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
+      ARGTreePrecisionUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
   }
 
