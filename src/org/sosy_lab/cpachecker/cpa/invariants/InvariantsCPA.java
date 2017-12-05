@@ -380,24 +380,21 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     initialPrecisionMap.put(pNode, precision);
 
+    // Create the configured initial state
+    InvariantsState state =
+        new InvariantsState(
+            variableSelection,
+            compoundIntervalManagerFactory,
+            machineModel,
+            abstractionState,
+            options.includeTypeInformation);
+
     BooleanFormula<CompoundInterval> invariant = invariants.get(pNode);
     if (invariant != null) {
-      InvariantsState state = new InvariantsState(
-          variableSelection,
-          compoundIntervalManagerFactory,
-          machineModel,
-          abstractionState,
-          options.includeTypeInformation);
       state = state.assume(invariant);
     }
 
-    // Create the configured initial state
-    return new InvariantsState(
-        variableSelection,
-        compoundIntervalManagerFactory,
-        machineModel,
-        abstractionState,
-        options.includeTypeInformation);
+    return state;
   }
 
   @Override
