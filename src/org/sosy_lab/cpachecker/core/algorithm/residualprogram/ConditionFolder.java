@@ -532,17 +532,20 @@ public abstract class ConditionFolder {
       }
 
       if (pEdge instanceof FunctionReturnEdge && newLoopContext.contains("/")) {
-        newLoopContext =
-            newLoopContext.substring(newLoopContext.indexOf("/") + 1, newLoopContext.length());
+        newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("/"));
       }
       if (pEdge instanceof FunctionCallEdge) {
         newLoopContext =
-            ((FunctionCallEdge) pEdge).getSuccessor().getFunctionName() + "/" + newLoopContext;
+            newLoopContext
+                + "/"
+                + "N"
+                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
+                + "N";
       }
 
       // enter loop or start next iteration
       if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
-        newLoopContext += "|";
+        newLoopContext += "|L" + pEdge.getSuccessor().getNodeNumber() + "L";
       }
 
       if (pEdge instanceof AssumeEdge) {
