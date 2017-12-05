@@ -528,7 +528,7 @@ public abstract class ConditionFolder {
 
       // next loop iteration
       if (startNewLoopIteation(pEdge) && newLoopContext.contains("|")) {
-        newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|") + 1);
+        newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|"));
       }
 
       if (pEdge instanceof FunctionReturnEdge && newLoopContext.contains("/")) {
