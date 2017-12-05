@@ -36,7 +36,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   private static final long serialVersionUID = -6314468260643330323L;
 
-  private final CExpression length;
+  private final @Nullable CExpression length;
   private final boolean isConst;
   private final boolean isVolatile;
 

@@ -23,14 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,17 +31,23 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public class ExternModelLoader {
 
-  private final CtoFormulaTypeHandler typeHandler;
+  private final CtoFormulaConverter conv;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
 
-  public ExternModelLoader(CtoFormulaTypeHandler pTypeHandler, BooleanFormulaManagerView pBfmgr,
-      FormulaManagerView pFmgr) {
-    typeHandler = pTypeHandler;
+  public ExternModelLoader(
+      CtoFormulaConverter pConv, BooleanFormulaManagerView pBfmgr, FormulaManagerView pFmgr) {
+    conv = pConv;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
   }
@@ -118,7 +116,9 @@ public class ExternModelLoader {
               BooleanFormula constraintPart = null;
               if (ssaIndex != -1) {
                 // this variable was already declared in the program
-                Formula formulaVar = fmgr.makeVariable(typeHandler.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
+                Formula formulaVar =
+                    fmgr.makeVariable(
+                        conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
                 if (elem > 0) {
                   constraintPart = fmgr.makeNot(fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
                 } else {

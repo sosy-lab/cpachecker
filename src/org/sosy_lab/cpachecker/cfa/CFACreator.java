@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +52,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -104,8 +105,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -241,6 +243,7 @@ private boolean classifyNodes = false;
     private final Timer processingTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
+    private @Nullable VariableClassificationStatistics varClassificationStats;
 
     @Override
     public String getName() {
@@ -257,6 +260,9 @@ private boolean classifyNodes = false;
       out.println("    Time for post-processing: " + processingTime);
       if (variableClassificationTime.getNumberOfIntervals() > 0) {
         out.println("      Time for var class.:    " + variableClassificationTime);
+        if (varClassificationStats != null) {
+          varClassificationStats.printStatistics(out, pResult, pReached);
+        }
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -455,7 +461,9 @@ private boolean classifyNodes = false;
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
+        varClassification = Optional.of(builder.build(cfa));
+        stats.varClassificationStats = builder.getStatistics();
       } catch (UnrecognizedCCodeException e) {
         throw new CParserException(e);
       } finally {
@@ -725,7 +733,7 @@ private boolean classifyNodes = false;
     Path file = Paths.get(fileDenotation);
 
     try {
-      MoreFiles.checkReadableFile(file);
+      IO.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
@@ -929,7 +937,7 @@ v.addInitializer(initializer);
 
     // write CFA to file
     if (exportCfa && exportCfaFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(exportCfaFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(exportCfaFile, Charset.defaultCharset())) {
         DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -951,7 +959,7 @@ v.addInitializer(initializer);
     }
 
     if (exportFunctionCalls && exportFunctionCallsFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(exportFunctionCallsFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(exportFunctionCallsFile, Charset.defaultCharset())) {
         FunctionCallDumper.dump(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,

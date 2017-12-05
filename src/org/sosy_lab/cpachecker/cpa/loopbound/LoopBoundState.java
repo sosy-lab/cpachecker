@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.loopbound;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -67,7 +65,7 @@ public class LoopBoundState
   }
 
   public LoopBoundState exit(Loop pOldLoop) throws CPATransferException {
-    assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    assert !loopStack.isEmpty() : "Exiting loop without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (loopIterationState.isEntryKnown()) {
       if (!pOldLoop.equals(loopIterationState.getLoopEntry().getLoop())) {
@@ -85,20 +83,12 @@ public class LoopBoundState
   }
 
   public LoopBoundState visitLoopHead(LoopEntry pLoopEntry) {
-    return visitLoopHead(pLoopEntry, Integer.MAX_VALUE);
-  }
-
-  public LoopBoundState visitLoopHead(LoopEntry pLoopEntry, int pLoopIterationsBeforeAbstraction) {
     assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     if (isLoopCounterAbstracted()) {
       return this;
     }
     LoopIterationState loopIterationState = loopStack.peek();
     LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
-    if (pLoopIterationsBeforeAbstraction != 0
-        && newLoopIterationState.getMaxIterationCount() >= pLoopIterationsBeforeAbstraction) {
-      newLoopIterationState = newLoopIterationState.abstractLoopCounter();
-    }
     if (newLoopIterationState != loopIterationState) {
       return new LoopBoundState(
           loopStack.pop().push(newLoopIterationState),
@@ -107,8 +97,11 @@ public class LoopBoundState
     return this;
   }
 
-  public LoopBoundState stopIt() {
-    return new LoopBoundState(loopStack, true);
+  public LoopBoundState setStop(boolean pStop) {
+    if (stopIt == pStop) {
+      return this;
+    }
+    return new LoopBoundState(loopStack, pStop);
   }
 
   public boolean isLoopCounterAbstracted() {
@@ -162,114 +155,6 @@ public class LoopBoundState
     return reasonFormula;
   }
 
-  private static final class LoopStack implements Iterable<LoopIterationState> {
-
-    public static final LoopStack EMPTY_STACK = new LoopStack();
-
-    private final LoopIterationState head;
-
-    private final LoopStack tail;
-
-    private final int size;
-
-    private LoopStack() {
-      head = null;
-      tail = null;
-      size = 0;
-    }
-
-    private LoopStack(LoopIterationState pLoop) {
-      head = Objects.requireNonNull(pLoop);
-      tail = EMPTY_STACK;
-      size = 1;
-    }
-
-    private LoopStack(LoopIterationState pHead, LoopStack pTail) {
-      head = Objects.requireNonNull(pHead);
-      tail = pTail;
-      size = pTail.size + 1;
-    }
-
-    public LoopIterationState peek() {
-      if (isEmpty()) {
-        throw new NoSuchElementException("Stack is empty.");
-      }
-      return head;
-    }
-
-    public LoopStack pop() {
-      if (isEmpty()) {
-        throw new IllegalStateException("Stack is empty.");
-      }
-      return tail;
-    }
-
-    public LoopStack push(LoopIterationState pHead) {
-      return new LoopStack(pHead, this);
-    }
-
-    public boolean isEmpty() {
-      return size == 0;
-    }
-
-    public int getSize() {
-      return size;
-    }
-
-    @Override
-    public String toString() {
-      if (isEmpty()) {
-        return "";
-      }
-      if (tail.isEmpty()) {
-        return head.toString();
-      }
-      return String.format("%s (%s)", head, tail);
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      if (pObj instanceof LoopStack) {
-        LoopStack other = (LoopStack) pObj;
-        return size == other.size
-            && Objects.equals(head, other.head)
-            && Objects.equals(tail, other.tail);
-      }
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      // No need to hash size; it is already implied by tail
-      return Objects.hash(head, tail);
-    }
-
-    @Override
-    public Iterator<LoopIterationState> iterator() {
-      return new Iterator<LoopIterationState>() {
-
-        private LoopStack current = LoopStack.this;
-
-        @Override
-        public boolean hasNext() {
-          return !current.isEmpty();
-        }
-
-        @Override
-        public LoopIterationState next() {
-          LoopIterationState next = current.peek();
-          current = current.pop();
-          return next;
-        }
-
-      };
-    }
-
-  }
-
   @Override
   public int getIteration(Loop pLoop) {
     for (LoopIterationState loopIterationState : loopStack) {
@@ -307,5 +192,29 @@ public class LoopBoundState
   public int getDepth() {
     // Subtract 1 to account for the "undetermined" element at the bottom of the stack
     return loopStack.getSize() - 1;
+  }
+
+  boolean deepEquals(LoopBoundState pOther) {
+    // Quick checks for common case (inequality) first
+    if (this.stopIt != pOther.stopIt) {
+      return false;
+    }
+    // Hash code is cached, so this is also quick
+    if (loopStack.hashCode() != pOther.loopStack.hashCode()) {
+      return false;
+    }
+    return loopStack.equals(pOther.loopStack);
+  }
+
+  public LoopBoundState enforceAbstraction(int pLoopIterationsBeforeAbstraction) {
+    if (loopStack.isEmpty()) {
+      return this;
+    }
+    LoopIterationState currentLoopIterationState = loopStack.peek();
+    LoopIterationState newLoopIterationState = currentLoopIterationState.enforceAbstraction(pLoopIterationsBeforeAbstraction);
+    if (currentLoopIterationState == newLoopIterationState) {
+      return this;
+    }
+    return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
   }
 }

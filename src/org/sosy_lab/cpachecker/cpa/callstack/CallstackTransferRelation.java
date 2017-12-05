@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,17 +58,12 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.logging.Level;
-
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   private final static CFANode UNDEFINED_CALL_NODE = new CFANode("__undefined__");
 
   // set of functions that may not appear in the source code
-  // the value of the map entry is the explanation for the user
   @Option(secure=true, description = "unsupported functions cause an exception")
   protected ImmutableSet<String> unsupportedFunctions = ImmutableSet.of("pthread_create");
 
@@ -163,6 +160,10 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     case FunctionCallEdge: {
         final String calledFunction = succ.getFunctionName();
         final CFANode callerNode = pred;
+
+          if (unsupportedFunctions.contains(calledFunction)) {
+            throw new UnsupportedCodeException(calledFunction, pEdge);
+          }
 
         if (hasRecursion(e, calledFunction)) {
           if (skipRecursiveFunctionCall(e, (FunctionCallEdge)pEdge)) {

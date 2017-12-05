@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen.util;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -165,7 +166,7 @@ public class DirectedGraph {
      */
     public Set<DirectedGraph.Node> getPointsToNodesSet() {
 
-      HashSet<DirectedGraph.Node> ptNSet = new HashSet<>();
+      Set<DirectedGraph.Node> ptNSet = new HashSet<>();
 
       for (String n : getPointsToSet()) {
         ptNSet.add(getNode(n));
@@ -241,11 +242,11 @@ public class DirectedGraph {
    */
   public DirectedGraph.Node detectAndCollapseCycleContainingEdge(DirectedGraph.Edge edge) {
 
-    HashSet<DirectedGraph.Node> reached = new HashSet<>();
-    LinkedList<LinkedList<DirectedGraph.Node>> stack = new LinkedList<>();
-    LinkedList<DirectedGraph.Node> cycle = null;
+    Set<DirectedGraph.Node> reached = new HashSet<>();
+    Deque<Deque<DirectedGraph.Node>> stack = new ArrayDeque<>();
+    Deque<DirectedGraph.Node> cycle = null;
 
-    LinkedList<DirectedGraph.Node> path = new LinkedList<>();
+    Deque<DirectedGraph.Node> path = new ArrayDeque<>();
     path.add(edge.src);
     path.add(edge.dest);
     stack.push(path);
@@ -284,8 +285,7 @@ public class DirectedGraph {
         reached.add(succ);
 
         // ... and push extended path to stack
-        @SuppressWarnings("unchecked")
-        LinkedList<DirectedGraph.Node> extPath = (LinkedList<Node>) path.clone();
+        Deque<DirectedGraph.Node> extPath = new ArrayDeque<>(path);
         extPath.add(succ);
         stack.push(extPath);
 

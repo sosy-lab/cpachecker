@@ -46,11 +46,11 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -61,7 +61,11 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -105,7 +109,13 @@ public class CoreComponentsFactory {
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
   @Option(secure = true, description="After an incomplete analysis constructs a residual program which contains all program paths which are not fully explored")
+  private boolean unexploredPathsAsProgram = false;
+
+  @Option(secure = true, description="Solely construct the residual program for a given condition/assumption.")
   private boolean constructResidualProgram = false;
+
+  @Option(secure = true, description="Construct a residual program from condition and verify residual program")
+  private boolean asConditionalVerifier = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -170,6 +180,20 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.nonterminationWitnessCheck",
+    description =
+        "use nontermination witness validator to check a violation witness for termination"
+  )
+  private boolean useNonTerminationWitnessValidation = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.undefinedFunctionCollector",
+      description = "collect undefined functions")
+  private boolean useUndefinedFunctionCollector = false;
 
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
@@ -268,7 +292,16 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if(useProofCheckAlgorithmWithStoredConfig) {
+    if (useUndefinedFunctionCollector) {
+      logger.log(Level.INFO, "Using undefined function collector");
+      algorithm =
+          new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+    } else if (useNonTerminationWitnessValidation) {
+      logger.log(Level.INFO, "Using validator for violation witnesses for termination");
+      algorithm =
+          new NonTerminationWitnessValidator(
+              cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
+    } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
@@ -282,7 +315,10 @@ public class CoreComponentsFactory {
       algorithm =
           new ProofCheckAndExtractCIRequirementsAlgorithm(cpa, config, logger, shutdownNotifier,
               cfa, specification);
-    } else if (useRestartingAlgorithm) {
+    } else if (asConditionalVerifier) {
+      logger.log(Level.INFO, "Using Conditional Verifier");
+      algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    }else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
 
@@ -312,6 +348,11 @@ public class CoreComponentsFactory {
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if (constructResidualProgram) {
+        algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,
+            specification, cpa, algorithm);
+      }
 
       if (useParallelBAM) {
         algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
@@ -400,8 +441,8 @@ public class CoreComponentsFactory {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
-      if (constructResidualProgram) {
-        algorithm = new ResidualProgramConstructionAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
+      if (unexploredPathsAsProgram) {
+        algorithm = new ResidualProgramConstructionAfterAnalysisAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
       }
 
       if (unknownIfUnrestrictedProgram) {
@@ -428,7 +469,8 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm
+        || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -445,8 +487,13 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
-        || useProofCheckWithARGCMCStrategy) {
+    if (useRestartingAlgorithm
+        || useParallelAlgorithm
+        || useProofCheckAlgorithmWithStoredConfig
+        || useProofCheckWithARGCMCStrategy
+        || asConditionalVerifier
+        || useNonTerminationWitnessValidation
+        || useUndefinedFunctionCollector) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

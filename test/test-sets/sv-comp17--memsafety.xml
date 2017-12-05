@@ -20,6 +20,6 @@
   </tasks>
 
   <rundefinition name="sv-comp17">
-    <option name="-sv-comp17"/>
+    <option name="-svcomp17"/>
   </rundefinition>
 </benchmark>

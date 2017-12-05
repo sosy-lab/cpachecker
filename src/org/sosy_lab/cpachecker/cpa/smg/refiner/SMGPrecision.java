@@ -23,64 +23,52 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.SetMultimap;
-
-import org.sosy_lab.common.log.LogManager;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public abstract class SMGPrecision implements Precision {
 
   private final SMGPrecisionAbstractionOptions options;
   private final BlockOperator blockOperator;
-  private final LogManager logger;
   private final int threshold = 0;
 
-  public SMGPrecision(LogManager pLogger, SMGPrecisionAbstractionOptions pOptions,
-      BlockOperator pBlockOperator) {
-    logger = pLogger;
+  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions, BlockOperator pBlockOperator) {
     options = pOptions;
     blockOperator = pBlockOperator;
   }
 
-  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction,
-      LogManager pLogger, BlockOperator pBlockOperator) {
+  public static SMGPrecision createStaticPrecision(
+      boolean pEnableHeapAbstraction, BlockOperator pBlockOperator) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
-    return new SMGStaticPrecision(pLogger, options, pBlockOperator);
+    return new SMGStaticPrecision(options, pBlockOperator);
   }
 
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
 
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
-  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision)
-  {
+  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
+    PersistentMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = PersistentMultimap.of();
+    PersistentMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = PersistentMultimap.of();
+    PersistentMultimap<CFANode, MemoryLocation> emptyStackVariable = PersistentMultimap.of();
 
-    SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
-    SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
-    SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
-
-    return new SMGRefineablePrecision(pPrecision.logger,
+    return new SMGRefineablePrecision(
         new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
         pPrecision.getBlockOperator(),
-        emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable);
-  }
-
-  public LogManager getLogger() {
-    return logger;
+        emptyMemoryPaths,
+        emptyAbstractionBlocks,
+        emptyStackVariable);
   }
 
   public abstract boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode);
@@ -89,7 +77,7 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode);
 
-  public abstract boolean usesHeapInterpoaltion();
+  public abstract boolean usesHeapInterpolation();
 
   public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode) {
     return options.allowsHeapAbstraction() && blockOperator.isBlockEnd(pCfaNode, threshold);
@@ -119,68 +107,58 @@ public abstract class SMGPrecision implements Precision {
 
   private static class SMGRefineablePrecision extends SMGPrecision {
 
-    private final ImmutableSetMultimap<CFANode, SMGMemoryPath> trackedMemoryPaths;
-    private final ImmutableSetMultimap<CFANode, MemoryLocation> trackedStackVariables;
-    private final ImmutableSetMultimap<CFANode, SMGAbstractionBlock> abstractionBlocks;
+    private final PersistentMultimap<CFANode, SMGMemoryPath> trackedMemoryPaths;
+    private final PersistentMultimap<CFANode, MemoryLocation> trackedStackVariables;
+    private final PersistentMultimap<CFANode, SMGAbstractionBlock> abstractionBlocks;
 
-    private SMGRefineablePrecision(LogManager pLogger, SMGPrecisionAbstractionOptions pOptions,
+    private SMGRefineablePrecision(
+        SMGPrecisionAbstractionOptions pOptions,
         BlockOperator pBlockOperator,
-        SetMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
-        SetMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
-        SetMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
-      super(pLogger, pOptions, pBlockOperator);
-      trackedMemoryPaths = ImmutableSetMultimap.copyOf(pTrackedMemoryPaths);
-      abstractionBlocks = ImmutableSetMultimap.copyOf(pAbstractionBlocks);
-      trackedStackVariables = ImmutableSetMultimap.copyOf(pTrackedStackVariables);
+        PersistentMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
+        PersistentMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
+        PersistentMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
+      super(pOptions, pBlockOperator);
+      trackedMemoryPaths = pTrackedMemoryPaths;
+      abstractionBlocks = pAbstractionBlocks;
+      trackedStackVariables = pTrackedStackVariables;
     }
 
     @Override
-    public boolean usesHeapInterpoaltion() {
+    public boolean usesHeapInterpolation() {
       return allowsHeapAbstraction();
     }
 
     @Override
     public Set<SMGMemoryPath> getTrackedMemoryPathsOnNode(CFANode pLocationNode) {
-      if (trackedMemoryPaths.containsKey(pLocationNode)) {
-        return trackedMemoryPaths.get(pLocationNode);
-      } else {
-        return ImmutableSet.of();
-      }
+      return trackedMemoryPaths.get(pLocationNode);
     }
 
     @Override
     public Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode) {
-      if (trackedStackVariables.containsKey(pCfaNode)) {
-        return trackedStackVariables.get(pCfaNode);
-      } else {
-        return ImmutableSet.of();
-      }
+      return trackedStackVariables.get(pCfaNode);
     }
 
     @Override
     public Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement) {
 
-      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create();
-      resultMemoryPaths.putAll(trackedMemoryPaths);
-      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create();
-      resultStackVariables.putAll(trackedStackVariables);
-      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create();
-      resultAbstractionBlocks.putAll(abstractionBlocks);
+      PersistentMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = trackedMemoryPaths;
+      PersistentMultimap<CFANode, MemoryLocation> resultStackVariables = trackedStackVariables;
+      PersistentMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = abstractionBlocks;
 
       for (Entry<CFANode, SMGPrecisionIncrement> entry : pPrecisionIncrement.entrySet()) {
         SMGPrecisionIncrement inc = entry.getValue();
         CFANode cfaNode = entry.getKey();
-        Collection<SMGAbstractionBlock> incAbstractionBlocks = inc.getAbstractionBlock();
-        Collection<SMGMemoryPath> incMemoryPaths = inc.getPathsToTrack();
-        Collection<MemoryLocation> incStackVariables = inc.getStackVariablesToTrack();
-        resultAbstractionBlocks.putAll(cfaNode, incAbstractionBlocks);
-        resultMemoryPaths.putAll(cfaNode, incMemoryPaths);
-        resultStackVariables.putAll(cfaNode, incStackVariables);
+        resultAbstractionBlocks = resultAbstractionBlocks.putAllAndCopy(cfaNode, inc.getAbstractionBlock());
+        resultMemoryPaths = resultMemoryPaths.putAllAndCopy(cfaNode, inc.getPathsToTrack());
+        resultStackVariables = resultStackVariables.putAllAndCopy(cfaNode, inc.getStackVariablesToTrack());
       }
 
-      return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
+      return new SMGRefineablePrecision(
+          getAbstractionOptions(),
+          getBlockOperator(),
           resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables);
+          resultAbstractionBlocks,
+          resultStackVariables);
     }
 
     @Override
@@ -191,33 +169,19 @@ public abstract class SMGPrecision implements Precision {
       }
 
       SMGRefineablePrecision other = (SMGRefineablePrecision) pPrecision;
-
-      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create();
-      resultMemoryPaths.putAll(trackedMemoryPaths);
-      resultMemoryPaths.putAll(other.trackedMemoryPaths);
-      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create();
-      resultStackVariables.putAll(trackedStackVariables);
-      resultStackVariables.putAll(other.trackedStackVariables);
-      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create();
-      resultAbstractionBlocks.putAll(abstractionBlocks);
-      resultAbstractionBlocks.putAll(other.abstractionBlocks);
-
       assert getAbstractionOptions().equals(pPrecision.getAbstractionOptions());
 
-      return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
-          resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables);
+      return new SMGRefineablePrecision(
+          getAbstractionOptions(),
+          getBlockOperator(),
+          trackedMemoryPaths.putAllAndCopy(other.trackedMemoryPaths),
+          abstractionBlocks.putAllAndCopy(other.abstractionBlocks),
+          trackedStackVariables.putAllAndCopy(other.trackedStackVariables));
     }
 
     @Override
     public boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode) {
-
-      if (trackedMemoryPaths.containsKey(pCfaNode)) {
-        Set<SMGMemoryPath> trackedMemPaths = trackedMemoryPaths.get(pCfaNode);
-        return trackedMemPaths.contains(pPath);
-      } else {
-        return false;
-      }
+      return trackedMemoryPaths.get(pCfaNode).contains(pPath);
     }
 
     @Override
@@ -235,13 +199,13 @@ public abstract class SMGPrecision implements Precision {
 
   private static class SMGStaticPrecision extends SMGPrecision {
 
-    private SMGStaticPrecision(LogManager pLogger,
+    private SMGStaticPrecision(
         SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, BlockOperator pBlockOperator) {
-      super(pLogger, pAllowsHeapAbstraction, pBlockOperator);
+      super(pAllowsHeapAbstraction, pBlockOperator);
     }
 
     @Override
-    public boolean usesHeapInterpoaltion() {
+    public boolean usesHeapInterpolation() {
       return false;
     }
 
@@ -309,36 +273,16 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + (fieldAbstraction ? 1231 : 1237);
-      result = prime * result + (heapAbstraction ? 1231 : 1237);
-      result = prime * result + (stackAbstraction ? 1231 : 1237);
-      return result;
+      return Objects.hashCode(fieldAbstraction, heapAbstraction, stackAbstraction);
     }
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
+      if (!(obj instanceof SMGPrecisionAbstractionOptions)) { return false; }
       SMGPrecisionAbstractionOptions other = (SMGPrecisionAbstractionOptions) obj;
-      if (fieldAbstraction != other.fieldAbstraction) {
-        return false;
-      }
-      if (heapAbstraction != other.heapAbstraction) {
-        return false;
-      }
-      if (stackAbstraction != other.stackAbstraction) {
-        return false;
-      }
-      return true;
+      return fieldAbstraction == other.fieldAbstraction
+          && heapAbstraction == other.heapAbstraction
+          && stackAbstraction == other.stackAbstraction;
     }
 
     @Override

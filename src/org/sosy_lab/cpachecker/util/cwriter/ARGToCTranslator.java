@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -72,9 +75,9 @@ public class ARGToCTranslator {
   private static String DEFAULTRETURN = "default return";
 
   private static abstract class Statement {
-    public abstract void translateToCode(StringBuffer buffer, int indent);
+    public abstract void translateToCode(StringBuilder buffer, int indent);
 
-    protected static void writeIndent(StringBuffer buffer, int indent) {
+    protected static void writeIndent(StringBuilder buffer, int indent) {
       for(int i = 0; i < indent; i++) {
         // buffer.append(" ");
       }
@@ -108,7 +111,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append("{\n");
 
@@ -133,7 +136,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(code);
       buffer.append("\n");
@@ -154,7 +157,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(functionHeader);
       buffer.append("\n");
@@ -197,6 +200,12 @@ public class ARGToCTranslator {
     NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA;
   }
 
+  public static enum BlockTreatmentAtFunctionEnd {
+    CLOSEFUNCTIONBLOCK,
+    ADDNEWBLOCK,
+    KEEPBLOCK;
+  }
+
   private final LogManager logger;
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<ARGState> discoveredElements = new HashSet<>();
@@ -212,6 +221,9 @@ public class ARGToCTranslator {
 
   @Option(secure=true, name="header", description="write include directives")
   private boolean includeHeader = true;
+
+  @Option(secure=true, name="blockAtFunctionEnd", description="Only enable CLOSEFUNCTIONBLOCK if you are sure that the ARG merges different flows through a function at the end of the function.")
+  private BlockTreatmentAtFunctionEnd handleCompoundStatementAtEndOfFunction = BlockTreatmentAtFunctionEnd.KEEPBLOCK;
 
   @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
   private TargetTreatment targetStrategy = TargetTreatment.NONE;
@@ -240,7 +252,7 @@ public class ARGToCTranslator {
 
 
   private String generateCCode(boolean includeHeader) {
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
@@ -320,7 +332,9 @@ public class ARGToCTranslator {
         // if part
         CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
         // create a new block starting with this condition
-        CompoundStatement newBlock = addIfStatement(currentBlock, "if (" + assumeEdge.getExpression().toASTString() + ")");
+        boolean truthAssumption = assumeEdge.getTruthAssumption();
+        CompoundStatement newBlock = addIfStatement(currentBlock, "if (" + (truthAssumption ? "" : "!(")
+                + assumeEdge.getExpression().toASTString() + (truthAssumption ? "" : ")") + ")");
         ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
         pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
 
@@ -508,7 +522,7 @@ public class ARGToCTranslator {
   }
 
   private ARGState getCovering(final ARGState pCovered) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
 
     while (current.isCovered()) {
@@ -571,42 +585,61 @@ public class ARGToCTranslator {
         return statementText + (statementText.endsWith(";") ? "" : ";");
       }
 
-      case DeclarationEdge: {
-        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
-        String declaration;
-        // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-        if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
-          declaration = lDeclarationEdge.getDeclaration().toASTString();
-        } else {
-          declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
-          if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
-              if (predEdge.getRawStatement().equals(declaration)) {
-                declaration = "";
-                break;
+      case DeclarationEdge:
+        {
+          CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+          String declaration;
+          // TODO adapt if String in
+          // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+          if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
+            declaration = lDeclarationEdge.getDeclaration().toASTString();
+          } else {
+            declaration =
+                lDeclarationEdge
+                    .getCode(); // TODO check if works without lDeclarationEdge.getRawStatement();
+
+            if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+              CVariableDeclaration varDecl =
+                  (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+              if (varDecl.getType() instanceof CArrayType
+                  && varDecl.getInitializer() instanceof CInitializerExpression) {
+                int assignAfterPos = declaration.indexOf("=") + 1;
+                declaration =
+                    declaration.substring(0, assignAfterPos)
+                        + "{"
+                        + declaration.substring(assignAfterPos, declaration.lastIndexOf(";"))
+                        + "};";
               }
             }
-          }
-          if (includeHeader && declaration.contains("assert")
-              && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
-            declaration = "";
-          }
-        }
 
-        if (declaration.contains(
-            "org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
-          throw new CPAException(
+            if (declaration.contains(",")) {
+              for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+                if (predEdge.getRawStatement().equals(declaration)) {
+                  declaration = "";
+                  break;
+                }
+              }
+            }
+            if (includeHeader
+                && declaration.contains("assert")
+                && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
+              declaration = "";
+            }
+          }
+
+          if (declaration.contains("org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+            throw new CPAException(
                 "Failed to translate ARG into program because a type could not be properly resolved.");
-        }
+          }
 
-        if (lDeclarationEdge.getDeclaration().isGlobal()) {
-          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-        } else {
-          return declaration;
-        }
+          if (lDeclarationEdge.getDeclaration().isGlobal()) {
+            globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+          } else {
+            return declaration;
+          }
 
-        break;
-      }
+          break;
+        }
 
       case CallToReturnEdge: {
         //          this should not have been taken
@@ -646,8 +679,12 @@ public class ARGToCTranslator {
       String tempVariableName = "__tmp_" + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
 
-      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " = " + actualParamSignature + ";"));
-      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + " = " + tempVariableName + ";"));
+      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + ";"));
+      actualParamAssignStatements.add(
+          new SimpleStatement(tempVariableName + " = " + actualParamSignature + ";"));
+      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + ";"));
+      formalParamAssignStatements.add(
+          new SimpleStatement(formalParam.getName() + " = " + tempVariableName + ";"));
     }
 
     for(Statement stmt : actualParamAssignStatements) {
@@ -660,18 +697,19 @@ public class ARGToCTranslator {
     return newBlock;
   }
 
-  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge, CompoundStatement pCurrentBlock, int id) {
+  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge,
+      CompoundStatement pCurrentBlock, int id) {
     CFunctionCall retExp = pEdge.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
-      return getInnerMostInlinedFunction(pCurrentBlock).getSurroundingBlock();
+      return getBlockAfterEndOfFunction(pCurrentBlock);
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
+      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
 
       String returnVar = "__return_" + id;
       String leftHandSide = exp.getLeftHandSide().toASTString();
 
-      pCurrentBlock = getInnerMostInlinedFunction(pCurrentBlock).getSurroundingBlock();
+      pCurrentBlock = getBlockAfterEndOfFunction(pCurrentBlock);
       pCurrentBlock.addStatement(new SimpleStatement(leftHandSide + " = " + returnVar + ";"));
 
       return pCurrentBlock;
@@ -682,11 +720,22 @@ public class ARGToCTranslator {
     return null;
   }
 
-  private CompoundStatement getInnerMostInlinedFunction(CompoundStatement currentBlock) {
-    while (!(currentBlock instanceof InlinedFunction)) {
-      currentBlock = currentBlock.getSurroundingBlock();
+  private CompoundStatement getBlockAfterEndOfFunction(
+      CompoundStatement currentBlock) {
+    switch (handleCompoundStatementAtEndOfFunction) {
+      case CLOSEFUNCTIONBLOCK:
+        while (!(currentBlock instanceof InlinedFunction)) {
+          currentBlock = currentBlock.getSurroundingBlock();
+        }
+        return currentBlock.getSurroundingBlock();
+      case ADDNEWBLOCK:
+        currentBlock = new CompoundStatement(currentBlock);
+        currentBlock.getSurroundingBlock().addStatement(currentBlock);
+        return currentBlock;
+      default: // KEEPBLOCK
+        return currentBlock;
     }
-    return currentBlock;
+
   }
 
   private @Nullable Statement processTargetState(final ARGState pTargetState,

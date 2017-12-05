@@ -44,7 +44,7 @@ public class SymbolicExpressionTest {
   private static final ConstantSymbolicExpression CONSTANT_OP2
       = new ConstantSymbolicExpression(new NumericValue(5), OP_TYPE);
 
-  @SuppressWarnings("EqualsBetweenInconvertibleTypes")
+  @SuppressWarnings({ "EqualsBetweenInconvertibleTypes", "unlikely-arg-type" })
   @Test
   public void testEquals_BinarySymbolicExpression() {
     AdditionExpression add1 = new AdditionExpression(CONSTANT_OP1,
@@ -64,7 +64,7 @@ public class SymbolicExpressionTest {
     Assert.assertFalse(add1.equals(sub1));
   }
 
-  @SuppressWarnings("EqualsBetweenInconvertibleTypes")
+  @SuppressWarnings({ "EqualsBetweenInconvertibleTypes", "unlikely-arg-type" })
   @Test
   public void testEquals_UnarySymbolicExpression() {
     NegationExpression neg1 = new NegationExpression(CONSTANT_OP1, POINTER_TYPE);

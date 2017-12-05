@@ -561,8 +561,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     // check if global precision changed
     if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates())) { return false; }
     // get CFA nodes and function names on failure path
-    HashSet<String> funNames = new HashSet<>();
-    HashSet<CFANode> nodesOnPath = new HashSet<>();
+    Set<String> funNames = new HashSet<>();
+    Set<CFANode> nodesOnPath = new HashSet<>();
 
     for (CFAEdge edge : pathToFailure.getInnerEdges()) {
       CFANode current = edge.getSuccessor();
@@ -606,7 +606,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       BooleanFormula fLess = bfmgr.and(list);
 
       list.clear();
-      for (AbstractionPredicate abs : lessPrecise) {
+      for (AbstractionPredicate abs : morePrecise) {
         list.add(abs.getSymbolicAtom());
       }
       BooleanFormula fMore = bfmgr.and(list);
@@ -614,7 +614,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       fMore = bfmgr.and(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      return solver.isUnsat(fMore);
+      return !solver.isUnsat(fMore);
     }
 
     return lessPrecise == null && morePrecise != null;

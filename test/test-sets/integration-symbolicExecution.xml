@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+
+  <rundefinition>
+    <option name="-symbolicExecution-Cegar"/>
+  </rundefinition>
+
+  <tasks>
+    <includesfile>../programs/simple/explicit/symbolic/symbolic.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <exclude>../programs/simple/struct-char-array-initializer_true-unreach-label.c</exclude> <!-- flapping timeout / out of memory -->
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <exclude>../programs/benchmarks/floats-cdfpl/*</exclude> <!-- mostly timeouts or close to timeout -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt*true-unreach*</exclude> <!-- mostly timeouts or close to timeout -->
+    <exclude>../programs/benchmarks/float-benchs/zonotope*</exclude> <!-- mostly timeouts or close to timeout -->
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/locks/test_locks_1*true-unreach-call*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/ntdrivers/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loops/trex*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/loops/veris.*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loops/ludcmp_false-unreach-call.i</exclude> <!-- flapping timeout / out of memory -->
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <exclude>../programs/benchmarks/systemc/token_ring.1*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/systemc/token_ring.*true-unreach-call*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_time_var_mutex_true-unreach-call.i</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_queue_false-unreach-call.i</exclude> <!-- flapping timeout -->
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-*false-unreach-call*</exclude> <!-- timeouts -->
+    <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
+    <option name="-skipRecursion"/>
+    <option name="-64"/>
+  </tasks>
+</benchmark>

@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,11 +63,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
@@ -85,7 +85,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
 
-  @Option(secure=true, description="mergeType")
+  @Option(
+    secure = true,
+    description = "mergeType",
+    values = {"sep", "join"}
+  )
   private String merge = "join";
 
   @Option(secure = true, name = "logfile", description = "Dump tracked variables to a file.")
@@ -134,9 +138,14 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public MergeOperator getMergeOperator() {
-    return (merge.equals("sep"))
-        ? MergeSepOperator.getInstance()
-        : new MergeJoinOperator(getAbstractDomain());
+    switch (merge) {
+      case "sep":
+        return MergeSepOperator.getInstance();
+      case "join":
+        return new MergeJoinOperator(getAbstractDomain());
+      default:
+        throw new AssertionError("unexpected operator: " + merge);
+    }
   }
 
   @Override
@@ -200,7 +209,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
             }
 
             if (dumpfile != null) { // option -noout
-              try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
+              try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
                 w.append("Boolean\n\n");
                 w.append(trackedIntBool.toString());
                 w.append("\n\nIntEq\n\n");

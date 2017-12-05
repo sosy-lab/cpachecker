@@ -42,7 +42,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -206,7 +206,7 @@ public class CustomInstructionApplications {
       super(pConfig, pLogger, pSdNotifier, pCfa);
       pConfig.inject(this);
       try {
-        MoreFiles.checkReadableFile(appliedCustomInstructionsDefinition);
+        IO.checkReadableFile(appliedCustomInstructionsDefinition);
       } catch (FileNotFoundException e) {
         throw new InvalidConfigurationException("Definition file for custom instruction application does not exist", e);
       }
@@ -272,7 +272,7 @@ public class CustomInstructionApplications {
 
       // find applied custom instructions in program
       try (Writer aciDef =
-          MoreFiles.openOutputFile(foundCustomInstructionsDefinition, Charset.defaultCharset())) {
+          IO.openOutputFile(foundCustomInstructionsDefinition, Charset.defaultCharset())) {
 
         // inspect all CFA edges potential candidates
         for (CFANode node : cfa.getAllNodes()) {
@@ -292,7 +292,7 @@ public class CustomInstructionApplications {
         }
       }
 
-      try (Writer br = MoreFiles.openOutputFile(ciSpec, Charset.defaultCharset())) {
+      try (Writer br = IO.openOutputFile(ciSpec, Charset.defaultCharset())) {
         // write signature
         br.write(ci.getSignature() + "\n");
         String ciString = ci.getFakeSMTDescription().getSecond();

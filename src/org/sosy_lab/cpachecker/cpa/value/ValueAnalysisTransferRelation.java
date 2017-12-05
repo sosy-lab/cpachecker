@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -71,13 +70,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -96,11 +92,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -141,6 +134,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -188,6 +182,9 @@ public class ValueAnalysisTransferRelation
     )
     private boolean trackJavaArrayValues = true;
 
+    @Option(secure=true, description="Track or not function pointer values")
+    private boolean ignoreFunctionValue = true;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -202,6 +199,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isOptimizeBooleanVariables() {
       return optimizeBooleanVariables;
+    }
+
+    boolean isIgnoreFunctionValue() {
+      return ignoreFunctionValue;
     }
   }
 
@@ -351,10 +352,6 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      assert "default return".equals(cfaEdge.getDescription())
-              || "skipped unnecessary edges".equals(cfaEdge.getDescription())
-              || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription());
-
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);
       state.dropFrame(functionName);
@@ -368,7 +365,7 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    ExpressionValueVisitor evv = getVisitor();
 
     // clone state, because will be changed through removing all variables of current function's scope.
     // The assignment of the global 'state' is safe, because the 'old state'
@@ -429,8 +426,7 @@ public class ValueAnalysisTransferRelation
 
       // we expect left hand side of the expression to be a variable
 
-      ExpressionValueVisitor v =
-          new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+      ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
 
       Value newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
@@ -1322,10 +1318,10 @@ public class ValueAnalysisTransferRelation
 
         CFAEdge edge = cfaEdge;
 
-        ARightHandSide rightHandSide = getRightHandSide(edge);
-        ALeftHandSide leftHandSide = getLeftHandSide(edge);
-        Type leftHandType = getLeftHandType(edge);
-        String leftHandVariable = getLeftHandVariable(edge);
+        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+        ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
+        Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
+        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
         PointerState pointerState = (PointerState) ae;
 
         result.clear();
@@ -1542,83 +1538,6 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Type getLeftHandType(CFAEdge pEdge) {
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declarationEdge.getDeclaration();
-        return variableDeclaration.getType();
-      }
-    } else {
-      ALeftHandSide lhs = getLeftHandSide(pEdge);
-      if (lhs instanceof AIdExpression) {
-        return ((AIdExpression) lhs).getDeclaration().getType();
-      }
-    }
-    return null;
-  }
-
-  private String getLeftHandVariable(CFAEdge pEdge) {
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declarationEdge.getDeclaration();
-        return variableDeclaration.getQualifiedName();
-      }
-    } else {
-      ALeftHandSide lhs = getLeftHandSide(pEdge);
-      if (lhs instanceof AIdExpression) {
-        return ((AIdExpression) lhs).getDeclaration().getQualifiedName();
-      }
-    }
-    return null;
-  }
-
-  private static ALeftHandSide getLeftHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) pEdge;
-      if (statementEdge.getStatement() instanceof AAssignment) {
-        AAssignment assignment = (AAssignment)statementEdge.getStatement();
-        return assignment.getLeftHandSide();
-      }
-    } else if (pEdge instanceof FunctionCallEdge) {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
-      AFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement assignment = (AFunctionCallAssignmentStatement) functionCall;
-        return assignment.getLeftHandSide();
-      }
-    }
-    return null;
-  }
-
-  private static CRightHandSide getRightHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CDeclarationEdge) {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration = (CVariableDeclaration) declarationEdge.getDeclaration();
-        CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer instanceof CInitializerExpression) {
-          return ((CInitializerExpression) initializer).getExpression();
-        }
-      }
-    } else if (pEdge instanceof CStatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge) pEdge;
-      if (statementEdge.getStatement() instanceof CAssignment) {
-        CAssignment assignment = (CAssignment)statementEdge.getStatement();
-        return assignment.getRightHandSide();
-      }
-    } else if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
-      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) functionCall;
-        return assignment.getRightHandSide();
-      }
-    }
-    return null;
-  }
-
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     ValueAnalysisState state = pState;
@@ -1741,7 +1660,15 @@ public class ValueAnalysisTransferRelation
   }
 
   /** returns an initialized, empty visitor */
+  private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
+    if (options.isIgnoreFunctionValue()) {
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+    } else {
+      return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+    }
+  }
+
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    return getVisitor(state, functionName);
   }
 }

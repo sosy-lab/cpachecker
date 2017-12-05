@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assert_;
 
-import org.junit.Assert;
+import com.google.common.collect.ImmutableList;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -34,13 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class CLangStackFrameTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -60,64 +59,84 @@ public class CLangStackFrameTest {
 
     // Normal constructor
     Map<String, SMGRegion> variables = sf.getVariables();
-    Assert.assertEquals("CLangStackFrame contains no variables after creation",
-                        variables.size(), 0);
-    Assert.assertFalse(sf.containsVariable("foo"));
+    assert_()
+        .withMessage("CLangStackFrame contains no variables after creation")
+        .that(variables)
+        .isEmpty();
+    assertThat(sf.containsVariable("foo")).isFalse();
 
     // Copy constructor
     CLangStackFrame sf_copy = new CLangStackFrame(sf);
     variables = sf_copy.getVariables();
-    Assert.assertEquals("Empty CLangStackFrame contains no variables after copying",
-        variables.size(), 0);
-    Assert.assertFalse(sf_copy.containsVariable("foo"));
+    assert_()
+        .withMessage("Empty CLangStackFrame contains no variables after copying")
+        .that(variables)
+        .isEmpty();
+    assertThat(sf_copy.containsVariable("foo")).isFalse();
   }
 
   @Test
   public void CLangStackFrameAddVariableTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
-    Assert.assertTrue("Added variable is present", sf.containsVariable("fooVar"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    assert_().withMessage("Added variable is present").that(sf.containsVariable("fooVar")).isTrue();
 
     Map<String, SMGRegion> variables = sf.getVariables();
-    Assert.assertEquals("Variables set is nonempty after variable addition",
-                        variables.size(), 1);
+    assert_()
+        .withMessage("Variables set is nonempty after variable addition")
+        .that(variables)
+        .hasSize(1);
     SMGObject smg_object = variables.get("fooVar");
-    Assert.assertEquals("Added variable present in variable map", smg_object.getLabel(), "fooVarObject");
-    Assert.assertEquals("Added variable present in variable map", smg_object.getSize(), 64);
+    assert_()
+        .withMessage("Added variable present in variable map")
+        .that(smg_object.getLabel())
+        .isEqualTo("fooVarObject");
+    assert_()
+        .withMessage("Added variable present in variable map")
+        .that(smg_object.getSize())
+        .isEqualTo(64);
 
-    smg_object = null;
     smg_object = sf.getVariable("fooVar");
-    Assert.assertEquals("Correct variable is returned: label", smg_object.getLabel(), "fooVarObject");
-    Assert.assertEquals("Correct variable is returned: size", smg_object.getSize(), 64);
+    assert_()
+        .withMessage("Correct variable is returned: label")
+        .that(smg_object.getLabel())
+        .isEqualTo("fooVarObject");
+    assert_()
+        .withMessage("Correct variable is returned: size")
+        .that(smg_object.getSize())
+        .isEqualTo(64);
   }
 
   @Test
   public void CLangFrameGetObjectsTest() {
     Set<SMGObject> objects = sf.getAllObjects();
     // Test that there is an return value object at
-    Assert.assertEquals(1, objects.size());
+    assertThat(objects).hasSize(1);
 
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     objects = sf.getAllObjects();
-    Assert.assertEquals(2, objects.size());
+    assertThat(objects).hasSize(2);
   }
 
   //TODO: Test void functions
   @Test
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
-    Assert.assertEquals(usedMachineModel.getBitSizeof(CNumericTypes.UNSIGNED_LONG_INT), retval
-        .getSize());
+    assertThat(retval.getSize())
+        .isEqualTo(usedMachineModel.getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT));
   }
 
   @Test(expected=IllegalArgumentException.class)
   public void CLangStackFrameAddVariableTwiceTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
-    sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
   }
 
   @Test(expected=NoSuchElementException.class)
   public void CLangStackFrameMissingVariableTest() {
-    Assert.assertFalse("Non-added variable is not present", sf.containsVariable("fooVaz"));
+    assert_()
+        .withMessage("Non-added variable is not present")
+        .that(sf.containsVariable("fooVaz"))
+        .isFalse();
 
     sf.getVariable("fooVaz");
   }
@@ -125,7 +144,6 @@ public class CLangStackFrameTest {
   @Test
   public void CLangStackFrameFunctionTest() {
     CFunctionDeclaration fd = sf.getFunctionDeclaration();
-    Assert.assertNotNull(fd);
-    Assert.assertEquals("Correct function is returned", "foo", fd.getName());
+    assert_().withMessage("Correct function is returned").that(fd.getName()).isEqualTo("foo");
   }
 }

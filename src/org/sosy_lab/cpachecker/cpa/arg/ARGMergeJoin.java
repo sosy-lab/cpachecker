@@ -23,17 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.HashSet;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options
 public class ARGMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
+  private final AbstractDomain wrappedDomain;
 
-  public ARGMergeJoin(MergeOperator pWrappedMerge) {
+  @Option(
+      secure = true,
+      name = "cpa.arg.mergeOnWrappedSubsumption",
+      description = "If this option is enabled, ARG states will also be merged if the first wrapped state is \n"
+          + " subsumed by the second wrapped state (and the parents are not yet subsumed).")
+  private boolean mergeOnWrappedSubsumption = false;
+
+  public ARGMergeJoin(MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain, Configuration config)
+      throws InvalidConfigurationException {
     wrappedMerge = pWrappedMerge;
+    wrappedDomain = pWrappedDomain;
+    config.inject(this);
   }
 
   @Override
@@ -60,7 +78,15 @@ public class ARGMergeJoin implements MergeOperator {
     AbstractState wrappedState1 = argElement1.getWrappedState();
     AbstractState wrappedState2 = argElement2.getWrappedState();
     AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
-    if (retElement.equals(wrappedState2)) {
+
+    boolean continueMerge = !retElement.equals(wrappedState2);
+    if (mergeOnWrappedSubsumption) {
+      HashSet<ARGState> parents1 = new HashSet<>(argElement1.getParents());
+      HashSet<ARGState> parents2 = new HashSet<>(argElement2.getParents());
+      continueMerge = continueMerge ||
+          ((!parents2.containsAll(parents1) && wrappedDomain.isLessOrEqual(wrappedState1,wrappedState2)));
+    }
+    if (!continueMerge) {
       return pElement2;
     }
 

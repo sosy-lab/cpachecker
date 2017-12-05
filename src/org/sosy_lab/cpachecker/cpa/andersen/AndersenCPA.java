@@ -55,8 +55,6 @@ public class AndersenCPA extends AbstractCPA {
 
   private AndersenCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(
-        "irrelevant", // operator-initialization is overridden
-        "irrelevant", // operator-initialization is overridden
         DelegateAbstractDomain.<AndersenState>getInstance(),
         new AndersenTransferRelation(logger));
     config.inject(this);

@@ -139,7 +139,7 @@ public class HarnessExporter {
 
   private static final String TMP_VAR = "__tmp_var";
 
-  private static final int ERR_REACHED_CODE = 107;
+  private static final String ERR_MSG = "__VERIFIER_error_called";
 
   private final CFA cfa;
 
@@ -177,9 +177,10 @@ public class HarnessExporter {
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
       CodeAppender codeAppender = new CodeAppender(pTarget);
-
-      // #include <stdlib.h> for exit function
-      codeAppender.appendln("#include <stdlib.h>");
+      
+      codeAppender.appendln("struct _IO_FILE;");
+      codeAppender.appendln("typedef struct _IO_FILE FILE;");
+      codeAppender.appendln("extern struct _IO_FILE *stderr;");
 
       // implement error-function
       CFAEdge edgeToTarget = testVector.get().edgeToTarget;
@@ -187,7 +188,7 @@ public class HarnessExporter {
           getErrorFunction(edgeToTarget, externalFunctions);
       if (errorFunction.isPresent()) {
         codeAppender.append(errorFunction.get());
-        codeAppender.appendln(" { exit(" + ERR_REACHED_CODE + "); }");
+        codeAppender.appendln(" { fprintf(stderr, \"" + ERR_MSG + "\\n\"); exit(1); }");
       } else {
         logger.log(Level.WARNING, "Could not find a call to an error function.");
       }
@@ -210,7 +211,7 @@ public class HarnessExporter {
       codeAppender.append(vector);
     } else {
       logger.log(
-          Level.INFO, "Could not export a test harness, some test-vector values are missing.");
+          Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
     }
   }
 
@@ -782,8 +783,6 @@ public class HarnessExporter {
   private static CFunctionCallExpression callMalloc(CExpression pSize) {
     CFunctionType type =
         new CFunctionType(
-            false,
-            false,
             CPointerType.POINTER_TO_VOID,
             Collections.singletonList(CNumericTypes.INT),
             false);

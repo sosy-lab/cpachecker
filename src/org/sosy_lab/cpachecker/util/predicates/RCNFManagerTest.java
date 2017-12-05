@@ -23,49 +23,51 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.truth.Truth;
+import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.truth.Truth;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
-/**
- * Test the semi-CNF conversion.
- */
+/** Test the semi-CNF conversion. */
 @RunWith(Parameterized.class)
-public class RCNFManagerTest extends SolverBasedTest0{
+public class RCNFManagerTest extends SolverViewBasedTest0 {
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
   }
 
   @Parameter(0)
-  public Solvers solver;
+  public Solvers solverToUse;
+
+  @Override
+  protected Solvers solverToUse() {
+    return solverToUse;
+  }
+
+  @Override
+  protected ConfigurationBuilder createTestConfigBuilder() {
+    return super.createTestConfigBuilder().setOption("rcnf.boundVarsHandling", "drop");
+  }
 
   private RCNFManager RCNFManager;
   private BooleanFormulaManager bfmgr;
-  private FormulaManagerView mgrView;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    Configuration d = Configuration.builder().setOption(
-        "rcnf.boundVarsHandling", "drop"
-    ).build();
-    mgrView = new FormulaManagerView(mgr, d, LogManager.createTestLogManager());
-    RCNFManager = new RCNFManager(d);
-    bfmgr = mgrView.getBooleanFormulaManager();
+    RCNFManager = new RCNFManager(config);
+    bfmgr = bmgrv;
   }
 
   @Test
@@ -80,17 +82,11 @@ public class RCNFManagerTest extends SolverBasedTest0{
     );
     BooleanFormula c = bfmgr.or(a, b);
 
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c, mgrView));
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c, mgrv));
     assertThatFormula(converted).isEquivalentTo(c);
-    assertThatFormula(converted).isEqualTo(
-        bfmgr.and(
-            bfmgr.makeVariable("p"),
-            bfmgr.or(
-                bfmgr.makeVariable("a"),
-                bfmgr.makeVariable("b")
-            )
-        )
-    );
+    assertThat(bfmgr.toConjunctionArgs(converted, false))
+        .containsExactly(
+            bfmgr.makeVariable("p"), bfmgr.or(bfmgr.makeVariable("a"), bfmgr.makeVariable("b")));
   }
 
   @Test
@@ -105,30 +101,21 @@ public class RCNFManagerTest extends SolverBasedTest0{
             )
         )
     );
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input, mgrView));
-    assertThatFormula(converted).isEquivalentTo(input);
-    BooleanFormula expected =
-        bfmgr.and(
-            bfmgr.makeVariable("a"),
-            bfmgr.makeVariable("b"),
-            bfmgr.makeVariable("c"),
-            bfmgr.makeVariable("d")
-        );
-    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(bfmgr.toConjunctionArgs(
-        expected, true
-    ));
+    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrv);
+    assertThatFormula(bmgr.and(lemmas)).isEquivalentTo(input);
+    Truth.assertThat(lemmas).containsExactly(v("a"), v("b"), v("c"), v("d"));
   }
 
   @Test
   public void testExplicitExpansion() throws Exception {
     BooleanFormula input = bfmgr.or(
-        bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
-        bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
+        bfmgr.and(v("a"), v("b"), v("c")),
+        bfmgr.and(v("d"), v("e"), v("f"))
     );
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input, mgrView));
-    assertThatFormula(converted).isEquivalentTo(input);
-    BooleanFormula expected =
-        bfmgr.and(
+    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrv);
+    assertThatFormula(bfmgr.and(lemmas)).isEquivalentTo(input);
+    Truth.assertThat(lemmas)
+        .containsExactly(
             bfmgr.or(v("a"), v("d")),
             bfmgr.or(v("a"), v("e")),
             bfmgr.or(v("a"), v("f")),
@@ -137,10 +124,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
             bfmgr.or(v("b"), v("f")),
             bfmgr.or(v("c"), v("d")),
             bfmgr.or(v("c"), v("e")),
-            bfmgr.or(v("c"), v("f"))
-        );
-    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(
-        bfmgr.toConjunctionArgs(expected, true));
+            bfmgr.or(v("c"), v("f")));
   }
 
   private BooleanFormula v(String name) {

@@ -81,6 +81,8 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -182,6 +184,23 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
             + " directly after the components computation is finished"
   )
   private boolean printIntermediateStatistics = true;
+
+  /* The option is useful for some preanalysis,
+   * for instance, the first analysis is fast and provides some hints to the next ones
+   * Is used, for example, in CPALockator
+   *
+   * TODO It might be better to have two lists of algorithms given to the RestartAlgorithm.
+   * One list for analysis with no result expected except information about the program
+   * and a second list for the real analyses to be restarted if necessary.
+   * This would allow to combine the pre-computation of information and
+   * the normal sequential composition of algorithms in a more flexible way.
+   */
+  @Option(
+    secure = true,
+    description =
+        "wether to start next algorithm independently from the previous result"
+  )
+  private boolean alwaysRestart = false;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -342,8 +361,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
 
           } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
 
-            // sound analysis and completely finished, terminate
-            return status;
+            if (!(alwaysRestart && configFilesIterator.hasNext())) {
+              // sound analysis and completely finished, terminate
+              return status;
+            }
           }
           lastAnalysisTerminated = true;
           isLastReachedSetUsable = true;
@@ -351,7 +372,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
           lastAnalysisFailed = true;
-          if (e.getMessage().contains("Counterexample could not be analyzed")) {
+          if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
             status = status.withPrecise(false);
           }
           if (configFilesIterator.hasNext()) {

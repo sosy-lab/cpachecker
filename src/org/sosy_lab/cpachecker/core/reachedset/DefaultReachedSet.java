@@ -26,24 +26,25 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /**
  * Basic implementation of ReachedSet.
@@ -285,5 +286,14 @@ class DefaultReachedSet implements ReachedSet {
   @Override
   public String toString() {
     return reached.keySet().toString();
+  }
+
+  public Map<String, ? extends AbstractStatValue> getStatistics() {
+    if (waitlist instanceof AbstractSortedWaitlist) {
+      return ((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts();
+
+    } else {
+      return ImmutableMap.of();
+    }
   }
 }

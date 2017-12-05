@@ -23,16 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 /**
  * Default implementation of a sorted waitlist.
@@ -55,12 +58,20 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   private int size = 0;
 
+  private final StatCounter popCount;
+  private final StatCounter delegationCount;
+  private final Map<String, StatInt> delegationCounts = new HashMap<>();
+
   /**
    * Constructor that needs a factory for the waitlist implementation that
    * should be used to store states with the same sorting key.
    */
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
+    popCount = new StatCounter("Pop requests to waitlist (" + getClass().getSimpleName() + ")");
+    delegationCount = new StatCounter(
+        "Pops delegated to wrapped waitlists (" + wrappedWaitlist.getClass().getSimpleName() +
+            ")");
   }
 
   /**
@@ -117,6 +128,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   @Override
   public final AbstractState pop() {
+    popCount.inc();
     Entry<K, Waitlist> highestEntry = null;
     highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
@@ -124,9 +136,43 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     AbstractState result = localWaitlist.pop();
     if (localWaitlist.isEmpty()) {
       waitlist.remove(highestEntry.getKey());
+      addStatistics(localWaitlist);
+    } else {
+      delegationCount.inc();
     }
     size--;
     return result;
+  }
+
+  private void addStatistics(Waitlist pWaitlist) {
+    if (pWaitlist instanceof AbstractSortedWaitlist) {
+      Map<String, StatInt> delegCount =
+          ((AbstractSortedWaitlist<?>) pWaitlist).getDelegationCounts();
+
+      for (Entry<String, StatInt> e : delegCount.entrySet()) {
+        String key = e.getKey();
+        if (!delegationCounts.containsKey(key)) {
+          delegationCounts.put(key, e.getValue());
+
+        } else {
+          delegationCounts.get(key).add(e.getValue());
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns a map of delegation counts for this waitlist and all waitlists delegated to.
+   * The keys of the returned Map are the names of the waitlists, the values
+   * are the existing delegations.
+   */
+  public Map<String, StatInt> getDelegationCounts() {
+    String waitlistName = this.getClass().getSimpleName();
+    StatInt directDelegations = new StatInt(StatKind.AVG, waitlistName);
+    assert delegationCount.getValue() <= Integer.MAX_VALUE;
+    directDelegations.setNextValue((int) delegationCount.getValue());
+    delegationCounts.put(waitlistName, directDelegations);
+    return delegationCounts;
   }
 
   @Override

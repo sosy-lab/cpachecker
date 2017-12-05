@@ -23,17 +23,16 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.HashSet;
-
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.collect.Multimap;
 
 
 public final class PartitioningUtils {
@@ -43,7 +42,7 @@ public final class PartitioningUtils {
   public static boolean areElementsCoveredByPartitionElement(final Collection<AbstractState> pInOtherPartitions,
       Multimap<CFANode, AbstractState> pInPartition, final StopOperator pStop, final Precision pPrec)
       throws CPAException, InterruptedException {
-    HashSet<AbstractState> partitionNodes = new HashSet<>(pInPartition.values());
+    Set<AbstractState> partitionNodes = new HashSet<>(pInPartition.values());
 
     for (AbstractState outState : pInOtherPartitions) {
       if (!partitionNodes.contains(outState)

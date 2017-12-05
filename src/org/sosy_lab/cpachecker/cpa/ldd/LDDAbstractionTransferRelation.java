@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -51,14 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
 
 public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
@@ -651,7 +650,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
    * @return a collection of variable indices and their corresponding integer coefficients.
    */
   private Collection<Pair<Integer, Integer>> toIndexCoefficients(Map<String, Integer> pCoeffs) {
-    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> indexCoeffs = new ArrayList<>();
     for (Map.Entry<String, Integer> coeff : pCoeffs.entrySet()) {
       indexCoeffs.add(Pair.of(this.variables.get(coeff.getKey()), coeff.getValue()));
     }
@@ -667,7 +666,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
    * all of which are treated as 1.
    */
   private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> variables) {
-    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> indexCoeffs = new ArrayList<>();
     for (String variable : variables) {
       indexCoeffs.add(Pair.of(this.variables.get(variable), 1));
     }

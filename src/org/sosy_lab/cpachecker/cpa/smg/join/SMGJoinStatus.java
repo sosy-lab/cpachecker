@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,25 +23,49 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-
-
+/**
+ * The join of two SMG returns a status flag.
+ *
+ * <p>We extend the definition with an additional status 'INCOMPLETE'.
+ */
 public enum SMGJoinStatus {
-  EQUAL,
-  LEFT_ENTAIL,
-  RIGHT_ENTAIL,
-  INCOMPARABLE,
-  INCOMPLETE;
+  EQUAL("≃"),
+  LEFT_ENTAIL("⊏"),
+  RIGHT_ENTAIL("⊐"),
+  INCOMPARABLE("⋈"),
+  INCOMPLETE("?");
 
+  private final String name;
+
+  private SMGJoinStatus(String pName) {
+    name = pName;
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+
+  /**
+   * Table from TR "Byte-Precise Verification of Low-Level List Manipulation" [Dudka]:
+   *
+   * <pre>
+   *        |   s2
+   *        | ≃ ⊐ ⊏ ⋈
+   *   -----|---------
+   *      ≃ | ≃ ⊐ ⊏ ⋈
+   *   s1 ⊐ | ⊐ ⊐ ⋈ ⋈
+   *      ⊏ | ⊏ ⋈ ⊏ ⋈
+   *      ⋈ | ⋈ ⋈ ⋈ ⋈
+   * </pre>
+   */
+  // TODO handle "INCOMPLETE"?
   public static SMGJoinStatus updateStatus(SMGJoinStatus pStatus1, SMGJoinStatus pStatus2) {
-    if (pStatus1 == SMGJoinStatus.EQUAL) {
+    if (pStatus1 == SMGJoinStatus.EQUAL || pStatus1 == pStatus2) {
       return pStatus2;
     } else if (pStatus2 == SMGJoinStatus.EQUAL) {
       return pStatus1;
-    } else if (pStatus1 == SMGJoinStatus.INCOMPARABLE ||
-               pStatus2 == SMGJoinStatus.INCOMPARABLE ||
-               pStatus1 != pStatus2) {
-      return SMGJoinStatus.INCOMPARABLE;
     }
-    return pStatus1;
+    return SMGJoinStatus.INCOMPARABLE;
   }
 }

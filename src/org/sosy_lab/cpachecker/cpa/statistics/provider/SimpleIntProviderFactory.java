@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.statistics.provider;
 
 import com.google.common.collect.ImmutableSet;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -54,8 +53,6 @@ import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.IntMerg
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.SimpleIntProviderImplementation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.util.stream.StreamSupport;
-
 /**
  * This factory class provides a lot of StatisticsProvider.
  */
@@ -69,9 +66,9 @@ public class SimpleIntProviderFactory {
    * See the other countExpressions overload for more information.
    */
   private static int countExpressions(CAstNode pExpression, Counter<CExpression> counter) {
-    return StreamSupport.stream(
-            CFAUtils.traverseRecursively(pExpression).filter(CExpression.class).spliterator(),
-            false)
+    return CFAUtils.traverseRecursively(pExpression)
+        .filter(CExpression.class)
+        .stream()
         .mapToInt(counter::count)
         .sum();
   }

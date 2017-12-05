@@ -25,7 +25,7 @@ public class DelegateAbstractDomain<E extends LatticeAbstractState<E>>
   @Override
   @SuppressWarnings("unchecked")
   public AbstractState join(AbstractState state1, AbstractState state2)
-      throws CPAException {
+      throws CPAException, InterruptedException {
     return ((E) state1).join((E) state2);
   }
 

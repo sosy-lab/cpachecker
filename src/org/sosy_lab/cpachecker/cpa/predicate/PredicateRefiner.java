@@ -39,11 +39,8 @@ public abstract class PredicateRefiner implements Refiner {
 
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateRefiner.class);
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         predicateCpa.getConfiguration(),
         predicateCpa.getLogger(),

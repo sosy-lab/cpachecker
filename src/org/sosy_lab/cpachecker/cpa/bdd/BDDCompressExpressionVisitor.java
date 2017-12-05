@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -38,12 +39,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
  * This Visitor implements evaluation of expressions,
@@ -56,12 +54,12 @@ public class BDDCompressExpressionVisitor
   /** This map contains tuples (int, region[]) for each intEqual-partition. */
   private static final Map<Partition, Map<BigInteger, Region[]>> INT_REGIONS_MAP = new HashMap<>();
 
-  private final PredicateManager predMgr;
-  private final VariableTrackingPrecision precision;
+  protected final PredicateManager predMgr;
+  protected final VariableTrackingPrecision precision;
   private final BitvectorManager bvmgr;
   private final Map<BigInteger, Region[]> intToRegions;
-  private final int size;
-  private final CFANode location;
+  protected final int size;
+  protected final CFANode location;
 
   /** This Visitor returns a representation for an expression.
    * @param size length of compressed bitvector

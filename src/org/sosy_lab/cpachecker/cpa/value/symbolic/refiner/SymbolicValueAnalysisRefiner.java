@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -76,9 +77,12 @@ public class SymbolicValueAnalysisRefiner
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    final ConstraintsCPA constraintsCpa = retrieveCPA(pCpa, ConstraintsCPA.class);
+    final ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SymbolicValueAnalysisRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
+    final ConstraintsCPA constraintsCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, SymbolicValueAnalysisRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
 
@@ -160,14 +164,12 @@ public class SymbolicValueAnalysisRefiner
       throws InterruptedException {
     final Collection<ARGState> roots = pInterpolants.obtainRefinementRoots(restartStrategy);
 
-    ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();
-
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
       ConstraintsPrecision.Increment constrPrecInc =
           getConstraintsIncrement(r, pInterpolants);
 
-      precUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
+      ARGTreePrecisionUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
   }
 

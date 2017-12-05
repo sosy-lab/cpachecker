@@ -28,23 +28,20 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Class for creating precisions and updating the ARGTree with them.
@@ -53,14 +50,8 @@ import java.util.Set;
  */
 public class ARGTreePrecisionUpdater {
 
-  private static final ARGTreePrecisionUpdater SINGLETON = new ARGTreePrecisionUpdater();
-
-  public static ARGTreePrecisionUpdater getInstance() {
-    return SINGLETON;
-  }
-
   private ARGTreePrecisionUpdater() {
-    // DO NOTHING
+    // never called, utility-class
   }
 
   /**
@@ -68,30 +59,26 @@ public class ARGTreePrecisionUpdater {
    * and a given precision increment.
    *
    * @param pRefinementRoot the root of the refinement. This is the highest point any precision
-   *    might have changed
+   *     might have changed
    * @param pReached the complete {@link ARGReachedSet}
    * @param pValuePrecIncrement the precision increment to add to the existing precision
-   *
    * @return a new precision for <code>ValueAnalysisCPA</code> combining the old precision with the
-   *    new precision increment
+   *     new precision increment
    */
-  public VariableTrackingPrecision createValuePrec(
+  public static VariableTrackingPrecision createValuePrec(
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached,
-      final Multimap<CFANode, MemoryLocation> pValuePrecIncrement
-  ) {
+      final Multimap<CFANode, MemoryLocation> pValuePrecIncrement) {
     return mergeValuePrecisionsForSubgraph(pRefinementRoot, pReached)
         .withIncrement(pValuePrecIncrement);
   }
 
-  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
+  private static VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
 
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractValuePrecision(pReached, descendant));
     }
 
@@ -104,55 +91,39 @@ public class ARGTreePrecisionUpdater {
     return mergedPrecision;
   }
 
-  private VariableTrackingPrecision extractValuePrecision(
-      final ARGReachedSet pReached,
-      final ARGState pState
-  ) {
+  private static VariableTrackingPrecision extractValuePrecision(
+      final ARGReachedSet pReached, final ARGState pState) {
     return (VariableTrackingPrecision) Precisions
         .asIterable(pReached.asReachedSet().getPrecision(pState))
         .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
         .get(0);
   }
 
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(final ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for (ARGState state : pRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
-  }
-
   /**
-   * Creates a new precision for {@link ConstraintsCPA} out of the existing precision in the ARG
-   * and a given precision increment.
+   * Creates a new precision for {@link ConstraintsCPA} out of the existing precision in the ARG and
+   * a given precision increment.
    *
    * @param pRefinementRoot the root of the refinement. This is the highest point any precision
-   *    might have changed
+   *     might have changed
    * @param pReached the complete {@link ARGReachedSet}
    * @param pConstraintsPrecIncrement the precision increment to add to the existing precision
-   *
    * @return a new precision for <code>ConstraintsCPA</code> combining the old precision with the
-   *    new precision increment
+   *     new precision increment
    */
-  public ConstraintsPrecision createConstraintsPrec(
+  public static ConstraintsPrecision createConstraintsPrec(
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached,
-      final ConstraintsPrecision.Increment pConstraintsPrecIncrement
-  ) {
+      final ConstraintsPrecision.Increment pConstraintsPrecIncrement) {
     return mergeConstraintsPrecisionsForSubgraph(pRefinementRoot, pReached)
         .withIncrement(pConstraintsPrecIncrement);
   }
 
-  private ConstraintsPrecision mergeConstraintsPrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
+  private static ConstraintsPrecision mergeConstraintsPrecisionsForSubgraph(
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<ConstraintsPrecision> uniquePrecisions = Sets.newIdentityHashSet();
 
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractConstraintsPrecision(pReached, descendant));
     }
 
@@ -165,26 +136,24 @@ public class ARGTreePrecisionUpdater {
     return mergedPrecision;
   }
 
-  private ConstraintsPrecision extractConstraintsPrecision(
-      final ARGReachedSet pReached,
-      final ARGState pState
-  ) {
-    return (ConstraintsPrecision) Precisions
+  private static ConstraintsPrecision extractConstraintsPrecision(
+      final ARGReachedSet pReached, final ARGState pState) {
+    return Precisions
         .asIterable(pReached.asReachedSet().getPrecision(pState))
-        .filter(Predicates.instanceOf(ConstraintsPrecision.class))
+        .filter(ConstraintsPrecision.class)
         .get(0);
   }
 
   /**
-   * Updates the precision of the {@link ARGReachedSet} starting at the given refinement root
-   * with the given precision increment for {@link ValueAnalysisCPA} and {@link ConstraintsCPA}.
+   * Updates the precision of the {@link ARGReachedSet} starting at the given refinement root with
+   * the given precision increment for {@link ValueAnalysisCPA} and {@link ConstraintsCPA}.
    *
    * @param pReached the complete <code>ARGReachedSet</code>
    * @param pRefinementRoot the refinement root to start the update at
    * @param pValuePrecIncrement the precision increment for the <code>ValueAnalysisCPA</code>
    * @param pConstraintsPrecIncrement the precision increment for the <code>ConstraintsCPA</code>
    */
-  public void updateARGTree(
+  public static void updateARGTree(
       final ARGReachedSet pReached,
       final ARGState pRefinementRoot,
       final Multimap<CFANode, MemoryLocation> pValuePrecIncrement,

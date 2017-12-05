@@ -42,7 +42,7 @@ public final class CElaboratedType implements CComplexType {
 
   private int hashCache = 0;
 
-  private CComplexType realType = null;
+  private @Nullable CComplexType realType = null;
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
       final ComplexTypeKind pKind, final String pName, final String pOrigName,

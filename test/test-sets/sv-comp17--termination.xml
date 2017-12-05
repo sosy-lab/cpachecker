@@ -13,6 +13,7 @@
   <tasks name="Termination-MainHeap">
     <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
     <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+    <option name="-64" />
   </tasks>
   <tasks name="Termination-Other">
     <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
@@ -20,6 +21,6 @@
   </tasks>
 
   <rundefinition name="sv-comp17">
-    <option name="-sv-comp17"/>
+    <option name="-svcomp17"/>
   </rundefinition>
 </benchmark>

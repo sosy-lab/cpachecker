@@ -34,10 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import org.llvm.Module;
-import org.llvm.TypeRef;
-import org.llvm.Value;
-import org.llvm.binding.LLVMLibrary.LLVMOpcode;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -81,29 +77,26 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.llvm_j.LLVMException;
+import org.sosy_lab.llvm_j.Module;
+import org.sosy_lab.llvm_j.TypeRef;
+import org.sosy_lab.llvm_j.Value;
+import org.sosy_lab.llvm_j.Value.OpCode;
 
-/**
- * CFA builder for LLVM IR.
- * Metadata stored in the LLVM IR file is ignored.
- */
+/** CFA builder for LLVM IR. Metadata stored in the LLVM IR file is ignored. */
 public class CFABuilder extends LlvmAstVisitor {
   // TODO: Thread Local Storage Model: May be important for concurrency
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
   private static final String RETURN_VAR_NAME = "__retval__";
-  private static final String TMP_VAR_PREFIX = "__tmp_";
+  private static final String TMP_VAR_PREFIX = "__t_";
 
-  private static final CFunctionDeclaration ABORT_FUNC_DECL = new CFunctionDeclaration(
+  private static final CFunctionDeclaration ABORT_FUNC_DECL =
+      new CFunctionDeclaration(
           FileLocation.DUMMY,
-          new CFunctionType(
-              false,
-              false,
-              CVoidType.VOID,
-              Collections.emptyList(),
-              false),
-      "abort",
-          Collections.emptyList()
-  );
+          new CFunctionType(CVoidType.VOID, Collections.emptyList(), false),
+          "abort",
+          Collections.emptyList());
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
 
@@ -132,7 +125,7 @@ public class CFABuilder extends LlvmAstVisitor {
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
   }
 
-  public ParseResult build(final Module pModule, final String pFilename) {
+  public ParseResult build(final Module pModule, final String pFilename) throws LLVMException {
     visit(pModule);
     List<Path> input_file = ImmutableList.of(Paths.get(pFilename));
 
@@ -140,7 +133,7 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   @Override
-  protected FunctionEntryNode visitFunction(final Value pItem) {
+  protected FunctionEntryNode visitFunction(final Value pItem) throws LLVMException {
     assert pItem.isFunction();
 
     logger.log(Level.FINE, "Creating function: " + pItem.getValueName());
@@ -149,24 +142,23 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   @Override
-  protected CExpression getBranchCondition(final Value pItem, String funcName) {
+  protected CExpression getBranchCondition(final Value pItem, String funcName)
+      throws LLVMException {
     Value cond = pItem.getCondition();
     try {
       CType expectedType = typeConverter.getCType(cond.typeOf());
       return binaryExpressionBuilder.buildBinaryExpression(
-        getExpression(cond, expectedType),
-        new CIntegerLiteralExpression(
-            getLocation(pItem),
-            CNumericTypes.BOOL,
-            BigInteger.ONE),
-        BinaryOperator.EQUALS);
+          getExpression(cond, expectedType),
+          new CIntegerLiteralExpression(getLocation(pItem), CNumericTypes.BOOL, BigInteger.ONE),
+          BinaryOperator.EQUALS);
     } catch (UnrecognizedCCodeException e) {
-        throw new AssertionError(e.toString());
+      throw new AssertionError(e.toString());
     }
   }
 
   @Override
-  protected List<CAstNode> visitInstruction(final Value pItem, final String pFunctionName) {
+  protected List<CAstNode> visitInstruction(final Value pItem, final String pFunctionName)
+      throws LLVMException {
     assert pItem.isInstruction();
 
     if (pItem.isAllocaInst()) {
@@ -206,13 +198,13 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  private List<CAstNode> handleCall(final Value pItem, final String pCallingFunctionName) {
+  private List<CAstNode> handleCall(final Value pItem, final String pCallingFunctionName)
+      throws LLVMException {
     assert pItem.isCallInst();
     FileLocation loc = getLocation(pItem);
+    Value calledFunction = pItem.getCalledFunction();
     CType returnType = typeConverter.getCType(pItem.typeOf());
-    Value calledFunction = pItem.getOperand(0);
-    int argumentCount = pItem.getNumOperands();
-
+    int argumentCount = pItem.getNumArgOperands();
     String functionName = calledFunction.getValueName();
     // May be null and that's ok - CPAchecker will handle the call as a call to a builtin function,
     // then
@@ -221,18 +213,22 @@ public class CFABuilder extends LlvmAstVisitor {
     CIdExpression functionNameExp;
     List<CExpression> parameters = new ArrayList<>(argumentCount);
     if (functionDeclaration == null) {
+      logger.logf(
+          Level.WARNING,
+          "Declaration for function %s not found, trying to derive it.",
+          functionName);
       // Try to derive a function type from the call
-      List<CType> parameterTypes = new ArrayList<>(argumentCount-1);
-      for (int i = 1; i < argumentCount; i++) {
-        Value functionArg = pItem.getOperand(i);
-        assert functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
+      List<CType> parameterTypes = new ArrayList<>(argumentCount - 1);
+      for (int i = 0; i < argumentCount; i++) {
+        Value functionArg = pItem.getArgOperand(i);
+        assert functionArg.isConstant()
+            || variableDeclarations.containsKey(functionArg.getAddress());
         CType expectedType = typeConverter.getCType(functionArg.typeOf());
         parameterTypes.add(expectedType);
         parameters.add(getAssignedIdExpression(functionArg, expectedType));
       }
 
-      CFunctionType functionType =
-          new CFunctionType(false, false, returnType, parameterTypes, false);
+      CFunctionType functionType = new CFunctionType(returnType, parameterTypes, false);
       functionNameExp = new CIdExpression(loc, functionType, functionName, null);
     } else {
       functionNameExp =
@@ -240,19 +236,19 @@ public class CFABuilder extends LlvmAstVisitor {
 
       List<CParameterDeclaration> parameterDeclarations = functionDeclaration.getParameters();
       // i = 1 to skip the function name, we only want to look at arguments
-      for (int i = 1; i < argumentCount; i++) {
-        Value functionArg = pItem.getOperand(i);
-        // Parameter declarations start at 0, not 1, so we have to subtract 1 again
-        CType expectedType = parameterDeclarations.get(i - 1).getType();
+      for (int i = 0; i < argumentCount; i++) {
+        Value functionArg = pItem.getArgOperand(i);
+        CType expectedType = parameterDeclarations.get(i).getType();
 
-        assert
-            functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
+        assert functionArg.isConstant()
+            || variableDeclarations.containsKey(functionArg.getAddress());
         parameters.add(getAssignedIdExpression(functionArg, expectedType));
       }
     }
 
-    CFunctionCallExpression callExpression = new CFunctionCallExpression(loc, returnType,
-        functionNameExp, parameters, functionDeclaration);
+    CFunctionCallExpression callExpression =
+        new CFunctionCallExpression(
+            loc, returnType, functionNameExp, parameters, functionDeclaration);
 
     if (returnType.equals(CVoidType.VOID)) {
       return ImmutableList.of(new CFunctionCallStatement(loc, callExpression));
@@ -263,30 +259,37 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private List<CAstNode> handleUnreachable(final Value pItem) {
     CFunctionCallExpression callExpression =
-        new CFunctionCallExpression(getLocation(pItem), CVoidType.VOID, ABORT_FUNC_NAME,
-            Collections.emptyList(), ABORT_FUNC_DECL);
+        new CFunctionCallExpression(
+            getLocation(pItem),
+            CVoidType.VOID,
+            ABORT_FUNC_NAME,
+            Collections.emptyList(),
+            ABORT_FUNC_DECL);
 
     return ImmutableList.of(new CFunctionCallStatement(getLocation(pItem), callExpression));
   }
 
-  private List<CAstNode> handleUnaryOp(final Value pItem, final String pFunctionName) {
-     if (pItem.isLoadInst()) {
-       return handleLoad(pItem, pFunctionName);
-     } else if (pItem.isCastInst()) {
-       return handleCastInst(pItem, pFunctionName);
-     } else {
-       throw new UnsupportedOperationException(
-           "LLVM does not yet support operator with opcode " + pItem.getOpCode());
-     }
+  private List<CAstNode> handleUnaryOp(final Value pItem, final String pFunctionName)
+      throws LLVMException {
+    if (pItem.isLoadInst()) {
+      return handleLoad(pItem, pFunctionName);
+    } else if (pItem.isCastInst()) {
+      return handleCastInst(pItem, pFunctionName);
+    } else {
+      throw new UnsupportedOperationException(
+          "LLVM does not yet support operator with opcode " + pItem.getOpCode());
+    }
   }
 
-  private List<CAstNode> handleLoad(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleLoad(final Value pItem, final String pFunctionName)
+      throws LLVMException {
     CType expectedType = typeConverter.getCType(pItem.typeOf());
     CExpression expression = getAssignedIdExpression(pItem.getOperand(0), expectedType);
     return getAssignStatement(pItem, expression, pFunctionName);
   }
 
-  private List<CAstNode> handleStore(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleStore(final Value pItem, final String pFunctionName)
+      throws LLVMException {
     Value valueToStoreTo = pItem.getOperand(1);
     Value valueToLoad = pItem.getOperand(0);
 
@@ -296,13 +299,15 @@ public class CFABuilder extends LlvmAstVisitor {
     return getAssignStatement(valueToStoreTo, expression, pFunctionName);
   }
 
-  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName) {
+  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName)
+      throws LLVMException {
     // We ignore the specifics and handle alloca statements like C declarations of variables
     CSimpleDeclaration assignedVar = getAssignedVarDeclaration(pItem, pFunctionName, null);
     return ImmutableList.of(assignedVar);
   }
 
-  private List<CAstNode> handleReturn(final Value pItem, final String pFuncName) {
+  private List<CAstNode> handleReturn(final Value pItem, final String pFuncName)
+      throws LLVMException {
     Value returnVal = pItem.getReturnValue();
     Optional<CExpression> maybeExpression;
     Optional<CAssignment> maybeAssignment;
@@ -328,118 +333,114 @@ public class CFABuilder extends LlvmAstVisitor {
         new CReturnStatement(getLocation(pItem), maybeExpression, maybeAssignment));
   }
 
-  private String getQualifiedName(String pReturnVarName, String pFuncName) {
-    return pFuncName + "::" + pReturnVarName;
+  private String getQualifiedName(String pVarName, String pFuncName) {
+    return pFuncName + "::" + pVarName;
   }
 
-  private List<CAstNode> handleBinaryOp(final Value pItem, String pFunctionName) {
-    LLVMOpcode opCode =  pItem.getOpCode();
+  private List<CAstNode> handleBinaryOp(final Value pItem, String pFunctionName)
+      throws LLVMException {
+    OpCode opCode = pItem.getOpCode();
 
     switch (opCode) {
-      // Arithmetic operations
-      case LLVMAdd:
-      case LLVMFAdd:
-      case LLVMSub:
-      case LLVMFSub:
-      case LLVMMul:
-      case LLVMFMul:
-      case LLVMUDiv:
-      case LLVMSDiv:
-      case LLVMFDiv:
-      case LLVMURem:
-      case LLVMSRem:
-      case LLVMFRem:
-      case LLVMShl:
-      case LLVMLShr:
-      case LLVMAShr:
-      case LLVMAnd:
-      case LLVMOr:
-      case LLVMXor:
+        // Arithmetic operations
+      case Add:
+      case FAdd:
+      case Sub:
+      case FSub:
+      case Mul:
+      case FMul:
+      case UDiv:
+      case SDiv:
+      case FDiv:
+      case URem:
+      case SRem:
+      case FRem:
+      case Shl:
+      case LShr:
+      case AShr:
+      case And:
+      case Or:
+      case Xor:
         return handleArithmeticOp(pItem, opCode, pFunctionName);
 
-      // Comparison operations
-      case LLVMICmp:
+        // Comparison operations
+      case ICmp:
         break;
-      case LLVMFCmp:
-        break;
-
-      // Select operator
-      case LLVMSelect:
+      case FCmp:
         break;
 
-      // Sign extension/truncation operations
-      case LLVMTrunc:
-        break;
-      case LLVMZExt:
-        break;
-      case LLVMSExt:
-        break;
-      case LLVMFPToUI:
-        break;
-      case LLVMFPToSI:
-        break;
-      case LLVMUIToFP:
-        break;
-      case LLVMSIToFP:
-        break;
-      case LLVMFPTrunc:
-        break;
-      case LLVMFPExt:
-        break;
-      case LLVMPtrToInt:
-        break;
-      case LLVMIntToPtr:
-        break;
-      case LLVMBitCast:
-        break;
-      case LLVMAddrSpaceCast:
+        // Select operator
+      case Select:
         break;
 
-      // Aggregate operations
-      case LLVMExtractValue:
+        // Sign extension/truncation operations
+      case Trunc:
         break;
-      case LLVMInsertValue:
+      case ZExt:
+        break;
+      case SExt:
+        break;
+      case FPToUI:
+        break;
+      case FPToSI:
+        break;
+      case UIToFP:
+        break;
+      case SIToFP:
+        break;
+      case FPTrunc:
+        break;
+      case FPExt:
+        break;
+      case PtrToInt:
+        break;
+      case IntToPtr:
+        break;
+      case BitCast:
+        break;
+      case AddrSpaceCast:
         break;
 
-      case LLVMPHI:
+        // Aggregate operations
+      case ExtractValue:
+        break;
+      case InsertValue:
         break;
 
-      case LLVMGetElementPtr:
+      case PHI:
         break;
 
-
-      case LLVMUserOp1:
-      case LLVMUserOp2:
-      case LLVMVAArg:
-      // Vector operations
-      case LLVMExtractElement:
-      case LLVMInsertElement:
-      case LLVMShuffleVector:
-      // Concurrency-centric operations
-      case LLVMFence:
-
-      case LLVMAtomicCmpXchg:
+      case GetElementPtr:
         break;
-      case LLVMAtomicRMW:
+
+      case UserOp1:
+      case UserOp2:
+      case VAArg:
+        // Vector operations
+      case ExtractElement:
+      case InsertElement:
+      case ShuffleVector:
+        // Concurrency-centric operations
+      case Fence:
+
+      case AtomicCmpXchg:
+        break;
+      case AtomicRMW:
         break;
       default:
         throw new UnsupportedOperationException(opCode.toString());
     }
-    CExpression dummy_exp = new CIntegerLiteralExpression(
-        getLocation(pItem),
-        new CSimpleType(false, false, CBasicType.INT,
-            false, false, false, false,
-            false, false, false),
-        BigInteger.ONE
-    );
+    CExpression dummy_exp =
+        new CIntegerLiteralExpression(
+            getLocation(pItem),
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, false, false, false, false),
+            BigInteger.ONE);
     return ImmutableList.of(new CExpressionStatement(getLocation(pItem), dummy_exp));
   }
 
   private List<CAstNode> handleArithmeticOp(
-      final Value pItem,
-      final LLVMOpcode pOpCode,
-      final String pFunctionName
-  ) {
+      final Value pItem, final OpCode pOpCode, final String pFunctionName) throws LLVMException {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
 
     // TODO: Currently we only support flat expressions, no nested ones. Makes this work
@@ -455,65 +456,65 @@ public class CFABuilder extends LlvmAstVisitor {
 
     CBinaryExpression.BinaryOperator operation;
     switch (pOpCode) {
-      case LLVMAdd:
-      case LLVMFAdd:
+      case Add:
+      case FAdd:
         operation = BinaryOperator.PLUS;
         break;
-      case LLVMSub:
-      case LLVMFSub:
+      case Sub:
+      case FSub:
         operation = BinaryOperator.MINUS;
         break;
-      case LLVMMul:
-      case LLVMFMul:
+      case Mul:
+      case FMul:
         operation = BinaryOperator.MULTIPLY;
         break;
-      case LLVMUDiv:
-      case LLVMSDiv:
-      case LLVMFDiv:
+      case UDiv:
+      case SDiv:
+      case FDiv:
         // TODO: Respect unsigned and signed divide
         operation = BinaryOperator.DIVIDE;
         break;
-      case LLVMURem:
-      case LLVMSRem:
-      case LLVMFRem:
+      case URem:
+      case SRem:
+      case FRem:
         // TODO: Respect unsigned and signed modulo
         operation = BinaryOperator.MODULO;
         break;
-      case LLVMShl: // Shift left
+      case Shl: // Shift left
         operation = BinaryOperator.SHIFT_LEFT;
         break;
-      case LLVMLShr: // Logical shift right
-      case LLVMAShr: // arithmetic shift right
+      case LShr: // Logical shift right
+      case AShr: // arithmetic shift right
         // TODO Differentiate between logical and arithmetic shift somehow
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
-      case LLVMAnd:
+      case And:
         operation = BinaryOperator.BINARY_AND;
         break;
-      case LLVMOr:
+      case Or:
         operation = BinaryOperator.BINARY_OR;
         break;
-      case LLVMXor:
+      case Xor:
         operation = BinaryOperator.BINARY_XOR;
         break;
       default:
-        throw new UnsupportedOperationException(String.valueOf(pOpCode.value()));
+        throw new AssertionError("Unhandled operation " + pOpCode);
     }
 
-    CExpression expression = new CBinaryExpression(
-        getLocation(pItem),
-        expressionType,
-        expressionType, // calculation type is expression type in LLVM
-        operand1Exp,
-        operand2Exp,
-        operation
-        );
+    CExpression expression =
+        new CBinaryExpression(
+            getLocation(pItem),
+            expressionType,
+            expressionType, // calculation type is expression type in LLVM
+            operand1Exp,
+            operand2Exp,
+            operation);
 
     return getAssignStatement(pItem, expression, pFunctionName);
   }
 
-  private CExpression getExpression(
-      final Value pItem, final CType pExpectedType) {
+  private CExpression getExpression(final Value pItem, final CType pExpectedType)
+      throws LLVMException {
     if (pItem.isConstantInt() || pItem.isConstantFP()) {
       return getConstant(pItem);
     } else {
@@ -521,14 +522,12 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  private CExpression getConstant(final Value pItem) {
+  private CExpression getConstant(final Value pItem) throws LLVMException {
     CType expectedType = typeConverter.getCType(pItem.typeOf());
     if (pItem.isConstantInt()) {
       long constantValue = pItem.constIntGetSExtValue();
       return new CIntegerLiteralExpression(
-          getLocation(pItem),
-          expectedType,
-          BigInteger.valueOf(constantValue));
+          getLocation(pItem), expectedType, BigInteger.valueOf(constantValue));
     } else {
       assert pItem.isConstantFP();
       throw new UnsupportedOperationException("LLVM parsing does not support float constants yet");
@@ -536,15 +535,14 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private List<CAstNode> getAssignStatement(
-      final Value pAssignee,
-      final CRightHandSide pAssignment,
-      final String pFunctionName
-  ) {
+      final Value pAssignee, final CRightHandSide pAssignment, final String pFunctionName)
+      throws LLVMException {
     long assigneeId = pAssignee.getAddress();
     CType expectedType = pAssignment.getExpressionType();
     // Variable is already declared, so it must only be assigned the new value
     if (variableDeclarations.containsKey(assigneeId)) {
-      CLeftHandSide assigneeIdExp = (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType);
+      CLeftHandSide assigneeIdExp =
+          (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType);
 
       CType varType = assigneeIdExp.getExpressionType();
       if (!(varType.equals(expectedType))) {
@@ -553,33 +551,26 @@ public class CFABuilder extends LlvmAstVisitor {
       }
 
       if (pAssignment instanceof CFunctionCallExpression) {
-        return ImmutableList.of(new CFunctionCallAssignmentStatement(
-            getLocation(pAssignee),
-            assigneeIdExp,
-            (CFunctionCallExpression) pAssignment
-        ));
+        return ImmutableList.of(
+            new CFunctionCallAssignmentStatement(
+                getLocation(pAssignee), assigneeIdExp, (CFunctionCallExpression) pAssignment));
 
       } else {
-        return ImmutableList.of(new CExpressionAssignmentStatement(
-            getLocation(pAssignee),
-            assigneeIdExp,
-            (CExpression) pAssignment));
+        return ImmutableList.of(
+            new CExpressionAssignmentStatement(
+                getLocation(pAssignee), assigneeIdExp, (CExpression) pAssignment));
       }
 
-    } else {  // Variable must be newly declared
+    } else { // Variable must be newly declared
       if (pAssignment instanceof CFunctionCallExpression) {
-        CSimpleDeclaration assigneeDecl =
-            getAssignedVarDeclaration(pAssignee, pFunctionName, null);
+        CSimpleDeclaration assigneeDecl = getAssignedVarDeclaration(pAssignee, pFunctionName, null);
         CLeftHandSide assigneeIdExp =
             (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType);
 
         return ImmutableList.of(
             assigneeDecl,
             new CFunctionCallAssignmentStatement(
-              getLocation(pAssignee),
-              assigneeIdExp,
-              (CFunctionCallExpression) pAssignment)
-        );
+                getLocation(pAssignee), assigneeIdExp, (CFunctionCallExpression) pAssignment));
 
       } else {
         CInitializer initializer =
@@ -592,17 +583,11 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private CSimpleDeclaration getAssignedVarDeclaration(
-      final Value pItem,
-      final String pFunctionName,
-      final CInitializer pInitializer
-  ) {
+      final Value pItem, final String pFunctionName, final CInitializer pInitializer)
+      throws LLVMException {
     final long itemId = pItem.getAddress();
     if (!variableDeclarations.containsKey(itemId)) {
-      String assignedVar = pItem.getValueName();
-
-      if (assignedVar.isEmpty()) {
-        assignedVar = getTempVar();
-      }
+      String assignedVar = getName(pItem);
 
       final boolean isGlobal = pItem.isGlobalValue();
       // TODO: Support static and other storage classes
@@ -617,15 +602,16 @@ public class CFABuilder extends LlvmAstVisitor {
         varType = typeConverter.getCType(pItem.typeOf());
       }
 
-      CSimpleDeclaration newDecl = new CVariableDeclaration(
-          getLocation(pItem),
-          isGlobal,
-          storageClass,
-          varType,
-          assignedVar,
-          assignedVar,
-          getQualifiedName(assignedVar, pFunctionName),
-          pInitializer);
+      CSimpleDeclaration newDecl =
+          new CVariableDeclaration(
+              getLocation(pItem),
+              isGlobal,
+              storageClass,
+              varType,
+              assignedVar,
+              assignedVar,
+              getQualifiedName(assignedVar, pFunctionName),
+              pInitializer);
       assert !variableDeclarations.containsKey(itemId);
       variableDeclarations.put(itemId, newDecl);
     }
@@ -633,17 +619,16 @@ public class CFABuilder extends LlvmAstVisitor {
     return variableDeclarations.get(itemId);
   }
 
-
   private CExpression getAssignedIdExpression(final Value pItem, final CType pExpectedType) {
     logger.log(Level.FINE, "Getting var declaration for item");
     assert variableDeclarations.containsKey(pItem.getAddress())
         : "ID expression has no declaration!";
-    CSimpleDeclaration assignedVarDeclaration =
-        variableDeclarations.get(pItem.getAddress());
+    CSimpleDeclaration assignedVarDeclaration = variableDeclarations.get(pItem.getAddress());
     String assignedVarName = assignedVarDeclaration.getName();
     CType expressionType = assignedVarDeclaration.getType();
-    CIdExpression idExpression = new CIdExpression(
-        getLocation(pItem), expressionType, assignedVarName, assignedVarDeclaration);
+    CIdExpression idExpression =
+        new CIdExpression(
+            getLocation(pItem), expressionType, assignedVarName, assignedVarDeclaration);
 
     if (pExpectedType.equals(expressionType)) {
       return idExpression;
@@ -664,15 +649,16 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   /**
-   * Returns whether the first param is a pointer of the type of the second parameter.<br />
+   * Returns whether the first param is a pointer of the type of the second parameter.<br>
    * Examples:
+   *
    * <ul>
-   *   <li>pointerOf(*int, int) -> true</li>
-   *  <li>pointerOf(**int, *int) -> true</li>
-   *  <li>pointerOf(int, int*) -> false</li>
-   *  <li>pointerOf(int, int) -> false</li>
-   *</ul>
-   **/
+   *   <li>pointerOf(*int, int) -> true
+   *   <li>pointerOf(**int, *int) -> true
+   *   <li>pointerOf(int, int*) -> false
+   *   <li>pointerOf(int, int) -> false
+   * </ul>
+   */
   private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
     if (pPotentialPointer instanceof CPointerType) {
       return ((CPointerType) pPotentialPointer).getType().equals(pPotentialPointee);
@@ -681,13 +667,41 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
+  private String getName(final Value pValue) {
+    String name = pValue.getValueName();
+    if (name.isEmpty()) {
+      name = getTempVar();
+    }
+    return prepareName(name);
+  }
+
   private String getTempVar() {
     tmpVarCount++;
     return TMP_VAR_PREFIX + tmpVarCount;
   }
 
+  // Converts a valid LLVM name to a valid C name, so that CPAchecker
+  // can work with it without problems.
+  private String prepareName(String pRawName) {
+    char[] asArray = pRawName.toCharArray();
+    StringBuilder newName = new StringBuilder();
+    for (int i = 0; i < asArray.length; i++) {
+      char curr = asArray[i];
+      if (curr == '_' || Character.isAlphabetic(curr) || (i > 0 && Character.isDigit(curr))) {
+        newName.append(curr);
+      } else {
+        if (i == 0) {
+          newName.append('_');
+        }
+        // Represent chars that are not allowed as their number representation
+        newName.append((int) curr);
+      }
+    }
+    return newName.toString();
+  }
+
   @Override
-  protected void declareFunction(final Value pFuncDef) {
+  protected void declareFunction(final Value pFuncDef) throws LLVMException {
     String functionName = pFuncDef.getValueName();
 
     // Function type
@@ -698,28 +712,25 @@ public class CFABuilder extends LlvmAstVisitor {
     // Parameters
     List<Value> paramVs = pFuncDef.getParams();
     List<CParameterDeclaration> parameters = new ArrayList<>(paramVs.size());
-    int unnamed_value = 1;
     for (Value v : paramVs) {
-      String paramName = v.getValueName();
-      if (paramName.isEmpty()) {
-        paramName = Integer.toString(++unnamed_value);
-      }
+      String paramName = getName(v);
 
       CType paramType = typeConverter.getCType(v.typeOf());
-      CParameterDeclaration parameter = new CParameterDeclaration(FileLocation.DUMMY, paramType, paramName);
+      CParameterDeclaration parameter =
+          new CParameterDeclaration(getLocation(v), paramType, paramName);
+      parameter.setQualifiedName(getQualifiedName(paramName, functionName));
+
+      variableDeclarations.put(v.getAddress(), parameter);
       parameters.add(parameter);
     }
 
     // Function declaration, exit
-    CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(
-        getLocation(pFuncDef),
-        cFuncType,
-        functionName,
-        parameters);
+    CFunctionDeclaration functionDeclaration =
+        new CFunctionDeclaration(getLocation(pFuncDef), cFuncType, functionName, parameters);
     functionDeclarations.put(functionName, functionDeclaration);
   }
 
-  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {
+  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) throws LLVMException {
     assert !pFuncDef.isDeclaration();
 
     String functionName = pFuncDef.getValueName();
@@ -743,9 +754,8 @@ public class CFABuilder extends LlvmAstVisitor {
     }
 
     CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
-    FunctionEntryNode entry = new CFunctionEntryNode(
-      getLocation(pFuncDef), functionDeclaration,
-      functionExit, returnVar);
+    FunctionEntryNode entry =
+        new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
     functionExit.setEntryNode(entry);
 
     return entry;
@@ -753,45 +763,52 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private CVariableDeclaration getReturnVar(String pFunctionName, CType pType) {
     return new CVariableDeclaration(
-        FileLocation.DUMMY, false, CStorageClass.AUTO, pType, RETURN_VAR_NAME,
-        RETURN_VAR_NAME, getQualifiedName(RETURN_VAR_NAME, pFunctionName), null /* no initializer */);
+        FileLocation.DUMMY,
+        false,
+        CStorageClass.AUTO,
+        pType,
+        RETURN_VAR_NAME,
+        RETURN_VAR_NAME,
+        getQualifiedName(RETURN_VAR_NAME, pFunctionName),
+        null /* no initializer */);
   }
 
   private List<CAstNode> handleGEP() {
-      return null;
-      //return getAssignStatement(pItem, ptrexpr, pFunctionName);
+    return null;
+    // return getAssignStatement(pItem, ptrexpr, pFunctionName);
   }
 
-  private List<CAstNode> handleCmpInst(final Value pItem, String pFunctionName) {
+  private List<CAstNode> handleCmpInst(final Value pItem, String pFunctionName)
+      throws LLVMException {
     // the only one supported now
     assert pItem.isICmpInst();
 
     BinaryOperator operator = null;
     switch (pItem.getICmpPredicate()) {
-        case LLVMIntEQ:
-            operator = BinaryOperator.EQUALS;
-            break;
-        case LLVMIntNE:
-            operator = BinaryOperator.NOT_EQUALS;
-            break;
-        case LLVMIntUGT:
-        case LLVMIntSGT:
-            operator = BinaryOperator.GREATER_THAN;
-            break;
-        case LLVMIntULT:
-        case LLVMIntSLT:
-            operator = BinaryOperator.LESS_THAN;
-            break;
-        case LLVMIntULE:
-        case LLVMIntSLE:
-            operator = BinaryOperator.LESS_EQUAL;
-            break;
-        case LLVMIntUGE:
-        case LLVMIntSGE:
-            operator = BinaryOperator.GREATER_EQUAL;
-            break;
-        default:
-            throw new UnsupportedOperationException("Unsupported predicate");
+      case IntEQ:
+        operator = BinaryOperator.EQUALS;
+        break;
+      case IntNE:
+        operator = BinaryOperator.NOT_EQUALS;
+        break;
+      case IntUGT:
+      case IntSGT:
+        operator = BinaryOperator.GREATER_THAN;
+        break;
+      case IntULT:
+      case IntSLT:
+        operator = BinaryOperator.LESS_THAN;
+        break;
+      case IntULE:
+      case IntSLE:
+        operator = BinaryOperator.LESS_EQUAL;
+        break;
+      case IntUGE:
+      case IntSGE:
+        operator = BinaryOperator.GREATER_EQUAL;
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported predicate");
     }
 
     assert operator != null;
@@ -800,24 +817,26 @@ public class CFABuilder extends LlvmAstVisitor {
     CType op1type = typeConverter.getCType(operand1.typeOf());
     CType op2type = typeConverter.getCType(operand2.typeOf());
     try {
-      CBinaryExpression cmp = binaryExpressionBuilder.buildBinaryExpression(
-        getExpression(operand1, op1type),
-        getExpression(operand2, op2type),
-        operator);
+      CBinaryExpression cmp =
+          binaryExpressionBuilder.buildBinaryExpression(
+              getExpression(operand1, op1type), getExpression(operand2, op2type), operator);
 
       return getAssignStatement(pItem, cmp, pFunctionName);
 
     } catch (UnrecognizedCCodeException e) {
-        throw new UnsupportedOperationException(e.toString());
+      throw new UnsupportedOperationException(e.toString());
     }
   }
 
-  private List<CAstNode> handleCastInst(final Value pItem, String pFunctionName) {
+  private List<CAstNode> handleCastInst(final Value pItem, String pFunctionName)
+      throws LLVMException {
     Value castOperand = pItem.getOperand(0);
     CType operandType = typeConverter.getCType(castOperand.typeOf());
-    CCastExpression cast = new CCastExpression(getLocation(pItem),
-                                               typeConverter.getCType(pItem.typeOf()),
-                                               getExpression(castOperand, operandType));
+    CCastExpression cast =
+        new CCastExpression(
+            getLocation(pItem),
+            typeConverter.getCType(pItem.typeOf()),
+            getExpression(castOperand, operandType));
     return getAssignStatement(pItem, cast, pFunctionName);
   }
 

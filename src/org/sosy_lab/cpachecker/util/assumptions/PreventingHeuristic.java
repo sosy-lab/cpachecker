@@ -41,9 +41,7 @@ public enum PreventingHeuristic {
   MEMORYUSED("MU"),
   MEMORYOUT("MO"),
   TIMEOUT("TO"),
-  LOOPITERATIONS("LI"),
-  EDGECOUNT("EC"),
-  BLOCKCOUNT("BC");
+  LOOPITERATIONS("LI");
 
   private final String predicateString;
 

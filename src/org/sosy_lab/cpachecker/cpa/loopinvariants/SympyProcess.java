@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.Streams;
 import com.google.common.io.Closeables;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -34,7 +35,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public final class SympyProcess implements AutoCloseable {
 
@@ -89,9 +89,7 @@ public final class SympyProcess implements AutoCloseable {
   }
 
   public Stream<String> readErrorLines() {
-    return stderr
-        .lines()
-        .flatMap(l -> StreamSupport.stream(PROMPT_SPLITTER.split(l).spliterator(), false));
+    return stderr.lines().flatMap(l -> Streams.stream(PROMPT_SPLITTER.split(l)));
   }
 
   @Override

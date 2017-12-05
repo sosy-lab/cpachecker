@@ -84,6 +84,6 @@
   </tasks>
 
   <rundefinition name="sv-comp16">
-    <option name="-sv-comp16"/>
+    <option name="-svcomp16"/>
   </rundefinition>
 </benchmark>

@@ -23,41 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
-
+import com.google.common.collect.Multiset;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
 
-/**
- * Generate coverage information in Gcov format
- * (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html).
- */
-@Options
-class CoverageReportGcov implements CoverageWriter {
-
-  @Option(secure=true,
-      name="coverage.export",
-      description="print coverage info to file")
-  private boolean exportCoverage = true;
-
-  @Option(secure=true,
-      name="coverage.file",
-      description="print coverage info to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+/** Generate coverage information in Gcov format (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html). */
+public class CoverageReportGcov {
 
   //String constants from gcov format
   private final static String TEXTNAME = "TN:";
@@ -66,56 +40,34 @@ class CoverageReportGcov implements CoverageWriter {
   private final static String FUNCTIONDATA = "FNDA:";
   private final static String LINEDATA = "DA:";
 
-  private final LogManager logger;
+  public static void write(CoverageData pCoverage, Writer w) throws IOException {
 
-  public CoverageReportGcov(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
+    for (Map.Entry<String, FileCoverageInformation> entry :
+        pCoverage.getInfosPerFile().entrySet()) {
+      String sourcefile = entry.getKey();
+      FileCoverageInformation fileInfos = entry.getValue();
 
-    pConfig.inject(this);
+      //Convert ./test.c -> /full/path/test.c
+      w.append(TEXTNAME + "\n");
+      w.append(SOURCEFILE + Paths.get(sourcefile).toAbsolutePath() + "\n");
 
-    this.logger = pLogger;
-  }
-
-  @Override
-  public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
-
-    if (!exportCoverage || (outputCoverageFile == null)) {
-      return;
-    }
-
-    try (Writer w = MoreFiles.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-
-      for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
-        String sourcefile = entry.getKey();
-        FileCoverageInformation fileInfos = entry.getValue();
-
-        //Convert ./test.c -> /full/path/test.c
-        w.append(TEXTNAME + "\n");
-        w.append(SOURCEFILE + Paths.get(sourcefile).toAbsolutePath() + "\n");
-
-        for (FunctionInfo info : fileInfos.allFunctions) {
-          w.append(FUNCTION + info.firstLine + "," + info.name + "\n");
-          //Information about function end isn't used by lcov, but it is useful for some postprocessing
-          //But lcov ignores all unknown lines, so, this additional information can't affect on its work
-          w.append("#" + FUNCTION + info.lastLine + "\n");
-        }
-
-        for (String name : fileInfos.visitedFunctions.keySet()) {
-          w.append(FUNCTIONDATA + fileInfos.visitedFunctions.get(name) + "," +  name + "\n");
-        }
-
-        /* Now save information about lines
-         */
-        for (Integer line : fileInfos.allLines) {
-          w.append(LINEDATA + line + "," + fileInfos.getVisitedLine(line) + "\n");
-        }
-        w.append("end_of_record\n");
+      for (FunctionInfo info : fileInfos.allFunctions) {
+        w.append(FUNCTION + info.firstLine + "," + info.name + "\n");
+        //Information about function end isn't used by lcov, but it is useful for some postprocessing
+        //But lcov ignores all unknown lines, so, this additional information can't affect on its work
+        w.append("#" + FUNCTION + info.lastLine + "\n");
       }
 
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+      for (Multiset.Entry<String> functionEntry : fileInfos.visitedFunctions.entrySet()) {
+        w.append(FUNCTIONDATA + functionEntry.getCount() + "," + functionEntry.getElement() + "\n");
+      }
+
+      /* Now save information about lines
+       */
+      for (Integer line : fileInfos.allLines) {
+        w.append(LINEDATA + line + "," + fileInfos.getVisitedLine(line) + "\n");
+      }
+      w.append("end_of_record\n");
     }
-
   }
-
 }

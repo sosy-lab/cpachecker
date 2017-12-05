@@ -128,4 +128,14 @@ public abstract class GenericReducer<S extends AbstractState, P extends Precisio
         Reducer.super.getVariableExpandedStateForProofChecking(
             pRootState, pReducedContext, pReducedState);
   }
+
+  protected boolean canBeUsedInCache0(S pState) {
+    //default
+    return Reducer.super.canBeUsedInCache(pState);
+  }
+
+  @Override
+  public boolean canBeUsedInCache(AbstractState pState) {
+    return canBeUsedInCache0((S) pState);
+  }
 }

@@ -36,7 +36,7 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public interface LoopIterationState {
+interface LoopIterationState {
 
   LoopIterationState visitLoopHead(LoopEntry pLoopEntry);
 
@@ -52,7 +52,7 @@ public interface LoopIterationState {
 
   boolean isLoopCounterAbstracted();
 
-  LoopIterationState abstractLoopCounter();
+  LoopIterationState enforceAbstraction(int pLoopIterationsBeforeAbstraction);
 
   public static class UndeterminedLoopIterationState implements LoopIterationState {
 
@@ -157,11 +157,21 @@ public interface LoopIterationState {
     }
 
     @Override
-    public LoopIterationState abstractLoopCounter() {
-      if (isLoopCounterAbstracted()) {
+    public LoopIterationState enforceAbstraction(int pLoopIterationsBeforeAbstraction) {
+      if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      return new UndeterminedLoopIterationState(iterations, maxLoopIteration, true);
+      PersistentSortedMap<ComparableLoop, LoopIteration> iterations = this.iterations;
+      for (Map.Entry<ComparableLoop, LoopIteration> entry : iterations.entrySet()) {
+        ComparableLoop loop = entry.getKey();
+        LoopIteration oldIterationCount = entry.getValue();
+        if (oldIterationCount.getCount() > pLoopIterationsBeforeAbstraction) {
+          iterations = iterations.putAndCopy(
+              loop,
+              new LoopIteration(oldIterationCount.getLoopEntryPoint(), pLoopIterationsBeforeAbstraction));
+        }
+      }
+      return new UndeterminedLoopIterationState(iterations, pLoopIterationsBeforeAbstraction, true);
     }
 
     public static LoopIterationState newState() {
@@ -350,11 +360,11 @@ public interface LoopIterationState {
     }
 
     @Override
-    public LoopIterationState abstractLoopCounter() {
-      if (isLoopCounterAbstracted()) {
+    public LoopIterationState enforceAbstraction(int pLoopIterationsBeforeAbstraction) {
+      if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      return new DeterminedLoopIterationState(loopEntry, iteration, true);
+      return new DeterminedLoopIterationState(loopEntry, pLoopIterationsBeforeAbstraction, true);
     }
 
   }

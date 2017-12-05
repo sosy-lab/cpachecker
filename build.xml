@@ -12,12 +12,11 @@
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
-    <property name="ivy.settings.file" value="lib/ivysettings.xml"/>
     <property name="junit.dir" value="output/junit"/>
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
-    <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
+    <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
 
     <import file="build/build-ivy.xml"/>
@@ -28,7 +27,7 @@
     <import file="build/build-dist.xml"/>
     <import file="build/build-junit.xml"/>
     <import file="build/build-format-source.xml"/>
-    <import file="build/build-findbugs.xml"/>
+    <import file="build/build-spotbugs.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
@@ -92,11 +91,11 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="standard-checks" depends="tests, findbugs"/>
+    <target name="standard-checks" depends="tests, spotbugs"/>
 
-    <target name="python-unit-tests" description="Run unit tests of python scripts">
+    <target name="python-unit-tests" depends="build" description="Run unit tests of python scripts">
         <!-- Tests are only executed if python is available, ignored otherwise. -->
-        <exec executable="python"
+        <exec executable="python3"
             failonerror="true"
             failifexecutionfails="false">
             <arg line="-m unittest discover scripts"/>

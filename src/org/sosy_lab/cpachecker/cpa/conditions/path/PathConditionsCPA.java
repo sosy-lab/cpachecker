@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -61,6 +62,13 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   @Option(secure = true, description = "The condition", name = "condition", required = true)
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.conditions.path")
   private PathCondition.Factory conditionClass;
+
+  @Option(secure = true,
+      description = "Number of times the path condition may be adjusted, i.e., the path condition threshold may be increased (-1 to always adjust)",
+      name = "adjustment.threshold")
+  @IntegerOption(min=-1)
+  private int adjustmentThreshold = -1;
+  private int performedAdjustments = 0;
 
   private final PathCondition condition;
 
@@ -100,7 +108,11 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
 
   @Override
   public boolean adjustPrecision() {
-    return condition.adjustPrecision();
+    if (adjustmentThreshold == -1 || performedAdjustments < adjustmentThreshold) {
+      performedAdjustments++;
+      return condition.adjustPrecision();
+    }
+    return false;
   }
 
   @Override

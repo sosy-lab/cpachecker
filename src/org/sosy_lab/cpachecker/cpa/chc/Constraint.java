@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cpa.chc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
+import java.util.Map;
 import jpl.Term;
 public class Constraint {
 
   private ArrayList<Term> cns = null;
-  private HashMap<String,Term> vars = null;
+  private Map<String,Term> vars = null;
 
   public Constraint() {
     cns = new ArrayList<>();
@@ -95,7 +95,7 @@ public class Constraint {
     return cns;
   }
 
-  public HashMap<String,Term> getVars() {
+  public Map<String,Term> getVars() {
     return vars;
   }
 

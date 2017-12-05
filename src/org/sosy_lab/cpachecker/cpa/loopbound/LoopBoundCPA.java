@@ -27,14 +27,12 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,25 +40,22 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -70,28 +65,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class LoopBoundCPA extends AbstractCPA
     implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics, LoopIterationBounding {
 
-  private final LogManager logger;
-
-  @Option(secure=true,
-      description="Number of loop iterations before the loop counter is"
-          + " abstracted. Zero is equivalent to no limit.")
-  private int loopIterationsBeforeAbstraction = 0;
-
-  @Option(secure=true, description="threshold for unrolling loops of the program (0 is infinite)\n"
-  + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
-  private int maxLoopIterations = 0;
-
-  @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
-  private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
-
-  @Option(secure=true, description="threshold for adjusting the threshold for unrolling loops of the program (0 is infinite).\n"
-  + "only relevant in combination with a non-static maximum loop iteration adjuster.")
-  private int maxLoopIterationsUpperBound = 0;
-
   @Option(secure=true, description="enable stack-based tracking of loops")
   private boolean trackStack = false;
-
-  private final DelegatingTransferRelation transferRelation;
 
   public static CPAFactory factory() {
     return new LoopBoundCPAFactory();
@@ -99,21 +74,13 @@ public class LoopBoundCPA extends AbstractCPA
 
   private final LoopStructure loopStructure;
 
-  public LoopBoundCPA(Configuration config, CFA pCfa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    this(config, pCfa, pLogger, new DelegatingTransferRelation());
-  }
+  private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
-  private LoopBoundCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", pDelegatingTransferRelation);
-    if (!pCfa.getLoopStructure().isPresent()) {
-      throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
-    }
-    loopStructure = pCfa.getLoopStructure().get();
-    config.inject(this);
-    this.transferRelation = pDelegatingTransferRelation;
-    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
-        loopIterationsBeforeAbstraction, maxLoopIterations, loopStructure));
-    this.logger = pLogger;
+  LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+    super("sep", "sep", LoopBoundDomain.INSTANCE, new LoopBoundTransferRelation(pCFA));
+    loopStructure = pCFA.getLoopStructure().get();
+    pConfig.inject(this);
+    precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
   }
 
   @Override
@@ -129,27 +96,20 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new LoopBoundPrecision(trackStack);
+    return new LoopBoundPrecision(
+        trackStack,
+        precisionAdjustment.getMaxLoopIterations(),
+        precisionAdjustment.getLoopIterationsBeforeAbstraction());
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    if (this.transferRelation == null) {
-      return super.getTransferRelation();
-    }
-    return this.transferRelation;
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return precisionAdjustment ;
   }
 
   @Override
   public boolean adjustPrecision() {
-    MaxLoopIterationAdjuster maxLoopIterationAdjuster = this.maxLoopIterationAdjusterFactory.getMaxLoopIterationAdjuster(this);
-    if (maxLoopIterationAdjuster.canAdjust(maxLoopIterations)) {
-      int maxLoopIterations = maxLoopIterationAdjuster.adjust(this.maxLoopIterations);
-      logger.log(Level.INFO, "Adjusting maxLoopIterations to " + maxLoopIterations);
-      setMaxLoopIterations(maxLoopIterations);
-      return true;
-    }
-    return false;
+    return precisionAdjustment.nextState();
   }
 
   @Override
@@ -161,8 +121,8 @@ public class LoopBoundCPA extends AbstractCPA
         if (pArg0 == null) {
           return false;
         }
-        LoopBoundState loopstackState = extractStateByType(pArg0, LoopBoundState.class);
-        return loopstackState != null && loopstackState.mustDumpAssumptionForAvoidance();
+        LoopBoundState loopBoundState = extractStateByType(pArg0, LoopBoundState.class);
+        return loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance();
       }}).toSet();
 
     // Never delete the first state
@@ -187,149 +147,15 @@ public class LoopBoundCPA extends AbstractCPA
 
     }).toSet().asList();
 
-    pReachedSet.removeAll(toRemove);
-    for (ARGState s : from(toRemove).filter(ARGState.class)) {
-      s.removeFromARG();
-    }
-
     // Add the new waitlist
     for (AbstractState s : waitlist) {
       pReachedSet.reAddToWaitlist(s);
     }
-  }
 
-  private static interface MaxLoopIterationAdjuster {
-
-    int adjust(int currentValue);
-
-    boolean canAdjust(int currentValue);
-
-  }
-
-  private static interface MaxLoopIterationAdjusterFactory {
-
-    MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA);
-
-  }
-
-  private static enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
-
-    STATIC {
-
-      @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA) {
-        return StaticLoopIterationAdjuster.INSTANCE;
-      }
-
-    },
-
-    INCREMENT {
-
-      @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA) {
-        return new IncrementalLoopIterationAdjuster(pCPA);
-      }
-
-    },
-
-    DOUBLE {
-
-      @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA) {
-        return new DoublingLoopIterationAdjuster(pCPA);
-      }
-
-
+    pReachedSet.removeAll(toRemove);
+    for (ARGState s : from(toRemove).filter(ARGState.class)) {
+      s.removeFromARG();
     }
-
-  }
-
-  private static enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
-
-    INSTANCE;
-
-    @Override
-    public int adjust(int pCurrentValue) {
-      return pCurrentValue;
-    }
-
-    @Override
-    public boolean canAdjust(int pCurrentValue) {
-      return false;
-    }
-
-  }
-
-  private static class IncrementalLoopIterationAdjuster implements MaxLoopIterationAdjuster {
-
-    private final LoopBoundCPA cpa;
-
-    public IncrementalLoopIterationAdjuster(LoopBoundCPA pCPA) {
-      this.cpa = pCPA;
-    }
-
-    @Override
-    public int adjust(int pCurrentValue) {
-      return ++pCurrentValue;
-    }
-
-    @Override
-    public boolean canAdjust(int pCurrentValue) {
-      return cpa.maxLoopIterationsUpperBound <= 0 || pCurrentValue < cpa.maxLoopIterationsUpperBound;
-    }
-
-  }
-
-  private static class DoublingLoopIterationAdjuster implements MaxLoopIterationAdjuster {
-
-    private final LoopBoundCPA cpa;
-
-    public DoublingLoopIterationAdjuster(LoopBoundCPA pCPA) {
-      this.cpa = pCPA;
-    }
-
-    @Override
-    public int adjust(int pCurrentValue) {
-      return 2 * pCurrentValue;
-    }
-
-    @Override
-    public boolean canAdjust(int pCurrentValue) {
-      return cpa.maxLoopIterationsUpperBound <= 0 || pCurrentValue * 2 <= cpa.maxLoopIterationsUpperBound;
-    }
-
-  }
-
-  private static class DelegatingTransferRelation extends SingleEdgeTransferRelation {
-
-    private TransferRelation delegate = null;
-
-    public DelegatingTransferRelation() {
-      this(null);
-    }
-
-    public DelegatingTransferRelation(TransferRelation pDelegate) {
-      this.delegate = pDelegate;
-    }
-
-    public void setDelegate(TransferRelation pNewDelegate) {
-      this.delegate = pNewDelegate;
-    }
-
-    @Override
-    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-        AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-            throws CPATransferException, InterruptedException {
-      Preconditions.checkState(delegate != null);
-      return this.delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
-    }
-
-    @Override
-    public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-        CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-      return this.delegate.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
-    }
-
   }
 
   @Override
@@ -340,7 +166,7 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-    writer.put("Bound k", this.maxLoopIterations);
+    writer.put("Bound k", precisionAdjustment.getMaxLoopIterations());
     int maximumLoopIterationReached = 0;
     for (AbstractState state : pReached) {
       LoopBoundState loopstackState = AbstractStates.extractStateByType(state, LoopBoundState.class);
@@ -359,21 +185,15 @@ public class LoopBoundCPA extends AbstractCPA
 
   @Override
   public void setMaxLoopIterations(int pMaxLoopIterations) {
-    this.maxLoopIterations = pMaxLoopIterations;
-    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
-        loopIterationsBeforeAbstraction,
-        maxLoopIterations, loopStructure));
+    precisionAdjustment.setMaxLoopIterations(pMaxLoopIterations);
   }
 
   @Override
   public int getMaxLoopIterations() {
-    return this.maxLoopIterations;
+    return precisionAdjustment.getMaxLoopIterations();
   }
 
   public void incrementLoopIterationsBeforeAbstraction() {
-    loopIterationsBeforeAbstraction++;
-    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
-        loopIterationsBeforeAbstraction,
-        maxLoopIterations, loopStructure));
+    precisionAdjustment.incrementLoopIterationsBeforeAbstraction();
   }
 }

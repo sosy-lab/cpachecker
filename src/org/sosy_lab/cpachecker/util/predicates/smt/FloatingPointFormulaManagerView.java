@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.math.BigDecimal;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-
-import java.math.BigDecimal;
+import org.sosy_lab.java_smt.api.UFManager;
 
 
 public class FloatingPointFormulaManagerView
@@ -40,11 +42,15 @@ public class FloatingPointFormulaManagerView
         implements FloatingPointFormulaManager {
 
   private final FloatingPointFormulaManager manager;
+  private final UFManager functionManager;
 
-  FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
-      FloatingPointFormulaManager pManager) {
+  FloatingPointFormulaManagerView(
+      FormulaWrappingHandler pWrappingHandler,
+      FloatingPointFormulaManager pManager,
+      UFManager pFunctionManager) {
     super(pWrappingHandler);
     this.manager = pManager;
+    this.functionManager = pFunctionManager;
   }
 
   @Override
@@ -76,6 +82,29 @@ public class FloatingPointFormulaManagerView
       FloatingPointType targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return manager.castFrom(unwrap(number), signed, targetType, pFloatingPointRoundingMode);
+  }
+
+  @Override
+  public FloatingPointFormula fromIeeeBitvector(
+      BitvectorFormula pNumber, FloatingPointType pTargetType) {
+    if (useBitvectors()) {
+      return manager.fromIeeeBitvector(pNumber, pTargetType);
+    } else {
+      return ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
+          pNumber, pTargetType, this, functionManager);
+    }
+  }
+
+  @Override
+  public BitvectorFormula toIeeeBitvector(FloatingPointFormula pNumber) {
+    if (useBitvectors()) {
+      return manager.toIeeeBitvector(pNumber);
+    } else {
+      FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
+      BitvectorType targetType = FormulaType.getBitvectorTypeWithSize(type.getTotalSize());
+      return ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
+          pNumber, targetType, this, functionManager);
+    }
   }
 
   @Override
@@ -243,5 +272,11 @@ public class FloatingPointFormulaManagerView
   @Override
   public FloatingPointFormula makeNaN(FloatingPointType pType) {
     return manager.makeNaN(pType);
+  }
+
+  @Override
+  public FloatingPointFormula round(
+      FloatingPointFormula pNumber, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.round(pNumber, pFloatingPointRoundingMode);
   }
 }

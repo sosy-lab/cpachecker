@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -190,7 +191,7 @@ public class FunctionCallUnwinder {
     nodes.putAll(newFunctionname, newFunction.getSecond());
   }
 
-  static String getNameOfFunction(final AStatementEdge edge) {
+  static @Nullable String getNameOfFunction(final AStatementEdge edge) {
     if (!(edge instanceof CStatementEdge)) {
       return null;
     }

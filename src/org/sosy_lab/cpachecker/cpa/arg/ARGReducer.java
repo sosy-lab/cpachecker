@@ -115,4 +115,9 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
             exitLocation),
         null);
   }
+
+  @Override
+  protected boolean canBeUsedInCache0(ARGState pState) {
+    return wrappedReducer.canBeUsedInCache(pState.getWrappedState());
+  }
 }

@@ -1,8 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.congruence;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
+import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,22 +40,13 @@ import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.Template.Kind;
 import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="cpa.congruence")
 public class CongruenceManager implements
@@ -104,11 +101,8 @@ public class CongruenceManager implements
       CongruenceState a,
       CongruenceState b
   ) {
-    Map<Template, Congruence> abstraction = Sets.intersection(
-          a.getAbstraction().keySet(), b.getAbstraction().keySet())
-        .stream()
-        .filter(t -> a.getAbstraction().get(t).equals(b.getAbstraction().get(t)))
-        .collect(Collectors.toMap(t -> t, t -> a.getAbstraction().get(t)));
+    Map<Template, Congruence> abstraction =
+        Maps.difference(a.getAbstraction(), b.getAbstraction()).entriesInCommon();
     return new CongruenceState(
         abstraction,
         this,
@@ -167,7 +161,9 @@ public class CongruenceManager implements
 
         // Test odd <=> isEven is UNSAT.
         try {
-          env.push(fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 0), 2));
+          env.push(
+              fmgr.makeModularCongruence(
+                  formula, makeBv(bvfmgr, formula, 0), 2, !template.isUnsigned()));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.ODD);
             continue;
@@ -179,7 +175,8 @@ public class CongruenceManager implements
         // Test even <=> isOdd is UNSAT.
         try {
           env.push(
-              fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 1), 2));
+              fmgr.makeModularCongruence(
+                  formula, makeBv(bvfmgr, formula, 1), 2, !template.isUnsigned()));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.EVEN);
           }
@@ -271,7 +268,7 @@ public class CongruenceManager implements
           throw new AssertionError("Unexpected case");
       }
 
-      constraints.add(fmgr.makeModularCongruence(formula, remainder, 2));
+      constraints.add(fmgr.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
     }
     return fmgr.getBooleanFormulaManager().and(constraints);
   }

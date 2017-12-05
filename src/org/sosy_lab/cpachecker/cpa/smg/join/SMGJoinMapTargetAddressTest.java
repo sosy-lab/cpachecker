@@ -27,11 +27,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 
 public class SMGJoinMapTargetAddressTest {
@@ -63,10 +63,10 @@ public class SMGJoinMapTargetAddressTest {
     SMG origDestSMG = new SMG(destSMG);
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, smg1.getNullValue(), smg1.getNullValue());
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMG.NULL_ADDRESS, SMG.NULL_ADDRESS);
     Assert.assertEquals(origDestSMG, mta.getSMG());
     Assert.assertEquals(origMapping1, mta.getMapping1());
-    Assert.assertSame(destSMG.getNullValue(), mta.getValue());
+    Assert.assertSame(SMG.NULL_ADDRESS, mta.getValue());
   }
 
   @Test

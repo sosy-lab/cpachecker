@@ -27,12 +27,13 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -46,8 +47,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -129,7 +131,10 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
       // This temp file will be automatically deleted when the try block terminates.
       try (DeleteOnCloseFile automatonFile =
-          MoreFiles.createTempFile("counterexample-automaton", ".txt")) {
+          TempFile.builder()
+              .prefix("counterexample-automaton")
+              .suffix(".txt")
+              .createDeleteOnClose()) {
 
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
             automatonFile.toPath());
@@ -143,7 +148,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates,
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
-    try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
       ARGUtils.producePathAutomaton(
           w,
           pRootState,
@@ -169,7 +174,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Specification lSpecification =
           Specification.fromFiles(
               specification.getProperties(),
-              ImmutableList.of(automatonFile),
+              Iterables.concat(specification.getSpecFiles(), Collections.singleton(automatonFile)),
               cfa,
               lConfig,
               lLogger);

@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class SourceLocationMatcher {
 
@@ -82,18 +81,29 @@ class SourceLocationMatcher {
 
   }
 
-  static class OriginLineMatcher extends BaseFileNameMatcher {
+  static class LineMatcher extends BaseFileNameMatcher {
 
-    private final int originLineNumber;
+    private final int startLineNumber;
 
-    public OriginLineMatcher(Optional<String> pOriginFileName, int pOriginLineNumber) {
-      super(pOriginFileName);
-      this.originLineNumber = pOriginLineNumber;
+    private final int endLineNumber;
+
+    private final boolean origin;
+
+    public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
+      super(pFileName);
+      Preconditions.checkArgument(pStartLineNumber <= pEndLineNumber);
+      this.startLineNumber = pStartLineNumber;
+      this.endLineNumber = pEndLineNumber;
+      this.origin = pOrigin;
+    }
+
+    public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber) {
+      this(pFileName, pStartLineNumber, pEndLineNumber, true);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getOriginFileName(), originLineNumber);
+      return Objects.hash(getOriginFileName(), startLineNumber, endLineNumber, origin);
     }
 
     @Override
@@ -101,38 +111,58 @@ class SourceLocationMatcher {
       if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof OriginLineMatcher)) {
+      if (!(pObj instanceof LineMatcher)) {
         return false;
       }
-      OriginLineMatcher other = (OriginLineMatcher) pObj;
-      return Objects.equals(getOriginFileName(), other.getOriginFileName())
-          && originLineNumber == other.originLineNumber;
+      LineMatcher other = (LineMatcher) pObj;
+      return origin == other.origin
+          && startLineNumber == other.startLineNumber
+          && endLineNumber == other.endLineNumber
+          && Objects.equals(getOriginFileName(), other.getOriginFileName());
     }
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
+      int compStartingLine = origin
+          ? pFileLocation.getStartingLineInOrigin()
+          : pFileLocation.getStartingLineNumber();
+      int compEndingLine = origin
+          ? pFileLocation.getEndingLineInOrigin()
+          : pFileLocation.getEndingLineNumber();
       return super.apply(pFileLocation)
-          && pFileLocation.getStartingLineInOrigin() == originLineNumber;
+          && startLineNumber <= compEndingLine
+          && compStartingLine <= endLineNumber;
     }
 
     @Override
     public String toString() {
-      return "ORIGIN STARTING LINE " + originLineNumber;
+      String prefix = "LINE ";
+      if (origin) {
+        prefix = "ORIGIN " + prefix;
+      }
+      if (startLineNumber == endLineNumber) {
+        return prefix + startLineNumber;
+      }
+      return prefix + startLineNumber + "-" + endLineNumber;
     }
   }
 
   static class OffsetMatcher extends BaseFileNameMatcher {
 
-    private final int offset;
+    private final int startOffset;
 
-    OffsetMatcher(Optional<String> pOriginFileName, int pOffset) {
+    private final int endOffset;
+
+    OffsetMatcher(Optional<String> pOriginFileName, int pStartOffset, int pEndOffset) {
       super(pOriginFileName);
-      this.offset = pOffset;
+      Preconditions.checkArgument(pStartOffset <= pEndOffset);
+      this.startOffset = pStartOffset;
+      this.endOffset = pEndOffset;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getOriginFileName(), offset);
+      return Objects.hash(getOriginFileName(), startOffset, endOffset);
     }
 
     @Override
@@ -145,19 +175,24 @@ class SourceLocationMatcher {
       }
       OffsetMatcher other = (OffsetMatcher) pObj;
       return Objects.equals(getOriginFileName(), other.getOriginFileName())
-          && offset == other.offset;
+          && startOffset == other.startOffset
+          && endOffset == other.endOffset;
     }
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
+      int locationEndOffset = pFileLocation.getNodeOffset() + pFileLocation.getNodeLength() - 1;
       return super.apply(pFileLocation)
-          && pFileLocation.getNodeOffset() <= offset
-          && pFileLocation.getNodeOffset() + pFileLocation.getNodeLength() > offset;
+          && pFileLocation.getNodeOffset() <= endOffset
+          && startOffset <= locationEndOffset;
     }
 
     @Override
     public String toString() {
-      return "OFFSET " + offset;
+      if (startOffset == endOffset) {
+        return "OFFSET " + startOffset;
+      }
+      return "OFFSET " + startOffset + "-" + endOffset;
     }
   }
 }

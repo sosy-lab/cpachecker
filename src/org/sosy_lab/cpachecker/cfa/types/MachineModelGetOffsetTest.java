@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static com.google.common.truth.Truth8.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
-import java.util.OptionalInt;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,6 +40,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings(
+  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+  justification = "Fields are filled by parameterization of JUnit"
+)
 public class MachineModelGetOffsetTest {
 
   private final static String TEST_STRUCT = "testStruct";
@@ -49,44 +52,33 @@ public class MachineModelGetOffsetTest {
   private final static String SECOND_BITFIELD_10 = "secondBitfield";
   private final static String THIRD_INT = "thirdInt";
   private final static String LAST_INCOMPLETEARRAY = "lastIncomplete";
+  private static final String LONG_BITFIELD_15 = "long_bitfield_15";
+  private static final String LONG_BITFIELD_18 = "long_bitfield_18";
+  private static final String CHAR = "char";
+
+  private static final MachineModel MODEL64 = MachineModel.LINUX64;
+  private static final MachineModel MODEL32 = MachineModel.LINUX32;
 
   @Parameters(name = "{2}: {0}")
   public static Object[][] machineModels() {
-    // XXX: Note that this only holds as long as
-    // the available MachineModels have a Byte-size
-    // of 8 Bits and the used types ('int' and 'long long int')
-    // have the same size in all of them.
-    //
-    // This premise holds for the currently (May 4th, 2017)
-    // implemented MachineModels LINUX32 and LINUX64.
-    // If a new MachineModel is introduced, which primitives
-    // vary stronger in respect to the already implemented ones
-    // or you want to test more exhaustively for more types,
-    // say 'long int', that vary in size between LINUX32 and
-    // LINUX64, you have to either implement the respective scenarios
-    // separately or to think of a clever way to determine in-line
-    // which expectation to apply.
     Object[][] types =
         new Object[][] {
           // fieldname          // expected offset in bits
-          {FIRST_BITFIELD_12, 0},
-          {SECOND_BITFIELD_10, 12},
-          {THIRD_INT, 32},
-          {LAST_INCOMPLETEARRAY, 64}
+          {STRUCT, FIRST_BITFIELD_12, 0, MODEL32},
+          {STRUCT, FIRST_BITFIELD_12, 0, MODEL64},
+          {STRUCT, SECOND_BITFIELD_10, 12, MODEL32},
+          {STRUCT, SECOND_BITFIELD_10, 12, MODEL64},
+          {STRUCT, THIRD_INT, 32, MODEL32},
+          {STRUCT, THIRD_INT, 32, MODEL64},
+          {STRUCT, LAST_INCOMPLETEARRAY, 64, MODEL32},
+          {STRUCT, LAST_INCOMPLETEARRAY, 64, MODEL64},
+          {STRUCT_2, CHAR, 88, MODEL32},
+          {STRUCT_2, CHAR, 88, MODEL64},
+          {STRUCT_3, CHAR, 80, MODEL32},
+          {STRUCT_3, CHAR, 80, MODEL64}
         };
 
-    // Create a copy of types for each MachineModel and append the MachineModel instance in each row
-    MachineModel[] machineModels = MachineModel.values();
-    Object[][] result = new Object[machineModels.length * types.length][];
-    for (int m = 0; m < machineModels.length; m++) {
-      int offset = m * types.length;
-      for (int t = 0; t < types.length; t++) {
-        result[offset + t] = Arrays.copyOf(types[t], types[t].length + 1);
-        result[offset + t][types[t].length] = machineModels[m];
-      }
-    }
-
-    return result;
+    return types;
   }
 
   // If you plan on expanding this memberlist for more
@@ -106,52 +98,50 @@ public class MachineModelGetOffsetTest {
               new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
               LAST_INCOMPLETEARRAY));
 
+  // struct s { unsigned int a : 12; unsigned int b : 10; int c; long long d[]; };
   private static final CCompositeType STRUCT =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS,
-          TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
 
-
-  private static final ImmutableList<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
       ImmutableList.of(
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
-              FIRST_BITFIELD_12),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
           new CCompositeTypeMemberDeclaration(
-              new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
-              LAST_INCOMPLETEARRAY),
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10),
-              SECOND_BITFIELD_10),
-          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT));
+              new CBitFieldType(CNumericTypes.LONG_INT, 15), LONG_BITFIELD_15),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 18), LONG_BITFIELD_18),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
 
-  private static final CCompositeType BOUND_TO_FAIL_STRUCT = new CCompositeType(false, false,
-      ComplexTypeKind.STRUCT, BOUND_TO_FAIL_FIELDS, TEST_STRUCT, TEST_STRUCT);
+  // struct s { int a; long b : 15; long c : 18; char d; };
+  private static final CCompositeType STRUCT_2 =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
+
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_3 =
+      ImmutableList.of(
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 17), LONG_BITFIELD_15),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 16), LONG_BITFIELD_18),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
+
+  // struct s { int a; long b : 18; long c : 15; char d; };
+  private static final CCompositeType STRUCT_3 =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
 
   @Parameter(0)
-  public String testField;
+  public CCompositeType testStruct;
 
   @Parameter(1)
-  public int expectedOffset;
+  public String testField;
 
   @Parameter(2)
+  public int expectedOffset;
+
+  @Parameter(3)
   public MachineModel model;
 
   @Test
   public void testGetFieldOffsetInStruct() {
-    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).hasValue(expectedOffset);
-  }
-
-  @Test
-  public void testFailingGetFieldOffsetInStructDueToIntermediateIncompleteType() {
-    assertThat(model.getFieldOffsetInBits(BOUND_TO_FAIL_STRUCT, testField))
-        .isAnyOf(OptionalInt.of(0), OptionalInt.empty());
-    // Offset-calculation does not fail, if we lookup a field in front of
-    // an erroneous intermediately inserted incomplete type.
-    //
-    // Perhaps it would be more elegant to filter in this case for the failing
-    // fields only, since the correct return of 0 for the first field is already
-    // known due to the residual tests.
-    //
-    // Also I can't utilize the convenience of Truth8 fully in this example, since
-    // there is no neat way to check an OptionalIntSubject to be either empty or have
-    // a particular value.
+    assertThat(model.getFieldOffsetInBits(testStruct, testField)).isEqualTo(expectedOffset);
   }
 }

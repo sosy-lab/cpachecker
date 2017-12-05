@@ -233,13 +233,13 @@ def getToolDataForCloud(benchmark):
 
     workingDir = benchmark.working_directory()
     if not os.path.isdir(workingDir):
-        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
+        sys.exit("Missing working directory '{0}', cannot run tool.".format(workingDir))
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
     for file in toolpaths:
         if not os.path.exists(file):
-            sys.exit("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
+            sys.exit("Missing file '{0}', cannot run benchmark within cloud.".format(os.path.normpath(file)))
 
     return (workingDir, toolpaths)
 

@@ -405,25 +405,34 @@ class KInductionProver implements AutoCloseable {
       }
 
       final BooleanFormula predecessorAssertion;
-
-      // If we already built a formula for the violation of the invariant for
-      // k (previous attempt), we can negate and reuse it here as an assertion
-      BooleanFormula previousViolation = violationFormulas.get(candidateInvariant);
-      if (previousViolation != null && previousK == pK) {
-        predecessorAssertion = bfmgr.not(previousViolation);
+      if (candidateInvariant instanceof TargetLocationCandidateInvariant) {
+        // For the actual safety property, the predecessor safety assertion
+        // is already implied by the successor violation:
+        // Because we never continue after an error state,
+        // a path that violates the property in iteration k+1
+        // cannot have "passed through" any violation
+        // in the previous iterations anyway.
+        predecessorAssertion = bfmgr.makeBoolean(true);
       } else {
-        // Build the formula
-        if (predecessorReachedSet == null) {
-          if (pK < 1) {
-            predecessorReachedSet = reachedSetFactory.create();
-          } else {
-            predecessorReachedSet = reached;
-            stepCaseBoundsCPA.setMaxLoopIterations(pK);
-            BMCHelper.unroll(logger, predecessorReachedSet, reachedSetInitializer, algorithm, cpa);
+        // If we already built a formula for the violation of the invariant for
+        // k (previous attempt), we can negate and reuse it here as an assertion
+        BooleanFormula previousViolation = violationFormulas.get(candidateInvariant);
+        if (previousViolation != null && previousK == pK) {
+          predecessorAssertion = bfmgr.not(previousViolation);
+        } else {
+          // Build the formula
+          if (predecessorReachedSet == null) {
+            if (pK < 1) {
+              predecessorReachedSet = reachedSetFactory.create();
+            } else {
+              predecessorReachedSet = reached;
+              stepCaseBoundsCPA.setMaxLoopIterations(pK);
+              BMCHelper.unroll(logger, predecessorReachedSet, reachedSetInitializer, algorithm, cpa);
+            }
           }
+          predecessorAssertion =
+              candidateInvariant.getAssertion(predecessorReachedSet, fmgr, pfmgr, 1);
         }
-        predecessorAssertion =
-            candidateInvariant.getAssertion(predecessorReachedSet, fmgr, pfmgr, 1);
       }
       assertions.put(candidateInvariant, predecessorAssertion);
     }
@@ -463,8 +472,7 @@ class KInductionProver implements AutoCloseable {
       // Obtain the predecessor assertion created earlier
       BooleanFormula predecessorAssertion = assertions.get(candidateInvariant);
       // Create the successor violation formula
-      BooleanFormula successorViolation =
-          bfmgr.not(candidateInvariant.getAssertion(reached, fmgr, pfmgr, 1));
+      BooleanFormula successorViolation = getSuccessorViolation(candidateInvariant, reached, pK);
       // Record the successor violation formula to reuse its negation as an
       // assertion in a future induction attempt
       violationFormulas.put(candidateInvariant, successorViolation);
@@ -549,6 +557,16 @@ class KInductionProver implements AutoCloseable {
     pop(); // Pop loop head invariants
 
     return numberOfSuccessfulProofs == pCandidateInvariants.size();
+  }
+
+  private BooleanFormula getSuccessorViolation(CandidateInvariant pCandidateInvariant,
+      ReachedSet pReached, int pK) throws CPATransferException, InterruptedException {
+    FluentIterable<AbstractState> reached = FluentIterable.from(pReached);
+    if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
+      reached = filterIteration(reached, pK + 1);
+    }
+    BooleanFormula assertion = pCandidateInvariant.getAssertion(reached, fmgr, pfmgr, 1);
+    return bfmgr.not(assertion);
   }
 
   private FluentIterable<AbstractState> filterLoopHeadStates(ReachedSet pReached,

@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
 class DefaultRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
 
   private static class DefaultMemoryRegion implements MemoryRegion {
@@ -75,6 +74,10 @@ class DefaultRegionManager extends AbstractMemoryRegionManager implements Memory
       DefaultMemoryRegion other = (DefaultMemoryRegion) obj;
       return type.equals(other.type);
     }
+  }
+
+  DefaultRegionManager(TypeHandlerWithPointerAliasing pTypeHandler) {
+    super(pTypeHandler);
   }
 
   @Override

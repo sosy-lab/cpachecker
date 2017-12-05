@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
@@ -31,16 +30,17 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
+import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,7 +67,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
@@ -149,7 +149,8 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator = new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile());
+      reportGenerator =
+          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), options.programs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -237,7 +238,7 @@ public class CPAMain {
       //required=true, NOT required because we want to give a nicer user message ourselves
       description = "A String, denoting the programs to be analyzed"
     )
-    private @Nullable List<String> programs;
+    private ImmutableList<String> programs = ImmutableList.of();
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -263,7 +264,7 @@ public class CPAMain {
       LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
-        MoreFiles.writeFile(
+        IO.writeFile(
             options.configurationOutputFile, Charset.defaultCharset(), config.asPropertiesString());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not dump configuration to file");
@@ -399,6 +400,7 @@ public class CPAMain {
           .clearOption("output.disable")
           .clearOption("output.path")
           .clearOption("rootDirectory")
+          .clearOption("witness.validation.file")
           .build();
     }
     return config;
@@ -408,10 +410,10 @@ public class CPAMain {
       ImmutableMap.<PropertyType, String>builder()
           .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
           .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "memorysafety-free")
-          .put(PropertyType.VALID_DEREF, "memorysafety-deref")
-          .put(PropertyType.VALID_MEMTRACK, "memorysafety-memtrack")
-          .put(PropertyType.OVERFLOW, "overflow")
+          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
           .put(PropertyType.DEADLOCK, "deadlock")
           //.put(PropertyType.TERMINATION, "none needed")
           .build();
@@ -439,7 +441,11 @@ public class CPAMain {
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
-      throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+      throw new InvalidCmdlineArgumentException(
+          String.format("Invalid property file '%s': %s", propertyFile, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidCmdlineArgumentException(
+          "Could not read property file: " + e.getMessage(), e);
     }
 
     // set the file from where to read the specification automaton
@@ -457,7 +463,10 @@ public class CPAMain {
 
     String specFiles =
         Optionals.presentInstances(
-                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
+                properties
+                    .stream()
+                    .map(SpecificationProperty::getInternalSpecificationPath)
+                    .distinct())
             .collect(Collectors.joining(","));
     cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
@@ -517,7 +526,8 @@ public class CPAMain {
       case VIOLATION_WITNESS:
         validationConfigFile = options.violationWitnessValidationConfig;
         String specs = overrideOptions.get(SPECIFICATION_OPTION);
-        specs = Joiner.on(',').join(specs, options.witness.toString());
+        String witnessSpec = options.witness.toString();
+        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec.toString());
         overrideOptions.put(SPECIFICATION_OPTION, specs);
         break;
       case CORRECTNESS_WITNESS:
@@ -561,7 +571,7 @@ public class CPAMain {
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
-        MoreFiles.createParentDirs(options.exportStatisticsFile);
+        MoreFiles.createParentDirectories(options.exportStatisticsFile);
         file = closer.register(Files.newOutputStream(options.exportStatisticsFile));
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
@@ -598,33 +608,8 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-       boolean generated =
-          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
-
-      if (generated) {
-        try {
-          Path pathToReportGenerator = getPathToReportGenerator();
-          if (pathToReportGenerator != null) {
-            stream.println("Run " + pathToReportGenerator + " to show graphical report.");
-          }
-        } catch (SecurityException | URISyntaxException e) {
-          logManager.logUserException(WARNING, e, "Could not find script for generating report.");
-        }
-      }
+      reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
     }
-  }
-
-  private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
-    Path curDir = Paths.get("").toAbsolutePath();
-    Path codeDir =
-        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
-    Path reportGenerator =
-        curDir.relativize(codeDir.resolveSibling("scripts").resolve("report-generator.py"));
-    if (Files.isExecutable(reportGenerator)) {
-      return reportGenerator;
-    }
-    return null;
   }
 
   @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",

@@ -32,8 +32,8 @@ import java.nio.file.Files;
 import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -69,7 +69,8 @@ public class CallstackTest {
             "  init();",
             "  f();",
             "}");
-    try (DeleteOnCloseFile programFile = MoreFiles.createTempFile("test", ".c")) {
+    try (DeleteOnCloseFile programFile =
+        TempFile.builder().prefix("test").suffix(".c").createDeleteOnClose()) {
       Files.write(programFile.toPath(), program);
 
       Configuration config =

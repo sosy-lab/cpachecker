@@ -24,6 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import com.google.common.base.Equivalence;
+import java.util.Iterator;
+import java.util.List;
+import java.util.OptionalInt;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 /**
  * Helper methods for CType instances.
@@ -33,8 +39,80 @@ public final class CTypes {
   private CTypes() { }
 
   /**
-   * Check whether the given type is a pointer to a function.
+   * Check whether a given type is a character type according to the C standard § 6.2.5 (15). Also
+   * returns true for all qualified versions of real types.
    */
+  public static boolean isCharacterType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CSimpleType) && (((CSimpleType) type).getType() == CBasicType.CHAR);
+  }
+
+  /**
+   * Check whether a given type is a real type according to the C standard § 6.2.5 (17), i.e., a
+   * non-complex arithmetic type. Also returns true for all qualified versions of real types.
+   */
+  public static boolean isRealType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType && !(((CSimpleType) type).isComplex()));
+  }
+
+  /**
+   * Check whether a given type is an inteeger type according to the C standard § 6.2.5 (17). Also
+   * returns true for all qualified versions of arithmetic types.
+   */
+  public static boolean isIntegerType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType());
+  }
+
+  /**
+   * Check whether a given type is an arithmetic type according to the C standard § 6.2.5 (18). Also
+   * returns true for all qualified versions of arithmetic types.
+   */
+  public static boolean isArithmeticType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType);
+  }
+
+  /**
+   * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
+   * returns true for all qualified versions of scalar types.
+   */
+  public static boolean isScalarType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CPointerType) || isArithmeticType(type);
+  }
+
+  /**
+   * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
+   * returns true for all qualified versions of aggregate types.
+   */
+  public static boolean isAggregateType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CArrayType)
+        || (type instanceof CCompositeType
+            && (((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT));
+  }
+
+  /**
+   * Check whether a given type is a scalar type according to the C standard § 6.2.5, i.e., not a
+   * function type. Also returns true for all qualified versions of object types.
+   */
+  public static boolean isObjectType(CType type) {
+    type = type.getCanonicalType();
+    return !(type instanceof CFunctionType);
+  }
+
+  /** Check whether the given type is a pointer to a function. */
   public static boolean isFunctionPointer(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CPointerType) {
@@ -148,6 +226,202 @@ public final class CTypes {
     return result;
   }
 
+  /**
+   * Implements a compatibility check for {@link CType}s according to
+   * C-Standard §6.2.7. This definition is symmetric, therefore the
+   * order of the parameters doesn't matter.
+   * This definition is especially stricter than assignment compatibility
+   * (cf. {@link CType#canBeAssignedFrom(CType)}).
+   * <p>
+   * Note that two types being compatible does not necessarily imply
+   * defined behavior in every context (cf. array and function types).
+   * <p>
+   * Also note that we don't consider every definition for compatibility,
+   * since some are irrelevant after our pre-processing (e.g., there are
+   * no structures, functions, or unions with different translation units
+   * left).
+   *
+   * @param pTypeA one {@link CType} to be checked for compatibility with another
+   * @param pTypeB one {@link CType} to be checked for compatibility with another
+   * @return <b><code>true</code></b> if the two types are compatible<br>
+   *         <b><code>false</code></b> if the two types are not compatible
+   */
+  public static boolean areTypesCompatible(CType pTypeA, CType pTypeB) {
+    // If those types' canonical types equal each other, they're trivially compatible.
+    //
+    // Due to {@link CSimpleType}'s equals method, this is already
+    // exact for simple types according to C-Standard §6.2.7 (1), §6.7.2 (5),
+    // and §6.7.3 (10).
+    // It also holds for {@link CTypedefType}s, since their canonical type
+    // is the canonical type of their real type.
+    //
+    // Note, that in particular the signed and the unsigned version
+    // of a type are not compatible to each other, since the conversion
+    // of, e.g., an unsigned int to a signed int might change the
+    // expressions value from a positive to a negative one and vice-versa,
+    // which is explicitly forbidden for compatible types (C-Standard §6.3 (2)).
+    //
+    // Note also, that even the equals methods of the other {@link CType}s
+    // return <code>true</code> only if they are compatible, but that there
+    // are still some cases were two types are compatible but not equal.
+    if (canonicalTypeEquivalence().equivalent(pTypeA, pTypeB)) {
+      return true;
+    }
+
+    if (!(pTypeA.isConst() == pTypeB.isConst() && pTypeA.isVolatile() == pTypeB.isVolatile())) {
+      // Cf. C-Standard §6.7.3 (10), two qualified types have to be
+      // an identically qualified version of compatible types to be compatible.
+      return false;
+    }
+
+    if (pTypeA instanceof CPointerType && pTypeB instanceof CPointerType) {
+      CPointerType pointerA = ((CPointerType) pTypeA);
+      CPointerType pointerB = ((CPointerType) pTypeB);
+
+      // Cf. C-Standard §6.7.6.1 (2), compatible pointers shall point to compatible types.
+      return areTypesCompatible(pointerA.getType(), pointerB.getType());
+    }
+
+    CType basicSignedInt = CNumericTypes.INT.getCanonicalType(pTypeA.isConst(), pTypeA.isVolatile());
+
+    // Cf. C-Standard §6.7.2.2 (4), enumerated types shall be compatible with
+    // char, a signed integer type, or an unsigned integer type, dependent on
+    // implementation.
+    // We chose the implementation with compatibility to 'signed int', that GCC
+    // seemingly uses.
+    if (pTypeA instanceof CEnumType && pTypeB instanceof CSimpleType) {
+      return pTypeB.getCanonicalType().equals(basicSignedInt.getCanonicalType());
+    } else if (pTypeA instanceof CSimpleType && pTypeB instanceof CEnumType) {
+      return pTypeA.getCanonicalType().equals(basicSignedInt.getCanonicalType());
+    }
+
+    if (pTypeA instanceof CArrayType && pTypeB instanceof CArrayType) {
+      CArrayType arrayA = (CArrayType) pTypeA;
+      CArrayType arrayB = (CArrayType) pTypeB;
+
+      // Cf. C-Standard §6.7.6.2 (6).
+      if (areTypesCompatible(arrayA.getType(), arrayB.getType())) {
+        OptionalInt lengthA = arrayA.getLengthAsInt();
+        OptionalInt lengthB = arrayB.getLengthAsInt();
+
+        if (lengthA.isPresent() && lengthB.isPresent()) {
+          if (lengthA.getAsInt() == lengthB.getAsInt()) {
+            return true;
+          }
+        } else {
+          // In this case we only get defined behavior,
+          // if the size specifiers of both array types
+          // evaluate to the same value.
+          // According to the standard they are compatible
+          // nonetheless.
+          return true;
+        }
+      }
+    }
+
+    // Cf. C-Standard 6.7.6.3 (15)
+    if (pTypeA instanceof CFunctionType && pTypeB instanceof CFunctionType) {
+      CFunctionType functionA = (CFunctionType) pTypeA;
+      CFunctionType functionB = (CFunctionType) pTypeB;
+
+      if (!areTypesCompatible(functionA.getReturnType(), functionB.getReturnType())) {
+        return false;
+      }
+
+      List<CType> paramsA = functionA.getParameters();
+      List<CType> paramsB = functionB.getParameters();
+
+      if (paramsA.size() != paramsB.size() || functionA.takesVarArgs() != functionB.takesVarArgs()) {
+        return false;
+      }
+
+      Iterator<CType> iteratorA = paramsA.iterator();
+      Iterator<CType> iteratorB = paramsB.iterator();
+      CType paramOfA;
+      CType paramOfB;
+
+      while (iteratorA.hasNext() && iteratorB.hasNext()) {
+        paramOfA = iteratorA.next();
+        paramOfB = iteratorB.next();
+
+        // Cf. C-Standard §6.7.6.3 (15, last sentence in parentheses):
+        // "... each parameter declared with function or array type
+        // is taken as having the adjusted type ..."
+        //
+        // ... and C-Standard §6.7.6.3 (6 & 7).
+        if (paramOfA instanceof CPointerType && !(paramOfB instanceof CPointerType)) {
+          paramOfB = adjustFunctionOrArrayType(paramOfB);
+        } else if (paramOfB instanceof CPointerType) {
+          paramOfA = adjustFunctionOrArrayType(paramOfA);
+        }
+
+        // C-Standard §6.7.6.3 (15, last sentence in parentheses):
+        // "... each parameter declared with qualified type is taken
+        // as having the unqualified version of its declared type."
+        paramOfA = copyDequalified(paramOfA);
+        paramOfB = copyDequalified(paramOfB);
+
+        if (!areTypesCompatible(paramOfA, paramOfB)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // default case
+    return false;
+  }
+
+  /**
+   * Implements adjustment of function and array types according to C-Standard §6.7.6.3 (7 & 8).
+   *
+   * <p>If <code>pType</code> is not an instance of {@link CArrayType} or {@link CFunctionType}, it
+   * is returned unchanged.
+   *
+   * @param pType the {@link CType} to be adjusted, if necessary
+   * @return the adjusted version of <code>pType</code>
+   */
+  public static @Nullable CType adjustFunctionOrArrayType(@Nullable CType pType) {
+    if (pType == null) {
+      return pType;
+    }
+
+    if (pType instanceof CArrayType) {
+      CType innerType = ((CArrayType) pType).getType();
+      CExpression sizeExpression = ((CArrayType) pType).getLength();
+
+      if (sizeExpression == null) {
+        pType = new CPointerType(false, false, innerType);
+      } else {
+        // Adjusting an array type to a pointer of its stored
+        // type discards the qualifiers of the array type and
+        // instead qualifies the pointer with the qualifiers
+        // used inside the size specifier brackets.
+        CType sizeType = sizeExpression.getExpressionType();
+        pType = new CPointerType(sizeType.isConst(), sizeType.isVolatile(), innerType);
+      }
+    } else if (pType instanceof CFunctionType) {
+      pType = new CPointerType(pType.isConst(), pType.isVolatile(), pType);
+    }
+    return pType;
+  }
+
+  /**
+   * Creates an instance of {@link CType} that
+   * is an exact copy of <code>pType</code>, but
+   * is guaranteed to not be qualified as either
+   * <code>const</code> or <code>volatile</code>.
+   *
+   * @param pType the {@link CType} to copy without qualifiers
+   * @return a copy of <code>pType</code> without qualifiers
+   */
+  public static CType copyDequalified(CType pType) {
+    pType = withoutConst(pType);
+    pType = withoutVolatile(pType);
+    return pType;
+  }
+
   private static enum ForceConstVisitor implements CTypeVisitor<CType, RuntimeException> {
     FALSE(false),
     TRUE(true);
@@ -182,7 +456,10 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(constValue, t.isVolatile(), t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      if (constValue) {
+        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
+      }
+      return t;
     }
 
     @Override
@@ -251,7 +528,10 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(t.isConst(), volatileValue, t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      if (volatileValue) {
+        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
+      }
+      return t;
     }
 
     @Override

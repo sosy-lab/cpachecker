@@ -60,13 +60,20 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -87,7 +94,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -106,6 +112,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -139,6 +146,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   )
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 10;
+
+  @Option(
+    secure = true,
+    description =
+        "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
+  )
+  private boolean useCexImpreciseHeuristic = false;
 
   private final TerminationStatistics statistics;
 
@@ -185,16 +199,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         requiredSpecification,
         pSpecification);
 
-    TerminationCPA terminationCpa = CPAs.retrieveCPA(pSafetyCPA, TerminationCPA.class);
-    if (terminationCpa == null) {
-      throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
-    }
+    TerminationCPA terminationCpa =
+        CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
     terminationInformation = terminationCpa.getTerminationInformation();
-
-    ARGCPA agrCpa = CPAs.retrieveCPA(pSafetyCPA, ARGCPA.class);
-    if (agrCpa == null) {
-      throw new InvalidConfigurationException("TerminationAlgorithm requires ARGCPA");
-    }
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
     for (CFANode function : cfa.getAllFunctionHeads()) {
@@ -209,7 +216,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                 () ->
                     new InvalidConfigurationException(
                         "Loop structure is not present, but required for termination analysis."));
-    statistics = new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size());
+
+    // rebuild termination specification for witness export
+    Set<SpecificationProperty> property =
+        Sets.newHashSet(
+            new SpecificationProperty(
+                pCfa.getMainFunction().getFunctionName(),
+                PropertyType.TERMINATION,
+                Optional.of(SPEC_FILE.toString())));
+    Specification termSpec =
+        Specification.fromFiles(property, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+
+    statistics =
+        new TerminationStatistics(
+            pConfig, logger, loopStructure.getAllLoops().size(), termSpec, pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
@@ -344,6 +364,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
           removeIntermediateStates(pReachedSet, targetState);
           result = Result.FALSE;
 
+          statistics.setNonterminatingLoop(pLoop);
+
         } else if (lassoAnalysisResult.hasTerminationArgument()) {
           RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument();
 
@@ -393,7 +415,47 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
     }
 
+    if (useCexImpreciseHeuristic && result == Result.FALSE) {
+      if (allRelevantVarsArePointers(relevantVariables)) {
+        return Result.UNKNOWN;
+      } else {
+        for (CFAEdge edge : pLoop.getOutgoingEdges()) {
+          if (edge instanceof CAssumeEdge
+              && possiblyNotEqualsNullPointer(((CAssumeEdge) edge).getExpression())) {
+            return Result.UNKNOWN;
+          }
+        }
+      }
+    }
+
     return result;
+  }
+
+  private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {
+    if (pRelevantVariables.size() == 0) {
+      return false;
+    }
+    boolean allPointers = true;
+    for (CVariableDeclaration var : pRelevantVariables) {
+      if (!(var.getType() instanceof CPointerType)) {
+        allPointers = false;
+        break;
+      }
+    }
+    return allPointers;
+  }
+
+  private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
+    if (expr instanceof CBinaryExpression) {
+      CBinaryExpression binExpr = (CBinaryExpression) expr;
+      if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
+          && binExpr.getOperand2() instanceof CCastExpression
+          && ((CCastExpression) binExpr.getOperand2()).getExpressionType() instanceof CPointerType
+          && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void addInvariantsToAggregatedReachedSet(

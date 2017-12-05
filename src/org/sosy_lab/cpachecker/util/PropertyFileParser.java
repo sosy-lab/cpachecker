@@ -74,7 +74,7 @@ public class PropertyFileParser {
     propertyFile = pPropertyFile;
   }
 
-  public void parse() throws InvalidPropertyFileException {
+  public void parse() throws InvalidPropertyFileException, IOException {
     String rawProperty = null;
     try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
       while ((rawProperty = br.readLine()) != null) {
@@ -82,10 +82,7 @@ public class PropertyFileParser {
           properties.add(parsePropertyLine(rawProperty));
         }
       }
-    } catch (IOException e) {
-      throw new InvalidPropertyFileException("Could not read file: " + e.getMessage(), e);
     }
-
     if (properties.isEmpty()) {
       throw new InvalidPropertyFileException("No property in file.");
     }
@@ -95,8 +92,8 @@ public class PropertyFileParser {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-      throw new InvalidPropertyFileException(String.format(
-          "The given property '%s' is not well-formed!", rawProperty));
+      throw new InvalidPropertyFileException(
+          String.format("The property '%s' is not well-formed!", rawProperty));
     }
 
     if (entryFunction == null) {

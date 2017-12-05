@@ -33,24 +33,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.IOException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -959,11 +955,8 @@ public class ARGPath extends AbstractAppender {
           !currentPositionHasState || pos > 0,
           "Exclusive prefix of first state in path would be empty.");
       if (currentPositionHasState) {
-        if (pos == 0) {
-          return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge>emptyList());
-        } else {
-          return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
-        }
+        checkState(pos != 0);
+        return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
       } else {
         return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
       }

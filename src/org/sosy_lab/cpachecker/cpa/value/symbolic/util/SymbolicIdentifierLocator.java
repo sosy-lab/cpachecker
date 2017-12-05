@@ -85,12 +85,12 @@ public class SymbolicIdentifierLocator
 
     if (containedValue instanceof SymbolicValue) {
       return ((SymbolicValue) containedValue).accept(this);
-      
+
     } else {
       return Collections.emptySet();
     }
   }
-  
+
   private Set<SymbolicIdentifier> handleBinaryExpression(
       final BinarySymbolicExpression pExpression
   ) {

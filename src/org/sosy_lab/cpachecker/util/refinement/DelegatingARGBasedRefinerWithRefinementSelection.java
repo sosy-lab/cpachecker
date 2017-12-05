@@ -170,7 +170,7 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
   }
 
   private int obtainScoreForPrimaryDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> primaryPrefixes = getPrefixesOfPrimaryDomain(pErrorPath);
+    List<InfeasiblePrefix> primaryPrefixes = primaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
 
     // if path is feasible hand out a real bad score
     if (primaryPrefixes.isEmpty()) {
@@ -181,21 +181,9 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
   }
 
   private int obtainScoreForSecondaryDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> secondaryPrefixes = getPrefixesOfSecondaryDomain(pErrorPath);
+    List<InfeasiblePrefix> secondaryPrefixes = secondaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
 
     return classfier.obtainScoreForPrefixes(secondaryPrefixes, PrefixPreference.DOMAIN_MIN);
-  }
-
-  private List<InfeasiblePrefix> getPrefixesOfPrimaryDomain(final ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
-
-    return primaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
-  }
-
-  private List<InfeasiblePrefix> getPrefixesOfSecondaryDomain(final ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
-
-    return secondaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
   }
 
   @Override

@@ -25,22 +25,24 @@ package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Iterables.filter;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Stream;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
@@ -48,36 +50,29 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
   private Map<CFAEdge, Loop> loopEntryEdges = null;
   private Map<CFAEdge, Loop> loopExitEdges = null;
 
-  private Map<CFANode, Loop> loopHeads = null;
+  private Multimap<CFANode, Loop> loopHeads = null;
 
-  private final int maxLoopIterations;
-  private final int loopIterationsBeforeAbstraction;
-
-  public LoopBoundTransferRelation(
-      int pLoopIterationsBeforeAbstraction,
-      int pMaxLoopIterations,
-      LoopStructure pLoops) {
-
-    loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
-    this.maxLoopIterations = pMaxLoopIterations;
+  public LoopBoundTransferRelation(CFA pCFA) throws CPAException {
+    if (!pCFA.getLoopStructure().isPresent()) {
+      throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
+    }
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
-    ImmutableMap.Builder<CFANode, Loop> heads = ImmutableMap.builder();
+    ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
 
-    for (Loop l : pLoops.getAllLoops()) {
+    for (Loop l : pCFA.getLoopStructure().get().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
-      Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
-                                               not(instanceOf(CFunctionReturnEdge.class)));
-      Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
-                                               not(instanceOf(CFunctionCallEdge.class)));
+      Stream<CFAEdge> incomingEdges = l.getIncomingEdges()
+          .stream()
+          .filter(e -> l.getLoopHeads().contains(e.getSuccessor()))
+          .filter(not(instanceOf(FunctionReturnEdge.class)));
+      Stream<CFAEdge> outgoingEdges = l.getOutgoingEdges()
+          .stream()
+          .filter(not(instanceOf(FunctionCallEdge.class)));
 
-      for (CFAEdge e : incomingEdges) {
-        entryEdges.put(e, l);
-      }
-      for (CFAEdge e : outgoingEdges) {
-        exitEdges.put(e, l);
-      }
+      incomingEdges.forEach(e -> entryEdges.put(e, l));
+      outgoingEdges.forEach(e -> exitEdges.put(e, l));
       for (CFANode h : l.getLoopHeads()) {
         heads.put(h, l);
       }
@@ -90,29 +85,29 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    LoopBoundState e = (LoopBoundState) pElement;
+    LoopBoundState state = (LoopBoundState) pState;
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
     if (pCfaEdge instanceof FunctionCallEdge) {
       // such edges do never change loop status
-      return Collections.singleton(pElement);
+      return Collections.singleton(pState);
     }
 
     CFANode loc = pCfaEdge.getSuccessor();
 
     Loop oldLoop = loopExitEdges.get(pCfaEdge);
     if (oldLoop != null) {
-      e = e.exit(oldLoop);
+      state = state.exit(oldLoop);
     }
 
-    if (pCfaEdge instanceof CFunctionReturnEdge) {
+    if (pCfaEdge instanceof FunctionReturnEdge) {
       // Such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges.
       // Return here because they might be mis-classified as entry edges.
-      return Collections.singleton(e);
+      return Collections.singleton(state);
     }
 
     Loop newLoop = null;
@@ -120,22 +115,27 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       // Push a new loop onto the stack if we enter it
       newLoop = loopEntryEdges.get(pCfaEdge);
       if (newLoop != null) {
-        e = e.enter(new LoopEntry(loc, newLoop));
+        state = state.enter(new LoopEntry(loc, newLoop));
       }
     }
 
     // Check if we need to increment the loop counter
-    Loop loop = loopHeads.get(loc);
-    assert newLoop == null || newLoop.equals(loop);
-    if (loop != null) {
-      e = e.visitLoopHead(new LoopEntry(loc, loop), loopIterationsBeforeAbstraction);
-      if ((maxLoopIterations > 0)
-          && e.getDeepestIteration() > maxLoopIterations) {
-        e = e.stopIt();
+    Collection<Loop> visitedLoops = loopHeads.get(loc);
+    assert newLoop == null || visitedLoops.contains(newLoop);
+    for (Loop loop : visitedLoops) {
+      state = state.visitLoopHead(new LoopEntry(loc, loop));
+      // Check if the bound for unrolling has been reached;
+      // this check is also performed by the precision adjustment,
+      // but we need to do it here, too,
+      // to ensure that states are consistent during strengthening
+      if ((precision.getMaxLoopIterations() > 0)
+          && state.getDeepestIteration() > precision.getMaxLoopIterations()) {
+        state = state.setStop(true);
       }
+      state = state.enforceAbstraction(precision.getLoopIterationsBeforeAbstraction());
     }
 
-    return Collections.singleton(e);
+    return Collections.singleton(state);
   }
 
 }

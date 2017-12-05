@@ -27,9 +27,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import org.bridj.IntValuedEnum;
-import org.llvm.TypeRef;
-import org.llvm.binding.LLVMLibrary.LLVMTypeKind;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -45,15 +42,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.llvm_j.LLVMException;
+import org.sosy_lab.llvm_j.TypeRef;
+import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 
-/**
- * Converts LLVM types to {@link CType CTypes}.
- */
+/** Converts LLVM types to {@link CType CTypes}. */
 public class LlvmTypeConverter {
 
-  private final static String PREFIX_LITERAL_STRUCT = "lit_struc_";
-  private final static String PREFIX_STRUCT_MEMBER = "mem_";
-  private final static CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
+  private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
+  private static final String PREFIX_STRUCT_MEMBER = "mem_";
+  private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
 
   private static int structCount = 0;
 
@@ -65,60 +63,63 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) {
+  public CType getCType(final TypeRef pLlvmType) throws LLVMException {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
-    IntValuedEnum<LLVMTypeKind> typeKind = pLlvmType.getTypeKind();
-    long tk = typeKind.value();
+    TypeKind typeKind = pLlvmType.getTypeKind();
+    switch (typeKind) {
+      case Void:
+        return CVoidType.VOID;
 
-    if (tk == LLVMTypeKind.LLVMVoidTypeKind.value()) {
-      return CVoidType.VOID;
+      case Half:
+      case Float:
+      case Double:
+      case X86_FP80:
+      case FP128:
+      case PPC_FP128:
+        return getFloatType(typeKind);
+      case Integer:
+        int integerWidth = pLlvmType.getIntTypeWidth();
+        return getIntegerType(integerWidth, isConst, isVolatile);
 
-    } else if (tk == LLVMTypeKind.LLVMFunctionTypeKind.value()) {
-      return getFunctionType(pLlvmType);
+      case Function:
+        return getFunctionType(pLlvmType);
 
-    } else if (tk == LLVMTypeKind.LLVMIntegerTypeKind.value()) {
+      case Struct:
+        return createStructType(pLlvmType);
 
-      int integerWidth = pLlvmType.getIntTypeWidth();
-      return getIntegerType(integerWidth, isConst, isVolatile);
+      case Array:
+        CIntegerLiteralExpression arrayLength =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY,
+                ARRAY_LENGTH_TYPE,
+                BigInteger.valueOf(pLlvmType.getArrayLength()));
 
-    } else if (tk == LLVMTypeKind.LLVMHalfTypeKind.value()
-        || tk == LLVMTypeKind.LLVMFloatTypeKind.value()
-        || tk == LLVMTypeKind.LLVMDoubleTypeKind.value()
-        || tk == LLVMTypeKind.LLVMPPC_FP128TypeKind.value()
-        || tk == LLVMTypeKind.LLVMFP128TypeKind.value()
-        || tk == LLVMTypeKind.LLVMX86_FP80TypeKind.value()) {
+        return new CArrayType(
+            isConst, isVolatile, getCType(pLlvmType.getElementType()), arrayLength);
 
-      return getFloatType(typeKind);
+      case Pointer:
+        if (pLlvmType.getPointerAddressSpace() != 0) {
+          logger.log(Level.WARNING, "Pointer address space not considered.");
+        }
+        return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType()));
 
-    } else if (tk == LLVMTypeKind.LLVMPointerTypeKind.value()) {
-      if (pLlvmType.getPointerAddressSpace() != 0) {
-        logger.log(Level.WARNING, "Pointer address space not considered.");
-      }
-      return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType()));
+      case Vector:
+        // TODO
+      case Label:
+      case Metadata:
+      case X86_MMX:
+      case Token:
+        logger.log(Level.FINE, "Ignoring type kind " + typeKind);
+        return null;
 
-    } else if (tk == LLVMTypeKind.LLVMVectorTypeKind.value()) {
-      // TODO
-    } else if (tk == LLVMTypeKind.LLVMArrayTypeKind.value()) {
-      CIntegerLiteralExpression arrayLength = new CIntegerLiteralExpression(
-          FileLocation.DUMMY,
-          ARRAY_LENGTH_TYPE,
-          BigInteger.valueOf(pLlvmType.getArrayLength()));
-
-      return new CArrayType(isConst, isVolatile, getCType(pLlvmType.getElementType()), arrayLength);
-
-    } else if (tk == LLVMTypeKind.LLVMStructTypeKind.value()) {
-      return createStructType(pLlvmType);
-
-    } else {
-        logger.log(Level.FINE, "Ignoring type kind of id " + tk);
+      default:
+        throw new AssertionError("Unhandled type kind " + typeKind);
     }
-
-    return null;
   }
 
-  private CType createStructType(final TypeRef pStructType) {
+  private CType createStructType(final TypeRef pStructType) throws LLVMException {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
@@ -141,10 +142,11 @@ public class LlvmTypeConverter {
       members.add(memDecl);
     }
 
-    return new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
+    return new CCompositeType(
+        isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
   }
 
-  private String getStructName(TypeRef pStructType) {
+  private String getStructName(TypeRef pStructType) throws LLVMException {
     if (pStructType.isStructNamed()) {
       return pStructType.getStructName();
 
@@ -162,10 +164,7 @@ public class LlvmTypeConverter {
     return pStructName + PREFIX_STRUCT_MEMBER + pI;
   }
 
-  private CType getFunctionType(TypeRef pFuncType) {
-    final boolean isConst = false;
-    final boolean isVolatile = false;
-
+  private CType getFunctionType(TypeRef pFuncType) throws LLVMException {
     CType returnType = getCType(pFuncType.getReturnType());
 
     int paramNumber = pFuncType.countParamTypes();
@@ -177,16 +176,14 @@ public class LlvmTypeConverter {
       parameterTypes.add(cParamType);
     }
 
-    boolean takesVarArgs = pFuncType.isFunctionVarArg(); // TODO: do we have to call this method on pFuncType directly?
+    boolean takesVarArgs =
+        pFuncType.isFunctionVarArg(); // TODO: do we have to call this method on pFuncType directly?
 
-    return new CFunctionType(isConst, isVolatile, returnType, parameterTypes, takesVarArgs);
+    return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
   private CType getIntegerType(
-      final int pIntegerWidth,
-      final boolean pIsConst,
-      final boolean pIsVolatile
-  ) {
+      final int pIntegerWidth, final boolean pIsConst, final boolean pIsVolatile) {
     final boolean isSigned = true;
     final boolean isComplex = false;
     final boolean isImaginary = false;
@@ -194,7 +191,7 @@ public class LlvmTypeConverter {
 
     final boolean isLong = false;
     boolean isShort = false;
-    boolean isLonglong = false;
+    boolean isLongLong = false;
 
     CBasicType basicType;
 
@@ -216,7 +213,7 @@ public class LlvmTypeConverter {
       case 64:
         basicType = CBasicType.INT;
         // We use long long since it is 8 bytes for both 32 and 64 bit machines
-        isLonglong = true;
+        isLongLong = true;
         break;
       default:
         throw new AssertionError("Unhandled integer bitwidth " + pIntegerWidth);
@@ -232,47 +229,46 @@ public class LlvmTypeConverter {
         isUnsigned,
         isComplex,
         isImaginary,
-        isLonglong
-    );
+        isLongLong);
   }
 
-  private CType getFloatType(final IntValuedEnum<LLVMTypeKind>  pType) {
+  private CType getFloatType(final TypeKind pType) {
 
-    final long tk = pType.value();
-    if (tk == LLVMTypeKind.LLVMHalfTypeKind.value()) {
-      // FIXME: This is actually wrong, but at the time of this writing
-      // we have no way of defining a float of 16bit width
-      return getSimplestCType(CBasicType.FLOAT);
+    switch (pType) {
+      case Half:
+        // FIXME: This is actually wrong, but at the time of this writing
+        // we have no way of defining a float of 16bit width
+        return getSimplestCType(CBasicType.FLOAT);
 
-    } else if (tk == LLVMTypeKind.LLVMFloatTypeKind.value()) {
-      return getSimplestCType(CBasicType.FLOAT);
+      case Float:
+        return getSimplestCType(CBasicType.FLOAT);
 
-    } else if (tk == LLVMTypeKind.LLVMDoubleTypeKind.value()) {
-      if (machineModel.getSizeofDouble()*8 == 64) {
-        return getSimplestCType(CBasicType.DOUBLE);
-      } else if (machineModel.getSizeofLongDouble()*8 == 64) {
-        return getSimplestCType(CBasicType.DOUBLE, true);
+      case Double:
+        if (machineModel.getSizeofDouble() * 8 == 64) {
+          return getSimplestCType(CBasicType.DOUBLE);
+        } else if (machineModel.getSizeofLongDouble() * 8 == 64) {
+          return getSimplestCType(CBasicType.DOUBLE, true);
 
-      } else {
+        } else {
+          throw new AssertionError(
+              "Machine model " + machineModel.name() + " can't handle 64bit float");
+        }
+
+      case FP128:
+      case PPC_FP128:
+        if (machineModel.getSizeofLongDouble() * 8 != 128) {
+          throw new AssertionError(
+              "Machine model " + machineModel.name() + " can't handle 128bit float");
+
+        } else {
+          return getSimplestCType(CBasicType.DOUBLE, true);
+        }
+
+      case X86_FP80:
         throw new AssertionError(
-            "Machine model " + machineModel.name() + " can't handle 64bit float");
-      }
-
-    } else if (tk == LLVMTypeKind.LLVMFP128TypeKind.value()
-        || tk == LLVMTypeKind.LLVMPPC_FP128TypeKind.value()) {
-      if (machineModel.getSizeofLongDouble() * 8 != 128) {
-        throw new AssertionError(
-            "Machine model " + machineModel.name() + " can't handle 128bit float");
-
-      } else {
-        return getSimplestCType(CBasicType.DOUBLE, true);
-      }
-
-    } else if (tk == LLVMTypeKind.LLVMX86_FP80TypeKind.value()) {
-      throw new AssertionError(
-          "Machine model " + machineModel.name() + " can't handle 80bit float");
-    } else {
-      throw new AssertionError("Unhandled type with id " + tk);
+            "Machine model " + machineModel.name() + " can't handle 80bit float");
+      default:
+        throw new AssertionError("Unhandled float type " + pType);
     }
   }
 
@@ -302,5 +298,4 @@ public class LlvmTypeConverter {
         isImaginary,
         isLongLong);
   }
-
 }

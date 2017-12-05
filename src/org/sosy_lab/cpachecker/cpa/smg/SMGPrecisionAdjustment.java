@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -84,8 +84,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     };
 
   }
-
-
 
   @Override
   public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
@@ -149,7 +147,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      boolean refineablePrecision = pPrecision.usesHeapInterpoaltion();
+      boolean refineablePrecision = pPrecision.usesHeapInterpolation();
       boolean heapAbstractionChange =
           newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
 

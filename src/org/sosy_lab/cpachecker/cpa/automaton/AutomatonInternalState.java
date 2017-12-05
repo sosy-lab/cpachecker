@@ -53,6 +53,7 @@ public class AutomatonInternalState {
                   BOTTOM,
                   new StringExpression(""))),
           true,
+          false,
           false);
 
   /** Break state, used to halt the analysis without being a target state */
@@ -68,6 +69,7 @@ public class AutomatonInternalState {
                   BOTTOM,
                   null)),
           false,
+          false,
           false);
 
   /** Name of this State.  */
@@ -82,19 +84,39 @@ public class AutomatonInternalState {
    */
   private final boolean mAllTransitions;
 
-  public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pIsTarget, boolean pAllTransitions) {
+  private final boolean isCycleStart;
+
+  public AutomatonInternalState(
+      String pName,
+      List<AutomatonTransition> pTransitions,
+      boolean pIsTarget,
+      boolean pAllTransitions,
+      boolean pIsCycleStart) {
     this.name = pName;
     this.transitions = pTransitions;
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
+    this.isCycleStart = pIsCycleStart;
+  }
+
+  public AutomatonInternalState(
+      String pName,
+      List<AutomatonTransition> pTransitions,
+      boolean pIsTarget,
+      boolean pAllTransitions) {
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false);
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false, false);
+    this(pName, pTransitions, false, false, false);
   }
 
   public boolean isNonDetState() {
     return mAllTransitions;
+  }
+
+  public boolean isNontrivialCycleStart() {
+    return isCycleStart;
   }
 
   /** Lets all outgoing transitions of this state resolve their "sink" states.

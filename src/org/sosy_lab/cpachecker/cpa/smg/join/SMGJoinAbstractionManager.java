@@ -23,22 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandidateTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstractionCandidateTemplate;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
@@ -144,34 +143,20 @@ public class SMGJoinAbstractionManager {
   private Pair<Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>>, Set<SMGEdgePointsTo>> assignToSharedIPointerAndNonSharedIPointer(
       Set<SMGEdgePointsTo> pInboundPointers1, Set<SMGEdgePointsTo> pInboundPointers2) {
 
-    Map<Integer, SMGEdgePointsTo> offsetToPte1Map =
-        FluentIterable.from(pInboundPointers1).uniqueIndex(new Function<SMGEdgePointsTo, Integer>() {
+    Map<Long, SMGEdgePointsTo> offsetToPte1Map =
+        FluentIterable.from(pInboundPointers1).uniqueIndex(pArg0 -> pArg0.getOffset());
 
-          @Override
-          public Integer apply(SMGEdgePointsTo pArg0) {
-            return pArg0.getOffset();
-          }
+    Map<Long, SMGEdgePointsTo> offsetToPte2Map =
+        FluentIterable.from(pInboundPointers2).uniqueIndex(pArg0 -> pArg0.getOffset());
 
-        });
-
-    Map<Integer, SMGEdgePointsTo> offsetToPte2Map =
-        FluentIterable.from(pInboundPointers2).uniqueIndex(new Function<SMGEdgePointsTo, Integer>() {
-
-          @Override
-          public Integer apply(SMGEdgePointsTo pArg0) {
-            return pArg0.getOffset();
-          }
-
-        });
-
-    Set<Integer> offsets = new HashSet<>();
+    Set<Long> offsets = new HashSet<>();
     offsets.addAll(offsetToPte1Map.keySet());
     offsets.addAll(offsetToPte2Map.keySet());
 
     Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer = new HashSet<>();
     Set<SMGEdgePointsTo> nonSharedIPointer = new HashSet<>();
 
-    for (Integer offset : offsets) {
+    for (long offset : offsets) {
       if (offsetToPte1Map.containsKey(offset) && offsetToPte2Map.containsKey(offset)) {
         SMGEdgePointsTo pte1 = offsetToPte1Map.get(offset);
         SMGEdgePointsTo pte2 = offsetToPte2Map.get(offset);
@@ -197,27 +182,13 @@ public class SMGJoinAbstractionManager {
     Set<SMGEdgeHasValue> nonSharedOPointer = new HashSet<>();
     Set<SMGEdgeHasValue> sharedNonPointer = new HashSet<>();
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(pFieldsOfObject1).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
+    Map<Long, SMGEdgeHasValue> offsetToHve1Map =
+        FluentIterable.from(pFieldsOfObject1).uniqueIndex(pArg0 -> pArg0.getOffset());
 
-          @Override
-          public Integer apply(SMGEdgeHasValue pArg0) {
-            return pArg0.getOffset();
-          }
+    Map<Long, SMGEdgeHasValue> offsetToHve2Map =
+        FluentIterable.from(pFieldsOfObject2).uniqueIndex(pArg0 -> pArg0.getOffset());
 
-        });
-
-    Map<Integer, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(pFieldsOfObject2).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
-
-          @Override
-          public Integer apply(SMGEdgeHasValue pArg0) {
-            return pArg0.getOffset();
-          }
-
-        });
-
-    Set<Integer> offsets = new HashSet<>();
+    Set<Long> offsets = new HashSet<>();
     offsets.addAll(offsetToHve1Map.keySet());
     offsets.addAll(offsetToHve2Map.keySet());
 
@@ -227,7 +198,7 @@ public class SMGJoinAbstractionManager {
      * the shared value is no pointer.
      *
      */
-    for (Integer offset : offsets) {
+    for (long offset : offsets) {
 
       if (offsetToHve1Map.containsKey(offset) && offsetToHve2Map.containsKey(offset)) {
         SMGEdgeHasValue hve1 = offsetToHve1Map.get(offset);

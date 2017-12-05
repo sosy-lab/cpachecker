@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
 import com.google.common.base.Strings;
 import java.io.PrintStream;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -52,7 +52,7 @@ public class StatisticsDelegator implements Statistics {
    *     should be printed instead.
    */
   public StatisticsDelegator(String pName) {
-    this.delegates = new LinkedList<>();
+    this.delegates = new ArrayList<>();
     this.name = pName;
   }
 

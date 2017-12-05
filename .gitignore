@@ -5,14 +5,15 @@
 /cpachecker.jar
 /CPAchecker-*.zip
 /CPAchecker-*.tar.*
-/FindBugs.html
-/FindBugs.xml
-/FindBugs.diff.html
-/FindBugs.diff.xml
+/SpotBugs.html
+/SpotBugs.xml
+/SpotBugs.diff.html
+/SpotBugs.diff.xml
 /JUnit.html
 /.apt-generated
 /.factorypath
 *.pyc
+*~
 
 # /META-INF/
 /META-INF/.hg*

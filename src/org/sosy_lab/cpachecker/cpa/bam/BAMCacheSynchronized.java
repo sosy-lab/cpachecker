@@ -133,4 +133,11 @@ public class BAMCacheSynchronized implements BAMCache {
       return cache.getAllCachedReachedStates();
     }
   }
+
+  @Override
+  public void clear() {
+    synchronized (this) {
+      cache.clear();
+    }
+  }
 }

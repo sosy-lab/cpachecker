@@ -134,7 +134,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   @Override
   protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
       List<ARGState> changedElements, ARGReachedSet pReached,
-      boolean pRepeatedCounterexample)
+      List<ARGState> abstractionStatesTrace, boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     checkState(lastAbstraction != null);
     lastAbstraction = null;

@@ -26,6 +26,15 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,17 +46,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 
 
 @Options(prefix="cwriter.withLoops")
@@ -89,7 +87,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   }
 
   @Override
-  public void visit(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+  public void visit(ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     cfaPath.add(Pair.of(edge, childElement));
   }
 

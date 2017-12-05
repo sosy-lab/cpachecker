@@ -175,7 +175,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     this.assumptions = pAssumptions;
     this.candidateInvariants = pCandidateInvariants;
 
-    if (isTarget()) {
+    if (internalState.isTarget()) {
       checkNotNull(pViolatedPropertyDescription);
       violatedPropertyDescription = pViolatedPropertyDescription;
     } else {
@@ -417,7 +417,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         internalState = AutomatonInternalState.BREAK;
       } else if(stateId == AutomatonInternalState.BOTTOM.getStateId()) {
         internalState = AutomatonInternalState.BOTTOM;
-      } 
+      }
     }
 
     automatonCPA = GlobalInfo.getInstance().getAutomatonInfo().getCPAForAutomaton((String)in.readObject());

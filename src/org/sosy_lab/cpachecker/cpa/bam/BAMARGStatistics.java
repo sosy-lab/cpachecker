@@ -92,7 +92,28 @@ public class BAMARGStatistics extends ARGStatistics {
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     ARGState root = (ARGState)pReached.getFirstState();
     Collection<ARGState> targets = Collections2.filter(root.getSubgraph(),
-        s -> s.getChildren().isEmpty() && !s.isCovered());
+        s -> s.getChildren().isEmpty() && !s.isCovered()
+        // sometimes we find leaf-states that are at block-entry-locations,
+        // and it seems that those states are "not" contained in the reachedSet.
+        // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
+        // Possible case: entry state of an infinite loop, loop is a block without exit-state.
+        // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
+        );
+
+    if (targets.isEmpty()) {
+      if (pResult.equals(Result.FALSE)) {
+        logger.log(
+            Level.INFO,
+            "could not compute full reached set graph (missing block), "
+                + "some output or statistics might be missing");
+        // invalid ARG, ignore output.
+      } else if (pResult.equals(Result.TRUE)) {
+        // In case of TRUE verdict we do not need a target to print super statistics
+        super.printStatistics(pOut, pResult, pReached);
+      }
+      return;
+    }
+
     // assertion disabled, because it happens with BAM-parallel (reason unknown).
     // assert targets.contains(pReached.getLastState()) : String.format(
     //   "Last state %s of reachedset with root %s is not in target states %s",

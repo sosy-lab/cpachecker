@@ -46,7 +46,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -75,7 +74,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.apron")
 public final class ApronCPA
-    implements ConfigurableProgramAnalysis, ProofCheckerCPA, StatisticsProvider {
+    implements ProofCheckerCPA, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
@@ -234,7 +233,7 @@ public final class ApronCPA
   private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
-    try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
       getLogger().logUserException(Level.WARNING, e, "Could not write apron-analysis precision to file");

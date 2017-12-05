@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
@@ -320,7 +321,7 @@ public class PolicyIterationManager {
     if (((isTarget) || shouldAbstract)
         && isUnreachable(iState, extraInvariant, isTarget)) {
 
-      logger.log(Level.INFO, "Returning bottom state");
+      logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();
     }
 
@@ -398,7 +399,7 @@ public class PolicyIterationManager {
 
     if (isUnreachable(iState, strengthening, false)) {
 
-      logger.log(Level.INFO, "Returning bottom state");
+      logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();
     }
 
@@ -1043,8 +1044,7 @@ public class PolicyIterationManager {
     }
 
     // One unbounded => all unbounded (sign is taken into account).
-    if (policyBounds.stream().filter(policyBound -> policyBound == null)
-        .iterator().hasNext()) {
+    if (policyBounds.contains(null)) {
       return Pair.of(UNBOUNDED, null);
     }
 
@@ -1097,9 +1097,10 @@ public class PolicyIterationManager {
     final Set<String> closure = relatedClosure(
         Sets.union(input, supportingLemmas), vars);
 
-    return input.stream().filter(
-        l -> !Sets.intersection(extractFunctionNames(l), closure).isEmpty()
-    ).collect(Collectors.toSet());
+    return input
+        .stream()
+        .filter(l -> !Sets.intersection(extractFunctionNames(l), closure).isEmpty())
+        .collect(toImmutableSet());
   }
 
   /**

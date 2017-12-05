@@ -26,15 +26,13 @@ package org.sosy_lab.cpachecker.cpa.coverage;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,52 +44,30 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
-@Options
 public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
-    AutomaticCPAFactory factory = AutomaticCPAFactory.forType(CoverageCPA.class);
-    return factory;
+    return AutomaticCPAFactory.forType(CoverageCPA.class);
   }
 
   private final TransferRelation transfer;
   private final AbstractDomain domain;
-  private final MergeOperator merge;
   private final StopOperator stop;
   private final Statistics stats;
 
   // STATIC!! only one instance for CPAchecker
-  private static CoverageData cov = null;
-
-  @Option(secure=true, name="coverage.mode",
-      description="How should coverage be determined? "
-          + "REACHED: from the final ARG, "
-          + "TRANSFER: from the edges that explored by the transfer relation")
-  private CoverageMode mode = CoverageMode.NONE;
+  private static final CoverageData cov = new CoverageData();
 
   public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    cov.putCFA(pCFA);
 
-    pConfig.inject(this);
-
-    domain = new FlatLatticeDomain(CoverageState.getSingleton());
+    domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    merge = new MergeJoinOperator(domain);
+    transfer = new CoverageTransferRelation(cov);
 
-    if (mode != CoverageMode.NONE) {
-      if (cov == null) {
-        cov = new CoverageData(mode);
-      } else {
-        assert cov.getCoverageMode() == mode;
-      }
-    }
-
-    transfer = mode == CoverageMode.TRANSFER
-        ? new CoverageTransferRelation(pCFA, cov)
-        : IdentityTransferRelation.INSTANCE;
-
-    stats = new CoverageStatistics(pConfig, pLogger, pCFA, cov);
+    stats = new CoverageStatistics(pConfig, pLogger, cov);
   }
 
   @Override
@@ -106,7 +82,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return MergeSepOperator.getInstance();
   }
 
   @Override
@@ -116,14 +92,12 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return CoverageState.getSingleton();
+    return SingletonAbstractState.INSTANCE;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (cov != null && cov.getCoverageMode() != CoverageMode.NONE) {
-      pStatsCollection.add(stats);
-    }
+    pStatsCollection.add(stats);
   }
 
 }

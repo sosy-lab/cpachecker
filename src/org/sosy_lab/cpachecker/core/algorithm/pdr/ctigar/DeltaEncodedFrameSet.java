@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
 import com.google.common.base.Preconditions;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -32,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.time.Timer;
@@ -128,11 +129,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
      *  and add all states of higher levels afterwards (delta encoding).
      *  See functionality of blockStates().
      */
-    return frames
-        .stream()
-        .skip(pLevel)
-        .flatMap(frame -> frame.stream())
-        .collect(Collectors.toSet());
+    return frames.stream().skip(pLevel).flatMap(frame -> frame.stream()).collect(toImmutableSet());
   }
 
   @Override

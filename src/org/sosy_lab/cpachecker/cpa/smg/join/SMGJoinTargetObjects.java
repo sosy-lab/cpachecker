@@ -24,24 +24,23 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -68,7 +67,7 @@ final class SMGJoinTargetObjects {
 
   private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
                                             Integer pAddress1, Integer pAddress2) {
-    if ((!pObj1.notNull() && !pObj2.notNull())
+    if ((pObj1 == SMGNullObject.INSTANCE && pObj2 == SMGNullObject.INSTANCE)
         || (pJto.mapping1.containsKey(pObj1)
             && pJto.mapping2.containsKey(pObj2)
             && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
@@ -226,7 +225,7 @@ final class SMGJoinTargetObjects {
 
     destSMG.removeObjectAndEdges(targetObject);
 
-    Set<Integer> restricted = new HashSet<>();
+    Set<Long> restricted = new HashSet<>();
 
     switch (targetObject.getKind()) {
       case DLL:
@@ -243,7 +242,8 @@ final class SMGJoinTargetObjects {
     for (SMGEdgeHasValue hve : hves) {
       Integer val = hve.getValue();
 
-      if (!restricted.contains(val) && val != 0) {
+      //FIXME: require to identify why offsets are mixed with values
+      if (!restricted.contains(val.longValue()) && val != 0) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
