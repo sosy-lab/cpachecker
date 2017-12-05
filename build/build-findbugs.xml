@@ -17,7 +17,7 @@
         <findbugs
                 output="${findbugs.output}"
                 outputFile="FindBugs.xml"
-                excludeFilter=".settings/FindBugs.exclude.xml"
+                excludeFilter="build/FindBugs.exclude.xml"
                 warningsProperty="findbugs.warnings">
             <auxClasspath refid="classpath" />
             <sourcePath path="${source.dir}" />
@@ -41,7 +41,7 @@
         <findbugs
                 output="${findbugs.output}"
                 outputFile="FindBugs.diff.xml"
-                excludeFilter=".settings/FindBugs.exclude.xml"
+                excludeFilter="build/FindBugs.exclude.xml"
                 warningsProperty="findbugs.newwarnings"
                 baselineBugs="FindBugs.known.xml">
             <auxClasspath refid="classpath" />
