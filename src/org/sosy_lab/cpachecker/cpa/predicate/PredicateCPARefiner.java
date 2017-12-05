@@ -277,28 +277,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         formulas = formulas.withBranchingFormula(interpolationManager.buildBranchingFormula(elementsOnPath));
       }
 
-      CounterexampleTraceInfo counterexample;
-
       // find new invariants (this is a noop if no invariants should be used/generated)
       invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
 
-      // Compute invariants if desired, and if the counterexample is not a repeated one
-      // (otherwise invariants for the same location didn't help before, so they won't help now).
-      if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
-        counterexample =
-            performInvariantsRefinement(
-                allStatesTrace,
-                abstractionStatesTrace,
-                formulas);
-
-      } else if (useNewtonRefinement) {
-        logger.log(Level.FINEST, "Starting Newton-based refinement");
-        counterexample = performNewtonRefinement(allStatesTrace, formulas);
-      } else {
-        logger.log(Level.FINEST, "Starting interpolation-based refinement.");
-        counterexample =
-            performInterpolatingRefinement(abstractionStatesTrace, formulas);
-      }
+      CounterexampleTraceInfo counterexample =
+          checkCounterexample(
+              allStatesTrace, abstractionStatesTrace, formulas, repeatedCounterexample);
 
       // if error is spurious refine
       if (counterexample.isSpurious()) {
@@ -338,6 +322,46 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } finally {
       totalRefinement.stop();
+    }
+  }
+
+  /**
+   * Check the given trace (or traces in the DAG) for feasibility and collect information why it is
+   * feasible or why not.
+   *
+   * @param allStatesTrace a concrete path in the ARG.
+   * @param abstractionStatesTrace the list of abstraction states along the path.
+   * @param formulas the list of block formulas for the abstraction states along the path.
+   * @param repeatedCounterexample whether the current counterexample was seen before.
+   * @return information about the counterexample, for example a model (feasible CEX) or
+   *     interpolants (infeasible CEX).
+   */
+  private CounterexampleTraceInfo checkCounterexample(
+      final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace,
+      final BlockFormulas formulas,
+      final boolean repeatedCounterexample)
+      throws CPAException, InterruptedException {
+
+    Preconditions.checkArgument(
+        abstractionStatesTrace.size() == formulas.getSize(),
+        "each abstraction state should have a block formula");
+    Preconditions.checkArgument(
+        abstractionStatesTrace.size() <= allStatesTrace.size(),
+        "each abstraction state should have a state in the counterexample trace");
+
+    if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
+      // Compute invariants if desired, and if the counterexample is not a repeated one
+      // (otherwise invariants for the same location didn't help before, so they won't help now).
+      return performInvariantsRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+
+    } else if (useNewtonRefinement) {
+      logger.log(Level.FINEST, "Starting Newton-based refinement");
+      return performNewtonRefinement(allStatesTrace, formulas);
+
+    } else {
+      logger.log(Level.FINEST, "Starting interpolation-based refinement.");
+      return performInterpolatingRefinement(abstractionStatesTrace, formulas);
     }
   }
 
