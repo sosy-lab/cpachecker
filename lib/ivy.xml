@@ -35,7 +35,7 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="23.4-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="23.5-jre" conf="runtime->default; contrib->sources"/>
 
         <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
         <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
@@ -79,7 +79,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.36" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="23.4-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="23.5-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
