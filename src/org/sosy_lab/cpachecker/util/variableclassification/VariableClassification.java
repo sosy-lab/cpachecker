@@ -56,6 +56,7 @@ public class VariableClassification implements Serializable {
   private final Set<String> intBoolVars;
   private final Set<String> intEqualVars;
   private final Set<String> intAddVars;
+  private final Set<String> intOverflowVars;
 
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
@@ -90,6 +91,7 @@ public class VariableClassification implements Serializable {
       Set<String> pIntBoolVars,
       Set<String> pIntEqualVars,
       Set<String> pIntAddVars,
+      Set<String> pIntOverflowVars,
       Set<String> pRelevantVariables,
       Set<String> pAddressedVariables,
       Multimap<CCompositeType, String> pRelevantFields,
@@ -106,6 +108,7 @@ public class VariableClassification implements Serializable {
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
     intAddVars = ImmutableSet.copyOf(pIntAddVars);
+    intOverflowVars = ImmutableSet.copyOf(pIntOverflowVars);
     relevantVariables = ImmutableSet.copyOf(pRelevantVariables);
     addressedVariables = ImmutableSet.copyOf(pAddressedVariables);
     relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
@@ -124,6 +127,7 @@ public class VariableClassification implements Serializable {
   public static VariableClassification empty(LogManager pLogger) {
     return new VariableClassification(
         false,
+        ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
@@ -229,6 +233,15 @@ public class VariableClassification implements Serializable {
    * This collection does not contain any variable from "IntBool" or "IntEq". */
   public Set<String> getIntAddVars() {
     return intAddVars;
+  }
+
+  /**
+   * This function returns a collection of scoped names. This collection contains all vars that are
+   * used in calculations that can lead to an overflow (+, -, *, /, %, <<). This collection may
+   * contain any variable from "IntBool", "IntEq" or "IntAdd".
+   */
+  public Set<String> getIntOverflowVars() {
+    return intOverflowVars;
   }
 
   /** This function returns a collection of partitions.
@@ -359,6 +372,7 @@ public class VariableClassification implements Serializable {
     str.append("\nIntBool  " + intBoolVars.size() + "\n    " + intBoolVars);
     str.append("\nIntEq  " + intEqualVars.size() + "\n    " + intEqualVars);
     str.append("\nIntAdd  " + intAddVars.size() + "\n    " + intAddVars);
+    str.append("\nIntOverflow  " + intOverflowVars.size() + "\n    " + intOverflowVars);
     return str.toString();
   }
 
@@ -368,6 +382,7 @@ public class VariableClassification implements Serializable {
         intBoolVars,
         intEqualVars,
         intAddVars,
+        intOverflowVars,
         relevantVariables,
         addressedVariables,
         relevantFields,

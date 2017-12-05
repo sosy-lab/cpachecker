@@ -224,20 +224,25 @@ public class WitnessExporter {
                         inv,
                         e -> {
                           for (String name : fmgr.extractVariableNames(e)) {
-                            if (name.contains(FUNCTION_DELIMITER)
-                                && !name.startsWith(prefix)) {
+                            if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
                               return false;
                             }
                           }
                           return true;
                         });
 
-                invString = fmgr.visit(inv, new FormulaToCVisitor(fmgr)).toString();
+                FormulaToCVisitor v = new FormulaToCVisitor(fmgr);
+                Boolean isValid = fmgr.visit(inv, v);
+                if (isValid) {
+                  invString = v.getString();
+                }
               } catch (InterruptedException e) {
                 throw new AssertionError(
                     "Witnessexport was interrupted for generation of Proofwitness", e);
               }
-              stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+              if (invString != null) {
+                stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+              }
             }
             return stateInvariant;
           }
@@ -246,7 +251,7 @@ public class WitnessExporter {
               CFAEdge pEdge, ARGState state, ExpressionTree<Object> stateInvariant) {
             ValueAnalysisState valueAnalysisState =
                 AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-            ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
+            ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
             if (valueAnalysisState != null) {
               ConcreteState concreteState =
                   ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
@@ -257,7 +262,7 @@ public class WitnessExporter {
                       .getExpStmts();
               for (AExpressionStatement expressionStatement : invariants) {
                 invariant =
-                    factory.or(
+                    factory.and(
                         invariant, LeafExpression.of((Object) expressionStatement.getExpression()));
               }
               stateInvariant = factory.and(stateInvariant, invariant);

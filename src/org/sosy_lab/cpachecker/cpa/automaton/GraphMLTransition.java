@@ -224,6 +224,9 @@ class GraphMLTransition {
 
     @Override
     public String toString() {
+      if (name.equals(Integer.toString(id))) {
+        return name;
+      }
       return String.format("%s (%d)", name, id);
     }
 

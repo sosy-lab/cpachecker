@@ -166,12 +166,14 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       throws UnsupportedCCodeException {
     CExpression lhs = assignment.getLeftHandSide();
 
-    if (!(lhs instanceof CIdExpression)) {
-      return state;
+    final String varName;
+    if (lhs instanceof CIdExpression) {
+      varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
+    } else {
+      varName = functionName + "::" + lhs.toString();
     }
 
     final CType targetType = lhs.getExpressionType();
-    final String varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
 
     // next line is a shortcut, not necessary
     if (!precision.isTracking(MemoryLocation.valueOf(varName), targetType, successor)) {
@@ -572,12 +574,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return exp.accept(new VarCExpressionVisitor(varName));
   }
 
-  private static String scopeVar(final CExpression exp) {
+  private String scopeVar(final CExpression exp) {
     if (exp instanceof CIdExpression) {
       return ((CIdExpression) exp).getDeclaration().getQualifiedName();
     } else {
-      // TODO function name?
-      return exp.toASTString();
+      return functionName + "::" + exp.toASTString();
     }
   }
 
@@ -619,6 +620,25 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
+  /**
+   * returns a canonical representation of a field reference, including functionname. return NULL if
+   * the canonical name could not determined.
+   */
+  static @Nullable String getCanonicalName(CExpression expr) {
+    String name = "";
+    while (true) {
+      if (expr instanceof CIdExpression) {
+        return ((CIdExpression) expr).getDeclaration().getQualifiedName() + name;
+      } else if (expr instanceof CFieldReference) {
+        CFieldReference fieldRef = (CFieldReference) expr;
+        name = (fieldRef.isPointerDereference() ? "->" : ".") + fieldRef.getFieldName() + name;
+        expr = fieldRef.getFieldOwner();
+      } else {
+        return null;
+      }
+    }
+  }
+
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
   private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
@@ -630,7 +650,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     private Boolean handle(CExpression exp) {
-      return varName.equals(exp.toASTString());
+      String name = getCanonicalName(exp);
+      return varName.equals(name == null ? exp.toASTString() : name);
     }
 
     @Override

@@ -134,15 +134,21 @@ public class SMGPredicateManager {
     String nameTwo = SYM_NAME + pRelation.getSecondValue();
     Integer firstSize = pPredRelation.getSymbolicSize(pRelation.getFirstValue());
     Integer secondSize = pPredRelation.getSymbolicSize(pRelation.getSecondValue());
-    //Special case for NULL value
+    BitvectorFormula formulaOne;
+    BitvectorFormula formulaTwo;
+    // Special case for NULL value
     if (pRelation.getFirstValue() == 0) {
       firstSize = secondSize;
+      formulaOne = efmgr.makeBitvector(firstSize, 0);
+    } else {
+      formulaOne = efmgr.makeVariable(firstSize, nameOne);
     }
     if (pRelation.getSecondValue() == 0) {
       secondSize = firstSize;
+      formulaTwo = efmgr.makeBitvector(firstSize, 0);
+    } else {
+      formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
     }
-    BitvectorFormula formulaOne = efmgr.makeVariable(firstSize, nameOne);
-    BitvectorFormula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
     if (!firstSize.equals(secondSize)) {
       if (firstSize > secondSize) {
         formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);

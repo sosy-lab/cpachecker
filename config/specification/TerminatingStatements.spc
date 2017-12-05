@@ -5,6 +5,5 @@ INITIAL STATE Init;
 
 STATE USEFIRST Init :
   MATCH {abort($?)} || MATCH {exit($?)} || MATCH {__assert_fail($?)} -> BREAK;
-  
 
 END AUTOMATON

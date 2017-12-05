@@ -27,12 +27,12 @@ import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -73,12 +73,12 @@ public final class Specification {
 
   public static Specification fromFiles(
       Set<SpecificationProperty> pProperties,
-      Collection<Path> specFiles,
+      Iterable<Path> specFiles,
       CFA cfa,
       Configuration config,
       LogManager logger)
       throws InvalidConfigurationException {
-    if (specFiles.isEmpty()) {
+    if (Iterables.isEmpty(specFiles)) {
       return Specification.alwaysSatisfied();
     }
 
@@ -145,7 +145,7 @@ public final class Specification {
 
   private Specification(
       Set<SpecificationProperty> pProperties,
-      Collection<Path> pSpecFiles,
+      Iterable<Path> pSpecFiles,
       Iterable<Automaton> pSpecificationAutomata) {
     properties = ImmutableSet.copyOf(pProperties);
     specFiles = ImmutableSet.copyOf(pSpecFiles);

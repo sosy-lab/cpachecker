@@ -955,11 +955,8 @@ public class ARGPath extends AbstractAppender {
           !currentPositionHasState || pos > 0,
           "Exclusive prefix of first state in path would be empty.");
       if (currentPositionHasState) {
-        if (pos == 0) {
-          return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge>emptyList());
-        } else {
-          return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
-        }
+        checkState(pos != 0);
+        return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
       } else {
         return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
       }

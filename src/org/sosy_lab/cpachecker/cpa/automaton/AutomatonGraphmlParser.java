@@ -52,6 +52,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,6 +62,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import javax.annotation.Nullable;
@@ -83,8 +85,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -105,6 +109,9 @@ import org.xml.sax.helpers.DefaultHandler;
 
 @Options(prefix="witness")
 public class AutomatonGraphmlParser {
+
+  private static final Pattern VALID_HASH_PATTERN =
+      Pattern.compile("([\\da-f]{40})|([\\da-f]{64})");
 
   private static final String AMBIGUOUS_TYPE_ERROR_MESSAGE = "Witness type must be unambiguous";
 
@@ -145,7 +152,7 @@ public class AutomatonGraphmlParser {
   @Option(
     secure = true,
     description =
-        "Check that the value of the programhash field of the witness matches the SHA-1 hash value computed for the source code."
+        "Check that the value of the programhash field of the witness matches the SHA-256 hash value computed for the source code."
   )
   private boolean checkProgramHash = true;
 
@@ -403,6 +410,8 @@ public class AutomatonGraphmlParser {
             "Assumptions are not allowed for correctness witnesses.");
     }
 
+    GraphMLThread thread = pTransition.getThread();
+
     // Parse the invariants of the witness
     ExpressionTree<AExpression> candidateInvariants =
         getInvariants(pCParser, pGraphMLParserState, pTransition, newStack);
@@ -436,9 +445,7 @@ public class AutomatonGraphmlParser {
         && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName =
           getFunction(
-                  pGraphMLParserState,
-                  pTransition,
-                  pTransition.getExplicitAssumptionResultFunction())
+                  pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction())
               .get();
       conditionTransformations.add(
           condition ->
@@ -448,7 +455,7 @@ public class AutomatonGraphmlParser {
     // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit()).get();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).get();
       conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
     }
 
@@ -456,7 +463,7 @@ public class AutomatonGraphmlParser {
     Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
     if (pTransition.getFunctionEntry().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry()).get();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get();
       applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
       conditionTransformations.add(applyMatchFunctionEntry);
     }
@@ -518,8 +525,7 @@ public class AutomatonGraphmlParser {
           and(
               transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry())
-                      .get(),
+                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get(),
                   pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
@@ -598,17 +604,16 @@ public class AutomatonGraphmlParser {
       Deque<String> pCallstack)
       throws WitnessParseException {
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
+      GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitInvariantScope =
           getFunction(
-              pGraphMLParserState,
-              pTransition,
-              pTransition.getTarget().getExplicitInvariantScope());
+              pGraphMLParserState, thread, pTransition.getTarget().getExplicitInvariantScope());
       Scope candidateScope =
           determineScope(
               explicitInvariantScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
           getFunction(
-              pGraphMLParserState, pTransition, pTransition.getExplicitAssumptionResultFunction());
+              pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> resultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
       return CParserUtils.parseStatementsAsExpressionTree(
@@ -638,14 +643,15 @@ public class AutomatonGraphmlParser {
       Deque<String> pCallstack)
       throws WitnessParseException {
     if (considerAssumptions) {
+      GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitAssumptionScope =
-          getFunction(pGraphMLParserState, pTransition, pTransition.getExplicitAssumptionScope());
+          getFunction(pGraphMLParserState, thread, pTransition.getExplicitAssumptionScope());
       Scope scope =
           determineScope(
               explicitAssumptionScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
           getFunction(
-              pGraphMLParserState, pTransition, pTransition.getExplicitAssumptionResultFunction());
+              pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> assumptionResultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
       try {
@@ -659,7 +665,12 @@ public class AutomatonGraphmlParser {
                 cfa.getMachineModel(),
                 logger);
       } catch (InvalidAutomatonException e) {
-        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
+        String reason = e.getMessage();
+        if (e.getCause() instanceof ParserException) {
+          reason =
+              String.format("Cannot parse <%s>", Joiner.on(" ").join(pTransition.getAssumptions()));
+        }
+        throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE + " Reason: " + reason, e);
       }
     }
     return Collections.emptyList();
@@ -667,22 +678,20 @@ public class AutomatonGraphmlParser {
 
   private Optional<String> getFunction(
       AutomatonGraphmlParserState pGraphmlParserState,
-      GraphMLTransition pTransition,
+      GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
     if (!pFunctionName.isPresent() || !cfa.getAllFunctionNames().contains(pFunctionName.get())) {
       return pFunctionName;
     }
     Optional<String> functionName =
-        pGraphmlParserState.getFunctionForThread(pTransition.getThread(), pFunctionName.get());
+        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.get());
     if (functionName.isPresent()) {
       return functionName;
     }
     throw new WitnessParseException(
         String.format(
-            "Unable to assign function %s to thread %s.",
-            pFunctionName.get(),
-            pTransition.getThread()));
+            "Unable to assign function <%s> to thread <%s>.", pFunctionName.get(), pThread));
   }
 
   /**
@@ -727,9 +736,14 @@ public class AutomatonGraphmlParser {
     Deque<String> newStack = currentStack;
 
     Optional<String> functionEntry =
-        getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionEntry());
+        getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry());
+    if (!functionEntry.isPresent() && pTransition.getSource().isEntryState()) {
+      functionEntry =
+          getFunction(
+              pGraphMLParserState, thread, Optional.of(cfa.getMainFunction().getFunctionName()));
+    }
     Optional<String> functionExit =
-        getFunction(pGraphMLParserState, pTransition, pTransition.getFunctionExit());
+        getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit());
 
     // If the same function is entered and exited, the stack remains unchanged.
     // Otherwise, adjust the stack accordingly:
@@ -1198,6 +1212,7 @@ public class AutomatonGraphmlParser {
 
     Optional<String> functionEntry = parseSingleDataValue(pTransition, KeyDef.FUNCTIONENTRY,
         "At most one function can be entered by one transition.");
+
     Optional<String> functionExit = parseSingleDataValue(pTransition, KeyDef.FUNCTIONEXIT,
         "At most one function can be exited by one transition.");
     Optional<String> explicitAssumptionScope = parseSingleDataValue(pTransition, KeyDef.ASSUMPTIONSCOPE,
@@ -1392,30 +1407,71 @@ public class AutomatonGraphmlParser {
       final String message;
       if (checkProgramHash) {
         message =
-            "Witness does not contain the SHA-1 hash value "
+            "Witness does not contain the SHA-256 hash value "
                 + "of the program and may therefore be unrelated to the "
                 + "verification task it is being validated against.";
       } else {
-        message = "Witness does not contain the SHA-1 hash value of the program.";
+        message = "Witness does not contain the SHA-256 hash value of the program.";
       }
       if (strictChecking) {
         throw new WitnessParseException(message);
       } else {
         logger.log(Level.WARNING, message);
       }
-    } else if (checkProgramHash) {
-      Set<String> programHash =
-          FluentIterable.from(pProgramHashes).transform(String::toLowerCase).toSet();
-      for (Path programFile : cfa.getFileNames()) {
-        String actualProgramHash = AutomatonGraphmlCommon.computeHash(programFile).toLowerCase();
-        if (!programHash.contains(actualProgramHash)) {
-          throw new WitnessParseException(
-              "SHA-1 hash value of given verification-task "
-                  + "source-code file ("
-                  + actualProgramHash
-                  + ") "
-                  + "does not match the SHA-1 hash value in the witness. "
-                  + "The witness is likely unrelated to the verification task.");
+    } else {
+      Set<String> programHashes =
+          FluentIterable.from(pProgramHashes)
+              .transform(String::trim)
+              .transform(String::toLowerCase)
+              .toSet();
+      List<String> invalidHashes = new ArrayList<>(programHashes.size());
+      for (String programHashInWitness : programHashes) {
+        if (!VALID_HASH_PATTERN.matcher(programHashInWitness).matches()) {
+          invalidHashes.add(programHashInWitness);
+        }
+      }
+      if (!invalidHashes.isEmpty()) {
+        StringBuilder messageBuilder = new StringBuilder();
+        if (invalidHashes.size() == 1) {
+          messageBuilder.append("The value <");
+          messageBuilder.append(invalidHashes.iterator().next());
+          messageBuilder.append(
+              "> given as hash value of the program source code is not a valid SHA-256 hash value for any program.");
+        } else {
+          messageBuilder.append(
+              "None of the following values given as hash values of the program source code is a valid SHA-256 hash value for any program: ");
+          for (String invalidHash : invalidHashes) {
+            messageBuilder.append("<");
+            messageBuilder.append(invalidHash);
+            messageBuilder.append(">");
+            messageBuilder.append(", ");
+          }
+          messageBuilder.setLength(messageBuilder.length() - 2);
+        }
+        if (strictChecking) {
+          throw new WitnessParseException(messageBuilder.toString());
+        } else {
+          logger.log(Level.WARNING, messageBuilder.toString());
+        }
+      }
+
+      if (checkProgramHash) {
+        for (Path programFile : cfa.getFileNames()) {
+          String actualProgramHash = AutomatonGraphmlCommon.computeSha1Hash(programFile).toLowerCase();
+          String actualSha256Programhash =
+              AutomatonGraphmlCommon.computeHash(programFile).toLowerCase();
+          if (!programHashes.contains(actualProgramHash)
+              && !programHashes.contains(actualSha256Programhash)) {
+            throw new WitnessParseException(
+                "Neiter the SHA-1 hash value of given verification-task "
+                    + "source-code file ("
+                    + actualProgramHash
+                    + ") not the corresponding SHA-256 hash value ("
+                    + actualSha256Programhash
+                    + ")"
+                    + "match the program hash value given in the witness. "
+                    + "The witness is likely unrelated to the verification task.");
+          }
         }
       }
     }
@@ -1544,7 +1600,7 @@ public class AutomatonGraphmlParser {
     @Override
     public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
       String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
-      List<String> violatedPropertyDescriptions = new ArrayList<>();
+      Set<String> violatedPropertyDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
         violatedPropertyDescriptions.add(own);
@@ -1836,9 +1892,14 @@ public class AutomatonGraphmlParser {
   }
 
   private static String getMessage(Throwable pException) {
-    String message = ACCESS_ERROR_MESSAGE;
-    String infix = pException.getMessage();
-    return String.format(message, infix);
+    String message = pException.getMessage();
+    if (message == null) {
+      message = "Exception occurred, but details are unknown: " + pException.toString();
+    }
+    if (pException instanceof IOException) {
+      return String.format(ACCESS_ERROR_MESSAGE, message);
+    }
+    return message;
   }
 
   private static interface InputHandler<T, E extends Throwable> {

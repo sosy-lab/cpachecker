@@ -73,6 +73,13 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
+  @Option(
+    secure = true,
+    description =
+        "Do not ignore variables that could lead to an overflow (only makes sense if ignoreIrrelevantVariables is set to true)"
+  )
+  private boolean overflowVariablesAreRelevant = false;
+
   @Option(secure=true, description = "Ignore fields that are not relevant for reachability properties. This is unsound in case fields are accessed by pointer arithmetic with hard-coded field offsets. Only relvant if ignoreIrrelevantVariables is enabled.")
   private boolean ignoreIrrelevantFields = true;
 
@@ -134,6 +141,10 @@ public class FormulaEncodingOptions {
 
   public boolean ignoreIrrelevantVariables() {
     return ignoreIrrelevantVariables;
+  }
+
+  public boolean overflowVariablesAreRelevant() {
+    return overflowVariablesAreRelevant;
   }
 
   public boolean ignoreIrrelevantFields() {

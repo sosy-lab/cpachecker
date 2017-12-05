@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
@@ -224,11 +222,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        // covered states are not in reached set
-        precisions.add(reached.getPrecision(state));
-      }
+    for (ARGState state : ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot)) {
+      // covered states are not in reached set
+      precisions.add(reached.getPrecision(state));
     }
 
     for (Precision prec : precisions) {
@@ -262,7 +258,8 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     // now create new precision
     precisionUpdate.start();
     PredicatePrecision basePrecision =
-        findAllPredicatesFromSubgraph(refinementRoot, unmodifiableReached);
+        PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph(
+            refinementRoot, unmodifiableReached);
 
     logger.log(Level.ALL, "Old predicate map is", basePrecision);
     logger.log(Level.ALL, "New predicates are", newPredicates);
@@ -277,19 +274,6 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     precisionUpdate.stop();
 
     return newPrecision;
-  }
-
-  /**
-   * Collect all precisions in the subgraph below refinementRoot and merge
-   * their predicates.
-   * @return a new precision with all these predicates.
-   */
-  private PredicatePrecision findAllPredicatesFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached) {
-    return PredicatePrecision.unionOf(
-        from(refinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
   }
 
   /**

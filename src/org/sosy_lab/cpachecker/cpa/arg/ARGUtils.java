@@ -1306,4 +1306,8 @@ public class ARGUtils {
     }
     return Optional.of(CounterexampleInfo.feasibleImprecise(path));
   }
+
+  public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
+    return Sets.filter(pRoot.getSubgraph(), s -> !s.isCovered());
+  }
 }

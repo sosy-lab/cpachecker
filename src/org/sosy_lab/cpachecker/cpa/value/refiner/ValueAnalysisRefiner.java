@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph;
 
 import com.google.common.base.Predicate;
@@ -277,8 +275,7 @@ public class ValueAnalysisRefiner
       final ARGState pRefinementRoot, final UnmodifiableReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant :
-        from(pRefinementRoot.getSubgraph()).filter(not(ARGState::isCovered))) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractValuePrecision(pReached.getPrecision(descendant)));
     }
 

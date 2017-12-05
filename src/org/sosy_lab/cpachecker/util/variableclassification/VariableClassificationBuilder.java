@@ -135,6 +135,7 @@ public class VariableClassificationBuilder {
   private final Set<String> nonIntBoolVars = new HashSet<>();
   private final Set<String> nonIntEqVars = new HashSet<>();
   private final Set<String> nonIntAddVars = new HashSet<>();
+  private final Set<String> intOverflowVars = new HashSet<>();
 
   private final Dependencies dependencies = new Dependencies();
 
@@ -194,6 +195,7 @@ public class VariableClassificationBuilder {
     dependencies.solve(nonIntBoolVars);
     dependencies.solve(nonIntEqVars);
     dependencies.solve(nonIntAddVars);
+    dependencies.solve(intOverflowVars);
     stats.dependencyTimer.stop();
 
     // Now build the opposites of each non-x-vars-collection.
@@ -240,23 +242,25 @@ public class VariableClassificationBuilder {
     boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables.get(), nonIntAddVars).isEmpty();
 
     stats.buildTimer.start();
-    VariableClassification result = new VariableClassification(
-        hasRelevantNonIntAddVars,
-        intBoolVars,
-        intEqualVars,
-        intAddVars,
-        relevantVariables.get(),
-        addressedVariables.get(),
-        relevantFields.get(),
-        addressedFields.get(),
-        dependencies.partitions,
-        intBoolPartitions,
-        intEqualPartitions,
-        intAddPartitions,
-        dependencies.edgeToPartition,
-        extractAssumedVariables(cfa.getAllNodes()),
-        extractAssignedVariables(cfa.getAllNodes()),
-        logger);
+    VariableClassification result =
+        new VariableClassification(
+            hasRelevantNonIntAddVars,
+            intBoolVars,
+            intEqualVars,
+            intAddVars,
+            intOverflowVars,
+            relevantVariables.get(),
+            addressedVariables.get(),
+            relevantFields.get(),
+            addressedFields.get(),
+            dependencies.partitions,
+            intBoolPartitions,
+            intEqualPartitions,
+            intAddPartitions,
+            dependencies.edgeToPartition,
+            extractAssumedVariables(cfa.getAllNodes()),
+            extractAssignedVariables(cfa.getAllNodes()),
+            logger);
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
@@ -272,6 +276,8 @@ public class VariableClassificationBuilder {
         w.append(intEqualVars.toString());
         w.append("\n\nIntAdd\n\n");
         w.append(intAddVars.toString());
+        w.append("\n\nIntOverflow\n\n");
+        w.append(intOverflowVars.toString());
         w.append("\n\nALL\n\n");
         w.append(allVars.toString());
         w.append("\n\nDEPENDENCIES\n\n");
@@ -473,6 +479,7 @@ public class VariableClassificationBuilder {
           exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
           exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
           exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
+          exp.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
 
           break;
         }
@@ -660,6 +667,7 @@ public class VariableClassificationBuilder {
         param.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
         param.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
         param.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
+        param.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
       }
     }
   }
@@ -752,6 +760,10 @@ public class VariableClassificationBuilder {
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre, nonIntAddVars);
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
+
+    IntOverflowCollectingVisitor iov = new IntOverflowCollectingVisitor(pre, intOverflowVars);
+    Set<String> possibleIntOverflowVars = exp.accept(iov);
+    handleResult(varName, possibleIntOverflowVars, intOverflowVars);
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */

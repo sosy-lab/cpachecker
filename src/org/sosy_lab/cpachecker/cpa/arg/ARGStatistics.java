@@ -83,10 +83,18 @@ public class ARGStatistics implements Statistics {
   @Option(secure=true, name="export", description="export final ARG as .dot file")
   private boolean exportARG = true;
 
+  @Option(secure=true, name="bitmapGraphic", description="export final ARG as bitmap")
+  private boolean exportBitmap = false;
+
   @Option(secure=true, name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
+
+  @Option(secure=true, name="bitmapFile",
+      description="output file for bitmap of ARG")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path argBitmapFile = Paths.get("ARG.gif");
 
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
@@ -128,7 +136,7 @@ public class ARGStatistics implements Statistics {
   private final WitnessExporter argWitnessExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
-
+  private final ARGToBitmapWriter argToBitmapExporter;
   protected final LogManager logger;
 
   public ARGStatistics(
@@ -140,6 +148,7 @@ public class ARGStatistics implements Statistics {
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
+    argToBitmapExporter = new ARGToBitmapWriter(config);
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
@@ -260,6 +269,8 @@ public class ARGStatistics implements Statistics {
       allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
     }
 
+    final Collection<AbstractState> allStatesInWaitlist = pReached.getWaitlist();
+
     // The state space might be partitioned ...
     // ... so we would export a separate ARG for each partition ...
     boolean partitionedArg =
@@ -272,7 +283,7 @@ public class ARGStatistics implements Statistics {
         : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState: rootStates) {
-      exportARG0(rootState, Predicates.in(allTargetPathEdges), pResult);
+      exportARG0(rootState, Predicates.in(allTargetPathEdges), Predicates.in(allStatesInWaitlist), pResult);
     }
   }
 
@@ -280,6 +291,7 @@ public class ARGStatistics implements Statistics {
   private void exportARG0(
       final ARGState rootState,
       final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge,
+      final Predicate<AbstractState> isWaitlistState,
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
@@ -309,6 +321,15 @@ public class ARGStatistics implements Statistics {
             w, rootState, ARGState::getChildren, Predicates.alwaysTrue(), isTargetPathEdge);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    if (exportBitmap) {
+      try {
+        Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, argBitmapFile);
+        argToBitmapExporter.write(rootState, adjustedBitmapFileName, isWaitlistState);
+      } catch (IOException | InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG bitmap to file");
       }
     }
 

@@ -272,6 +272,26 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     blockEnded = pOriginalState.blockEnded;
   }
 
+  public SMGState withViolationsOf(SMGState pOther) {
+    if (invalidFree == pOther.invalidFree
+        && invalidRead == pOther.invalidRead
+        && invalidWrite == pOther.invalidWrite) {
+      return this;
+    }
+    SMGState result =
+        new SMGState(logger, options, heap, ID_COUNTER.getAndIncrement(), explicitValues);
+    if (pOther.invalidFree) {
+      result = new SMGState(result, Property.INVALID_FREE);
+    }
+    if (pOther.invalidRead) {
+      result = new SMGState(result, Property.INVALID_READ);
+    }
+    if (pOther.invalidWrite) {
+      result = new SMGState(result, Property.INVALID_WRITE);
+    }
+    return result;
+  }
+
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *

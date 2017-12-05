@@ -38,8 +38,11 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 /**
  * This visitor is used to translate predicate based invariants from SMT formulae to expressions
  * which are evaluable in C.
+ *
+ * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid and
+ * therefore it is discouraged to use it.
  */
-public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
+public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   private static final String LLONG_MIN_LITERAL = "9223372036854775808";
 
@@ -68,24 +71,24 @@ public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
   }
 
   @Override
-  public StringBuilder visitFreeVariable(Formula pF, String pName) {
+  public Boolean visitFreeVariable(Formula pF, String pName) {
     // reduce variables like 'main::x' to 'x'
     int index = pName.lastIndexOf(":");
     if (index != -1) {
       pName = pName.substring(index + 1);
     }
     builder.append(pName);
-    return builder;
+    return Boolean.TRUE;
   }
 
   @Override
-  public StringBuilder visitBoundVariable(Formula pF, int pDeBruijnIdx) {
+  public Boolean visitBoundVariable(Formula pF, int pDeBruijnIdx) {
     // No-OP; not relevant for the given use-cases
-    return builder;
+    return Boolean.TRUE;
   }
 
   @Override
-  public StringBuilder visitConstant(Formula pF, Object pValue) {
+  public Boolean visitConstant(Formula pF, Object pValue) {
     FormulaType<?> type = fmgr.getFormulaType(pF);
     final String value = pValue.toString();
 
@@ -94,12 +97,12 @@ public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
       switch (size) {
         case 32:
           if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
-            return builder;
+            return Boolean.TRUE;
           }
           // $FALL-THROUGH$
         case 64:
           if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
-            return builder;
+            return Boolean.TRUE;
           }
           // $FALL-THROUGH$
         default:
@@ -109,7 +112,7 @@ public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
       builder.append(value);
     }
 
-    return builder;
+    return Boolean.TRUE;
   }
 
   /**
@@ -141,7 +144,7 @@ public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
   }
 
   @Override
-  public StringBuilder visitFunction(
+  public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
     String op = null;
     FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
@@ -180,7 +183,10 @@ public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
       case DIV:
         op = "/";
         break;
-      case BV_MODULO:
+      case BV_SREM:
+        bvSigned = true;
+        // $FALL-THROUGH$
+      case BV_UREM:
       case MODULO:
         op = "%";
         break;
@@ -249,38 +255,71 @@ public class FormulaToCVisitor implements FormulaVisitor<StringBuilder> {
       case EQ_ZERO:
         op = "0 ==";
         break;
+      case ITE:
+        // Special-case that is to be handled separately
+        // below
+        break;
+      case BV_SHL:
+        op = "<<";
+        break;
+      case BV_LSHR:
+      case BV_ASHR:
+        op = ">>";
+        break;
       default:
-        throw new AssertionError("Unknown operator " + pFunctionDeclaration);
+        return Boolean.FALSE;
     }
-
-    if (pArgs.size() == 2) {
-      builder.append("( ");
-      fmgr.visit(pArgs.get(0), this);
+    builder.append("( ");
+    if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
+      builder.append(" ? ");
+      if (!fmgr.visit(pArgs.get(1), this)) {
+        return Boolean.FALSE;
+      }
+      builder.append(" : ");
+      if (!fmgr.visit(pArgs.get(2), this)) {
+        return Boolean.FALSE;
+      }
+    } else if (pArgs.size() == 2) {
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
       builder.append(" ").append(op).append(" ");
-      fmgr.visit(pArgs.get(1), this);
-      builder.append(" )");
+      if (!fmgr.visit(pArgs.get(1), this)) {
+        return Boolean.FALSE;
+      }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
-      builder.append("( ").append(op).append(" ");
-      fmgr.visit(pArgs.get(0), this);
-      builder.append(" )");
+      builder.append(op).append(" ");
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
     } else {
       throw new AssertionError("Function call without arguments " + pFunctionDeclaration.getName());
     }
+    builder.append(" )");
 
     // (re-)set bvSigned appropriately for the current state
     // of the translation
     bvSigned = signedCarryThrough;
 
-    return builder;
+    return Boolean.TRUE;
   }
 
   @Override
-  public StringBuilder visitQuantifier(
+  public Boolean visitQuantifier(
       BooleanFormula pF,
       Quantifier pQuantifier,
       List<Formula> pBoundVariables,
       BooleanFormula pBody) {
     // No-OP; not relevant for the given use-cases
-    return builder;
+    return Boolean.TRUE;
+  }
+
+  public String getString() {
+    String result = builder.toString();
+    builder.setLength(0);
+    return result;
   }
 }
