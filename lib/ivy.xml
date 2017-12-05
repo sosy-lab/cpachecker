@@ -20,8 +20,8 @@
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
 
-        <!-- Dependencies needed for running FindBugs. -->
-        <conf name="findbugs" />
+        <!-- Dependencies needed for running SpotBugs. -->
+        <conf name="spotbugs" />
 
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
@@ -99,9 +99,11 @@
              A source-code formatter for Java -->
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.5" conf="format-source->default"/>
 
-        <!-- FindBugs -->
-        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
-        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.1" conf="build->default"/>
+        <!-- SpotBugs -->
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.1" conf="spotbugs->default"/>
+        <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.1" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

@@ -1,10 +1,13 @@
 <FindBugsFilter>
     <Match><And>
         <!-- PackageSanityTest wants @Nullable on equals(Object) parameter,
-             FindBugs does not. -->
+             SpotBugs does not. -->
         <Bug pattern="NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION"/>
         <Method name="equals" returns="boolean" params="java.lang.Object"/>
     </And></Match>
+    <!-- Error-prone checks this, too, and SpotBugs does not know @CanIgnoreReturnValue. -->
+    <Match><Bug pattern="RV_RETURN_VALUE_IGNORED"/></Match>
+
     <Match><And>
         <!-- Many constructors read fields that are written via reflection. -->
         <Bug pattern="UR_UNINIT_READ,RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE"/>
@@ -27,7 +30,7 @@
         <!-- Allow null checks for configuration-option fields,
              they might get set to null reflectively.
              Better match would be "annotated with @FileOption(FileOption.Type.OUTPUT_FILE)",
-             but FindBugs does not support this. -->
+             but SpotBugs does not support this. -->
         <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
         <Or>
           <Field type="org.sosy_lab.common.io.Path"/>
