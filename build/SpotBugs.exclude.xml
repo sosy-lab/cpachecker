@@ -7,6 +7,8 @@
     </And></Match>
     <!-- Error-prone checks this, too, and SpotBugs does not know @CanIgnoreReturnValue. -->
     <Match><Bug pattern="RV_RETURN_VALUE_IGNORED"/></Match>
+    <!-- Exclude AutoValue classes -->
+    <Match><Class name="~.*\.AutoValue_.*"/></Match>
 
     <Match><And>
         <!-- Many constructors read fields that are written via reflection. -->

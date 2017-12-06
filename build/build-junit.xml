@@ -37,7 +37,7 @@
 
     <target name="unit-tests" depends="build, load-junit, init-unit-tests" description="Run all JUnit tests">
         <delete dir="{junit.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="1000000">
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
@@ -63,6 +63,7 @@
     </target>
 
     <target name="unit-tests-coverage" depends="build, load-junit, load-jacoco, init-unit-tests" description="Run all JUnit tests with coverage report">
+        <delete dir="{junit.dir}"/>
         <jacoco:coverage destfile="${junit.dir}/jacoco.exec" excludes="**/*Test*:**/Dummy*">
             <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
                 <assertions><enable/></assertions>
@@ -83,6 +84,7 @@
                 <sourcefiles encoding="UTF-8"><fileset dir="${source.dir}" excludes="**/*Test*,**/Dummy*/"/></sourcefiles>
             </structure>
             <html destdir="JUnit-coverage"/>
+            <xml destfile="${junit.dir}/coverage.xml"/>
         </jacoco:report>
         <junitreport todir="${junit.dir}">
             <fileset dir="${junit.dir}" includes="TEST-*.xml"/>
