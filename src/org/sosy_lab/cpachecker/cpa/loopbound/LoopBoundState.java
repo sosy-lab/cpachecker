@@ -199,10 +199,6 @@ public class LoopBoundState
     if (this.stopIt != pOther.stopIt) {
       return false;
     }
-    // Hash code is cached, so this is also quick
-    if (loopStack.hashCode() != pOther.loopStack.hashCode()) {
-      return false;
-    }
     return loopStack.equals(pOther.loopStack);
   }
 
