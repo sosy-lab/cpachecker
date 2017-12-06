@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -74,7 +75,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  MonitorState.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  AbstractSingleWrapperState.getUnwrapFunction(), Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
     AbstractState oldElement = element.getWrappedState();
@@ -82,7 +83,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     totalTimeOfPrecAdj.start();
     Optional<PrecisionAdjustmentResult> unwrappedResult = wrappedPrecAdjustment.prec(
         oldElement, oldPrecision, elements,
-        Functions.compose(MonitorState.getUnwrapFunction(), projection),
+        Functions.compose(AbstractSingleWrapperState.getUnwrapFunction(), projection),
         fullState);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();

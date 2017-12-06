@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
@@ -244,7 +244,7 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
     ArrayFormulaManagerView amgrv = mgrv.getArrayFormulaManager();
     ArrayFormula<IntegerFormula, IntegerFormula> _b =
-        amgrv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+        amgrv.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType);
 
     BooleanFormula _b_at_x_NOTEQ_0 = bmgrv.not(imgrv.equal(amgrv.select(_b, _x), _0));
 
