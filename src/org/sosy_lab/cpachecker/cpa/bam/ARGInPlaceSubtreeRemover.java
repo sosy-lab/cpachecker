@@ -185,7 +185,8 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
   }
 
   /** just remove a state and its subtree from the given reachedSet. */
-  static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
+  static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement)
+      throws InterruptedException {
     if (AbstractBAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
       assert ((ARGState)reachedSet.asReachedSet().getFirstState()).getChildren().contains(
           reachedSet.asReachedSet().getLastState());

@@ -107,8 +107,9 @@ public class ARGReachedSet {
    * covered by removed elements.
    *
    * @param e The root of the removed subtree, may not be the initial element.
+   * @throws InterruptedException can be thrown in subclass
    */
-  public void removeSubtree(ARGState e) {
+  public void removeSubtree(ARGState e) throws InterruptedException {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
@@ -535,7 +536,7 @@ public class ARGReachedSet {
     }
 
     @Override
-    public void removeSubtree(ARGState pE) {
+    public void removeSubtree(ARGState pE) throws InterruptedException {
       delegate.removeSubtree(pE);
     }
 

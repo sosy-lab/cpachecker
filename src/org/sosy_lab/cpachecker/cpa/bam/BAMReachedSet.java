@@ -92,8 +92,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   @Override
-  public void removeSubtree(ARGState pE) {
-    throw new UnsupportedOperationException();
+  public void removeSubtree(ARGState state) throws InterruptedException {
+    removeSubtree(state, ImmutableList.of(), ImmutableList.of());
   }
 
   @Override

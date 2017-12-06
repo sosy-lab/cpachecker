@@ -612,7 +612,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     pTargetState.removeFromARG();
   }
 
-  private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState) {
+  private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState)
+      throws InterruptedException {
     Set<ARGState> workList = Sets.newHashSet(pTargetState);
     Set<ARGState> firstLoopStates = Sets.newHashSet();
 
@@ -635,7 +636,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     ARGReachedSet argReachedSet = new ARGReachedSet(pReachedSet);
-    firstLoopStates.forEach(argReachedSet::removeSubtree);
+    for (ARGState state : firstLoopStates) {
+      argReachedSet.removeSubtree(state);
+    }
   }
 
   private void resetReachedSet(ReachedSet pReachedSet, CFANode pInitialLocation)
