@@ -132,9 +132,8 @@ public class LoopBoundState
       return false;
     }
 
-    LoopBoundState other = (LoopBoundState)obj;
-    return this.stopIt == other.stopIt
-        && this.loopStack == other.loopStack;
+    LoopBoundState other = (LoopBoundState) obj;
+    return this.stopIt == other.stopIt && this.loopStack.equals(other.loopStack);
   }
 
   @Override
@@ -192,14 +191,6 @@ public class LoopBoundState
   public int getDepth() {
     // Subtract 1 to account for the "undetermined" element at the bottom of the stack
     return loopStack.getSize() - 1;
-  }
-
-  boolean deepEquals(LoopBoundState pOther) {
-    // Quick checks for common case (inequality) first
-    if (this.stopIt != pOther.stopIt) {
-      return false;
-    }
-    return loopStack.equals(pOther.loopStack);
   }
 
   public LoopBoundState enforceAbstraction(int pLoopIterationsBeforeAbstraction) {
