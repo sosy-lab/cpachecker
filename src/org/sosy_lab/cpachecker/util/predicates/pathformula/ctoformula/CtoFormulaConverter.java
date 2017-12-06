@@ -982,7 +982,9 @@ public class CtoFormulaConverter {
       final CFunctionEntryNode entryNode, final SSAMapBuilder ssa, final Constraints constraints) {
     for (CParameterDeclaration param : entryNode.getFunctionDefinition().getParameters()) {
       // has side-effect of adding to SSAMap!
-      final Formula var = makeFreshVariable(param.getQualifiedName(), param.getType(), ssa);
+      final Formula var =
+          makeFreshVariable(
+              param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);
 
       if (options.addRangeConstraintsForNondet()) {
         addRangeConstraint(var, param.getType(), constraints);
