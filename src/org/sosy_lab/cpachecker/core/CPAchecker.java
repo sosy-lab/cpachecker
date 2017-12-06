@@ -111,7 +111,6 @@ public class CPAchecker {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
-      register();
     }
 
     @Override
@@ -476,6 +475,7 @@ public class CPAchecker {
 
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownManager);
+    mxbean.register();
 
     stats.startAnalysisTimer();
     try {

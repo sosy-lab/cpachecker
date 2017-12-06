@@ -124,8 +124,7 @@ public final class AbstractionManager {
     }
 
     // don't store it, we wouldn't know when to unregister anyway
-    @SuppressWarnings("unused")
-    AbstractionPredicatesMBean bean = new AbstractionPredicatesMBean();
+    new AbstractionPredicatesMBean().register();
   }
 
   /**
@@ -507,7 +506,6 @@ public final class AbstractionManager {
       super(
           "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates",
           logger);
-      register();
     }
 
     @Override

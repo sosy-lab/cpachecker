@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -166,6 +167,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     expandTime.start();
     try {
