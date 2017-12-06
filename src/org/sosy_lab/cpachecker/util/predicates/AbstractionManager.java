@@ -123,7 +123,9 @@ public final class AbstractionManager {
       toConcreteCache = null;
     }
 
-    new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
+    // don't store it, we wouldn't know when to unregister anyway
+    @SuppressWarnings("unused")
+    AbstractionPredicatesMBean bean = new AbstractionPredicatesMBean();
   }
 
   /**

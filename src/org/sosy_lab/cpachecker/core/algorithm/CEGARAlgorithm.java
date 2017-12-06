@@ -173,7 +173,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     this.logger = logger;
 
     mRefiner = refinerFactory.create(pCpa);
-    new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
+    // don't store it because we wouldn't know when to unregister anyway
+    @SuppressWarnings("unused")
+    CEGARMBean bean = new CEGARMBean();
   }
 
   /**

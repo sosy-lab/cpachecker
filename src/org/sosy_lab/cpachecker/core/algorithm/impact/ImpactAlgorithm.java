@@ -179,9 +179,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
         Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);
         if (successors.isEmpty()) {
-          // edge not feasible
-          // create fake vertex
-          new Vertex(bfmgr, v, bfmgr.makeFalse(), null);
+          // edge not feasible, create fake vertex
+          @SuppressWarnings("unused") // needs to be created because it attaches to parent
+          Vertex fake = new Vertex(bfmgr, v, bfmgr.makeFalse(), null);
           continue;
         }
         assert successors.size() == 1;

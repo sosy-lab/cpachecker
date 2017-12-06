@@ -33,6 +33,7 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 @RunWith(value = BlockJUnit4ClassRunner.class)
+@SuppressWarnings("unused")
 public class CBitFieldTypeTest {
 
   private final ClassSanityTester tester = new ClassSanityTester();
