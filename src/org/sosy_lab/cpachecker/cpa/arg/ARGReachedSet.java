@@ -529,23 +529,6 @@ public class ARGReachedSet {
       super(pReached.mReached);
       delegate = pReached;
     }
-
-    @Override
-    public UnmodifiableReachedSet asReachedSet() {
-      return delegate.asReachedSet();
-    }
-
-    @Override
-    public void removeSubtree(ARGState pE) throws InterruptedException {
-      delegate.removeSubtree(pE);
-    }
-
-    @Override
-    public void removeSubtree(
-        ARGState pE, Precision pP, Predicate<? super Precision> pPrecisionType)
-        throws InterruptedException {
-      delegate.removeSubtree(pE, pP, pPrecisionType);
-    }
   }
 
   /**
