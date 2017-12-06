@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.LoopIterationSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -56,6 +57,20 @@ public class ReachedSetFactory {
       description = "handle states with a deeper callstack first"
       + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useLoopIterationCount",
+    description = "handle states with more loop iterations first."
+  )
+  boolean useLoopIterationCount = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useReverseLoopIterationCount",
+    description = "handle states with fewer loop iterations first."
+  )
+  boolean useReverseLoopIterationCount = false;
 
   @Option(secure=true, name="traversal.useLoopstack",
     description= "handle states with a deeper loopstack first.")
@@ -131,6 +146,12 @@ public class ReachedSetFactory {
     }
     if (usePostorder) {
       waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useLoopIterationCount) {
+      waitlistFactory = LoopIterationSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useReverseLoopIterationCount) {
+      waitlistFactory = LoopIterationSortedWaitlist.reversedFactory(waitlistFactory);
     }
     if (useLoopstack) {
       waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);

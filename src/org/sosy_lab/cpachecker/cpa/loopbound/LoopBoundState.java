@@ -217,4 +217,8 @@ public class LoopBoundState
     }
     return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
   }
+
+  public int getMaxNumberOfIterationsInLoopstackFrame() {
+    return loopStack.peek().getMaxIterationCount();
+  }
 }

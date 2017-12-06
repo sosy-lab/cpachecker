@@ -301,6 +301,9 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
+# handle states with more loop iterations first.
+analysis.traversal.useLoopIterationCount = false
+
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
@@ -313,6 +316,9 @@ analysis.traversal.useNumberOfThreads = false
 # postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.usePostorder = false
+
+# handle states with fewer loop iterations first.
+analysis.traversal.useReverseLoopIterationCount = false
 
 # handle states with a more shallow loopstack first.
 analysis.traversal.useReverseLoopstack = false
