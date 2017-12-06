@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
-<project name="junit" basedir=".">
+<project name="configuration-check" basedir=".">
 
     <property name="configuration-checks.dir" value="configuration-checks"/>
 

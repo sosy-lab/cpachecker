@@ -13,6 +13,7 @@
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
     <property name="junit.dir" value="output/junit"/>
+    <property name="configuration-checks.dir" value="output/configuration-checks"/>
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
