@@ -86,7 +86,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
  * Test that the bundled configuration files are all valid.
  */
 @RunWith(Parameterized.class)
-public class ConfigurationFilesTest {
+public class ConfigurationFileChecks {
 
   private static final Pattern ALLOWED_WARNINGS =
       Pattern.compile(
@@ -181,7 +181,7 @@ public class ConfigurationFilesTest {
   @Parameters(name = "{0}")
   public static Object[] getConfigFiles() throws IOException {
     Stream<URL> configResources =
-        ClassPath.from(ConfigurationFilesTest.class.getClassLoader())
+        ClassPath.from(ConfigurationFileChecks.class.getClassLoader())
             .getResources()
             .stream()
             .filter(resource -> resource.getResourceName().endsWith(".properties"))

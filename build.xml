@@ -28,6 +28,7 @@
     <import file="build/build-junit.xml"/>
     <import file="build/build-format-source.xml"/>
     <import file="build/build-spotbugs.xml"/>
+    <import file="build/build-configuration-checks.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
@@ -60,7 +61,7 @@
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, python-unit-tests" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, configuration-checks, python-unit-tests" description="Run all tests"/>
 
     <target name="all-checks" description="Run all tests and checks">
         <!-- We have to use antcall here to run clean twice. -->
