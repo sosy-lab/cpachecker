@@ -188,7 +188,8 @@ public class NewtonRefinementManager {
           List<PathLocation> pPathLocations,
           Optional<List<BooleanFormula>> pUnsatCore)
           throws CPAException, InterruptedException {
-    logger.log(Level.INFO, "Calculate Strongest Postcondition for the error trace.");
+    logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
+
     // First Predicate is always true
     BooleanFormula preCondition = fmgr.getBooleanFormulaManager().makeTrue();
 
@@ -201,12 +202,15 @@ public class NewtonRefinementManager {
 
       CFAEdge edge = location.getLastEdge();
       PathFormula pathFormula = location.getPathFormula();
+
+
       // Decide whether to abstract this Formula(Only true if unsatCore is present and does not
       // contain the formula
-      boolean abstractThisFormula =
-          pUnsatCore.isPresent() && !pUnsatCore.get().contains(pathFormula.getFormula());
-
-      // Calculate Postcondition based on the edgeType
+      boolean abstractThisFormula = false;
+      if (pUnsatCore.isPresent()) {
+        // TODO: Check for all partial Formulas, reason why it fails for assumes as !(x|y)
+        abstractThisFormula = !pUnsatCore.get().contains(pathFormula.getFormula());
+      }
       switch (edge.getEdgeType()) {
         case AssumeEdge:
           // If this formula should be abstracted it does not imply any additional atoms
@@ -219,6 +223,7 @@ public class NewtonRefinementManager {
           }
           break;
         case StatementEdge:
+        case DeclarationEdge:
           BooleanFormula toExist;
           // If this formula should be abstracted, this statement havocs the leftHand variable
           // Therefore its previous values can be existentially quantified in the preCondition
@@ -238,10 +243,20 @@ public class NewtonRefinementManager {
             throw new CPAException("Solver failed to compute existence-quantor.", e);
           }
           break;
+        case FunctionCallEdge:
+          // TODO: Atleast for Asserts, a handling is necessary
         default:
+          if(fmgr.getBooleanFormulaManager().isTrue(preCondition)) {
+            logger.log(Level.FINE,"Pathformula is True, so no addtionial Formula in PostCondition for EdgeType: "+ edge.getEdgeType());
+            postCondition = preCondition;
+            break;
+          }
           // TODO: Determine if it is necessary to do something for other edgetypes
-          postCondition = preCondition;
-          break;
+          throw new UnsupportedOperationException(
+              "Found unsupported Edgetype in Newton Refinement: "
+                  + edge.getDescription()
+                  + " of Type :"
+                  + edge.getEdgeType());
       }
       if (location.hasCorrespondingARGState()) {
         predicates.add(fmgr.simplify(postCondition));
