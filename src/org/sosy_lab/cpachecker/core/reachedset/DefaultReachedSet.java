@@ -115,6 +115,10 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
+  public void reAddToWaitlist(Collection<AbstractState> c) {
+    c.forEach(this::reAddToWaitlist);
+  }
+
   public void reAddToWaitlist(AbstractState s) {
     Preconditions.checkNotNull(s);
     Preconditions.checkArgument(reached.containsKey(s), "State has to be in the reached set");
