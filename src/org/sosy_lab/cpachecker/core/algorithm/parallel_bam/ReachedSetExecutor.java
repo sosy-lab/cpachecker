@@ -383,7 +383,7 @@ class ReachedSetExecutor {
    */
   private void handleMissingBlock(BlockSummaryMissingException pBsme)
       throws UnsupportedCodeException {
-    logger.logf(level, "%s :: starting, bsme=%s", this, id(pBsme.getState()));
+    logger.logf(level, "%s :: missing block, bsme=%s", this, id(pBsme.getState()));
 
     if (targetStateFound) {
       logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
@@ -424,6 +424,7 @@ class ReachedSetExecutor {
     if (rs.getWaitlist().isEmpty()) {
       // optimization: if no further states are waiting, no need to schedule the current RSE.
       // when sub-analysis is finished, the current analysis is re-started.
+      logger.logf(level, "%s :: not scheduling self, emtpy waitlist", this);
     } else {
       // register current RSE for further analysis.
       // this step results in 'parallel' execution of current analysis and sub-analysis.
