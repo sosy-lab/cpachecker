@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.base.Function;
 import java.util.Optional;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,7 +40,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
-  private final BAMPCCManager bamPccManager;
+  @Nullable private final BAMPCCManager bamPccManager;
   private final BAMDataManager data;
   private final LogManager logger;
   private final BlockPartitioning blockPartitioning;
@@ -47,7 +48,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   public BAMPrecisionAdjustment(
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       BAMDataManager pData,
-      BAMPCCManager pBamPccManager,
+      @Nullable BAMPCCManager pBamPccManager,
       LogManager pLogger,
       BlockPartitioning pBlockPartitioning) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
@@ -87,7 +88,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       return result;
     }
 
-    if (bamPccManager.isPCCEnabled()) {
+    if (bamPccManager != null && bamPccManager.isPCCEnabled()) {
       result = result
           .map(
               t -> t.withAbstractState(

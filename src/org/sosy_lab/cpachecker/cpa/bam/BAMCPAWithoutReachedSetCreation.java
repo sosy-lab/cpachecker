@@ -66,6 +66,12 @@ public class BAMCPAWithoutReachedSetCreation extends AbstractBAMCPA {
     return new BAMTransferRelationWithoutReachedSetCreation(this, shutdownNotifier);
   }
 
+  @Override
+  public BAMPrecisionAdjustment getPrecisionAdjustment() {
+    return new BAMPrecisionAdjustment(
+        getWrappedCpa().getPrecisionAdjustment(), data, null, logger, blockPartitioning);
+  }
+
   public BAMCache getCache() {
     return cache;
   }
