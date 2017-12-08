@@ -85,15 +85,15 @@ public interface BAMDataManager {
   List<AbstractState> getExpandedStatesList(AbstractState state);
 
   /**
-   * Add a mapping of a non-reduced abstract state and reduced exit state to a reached-set whose
-   * first state is the matching reduced abstract state. The exit state should be contained in the
-   * reached-set.
+   * Add a mapping of a non-reduced abstract state and non-expanded exit state to a reached-set
+   * whose first state is the matching reduced abstract state. The exit state should be contained in
+   * the reached-set.
    */
   void registerInitialState(AbstractState state, AbstractState exitState, ReachedSet reachedSet);
 
   /**
-   * Receive the reached-set for a non-reduced initial state. We expect that the given abstract
-   * state has a matching reached-set.
+   * Receive the reached-set for a non-reduced initial state with a non-expanded exit-state. We
+   * expect that the given abstract state has a matching reached-set.
    */
   ReachedSet getReachedSetForInitialState(AbstractState state, AbstractState exitState);
 

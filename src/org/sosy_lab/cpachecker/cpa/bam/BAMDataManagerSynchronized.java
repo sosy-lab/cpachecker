@@ -178,4 +178,11 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
     //Not sure how the option works with ParallelBAM
     return false;
   }
+
+  @Override
+  public String toString() {
+    synchronized (this) {
+      return manager.toString();
+    }
+  }
 }
