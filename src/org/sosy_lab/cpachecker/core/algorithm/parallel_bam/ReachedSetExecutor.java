@@ -210,7 +210,7 @@ class ReachedSetExecutor {
 
       logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
 
-    } catch (Exception e) {
+    } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
       logger.logException(level, e, e.getClass().getName());
       terminateAnalysis.set(true);
       error.set(e);
