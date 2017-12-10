@@ -522,9 +522,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
    * @param truthAssumption indicates if we are in the then or the else branch of an assumption
    * @return an OctState or null
    */
-  private Set<ApronState> handleLiteralBooleanExpression(long value, boolean truthAssumption, ApronState state) {
+  private Set<ApronState> handleLiteralBooleanExpression(
+      long value, boolean truthAssumption, ApronState pState) {
     if ((value != 0) == truthAssumption) {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     } else {
       return Collections.emptySet();
     }
@@ -805,7 +806,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     throw new UnrecognizedCCodeException("unknown statement", cfaEdge, statement);
   }
 
-  private MemoryLocation buildVarName(CLeftHandSide left, String functionName) {
+  private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
     String variableName = null;
     if (left instanceof CArraySubscriptExpression) {
       variableName = ((CArraySubscriptExpression) left).getArrayExpression().toASTString();
@@ -818,7 +819,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(functionName, variableName);
+      return MemoryLocation.valueOf(pFunctionName, variableName);
     } else {
       return MemoryLocation.valueOf(variableName);
     }
