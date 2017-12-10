@@ -113,6 +113,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         new ReachedSetExecutor(
             bamcpa,
             mainReachedSet,
+            bamcpa.getBlockPartitioning().getMainBlock(),
             mainReachedSet,
             reachedSetMapping,
             pool,

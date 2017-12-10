@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,6 +81,9 @@ class ReachedSetExecutor {
   /** the working reached-set, single-threaded access. */
   private final ReachedSet rs;
 
+  /** the block for the working reached-set. */
+  private final Block block;
+
   /** the working algorithm for the reached-set, single-threaded access. */
   private final CPAAlgorithm algorithm;
 
@@ -123,12 +127,10 @@ class ReachedSetExecutor {
   private final Multimap<ReachedSetExecutor, AbstractState> dependingFrom =
       LinkedHashMultimap.create();
 
-  /** We need to track some data to avoid circular dependencies with recursive function-calls. */
-  private final Set<Block> surroundingBlocks = new LinkedHashSet<>();
-
   public ReachedSetExecutor(
       BAMCPAWithoutReachedSetCreation pBamCpa,
       ReachedSet pRs,
+      Block pBlock,
       ReachedSet pMainReachedSet,
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
       ExecutorService pPool,
@@ -140,6 +142,7 @@ class ReachedSetExecutor {
       LogManager pLogger) {
     bamcpa = pBamCpa;
     rs = pRs;
+    block = pBlock;
     mainReachedSet = pMainReachedSet;
     reachedSetMapping = pReachedSetMapping;
     pool = pPool;
@@ -153,6 +156,9 @@ class ReachedSetExecutor {
     algorithm = algorithmFactory.newInstance();
 
     logger.logf(level, "%s :: creating RSE", this);
+
+    assert pBlock == getBlockForState(pRs.getFirstState());
+    assert !pReachedSetMapping.containsKey(pRs);
   }
 
   public Runnable asRunnable() {
@@ -371,10 +377,6 @@ class ReachedSetExecutor {
     synchronized (subRse.dependingFrom) {
       subRse.dependingFrom.put(this, pBsme.getState());
     }
-    synchronized (subRse.surroundingBlocks) {
-      subRse.surroundingBlocks.addAll(surroundingBlocks);
-      subRse.surroundingBlocks.add(pBsme.getBlock());
-    }
   }
 
   /**
@@ -438,8 +440,15 @@ class ReachedSetExecutor {
     }
   }
 
+  /** We need to traverse the RSEs whether there is a cyclic dependency. */
   private boolean hasRecursion(CFANode pEntryLocation) {
-    return Iterables.any(surroundingBlocks, b -> b.getCallNodes().contains(pEntryLocation));
+    synchronized (reachedSetMapping) {
+      // TODO correct lock? we need to avoid RSE-creation during traversal.
+      return Iterables.any(
+          Traverser.<ReachedSetExecutor>forGraph(rse -> rse.dependingFrom.keys())
+              .breadthFirst(this),
+          rse -> rse.block.getCallNodes().contains(pEntryLocation));
+    }
   }
 
   private void scheduleSubAnalysis(BlockSummaryMissingException pBsme,
@@ -495,6 +504,7 @@ class ReachedSetExecutor {
           new ReachedSetExecutor(
               bamcpa,
               newRs,
+              pBsme.getBlock(),
               mainReachedSet,
               reachedSetMapping,
               pool,
