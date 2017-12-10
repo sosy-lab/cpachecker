@@ -101,9 +101,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(final ReachedSet mainReachedSet)
       throws CPAException, InterruptedException {
 
-    //    boolean targetStateFound = false;
-
-    Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
+    final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
         new HashMap<>();
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
@@ -111,20 +109,20 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final AtomicReference<Throwable> error = new AtomicReference<>(null);
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
 
+    ReachedSetExecutor rse =
+        new ReachedSetExecutor(
+            bamcpa,
+            mainReachedSet,
+            mainReachedSet,
+            reachedSetMapping,
+            pool,
+            algorithmFactory,
+            shutdownNotifier,
+            stats,
+            error,
+            terminateAnalysis,
+            logger);
     synchronized (reachedSetMapping) {
-      ReachedSetExecutor rse =
-          new ReachedSetExecutor(
-              bamcpa,
-              mainReachedSet,
-              mainReachedSet,
-              reachedSetMapping,
-              pool,
-              algorithmFactory,
-              shutdownNotifier,
-              stats,
-              error,
-              terminateAnalysis,
-              logger);
       CompletableFuture<Void> future = CompletableFuture.runAsync(rse.asRunnable(), pool);
       reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
     }
@@ -139,6 +137,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         // in case of problems we must kill the thread pool,
         // otherwise we have a running daemon thread and CPAchecker does not terminate.
         logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+        logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
         isSound = false;
         pool.shutdownNow();
       }

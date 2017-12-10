@@ -25,15 +25,18 @@ package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -541,6 +544,21 @@ class ReachedSetExecutor {
   @Override
   public String toString() {
     return "RSE " + idd();
+  }
+
+  /** for debugging */
+  String getDependenciesAsDot() {
+    final List<String> dependencies = new ArrayList<>();
+    synchronized (reachedSetMapping) {
+      for (ReachedSetExecutor rse :
+          Collections2.transform(reachedSetMapping.values(), Pair::getFirst)) {
+        for (ReachedSetExecutor dependentRse : rse.dependingFrom.keys()) {
+          dependencies.add(String.format("\"%s\" -> \"%s\"", rse, dependentRse));
+        }
+      }
+    }
+    Collections.sort(dependencies); // for deterministic dot-graphs
+    return "digraph DEPENDENCIES {\n  " + Joiner.on(";\n  ").join(dependencies) + ";\n}\n";
   }
 
   class ExceptionHandler implements Function<Throwable, Void> {
