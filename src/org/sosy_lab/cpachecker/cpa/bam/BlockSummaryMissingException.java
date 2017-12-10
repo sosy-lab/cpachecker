@@ -48,7 +48,7 @@ public final class BlockSummaryMissingException extends CPATransferException {
       Precision pReducedPrecision,
       Block pBlock,
       ReachedSet pReachedSet) {
-    super("block start found");
+    super("block entry found, block summary not available");
     state = checkNotNull(pState);
     reducedState = checkNotNull(pReducedState);
     reducedPrecision = checkNotNull(pReducedPrecision);
@@ -80,5 +80,12 @@ public final class BlockSummaryMissingException extends CPATransferException {
   public synchronized Throwable fillInStackTrace() {
     // overridden for performance issues, creating stacktrace is expensive and not needed here.
     return this;
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "missing block summary for state %s with reduced state %s at block entry %s",
+        state, reducedState, block.getCallNodes());
   }
 }
