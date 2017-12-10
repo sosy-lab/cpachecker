@@ -313,10 +313,11 @@ class ReachedSetExecutor {
 
     AbstractState reducedInitialState = rs.getFirstState();
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
-    Block block = getBlockForState(reducedInitialState);
-    final Collection<AbstractState> exitStates = extractExitStates(pEndsWithTargetState, block);
+    Block innerBlock = getBlockForState(reducedInitialState);
+    final Collection<AbstractState> exitStates =
+        extractExitStates(pEndsWithTargetState, innerBlock);
     Pair<ReachedSet, Collection<AbstractState>> check =
-        bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, block);
+        bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert check.getFirst() == rs
         : String.format(
             "reached-set for initial state should be unique: current rs = %s, cached entry = %s",
@@ -328,7 +329,9 @@ class ReachedSetExecutor {
               id(rs),
               Collections2.transform(exitStates, s -> id(s)),
               Collections2.transform(check.getSecond(), s -> id(s)));
-      bamcpa.getCache().put(reducedInitialState, reducedInitialPrecision, block, exitStates, null);
+      bamcpa
+          .getCache()
+          .put(reducedInitialState, reducedInitialPrecision, innerBlock, exitStates, null);
     }
   }
 
