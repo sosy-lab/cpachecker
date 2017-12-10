@@ -129,6 +129,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
     }
 
+    boolean isSound = true;
     try {
       // TODO set timelimit to global limit minus overhead?
       pool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
@@ -138,6 +139,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         // in case of problems we must kill the thread pool,
         // otherwise we have a running daemon thread and CPAchecker does not terminate.
         logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+        isSound = false;
         pool.shutdownNow();
       }
     }
@@ -153,7 +155,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     assert BAMReachedSetValidator.validateData(
         bamcpa.getData(), bamcpa.getBlockPartitioning(), new ARGReachedSet(mainReachedSet));
 
-    return AlgorithmStatus.SOUND_AND_PRECISE;
+    return AlgorithmStatus.SOUND_AND_PRECISE.withSound(isSound);
   }
 
   private int getNumberOfCores() {
