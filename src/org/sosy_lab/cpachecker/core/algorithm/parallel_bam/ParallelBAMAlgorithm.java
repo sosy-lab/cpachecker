@@ -56,7 +56,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSetValidator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -147,6 +149,9 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     //            && dependencyGraph.dependsFrom.isEmpty()) : "dependencyGraph:" + dependencyGraph;
 
     //    readdStatesToWaitlists(dependencyGraph);
+
+    assert BAMReachedSetValidator.validateData(
+        bamcpa.getData(), bamcpa.getBlockPartitioning(), new ARGReachedSet(mainReachedSet));
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
