@@ -48,7 +48,9 @@ public class BAMReachedSetValidator {
 
     ARGState mainEntry = (ARGState) mainReachedSet.asReachedSet().getFirstState();
     assert mainEntry.getParents().isEmpty();
-    assert !data.hasInitialState(mainEntry) : "main entry should not be reduced";
+
+    // for recursive programs, we use also reduce the main-block.
+    // assert !data.hasInitialState(mainEntry) : "main entry should not be reduced";
 
     Collection<ReachedSet> reachedSets = data.getCache().getAllCachedReachedStates();
 
