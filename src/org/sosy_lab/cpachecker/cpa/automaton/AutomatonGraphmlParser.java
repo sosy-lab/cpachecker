@@ -476,21 +476,24 @@ public class AutomatonGraphmlParser {
     // Add a source-code guard for a specified loop head
     if (pTransition.entersLoopHead()) {
       // Unfortunately, we have a blank edge entering most of our loop heads;
-      // (a) sometimes the transition needs to match the successor state to the loop head,
-      // (b) sometimes the transition needs to match the edge before the blank edge,
+      // (a) sometimes the transition needs to match the edge before the blank edge,
+      // (b) sometimes the transition needs to match the successor state to the loop head,
       // sometimes the transition even needs to match "both" of the above.
       // Therefore, we do exactly that (match "both");
       conditionTransformations.add(
           condition -> {
             AutomatonBoolExpr conditionA =
                 and(
-                    AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(condition, true),
-                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-            AutomatonBoolExpr conditionB =
-                and(
                     condition,
                     AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
                         AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
+            if (pTransition.getTarget().getInvariants().isEmpty()) {
+              return conditionA;
+            }
+            AutomatonBoolExpr conditionB =
+                and(
+                    AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(condition, true),
+                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
             return or(conditionA, conditionB);
           });
     }
