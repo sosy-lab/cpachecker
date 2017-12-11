@@ -61,6 +61,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -948,16 +949,15 @@ public class AutomatonGraphmlCommon {
     if (!operands.contains(value)) {
       flip = true;
     }
-    if (Arrays.asList(
-            BinaryOperator.NOT_EQUALS,
-            org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS)
-        .contains(terminationValueAssumeBinExpr.getOperator())) {
+    ABinaryOperator operator = terminationValueAssumeBinExpr.getOperator();
+    if (operator.equals(BinaryOperator.NOT_EQUALS)
+        || operator.equals(
+            org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS)) {
       return flip ^ !terminationValueAssumption.getTruthAssumption();
     }
-    if (Arrays.asList(
-            BinaryOperator.EQUALS,
-            org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS)
-        .contains(terminationValueAssumeBinExpr.getOperator())) {
+    if (operator.equals(BinaryOperator.EQUALS)
+        || operator.equals(
+            org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS)) {
       return flip ^ terminationValueAssumption.getTruthAssumption();
     }
     return false;
