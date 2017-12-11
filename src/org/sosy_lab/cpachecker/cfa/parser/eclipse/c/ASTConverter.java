@@ -1560,7 +1560,24 @@ class ASTConverter {
     if (declarators != null) {
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclaration(fileLoc, cStorageClass, type, c));
+        FileLocation declaratorLocation = getLocation(c);
+        if (FileLocation.DUMMY.equals(declaratorLocation)) {
+          declaratorLocation = fileLoc;
+        } else if (c == declarators[0]) {
+          declaratorLocation =
+              new FileLocation(
+                  fileLoc.getFileName(),
+                  fileLoc.getNiceFileName(),
+                  fileLoc.getNodeOffset(),
+                  declaratorLocation.getNodeOffset()
+                      - fileLoc.getNodeOffset()
+                      + declaratorLocation.getNodeLength(),
+                  fileLoc.getStartingLineNumber(),
+                  declaratorLocation.getEndingLineNumber(),
+                  fileLoc.getStartingLineInOrigin(),
+                  fileLoc.getEndingLineInOrigin());
+        }
+        result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
       }
     }
 
