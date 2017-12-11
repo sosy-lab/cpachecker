@@ -161,7 +161,7 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
             self.aux_root, 'aa_three_paths_else_return_not_covered.spc')
         specs_dir = os.path.join(
             self.aux_root, 'cex_three_paths', 'outer_else_block')
-        
+
         with patch.object(self.logger, 'info') as mock_info:
             self.logger.setLevel(logging.DEBUG)
             c = generate_coverage.CollectFromExistingExecutions(
@@ -593,7 +593,9 @@ class TestCoverageIntegrationTimeout(TestCoverage):
         ]]
         start_time = time.time()
         lines_covered = 0
+        log = []
         def side_effect(info_msg):
+            log.append(info_msg)
             import re
             nonlocal lines_covered
             m = re.search(pattern="Total lines covered: (.*)", string=info_msg)
@@ -604,10 +606,10 @@ class TestCoverageIntegrationTimeout(TestCoverage):
             mock_info.side_effect = side_effect
             generate_coverage.main(argv, self.logger)
             self.assertEqual(mock_error.mock_calls, [])
-        self.assertGreater(lines_covered, 0)
-        self.assertGreater(25, lines_covered)
         elapsed_time = time.time() - start_time
-        self.assertGreater(2 * timelimit, elapsed_time)
+        self.assertGreater(2 * timelimit, elapsed_time, msg="Timeout occured, log was:\n" + "\n".join(log))
+        self.assertGreater(lines_covered, 0, msg="Unexpected negative number for line coverage, log was:\n" + "\n".join(log))
+        self.assertGreater(25, lines_covered, msg="Unexpectedly low number of covered lines , log was:\n" + "\n".join(log))
 
 if __name__ == '__main__':
     unittest.main()
