@@ -179,6 +179,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
+    final AtomicBoolean timeoutAlreadyLogged = new AtomicBoolean(false);
 
     pReachedSetMapping
         .entrySet()
@@ -203,8 +204,11 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
               } catch (RejectedExecutionException e) {
                 logger.log(Level.SEVERE, e);
               } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                logger.log(Level.SEVERE, e);
-                error.compareAndSet(null, e);
+                boolean wasAlreadyLogged = timeoutAlreadyLogged.getAndSet(true);
+                if (!wasAlreadyLogged) {
+                  logger.log(Level.SEVERE, e);
+                  error.compareAndSet(null, e);
+                }
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
             });
