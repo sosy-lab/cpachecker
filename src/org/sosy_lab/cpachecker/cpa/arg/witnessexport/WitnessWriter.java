@@ -549,7 +549,7 @@ class WitnessWriter implements EdgeAppender {
       result = result.putAndCopy(KeyDef.FUNCTIONEXIT, getOriginalFunctionName(functionName));
     }
 
-    if (pEdge instanceof AssumeEdge) {
+    if (pEdge instanceof AssumeEdge && !AutomatonGraphmlCommon.isPartOfTerminatingAssume(pEdge)) {
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
       // Check if the assume edge is an artificial edge introduced for pointer-calls
       if (CFAUtils.leavingEdges(assumeEdge.getPredecessor())

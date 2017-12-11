@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -62,16 +63,19 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -82,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -866,6 +871,96 @@ public class AutomatonGraphmlCommon {
       return false;
     }
     return ((AssumeEdge) pEdge).isArtificialIntermediate();
+  }
+
+  public static boolean isPartOfTerminatingAssume(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+    AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
+    if (assumeEdge.getSuccessor() instanceof CFATerminationNode
+        || siblingEdge.getSuccessor() instanceof CFATerminationNode) {
+      return true;
+    }
+    return isTerminatingAssume(assumeEdge) || isTerminatingAssume(siblingEdge);
+  }
+
+  private static boolean isTerminatingAssume(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+
+    // Check if the subsequent edge matches the termination-value assignment
+    FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(assumeEdge.getSuccessor());
+    if (leavingEdges.size() != 1) {
+      return false;
+    }
+    CFAEdge leavingEdge = leavingEdges.iterator().next();
+    if (!(leavingEdge instanceof AStatementEdge)) {
+      return false;
+    }
+    AStatementEdge terminationValueAssignmentEdge = (AStatementEdge) leavingEdge;
+    AStatement statement = terminationValueAssignmentEdge.getStatement();
+    if (!(statement instanceof AExpressionAssignmentStatement)) {
+      return false;
+    }
+    AExpressionAssignmentStatement terminationValueAssignment =
+        (AExpressionAssignmentStatement) statement;
+    ALeftHandSide lhs = terminationValueAssignment.getLeftHandSide();
+    AExpression rhs = terminationValueAssignment.getRightHandSide();
+    if (!(lhs instanceof AIdExpression && rhs instanceof ALiteralExpression)) {
+      return false;
+    }
+    AIdExpression idExpression = (AIdExpression) lhs;
+    if (!idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+      return false;
+    }
+    ALiteralExpression value = (ALiteralExpression) rhs;
+
+    // Now check if this is followed by a terminating assume
+    leavingEdges = CFAUtils.leavingEdges(terminationValueAssignmentEdge.getSuccessor());
+    if (leavingEdges.size() != 2) {
+      return false;
+    }
+    com.google.common.base.Optional<CFAEdge> potentialTerminationValueAssumeEdge =
+        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode);
+    if (!potentialTerminationValueAssumeEdge.isPresent()
+        || !(potentialTerminationValueAssumeEdge.get() instanceof AssumeEdge)) {
+      return false;
+    }
+    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.get();
+    AExpression terminationValueAssumeExpression = terminationValueAssumption.getExpression();
+    if (!(terminationValueAssumeExpression instanceof ABinaryExpression)) {
+      return false;
+    }
+    ABinaryExpression terminationValueAssumeBinExpr =
+        (ABinaryExpression) terminationValueAssumeExpression;
+    List<AExpression> operands =
+        Arrays.asList(
+            terminationValueAssumeBinExpr.getOperand1(),
+            terminationValueAssumeBinExpr.getOperand2());
+    if (!operands.contains(idExpression)) {
+      return false;
+    }
+    boolean flip = false;
+    if (!operands.contains(value)) {
+      flip = true;
+    }
+    if (Arrays.asList(
+            BinaryOperator.NOT_EQUALS,
+            org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS)
+        .contains(terminationValueAssumeBinExpr.getOperator())) {
+      return flip ^ !terminationValueAssumption.getTruthAssumption();
+    }
+    if (Arrays.asList(
+            BinaryOperator.EQUALS,
+            org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS)
+        .contains(terminationValueAssumeBinExpr.getOperator())) {
+      return flip ^ terminationValueAssumption.getTruthAssumption();
+    }
+    return false;
   }
 
   private static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
