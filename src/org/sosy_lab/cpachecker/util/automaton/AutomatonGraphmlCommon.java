@@ -62,12 +62,14 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -102,6 +104,7 @@ import org.w3c.dom.Node;
 
 public class AutomatonGraphmlCommon {
 
+  private static final String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
   public static final String SINK_NODE_ID = "sink";
 
   public static enum AssumeCase {
@@ -526,7 +529,7 @@ public class AutomatonGraphmlCommon {
         return true;
       } else if (decl instanceof CVariableDeclaration) {
         CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-        if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
+        if (varDecl.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
         if (isSplitDeclaration(edge)) {
@@ -537,6 +540,19 @@ public class AutomatonGraphmlCommon {
       return true;
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
       return true;
+    } else if (edge instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) edge;
+      AStatement statement = statementEdge.getStatement();
+      if (statement instanceof AExpressionStatement) {
+        AExpressionStatement expressionStatement = (AExpressionStatement) statement;
+        AExpression expression = expressionStatement.getExpression();
+        if (expression instanceof AIdExpression) {
+          AIdExpression idExpression = (AIdExpression) expression;
+          if (idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+            return true;
+          }
+        }
+      }
     }
 
     return false;
