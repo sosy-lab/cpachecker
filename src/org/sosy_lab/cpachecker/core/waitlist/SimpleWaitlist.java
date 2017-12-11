@@ -24,17 +24,15 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 
 /**
- * Waitlist implementation that supports either a breadth-first (BFS) or
- * depth-first (DFS) strategy for pop().
+ * Waitlist implementation that supports either a breadth-first (BFS) or depth-first (DFS) strategy
+ * for pop().
  */
-public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
+public class SimpleWaitlist extends AbstractWaitlist<Deque<WaitlistElement>> {
 
   private final TraversalMethod traversal;
 
@@ -45,7 +43,7 @@ public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
   }
 
   @Override
-  public AbstractState pop() {
+  public WaitlistElement pop() {
     switch (traversal) {
     case BFS:
       return waitlist.removeFirst();

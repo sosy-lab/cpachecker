@@ -24,14 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlistWithAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
+public class AutomatonVariableWaitlist extends AbstractSortedWaitlistWithAbstractState<Integer> {
 
   private final String variableId;
 
-  private AutomatonVariableWaitlist(WaitlistFactory pSecondaryStrategy, String pVariableId) {
+  private AutomatonVariableWaitlist(
+      WaitlistFactory pSecondaryStrategy, String pVariableId) {
     super(pSecondaryStrategy);
     this.variableId = pVariableId;
   }
@@ -49,7 +50,8 @@ public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
     return sortKey;
   }
 
-  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy, final String pVariableId) {
+  public static WaitlistFactory factory(
+      final WaitlistFactory pSecondaryStrategy, final String pVariableId) {
     return () -> new AutomatonVariableWaitlist(pSecondaryStrategy, pVariableId);
   }
 }

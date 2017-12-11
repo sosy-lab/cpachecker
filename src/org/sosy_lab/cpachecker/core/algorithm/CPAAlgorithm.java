@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.util.ArrayList;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -118,18 +120,19 @@ public class CPAAlgorithm extends AbstractCPAAlgorithm {
 
   @Override
   protected Collection<Pair<? extends AbstractState, ? extends Precision>> getAbstractSuccessors(
-      Collection<Pair<AbstractState, Precision>> pPairSet)
+      WaitlistElement pElement)
       throws CPATransferException, InterruptedException {
 
     //TODO Array?
-    List<Pair<? extends AbstractState, ? extends Precision>> result = new ArrayList<>();
-    for (Pair<AbstractState, Precision> pair : pPairSet) {
-      AbstractState state = pair.getFirst();
-      Precision prec = pair.getSecond();
-      Collection<? extends AbstractState> successors =
-          transferRelation.getAbstractSuccessors(state, prec);
-      successors.forEach(s -> result.add(Pair.of(s, prec)));
-    }
+    Preconditions.checkArgument(pElement instanceof DefaultWaitlistElement);
+
+    Collection<Pair<? extends AbstractState, ? extends Precision>> result = Sets.newHashSet();
+    DefaultWaitlistElement element = (DefaultWaitlistElement) pElement;
+    AbstractState state = element.getAbstractState();
+    Precision prec = element.getPrecision();
+    Collection<? extends AbstractState> successors =
+        transferRelation.getAbstractSuccessors(state, prec);
+    successors.forEach(s -> result.add(Pair.of(s, prec)));
 
     return result;
   }

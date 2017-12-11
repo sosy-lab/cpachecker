@@ -32,11 +32,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * States with a more/less (depending on the used factory method) loop iterations are considered
  * first.
  */
-public class LoopIterationSortedWaitlist extends AbstractSortedWaitlist<Integer> {
+public class LoopIterationSortedWaitlist extends AbstractSortedWaitlistWithAbstractState<Integer> {
   private final int multiplier;
 
-  private LoopIterationSortedWaitlist(WaitlistFactory pSecondaryStrategy,
-      int pMultiplier) {
+  private LoopIterationSortedWaitlist(WaitlistFactory pSecondaryStrategy, int pMultiplier) {
     super(pSecondaryStrategy);
     multiplier = pMultiplier;
   }
@@ -53,8 +52,7 @@ public class LoopIterationSortedWaitlist extends AbstractSortedWaitlist<Integer>
     return () -> new LoopIterationSortedWaitlist(pSecondaryStrategy, 1);
   }
 
-  public static WaitlistFactory reversedFactory(
-      final WaitlistFactory pSecondaryStrategy) {
+  public static WaitlistFactory reversedFactory(final WaitlistFactory pSecondaryStrategy) {
     return () -> new LoopIterationSortedWaitlist(pSecondaryStrategy, -1);
   }
 }

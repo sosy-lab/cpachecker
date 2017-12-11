@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 
-public class ReversePostorderSortedWaitlist
-    extends AbstractSortedWaitlistWithAbstractState<Integer> {
+public abstract class AbstractSortedWaitlistWithAbstractState<K extends Comparable<K>>
+    extends AbstractSortedWaitlist<K> {
 
-  protected ReversePostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+  protected AbstractSortedWaitlistWithAbstractState(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
   }
 
-  /*@Override
-  public void add(AbstractState pState) {
-    assert AbstractStates.extractLocation(pState) != null;
-    super.add(pState);
-  }*/
-
   @Override
-  protected Integer getSortKey(AbstractState pState) {
-    return AbstractStates.extractLocation(pState).getReversePostorderId();
+  protected K getSortKey(WaitlistElement pState) {
+    Preconditions.checkArgument(pState instanceof WaitlistElementWithAbstractState);
+    return getSortKey(((WaitlistElementWithAbstractState) pState).getAbstractState());
   }
 
-  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return () -> new ReversePostorderSortedWaitlist(pSecondaryStrategy);
-  }
+  protected abstract K getSortKey(AbstractState pState);
 }

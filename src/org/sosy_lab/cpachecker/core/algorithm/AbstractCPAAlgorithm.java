@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Functions;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -54,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PseudoPartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -236,34 +235,25 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       stats.countWaitlistSize += size;
 
       stats.chooseTimer.start();
-      final Collection<AbstractState> states = reachedSet.popFromWaitlist();
-      // TODO Include calculation of pair set into pop?
-      final Collection<Pair<AbstractState, Precision>> pairSet = getPairSet(reachedSet, states);
+      final WaitlistElement element = reachedSet.popFromWaitlist();
       stats.chooseTimer.stop();
 
       logger.log(Level.FINER, "Retrieved state from waitlist");
       try {
-        if (handleTransition(pairSet, reachedSet)) {
+        if (handleTransition(element, reachedSet)) {
           // Prec operator requested break
           return status;
         }
       } catch (Exception e) {
         // re-add the old state to the waitlist, there might be unhandled successors left
         // that otherwise would be forgotten (which would be unsound)
-        reachedSet.reAddToWaitlist(states);
+        reachedSet.reAddToWaitlist(element);
         throw e;
       }
 
     }
 
     return status;
-  }
-
-  private Collection<Pair<AbstractState, Precision>> getPairSet(
-      final ReachedSet pReachedSet, Collection<AbstractState> pStates) {
-    return from(pStates)
-        .transform(s -> Pair.of(s, pReachedSet.getPrecision(s)))
-        .toSet();
   }
 
   /**
@@ -274,8 +264,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
    * @param reachedSet The reached set.
    * @return true if analysis should terminate, false if analysis should continue with next state
    */
-  private boolean handleTransition(
-      Collection<Pair<AbstractState, Precision>> pairSet, final ReachedSet reachedSet)
+  private boolean handleTransition(WaitlistElement element, final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
 
     // TODO
@@ -297,9 +286,9 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
     }*/
 
     stats.transferTimer.start();
-    Collection<Pair<? extends AbstractState, ? extends Precision>> successorSet;
+    Collection<Pair<? extends AbstractState, ? extends Precision>> successors;
     try {
-      successorSet = getAbstractSuccessors(pairSet);
+      successors = getAbstractSuccessors(element);
     } finally {
       stats.transferTimer.stop();
     }
@@ -307,12 +296,13 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
     // TODO When we have a nice way to mark the analysis result as incomplete,
     // we could continue analysis on a CPATransferException with the next state from waitlist.
 
-    int numSuccessors = successorSet.size();
+    int numSuccessors = successors.size();
     logger.log(Level.FINER, "Current state has", numSuccessors, "successors");
     stats.countSuccessors += numSuccessors;
     stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-    for (Iterator<Pair<? extends AbstractState, ? extends Precision>> it = successorSet.iterator(); it.hasNext(); ) {
+    for (Iterator<Pair<? extends AbstractState, ? extends Precision>> it = successors.iterator(); it.hasNext();) {
+
       Pair<? extends AbstractState, ? extends Precision> pair = it.next();
       AbstractState successor = pair.getFirst();
       Precision precision = pair.getSecond();
@@ -365,9 +355,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
           if (it.hasNext()) {
             // re-add the old state to the waitlist, there are unhandled
             // successors left that otherwise would be forgotten
-            reachedSet.reAddToWaitlist(from(pairSet)
-                .transform(p -> p.getFirst())
-                .toSet());
+            reachedSet.reAddToWaitlist(element);
           }
 
           return true;
@@ -451,7 +439,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       List<Pair<AbstractState, Precision>> pToAdd);
 
   protected abstract Collection<Pair<? extends AbstractState, ? extends Precision>> getAbstractSuccessors(
-      Collection<Pair<AbstractState, Precision>> pairSet)
+      WaitlistElement element)
       throws CPATransferException, InterruptedException;
 
 

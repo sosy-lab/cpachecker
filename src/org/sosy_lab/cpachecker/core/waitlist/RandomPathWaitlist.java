@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.LinkedList;
 import java.util.Random;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.RandomProvider;
 
@@ -44,7 +47,8 @@ import org.sosy_lab.cpachecker.util.RandomProvider;
   justification = "warnings is only because of casts introduced by generics"
 )
 @SuppressWarnings("JdkObsolete")
-public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
+public class RandomPathWaitlist
+    extends AbstractWaitlist<LinkedList<WaitlistElement>> {
 
   private final Random rand = RandomProvider.get();
   private int successorsOfParent;
@@ -56,8 +60,10 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   }
 
   @Override
-  public void add(AbstractState pStat) {
-    super.add(pStat);
+  public void add(WaitlistElement pElement) {
+    super.add(pElement);
+    Preconditions.checkArgument(pElement instanceof WaitlistElementWithAbstractState);
+    AbstractState pStat = ((WaitlistElementWithAbstractState) pElement).getAbstractState();
     CFANode location = AbstractStates.extractLocation(pStat);
     if (parent == null || (!parent.hasEdgeTo(location))) {
       parent = location;
@@ -69,7 +75,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
 
 
   @Override
-  public AbstractState pop() {
+  public WaitlistElement pop() {
     AbstractState state;
     if (waitlist.size() < 2 || successorsOfParent < 2) {
       state = waitlist.getLast();

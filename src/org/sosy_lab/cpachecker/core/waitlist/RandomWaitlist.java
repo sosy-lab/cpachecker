@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.LinkedList;
 import java.util.Random;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.util.RandomProvider;
 
 /** Waitlist implementation that considers states in a random order for pop(). */
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.RandomProvider;
   justification = "warnings is only because of casts introduced by generics"
 )
 @SuppressWarnings("JdkObsolete")
-public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
+public class RandomWaitlist extends AbstractWaitlist<LinkedList<WaitlistElement>> {
 
   private final Random rand = RandomProvider.get();
 
@@ -44,7 +44,7 @@ public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> 
   }
 
   @Override
-  public AbstractState pop() {
+  public WaitlistElement pop() {
     int r = rand.nextInt(waitlist.size());
     return waitlist.remove(r);
   }

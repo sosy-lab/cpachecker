@@ -27,8 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-
-public class AutomatonMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
+public class AutomatonMatchesWaitlist extends AbstractSortedWaitlistWithAbstractState<Integer> {
 
   protected AutomatonMatchesWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.OrderStatisticMap;
 import org.sosy_lab.cpachecker.util.OrderStatisticMap.OrderStatisticsMapProxy;
 import org.sosy_lab.cpachecker.util.RandomProvider;
 
-@Options(prefix="analysis.traversal.random")
+@Options(prefix = "analysis.traversal.random")
 public class WeightedRandomWaitlist implements Waitlist {
 
   @Option(secure=true, description="Exponent of random function."
@@ -53,8 +53,8 @@ public class WeightedRandomWaitlist implements Waitlist {
 
   private Configuration config;
 
-  public WeightedRandomWaitlist(Comparator<AbstractState> pComparator, WaitlistFactory pFactory,
-                                Configuration pConfig)
+  public WeightedRandomWaitlist(
+      Comparator<AbstractState> pComparator, WaitlistFactory pFactory, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this, WeightedRandomWaitlist.class);
 
@@ -127,7 +127,7 @@ public class WeightedRandomWaitlist implements Waitlist {
     assert size() > 0;
     int idx = getRandomIndex();
     Preconditions.checkElementIndex(idx, states.size());
-    Waitlist chosenWaitlist = states.getEntryByRank(idx).getValue();
+    Waitlist<AbstractState> chosenWaitlist = states.getEntryByRank(idx).getValue();
     AbstractState poppedState = chosenWaitlist.pop();
     if (chosenWaitlist.isEmpty()) {
       states.removeByRank(idx);
@@ -138,7 +138,7 @@ public class WeightedRandomWaitlist implements Waitlist {
   @Override
   public boolean remove(AbstractState state) {
     if (states.containsKey(state)) {
-      Waitlist containingWaitlist = states.get(state);
+      Waitlist<AbstractState> containingWaitlist = states.get(state);
       boolean removed = containingWaitlist.remove(state);
       if (containingWaitlist.isEmpty()) {
         states.remove(state);
@@ -153,7 +153,7 @@ public class WeightedRandomWaitlist implements Waitlist {
   @Override
   public int size() {
     int sum = 0;
-    for (Waitlist w : states.values()) {
+    for (Waitlist<AbstractState> w : states.values()) {
       sum += w.size();
     }
     return sum;

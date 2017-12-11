@@ -23,21 +23,20 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Interface representing a set of reached states, including storing a
- * precision for each one.
+ * Interface representing a set of reached states, including storing a precision for each one.
  *
- * In all its operations it preserves the order in which the state were added.
- * All the collections returned from methods of this class ensure this ordering, too.
+ * <p>In all its operations it preserves the order in which the state were added. All the
+ * collections returned from methods of this class ensure this ordering, too.
  *
- * Classes implementing this interface may not allow null values for states and precisions.
- * All methods do not return null except when stated explicitly.
+ * <p>Classes implementing this interface may not allow null values for states and precisions. All
+ * methods do not return null except when stated explicitly.
  */
 public interface ReachedSet extends UnmodifiableReachedSet {
 
@@ -58,8 +57,9 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   public void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
-  /** Re-add a state to the waitlist which is already contained in the reached set. */
-  public void reAddToWaitlist(Collection<AbstractState> s);
+  public void reAddToWaitlist(WaitlistElement element);
+
+  public void reAddToWaitlist(AbstractState state);
 
   /**
    * Change the precision of a state that is already in the reached set.
@@ -74,5 +74,5 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   public void clear();
 
-  public Collection<AbstractState> popFromWaitlist();
+  public WaitlistElement popFromWaitlist();
 }

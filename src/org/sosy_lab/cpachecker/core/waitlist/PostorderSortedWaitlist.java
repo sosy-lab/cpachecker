@@ -26,17 +26,17 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class PostorderSortedWaitlist extends AbstractSortedWaitlist<Integer> {
+public class PostorderSortedWaitlist extends AbstractSortedWaitlistWithAbstractState<Integer> {
 
   protected PostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
   }
 
-  @Override
+  /*@Override
   public void add(AbstractState pState) {
     assert AbstractStates.extractLocation(pState) != null;
     super.add(pState);
-  }
+  }*/
 
   @Override
   protected Integer getSortKey(AbstractState pState) {

@@ -23,18 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
- * Implementation of ReachedSet that forwards all calls to another instance.
- * The target instance is changeable. Remembers and provides all instances
- * to which calls are forwarded
+ * Implementation of ReachedSet that forwards all calls to another instance. The target instance is
+ * changeable. Remembers and provides all instances to which calls are forwarded
  */
 public class HistoryForwardingReachedSet extends ForwardingReachedSet {
 
