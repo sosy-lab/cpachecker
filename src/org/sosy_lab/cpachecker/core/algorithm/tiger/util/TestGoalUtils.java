@@ -213,6 +213,11 @@ public class TestGoalUtils {
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
             pOmegaLabel, pUseOmegaLabel);
+
+    if (isFeatureAutomaton(automaton)) {
+      return null;
+    }
+
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
