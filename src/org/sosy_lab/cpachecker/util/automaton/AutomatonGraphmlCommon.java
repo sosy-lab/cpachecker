@@ -639,6 +639,13 @@ public class AutomatonGraphmlCommon {
         return Collections.singleton(location);
       }
     }
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+      ADeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof AVariableDeclaration) {
+        return Collections.singleton(declaration.getFileLocation());
+      }
+    }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
   }
 
