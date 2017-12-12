@@ -127,7 +127,7 @@ public class UseDefRelation {
   public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
-    Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
+    Collection<ASimpleDeclaration> unresolvedUsesOnPath = new HashSet<>();
 
     PathIterator it = path.reverseFullPathIterator();
 
@@ -141,9 +141,9 @@ public class UseDefRelation {
       }
       CFAEdge currentEdge = it.getOutgoingEdge();
 
-      unresolvedUses.removeAll(getDef(currentState, currentEdge));
-      unresolvedUses.addAll(getUses(currentState, currentEdge));
-      expandedUses.put(currentState, new HashSet<>(unresolvedUses));
+      unresolvedUsesOnPath.removeAll(getDef(currentState, currentEdge));
+      unresolvedUsesOnPath.addAll(getUses(currentState, currentEdge));
+      expandedUses.put(currentState, new HashSet<>(unresolvedUsesOnPath));
     }
 
     return expandedUses;

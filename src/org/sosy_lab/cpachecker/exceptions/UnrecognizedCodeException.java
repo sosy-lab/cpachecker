@@ -124,6 +124,7 @@ public class UnrecognizedCodeException extends CPATransferException {
       if (astNode != null) {
         code = astNode.toASTString();
       } else {
+        assert edge != null : "Edge is null";
         code = edge.getCode();
       }
 

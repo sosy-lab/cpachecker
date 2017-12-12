@@ -129,10 +129,10 @@ public class ReachedSetFactory {
 
   private Configuration config;
 
-  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  public ReachedSetFactory(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
 
-    this.config = config;
+    this.config = pConfig;
   }
 
   public ReachedSet create() {

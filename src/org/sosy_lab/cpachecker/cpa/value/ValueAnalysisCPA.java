@@ -136,21 +136,24 @@ public class ValueAnalysisCPA
     transferOptions = new ValueTransferOptions(config);
   }
 
-  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
+      return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
 
     } else {
       // create precision with empty, refinable component precision
-      VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
-                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
+      VariableTrackingPrecision initialPrecision =
+          VariableTrackingPrecision.createRefineablePrecision(
+              pConfig,
+              VariableTrackingPrecision.createStaticPrecision(
+                  pConfig, pCfa.getVarClassification(), getClass()));
       // refine the refinable component precision with increment from file
-      return precision.withIncrement(restoreMappingFromFile(cfa));
+      return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
   }
 
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;
@@ -161,7 +164,7 @@ public class ValueAnalysisCPA
       return mapping;
     }
 
-    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(cfa);
+    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(pCfa);
     final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
 
     CFANode location = getDefaultLocation(idToCfaNode);
@@ -188,9 +191,9 @@ public class ValueAnalysisCPA
     return idToCfaNode.values().iterator().next();
   }
 
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
     Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
-    for (CFANode n : cfa.getAllNodes()) {
+    for (CFANode n : pCfa.getAllNodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;

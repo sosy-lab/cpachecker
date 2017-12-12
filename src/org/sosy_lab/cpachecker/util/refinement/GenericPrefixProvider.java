@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.FluentIterable;
@@ -169,6 +170,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
           // continue with feasible prefix
           if (iterator.hasNext()) {
+            checkState(outgoingEdge != null);
             feasiblePrefixBuilder.add(
                 currentState,
                 new BlankEdge(

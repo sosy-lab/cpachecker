@@ -153,14 +153,14 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
     // create initial state, based on input interpolant, and create initial successor by consuming
     // the next edge
-    S initialState = pInputInterpolant.reconstructState();
+    S stateFromOldInterpolant = pInputInterpolant.reconstructState();
 
     // TODO callstack-management depends on a forward-iteration on a single path.
     // TODO Thus interpolants have to be computed from front to end. Can we assure this?
     final Optional<S> maybeSuccessor;
     if (pCurrentEdge == null) {
       PathIterator it = pOffset.fullPathIterator();
-      Optional<S> intermediate = Optional.of(initialState);
+      Optional<S> intermediate = Optional.of(stateFromOldInterpolant);
       do {
         if (!intermediate.isPresent()) {
           break;
@@ -171,7 +171,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       } while (!it.isPositionWithState());
       maybeSuccessor = intermediate;
     } else {
-      maybeSuccessor = getInitialSuccessor(initialState, pCurrentEdge, pCallstack);
+      maybeSuccessor = getInitialSuccessor(stateFromOldInterpolant, pCurrentEdge, pCallstack);
     }
 
     if (!maybeSuccessor.isPresent()) {
@@ -184,7 +184,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     // in general, this returned interpolant might be stronger than needed, but only in very rare
     // cases, the weaker interpolant would be different from the input interpolant, so we spare the
     // effort
-    if (applyItpEqualityOptimization && initialState.equals(initialSuccessor)) {
+    if (applyItpEqualityOptimization && stateFromOldInterpolant.equals(initialSuccessor)) {
       return pInputInterpolant;
     }
 
