@@ -103,6 +103,9 @@ class Edge implements Comparable<Edge> {
     }
     MapDifference<KeyDef, String> difference =
         Maps.difference(label.getMapping(), pOther.label.getMapping());
+    if (!difference.entriesOnlyOnLeft().isEmpty() || !difference.entriesOnlyOnRight().isEmpty()) {
+      return Optional.empty();
+    }
     TransitionCondition newLabel = pOther.label;
     newLabel = newLabel.putAllAndCopy(label);
     for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :
