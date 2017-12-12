@@ -70,8 +70,8 @@ public class PredicateManager {
 
   private final NamedRegionManager rmgr;
 
-  public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
-                          final CFA pCfa) throws InvalidConfigurationException {
+  PredicateManager(final Configuration config, final NamedRegionManager pRmgr, final CFA pCfa)
+      throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
@@ -80,12 +80,12 @@ public class PredicateManager {
     }
   }
 
-  public Collection<String> getTrackedVars() {
+  Collection<String> getTrackedVars() {
     return trackedVars.keySet();
   }
 
   /** return a specific temp-variable, that should be at correct positions in the BDD. */
-  public String getTmpVariableForVars(final Collection<String> vars) {
+  String getTmpVariableForVars(final Collection<String> vars) {
     if (initPartitions) {
       return varsToTmpVar.get(vars);
     } else {
@@ -93,12 +93,12 @@ public class PredicateManager {
     }
   }
 
-
-  /** The JavaBDDRegionManager orders the variables as they are declared
-   *  (later vars are deeper in the BDD).
-   *  This function declares those vars in the beginning of the analysis,
-   *  so that we can choose between some orders. */
-  protected void initVars(CFA cfa) {
+  /**
+   * The JavaBDDRegionManager orders the variables as they are declared (later vars are deeper in
+   * the BDD). This function declares those vars in the beginning of the analysis, so that we can
+   * choose between some orders.
+   */
+  private void initVars(CFA cfa) {
     Collection<Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
@@ -115,11 +115,13 @@ public class PredicateManager {
     }
   }
 
-  /** This function declares variables for a given collection of vars.
+  /**
+   * This function declares variables for a given collection of vars.
    *
-   * The value 'bitsize' chooses how much bits are used for each var.
-   * The varname is build as "varname@pos". */
-  public void createPredicates(final Collection<String> vars, final int bitsize) {
+   * <p>The value 'bitsize' chooses how much bits are used for each var. The varname is build as
+   * "varname@pos".
+   */
+  private void createPredicates(final Collection<String> vars, final int bitsize) {
 
     assert bitsize >= 1 : "you need at least one bit for a variable.";
 
@@ -174,7 +176,7 @@ public class PredicateManager {
    * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the the
    * precision. We assume that the variable was seen before and its bitsize is already known.
    */
-  protected Region[] createPredicateWithoutPrecisionCheck(final String varName) {
+  Region[] createPredicateWithoutPrecisionCheck(final String varName) {
     assert trackedVars.containsKey(varName) : "variable should already be known: " + varName;
     return createPredicateWithoutPrecisionCheck(varName, trackedVars.get(varName));
   }
@@ -197,10 +199,17 @@ public class PredicateManager {
     return newRegions;
   }
 
-  /** This function returns regions containing bits of a variable.
-   * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
-   * If the variable is not tracked by the the precision, Null is returned. */
-  protected Region[] createPredicate(final String varName, final CType varType, final CFANode location, final int size, final VariableTrackingPrecision precision) {
+  /**
+   * This function returns regions containing bits of a variable. returns regions for positions of a
+   * variable, s --> [s@2, s@1, s@0]. If the variable is not tracked by the the precision, Null is
+   * returned.
+   */
+  Region[] createPredicate(
+      final String varName,
+      final CType varType,
+      final CFANode location,
+      final int size,
+      final VariableTrackingPrecision precision) {
     if (precision != null && !precision.isTracking(MemoryLocation.valueOf(varName), varType, location)) {
       return null;
     }
