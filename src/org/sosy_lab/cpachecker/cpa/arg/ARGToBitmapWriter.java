@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -40,6 +42,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageOutputStream;
@@ -91,7 +94,9 @@ public class ARGToBitmapWriter {
   private static final Color COLOR_BACKGROUND = Color.LIGHT_GRAY;
   private static final Color COLOR_NODE = Color.BLACK;
   private static final Color COLOR_TARGET = Color.RED;
-  private static final Color COLOR_HIGHLIGHT = Color.YELLOW;
+  private static final Color COLOR_HIGHLIGHT = Color.BLUE;
+  private static final Color COLOR_NOTEXPANDED = Color.ORANGE;
+  private static final Color COLOR_COVERED = Color.GREEN;
 
   public ARGToBitmapWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -116,31 +121,32 @@ public class ARGToBitmapWriter {
 
     worklist.add(Pair.of(0, pRoot));
     int oldDistance = 0;
-    int currentWidth = 0;
-    List<Integer> targets = new ArrayList<>();
-    List<Integer> highlight = new ArrayList<>();
+    ARGLevel.Builder levelBuilder = ARGLevel.builder();
     while (!worklist.isEmpty()) {
       Pair<Integer, ARGState> current = checkNotNull(worklist.poll()); // FIFO for BFS order
       int currentDistance = checkNotNull(current.getFirst());
 
       if (oldDistance != currentDistance) {
-        structure.addLevel(new ARGLevel(currentWidth, targets, highlight));
+        structure.addLevel(levelBuilder.build());
         oldDistance = currentDistance;
-        currentWidth = 0;
-        targets.clear();
-        highlight.clear();
+        levelBuilder = ARGLevel.builder();
       }
 
       ARGState currentNode = checkNotNull(current.getSecond());
+      levelBuilder.node();
 
       if (currentNode.isTarget()) {
-        targets.add(currentWidth);
+        levelBuilder.markTarget();
       }
-      if (pHighlight.test(currentNode)) {
-        highlight.add(currentWidth);
+      if (currentNode.shouldBeHighlighted()) {
+        levelBuilder.markHighlight();
       }
-      // Increase current width after all other operations, for the next node
-      currentWidth++;
+      if (!currentNode.wasExpanded()) {
+        levelBuilder.markNotExpanded();
+      }
+      if (currentNode.isCovered()) {
+        levelBuilder.markCovered();
+      }
 
       // add current state to set of processed states *before* checking candidates
       // - in general, self edges may exist in the ARG
@@ -153,7 +159,7 @@ public class ARGToBitmapWriter {
         }
       }
     }
-    structure.addLevel(new ARGLevel(currentWidth, targets, highlight));
+    structure.addLevel(levelBuilder.build());
 
     return structure;
   }
@@ -217,31 +223,19 @@ public class ARGToBitmapWriter {
       xPos = middle - lineWidth / 2;
 
       if (strongHighlight) {
-        if (!level.getTargetIndices().isEmpty()) {
-          pCanvas.setColor(COLOR_TARGET);
-          pCanvas.fillRect(0, yPos, pWidth, scaling);
-
-        } else if (!level.getHighlightIndices().isEmpty()) {
-          pCanvas.setColor(COLOR_HIGHLIGHT);
-          pCanvas.fillRect(0, yPos, pWidth, scaling);
-        }
+        Color levelBackground = level.getBackgroundColor();
+        pCanvas.setColor(levelBackground);
+        pCanvas.fillRect(0, yPos, pWidth, scaling);
       }
 
       pCanvas.setColor(COLOR_NODE);
       pCanvas.fillRect(xPos, yPos, lineWidth, scaling);
 
-      pCanvas.setColor(COLOR_HIGHLIGHT);
-      for (int highlightIdx : level.getHighlightIndices()) {
-        pCanvas.fillRect(
-            xPos + highlightIdx * scaling, yPos,
-            scaling, scaling);
-      }
-
-      pCanvas.setColor(COLOR_TARGET);
-      for (int targetIdx : level.getTargetIndices()) {
-        pCanvas.fillRect(
-            xPos + targetIdx * scaling, yPos,
-            scaling, scaling);
+      for (Pair<List<Integer>, Color> p : level.getGroups()) {
+        pCanvas.setColor(p.getSecondNotNull());
+        for (int idx : p.getFirstNotNull()) {
+          pCanvas.fillRect(xPos + (idx - 1) * scaling, yPos, scaling, scaling);
+        }
       }
 
       yPos += scaling;
@@ -300,28 +294,113 @@ public class ARGToBitmapWriter {
     }
   }
 
-  private static class ARGLevel {
+  private static class ARGLevel { ;
     private int width;
 
     private List<Integer> targetIndices;
     private List<Integer> highlightIndices;
+    private List<Integer> notExpandedIndices;
+    private List<Integer> coveredIndices;
 
-    ARGLevel(int pWidth, List<Integer> pTargets, List<Integer> pHighlight) {
+    private ARGLevel(
+        int pWidth,
+        List<Integer> pTargets,
+        List<Integer> pNotExpanded,
+        List<Integer> pHighlights,
+        List<Integer> pCovered
+    ) {
+      checkArgument(pWidth >= 0);
       width = pWidth;
-      targetIndices = ImmutableList.copyOf(pTargets);
-      highlightIndices = ImmutableList.copyOf(pHighlight);
+      targetIndices = checkNotNull(pTargets);
+      notExpandedIndices = checkNotNull(pNotExpanded);
+      highlightIndices = checkNotNull(pHighlights);
+      coveredIndices = checkNotNull(pCovered);
+    }
+
+    public static Builder builder() {
+      return new Builder();
     }
 
     public int getWidth() {
       return width;
     }
 
-    public List<Integer> getTargetIndices() {
-      return targetIndices;
+    public Deque<Pair<List<Integer>, Color>> getGroups() {
+      Deque<Pair<List<Integer>, Color>> groups = new ArrayDeque<>(4);
+      if (!highlightIndices.isEmpty()) {
+        groups.add(Pair.of(highlightIndices, COLOR_HIGHLIGHT));
+      }
+      if (!notExpandedIndices.isEmpty()) {
+        groups.add(Pair.of(notExpandedIndices, COLOR_NOTEXPANDED));
+      }
+      if (!targetIndices.isEmpty()) {
+        groups.add(Pair.of(targetIndices, COLOR_TARGET));
+      }
+      if (!coveredIndices.isEmpty()) {
+        groups.add(Pair.of(coveredIndices, COLOR_COVERED));
+      }
+
+      return groups;
     }
 
-    public List<Integer> getHighlightIndices() {
-      return highlightIndices;
+    public Color getBackgroundColor() {
+      Color color;
+      if (!targetIndices.isEmpty()) {
+        color = COLOR_TARGET;
+      } else if (!highlightIndices.isEmpty()) {
+        color = COLOR_HIGHLIGHT;
+      } else if (notExpandedIndices.size() > coveredIndices.size()) {
+        color = COLOR_NOTEXPANDED;
+      } else if (!coveredIndices.isEmpty()) {
+        color = COLOR_COVERED;
+      } else {
+        return COLOR_BACKGROUND;
+      }
+
+      return new Color(color.getRed(), color.getGreen(), color.getBlue(), 100);
+    }
+
+    public static class Builder {
+
+      private int width = 0;
+      private ImmutableList.Builder<Integer> targets = ImmutableList.builder();
+      private ImmutableList.Builder<Integer> notExpanded = ImmutableList.builder();
+      private ImmutableList.Builder<Integer> highlights = ImmutableList.builder();
+      private ImmutableList.Builder<Integer> covered = ImmutableList.builder();
+
+      public ARGLevel build() {
+        return new ARGLevel(
+            width, targets.build(), notExpanded.build(), highlights.build(), covered.build());
+      }
+
+      @CanIgnoreReturnValue
+      public Builder node() {
+        width++;
+        return this;
+      }
+
+      @CanIgnoreReturnValue
+      public Builder markTarget() {
+        targets.add(width);
+        return this;
+      }
+
+      @CanIgnoreReturnValue
+      public Builder markNotExpanded() {
+        notExpanded.add(width);
+        return this;
+      }
+
+      @CanIgnoreReturnValue
+      public Builder markHighlight() {
+        highlights.add(width);
+        return this;
+      }
+
+      public Builder markCovered() {
+        covered.add(width);
+        return this;
+      }
     }
   }
 }
