@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.BranchBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
@@ -108,9 +109,13 @@ public class ReachedSetFactory {
       description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
   boolean useNumberOfThreads = false;
 
-  @Option(secure=true, name="traversal.weightedDepth",
-      description = "perform a weighted random selection based on the branching depth")
+  @Option(secure=true, name = "traversal.weightedDepth",
+      description = "perform a weighted random selection based on the depth in the ARG")
   boolean useWeightedDepthOrder = false;
+
+  @Option(secure=true, name = "traversal.weightedBranches",
+      description = "perform a weighted random selection based on the branching depth")
+  boolean useWeightedBranchOrder = false;
 
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
@@ -135,6 +140,10 @@ public class ReachedSetFactory {
 
     if (useWeightedDepthOrder) {
       waitlistFactory = DepthBasedWeightedWaitlist.factory(waitlistFactory, config);
+    }
+
+    if (useWeightedBranchOrder) {
+      waitlistFactory = BranchBasedWeightedWaitlist.factory(waitlistFactory, config);
     }
 
     if (useAutomatonInformation) {

@@ -123,9 +123,9 @@
         </dependency>
         <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.9.1" conf="runtime->default; contrib->sources">
             <exclude org="xml-apis" module="xml-apis-ext"/>
+            <exclude org="xml-apis" module="xml-apis"/>
             <exclude org="xalan" module="xalan"/>
             <exclude org="org.apache.xmlgraphics" module="batik-css"/>
-            <exclude org="org.apache.xmlgraphics" module="batik-ext"/>
             <exclude org="org.apache.xmlgraphics" module="batik-util"/>
         </dependency>
 

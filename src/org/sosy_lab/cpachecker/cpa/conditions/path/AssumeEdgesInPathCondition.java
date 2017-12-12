@@ -39,9 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of assume
@@ -59,35 +56,33 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
   private int maxAssumeEdgesInPath = 0;
 
-
-
   public AssumeEdgesInPathCondition(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
   @Override
   public AvoidanceReportingState getInitialState(CFANode pNode) {
-    return new RepetitionsInPathConditionState(0, false);
+    return new AssumeEdgesInPathConditionState(0, false);
   }
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
-    RepetitionsInPathConditionState current = (RepetitionsInPathConditionState)pState;
+    AssumeEdgesInPathConditionState current = (AssumeEdgesInPathConditionState)pState;
 
     if (pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return current;
     }
 
-    if (current.thresholdReached) {
+    if (current.isThresholdReached()) {
       return current;
     }
 
-    int assumeEdgesInPath = current.assumeEdgesInPath + 1;
+    int assumeEdgesInPath = current.getPathLength() + 1;
     boolean thresholdReached = (threshold >= 0) && (assumeEdgesInPath >= threshold);
 
     maxAssumeEdgesInPath = Math.max(assumeEdgesInPath, maxAssumeEdgesInPath);
 
-    return new RepetitionsInPathConditionState(assumeEdgesInPath, thresholdReached);
+    return new AssumeEdgesInPathConditionState(assumeEdgesInPath, thresholdReached);
   }
 
   @Override
@@ -113,34 +108,6 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     out.println("Maximum length of a path: " + maxAssumeEdgesInPath);
     out.println("Threshold value:          " + threshold);
-  }
-
-
-  private static class RepetitionsInPathConditionState implements AbstractState, AvoidanceReportingState {
-
-    private final int assumeEdgesInPath;
-    private final boolean thresholdReached;
-
-    private RepetitionsInPathConditionState(int pPathLength, boolean pThresholdReached) {
-      assumeEdgesInPath = pPathLength;
-      thresholdReached = pThresholdReached;
-    }
-
-    @Override
-    public boolean mustDumpAssumptionForAvoidance() {
-      return thresholdReached;
-    }
-
-    @Override
-    public BooleanFormula getReasonFormula(FormulaManagerView pMgr) {
-      return PreventingHeuristic.ASSUMEEDGESINPATH.getFormula(pMgr, assumeEdgesInPath);
-    }
-
-    @Override
-    public String toString() {
-      return "path length: " + assumeEdgesInPath
-          + (thresholdReached ? " (threshold reached)" : "");
-    }
   }
 
 

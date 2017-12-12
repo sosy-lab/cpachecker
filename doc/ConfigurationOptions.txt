@@ -330,6 +330,9 @@ analysis.traversal.useReverseLoopstack = false
 analysis.traversal.useReversePostorder = false
 
 # perform a weighted random selection based on the branching depth
+analysis.traversal.weightedBranches = false
+
+# perform a weighted random selection based on the depth in the ARG
 analysis.traversal.weightedDepth = false
 
 # After an incomplete analysis constructs a residual program which contains
