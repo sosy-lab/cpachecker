@@ -557,14 +557,7 @@ class WitnessWriter implements EdgeAppender {
     if (pEdge instanceof AssumeEdge && !AutomatonGraphmlCommon.isPartOfTerminatingAssumption(pEdge)) {
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
       // Check if the assume edge is an artificial edge introduced for pointer-calls
-      if (CFAUtils.leavingEdges(assumeEdge.getPredecessor())
-          .filter(AssumeEdge.class)
-          .filter(a -> a.getTruthAssumption())
-          .anyMatch(sibling ->
-            CFAUtils.leavingEdges(sibling.getSuccessor())
-                .filter(FunctionCallEdge.class)
-                .filter(callEdge -> callEdge.getFileLocation().equals(sibling.getFileLocation()))
-                .size() == 1)) {
+      if (AutomatonGraphmlCommon.isPointerCallAssumption(assumeEdge)) {
         // If the assume edge is followed by a pointer call,
         // the assumption is artificial and should not be exported
         if (!pGoesToSink) {

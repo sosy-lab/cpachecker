@@ -74,12 +74,14 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -931,6 +933,37 @@ public class AutomatonGraphmlCommon {
       return false;
     }
     return ((AssumeEdge) pEdge).isArtificialIntermediate();
+  }
+
+  public static boolean isPointerCallAssumption(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+    if (!assumeEdge.getTruthAssumption()) {
+      assumeEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
+    }
+    AExpression expression = assumeEdge.getExpression();
+    if (!(expression instanceof ABinaryExpression)) {
+      return false;
+    }
+    ABinaryExpression binaryExpression = (ABinaryExpression) expression;
+    Set<String> namesOnEdge =
+        FluentIterable.of(binaryExpression.getOperand1(), binaryExpression.getOperand2())
+            .filter(AUnaryExpression.class)
+            .filter(unaryExpr -> unaryExpr.getOperator() == UnaryOperator.AMPER)
+            .transform(unaryExpr -> unaryExpr.getOperand())
+            .filter(AIdExpression.class)
+            .transform(id -> id.getName())
+            .toSet();
+    if (namesOnEdge.isEmpty()) {
+      return false;
+    }
+    return !CFAUtils.leavingEdges(assumeEdge.getSuccessor())
+        .filter(e -> e.getFileLocation().equals(pEdge.getFileLocation()))
+        .filter(FunctionCallEdge.class)
+        .filter(e -> namesOnEdge.contains(e.getSuccessor().getFunctionName()))
+        .isEmpty();
   }
 
   public static boolean isPartOfTerminatingAssumption(CFAEdge pEdge) {
