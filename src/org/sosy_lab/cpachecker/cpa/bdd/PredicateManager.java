@@ -80,8 +80,8 @@ public class PredicateManager {
     }
   }
 
-  public Map<String, Integer> getTrackedVars() {
-    return trackedVars;
+  public Collection<String> getTrackedVars() {
+    return trackedVars.keySet();
   }
 
   /** return a specific temp-variable, that should be at correct positions in the BDD. */
@@ -169,11 +169,26 @@ public class PredicateManager {
     return rmgr.createPredicate(varName + "@" + index);
   }
 
-  /** This function returns regions containing bits of a variable.
-   * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
-   * There is no check, if the variable is tracked by the the precision. */
-  protected Region[] createPredicateWithoutPrecisionCheck(final String varName, final int size) {
-    trackedVars.put(varName, size);
+  /**
+   * This function returns regions containing bits of a variable. returns regions for positions of a
+   * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the the
+   * precision. We assume that the variable was seen before and its bitsize is already known.
+   */
+  protected Region[] createPredicateWithoutPrecisionCheck(final String varName) {
+    assert trackedVars.containsKey(varName) : "variable should already be known: " + varName;
+    return createPredicateWithoutPrecisionCheck(varName, trackedVars.get(varName));
+  }
+
+  /**
+   * This function returns regions containing bits of a variable. returns regions for positions of a
+   * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the the
+   * precision.
+   */
+  Region[] createPredicateWithoutPrecisionCheck(final String varName, final int size) {
+    Integer oldSize = trackedVars.get(varName);
+    if (oldSize == null || oldSize < size) {
+      trackedVars.put(varName, size);
+    }
     final Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) {
       // inverse order should be faster, because 'most changing bits' are at bottom position in BDDs.

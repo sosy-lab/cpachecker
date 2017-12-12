@@ -359,9 +359,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // remove returnVar from state,
       // all other function-variables were removed earlier (see handleReturnStatementEdge()).
       // --> now the state does not contain any variable from scope of called function.
-      if  (predmgr.getTrackedVars().containsKey(returnVar)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
-                returnVar, predmgr.getTrackedVars().get(returnVar)));
+      if (predmgr.getTrackedVars().contains(returnVar)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(returnVar));
       }
 
     } else {
@@ -400,9 +399,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     // delete variables from returning function,
     // we do not need them after this location, because the next edge is the functionReturnEdge.
     // this results in a smaller BDD and allows to call a function twice.
-    for (String var : predmgr.getTrackedVars().keySet()) {
+    for (String var : predmgr.getTrackedVars()) {
       if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
       }
     }
 
@@ -419,9 +418,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // we do not need them after this location, because the next edge is the functionReturnEdge.
       // this results in a smaller BDD and allows to call a function twice.
       BDDState newState = state;
-      for (String var : predmgr.getTrackedVars().keySet()) {
+      for (String var : predmgr.getTrackedVars()) {
         if (isLocalVariableForFunction(var, functionName)) {
-          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
         }
       }
       return newState;
