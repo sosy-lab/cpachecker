@@ -128,10 +128,7 @@ public class ARGToBitmapWriter {
     }
   }
 
-  private ARGStructure getStructure(
-      ARGState pRoot,
-      Predicate<? super ARGState> pHighlight
-  ) {
+  private ARGStructure getStructure(ARGState pRoot) {
 
     ARGStructure structure = new ARGStructure();
 
