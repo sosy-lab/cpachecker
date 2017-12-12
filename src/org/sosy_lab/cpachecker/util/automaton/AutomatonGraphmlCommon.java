@@ -558,10 +558,51 @@ public class AutomatonGraphmlCommon {
             return true;
           }
         }
+      } else {
+        return isTmpPartOfTernaryExpressionAssignment(statementEdge);
       }
     }
 
     return false;
+  }
+
+  private static boolean isTmpPartOfTernaryExpressionAssignment(AStatementEdge statementEdge) {
+    AStatement statement = statementEdge.getStatement();
+    if (!(statement instanceof AExpressionAssignmentStatement)) {
+      return false;
+    }
+    AExpressionAssignmentStatement tmpAssignment = (AExpressionAssignmentStatement) statement;
+    ALeftHandSide lhs = tmpAssignment.getLeftHandSide();
+    if (!(lhs instanceof AIdExpression)) {
+      return false;
+    }
+    AIdExpression idExpression = (AIdExpression) lhs;
+    if (!idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+      return false;
+    }
+    FluentIterable<CFAEdge> successorEdges = CFAUtils.leavingEdges(statementEdge.getSuccessor());
+    if (successorEdges.size() != 1) {
+      return false;
+    }
+    CFAEdge successorEdge = successorEdges.iterator().next();
+    if (!(successorEdge instanceof AStatementEdge)) {
+      return false;
+    }
+    FileLocation edgeLoc = statementEdge.getFileLocation();
+    FileLocation successorEdgeLoc = successorEdge.getFileLocation();
+    if (!(successorEdgeLoc.getNodeOffset() <= edgeLoc.getNodeOffset()
+        && successorEdgeLoc.getNodeOffset() + successorEdgeLoc.getNodeLength()
+            >= edgeLoc.getNodeOffset() + edgeLoc.getNodeLength())) {
+      return false;
+    }
+    AStatementEdge successorStatementEdge = (AStatementEdge) successorEdge;
+    AStatement successorStatement = successorStatementEdge.getStatement();
+    if (!(successorStatement instanceof AExpressionAssignmentStatement)) {
+      return false;
+    }
+    AExpressionAssignmentStatement targetAssignment =
+        (AExpressionAssignmentStatement) successorStatement;
+    return targetAssignment.getRightHandSide().equals(idExpression);
   }
 
   public static boolean isMainFunctionEntry(CFAEdge pEdge) {
