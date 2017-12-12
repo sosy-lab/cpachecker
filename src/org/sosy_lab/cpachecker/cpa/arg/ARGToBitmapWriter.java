@@ -93,7 +93,6 @@ public class ARGToBitmapWriter {
   private static final Color COLOR_TARGET = Color.RED;
   private static final Color COLOR_HIGHLIGHT = Color.YELLOW;
 
-
   public ARGToBitmapWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -159,21 +158,13 @@ public class ARGToBitmapWriter {
     return structure;
   }
 
-  private RenderedImage createImage(ARGStructure pArgStructure)
-      throws InvalidConfigurationException {
-
-    int widthFactor = scaling;
-    int heightFactor = scaling;
-
+  private int getWidth(ARGStructure pArgStructure) throws InvalidConfigurationException {
     int finalWidth;
-    int finalHeight;
 
-    { // Create block so neededWidth and neededHeight can only be used for allocation
-      int neededWidth = (widthFactor * pArgStructure.getMaxWidth()) + xPadding * 2;
-      int neededHeight = (heightFactor * pArgStructure.getDepth()) + yPadding * 2;
+    { // Create block so neededWidth can only be used for allocation
+      int neededWidth = (scaling * pArgStructure.getMaxWidth()) + xPadding * 2;
 
-      int intendedWidth = widthFactor * width;
-      int intendedHeight = heightFactor * height;
+      int intendedWidth = scaling * width;
 
       if (intendedWidth > 0) {
         if (intendedWidth < neededWidth) {
@@ -184,6 +175,17 @@ public class ARGToBitmapWriter {
       } else {
         finalWidth = neededWidth;
       }
+    }
+    return finalWidth;
+  }
+
+  private int getHeight(ARGStructure pArgStructure) throws InvalidConfigurationException {
+    int finalHeight;
+
+    { // Create block so neededHeight can only be used for allocation
+      int neededHeight = (scaling * pArgStructure.getDepth()) + yPadding * 2;
+
+      int intendedHeight = scaling * height;
 
       if (intendedHeight > 0) {
         if (intendedHeight < neededHeight) {
@@ -196,51 +198,62 @@ public class ARGToBitmapWriter {
       }
     }
 
-    BufferedImage img = new BufferedImage(finalWidth, finalHeight, BufferedImage.TYPE_3BYTE_BGR);
-    Graphics2D g = img.createGraphics();
-    g.setColor(COLOR_BACKGROUND);
-    g.fillRect(0, 0, img.getWidth(), img.getHeight());
+    return finalHeight;
+  }
 
-    int middle = finalWidth / 2;
+  private void drawContent(
+      Graphics2D pCanvas, int pWidth, int pHeight, ARGStructure pArgStructure) {
+    pCanvas.setColor(COLOR_BACKGROUND);
+    pCanvas.fillRect(0, 0, pWidth, pHeight);
+
+    int middle = pWidth / 2;
     int stateNum;
     int xPos;
     int yPos = yPadding;
     for (ARGLevel level : pArgStructure) {
       stateNum = level.getWidth();
-      int lineWidth = stateNum * widthFactor;
+      int lineWidth = stateNum * scaling;
 
       xPos = middle - lineWidth / 2;
 
       if (strongHighlight) {
         if (!level.getTargetIndices().isEmpty()) {
-          g.setColor(COLOR_TARGET);
-          g.fillRect(0, yPos, finalWidth, heightFactor);
+          pCanvas.setColor(COLOR_TARGET);
+          pCanvas.fillRect(0, yPos, pWidth, scaling);
 
         } else if (!level.getHighlightIndices().isEmpty()) {
-          g.setColor(COLOR_HIGHLIGHT);
-          g.fillRect(0, yPos, finalWidth, heightFactor);
+          pCanvas.setColor(COLOR_HIGHLIGHT);
+          pCanvas.fillRect(0, yPos, pWidth, scaling);
         }
       }
 
-      g.setColor(COLOR_NODE);
-      g.fillRect(xPos, yPos, lineWidth, heightFactor);
+      pCanvas.setColor(COLOR_NODE);
+      pCanvas.fillRect(xPos, yPos, lineWidth, scaling);
 
-      g.setColor(COLOR_HIGHLIGHT);
+      pCanvas.setColor(COLOR_HIGHLIGHT);
       for (int highlightIdx : level.getHighlightIndices()) {
-        g.fillRect(
-            xPos + highlightIdx * widthFactor, yPos,
-            widthFactor, heightFactor);
+        pCanvas.fillRect(
+            xPos + highlightIdx * scaling, yPos,
+            scaling, scaling);
       }
 
-      g.setColor(COLOR_TARGET);
+      pCanvas.setColor(COLOR_TARGET);
       for (int targetIdx : level.getTargetIndices()) {
-        g.fillRect(
-            xPos + targetIdx * widthFactor, yPos,
-            widthFactor, heightFactor);
+        pCanvas.fillRect(
+            xPos + targetIdx * scaling, yPos,
+            scaling, scaling);
       }
 
-      yPos += heightFactor;
+      yPos += scaling;
     }
+  }
+
+  private RenderedImage createImage(ARGStructure pArgStructure, int pWidth, int pHeight) {
+
+    BufferedImage img = new BufferedImage(pWidth, pHeight, BufferedImage.TYPE_3BYTE_BGR);
+    Graphics2D g = img.createGraphics();
+
+    drawContent(g, pWidth, pHeight, pArgStructure);
 
     return img;
   }
@@ -252,11 +265,14 @@ public class ARGToBitmapWriter {
   ) throws IOException, InvalidConfigurationException {
     try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
       ARGStructure structure = getStructure(pRoot, pHighlightEdge);
-      RenderedImage img = createImage(structure);
+
+      int finalWidth = getWidth(structure);
+      int finalHeight = getHeight(structure);
+
+      RenderedImage img = createImage(structure, finalWidth, finalHeight);
       ImageIO.write(img, IMAGE_FORMAT, out);
     }
   }
-
 
   private static class ARGStructure implements Iterable<ARGLevel> {
     private List<ARGLevel> levels = new ArrayList<>();
