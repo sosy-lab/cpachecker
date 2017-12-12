@@ -136,7 +136,9 @@ enum GraphBuilder {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
-                if (sibling != child && s.getEdgeToChild(sibling).equals(siblingEdge)) {
+                if (sibling != child
+                    && s.getEdgeToChild(sibling).equals(siblingEdge)
+                    && pIsRelevantEdge.apply(Pair.of(s, sibling))) {
                   addArtificialSinkEdge = false;
                   break;
                 }
