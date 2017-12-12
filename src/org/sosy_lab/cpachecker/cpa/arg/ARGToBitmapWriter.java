@@ -96,7 +96,7 @@ public class ARGToBitmapWriter {
       + " clutter")
   private boolean strongHighlight = true;
 
-  @Option(secure=true, description="Format to use for image output")
+  @Option(secure=true, description="Format to use for image output", name="format")
   private String imageFormat = "svg";
 
   private static final Color COLOR_BACKGROUND = Color.LIGHT_GRAY;

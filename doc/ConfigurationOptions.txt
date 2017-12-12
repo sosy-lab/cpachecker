@@ -827,13 +827,13 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
+# Format to use for image output
+cpa.arg.bitmap.format = "svg"
+
 # Height of the bitmap in pixels. If set to -1, height is  computed in
 # relation to the width. If both are set to -1, the optimal bitmap size to
 # represent the ARG is used. The final height is height*scaling
 cpa.arg.bitmap.height = -1
-
-# Format to use for image output
-cpa.arg.bitmap.imageFormat = "svg"
 
 # Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
 # to 2, 2 * 2 pixels represent one ARG node, and so on.
