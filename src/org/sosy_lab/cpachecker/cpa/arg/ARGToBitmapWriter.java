@@ -260,10 +260,9 @@ public class ARGToBitmapWriter {
 
   public void write(
       ARGState pRoot,
-      Path pOutputFile,
-      Predicate<? super ARGState> pHighlightEdge
+      Path pOutputFile
   ) throws IOException, InvalidConfigurationException {
-    ARGStructure structure = getStructure(pRoot, pHighlightEdge);
+    ARGStructure structure = getStructure(pRoot);
 
     int finalWidth = getWidth(structure);
     int finalHeight = getHeight(structure);
