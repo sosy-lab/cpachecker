@@ -640,7 +640,11 @@ public class AutomatonGraphmlCommon {
     }
     if (pEdge instanceof AssumeEdge) {
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
-      FileLocation location = assumeEdge.getFileLocation();
+      FileLocation location =
+          FileLocation.merge(
+              collectArtificiallySplitSiblingEnteringAssumes(assumeEdge)
+                  .transform(e -> e.getFileLocation())
+                  .toList());
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
         FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
@@ -669,6 +673,22 @@ public class AutomatonGraphmlCommon {
       }
     }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+  }
+
+  private static FluentIterable<AssumeEdge> collectArtificiallySplitSiblingEnteringAssumes(
+      AssumeEdge pAssumeEdge) {
+    AssumeEdge siblingLeavingEdge = CFAUtils.getComplimentaryAssumeEdge(pAssumeEdge);
+    FluentIterable<AssumeEdge> siblingEnteringAssumes =
+        CFAUtils.enteringEdges(pAssumeEdge.getSuccessor())
+            .filter(AssumeEdge.class)
+            .filter(e -> e.getPredecessor() == siblingLeavingEdge.getSuccessor());
+    if (siblingEnteringAssumes.isEmpty()) {
+      return FluentIterable.of(pAssumeEdge);
+    }
+    return FluentIterable.concat(
+        Collections.singleton(pAssumeEdge),
+        siblingEnteringAssumes.transformAndConcat(
+            AutomatonGraphmlCommon::collectArtificiallySplitSiblingEnteringAssumes));
   }
 
   public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
