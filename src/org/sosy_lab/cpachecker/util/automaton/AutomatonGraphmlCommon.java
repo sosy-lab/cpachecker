@@ -542,8 +542,6 @@ public class AutomatonGraphmlCommon {
           return true;
         }
       }
-    } else if (isSplitAssumption(edge)) {
-      return true;
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
       return true;
     } else if (edge instanceof AStatementEdge) {
@@ -928,7 +926,7 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
-  private static boolean isSplitAssumption(CFAEdge pEdge) {
+  public static boolean isSplitAssumption(CFAEdge pEdge) {
     if (!(pEdge instanceof AssumeEdge)) {
       return false;
     }

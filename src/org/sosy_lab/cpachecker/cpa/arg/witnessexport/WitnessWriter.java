@@ -504,6 +504,11 @@ class WitnessWriter implements EdgeAppender {
     }
 
     boolean goesToSink = pTo.equals(SINK_NODE_ID);
+
+    if (!goesToSink && AutomatonGraphmlCommon.isSplitAssumption(pEdge)) {
+      return Collections.singletonList(TransitionCondition.empty());
+    }
+
     boolean isDefaultCase = AutomatonGraphmlCommon.isDefaultCase(pEdge);
 
     TransitionCondition result =
