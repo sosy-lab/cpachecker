@@ -933,7 +933,7 @@ public class AutomatonGraphmlCommon {
     return ((AssumeEdge) pEdge).isArtificialIntermediate();
   }
 
-  public static boolean isPartOfTerminatingAssume(CFAEdge pEdge) {
+  public static boolean isPartOfTerminatingAssumption(CFAEdge pEdge) {
     if (!(pEdge instanceof AssumeEdge)) {
       return false;
     }
@@ -943,10 +943,10 @@ public class AutomatonGraphmlCommon {
         || siblingEdge.getSuccessor() instanceof CFATerminationNode) {
       return true;
     }
-    return isTerminatingAssume(assumeEdge) || isTerminatingAssume(siblingEdge);
+    return isTerminatingAssumption(assumeEdge) || isTerminatingAssumption(siblingEdge);
   }
 
-  private static boolean isTerminatingAssume(CFAEdge pEdge) {
+  private static boolean isTerminatingAssumption(CFAEdge pEdge) {
     if (!(pEdge instanceof AssumeEdge)) {
       return false;
     }
