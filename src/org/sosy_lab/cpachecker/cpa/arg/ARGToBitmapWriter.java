@@ -25,16 +25,21 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.RenderedImage;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,15 +47,18 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageOutputStream;
+import org.apache.batik.dom.GenericDOMImplementation;
+import org.apache.batik.svggen.SVGGraphics2D;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
 
 /**
  * Class for creating a pixel graphic from an
@@ -89,7 +97,8 @@ public class ARGToBitmapWriter {
       + " clutter")
   private boolean strongHighlight = true;
 
-  private static final String IMAGE_FORMAT = "gif";
+  @Option(secure=true, description="Format to use for image output")
+  private String imageFormat = "svg";
 
   private static final Color COLOR_BACKGROUND = Color.LIGHT_GRAY;
   private static final Color COLOR_NODE = Color.BLACK;
@@ -97,6 +106,10 @@ public class ARGToBitmapWriter {
   private static final Color COLOR_HIGHLIGHT = Color.BLUE;
   private static final Color COLOR_NOTEXPANDED = Color.ORANGE;
   private static final Color COLOR_COVERED = Color.GREEN;
+
+  private static final String FORMAT_SVG = "svg";
+
+  private final CanvasProvider canvasHandler;
 
   public ARGToBitmapWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -106,6 +119,12 @@ public class ARGToBitmapWriter {
     }
     if (scaling == 0) {
       throw new InvalidConfigurationException("Scaling may not be 0");
+    }
+
+    if (imageFormat.equals(FORMAT_SVG)) {
+      canvasHandler = new SvgProvider();
+    } else {
+      canvasHandler = new BitmapProvider(imageFormat);
     }
   }
 
@@ -242,30 +261,21 @@ public class ARGToBitmapWriter {
     }
   }
 
-  private RenderedImage createImage(ARGStructure pArgStructure, int pWidth, int pHeight) {
-
-    BufferedImage img = new BufferedImage(pWidth, pHeight, BufferedImage.TYPE_3BYTE_BGR);
-    Graphics2D g = img.createGraphics();
-
-    drawContent(g, pWidth, pHeight, pArgStructure);
-
-    return img;
-  }
-
   public void write(
       ARGState pRoot,
       Path pOutputFile,
       Predicate<? super ARGState> pHighlightEdge
   ) throws IOException, InvalidConfigurationException {
-    try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
-      ARGStructure structure = getStructure(pRoot, pHighlightEdge);
+    ARGStructure structure = getStructure(pRoot, pHighlightEdge);
 
-      int finalWidth = getWidth(structure);
-      int finalHeight = getHeight(structure);
+    int finalWidth = getWidth(structure);
+    int finalHeight = getHeight(structure);
 
-      RenderedImage img = createImage(structure, finalWidth, finalHeight);
-      ImageIO.write(img, IMAGE_FORMAT, out);
-    }
+    Graphics2D g = canvasHandler.createCanvas(finalWidth, finalHeight);
+    drawContent(g, finalWidth, finalHeight, structure);
+
+    Path fullOutputFile = Paths.get(pOutputFile.toString() + "." + imageFormat);
+    canvasHandler.writeToFile(fullOutputFile);
   }
 
   private static class ARGStructure implements Iterable<ARGLevel> {
@@ -294,7 +304,7 @@ public class ARGToBitmapWriter {
     }
   }
 
-  private static class ARGLevel { ;
+  private static class ARGLevel {
     private int width;
 
     private List<Integer> targetIndices;
@@ -317,15 +327,15 @@ public class ARGToBitmapWriter {
       coveredIndices = checkNotNull(pCovered);
     }
 
-    public static Builder builder() {
+    static Builder builder() {
       return new Builder();
     }
 
-    public int getWidth() {
+    int getWidth() {
       return width;
     }
 
-    public Deque<Pair<List<Integer>, Color>> getGroups() {
+    Deque<Pair<List<Integer>, Color>> getGroups() {
       Deque<Pair<List<Integer>, Color>> groups = new ArrayDeque<>(4);
       if (!highlightIndices.isEmpty()) {
         groups.add(Pair.of(highlightIndices, COLOR_HIGHLIGHT));
@@ -343,7 +353,7 @@ public class ARGToBitmapWriter {
       return groups;
     }
 
-    public Color getBackgroundColor() {
+    Color getBackgroundColor() {
       Color color;
       if (!targetIndices.isEmpty()) {
         color = COLOR_TARGET;
@@ -374,32 +384,91 @@ public class ARGToBitmapWriter {
       }
 
       @CanIgnoreReturnValue
-      public Builder node() {
+      Builder node() {
         width++;
         return this;
       }
 
       @CanIgnoreReturnValue
-      public Builder markTarget() {
+      Builder markTarget() {
         targets.add(width);
         return this;
       }
 
       @CanIgnoreReturnValue
-      public Builder markNotExpanded() {
+      Builder markNotExpanded() {
         notExpanded.add(width);
         return this;
       }
 
       @CanIgnoreReturnValue
-      public Builder markHighlight() {
+      Builder markHighlight() {
         highlights.add(width);
         return this;
       }
 
-      public Builder markCovered() {
+      Builder markCovered() {
         covered.add(width);
         return this;
+      }
+    }
+  }
+
+  private interface CanvasProvider {
+    Graphics2D createCanvas(int pWidth, int pHeight);
+
+    void writeToFile(Path pOutputFile) throws IOException;
+  }
+
+  private static class BitmapProvider implements CanvasProvider {
+
+    private String imageFormat;
+    private BufferedImage bufferedImage = null;
+
+    BitmapProvider(String pFormat) {
+      imageFormat = pFormat;
+    }
+
+    @Override
+    public Graphics2D createCanvas(int pWidth, int pHeight) {
+      checkState(bufferedImage == null, "createCanvas can only be called after writing the old "
+          + "canvas to a file");
+      bufferedImage = new BufferedImage(pWidth, pHeight, BufferedImage.TYPE_3BYTE_BGR);
+      return bufferedImage.createGraphics();
+    }
+
+    @Override
+    public void writeToFile(Path pOutputFile) throws IOException {
+      checkState(bufferedImage != null, "Canvas not created");
+      try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
+        ImageIO.write(bufferedImage, imageFormat, out);
+      }
+      bufferedImage = null;
+    }
+  }
+
+  private static class SvgProvider implements CanvasProvider {
+
+    private SVGGraphics2D svgGenerator = null;
+
+    @Override
+    public Graphics2D createCanvas(int pWidth, int pHeight) {
+      DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation();
+
+      String svgNS = "http://www.w3.org/2000/svg";
+      Document document = domImpl.createDocument(svgNS, FORMAT_SVG, null);
+
+      // Create an instance of the SVG Generator.
+      svgGenerator = new SVGGraphics2D(document);
+      svgGenerator.setSVGCanvasSize(new Dimension(pWidth, pHeight));
+      return svgGenerator;
+    }
+
+    @Override
+    public void writeToFile(Path pOutputFile) throws IOException {
+      checkState(svgGenerator != null, "Canvas not created");
+      try (BufferedWriter out = Files.newBufferedWriter(pOutputFile, Charset.defaultCharset())) {
+        svgGenerator.stream(out);
       }
     }
   }

@@ -92,9 +92,10 @@ public class ARGStatistics implements Statistics {
   private Path argFile = Paths.get("ARG.dot");
 
   @Option(secure=true, name="bitmapFile",
-      description="output file for bitmap of ARG")
+      description="output file for bitmap of ARG without suffix. The suffix is added corresponding"
+          + " to the value of option cpa.arg.bitmap.imageFormat")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argBitmapFile = Paths.get("ARG.gif");
+  private Path argBitmapFile = Paths.get("ARG");
 
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")

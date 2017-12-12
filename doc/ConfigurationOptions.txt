@@ -829,6 +829,9 @@ cpa.arg.CTranslation.file = "ARG.c"
 # represent the ARG is used. The final height is height*scaling
 cpa.arg.bitmap.height = -1
 
+# Format to use for image output
+cpa.arg.bitmap.imageFormat = "svg"
+
 # Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
 # to 2, 2 * 2 pixels represent one ARG node, and so on.
 cpa.arg.bitmap.scaling = 2
@@ -849,8 +852,9 @@ cpa.arg.bitmap.xPadding = 2
 # Padding of the bitmap on the top and bottom (each) in pixels
 cpa.arg.bitmap.yPadding = 2
 
-# output file for bitmap of ARG
-cpa.arg.bitmapFile = "ARG.gif"
+# output file for bitmap of ARG without suffix. The suffix is added
+# corresponding to the value of option cpa.arg.bitmap.imageFormat
+cpa.arg.bitmapFile = "ARG"
 
 # export final ARG as bitmap
 cpa.arg.bitmapGraphic = false
