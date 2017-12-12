@@ -189,7 +189,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (isUsedInExpression(varName, exp)) {
         // make tmp for assignment,
         // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        String tmpVarName = predmgr.getTmpVariableForVars(partition.getVars());
+        String tmpVarName = predmgr.getTmpVariableForPartition(partition);
         final Region[] tmp = predmgr.createPredicateWithoutPrecisionCheck(tmpVarName, getBitsize(partition, targetType));
 
         // make region for RIGHT SIDE and build equality of var and region

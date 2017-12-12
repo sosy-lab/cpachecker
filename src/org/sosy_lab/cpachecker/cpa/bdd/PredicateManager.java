@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class PredicateManager {
   private boolean initPartitions = true;
 
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
-  private final Map<Collection<String>, String> varsToTmpVar = new HashMap<>();
+  private final ImmutableMap<Partition, String> varsToTmpVar;
 
   /** Contains the varNames of all really tracked vars.
    * This set may differ from the union of all partitions,
@@ -76,7 +77,9 @@ public class PredicateManager {
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pCfa);
+      varsToTmpVar = initVars(pCfa);
+    } else {
+      varsToTmpVar = null; // never accessed afterwards
     }
   }
 
@@ -85,9 +88,9 @@ public class PredicateManager {
   }
 
   /** return a specific temp-variable, that should be at correct positions in the BDD. */
-  String getTmpVariableForVars(final Collection<String> vars) {
+  String getTmpVariableForPartition(final Partition pPartition) {
     if (initPartitions) {
-      return varsToTmpVar.get(vars);
+      return varsToTmpVar.get(pPartition);
     } else {
       return TMP_VARIABLE;
     }
@@ -98,7 +101,7 @@ public class PredicateManager {
    * the BDD). This function declares those vars in the beginning of the analysis, so that we can
    * choose between some orders.
    */
-  private void initVars(CFA cfa) {
+  private ImmutableMap<Partition, String> initVars(CFA cfa) {
     Collection<Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
@@ -108,11 +111,17 @@ public class PredicateManager {
       partitions = cfa.getVarClassification().get().getPartitions(); // may be unsorted
     }
 
+    Map<Partition, String> partitionToTmpVar = new HashMap<>();
     MachineModel machineModel = cfa.getMachineModel();
     for (Partition partition : partitions) {
-      // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
-      createPredicates(partition.getVars(), machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
+      // maxBitSize is too much for most variables. we only create an order here, so this should not
+      // matter.
+      createPredicates(
+          partition,
+          machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits(),
+          partitionToTmpVar);
     }
+    return ImmutableMap.copyOf(partitionToTmpVar);
   }
 
   /**
@@ -121,13 +130,17 @@ public class PredicateManager {
    * <p>The value 'bitsize' chooses how much bits are used for each var. The varname is build as
    * "varname@pos".
    */
-  private void createPredicates(final Collection<String> vars, final int bitsize) {
+  private void createPredicates(
+      final Partition pPartition,
+      final int bitsize,
+      final Map<Partition, String> partitionToTmpVar) {
 
     assert bitsize >= 1 : "you need at least one bit for a variable.";
 
-    // add a temporary variable for each set of variables, introducing it here is cheap, later it may be  expensive.
-    String tmpVar = TMP_VARIABLE + "_" + varsToTmpVar.size();
-    varsToTmpVar.put(vars, tmpVar);
+    // add a temporary variable for each set of variables, introducing it here is cheap, later it
+    // may be  expensive.
+    String tmpVar = TMP_VARIABLE + "_" + partitionToTmpVar.size();
+    partitionToTmpVar.put(pPartition, tmpVar);
 
     // bitvectors [a2, a1, a0]
     // 'initBitwise' chooses between initialing each var separately or bitwise overlapped.
@@ -137,7 +150,7 @@ public class PredicateManager {
       boolean isTrackingSomething = false;
       for (int i = 0; i < bitsize; i++) {
         int index = initBitsIncreasing ? i : (bitsize - i - 1);
-        for (String var : vars) {
+        for (String var : pPartition.getVars()) {
           createPredicateDirectly(var, index);
           isTrackingSomething = true;
         }
@@ -149,7 +162,7 @@ public class PredicateManager {
     } else {
       // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
       boolean isTrackingSomething = false;
-      for (String var : vars) { // different loop order!
+      for (String var : pPartition.getVars()) { // different loop order!
         for (int i = 0; i < bitsize; i++) {
           int index = initBitsIncreasing ? i : (bitsize - i - 1);
           createPredicateDirectly(var, index);
