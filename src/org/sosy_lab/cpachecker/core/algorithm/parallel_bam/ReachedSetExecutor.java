@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
  * A wrapper for a single reached-set and the corresponding data-structures. We assume that each
@@ -110,6 +111,9 @@ class ReachedSetExecutor {
   private final LogManager logger;
 
   int execCounter = 0; // statistics
+  private final TimerWrapper threadTimer;
+  private final TimerWrapper addingStatesTimer;
+  private final TimerWrapper terminationCheckTimer;
 
   /**
    * This set contains all sub-reached-sets that have to be finished before the current one. The
@@ -159,6 +163,10 @@ class ReachedSetExecutor {
 
     assert pBlock == getBlockForState(pRs.getFirstState());
     assert !pReachedSetMapping.containsKey(pRs);
+
+    threadTimer = stats.threadTime.getNewTimer();
+    addingStatesTimer = stats.addingStatesTime.getNewTimer();
+    terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
   }
 
   public Runnable asRunnable() {
@@ -179,6 +187,7 @@ class ReachedSetExecutor {
    * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
    */
   private void apply(Collection<AbstractState> pStatesToBeAdded) {
+    threadTimer.start();
     int running = stats.numActiveThreads.incrementAndGet();
     stats.histActiveThreads.insertValue(running);
     stats.numMaxRSE.accumulate(reachedSetMapping.size());
@@ -199,7 +208,9 @@ class ReachedSetExecutor {
           targetStateFound,
           id(pStatesToBeAdded));
 
+      addingStatesTimer.start();
       updateStates(pStatesToBeAdded);
+      addingStatesTimer.stop();
 
       // handle finished reached-set after refinement
       // TODO checking this once on RSE-creation would be sufficient
@@ -215,7 +226,9 @@ class ReachedSetExecutor {
         }
       }
 
+      terminationCheckTimer.start();
       handleTermination();
+      terminationCheckTimer.stop();
 
       logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
 
@@ -224,9 +237,9 @@ class ReachedSetExecutor {
       terminateAnalysis.set(true);
       error.set(e);
       pool.shutdownNow();
-
     } finally {
       stats.numActiveThreads.decrementAndGet();
+      threadTimer.stop();
     }
   }
 

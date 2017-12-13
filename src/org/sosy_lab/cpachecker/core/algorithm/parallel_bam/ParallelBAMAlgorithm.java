@@ -63,7 +63,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 @Options(prefix="algorithm.parallelBam")
 public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
@@ -100,6 +102,16 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public AlgorithmStatus run(final ReachedSet mainReachedSet)
       throws CPAException, InterruptedException {
+    stats.wallTime.start();
+    try {
+      return run0(mainReachedSet);
+    } finally {
+      stats.wallTime.stop();
+    }
+  }
+
+  private AlgorithmStatus run0(final ReachedSet mainReachedSet)
+      throws CPAException, InterruptedException {
 
     final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
         new HashMap<>();
@@ -123,6 +135,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             error,
             terminateAnalysis,
             logger);
+
     synchronized (reachedSetMapping) {
       CompletableFuture<Void> future = CompletableFuture.runAsync(rse.asRunnable(), pool);
       reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
@@ -233,6 +246,13 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   static class ParallelBAMStatistics implements Statistics {
+    final StatTimer wallTime = new StatTimer("Time for execution of algorithm");
+    final ThreadSafeTimerContainer threadTime =
+        new ThreadSafeTimerContainer("Time for RSE execution");
+    final ThreadSafeTimerContainer addingStatesTime =
+        new ThreadSafeTimerContainer("Time for adding states to RSE");
+    final ThreadSafeTimerContainer terminationCheckTime =
+        new ThreadSafeTimerContainer("Time for terminating RSE");
     final LongAccumulator numMaxRSE = new LongAccumulator(Math::max, 0);
     final AtomicInteger numActiveThreads = new AtomicInteger(0);
     final StatHist histActiveThreads = new StatHist("Active threads");
@@ -245,6 +265,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       StatisticsUtils.write(pOut, 0, 50, histActiveThreads);
       StatisticsUtils.write(pOut, 0, 50, executionCounter);
       StatisticsUtils.write(pOut, 0, 50, unfinishedRSEcounter);
+      StatisticsUtils.write(pOut, 0, 50, wallTime);
+      StatisticsUtils.write(pOut, 0, 50, threadTime);
+      StatisticsUtils.write(pOut, 1, 50, addingStatesTime);
+      StatisticsUtils.write(pOut, 1, 50, terminationCheckTime);
     }
 
     @Override
