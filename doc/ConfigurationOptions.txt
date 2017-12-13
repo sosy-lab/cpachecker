@@ -2966,9 +2966,6 @@ precision.variableBlacklist = ""
 # this precision
 precision.variableWhitelist = ""
 
-# Random seed to use. Uses a random number if null is given
-random.seed = no default value
-
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
