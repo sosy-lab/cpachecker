@@ -103,10 +103,12 @@ public class BAMReachedSetValidator {
             if (reducedChild.isDestroyed()) {
               // do not touch!
             } else {
+              @SuppressWarnings("unused") // there are assertions inside the call
               ReachedSet subRs = data.getReachedSetForInitialState(state, reducedChild);
-              if (reachedSets != null) {
-                assert reachedSets.contains(subRs);
-              }
+              // if (reachedSets != null) {
+              // assert reachedSets.contains(subRs)
+              // : "Reached-set not found: " + subRs.getFirstState();
+              // }
             }
           }
         }
