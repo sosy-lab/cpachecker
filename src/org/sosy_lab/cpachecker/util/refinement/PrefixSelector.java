@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.RandomProvider;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class PrefixSelector {
@@ -288,11 +287,10 @@ public class PrefixSelector {
   }
 
   private static class RandomScorer extends Scorer {
-    private final Random random = RandomProvider.get();
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return random.nextInt(1000);
+      return new Random().nextInt(1000);
     }
   }
 

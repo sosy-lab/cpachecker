@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.RandomProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -90,7 +89,7 @@ public class CEXWeakeningManager {
   private final Solver solver;
   private final InductiveWeakeningManager.InductiveWeakeningStatistics
       statistics;
-  private final Random r = RandomProvider.get();
+  private final Random r = new Random();
   private final ShutdownNotifier shutdownNotifier;
 
   public CEXWeakeningManager(
