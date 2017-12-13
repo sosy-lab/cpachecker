@@ -68,8 +68,8 @@ import org.w3c.dom.Document;
  * An ARG is represented as a tree structure.
  * The depth of an ARG node in the tree equals its shortest distance from the root of the ARG.
  */
-@Options(prefix = "cpa.arg.bitmap")
-public class ARGToBitmapWriter {
+@Options(prefix = "cpa.arg.pixelgraphic")
+public class ARGToPixelsWriter {
 
   @Option(secure=true, description="Padding of the bitmap on the left and right (each) in pixels")
   private int xPadding = 2;
@@ -110,8 +110,10 @@ public class ARGToBitmapWriter {
 
   private final CanvasProvider canvasHandler;
 
-  public ARGToBitmapWriter(Configuration pConfig) throws InvalidConfigurationException {
+  public ARGToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    imageFormat = imageFormat.toLowerCase();
 
     if (width == 0 || height == 0) {
       throw new InvalidConfigurationException("Width and height may not be 0");

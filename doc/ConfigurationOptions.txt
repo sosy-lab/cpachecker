@@ -827,41 +827,6 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
-# Format to use for image output
-cpa.arg.bitmap.format = "svg"
-
-# Height of the bitmap in pixels. If set to -1, height is  computed in
-# relation to the width. If both are set to -1, the optimal bitmap size to
-# represent the ARG is used. The final height is height*scaling
-cpa.arg.bitmap.height = -1
-
-# Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
-# to 2, 2 * 2 pixels represent one ARG node, and so on.
-cpa.arg.bitmap.scaling = 2
-
-# Highlight not only corresponding ARG nodes, but background of corresponding
-# line, too. This may give an better overview, but also introduces more
-# clutter
-cpa.arg.bitmap.strongHighlight = true
-
-# Width of the bitmap in pixels. If set to -1, width is computed in relation
-# to the height. If both are set to -1, the optimal bitmap size to represent
-# the ARG is used. The final width is width*scaling
-cpa.arg.bitmap.width = -1
-
-# Padding of the bitmap on the left and right (each) in pixels
-cpa.arg.bitmap.xPadding = 2
-
-# Padding of the bitmap on the top and bottom (each) in pixels
-cpa.arg.bitmap.yPadding = 2
-
-# output file for bitmap of ARG without suffix. The suffix is added
-# corresponding to the value of option cpa.arg.bitmap.imageFormat
-cpa.arg.bitmapFile = "ARG"
-
-# export final ARG as bitmap
-cpa.arg.bitmapGraphic = false
-
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
@@ -889,6 +854,10 @@ cpa.arg.export.code.handleTargetStates = NONE
 # write include directives
 cpa.arg.export.code.header = true
 
+# export final ARG as pixel imagethat gives a rough overview over its
+# structure
+cpa.arg.exportPixelGraphic = false
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -905,6 +874,38 @@ cpa.arg.keepCoveredStatesInReached = false
 #  subsumed by the second wrapped state (and the parents are not yet
 # subsumed).
 cpa.arg.mergeOnWrappedSubsumption = false
+
+# output file for bitmap of ARG without suffix. The suffix is added
+# corresponding to the value of option cpa.arg.pixelgraphic.format
+cpa.arg.pixelGraphicFile = "ARG"
+
+# Format to use for image output
+cpa.arg.pixelgraphic.format = "svg"
+
+# Height of the bitmap in pixels. If set to -1, height is  computed in
+# relation to the width. If both are set to -1, the optimal bitmap size to
+# represent the ARG is used. The final height is height*scaling
+cpa.arg.pixelgraphic.height = -1
+
+# Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
+# to 2, 2 * 2 pixels represent one ARG node, and so on.
+cpa.arg.pixelgraphic.scaling = 2
+
+# Highlight not only corresponding ARG nodes, but background of corresponding
+# line, too. This may give an better overview, but also introduces more
+# clutter
+cpa.arg.pixelgraphic.strongHighlight = true
+
+# Width of the bitmap in pixels. If set to -1, width is computed in relation
+# to the height. If both are set to -1, the optimal bitmap size to represent
+# the ARG is used. The final width is width*scaling
+cpa.arg.pixelgraphic.width = -1
+
+# Padding of the bitmap on the left and right (each) in pixels
+cpa.arg.pixelgraphic.xPadding = 2
+
+# Padding of the bitmap on the top and bottom (each) in pixels
+cpa.arg.pixelgraphic.yPadding = 2
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value

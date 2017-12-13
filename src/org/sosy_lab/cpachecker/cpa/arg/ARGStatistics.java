@@ -83,19 +83,20 @@ public class ARGStatistics implements Statistics {
   @Option(secure=true, name="export", description="export final ARG as .dot file")
   private boolean exportARG = true;
 
-  @Option(secure=true, name="bitmapGraphic", description="export final ARG as bitmap")
-  private boolean exportBitmap = false;
+  @Option(secure=true, name="exportPixelGraphic", description="export final ARG as pixel image"
+      + "that gives a rough overview over its structure")
+  private boolean exportPixelGraphic = true;
 
   @Option(secure=true, name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
-  @Option(secure=true, name="bitmapFile",
+  @Option(secure=true, name="pixelGraphicFile",
       description="output file for bitmap of ARG without suffix. The suffix is added corresponding"
-          + " to the value of option cpa.arg.bitmap.imageFormat")
+          + " to the value of option cpa.arg.pixelgraphic.format")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argBitmapFile = Paths.get("ARG");
+  private Path pixelGraphicFile = Paths.get("ARG");
 
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
@@ -137,7 +138,7 @@ public class ARGStatistics implements Statistics {
   private final WitnessExporter argWitnessExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
-  private final ARGToBitmapWriter argToBitmapExporter;
+  private final ARGToPixelsWriter argToBitmapExporter;
   protected final LogManager logger;
 
   public ARGStatistics(
@@ -149,7 +150,7 @@ public class ARGStatistics implements Statistics {
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
-    argToBitmapExporter = new ARGToBitmapWriter(config);
+    argToBitmapExporter = new ARGToPixelsWriter(config);
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
@@ -322,9 +323,9 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    if (exportBitmap) {
+    if (exportPixelGraphic) {
       try {
-        Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, argBitmapFile);
+        Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, pixelGraphicFile);
         argToBitmapExporter.write(rootState, adjustedBitmapFileName);
       } catch (IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG bitmap to file");
