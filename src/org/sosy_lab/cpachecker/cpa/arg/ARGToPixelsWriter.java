@@ -414,7 +414,7 @@ public class ARGToPixelsWriter {
   private interface CanvasProvider {
     Graphics2D createCanvas(int pWidth, int pHeight);
 
-    void writeToFile(Path pOutputFile) throws IOException;
+    void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
 
   private static class BitmapProvider implements CanvasProvider {
@@ -435,10 +435,13 @@ public class ARGToPixelsWriter {
     }
 
     @Override
-    public void writeToFile(Path pOutputFile) throws IOException {
+    public void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException {
       checkState(bufferedImage != null, "Canvas not created");
       try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
-        ImageIO.write(bufferedImage, imageFormat, out);
+        boolean success = ImageIO.write(bufferedImage, imageFormat, out);
+        if (!success) {
+          throw new InvalidConfigurationException("ImageIO can't handle given format: " + imageFormat);
+        }
       }
       bufferedImage = null;
     }
