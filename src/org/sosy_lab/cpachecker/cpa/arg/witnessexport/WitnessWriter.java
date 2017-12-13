@@ -1499,14 +1499,7 @@ class WitnessWriter implements EdgeAppender {
     String sourceScope = stateScopes.get(source);
     String targetScope = stateScopes.get(target);
 
-    if (ExpressionTrees.getTrue().equals(targetTree)
-        && !ExpressionTrees.getTrue().equals(sourceTree)
-        && (targetScope == null || targetScope.equals(sourceScope))) {
-      ExpressionTree<Object> newTargetTree = getStateInvariant(target);
-      newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
-      stateInvariants.put(target, newTargetTree);
-      targetTree = newTargetTree;
-    } else if (!ExpressionTrees.getTrue().equals(targetTree)
+    if (!ExpressionTrees.getTrue().equals(targetTree)
         && ExpressionTrees.getTrue().equals(sourceTree)
         && (sourceScope == null || sourceScope.equals(targetScope))
         && enteringEdges.get(source).size() <= 1) {
