@@ -83,18 +83,16 @@ public class ARGStatistics implements Statistics {
   @Option(secure=true, name="export", description="export final ARG as .dot file")
   private boolean exportARG = true;
 
-  @Option(secure=true, name="exportPixelGraphic", description="export final ARG as pixel image"
-      + "that gives a rough overview over its structure")
-  private boolean exportPixelGraphic = true;
-
   @Option(secure=true, name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
   @Option(secure=true, name="pixelGraphicFile",
-      description="output file for bitmap of ARG without suffix. The suffix is added corresponding"
-          + " to the value of option cpa.arg.pixelgraphic.format")
+      description="Export final ARG as pixel graphic to the given file name. The suffix is added "
+          + " corresponding"
+          + " to the value of option cpa.arg.pixelgraphic.format"
+          + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pixelGraphicFile = Paths.get("ARG");
 
@@ -158,7 +156,8 @@ public class ARGStatistics implements Statistics {
     cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
+    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null
+        && proofWitness == null && pixelGraphicFile == null) {
       exportARG = false;
     }
 
@@ -323,7 +322,7 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    if (exportPixelGraphic) {
+    if (pixelGraphicFile != null) {
       try {
         Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, pixelGraphicFile);
         argToBitmapExporter.write(rootState, adjustedBitmapFileName);
