@@ -296,7 +296,7 @@ public class ARGStatistics implements Statistics {
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
-    if (proofWitness != null && pResult == Result.TRUE) {
+    if (proofWitness != null && pResult != Result.FALSE) {
       try {
         Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
         Appender content = pAppendable -> argWitnessExporter.writeProofWitness(pAppendable, rootState, Predicates.alwaysTrue(),
