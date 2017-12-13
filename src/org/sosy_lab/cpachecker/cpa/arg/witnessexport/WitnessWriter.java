@@ -1102,7 +1102,9 @@ class WitnessWriter implements EdgeAppender {
       }
       sourceNodeFlags.addAll(extractNodeFlags(s));
       nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
-      violatedProperties.putAll(sourceStateNodeId, extractViolatedProperties(s));
+      if (graphType == WitnessType.VIOLATION_WITNESS) {
+        violatedProperties.putAll(sourceStateNodeId, extractViolatedProperties(s));
+      }
     }
     // Write the sink node
     nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
