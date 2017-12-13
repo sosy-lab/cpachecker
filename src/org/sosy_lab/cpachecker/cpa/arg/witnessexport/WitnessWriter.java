@@ -384,6 +384,7 @@ class WitnessWriter implements EdgeAppender {
   private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
   private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = Maps.newLinkedHashMap();
   private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
+  private final Set<String> invariantExportStates = Sets.newTreeSet();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
 
@@ -447,10 +448,26 @@ class WitnessWriter implements EdgeAppender {
               ? String.format("%s_to_%s_intermediate-%d", pFrom, pTo, i)
               : pTo;
       Edge edge = new Edge(from, to, transition);
-      if (i == 0 && transition.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
-        Optional<CFANode> loopHead = entersLoop(pEdge);
-        if (loopHead.isPresent()) {
-          loopHeadEnteringEdges.put(edge, loopHead.get());
+      if (i == 0) {
+        if (transition.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
+          Optional<CFANode> loopHead = entersLoop(pEdge, false);
+          if (loopHead.isPresent()) {
+            loopHeadEnteringEdges.put(edge, loopHead.get());
+          }
+        }
+        if (graphType != WitnessType.VIOLATION_WITNESS) {
+          ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+          boolean exportInvariant = exportInvariant(pEdge, pFromState);
+          if (exportInvariant) {
+            invariantExportStates.add(to);
+          }
+          if (exportInvariant || isEdgeRedundant.apply(edge)) {
+            invariant =
+                simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
+          }
+          putStateInvariant(pTo, invariant);
+          String functionName = pEdge.getSuccessor().getFunctionName();
+          stateScopes.put(pTo, isFunctionScope ? functionName : "");
         }
       }
 
@@ -488,16 +505,6 @@ class WitnessWriter implements EdgeAppender {
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-
-    if (graphType != WitnessType.VIOLATION_WITNESS) {
-      ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-      if (exportInvariant(pEdge, pFromState)) {
-        invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
-      }
-      putStateInvariant(pTo, invariant);
-      String functionName = pEdge.getSuccessor().getFunctionName();
-      stateScopes.put(pTo, isFunctionScope ? functionName : "");
-    }
 
     if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
       return Collections.singletonList(TransitionCondition.empty());
@@ -1290,6 +1297,9 @@ class WitnessWriter implements EdgeAppender {
 
   private ExpressionTree<Object> addInvariantsData(
       GraphMlBuilder pDoc, Element pNode, String pStateId) {
+    if (!invariantExportStates.contains(pStateId)) {
+      return ExpressionTrees.getTrue();
+    }
     ExpressionTree<Object> tree = getStateInvariant(pStateId);
     if (!tree.equals(ExpressionTrees.getTrue())) {
       pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
@@ -1411,6 +1421,10 @@ class WitnessWriter implements EdgeAppender {
     if (nodeToKeep.equals(nodeToRemove)) {
       removeEdge(pEdge);
       return Iterables.concat(leavingEdges.get(nodeToKeep), enteringEdges.get(nodeToKeep));
+    }
+
+    if (invariantExportStates.remove(nodeToRemove)) {
+      invariantExportStates.add(nodeToKeep);
     }
 
     // Merge the flags
