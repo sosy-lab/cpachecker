@@ -459,6 +459,10 @@ public class ARGToPixelsWriter {
       Document document = domImpl.createDocument(svgNS, FORMAT_SVG, null);
 
       // Create an instance of the SVG Generator.
+      // This object creation takes a long time, so only do this on demand!
+      // It takes a long time because of the call to FontManagerFactory.getInstance()
+      // in Font#getFont2D() . It is called by org.apache.batik.svggen.DOMTreeManager
+      // and currently there is no way to tell batik that we don't even need fonts.
       svgGenerator = new SVGGraphics2D(document);
       svgGenerator.setSVGCanvasSize(new Dimension(pWidth, pHeight));
       return svgGenerator;
