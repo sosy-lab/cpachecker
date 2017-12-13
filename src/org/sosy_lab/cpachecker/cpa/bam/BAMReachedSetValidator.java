@@ -65,7 +65,8 @@ public class BAMReachedSetValidator {
     return true;
   }
 
-  public static boolean validateReachedSet(
+  @SuppressWarnings("unused")
+  private static boolean validateReachedSet(
       Set<ARGState> subgraph,
       UnmodifiableReachedSet reachedSet,
       BAMDataManager data,
@@ -103,7 +104,7 @@ public class BAMReachedSetValidator {
             if (reducedChild.isDestroyed()) {
               // do not touch!
             } else {
-              @SuppressWarnings("unused") // there are assertions inside the call
+              // there are assertions inside the call
               ReachedSet subRs = data.getReachedSetForInitialState(state, reducedChild);
               // if (reachedSets != null) {
               // assert reachedSets.contains(subRs)
