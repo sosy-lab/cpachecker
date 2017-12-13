@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
  */
 class Edge implements Comparable<Edge> {
 
-  final String source;
+  private final String source;
 
-  final String target;
+  private final String target;
 
-  final TransitionCondition label;
+  private final TransitionCondition label;
 
   private int hashCode = 0;
 
@@ -92,6 +92,18 @@ class Edge implements Comparable<Edge> {
           && label.equals(other.label);
     }
     return false;
+  }
+
+  public String getSource() {
+    return source;
+  }
+
+  public String getTarget() {
+    return target;
+  }
+
+  public TransitionCondition getLabel() {
+    return label;
   }
 
   public Optional<Edge> tryMerge(Edge pOther) {

@@ -1118,7 +1118,7 @@ class WitnessWriter implements EdgeAppender {
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is redundant, remove it
-      if (leavingEdges.get(edge.source).contains(edge) && isEdgeRedundant.apply(edge)) {
+      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeRedundant.apply(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
@@ -1143,12 +1143,12 @@ class WitnessWriter implements EdgeAppender {
     final Collection<Edge> toRemove = Sets.newIdentityHashSet();
     for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
       for (Edge edge : leavingEdges) {
-        if (edge.target.equals(SINK_NODE_ID)) {
+        if (edge.getTarget().equals(SINK_NODE_ID)) {
           for (Edge otherEdge : leavingEdges) {
             // ignore the edge itself, as well as already handled edges.
             if (edge != otherEdge && !toRemove.contains(otherEdge)) {
               // remove edges with either identical labels or redundant edge-transition
-              if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
+              if (edge.getLabel().equals(otherEdge.getLabel()) || isEdgeRedundant.apply(edge)) {
                 toRemove.add(edge);
                 break;
               }
@@ -1173,7 +1173,7 @@ class WitnessWriter implements EdgeAppender {
         List<Edge> toSink =
             leavingEdges
                 .stream()
-                .filter(e -> e.target.equals(SINK_NODE_ID))
+                .filter(e -> e.getTarget().equals(SINK_NODE_ID))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         // If multiple siblings go to the sink, we want to try to merge them
@@ -1237,16 +1237,16 @@ class WitnessWriter implements EdgeAppender {
     while (!waitlist.isEmpty()) {
       String source = waitlist.pop();
       for (Edge edge : leavingEdges.get(source)) {
-        setLoopHeadInvariantIfApplicable(edge.target);
+        setLoopHeadInvariantIfApplicable(edge.getTarget());
 
-        Element targetNode = nodes.get(edge.target);
+        Element targetNode = nodes.get(edge.getTarget());
         if (targetNode == null) {
-          targetNode = createNewNode(doc, edge.target);
+          targetNode = createNewNode(doc, edge.getTarget());
           if (!ExpressionTrees.getFalse()
-              .equals(addInvariantsData(doc, targetNode, edge.target))) {
-            waitlist.push(edge.target);
+              .equals(addInvariantsData(doc, targetNode, edge.getTarget()))) {
+            waitlist.push(edge.getTarget());
           }
-          nodes.put(edge.target, targetNode);
+          nodes.put(edge.getTarget(), targetNode);
         }
         createNewEdge(doc, edge, targetNode);
       }
@@ -1260,7 +1260,7 @@ class WitnessWriter implements EdgeAppender {
     ExpressionTree<Object> loopHeadInvariant = ExpressionTrees.getFalse();
     String scope = null;
     for (Edge enteringEdge : enteringEdges.get(pTarget)) {
-      if (enteringEdge.label.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
+      if (enteringEdge.getLabel().getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
           String functionName = loopHead.getFunctionName();
@@ -1320,7 +1320,7 @@ class WitnessWriter implements EdgeAppender {
             return false;
           }
           for (Edge edge : enteringEdges.get(pNode)) {
-            if (!edge.label.getMapping().isEmpty()) {
+            if (!edge.getLabel().getMapping().isEmpty()) {
               return false;
             }
           }
@@ -1333,31 +1333,31 @@ class WitnessWriter implements EdgeAppender {
 
         @Override
         public boolean apply(final Edge pEdge) {
-          if (isNodeRedundant.apply(pEdge.target)) {
+          if (isNodeRedundant.apply(pEdge.getTarget())) {
             return true;
           }
 
-          if (stateQuasiInvariants.get(pEdge.source) != null
-              && stateQuasiInvariants.get(pEdge.target) != null
+          if (stateQuasiInvariants.get(pEdge.getSource()) != null
+              && stateQuasiInvariants.get(pEdge.getTarget()) != null
               && !stateQuasiInvariants
-                  .get(pEdge.source)
-                  .equals(stateQuasiInvariants.get(pEdge.target))) {
+                  .get(pEdge.getSource())
+                  .equals(stateQuasiInvariants.get(pEdge.getTarget()))) {
             return false;
           }
 
-          if (pEdge.label.getMapping().isEmpty()) {
+          if (pEdge.getLabel().getMapping().isEmpty()) {
             return true;
           }
 
-          if (pEdge.source.equals(pEdge.target)) {
+          if (pEdge.getSource().equals(pEdge.getTarget())) {
             return false;
           }
 
           // An edge is never redundant if there are conflicting scopes
-          ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
+          ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.getSource());
           if (sourceTree != null) {
-            String sourceScope = stateScopes.get(pEdge.source);
-            String targetScope = stateScopes.get(pEdge.target);
+            String sourceScope = stateScopes.get(pEdge.getSource());
+            String targetScope = stateScopes.get(pEdge.getTarget());
             if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
               return false;
             }
@@ -1368,25 +1368,25 @@ class WitnessWriter implements EdgeAppender {
           // are summarized by a preceding edge
           boolean summarizedByPreceedingEdge =
               Iterables.any(
-                  enteringEdges.get(pEdge.source),
-                  pPrecedingEdge -> pPrecedingEdge.label.summarizes(pEdge.label));
+                  enteringEdges.get(pEdge.getSource()),
+                  pPrecedingEdge -> pPrecedingEdge.getLabel().summarizes(pEdge.getLabel()));
 
-          if ((!pEdge.label.hasTransitionRestrictions()
+          if ((!pEdge.getLabel().hasTransitionRestrictions()
                   || summarizedByPreceedingEdge
-                  || (pEdge.label.getMapping().size() == 1
-                      && pEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
-              && (leavingEdges.get(pEdge.source).size() == 1)) {
+                  || (pEdge.getLabel().getMapping().size() == 1
+                      && pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
+              && (leavingEdges.get(pEdge.getSource()).size() == 1)) {
             return true;
           }
 
           if (Iterables.all(
-              leavingEdges.get(pEdge.source),
-              pLeavingEdge -> pLeavingEdge.label.getMapping().isEmpty())) {
+              leavingEdges.get(pEdge.getSource()),
+              pLeavingEdge -> pLeavingEdge.getLabel().getMapping().isEmpty())) {
             return true;
           }
 
           if (witnessOptions.removeInsufficientEdges()) {
-            if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
+            if (INSUFFICIENT_KEYS.containsAll(pEdge.getLabel().getMapping().keySet())) {
               return true;
             }
           }
@@ -1403,9 +1403,10 @@ class WitnessWriter implements EdgeAppender {
     Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
 
     // Always merge into the predecessor, unless the successor is the sink
-    boolean intoPredecessor = !nodeFlags.get(pEdge.target).equals(EnumSet.of(NodeFlag.ISSINKNODE));
-    final String nodeToKeep = intoPredecessor ? pEdge.source : pEdge.target;
-    final String nodeToRemove = intoPredecessor ? pEdge.target : pEdge.source;
+    boolean intoPredecessor =
+        !nodeFlags.get(pEdge.getTarget()).equals(EnumSet.of(NodeFlag.ISSINKNODE));
+    final String nodeToKeep = intoPredecessor ? pEdge.getSource() : pEdge.getTarget();
+    final String nodeToRemove = intoPredecessor ? pEdge.getTarget() : pEdge.getSource();
 
     if (nodeToKeep.equals(nodeToRemove)) {
       removeEdge(pEdge);
@@ -1434,18 +1435,18 @@ class WitnessWriter implements EdgeAppender {
     // Add them as entering edges to their target nodes
     for (Edge leavingEdge : leavingEdgesToMove) {
       if (!pEdge.equals(leavingEdge)) {
-        TransitionCondition label = pEdge.label;
+        TransitionCondition label = pEdge.getLabel();
         // Don't give function-exit transitions labels from preceding transitions
-        if (leavingEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
+        if (leavingEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
           label = TransitionCondition.empty();
         }
         // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
-        if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
+        if (leavingEdge.getLabel().getMapping().containsKey(KeyDef.SOURCECODE)) {
           label = label.removeAndCopy(KeyDef.ORIGINFILE);
         }
-        label = label.putAllAndCopy(leavingEdge.label);
-        Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
-        affectedNodes.add(leavingEdge.target);
+        label = label.putAllAndCopy(leavingEdge.getLabel());
+        Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
+        affectedNodes.add(leavingEdge.getTarget());
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
@@ -1467,9 +1468,9 @@ class WitnessWriter implements EdgeAppender {
     // Add add them as leaving edges to their source nodes
     for (Edge enteringEdge : enteringEdgesToMove) {
       if (!pEdge.equals(enteringEdge)) {
-        TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
-        Edge replacementEdge = new Edge(enteringEdge.source, nodeToKeep, label);
-        affectedNodes.add(enteringEdge.source);
+        TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
+        Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
+        affectedNodes.add(enteringEdge.getSource());
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
@@ -1505,7 +1506,7 @@ class WitnessWriter implements EdgeAppender {
         && enteringEdges.get(source).size() <= 1) {
       ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
       for (Edge e : enteringEdges.get(source)) {
-        newSourceTree = factory.or(newSourceTree, getStateInvariant(e.source));
+        newSourceTree = factory.or(newSourceTree, getStateInvariant(e.getSource()));
       }
       newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
       stateInvariants.put(source, newSourceTree);
@@ -1552,21 +1553,21 @@ class WitnessWriter implements EdgeAppender {
 
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
-    assert !pEdge.source.equals(SINK_NODE_ID);
-    leavingEdges.put(pEdge.source, pEdge);
-    enteringEdges.put(pEdge.target, pEdge);
+    assert !pEdge.getSource().equals(SINK_NODE_ID);
+    leavingEdges.put(pEdge.getSource(), pEdge);
+    enteringEdges.put(pEdge.getTarget(), pEdge);
     assert leavingEdges.size() == enteringEdges.size();
   }
 
   private boolean removeEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
-    if (leavingEdges.remove(pEdge.source, pEdge)) {
-      boolean alsoRemoved = enteringEdges.remove(pEdge.target, pEdge);
+    if (leavingEdges.remove(pEdge.getSource(), pEdge)) {
+      boolean alsoRemoved = enteringEdges.remove(pEdge.getTarget(), pEdge);
       assert alsoRemoved : "edge was not removed: " + pEdge;
       assert leavingEdges.size() == enteringEdges.size();
-      assert nodeFlags.get(pEdge.target).contains(NodeFlag.ISENTRY)
-        || !enteringEdges.get(pEdge.target).isEmpty()
-        || leavingEdges.get(pEdge.target).isEmpty();
+      assert nodeFlags.get(pEdge.getTarget()).contains(NodeFlag.ISENTRY)
+          || !enteringEdges.get(pEdge.getTarget()).isEmpty()
+          || leavingEdges.get(pEdge.getTarget()).isEmpty();
 
       return true;
     }
@@ -1574,8 +1575,8 @@ class WitnessWriter implements EdgeAppender {
   }
 
   private Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
-    Element edge = pDoc.createEdgeElement(pEdge.source, pEdge.target);
-    for (Map.Entry<KeyDef, String> entry : pEdge.label.getMapping().entrySet()) {
+    Element edge = pDoc.createEdgeElement(pEdge.getSource(), pEdge.getTarget());
+    for (Map.Entry<KeyDef, String> entry : pEdge.getLabel().getMapping().entrySet()) {
       KeyDef keyDef = entry.getKey();
       String value = entry.getValue();
       if (keyDef.keyFor.equals(ElementType.EDGE)) {
