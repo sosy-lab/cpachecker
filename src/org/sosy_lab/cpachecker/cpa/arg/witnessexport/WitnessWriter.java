@@ -1492,11 +1492,6 @@ class WitnessWriter implements EdgeAppender {
     return affectedEdges;
   }
 
-  private ExpressionTree<Object> getTargetStateInvariant(String pTargetState) {
-    ExpressionTree<Object> targetStateInvariant = getStateInvariant(pTargetState);
-    return targetStateInvariant;
-  }
-
   /** Merge two expressionTrees for source and target. */
   private void mergeExpressionTrees(final String source, final String target) {
     ExpressionTree<Object> sourceTree = getStateInvariant(source);
@@ -1507,7 +1502,7 @@ class WitnessWriter implements EdgeAppender {
     if (ExpressionTrees.getTrue().equals(targetTree)
         && !ExpressionTrees.getTrue().equals(sourceTree)
         && (targetScope == null || targetScope.equals(sourceScope))) {
-      ExpressionTree<Object> newTargetTree = getTargetStateInvariant(target);
+      ExpressionTree<Object> newTargetTree = getStateInvariant(target);
       newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
       stateInvariants.put(target, newTargetTree);
       targetTree = newTargetTree;
