@@ -854,10 +854,6 @@ cpa.arg.export.code.handleTargetStates = NONE
 # write include directives
 cpa.arg.export.code.header = true
 
-# export final ARG as pixel imagethat gives a rough overview over its
-# structure
-cpa.arg.exportPixelGraphic = true
-
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -875,8 +871,9 @@ cpa.arg.keepCoveredStatesInReached = false
 # subsumed).
 cpa.arg.mergeOnWrappedSubsumption = false
 
-# output file for bitmap of ARG without suffix. The suffix is added
-# corresponding to the value of option cpa.arg.pixelgraphic.format
+# Export final ARG as pixel graphic to the given file name. The suffix is
+# added  corresponding to the value of option cpa.arg.pixelgraphic.formatIf
+# set to 'null', no pixel graphic is exported.
 cpa.arg.pixelGraphicFile = "ARG"
 
 # Format to use for image output
