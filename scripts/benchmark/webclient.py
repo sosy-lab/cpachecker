@@ -590,6 +590,7 @@ class WebInterface:
 
         if run.options:
             i = iter(run.options)
+            disableAssertions = False
             while True:
                 try:
                     option = next(i)
@@ -614,7 +615,7 @@ class WebInterface:
                         # ignore, is always set by this script
                         pass
                     elif option == "-disable-java-assertions":
-                        params.append(('disableJavaAssertions', 'true'))
+                        disableAssertions = True
                     elif option == "-java":
                         params.append(("option", "language=JAVA"))
                     elif option == "-32":
@@ -657,7 +658,7 @@ class WebInterface:
                         params.append(("option", "coverage.enabled=true"))
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"));
-
+                        disableAssertions = True
                     elif option[0] == '-':
                         if config:
                             raise WebClientError("More than one configuration: '{}' and '{}'".format(config, option[1:]))
@@ -669,6 +670,9 @@ class WebInterface:
 
                 except StopIteration:
                     break
+
+            if disableAssertions:
+              params.append(('disableJavaAssertions', 'true'))
 
         return (None, opened_files)
 
