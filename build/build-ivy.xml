@@ -72,6 +72,6 @@
         <property name="update-lib.revision" value="latest.release"/>
         <ivy:findrevision organisation="${update-lib.org}" module="${update-lib.module}" revision="${update-lib.revision}" property="update-lib.version"/>
         <echo message="Found version ${update-lib.version} of ${update-lib.org}/${update-lib.module}"/>
-        <replaceregexp file="${ivy.dep.file.ivy.instance}" match='(org="${update-lib.org}" name="${update-lib.module}" rev=)"[0-9a-zA-Z+-.]*"' replace='\1"${update-lib.version}"' byline="true"/>
+        <replaceregexp file="${ivy.dep.file}" match='(org="${update-lib.org}" name="${update-lib.module}" rev=)"[0-9a-zA-Z+-.]*"' replace='\1"${update-lib.version}"' byline="true"/>
     </target>
 </project>
