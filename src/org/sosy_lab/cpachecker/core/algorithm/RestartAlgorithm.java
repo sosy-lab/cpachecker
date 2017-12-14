@@ -292,6 +292,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
 
       try {
         Path singleConfigFileName = configFilesIterator.next().value();
+        logger.logf(
+            Level.INFO,
+            "Loading analysis %d from file %s ...",
+            stats.noOfAlgorithmsUsed + 1,
+            singleConfigFileName);
 
         try {
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
@@ -337,6 +342,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         // run algorithm
         registerReachedSetUpdateListeners();
         try {
+          logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
           if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
@@ -348,12 +354,18 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           if (!status.isSound()) {
             // if the analysis is not sound and we can proceed with
             // another algorithm, continue with the next algorithm
-            logger.log(Level.INFO, "Analysis result was unsound.");
+            logger.log(
+                Level.INFO,
+                "Analysis %d terminated, but result is unsound.",
+                stats.noOfAlgorithmsUsed);
 
           } else if (currentReached.hasWaitingState()) {
             // if there are still states in the waitlist, the result is unknown
             // continue with the next algorithm
-            logger.log(Level.INFO, "Analysis not completed: There are still states to be processed.");
+            logger.log(
+                Level.INFO,
+                "Analysis %d terminated but did not finish: There are still states to be processed.",
+                stats.noOfAlgorithmsUsed);
 
           } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
 
@@ -361,6 +373,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
               // sound analysis and completely finished, terminate
               return status;
             }
+
           }
           lastAnalysisTerminated = true;
           isLastReachedSetUsable = true;
@@ -372,7 +385,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
             status = status.withPrecise(false);
           }
           if (configFilesIterator.hasNext()) {
-            logger.logUserException(Level.WARNING, e, "Analysis not completed");
+            logger.logUserException(
+                Level.WARNING, e, "Analysis" + stats.noOfAlgorithms + " not completed.");
             if (e.getMessage().contains("recursion")) {
               recursionFound = true;
             }
@@ -387,7 +401,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           lastAnalysisInterrupted = true;
           if (configFilesIterator.hasNext()) {
             logger.logUserException(
-                Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
+                Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped.");
             shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
           } else {
             throw e;
@@ -431,7 +445,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
                 foundConfig = true;
                 break;
             default:
-              logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
+                logger.logf(
+                    Level.WARNING,
+                    "Ignoring invalid restart condition '%s' for file %s.",
+                    condition,
+                    configFilesIterator.peek().value());
               foundConfig = true;
             }
             if (!foundConfig) {
