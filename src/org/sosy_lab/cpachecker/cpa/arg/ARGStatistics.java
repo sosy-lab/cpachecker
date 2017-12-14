@@ -216,11 +216,6 @@ public class ARGStatistics implements Statistics {
     }
 
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
-    final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
-        Maps.filterValues(counterexamples, cex -> cex.isPreciseCounterExample());
-    if (!preciseCounterexamples.isEmpty()) {
-      counterexamples = preciseCounterexamples;
-    }
 
     if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
@@ -374,7 +369,10 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    return counterexamples.build();
+    Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.build();
+    final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
+        Maps.filterValues(allCounterexamples, cex -> cex.isPreciseCounterExample());
+    return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
   }
 
   public void exportCounterexampleOnTheFly(
