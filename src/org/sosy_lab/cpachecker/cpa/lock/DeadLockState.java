@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockTreeNode;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
@@ -51,7 +50,7 @@ public class DeadLockState extends AbstractLockState {
     }
     @Override
     public boolean isCompatibleWith(CompatibleState pState) {
-      Preconditions.checkArgument(pState instanceof LockTreeNode);
+      Preconditions.checkArgument(pState instanceof DeadLockTreeNode);
 
       /*LockIdentifier intLock = LockIdentifier.of("");
 
@@ -95,8 +94,8 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public int compareTo(CompatibleState pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof LockTreeNode);
-      LockTreeNode o = (LockTreeNode) pArg0;
+      Preconditions.checkArgument(pArg0 instanceof DeadLockTreeNode);
+      DeadLockTreeNode o = (DeadLockTreeNode) pArg0;
       int result = size() - o.size();
       if (result != 0) {
         return result;
@@ -114,8 +113,8 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public boolean cover(UsageTreeNode pNode) {
-      Preconditions.checkArgument(pNode instanceof LockTreeNode);
-      LockTreeNode o = (LockTreeNode) pNode;
+      Preconditions.checkArgument(pNode instanceof DeadLockTreeNode);
+      DeadLockTreeNode o = (DeadLockTreeNode) pNode;
       if (this.containsAll(o)) {
         return true;
       }
