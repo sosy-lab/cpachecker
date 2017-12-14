@@ -150,6 +150,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       }
     }
 
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      for (Statistics s : subStats) {
+        StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
+      }
+    }
   }
 
   @Option(
@@ -471,6 +477,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         } else {
           stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
         }
+        // Here we do not call Statistics.writeOutputFiles() because output files are usually
+        // meaningless for intermediate analyses.
         stats.resetSubStatistics();
 
         if (currentCpa != null && !provideReachedForNextAlgorithm) {

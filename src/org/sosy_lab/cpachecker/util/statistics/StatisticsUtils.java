@@ -97,6 +97,32 @@ public class StatisticsUtils {
     }
   }
 
+  /**
+   * This method calls {@link Statistics#writeOutputFiles(Result, UnmodifiableReachedSet)} but
+   * additionally handles cases like statistics that take too much resources.
+   */
+  public static void writeOutputFiles(
+      Statistics statistics, LogManager logger, Result result, UnmodifiableReachedSet reached) {
+    Timer timer = new Timer();
+    timer.start();
+    try {
+      statistics.writeOutputFiles(result, reached);
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Out of memory while writing output files from " + getStatisticsName(statistics));
+    }
+    timer.stop();
+    if (timer.getLengthOfLastInterval().compareTo(STATISTICS_WARNING_TIME) > 0) {
+      logger.logf(
+          Level.WARNING,
+          "Writing output files from %s took %s.",
+          getStatisticsName(statistics),
+          timer);
+    }
+  }
+
   private static String getStatisticsName(final Statistics pStatistics) {
     if (Strings.isNullOrEmpty(pStatistics.getName())) {
       return pStatistics.getClass().getName();

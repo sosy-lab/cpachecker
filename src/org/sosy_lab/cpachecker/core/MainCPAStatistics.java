@@ -400,6 +400,7 @@ class MainCPAStatistics implements Statistics {
 
     for (Statistics s : subStats) {
       StatisticsUtils.printStatistics(s, out, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(s, logger, result, reached);
     }
   }
 
@@ -511,6 +512,7 @@ class MainCPAStatistics implements Statistics {
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
       StatisticsUtils.printStatistics(cfaCreatorStatistics, out, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));

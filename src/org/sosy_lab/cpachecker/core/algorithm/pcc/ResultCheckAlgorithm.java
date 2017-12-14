@@ -69,6 +69,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     private Timer checkTimer = new Timer();
     private Timer analysisTimer = new Timer();
     private @Nullable StatisticsProvider checkingStatsProvider = null;
+    private final Collection<Statistics> checkingStats = new ArrayList<>();
     private @Nullable Statistics proofGenStats = null;
 
     ResultCheckStatistics(LogManager pLogger) {
@@ -89,10 +90,26 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       if(checkingStatsProvider != null) {
-        Collection<Statistics> checkingStats = new ArrayList<>();
-        checkingStatsProvider.collectStatistics(checkingStats);
+        if (checkingStats.isEmpty()) {
+          checkingStatsProvider.collectStatistics(checkingStats);
+        }
         for(Statistics stats: checkingStats) {
           StatisticsUtils.printStatistics(stats, pOut, logger, pResult, pReached);
+        }
+      }
+    }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      if (proofGenStats != null) {
+        StatisticsUtils.writeOutputFiles(proofGenStats, logger, pResult, pReached);
+      }
+      if (checkingStatsProvider != null) {
+        if (checkingStats.isEmpty()) {
+          checkingStatsProvider.collectStatistics(checkingStats);
+        }
+        for (Statistics stats : checkingStats) {
+          StatisticsUtils.writeOutputFiles(stats, logger, pResult, pReached);
         }
       }
     }

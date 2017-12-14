@@ -94,6 +94,13 @@ public class StatisticsDelegator implements Statistics {
   }
 
   @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    for (Statistics delegate : delegates) {
+      StatisticsUtils.writeOutputFiles(delegate, logger, pResult, pReached);
+    }
+  }
+
+  @Override
   public @Nullable String getName() {
     return name;
   }

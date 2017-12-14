@@ -82,6 +82,15 @@ public class ProofGenerator {
         }
 
         @Override
+        public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+          if (checkingStrategy != null) {
+            for (Statistics stats : checkingStrategy.getAdditionalProofGenerationStatistics()) {
+              StatisticsUtils.writeOutputFiles(stats, logger, pResult, pReached);
+            }
+          }
+        }
+
+        @Override
         public String getName() {
           return "Proof Generation";
         }

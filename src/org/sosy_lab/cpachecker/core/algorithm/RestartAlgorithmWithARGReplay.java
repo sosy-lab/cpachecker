@@ -126,6 +126,12 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       }
     }
 
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      for (Statistics s : subStats) {
+        StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
+      }
+    }
   }
 
   @Option(secure=true, required=true, description = "List of files with configurations to use. 2 filenames expected.")
@@ -214,6 +220,8 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       status = run0(reached2, algorithm2);
 
       stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reached);
+      // Here we do not call Statistics.writeOutputFiles() because output files are usually
+      // meaningless for intermediate analyses.
       stats.resetSubStatistics();
 
     } catch (InvalidConfigurationException e) {

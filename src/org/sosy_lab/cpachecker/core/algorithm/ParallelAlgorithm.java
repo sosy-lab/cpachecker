@@ -609,6 +609,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Other statistics");
       pOut.println("================");
     }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      for (StatisticsEntry subStats : allAnalysesStats) {
+        if (subStats.terminated.get()) {
+          Result result = pResult;
+          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
+            result = Result.UNKNOWN;
+          }
+          for (Statistics s : subStats.subStatistics) {
+            StatisticsUtils.writeOutputFiles(s, logger, result, pReached);
+          }
+        }
+      }
+    }
   }
 
   @Override
