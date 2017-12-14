@@ -153,8 +153,8 @@ public class ARGStatistics implements Statistics {
     cpa = pCpa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-    cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+    cexExporter = new CEXExporter(config, logger, cfa, cpa, argWitnessExporter);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null
         && proofWitness == null && pixelGraphicFile == null) {
