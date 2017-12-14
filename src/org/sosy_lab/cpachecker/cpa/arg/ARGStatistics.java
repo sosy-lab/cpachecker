@@ -210,7 +210,10 @@ public class ARGStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {}
+
+  @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
     if (cexExporter.dumpErrorPathImmediately() && !exportARG) {
       return;
     }
