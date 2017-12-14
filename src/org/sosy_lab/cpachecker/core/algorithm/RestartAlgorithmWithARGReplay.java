@@ -220,8 +220,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       status = run0(reached2, algorithm2);
 
       stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reached);
-      // Here we do not call Statistics.writeOutputFiles() because output files are usually
-      // meaningless for intermediate analyses.
+      stats.writeOutputFiles(Result.UNKNOWN, pReached);
       stats.resetSubStatistics();
 
     } catch (InvalidConfigurationException e) {

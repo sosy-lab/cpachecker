@@ -187,6 +187,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
   )
   private boolean printIntermediateStatistics = true;
 
+  @Option(
+    secure = true,
+    description =
+        "let each component of the restart algorithm write output files"
+            + " and not only the last one that is excuted"
+  )
+  private boolean writeIntermediateOutputFiles = false;
+
   /* The option is useful for some preanalysis,
    * for instance, the first analysis is fast and provides some hints to the next ones
    * Is used, for example, in CPALockator
@@ -477,8 +485,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         } else {
           stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
         }
-        // Here we do not call Statistics.writeOutputFiles() because output files are usually
-        // meaningless for intermediate analyses.
+        if (writeIntermediateOutputFiles) {
+          stats.writeOutputFiles(Result.UNKNOWN, pReached);
+        }
         stats.resetSubStatistics();
 
         if (currentCpa != null && !provideReachedForNextAlgorithm) {

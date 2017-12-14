@@ -3033,6 +3033,10 @@ restartAlgorithm.configFiles = no default value
 # after the components computation is finished
 restartAlgorithm.printIntermediateStatistics = true
 
+# let each component of the restart algorithm write output files and not only
+# the last one that is excuted
+restartAlgorithm.writeIntermediateOutputFiles = false
+
 # List of files with configurations to use. 2 filenames expected.
 restartAlgorithmWithARGReplay.configFiles = no default value
 
