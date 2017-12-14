@@ -392,7 +392,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           }
           if (configFilesIterator.hasNext()) {
             logger.logUserException(
-                Level.WARNING, e, "Analysis" + stats.noOfAlgorithms + " not completed.");
+                Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " not completed.");
             if (e.getMessage().contains("recursion")) {
               recursionFound = true;
             }
@@ -454,7 +454,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
                 logger.logf(
                     Level.WARNING,
                     "Ignoring invalid restart condition '%s' for file %s.",
-                    condition,
+                    condition.get(),
                     configFilesIterator.peek().value());
               foundConfig = true;
             }
@@ -463,7 +463,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
                   Level.INFO,
                   "Ignoring restart configuration '%s' because condition %s did not match.",
                   configFilesIterator.peek().value(),
-                  condition);
+                  condition.get());
               configFilesIterator.next();
               stats.noOfAlgorithmsUsed++;
             }
