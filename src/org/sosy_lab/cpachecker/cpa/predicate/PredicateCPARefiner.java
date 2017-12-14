@@ -592,11 +592,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
+    if (strategy instanceof StatisticsProvider) {
+      ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
+    }
   }
 
   private class Stats implements Statistics {
-
-    private final Statistics statistics = strategy.getStatistics();
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
@@ -619,14 +620,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           w1.put(prefixSelectionTime);
         }
         w1.put(errorPathProcessing);
-
-        statistics.printStatistics(out, result, reached);
       }
     }
 
     @Override
     public String getName() {
-      return strategy.getStatistics().getName();
+      return "PredicateCPARefiner";
     }
   }
 }

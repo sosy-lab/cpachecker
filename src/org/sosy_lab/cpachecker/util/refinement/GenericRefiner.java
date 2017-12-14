@@ -390,6 +390,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
         GenericRefiner.this.printStatistics(pOut, pResult, pReached);
       }
     });
+    pStatsCollection.add(pathExtractor);
+    pStatsCollection.add(interpolator);
   }
 
   private void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
@@ -397,9 +399,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     writer.put(refinementCounter)
         .put(numberOfTargets)
         .put(refinementTime);
-
-    pathExtractor.printStatistics(pOut, pResult, pReached);
-    interpolator.printStatistics(pOut, pResult, pReached);
     printAdditionalStatistics(pOut, pResult, pReached); //hook
   }
 
