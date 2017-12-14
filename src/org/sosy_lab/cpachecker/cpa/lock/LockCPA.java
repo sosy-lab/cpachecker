@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static enum LockAnalysisMode {
-    Race,
-    Deadlock
+    RACE,
+    DEADLOCK
   }
 
   public static CPAFactory factory() {
@@ -57,7 +57,7 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
   @Option(name="lockAnalysisMode",
       description="What are we searching for: race or deadlock",
       secure = true)
-  private LockAnalysisMode lockAnalysisMode = LockAnalysisMode.Race;
+  private LockAnalysisMode lockAnalysisMode = LockAnalysisMode.RACE;
 
   private final Reducer reducer;
 
@@ -65,11 +65,11 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
     super("sep", "sep", DelegateAbstractDomain.<AbstractLockState>getInstance(), new LockTransferRelation(config, logger));
     config.inject(this);
     switch (lockAnalysisMode) {
-      case Race:
+      case RACE:
         reducer = new LockReducer(config);
         break;
 
-      case Deadlock:
+      case DEADLOCK:
         reducer = NoOpReducer.getInstance();
         break;
 
@@ -81,10 +81,10 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     switch (lockAnalysisMode) {
-      case Race:
+      case RACE:
         return new LockState();
 
-      case Deadlock:
+      case DEADLOCK:
         return new DeadLockState();
 
       default:
