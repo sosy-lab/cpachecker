@@ -28,7 +28,7 @@ The following command-line arguments are allowed:
  - `-spec <FILE>`		sets `specification = <FILE>`
  - `-outputpath <DIR>`		sets `output.path = <DIR>`
  - `-logfile <FILE>`		sets `log.file = <FILE>`
- - `-benchmark`			sets `coverage.enabled = true` and `output.disable = true`, and `statistics.memory = false`
+ - `-benchmark`			sets `coverage.enabled = true`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
  - `-nolog`			sets `log.level = OFF` and `log.consoleLevel = OFF`
  - `-noout`			sets `output.disable=true`
  - `-stats`			sets `statistics.print = true`
