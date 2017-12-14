@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
@@ -88,20 +87,23 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
+    private final LogManager logger;
     private final int noOfAlgorithms;
     private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
+    public RestartAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
       noOfAlgorithms = pNoOfAlgorithms;
       subStats = new ArrayList<>();
+      logger = checkNotNull(pLogger);
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -139,18 +141,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       printSubStatistics(out, result, reached);
     }
 
-    private void printSubStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    private void printSubStatistics(
+        PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
 
       for (Statistics s : subStats) {
-        String name = s.getName();
-        if (!isNullOrEmpty(name)) {
-          name = name + " statistics";
-          out.println("");
-          out.println(name);
-          out.println(Strings.repeat("-", name.length()));
-        }
-        s.printStatistics(out, result, reached);
+        StatisticsUtils.printStatistics(s, out, logger, result, reached);
       }
     }
 
@@ -230,7 +226,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
     }
 
-    this.stats = new RestartAlgorithmStatistics(configFiles.size());
+    this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;

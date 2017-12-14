@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.or;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -87,6 +85,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
@@ -116,7 +115,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownManager shutdownManager;
   private final CFA cfa;
   private final Specification specification;
-  private final ParallelAlgorithmStatistics stats = new ParallelAlgorithmStatistics();
+  private final ParallelAlgorithmStatistics stats;
 
   private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
@@ -132,6 +131,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     config.inject(this);
 
+    stats = new ParallelAlgorithmStatistics(pLogger);
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
@@ -543,9 +543,14 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ParallelAlgorithmStatistics implements Statistics {
 
+    private final LogManager logger;
     private final List<StatisticsEntry> allAnalysesStats = Lists.newCopyOnWriteArrayList();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
+
+    ParallelAlgorithmStatistics(LogManager pLogger) {
+      logger = checkNotNull(pLogger);
+    }
 
     public synchronized Collection<Statistics> getNewSubStatistics(
         ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit, AtomicBoolean pTerminated) {
@@ -590,17 +595,14 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             result = Result.UNKNOWN;
           }
           for (Statistics s : subStats.subStatistics) {
-            String name = s.getName();
-            if (!isNullOrEmpty(name)) {
-              name = name + " statistics";
-              pOut.println("");
-              pOut.println(name);
-              pOut.println(Strings.repeat("-", name.length()));
-            }
-            s.printStatistics(pOut, result, subStats.reachedSet);
+            StatisticsUtils.printStatistics(s, pOut, logger, result, subStats.reachedSet);
           }
         } else {
-          pOut.println("Cannot print statistics for this analysis because it is still running.");
+          logger.log(
+              Level.INFO,
+              "Cannot print statistics for",
+              subStats.name,
+              "because it is still running.");
         }
       }
       pOut.println("\n");

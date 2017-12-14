@@ -151,7 +151,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     pfmgr = predCPA.getPathFormulaManager();
     shutdownNotifier = Objects.requireNonNull(pShutdownNotifier);
     logger = Objects.requireNonNull(pLogger);
-    compositeStats = new StatisticsDelegator("PDR related");
+    compositeStats = new StatisticsDelegator("PDR related", pLogger);
     stats = new PDRStatistics();
     compositeStats.register(stats);
     stepwiseTransition =

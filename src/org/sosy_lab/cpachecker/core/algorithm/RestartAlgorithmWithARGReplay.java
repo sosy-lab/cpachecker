@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
@@ -65,20 +64,23 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix="restartAlgorithmWithARGReplay")
 public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvider {
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
+    private final LogManager logger;
     private final int noOfAlgorithms;
     private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
+    public RestartAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
       noOfAlgorithms = pNoOfAlgorithms;
       subStats = new ArrayList<>();
+      logger = checkNotNull(pLogger);
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -120,14 +122,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
 
       for (Statistics s : subStats) {
-        String name = s.getName();
-        if (!isNullOrEmpty(name)) {
-          name = name + " statistics";
-          out.println("");
-          out.println(name);
-          out.println(Strings.repeat("-", name.length()));
-        }
-        s.printStatistics(out, result, reached);
+        StatisticsUtils.printStatistics(s, out, logger, result, reached);
       }
     }
 
@@ -157,7 +152,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
     }
 
-    this.stats = new RestartAlgorithmStatistics(configFiles.size());
+    this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
