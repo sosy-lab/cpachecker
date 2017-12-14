@@ -89,7 +89,7 @@ public class CEXWeakeningManager {
   private final Solver solver;
   private final InductiveWeakeningManager.InductiveWeakeningStatistics
       statistics;
-  private final Random r = new Random();
+  private final Random r = new Random(0);
   private final ShutdownNotifier shutdownNotifier;
 
   public CEXWeakeningManager(

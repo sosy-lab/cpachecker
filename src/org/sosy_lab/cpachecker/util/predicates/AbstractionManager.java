@@ -101,6 +101,8 @@ public final class AbstractionManager {
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
 
+  private final Random random = new Random(0);
+
   public AbstractionManager(
       RegionManager pRmgr, Configuration config, LogManager pLogger, Solver pSolver)
       throws InvalidConfigurationException {
@@ -178,7 +180,7 @@ public final class AbstractionManager {
 
       if (!this.varOrderMethod.getIsFrameworkStrategy()) {
         if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
-          int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
+          int randomIndex = random.nextInt(randomListOfVarIDs.size() + 1);
           randomListOfVarIDs.add(randomIndex, numberOfPredicates);
         } else if (multiplePartitions) {
           updatePartitions(result);
