@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.CheckLockEffect;
@@ -123,20 +122,20 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<LockState> getAbstractSuccessorsForEdge(AbstractState element, Precision pPrecision
+  public Collection<AbstractLockState> getAbstractSuccessorsForEdge(AbstractState element, Precision pPrecision
       , CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
-    LockState lockStatisticsElement     = (LockState)element;
+    AbstractLockState lockStatisticsElement     = (AbstractLockState)element;
 
     stats.transferTimer.start();
 
     //First, determine operations with locks
     List<AbstractLockEffect> toProcess = determineOperations(cfaEdge);
     stats.lockEffects.setNextValue(toProcess.size());
-    final LockStateBuilder builder = lockStatisticsElement.builder();
+    final AbstractLockStateBuilder builder = lockStatisticsElement.builder();
 
     toProcess.forEach(e -> e.effect(builder));
-    LockState successor = builder.build();
+    AbstractLockState successor = builder.build();
 
     stats.transferTimer.stop();
 

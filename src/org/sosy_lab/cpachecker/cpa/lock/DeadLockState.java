@@ -23,38 +23,69 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeSet;
-import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.LockState.LockTreeNode;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 
-public class LockState extends AbstractLockState {
+public class DeadLockState extends AbstractLockState {
 
-  public static class LockTreeNode extends TreeSet<LockIdentifier> implements UsageTreeNode{
+  public static class DeadLockTreeNode extends LinkedList<LockIdentifier> implements UsageTreeNode{
 
     private static final long serialVersionUID = 5757759799394605077L;
 
-    public LockTreeNode(Set<LockIdentifier> locks) {
+    public DeadLockTreeNode(List<LockIdentifier> locks) {
       super(locks);
     }
     @Override
     public boolean isCompatibleWith(CompatibleState pState) {
       Preconditions.checkArgument(pState instanceof LockTreeNode);
-      return Sets.intersection(this, (LockTreeNode)pState).isEmpty();
+
+      /*LockIdentifier intLock = LockIdentifier.of("");
+
+      if (((LockTreeNode)pState).contains(intLock) && !this.contains(intLock)) {
+        for (LockIdentifier lock1 : this) {
+          int index1 = ((LockTreeNode)pState).indexOf(lock1);
+          int index2 = ((LockTreeNode)pState).indexOf(intLock);
+
+          if (index1 > index2) {
+            return true;
+          }
+        }
+      }*/
+
+      //Deadlocks
+      for (LockIdentifier lock1 : this) {
+        for (LockIdentifier lock2 : this) {
+          int index1 = this.indexOf(lock1);
+          int index2 = this.indexOf(lock2);
+          int otherIndex1 = ((DeadLockTreeNode)pState).indexOf(lock1);
+          int otherIndex2 = ((DeadLockTreeNode)pState).indexOf(lock2);
+          if (otherIndex1 >= 0 && otherIndex2 >= 0 &&
+              (index1 > index2 && otherIndex1 < otherIndex2 ||
+               index1 < index2 && otherIndex1 > otherIndex2)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public CompatibleState prepareToStore() {
+      return this;
     }
 
     @Override
@@ -85,7 +116,10 @@ public class LockState extends AbstractLockState {
     public boolean cover(UsageTreeNode pNode) {
       Preconditions.checkArgument(pNode instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pNode;
-      return o.containsAll(this);
+      if (this.containsAll(o)) {
+        return true;
+      }
+      return false;
     }
 
     @Override
@@ -95,18 +129,30 @@ public class LockState extends AbstractLockState {
 
   }
 
-  public class LockStateBuilder extends AbstractLockStateBuilder {
+  public class DeadLockStateBuilder extends AbstractLockStateBuilder {
     private SortedMap<LockIdentifier, Integer> mutableLocks;
+    private List<LockIdentifier> mutableLockList;
 
-    public LockStateBuilder(LockState state) {
+    public DeadLockStateBuilder(DeadLockState state) {
       super(state);
       mutableLocks = Maps.newTreeMap(state.locks);
+      mutableLockList = Lists.newLinkedList(state.lockList);
     }
 
     @Override
     public void add(LockIdentifier lockId) {
-      Integer a = mutableLocks.getOrDefault(lockId, 0);
-      mutableLocks.put(lockId, ++a);
+      Integer a;
+      if (mutableLocks.containsKey(lockId)) {
+        a = mutableLocks.get(lockId);
+        a++;
+      } else {
+        a = 1;
+      }
+      assert (a != null);
+      mutableLocks.put(lockId, a);
+      if (!mutableLockList.contains(lockId)) {
+        mutableLockList.add(lockId);
+      }
     }
 
     @Override
@@ -119,6 +165,7 @@ public class LockState extends AbstractLockState {
             mutableLocks.put(lockId, a);
           } else {
             mutableLocks.remove(lockId);
+            mutableLockList.remove(lockId);
           }
         }
       }
@@ -127,48 +174,27 @@ public class LockState extends AbstractLockState {
     @Override
     public void reset(LockIdentifier lockId) {
       mutableLocks.remove(lockId);
+      mutableLockList.remove(lockId);
     }
 
     @Override
     public void set(LockIdentifier lockId, int num) {
       //num can be equal 0, this means, that in origin file it is 0 and we should delete locks
-
-      Integer size = mutableLocks.get(lockId);
-
-      if (size == null) {
-        size = 0;
-      }
-      if (num > size) {
-        for (int i = 0; i < num - size; i++) {
-          add(lockId);
-        }
-      } else if (num < size) {
-        for (int i = 0; i < size - num; i++) {
-          free(lockId);
-        }
-      }
+      assert false : "not supported";
     }
 
     @Override
     public void restore(LockIdentifier lockId) {
-      if (mutableToRestore == null) {
-        return;
-      }
-      Integer size = ((LockState)mutableToRestore).locks.get(lockId);
-      mutableLocks.remove(lockId);
-      if (size != null) {
-        mutableLocks.put(lockId, size);
-      }
-      isRestored = true;
+      assert false : "not supported";
     }
 
     @Override
     public void restoreAll() {
-      mutableLocks = ((LockState)mutableToRestore).locks;
+      mutableLocks = ((DeadLockState)mutableToRestore).locks;
     }
 
     @Override
-    public LockState build() {
+    public DeadLockState build() {
       if (isFalseState) {
         return null;
       }
@@ -178,12 +204,12 @@ public class LockState extends AbstractLockState {
       if (locks.equals(mutableLocks) && mutableToRestore == toRestore) {
         return getParentLink();
       } else {
-        return new LockState(mutableLocks, (LockState) mutableToRestore);
+        return new DeadLockState(mutableLocks, mutableLockList, (DeadLockState) mutableToRestore);
       }
     }
 
     @Override
-    public LockState getOldState() {
+    public DeadLockState getOldState() {
       return getParentLink();
     }
 
@@ -206,12 +232,7 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      Set<LockIdentifier> reducableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks);
-      reducableLocks.forEach(l ->
-        {
-          mutableLocks.remove(l);
-          add(l);
-        });
+      assert false : "not supported";
     }
 
     public void expand(LockState rootState) {
@@ -220,33 +241,12 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void expandLocks(LockState pRootState,  Set<LockIdentifier> usedLocks) {
-      if (usedLocks != null) {
-        Set<LockIdentifier> expandableLocks = Sets.difference(pRootState.locks.keySet(), usedLocks);
-        expandableLocks.forEach(l -> mutableLocks.put(l, pRootState.getCounter(l)));
-      }
+      assert false : "not supported";
     }
 
     @Override
     public void expandLockCounters(LockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
-      for (LockIdentifier lock : pRootState.locks.keySet()) {
-        if (!pRestrictedLocks.contains(lock)) {
-          Integer size = mutableLocks.get(lock);
-          Integer rootSize = pRootState.locks.get(lock);
-          //null is also correct (it shows, that we've found new lock)
-
-          Integer newSize;
-          if (size == null) {
-            newSize = rootSize - 1;
-          } else {
-            newSize = size + rootSize - 1;
-          }
-          if (newSize > 0) {
-            mutableLocks.put(lock, newSize);
-          } else {
-            mutableLocks.remove(lock);
-          }
-        }
-      }
+      assert false : "not supported";
     }
 
     @Override
@@ -261,20 +261,23 @@ public class LockState extends AbstractLockState {
   }
 
   private final SortedMap<LockIdentifier, Integer> locks;
+  private final List<LockIdentifier> lockList;
   //if we need restore state, we save it here
   //Used for function annotations like annotate.function_name.restore
-  public LockState() {
+  public DeadLockState() {
     super();
     locks = Maps.newTreeMap();
+    lockList = Lists.newLinkedList();
   }
 
-  protected LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {
+  protected DeadLockState(SortedMap<LockIdentifier, Integer> map, List<LockIdentifier> gLocks, DeadLockState state) {
     super(state);
-    this.locks  = Maps.newTreeMap(gLocks);
+    this.locks = Maps.newTreeMap(map);
+    this.lockList  = Lists.newLinkedList(gLocks);
   }
 
   @Override
-  public Map<LockIdentifier, Integer> getHashCodeForState() {
+  public SortedMap<LockIdentifier, Integer> getHashCodeForState() {
     //Special hash for BAM, in other cases use iterator
     return locks;
   }
@@ -295,12 +298,18 @@ public class LockState extends AbstractLockState {
 
   @Override
   public int getCounter(LockIdentifier lock) {
-    return locks.getOrDefault(lock, 0);
+    return from(locks.keySet())
+           .filter(l -> l.equals(lock))
+           .size();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(locks);
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Objects.hashCode(locks);
+    result = prime * result + Objects.hashCode(lockList);
+    return result;
   }
 
   @Override
@@ -312,9 +321,10 @@ public class LockState extends AbstractLockState {
         getClass() != obj.getClass()) {
       return false;
     }
-    LockState other = (LockState) obj;
-    return Objects.equals(toRestore, other.toRestore)
-        && Objects.equals(locks, other.locks);
+    DeadLockState other = (DeadLockState) obj;
+    return Objects.equals(toRestore, other.toRestore) &&
+           Objects.equals(locks, other.locks) &&
+           Objects.equals(lockList, other.lockList);
   }
 
   /**
@@ -325,7 +335,7 @@ public class LockState extends AbstractLockState {
    */
   @Override
   public int compareTo(CompatibleState pOther) {
-    LockState other = (LockState) pOther;
+    DeadLockState other = (DeadLockState) pOther;
     int result = 0;
 
     result = other.getSize() - this.getSize(); //decreasing queue
@@ -344,54 +354,32 @@ public class LockState extends AbstractLockState {
       if (result != 0) {
         return result;
       }
-      Integer Result = locks.get(lockId1) - other.locks.get(lockId1);
-      if (Result != 0) {
-        return Result;
-      }
     }
     return 0;
   }
 
   @Override
-  public LockStateBuilder builder() {
-    return new LockStateBuilder(this);
+  public boolean isCompatibleWith(CompatibleState state) {
+    return true;
   }
 
-  private LockState getParentLink() {
+  @Override
+  public DeadLockStateBuilder builder() {
+    return new DeadLockStateBuilder(this);
+  }
+
+  private DeadLockState getParentLink() {
     return this;
   }
 
   @Override
-  public List<LockEffect> getDifference(AbstractLockState pOther) {
+  public List<LockEffect> getDifference(AbstractLockState other) {
     //Return the effect, which shows, what should we do to transform from this state to the other
-    LockState other = (LockState) pOther;
 
-    List<LockEffect> result = new LinkedList<>();
-    Set<LockIdentifier> processedLocks = new TreeSet<>();
-
-    for (LockIdentifier lockId : locks.keySet()) {
-      int thisCounter = locks.get(lockId);
-      int otherCounter = other.locks.containsKey(lockId) ? other.locks.get(lockId) : 0;
-      if (thisCounter > otherCounter) {
-        for (int i = 0; i < thisCounter - otherCounter; i++) {
-          result.add(ReleaseLockEffect.createEffectForId(lockId));
-        }
-      } else if (thisCounter < otherCounter) {
-        for (int i = 0; i <  otherCounter - thisCounter; i++) {
-          result.add(AcquireLockEffect.createEffectForId(lockId));
-        }
-      }
-      processedLocks.add(lockId);
-    }
-    for (LockIdentifier lockId : other.locks.keySet()) {
-      if (!processedLocks.contains(lockId)) {
-        for (int i = 0; i <  other.locks.get(lockId); i++) {
-          result.add(AcquireLockEffect.createEffectForId(lockId));
-        }
-      }
-    }
-    return result;
+    assert false :"not supported";
+    return null;
   }
+
 
   @Override
   public CompatibleState prepareToStore() {
@@ -400,7 +388,7 @@ public class LockState extends AbstractLockState {
 
   @Override
   public UsageTreeNode getTreeNode() {
-    return new LockTreeNode(locks.keySet());
+    return new DeadLockTreeNode(lockList);
   }
 
   @Override

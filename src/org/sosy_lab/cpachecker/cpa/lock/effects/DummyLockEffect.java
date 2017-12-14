@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.lock.effects;
 
 import com.google.common.base.Preconditions;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 
 
 public class DummyLockEffect implements AbstractLockEffect {
@@ -34,7 +34,7 @@ public class DummyLockEffect implements AbstractLockEffect {
   private DummyLockEffect() {}
 
   @Override
-  public void effect(LockStateBuilder pBuilder) {
+  public void effect(AbstractLockStateBuilder pBuilder) {
     Preconditions.checkArgument(false, "DummyEffect can not effect anything");
   }
 

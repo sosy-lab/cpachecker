@@ -47,7 +47,7 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
   private final LockReducer reducer;
 
   private LockCPA (Configuration config, LogManager logger) throws InvalidConfigurationException {
-    super("sep", "sep", DelegateAbstractDomain.<LockState>getInstance(), new LockTransferRelation(config, logger));
+    super("sep", "sep", DelegateAbstractDomain.<AbstractLockState>getInstance(), new LockTransferRelation(config, logger));
     reducer             = new LockReducer(config);
   }
 

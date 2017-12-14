@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.lock.effects;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 
 
 public class SetLockEffect extends LockEffect {
@@ -44,7 +44,7 @@ public class SetLockEffect extends LockEffect {
   }
 
   @Override
-  public void effect(LockStateBuilder pBuilder) {
+  public void effect(AbstractLockStateBuilder pBuilder) {
     Preconditions.checkArgument(this != instance, "Temporary instance can not effect");
     Preconditions.checkArgument(target != null, "Lock identifier must be set");
     pBuilder.set(target, p);
