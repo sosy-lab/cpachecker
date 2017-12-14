@@ -74,8 +74,8 @@ public class DeadLockState extends AbstractLockState {
           int otherIndex1 = ((DeadLockTreeNode)pState).indexOf(lock1);
           int otherIndex2 = ((DeadLockTreeNode)pState).indexOf(lock2);
           if (otherIndex1 >= 0 && otherIndex2 >= 0 &&
-              (index1 > index2 && otherIndex1 < otherIndex2 ||
-               index1 < index2 && otherIndex1 > otherIndex2)) {
+              ((index1 > index2 && otherIndex1 < otherIndex2) ||
+               (index1 < index2 && otherIndex1 > otherIndex2))) {
             return true;
           }
         }
