@@ -195,4 +195,13 @@ public class UsagePoint implements Comparable<UsagePoint> {
   public String toString() {
     return access + ":" + compatibleNodes;
   }
+
+  public UsageTreeNode get(Class<? extends UsageTreeNode> pClass) {
+    for (UsageTreeNode node : compatibleNodes) {
+      if (node.getClass() == pClass) {
+        return node;
+      }
+    }
+    return null;
+  }
 }

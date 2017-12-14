@@ -23,21 +23,37 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import com.google.common.base.Preconditions;
 import java.util.Set;
 import java.util.SortedSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cpa.lock.DeadLockState.DeadLockTreeNode;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.usage.unsafedetector")
 public class UnsafeDetector {
+
+  public static enum UnsafeMode {
+    RACE,
+    DEADLOCK1,
+    DEADLOCK2
+  }
+
   @Option(name="ignoreEmptyLockset", description="ignore unsafes only with empty callstacks",
       secure = true)
   private boolean ignoreEmptyLockset = false;
+
+  @Option(name="unsafeMode", description="defines what is unsafe",
+      secure = true)
+  private UnsafeMode unsafeMode = UnsafeMode.RACE;
+
+
 
   public UnsafeDetector(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -123,12 +139,70 @@ public class UnsafeDetector {
   }
 
   public boolean isUnsafePair(UsagePoint point1, UsagePoint point2) {
-    if (point1.isCompatible(point2) &&
-        (point1.access == Access.WRITE || point2.access == Access.WRITE)) {
+    if (point1.isCompatible(point2)) {
+      switch (unsafeMode) {
+        case RACE:
+          return isRace(point1, point2);
+
+        case DEADLOCK1:
+          return isDeadlock1(point1, point2);
+
+        case DEADLOCK2:
+          return isDeadlock2(point1, point2);
+
+        default:
+          Preconditions.checkState(false, "Unknown mode: " + unsafeMode);
+      }
+    }
+    return false;
+  }
+
+
+  private boolean isRace(UsagePoint point1, UsagePoint point2) {
+    if (point1.access == Access.WRITE || point2.access == Access.WRITE) {
       if (ignoreEmptyLockset && point1.isEmpty() && point2.isEmpty()) {
         return false;
       }
       return true;
+    }
+    return false;
+  }
+
+  private boolean isDeadlock1(UsagePoint point1, UsagePoint point2) {
+    LockIdentifier intLock = LockIdentifier.of("");
+    DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
+
+    if (node2.contains(intLock) && !node1.contains(intLock)) {
+      for (LockIdentifier lock1 : node1) {
+        int index1 = node2.indexOf(lock1);
+        int index2 = node2.indexOf(intLock);
+
+        if (index1 > index2) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean isDeadlock2(UsagePoint point1, UsagePoint point2) {
+    //Deadlocks
+    DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
+
+    for (LockIdentifier lock1 : node1) {
+      for (LockIdentifier lock2 : node2) {
+        int index1 = node1.indexOf(lock1);
+        int index2 = node1.indexOf(lock2);
+        int otherIndex1 = node2.indexOf(lock1);
+        int otherIndex2 = node2.indexOf(lock2);
+        if (otherIndex1 >= 0 && otherIndex2 >= 0 &&
+            ((index1 > index2 && otherIndex1 < otherIndex2) ||
+             (index1 < index2 && otherIndex1 > otherIndex2))) {
+          return true;
+        }
+      }
     }
     return false;
   }

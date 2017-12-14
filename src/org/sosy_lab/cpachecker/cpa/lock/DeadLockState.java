@@ -52,34 +52,7 @@ public class DeadLockState extends AbstractLockState {
     public boolean isCompatibleWith(CompatibleState pState) {
       Preconditions.checkArgument(pState instanceof DeadLockTreeNode);
 
-      /*LockIdentifier intLock = LockIdentifier.of("");
-
-      if (((LockTreeNode)pState).contains(intLock) && !this.contains(intLock)) {
-        for (LockIdentifier lock1 : this) {
-          int index1 = ((LockTreeNode)pState).indexOf(lock1);
-          int index2 = ((LockTreeNode)pState).indexOf(intLock);
-
-          if (index1 > index2) {
-            return true;
-          }
-        }
-      }*/
-
-      //Deadlocks
-      for (LockIdentifier lock1 : this) {
-        for (LockIdentifier lock2 : this) {
-          int index1 = this.indexOf(lock1);
-          int index2 = this.indexOf(lock2);
-          int otherIndex1 = ((DeadLockTreeNode)pState).indexOf(lock1);
-          int otherIndex2 = ((DeadLockTreeNode)pState).indexOf(lock2);
-          if (otherIndex1 >= 0 && otherIndex2 >= 0 &&
-              ((index1 > index2 && otherIndex1 < otherIndex2) ||
-               (index1 < index2 && otherIndex1 > otherIndex2))) {
-            return true;
-          }
-        }
-      }
-      return false;
+      return true;
     }
 
     @Override
