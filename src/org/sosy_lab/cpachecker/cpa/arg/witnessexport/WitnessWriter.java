@@ -1441,8 +1441,7 @@ class WitnessWriter implements EdgeAppender {
     // Merge the violated properties
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
 
-    Set<String> affectedNodes = Sets.newHashSet();
-    affectedNodes.add(nodeToKeep);
+    Set<Edge> replacementEdges = Sets.newHashSet();
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
@@ -1462,8 +1461,10 @@ class WitnessWriter implements EdgeAppender {
         }
         label = label.putAllAndCopy(leavingEdge.getLabel());
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
-        affectedNodes.add(leavingEdge.getTarget());
         putEdge(replacementEdge);
+        if (isEdgeRedundant.apply(replacementEdge)) {
+          replacementEdges.add(replacementEdge);
+        }
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
           loopHeadEnteringEdges.remove(leavingEdge);
@@ -1486,7 +1487,6 @@ class WitnessWriter implements EdgeAppender {
       if (!pEdge.equals(enteringEdge)) {
         TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
-        affectedNodes.add(enteringEdge.getSource());
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
@@ -1501,12 +1501,7 @@ class WitnessWriter implements EdgeAppender {
       assert removed : "could not remove edge: " + enteringEdge;
     }
 
-    Set<Edge> affectedEdges = Sets.newHashSet();
-    for (String affectedNode : affectedNodes) {
-      affectedEdges.addAll(leavingEdges.get(affectedNode));
-      affectedEdges.addAll(enteringEdges.get(affectedNode));
-    }
-    return affectedEdges;
+    return replacementEdges;
   }
 
   /** Merge two expressionTrees for source and target. */
