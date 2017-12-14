@@ -120,6 +120,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidFree;
   private String errorDescription;
   private String noteDescription;
+  private boolean reportError = false;
 
   private void issueMemoryLeakMessage() {
     issueMemoryError("Memory leak found", false);
@@ -148,7 +149,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public String getErrorDescription() {
-    return errorDescription;
+    return reportError ? errorDescription : null;
   }
 
   public void setErrorDescription(String pErrorDescription) {
@@ -1673,6 +1674,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
           issueMemoryLeakMessage();
+          reportError = true;
           return true;
         }
         return false;
@@ -1680,6 +1682,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         if (invalidWrite) {
           //TODO: Give more information
           issueInvalidWriteMessage();
+          reportError = true;
           return true;
         }
         return false;
@@ -1687,6 +1690,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         if (invalidRead) {
           //TODO: Give more information
           issueInvalidReadMessage();
+          reportError = true;
           return true;
         }
         return false;
@@ -1694,6 +1698,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         if (invalidFree) {
           //TODO: Give more information
           issueInvalidFreeMessage();
+          reportError = true;
           return true;
         }
         return false;
