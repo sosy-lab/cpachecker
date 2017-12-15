@@ -41,8 +41,8 @@ public class UnsafeDetector {
 
   public static enum UnsafeMode {
     RACE,
-    DEADLOCK1,
-    DEADLOCK2
+    DEADLOCKCIRCULAR,
+    DEADLOCKDISPATCH
   }
 
   @Option(description="ignore unsafes only with empty callstacks",
@@ -146,11 +146,11 @@ public class UnsafeDetector {
         case RACE:
           return isRace(point1, point2);
 
-        case DEADLOCK1:
-          return isDeadlock1(point1, point2);
+        case DEADLOCKDISPATCH:
+          return isDeadlockDispatch(point1, point2);
 
-        case DEADLOCK2:
-          return isDeadlock2(point1, point2);
+        case DEADLOCKCIRCULAR:
+          return isDeadlockCircular(point1, point2);
 
         default:
           Preconditions.checkState(false, "Unknown mode: " + unsafeMode);
@@ -170,7 +170,7 @@ public class UnsafeDetector {
     return false;
   }
 
-  private boolean isDeadlock1(UsagePoint point1, UsagePoint point2) {
+  private boolean isDeadlockDispatch(UsagePoint point1, UsagePoint point2) {
     Preconditions.checkNotNull(intLockName);
     LockIdentifier intLock = LockIdentifier.of(intLockName);
     DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
@@ -189,7 +189,7 @@ public class UnsafeDetector {
     return false;
   }
 
-  private boolean isDeadlock2(UsagePoint point1, UsagePoint point2) {
+  private boolean isDeadlockCircular(UsagePoint point1, UsagePoint point2) {
     //Deadlocks
     DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
     DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
