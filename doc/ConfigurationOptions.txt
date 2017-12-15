@@ -267,10 +267,6 @@ analysis.reachedSet = PARTITIONED
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
-# run a sequence of analysis, where the previous ARG is inserted into the
-# current ARGReplayCPA.
-analysis.restartAlgorithmWithARGReplay = false
-
 # stop after the first error has been found
 analysis.stopAfterError = true
 
@@ -3036,9 +3032,6 @@ restartAlgorithm.printIntermediateStatistics = true
 # let each component of the restart algorithm write output files and not only
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
-
-# List of files with configurations to use. 2 filenames expected.
-restartAlgorithmWithARGReplay.configFiles = no default value
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
