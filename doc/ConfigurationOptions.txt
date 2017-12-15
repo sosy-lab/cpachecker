@@ -417,6 +417,9 @@ bdd.sylvan.tableSize = 26
 # Number of worker threads, 0 for automatic.
 bdd.sylvan.threads = 0
 
+# sequentialize all accesses to the BDD library.
+bdd.synchronizeLibraryAccess = false
+
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
