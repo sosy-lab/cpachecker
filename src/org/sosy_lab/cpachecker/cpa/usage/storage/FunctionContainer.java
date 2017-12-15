@@ -116,7 +116,7 @@ public class FunctionContainer extends AbstractUsageStorage {
         SortedSet<UsageInfo> result = new TreeSet<>();
         LockState locks, expandedLocks;
         for (UsageInfo uinfo : usages) {
-          locks = (LockState) uinfo.getState(LockState.class);
+          locks = (LockState) uinfo.getLockState();
           if (reduceToExpand.containsKey(locks)) {
             expandedLocks = reduceToExpand.get(locks);
           } else {

@@ -45,15 +45,17 @@ public class UnsafeDetector {
     DEADLOCK2
   }
 
-  @Option(name="ignoreEmptyLockset", description="ignore unsafes only with empty callstacks",
+  @Option(description="ignore unsafes only with empty callstacks",
       secure = true)
   private boolean ignoreEmptyLockset = false;
 
-  @Option(name="unsafeMode", description="defines what is unsafe",
+  @Option(description="defines what is unsafe",
       secure = true)
   private UnsafeMode unsafeMode = UnsafeMode.RACE;
 
-
+  @Option(name = "intLock", description="A name of interrupt lock for checking deadlock free",
+      secure = true)
+  private String intLockName = null;
 
   public UnsafeDetector(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -169,7 +171,8 @@ public class UnsafeDetector {
   }
 
   private boolean isDeadlock1(UsagePoint point1, UsagePoint point2) {
-    LockIdentifier intLock = LockIdentifier.of("");
+    Preconditions.checkNotNull(intLockName);
+    LockIdentifier intLock = LockIdentifier.of(intLockName);
     DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
     DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
 

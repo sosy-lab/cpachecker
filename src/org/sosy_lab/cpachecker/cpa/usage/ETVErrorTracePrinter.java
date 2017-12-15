@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.GlobalVariableIdentifier;
@@ -132,7 +132,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void createVisualization(final SingleIdentifier id, final UsageInfo usage, final Writer writer) throws IOException {
-    LockState Locks = (LockState) usage.getState(LockState.class);
+    AbstractLockState Locks = usage.getLockState();
 
     writer.append("Line 0:     N0 -{/*_____________________*/}-> N0\n");
     if (Locks != null) {

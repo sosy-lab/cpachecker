@@ -34,6 +34,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
@@ -162,7 +163,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     sb.append("line ");
     sb.append(line.toString());
     sb.append(" (" + accessType + ")");
-    sb.append(", " + compatibleStates.get(LockState.class));
+    sb.append(", " + getLockState());
 
     return sb.toString();
   }
@@ -173,7 +174,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     sb.append(accessType);
     sb.append(" access to ");
     sb.append(id);
-    LockState locks = (LockState) compatibleStates.get(LockState.class);
+    AbstractLockState locks = getLockState();
     if (locks.getSize() == 0) {
       sb.append(" without locks");
     } else {
@@ -271,5 +272,14 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
     result.compatibleStates.put(LockState.class, expandedState);
     return result;
+  }
+
+  public AbstractLockState getLockState() {
+    for (CompatibleState state : compatibleStates.values()) {
+      if (state instanceof AbstractLockState) {
+        return (AbstractLockState) state;
+      }
+    }
+    return null;
   }
 }

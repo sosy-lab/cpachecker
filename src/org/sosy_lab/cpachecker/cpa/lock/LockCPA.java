@@ -54,17 +54,17 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
     return AutomaticCPAFactory.forType(LockCPA.class);
   }
 
-  @Option(name="lockAnalysisMode",
+  @Option(name="analysisMode",
       description="What are we searching for: race or deadlock",
       secure = true)
-  private LockAnalysisMode lockAnalysisMode = LockAnalysisMode.RACE;
+  private LockAnalysisMode analysisMode = LockAnalysisMode.RACE;
 
   private final Reducer reducer;
 
   private LockCPA (Configuration config, LogManager logger) throws InvalidConfigurationException {
     super("sep", "sep", DelegateAbstractDomain.<AbstractLockState>getInstance(), new LockTransferRelation(config, logger));
     config.inject(this);
-    switch (lockAnalysisMode) {
+    switch (analysisMode) {
       case RACE:
         reducer = new LockReducer(config);
         break;
@@ -74,13 +74,13 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
         break;
 
       default:
-        throw new InvalidConfigurationException("Unknown mode: " + lockAnalysisMode);
+        throw new InvalidConfigurationException("Unknown mode: " + analysisMode);
     }
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    switch (lockAnalysisMode) {
+    switch (analysisMode) {
       case RACE:
         return new LockState();
 
