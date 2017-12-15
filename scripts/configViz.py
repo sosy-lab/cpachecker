@@ -300,6 +300,8 @@ def componentsSanityCheck(nodes):
   for name,node in nodes.items():
     if "components/" in name and len(node.parents)==0:
       log("Component file %s is unused!" % name)
+    if "includes/" in name and len(node.parents)==0:
+      log("Include file %s is unused!" % name)
 
 
 if __name__ == "__main__":
