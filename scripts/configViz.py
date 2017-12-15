@@ -78,9 +78,9 @@ def getFilenamesFromLine(line):
   if line[:8]=="#include":
     fname = line.split()[1]
   else:
-    m = re.search("^[a-zA-Z\.]*\.config(?:Files|)\s*=\s*(.*)\s*",line)
+    m = re.search("^[a-zA-Z\.]*\.(config|terminatingStatements)(?:Files|)\s*=\s*(.*)\s*",line)
     if m != None:
-      fname = m.group(1)
+      fname = m.group(2)
     else:
       m = re.search("^specification\s*=\s*(.*)\s*",line)
       if m != None:
