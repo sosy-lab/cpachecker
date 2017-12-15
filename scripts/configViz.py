@@ -131,6 +131,13 @@ def writeDot(nodes, out):
 
   out.write("}\n")
 
+def writeRSF(nodes,out):
+  '''print graph in Relational Standard Format(RSF)'''
+  for filename,v in sorted(nodes.items()):
+    for child in v.children:
+      if child in nodes:
+        out.write('GRAPH %s %s 1\n' % (normPath(filename), normPath(nodes[child].name)))
+
 def normPath(f):
     return os.path.relpath(f, args.dir)
 
@@ -215,6 +222,8 @@ Examples:
         help="ranksep to use in the graphviz output file")
     parser.add_argument("--logLevel", metavar="LEVEL", default=1,
         help="a higher value enables more warnings, 0 is OFF")
+    parser.add_argument("--rsf", action="store_true",
+        help="output in Relational Standard Format (RSF) instead of graphviz")
     return parser.parse_args()
 
 
@@ -285,6 +294,9 @@ if __name__ == "__main__":
 
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
-  writeDot(nodes, out)
+  if not args.rsf:
+    writeDot(nodes, out)
+  else:
+    writeRSF(nodes, out)
 
   exit(errorFound)
