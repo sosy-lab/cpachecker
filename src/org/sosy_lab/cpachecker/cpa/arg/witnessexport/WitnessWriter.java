@@ -1486,6 +1486,7 @@ class WitnessWriter implements EdgeAppender {
         TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
         putEdge(replacementEdge);
+        replacementEdges.add(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
           loopHeadEnteringEdges.remove(enteringEdge);
