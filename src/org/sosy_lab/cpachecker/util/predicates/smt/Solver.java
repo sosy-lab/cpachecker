@@ -418,8 +418,14 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
 
+    return unsatCore(bfmgr.toConjunctionArgs(constraints, true));
+  }
+
+  public List<BooleanFormula> unsatCore(Set<BooleanFormula> constraints)
+      throws SolverException, InterruptedException {
+
     try (ProverEnvironment prover = newProverEnvironment(GENERATE_UNSAT_CORE)) {
-      for (BooleanFormula constraint : bfmgr.toConjunctionArgs(constraints, true)) {
+      for (BooleanFormula constraint : constraints) {
         prover.addConstraint(constraint);
       }
       Verify.verify(prover.isUnsat());

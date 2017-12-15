@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -164,4 +165,14 @@ public interface PathFormulaManager {
   public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
+
+  /**
+   * Builds a weakest precondition for the given edge and the postcondition
+   *
+   * @param pEdge Edge containing the statement for the precondition to be built
+   * @param pPostcond Postcondition
+   * @return Created precondition
+   */
+  public BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException;
 }

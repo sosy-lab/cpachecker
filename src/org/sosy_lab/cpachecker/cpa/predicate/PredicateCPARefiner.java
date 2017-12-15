@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.NewtonRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.UCBRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -125,6 +126,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     description = "use Newton-based Algorithm for the CPA-Refinement, experimental feature!")
   private boolean useNewtonRefinement = false;
 
+  @Option(
+    secure = true,
+    description = "use UCB predicates for the CPA-Refinement, experimental feature!"
+  )
+  private boolean useUCBRefinement = false;
+
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -158,6 +165,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final InterpolationManager interpolationManager;
   private final RefinementStrategy strategy;
   private final Optional<NewtonRefinementManager> newtonManager;
+  private final Optional<UCBRefinementManager> ucbManager;
 
   public PredicateCPARefiner(
       final Configuration pConfig,
@@ -206,6 +214,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
               new NewtonRefinementManager(logger, solver, pfmgr));
     } else {
       newtonManager = Optional.empty();
+    }
+
+    if (useUCBRefinement) {
+      ucbManager = Optional.of(new UCBRefinementManager(logger, solver, pfmgr));
+    } else {
+      ucbManager = Optional.empty();
     }
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
@@ -432,6 +446,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     assert newtonManager.isPresent();
     // Delegate the refinement task to the NewtonManager
     return newtonManager.get().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
+  }
+
+  private CounterexampleTraceInfo performUCBRefinement(
+      final List<ARGState> pAbstractionStatesTrace, final BlockFormulas pFormulas)
+      throws CPAException, InterruptedException {
+
+    assert ucbManager.isPresent();
+    return ucbManager.get().buildCounterexampleTrace(pAbstractionStatesTrace, pFormulas);
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
