@@ -118,35 +118,63 @@ def listFiles(path):
 
 def writeDot(nodes, out):
   '''print dot file for limited set of nodes'''
-  def normPath(f):
-    return os.path.relpath(f, args.dir)
 
   out.write('digraph configs {\n')
   out.write('graph [ranksep="%s" rankdir="LR"];\n' % (args.ranksep))
   out.write('node [shape=box]\n')
   for filename,v in sorted(nodes.items()):
-    relFilename = normPath(filename)
-
-    if os.path.isfile(filename):
-      content = ""
-      try:
-        content = re.sub("\n", "&#10;", open(filename,"r").read())
-      except UnicodeDecodeError:
-        log("Cannot read file '%s'" % filename, level=3)
-      content = re.sub('"','\\"', content)
-    else:
-      log("File does not exist: '%s'" % (filename))
-
-    if os.path.splitext(filename)[1] == ".properties":
-      out.write('"%s"[tooltip = "%s"];\n' % (relFilename, content))
-    else:
-      out.write('"%s"[style=filled fillcolor="grey" color="dodgerblue"];\n' % relFilename)
+    out.write(determineNode(v))
 
     for child in v.children:
       if child in nodes:
-        out.write('"%s" -> "%s";\n' % (relFilename, normPath(nodes[child].name)))
+        out.write('"%s" -> "%s";\n' % (normPath(filename), normPath(nodes[child].name)))
 
   out.write("}\n")
+
+def normPath(f):
+    return os.path.relpath(f, args.dir)
+
+def determineNode(node):
+  filename = node.name
+  content = None
+  if os.path.isfile(filename):
+    content = ""
+    try:
+      content = re.sub("\n", "&#10;", open(filename,"r").read())
+    except UnicodeDecodeError:
+      log("Cannot read file '%s'" % filename, level=3)
+    content = re.sub('"','\\"', content)
+  else:
+    log("File does not exist: '%s'" % (filename))
+  color = determineColor(node)
+
+  tooltip = ""
+  if content != None:
+    tooltip = 'tooltip = "%s"' % content
+
+  style = ""
+  if color != None:
+    style = 'style=filled fillcolor="%s"' % color
+
+  options =  "%s %s" % (tooltip, style)
+  result = '"%s"[%s]\n' % (normPath(node.name), options)
+  return result
+
+def determineColor(node):
+  color = None
+  if os.path.splitext(node.name)[1] != ".properties":
+    color = "gold"
+  elif len(node.parents) == 0 or (len(node.parents) == 1 and node.parents[0]==node.name):
+    color = "forestgreen"
+  elif not ("/" in normPath(node.name)):
+    color = "darkolivegreen1"
+  elif "components/" in node.name:
+    color = "grey"
+  elif "includes/" in node.name:
+    color = "aquamarine"
+  elif "cex-checks/" in node.name:
+    color = "coral2"
+  return color
 
 
 def parseArgs():
