@@ -210,6 +210,12 @@ def getNodes(configDirectory):
 
   return nodes
 
+def componentsSanityCheck(nodes):
+  '''Check for configuration files in the components folder that are never used.'''
+  for name,node in nodes.items():
+    if "components/" in name and len(node.parents)==0:
+      log("Component file %s is unused!" % name)
+
 
 if __name__ == "__main__":
   args = parseArgs()
@@ -218,6 +224,8 @@ if __name__ == "__main__":
   logLevel = int(args.logLevel)
 
   nodes = getNodes(args.dir)
+
+  componentsSanityCheck(nodes)
 
   nodesFromRoot = {}
   if args.root != None:
