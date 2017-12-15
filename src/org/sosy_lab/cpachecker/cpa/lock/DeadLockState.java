@@ -268,7 +268,7 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public int getCounter(LockIdentifier lock) {
-    return locks.get(lock);
+    return locks.getOrDefault(lock, 0);
   }
 
   @Override
