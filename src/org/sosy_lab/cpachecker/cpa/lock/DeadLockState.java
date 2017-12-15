@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -270,9 +268,7 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public int getCounter(LockIdentifier lock) {
-    return from(locks.keySet())
-           .filter(l -> l.equals(lock))
-           .size();
+    return locks.get(lock);
   }
 
   @Override

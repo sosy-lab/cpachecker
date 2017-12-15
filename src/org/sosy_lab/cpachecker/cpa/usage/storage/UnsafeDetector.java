@@ -200,7 +200,7 @@ public class UnsafeDetector {
         int index2 = node1.indexOf(lock2);
         int otherIndex1 = node2.indexOf(lock1);
         int otherIndex2 = node2.indexOf(lock2);
-        if (otherIndex1 >= 0 && otherIndex2 >= 0 &&
+        if (otherIndex1 >= 0 && index2 >= 0 &&
             ((index1 > index2 && otherIndex1 < otherIndex2) ||
              (index1 < index2 && otherIndex1 > otherIndex2))) {
           return true;
