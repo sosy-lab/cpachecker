@@ -211,7 +211,7 @@ def determineColor(node):
   color = None
   if os.path.splitext(node.name)[1] != ".properties":
     color = "gold"
-  elif len(node.parents) == 0 or (len(node.parents) == 1 and node.parents[0]==node.name):
+  elif not node.parents or (len(node.parents) == 1 and node.parents[0] == node.name):
     color = "forestgreen"
   elif not ("/" in normPath(node.name)):
     color = "darkolivegreen1"
@@ -298,10 +298,11 @@ def getNodes(configDirectory):
 def componentsSanityCheck(nodes):
   '''Check for configuration files in the components folder that are never used.'''
   for name,node in nodes.items():
-    if "components/" in name and len(node.parents)==0:
-      log("Component file %s is unused!" % name)
-    if "includes/" in name and len(node.parents)==0:
-      log("Include file %s is unused!" % name)
+    if not node.parents:
+      if "components/" in name:
+        log("Component file %s is unused!" % name)
+      if "includes/" in name:
+        log("Include file %s is unused!" % name)
 
 
 if __name__ == "__main__":
