@@ -44,6 +44,8 @@ class Node:
     self.name = name
     self.children = collectChildren(name) # collect names of children
     self.parents = [] # filled later
+    self.childNodes = [] # filled later
+    self.parentNodes = [] # filled later
 
 
 def getTransitiveChildren(start, nodes):
@@ -116,23 +118,39 @@ def listFiles(path):
         yield os.path.normpath(os.path.join(root,item))
 
 
-def writeDot(nodes, out):
+def writeDot(nodes, out, showChildDependencies = True, showParentDependencies = True, markDependencies = True):
   '''print dot file for limited set of nodes'''
 
   out.write('digraph configs {\n')
   out.write('graph [ranksep="%s" rankdir="LR"];\n' % (args.ranksep))
   out.write('node [shape=box]\n')
-  for filename,v in sorted(nodes.items()):
-    out.write(determineNode(v))
 
+  allNodesDict,childDependencyNodes,parentDependencyNodes = determineDependencies(nodes, showChildDependencies, showParentDependencies)
+
+  for name,node in sorted(allNodesDict.items()):
+    isDependency = name in childDependencyNodes or name in parentDependencyNodes
+    out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
+
+  if not markDependencies:
+    nodes = allNodesDict
+
+  for filename,v in sorted(nodes.items()):
     for child in v.children:
       if child in nodes:
         out.write('"%s" -> "%s";\n' % (normPath(filename), normPath(nodes[child].name)))
+      elif child in childDependencyNodes:
+        out.write('"%s" -> "%s" [style="dashed" color="grey"];\n'
+                  % (normPath(filename), normPath(childDependencyNodes[child].name)))
+    for parent in v.parents:
+      if not parent in nodes and parent in parentDependencyNodes:
+        out.write('"%s" -> "%s" [style="dashed" color="grey"];\n'
+                  % (normPath(parentDependencyNodes[parent].name), normPath(filename)))
 
   out.write("}\n")
 
-def writeRSF(nodes,out):
+def writeRSF(nodes, out, showChildDependencies = True, showParentDependencies = True):
   '''print graph in Relational Standard Format(RSF)'''
+  nodes = determineDependencies(nodes, showChildDependencies, showParentDependencies)[0]
   for filename,v in sorted(nodes.items()):
     for child in v.children:
       if child in nodes:
@@ -141,7 +159,27 @@ def writeRSF(nodes,out):
 def normPath(f):
     return os.path.relpath(f, args.dir)
 
-def determineNode(node):
+def determineDependencies(nodes, showChildDependencies, showParentDependencies):
+  childDependencyNodes = dict()
+  if showChildDependencies:
+    childDependencyNodes = dict((childNode.name,childNode)
+                                for k,v in nodes.items()
+                                for childNode in v.childNodes
+                                if childNode.name not in nodes)
+  parentDependencyNodes = dict()
+  if showParentDependencies:
+    parentDependencyNodes = dict((parentNode.name,parentNode)
+                                 for k,v in nodes.items()
+                                 for parentNode in v.parentNodes
+                                 if parentNode.name not in nodes)
+
+  allNodesDict = dict()
+  allNodesDict.update(nodes)
+  allNodesDict.update(childDependencyNodes)
+  allNodesDict.update(parentDependencyNodes)
+  return (allNodesDict, childDependencyNodes, parentDependencyNodes)
+
+def determineNode(node, dependencyNode = False):
   filename = node.name
   content = None
   if os.path.isfile(filename):
@@ -162,6 +200,8 @@ def determineNode(node):
   style = ""
   if color != None:
     style = 'style=filled fillcolor="%s"' % color
+  if dependencyNode:
+    style = 'style="setlinewidth(3),rounded" color="%s"' % color
 
   options =  "%s %s" % (tooltip, style)
   result = '"%s"[%s]\n' % (normPath(node.name), options)
@@ -224,6 +264,12 @@ Examples:
         help="a higher value enables more warnings, 0 is OFF")
     parser.add_argument("--rsf", action="store_true",
         help="output in Relational Standard Format (RSF) instead of graphviz")
+    parser.add_argument("--nochilddep", action="store_true",
+        help="Do not show children of selected nodes")
+    parser.add_argument("--noparentdep", action="store_true",
+        help="Do not show parents of selected nodes")
+    parser.add_argument("--samedep", action="store_true",
+        help="Make dependency nodes look like regular nodes")
     return parser.parse_args()
 
 
@@ -244,6 +290,8 @@ def getNodes(configDirectory):
   for name,node in nodes.items():
     for child in node.children:
       nodes[child].parents.append(name)
+      nodes[child].parentNodes.append(node)
+      node.childNodes.append(nodes[child])
 
   return nodes
 
@@ -290,13 +338,13 @@ if __name__ == "__main__":
 
   if args.filter != None:
     nodes = dict((k,v) for k,v in nodes.items()
-        if args.filter in k or any(args.filter in child for child in v.children))
+        if args.filter in k)
 
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
   if not args.rsf:
-    writeDot(nodes, out)
+    writeDot(nodes, out, not args.nochilddep, not args.noparentdep, not args.samedep)
   else:
-    writeRSF(nodes, out)
+    writeRSF(nodes, out, not args.nochilddep, not args.noparentdep)
 
   exit(errorFound)
