@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.path;
 
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath.DefaultFullPathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath.ReverseFullPathIterator;
-
 class FullPathPosition extends PathPosition {
 
   private final int offset;
