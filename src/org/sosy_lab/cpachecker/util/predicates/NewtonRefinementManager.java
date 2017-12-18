@@ -55,13 +55,13 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Class designed to perform a Newton based refinement
  *
- * based on:
+ * <p>based on:
  *
- * "Generating Abstract Explanations of Spurious Counterexamples in C Programs" by Thomas Ball
+ * <p>"Generating Abstract Explanations of Spurious Counterexamples in C Programs" by Thomas Ball
  * Sriram K. Rajamani
  *
- * "Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim Musa,
- * Alexander Nutz, Andreas Podelski
+ * <p>"Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim
+ * Musa, Alexander Nutz, Andreas Podelski
  */
 @Options(prefix = "cpa.predicate.refinement.newtonrefinement")
 public class NewtonRefinementManager {
@@ -74,14 +74,13 @@ public class NewtonRefinementManager {
   // TODO: make to an option
   @Option(
     secure = true,
-    description = "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement")
+    description =
+        "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
+  )
   private boolean useUnsatCore = true;
 
   public NewtonRefinementManager(
-      LogManager pLogger,
-      Solver pSolver,
-      PathFormulaManager pPfmgr,
-      Configuration config)
+      LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this, NewtonRefinementManager.class);
     logger = pLogger;
@@ -95,16 +94,15 @@ public class NewtonRefinementManager {
    * Creates the CounterexampleTraceInfo for the given error path based on the Newton-based
    * refinement approach.
    *
-   * The counterexample should hold pseudo-interpolants based on StrongestPostCondition performed by
-   * Newton.
+   * <p>The counterexample should hold pseudo-interpolants based on StrongestPostCondition performed
+   * by Newton.
    *
    * @param pAllStatesTrace The error path
    * @param pFormulas The Block formulas computed in previous step
    * @return The Counterexample, containing pseudo-interpolants if successful
    */
-  public CounterexampleTraceInfo
-      buildCounterexampleTrace(ARGPath pAllStatesTrace, BlockFormulas pFormulas)
-          throws CPAException, InterruptedException {
+  public CounterexampleTraceInfo buildCounterexampleTrace(
+      ARGPath pAllStatesTrace, BlockFormulas pFormulas) throws CPAException, InterruptedException {
     if (isFeasible(pFormulas.getFormulas())) {
       // Create feasible Counterexampletrace
       return CounterexampleTraceInfo.feasible(
@@ -179,8 +177,7 @@ public class NewtonRefinementManager {
       isFeasible = !prover.isUnsat();
     } catch (SolverException e) {
       throw new CPAException(
-          "Prover failed while proving unsatisfiability in Newtonrefinement.",
-          e);
+          "Prover failed while proving unsatisfiability in Newtonrefinement.", e);
     }
     return isFeasible;
   }
@@ -188,20 +185,19 @@ public class NewtonRefinementManager {
   /**
    * Calculates the StrongestPostCondition at all states on a error-trace.
    *
-   * When applied to the Predicate states, they assure that the same error-trace won't occur again.
+   * <p>When applied to the Predicate states, they assure that the same error-trace won't occur
+   * again.
    *
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
-   *        If no list of formulas is applied it computes the regular postCondition
+   *     If no list of formulas is applied it computes the regular postCondition
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
    * @throws CPAException In case the Algorithm failed unexpected
    * @throws InterruptedException In case of interruption
    */
-  private List<BooleanFormula>
-      calculateStrongestPostCondition(
-          List<PathLocation> pPathLocations,
-          Optional<List<BooleanFormula>> pUnsatCore)
-          throws CPAException, InterruptedException {
+  private List<BooleanFormula> calculateStrongestPostCondition(
+      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
+      throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
 
     // First Predicate is always true
@@ -232,7 +228,6 @@ public class NewtonRefinementManager {
             break;
           }
         }
-
       }
       switch (edge.getEdgeType()) {
         case AssumeEdge:
@@ -242,7 +237,7 @@ public class NewtonRefinementManager {
           }
           // Else make the conjunction of the precondition and the pathFormula
           else {
-              postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+            postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
           }
           break;
         case StatementEdge:
@@ -259,7 +254,7 @@ public class NewtonRefinementManager {
           // Else we create the conjunction and quantify the old value, yet get a new
           // Assignmentformula
           else {
-              toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+            toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
           }
           if (toExist != fmgr.getBooleanFormulaManager().makeTrue()) {
             // Create the quantified formula where
@@ -275,7 +270,10 @@ public class NewtonRefinementManager {
           break;
         default:
           if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
-            logger.log(Level.FINE,"Pathformula is True, so no addtionial Formula in PostCondition for EdgeType: "+ edge.getEdgeType());
+            logger.log(
+                Level.FINE,
+                "Pathformula is True, so no addtionial Formula in PostCondition for EdgeType: "
+                    + edge.getEdgeType());
             postCondition = preCondition;
             break;
           }
@@ -302,7 +300,6 @@ public class NewtonRefinementManager {
     return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
   }
 
-
   /**
    * Builds a list of Path Location. Each Position holds information about its incoming CFAEdge,
    * corresponding PathFormula and the state. Designed for easier access at corresponding
@@ -322,10 +319,12 @@ public class NewtonRefinementManager {
     PathIterator pathIterator = pPath.fullPathIterator();
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
 
-    while(pathIterator.hasNext()) {
+    while (pathIterator.hasNext()) {
       pathIterator.advance();
       CFAEdge lastEdge = pathIterator.getIncomingEdge();
-      Optional<ARGState> state = pathIterator.isPositionWithState() ? Optional.of(pathIterator.getAbstractState())
+      Optional<ARGState> state =
+          pathIterator.isPositionWithState()
+              ? Optional.of(pathIterator.getAbstractState())
               : Optional.empty();
       try {
         pathFormula =
@@ -334,8 +333,7 @@ public class NewtonRefinementManager {
                 lastEdge);
       } catch (CPATransferException e) {
         throw new CPAException(
-            "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")",
-            e);
+            "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")", e);
       }
       pathLocationList.add(new PathLocation(lastEdge, pathFormula, state));
     }
@@ -348,9 +346,7 @@ public class NewtonRefinementManager {
     final Optional<ARGState> state;
 
     PathLocation(
-        final CFAEdge pLastEdge,
-        final PathFormula pPathFormula,
-        final Optional<ARGState> pState) {
+        final CFAEdge pLastEdge, final PathFormula pPathFormula, final Optional<ARGState> pState) {
       lastEdge = pLastEdge;
       pathFormula = pPathFormula;
       state = pState;
@@ -374,9 +370,7 @@ public class NewtonRefinementManager {
 
     @Override
     public String toString() {
-      return (lastEdge != null
-          ? lastEdge.toString()
-          : ("First State: " + state.get().toDOTLabel()))
+      return (lastEdge != null ? lastEdge.toString() : ("First State: " + state.get().toDOTLabel()))
           + ", PathFormula: "
           + pathFormula.toString();
     }
