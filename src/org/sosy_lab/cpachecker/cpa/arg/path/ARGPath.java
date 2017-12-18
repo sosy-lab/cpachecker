@@ -416,7 +416,7 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGState}.
      */
     public ARGState getAbstractState() {
-      return path.states.get(pos);
+      return path.asStatesList().get(pos);
     }
 
     /**
@@ -428,8 +428,8 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGState}.
      */
     public ARGState getNextAbstractState() {
-      checkState(pos + 1 < path.states.size());
-      return path.states.get(pos+1);
+      checkState(pos + 1 < path.size());
+      return path.asStatesList().get(pos + 1);
     }
 
     /**
@@ -442,7 +442,7 @@ public class ARGPath extends AbstractAppender {
      */
     public ARGState getPreviousAbstractState() {
       checkState(pos - 1 >= 0);
-      return path.states.get(pos-1);
+      return path.asStatesList().get(pos - 1);
     }
 
     /**
@@ -467,7 +467,7 @@ public class ARGPath extends AbstractAppender {
      */
     public @Nullable CFAEdge getIncomingEdge() {
       checkState(pos > 0, "First state in ARGPath has no incoming edge.");
-      return path.edges.get(pos-1);
+      return path.getInnerEdges().get(pos - 1);
     }
 
     /**
@@ -478,8 +478,8 @@ public class ARGPath extends AbstractAppender {
      * @return A {@link CFAEdge} or null, if there is no edge between these two states.
      */
     public @Nullable CFAEdge getOutgoingEdge() {
-      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
-      return path.edges.get(pos);
+      checkState(pos < path.size() - 1, "Last state in ARGPath has no outgoing edge.");
+      return path.getInnerEdges().get(pos);
     }
 
     /**
@@ -492,7 +492,8 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getPrefixInclusive() {
-      return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+      return new ARGPath(
+          path.asStatesList().subList(0, pos + 1), path.getInnerEdges().subList(0, pos));
     }
 
     /**
@@ -512,9 +513,10 @@ public class ARGPath extends AbstractAppender {
       checkState(pos > 0, "Exclusive prefix of first state in path would be empty.");
 
       if (pos == 1) {
-        return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge>emptyList());
+        return new ARGPath(path.asStatesList().subList(0, pos), Collections.<CFAEdge>emptyList());
       } else {
-        return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
+        return new ARGPath(
+            path.asStatesList().subList(0, pos), path.getInnerEdges().subList(0, pos - 1));
       }
     }
 
@@ -528,8 +530,10 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getSuffixInclusive() {
-      int lastPos = path.states.size();
-      return new ARGPath(path.states.subList(pos, lastPos), path.edges.subList(pos, lastPos-1));
+      int lastPos = path.size();
+      return new ARGPath(
+          path.asStatesList().subList(pos, lastPos),
+          path.getInnerEdges().subList(pos, lastPos - 1));
     }
 
     /**
@@ -546,9 +550,11 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getSuffixExclusive() {
-      checkState(pos < path.states.size() - 1, "Exclusive suffix of last state in path would be empty.");
-      int lastPos = path.states.size();
-      return new ARGPath(path.states.subList(pos+1, lastPos), path.edges.subList(pos+1, lastPos-1));
+      checkState(pos < path.size() - 1, "Exclusive suffix of last state in path would be empty.");
+      int lastPos = path.size();
+      return new ARGPath(
+          path.asStatesList().subList(pos + 1, lastPos),
+          path.getInnerEdges().subList(pos + 1, lastPos - 1));
     }
   }
 
@@ -580,7 +586,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean hasNext() {
-      return pos < path.states.size()-1;
+      return pos < path.size() - 1;
     }
 
     @Override
@@ -599,7 +605,7 @@ public class ARGPath extends AbstractAppender {
     }
 
     private ReversePathIterator(ARGPath pPath) {
-      super(pPath, pPath.states.size()-1);
+      super(pPath, pPath.size() - 1);
     }
 
     @Override
@@ -621,7 +627,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean hasPrevious() {
-      return pos < path.states.size() - 1;
+      return pos < path.size() - 1;
     }
   }
 
@@ -654,7 +660,7 @@ public class ARGPath extends AbstractAppender {
     @Override
     public ARGState getAbstractState() {
       checkState(currentPositionHasState);
-      return path.states.get(pos);
+      return path.asStatesList().get(pos);
     }
 
     @Override
@@ -670,7 +676,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public @Nullable CFAEdge getOutgoingEdge() {
-      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
+      checkState(pos < path.size() - 1, "Last state in ARGPath has no outgoing edge.");
       return fullPath.get(overallOffset);
     }
 
@@ -685,9 +691,9 @@ public class ARGPath extends AbstractAppender {
     public ARGState getPreviousAbstractState() {
       checkState(pos - 1 >= 0);
       if (currentPositionHasState) {
-        return path.states.get(pos-1);
+        return path.asStatesList().get(pos - 1);
       } else {
-        return path.states.get(pos);
+        return path.asStatesList().get(pos);
       }
     }
 
@@ -699,9 +705,11 @@ public class ARGPath extends AbstractAppender {
     @Override
     public ARGPath getPrefixInclusive() {
       if (currentPositionHasState) {
-        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+        return new ARGPath(
+            path.asStatesList().subList(0, pos + 1), path.getInnerEdges().subList(0, pos));
       } else {
-        return new ARGPath(path.states.subList(0, pos+2), path.edges.subList(0, pos+1));
+        return new ARGPath(
+            path.asStatesList().subList(0, pos + 2), path.getInnerEdges().subList(0, pos + 1));
       }
     }
 
@@ -718,9 +726,11 @@ public class ARGPath extends AbstractAppender {
           "Exclusive prefix of first state in path would be empty.");
       if (currentPositionHasState) {
         checkState(pos != 0);
-        return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
+        return new ARGPath(
+            path.asStatesList().subList(0, pos), path.getInnerEdges().subList(0, pos - 1));
       } else {
-        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+        return new ARGPath(
+            path.asStatesList().subList(0, pos + 1), path.getInnerEdges().subList(0, pos));
       }
     }
   }
@@ -773,7 +783,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean hasNext() {
-      return pos < path.states.size()-1;
+      return pos < path.size() - 1;
     }
 
     @Override
@@ -789,7 +799,7 @@ public class ARGPath extends AbstractAppender {
     }
 
     ReverseFullPathIterator(ARGPath pPath) {
-      this(pPath, pPath.states.size() - 1, pPath.getFullPath().size());
+      this(pPath, pPath.size() - 1, pPath.getFullPath().size());
     }
 
     @Override
@@ -799,7 +809,7 @@ public class ARGPath extends AbstractAppender {
       // if we are currently on a position with state and we have a real
       // (non-null) edge then we can directly set the parameters without
       // further checking
-      if (path.edges.get(pos-1) != null && currentPositionHasState) {
+      if (path.getInnerEdges().get(pos - 1) != null && currentPositionHasState) {
         pos--;
         overallOffset--;
         currentPositionHasState = true;
@@ -827,7 +837,7 @@ public class ARGPath extends AbstractAppender {
       // if we are currently on a position with state and we have a real
       // (non-null) edge then we can directly set the parameters without
       // further checking
-      if (path.edges.get(pos) != null && currentPositionHasState) {
+      if (path.getInnerEdges().get(pos) != null && currentPositionHasState) {
         pos++;
         overallOffset++;
         currentPositionHasState = true;
@@ -851,7 +861,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean hasPrevious() {
-      return pos < path.states.size() - 1;
+      return pos < path.size() - 1;
     }
   }
 }
