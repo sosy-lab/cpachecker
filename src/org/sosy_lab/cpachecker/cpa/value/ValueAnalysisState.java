@@ -34,7 +34,6 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -680,7 +679,7 @@ public class ValueAnalysisState
    * @return the value-analysis interpolant reflecting the value assignment of this state
    */
   public ValueAnalysisInterpolant createInterpolant() {
-    return new ValueAnalysisInterpolant(new HashMap<>(constantsMap), new HashMap<>(memLocToType));
+    return new ValueAnalysisInterpolant(constantsMap, memLocToType);
   }
 
   public ValueAnalysisInformation getInformation() {
