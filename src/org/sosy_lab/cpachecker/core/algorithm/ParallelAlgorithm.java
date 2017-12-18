@@ -157,14 +157,18 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     // shutdown the executor service,
     exec.shutdown();
 
-    handleFutureResults(futures);
+    try {
+      handleFutureResults(futures);
 
-    // wait some time so that all threads are shut down and have (hopefully) finished their logging
-    if (!exec.awaitTermination(10, TimeUnit.SECONDS)) {
-      logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
+    } finally {
+      // Wait some time so that all threads are shut down and we have a happens-before relation
+      // (necessary for statistics).
+      if (!awaitTermination(exec, 10, TimeUnit.SECONDS)) {
+        logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
+      }
+
+      exec.shutdownNow();
     }
-
-    exec.shutdownNow();
 
     if (finalResult != null) {
       forwardingReachedSet.setDelegate(finalResult.getReached());
@@ -172,6 +176,28 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private static boolean awaitTermination(
+      ListeningExecutorService exec, long timeout, TimeUnit unit) {
+    long timeoutNanos = unit.toNanos(timeout);
+    long endNanos = System.nanoTime() + timeoutNanos;
+
+    boolean interrupted = Thread.interrupted();
+    try {
+      while (true) {
+        try {
+          return exec.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+          interrupted = false;
+          timeoutNanos = Math.max(0, endNanos - System.nanoTime());
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
