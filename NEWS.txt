@@ -36,6 +36,10 @@ Changes from CPAchecker 1.6.1 to CPAchecker 1.7
   has been updated and is now produced directly by CPAchecker
   (no need to call report-generator.py anymore).
 
+* Improved Witness Validation
+  The witness validator has been updated and now supports the validation of
+  violation witnesses for concurrent programs.
+
 
 Changes from CPAchecker 1.6 to CPAchecker 1.6.1
 -----------------------------------------------
