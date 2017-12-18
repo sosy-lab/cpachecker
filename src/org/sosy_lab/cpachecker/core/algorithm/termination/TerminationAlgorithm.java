@@ -619,6 +619,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // get all loop states having only stem predecessors
     while (!workList.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
       ARGState next = workList.iterator().next();
       workList.remove(next);
 
