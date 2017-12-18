@@ -645,7 +645,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             result = Result.UNKNOWN;
           }
           for (Statistics s : subStats.subStatistics) {
-            StatisticsUtils.writeOutputFiles(s, logger, result, pReached);
+            StatisticsUtils.writeOutputFiles(s, logger, result, subStats.reachedSet);
           }
         }
       }

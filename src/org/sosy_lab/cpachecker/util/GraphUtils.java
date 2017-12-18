@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Pair;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -36,6 +31,10 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Some utilities for generic graphs.
@@ -61,6 +60,7 @@ public class GraphUtils {
   public static <N> SetMultimap<N, N> projectARG(final N root,
       final Function<? super N, ? extends Iterable<N>> successorFunction,
       Predicate<? super N> isRelevant) {
+    checkNotNull(root);
 
     isRelevant = Predicates.or(Predicates.equalTo(root),
                                isRelevant);
