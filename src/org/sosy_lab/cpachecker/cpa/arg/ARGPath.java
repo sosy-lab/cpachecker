@@ -134,7 +134,7 @@ public class ARGPath extends AbstractAppender {
       return fullPath;
     }
 
-    List<CFAEdge> fullPath = new ArrayList<>();
+    List<CFAEdge> newFullPath = new ArrayList<>();
     PathIterator it = pathIterator();
 
     while (it.hasNext()) {
@@ -157,18 +157,18 @@ public class ARGPath extends AbstractAppender {
           }
 
           CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
-          fullPath.add(intermediateEdge);
+          newFullPath.add(intermediateEdge);
           curNode = intermediateEdge.getSuccessor();
         } while (curNode != nextNode);
 
       // we have a normal connection without hole in the edges
       } else {
-        fullPath.add(curOutgoingEdge);
+        newFullPath.add(curOutgoingEdge);
       }
     }
 
-    this.fullPath = fullPath;
-    return fullPath;
+    this.fullPath = newFullPath;
+    return newFullPath;
   }
 
   public ImmutableSet<ARGState> getStateSet() {
