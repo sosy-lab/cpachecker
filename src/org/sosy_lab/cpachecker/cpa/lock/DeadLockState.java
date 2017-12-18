@@ -85,11 +85,7 @@ public class DeadLockState extends AbstractLockState {
     @Override
     public boolean cover(UsageTreeNode pNode) {
       Preconditions.checkArgument(pNode instanceof DeadLockTreeNode);
-      DeadLockTreeNode o = (DeadLockTreeNode) pNode;
-      if (this.containsAll(o)) {
-        return true;
-      }
-      return false;
+      return this.compareTo(pNode) == 0;
     }
 
     @Override
