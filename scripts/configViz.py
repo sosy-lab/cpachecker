@@ -110,12 +110,13 @@ def collectChildren(filename):
   return children
 
 
-def listFiles(path):
+def listFiles(paths):
   '''recursively traverse the given path and collect all files'''
-  for root, subFolders, files in os.walk(path):
-    for item in files:
-      if not "README" in item: # filter unwanted files
-        yield os.path.normpath(os.path.join(root,item))
+  for path in paths:
+    for root, subFolders, files in os.walk(path):
+      for item in files:
+        if not "README" in item: # filter unwanted files
+          yield os.path.normpath(os.path.join(root,item))
 
 
 def writeDot(nodes, out, showChildDependencies = True, showParentDependencies = True, markDependencies = True):
@@ -157,7 +158,7 @@ def writeRSF(nodes, out, showChildDependencies = True, showParentDependencies = 
         out.write('GRAPH %s %s 1\n' % (normPath(filename), normPath(nodes[child].name)))
 
 def normPath(f):
-    return os.path.relpath(f, args.dir)
+    return os.path.relpath(f, args.dir[0])
 
 def determineDependencies(nodes, showChildDependencies, showParentDependencies):
   childDependencyNodes = dict()
@@ -247,7 +248,7 @@ Examples:
     # graph showing everything included in or depending on 'predicateAnalysis.properties':
     python3 scripts/configViz.py --root config/predicateAnalysis.properties --depend config/predicateAnalysis.properties > graph.dot
     """)
-    parser.add_argument("--dir", metavar="DIRECTORY", default='config/',
+    parser.add_argument("--dir", metavar="DIRECTORY", default=['config/', 'test/config'], action="append",
         help="directory where the configuration files reside")
     parser.add_argument("--root", metavar="ROOT", default=None,
         help="configuration file for which a graph should be generated. " +
@@ -273,12 +274,12 @@ Examples:
     return parser.parse_args()
 
 
-def getNodes(configDirectory):
+def getNodes(configDirectories):
   '''collect all files and build a graph'''
   nodes = {}
 
   # collect nodes and their children
-  waitlist = list(listFiles(configDirectory))
+  waitlist = list(listFiles(configDirectories))
   while waitlist:
     name = waitlist.pop()
     if name not in nodes:
