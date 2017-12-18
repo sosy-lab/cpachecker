@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -109,7 +110,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
-  private final CtoWpConverter wpConverter;
+  private final @Nullable CtoWpConverter wpConverter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -570,6 +571,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       return wpConverter.makePreconditionForEdge(pEdge, pPostcond);
     }
 
-    return null;
+    throw new UnsupportedOperationException();
   }
 }
