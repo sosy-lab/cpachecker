@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
+package org.sosy_lab.cpachecker.cpa.arg.path;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -45,6 +45,8 @@ import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -84,7 +86,7 @@ public class ARGPath extends AbstractAppender {
     edges = pArgPath.edges;
   }
 
-  ARGPath(List<ARGState> pStates) {
+  public ARGPath(List<ARGState> pStates) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
