@@ -1983,6 +1983,9 @@ cpa.predicate.refinement.useNewtonRefinement = false
 # the other invariants)
 cpa.predicate.refinement.usePathInvariants = false
 
+# use UCB predicates for the CPA-Refinement, experimental feature!
+cpa.predicate.refinement.useUCBRefinement = false
+
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 

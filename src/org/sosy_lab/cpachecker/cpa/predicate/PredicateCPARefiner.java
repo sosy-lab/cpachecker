@@ -373,6 +373,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       logger.log(Level.FINEST, "Starting Newton-based refinement");
       return performNewtonRefinement(allStatesTrace, formulas);
 
+    } else if (useUCBRefinement) {
+      logger.log(Level.FINEST, "Starting unsat-core-based refinement");
+      return performUCBRefinement(abstractionStatesTrace, formulas);
+
     } else {
       logger.log(Level.FINEST, "Starting interpolation-based refinement.");
       return performInterpolatingRefinement(abstractionStatesTrace, formulas);
