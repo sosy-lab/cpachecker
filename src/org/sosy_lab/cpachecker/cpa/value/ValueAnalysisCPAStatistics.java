@@ -55,9 +55,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private Path precisionFile = null;
 
   private LongAdder iterations = new LongAdder();
-  private StatCounter assumptions = new StatCounter("Number of Assumptions");
+  private StatCounter assumptions = new StatCounter("Number of assumptions");
   private StatCounter deterministicAssumptions =
-      new StatCounter("Number of deterministic Assumptions");
+      new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
 
   public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
