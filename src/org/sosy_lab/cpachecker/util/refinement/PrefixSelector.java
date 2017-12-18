@@ -118,6 +118,10 @@ public class PrefixSelector {
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
+    // We instantiate this only once, because it is pseudo-random (i.e., deterministic),
+    // and if we instantiate it every time, we get the same sequence of random numbers.
+    private final Scorer randomScorer = new RandomScorer();
+
     public ScorerFactory(final Optional<VariableClassification> pClassification,
         final Optional<LoopStructure> pLoopStructure) {
       classification = pClassification;
@@ -155,7 +159,7 @@ public class PrefixSelector {
         case ASSUMPTIONS_MAX:
           return new AssumptionScorer(classification).invert();
         case RANDOM:
-          return new RandomScorer();
+          return randomScorer;
 
         // illegal arguments
         case NONE:
@@ -292,9 +296,11 @@ public class PrefixSelector {
 
   private static class RandomScorer implements Scorer {
 
+    private final Random random = new Random();
+
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return new Random().nextInt(1000);
+      return random.nextInt(1000);
     }
   }
 
