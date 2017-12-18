@@ -264,10 +264,10 @@ Examples:
         help="a higher value enables more warnings, 0 is OFF")
     parser.add_argument("--rsf", action="store_true",
         help="output in Relational Standard Format (RSF) instead of graphviz")
-    parser.add_argument("--nochilddep", action="store_true",
-        help="Do not show children of selected nodes")
-    parser.add_argument("--noparentdep", action="store_true",
-        help="Do not show parents of selected nodes")
+    parser.add_argument("--showChildren", action="store_true",
+        help="Show children of selected nodes")
+    parser.add_argument("--showParents", action="store_true",
+        help="Show parents of selected nodes")
     parser.add_argument("--samedep", action="store_true",
         help="Make dependency nodes look like regular nodes")
     return parser.parse_args()
@@ -300,7 +300,7 @@ def componentsSanityCheck(nodes):
   for name,node in nodes.items():
     if not node.parents:
       if "components/" in name:
-        log("Component file %s is unused!" % name)
+        log("Component file %s is unused!" % name, 2)
       if "includes/" in name:
         log("Include file %s is unused!" % name)
 
@@ -346,8 +346,8 @@ if __name__ == "__main__":
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
   if not args.rsf:
-    writeDot(nodes, out, not args.nochilddep, not args.noparentdep, not args.samedep)
+    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep)
   else:
-    writeRSF(nodes, out, not args.nochilddep, not args.noparentdep)
+    writeRSF(nodes, out, args.showChildren, args.showParents)
 
   exit(errorFound)
