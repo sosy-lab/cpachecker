@@ -102,6 +102,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final FeasibilityChecker<S> checker;
   private final GenericPrefixProvider<S> prefixProvider;
   private final InterpolantManager<S, I> interpolantManager;
+  private final PrefixSelector selector;
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, I> pEdgeInterpolator,
@@ -124,6 +125,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     interpolantManager = pInterpolantManager;
 
     prefixProvider = pPrefixProvider;
+    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
   }
 
   @Override
@@ -172,7 +174,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
       prefixSelectionTime.start();
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
       pErrorPath = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
       logger.logf(Level.FINER, "Sliced prefix selected:\n %s", pErrorPath);
       prefixSelectionTime.stop();

@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 public class PrefixSelector {
 
+  private final ScorerFactory factory;
   private final Optional<VariableClassification> classification;
-  private final Optional<LoopStructure> loopStructure;
 
   public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
@@ -54,7 +54,7 @@ public class PrefixSelector {
       return minScore;
     }
 
-    Scorer scorer = new ScorerFactory(classification, loopStructure).createScorer(pPreference);
+    Scorer scorer = factory.createScorer(pPreference);
 
     for (InfeasiblePrefix prefix : pPrefixes) {
       minScore = Math.min(minScore, scorer.computeScore(prefix));
@@ -64,8 +64,6 @@ public class PrefixSelector {
   }
 
   private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
-
-    ScorerFactory factory = new ScorerFactory(classification, loopStructure);
 
     List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
     for(PrefixPreference preference : pPrefixPreference) {
@@ -302,7 +300,7 @@ public class PrefixSelector {
 
   public PrefixSelector(Optional<VariableClassification> pClassification,
                              Optional<LoopStructure> pLoopStructure) {
+    factory = new ScorerFactory(pClassification, pLoopStructure);
     classification  = pClassification;
-    loopStructure   = pLoopStructure;
   }
 }
