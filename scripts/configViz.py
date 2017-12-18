@@ -188,7 +188,7 @@ def determineNode(node, dependencyNode = False):
       content = re.sub("\n", "&#10;", open(filename,"r").read())
     except UnicodeDecodeError:
       log("Cannot read file '%s'" % filename, level=3)
-    content = re.sub('"','\\"', content)
+    content = content.replace('\\','\\\\').replace('"','\\"')
   else:
     log("File does not exist: '%s'" % (filename))
   color = determineColor(node)
