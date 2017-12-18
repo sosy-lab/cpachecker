@@ -28,7 +28,12 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -58,23 +63,32 @@ import org.sosy_lab.java_smt.api.SolverException;
  * "Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim Musa,
  * Alexander Nutz, Andreas Podelski
  */
+@Options(prefix = "cpa.predicate.refinement.newtonrefinement")
 public class NewtonRefinementManager {
   private final LogManager logger;
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
+  private final RCNFManager rcnf;
 
   // TODO: make to an option
-  private static final boolean USE_UNSAT_CORE = true;
+  @Option(
+    secure = true,
+    description = "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement")
+  private boolean useUnsatCore = true;
 
   public NewtonRefinementManager(
       LogManager pLogger,
       Solver pSolver,
-      PathFormulaManager pPfmgr) {
+      PathFormulaManager pPfmgr,
+      Configuration config)
+      throws InvalidConfigurationException {
+    config.inject(this, NewtonRefinementManager.class);
     logger = pLogger;
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     pfmgr = pPfmgr;
+    rcnf = new RCNFManager(config);
   }
 
   /**
@@ -104,7 +118,7 @@ public class NewtonRefinementManager {
       Optional<List<BooleanFormula>> unsatCore;
 
       // Only compute if unsatCoreOption is set
-      if (USE_UNSAT_CORE) {
+      if (useUnsatCore) {
         unsatCore = Optional.of(computeUnsatCore(pathLocations));
       } else {
         unsatCore = Optional.empty();
@@ -202,14 +216,23 @@ public class NewtonRefinementManager {
 
       CFAEdge edge = location.getLastEdge();
       PathFormula pathFormula = location.getPathFormula();
-
+      Set<BooleanFormula> pathFormulaElements =
+          fmgr.getBooleanFormulaManager().toConjunctionArgs(pathFormula.getFormula(), false);
 
       // Decide whether to abstract this Formula(Only true if unsatCore is present and does not
       // contain the formula
       boolean abstractThisFormula = false;
       if (pUnsatCore.isPresent()) {
-        // TODO: Check for all partial Formulas, reason why it fails for assumes as !(x|y)
-        abstractThisFormula = !pUnsatCore.get().contains(pathFormula.getFormula());
+        abstractThisFormula = true;
+        // Split up any conjunction in the pathformula, to be able to identify if contained in
+        // unsat core
+        for (BooleanFormula pathFormulaElement : pathFormulaElements) {
+          if (pUnsatCore.get().contains(pathFormulaElement)) {
+            abstractThisFormula = false;
+            break;
+          }
+        }
+
       }
       switch (edge.getEdgeType()) {
         case AssumeEdge:
@@ -219,34 +242,39 @@ public class NewtonRefinementManager {
           }
           // Else make the conjunction of the precondition and the pathFormula
           else {
-            postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+              postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
           }
           break;
         case StatementEdge:
         case DeclarationEdge:
+        case FunctionCallEdge:
+        case ReturnStatementEdge:
+        case FunctionReturnEdge:
           BooleanFormula toExist;
           // If this formula should be abstracted, this statement havocs the leftHand variable
           // Therefore its previous values can be existentially quantified in the preCondition
           if (abstractThisFormula) {
             toExist = preCondition;
           }
-          // Else we create the disjunction and quantify the old value, yet get a new
+          // Else we create the conjunction and quantify the old value, yet get a new
           // Assignmentformula
           else {
-            toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+              toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
           }
-          try {
-            // Use Existential-Quantifier-Elimination on dead variables
-            // FIXME: Fails while quantification with Z3(in apply tactics);
-            postCondition = fmgr.eliminateDeadVariables(toExist, pathFormula.getSsa());
-          } catch (SolverException e) {
-            throw new CPAException("Solver failed to compute existence-quantor.", e);
+          if (toExist != fmgr.getBooleanFormulaManager().makeTrue()) {
+            // Create the quantified formula where
+            BooleanFormula quantified = fmgr.quantifyDeadVariables(toExist, pathFormula.getSsa());
+            // eliminate quantifiers using the RCNF-Manager
+            Set<BooleanFormula> lemmas = rcnf.toLemmas(quantified, fmgr);
+            postCondition = fmgr.getBooleanFormulaManager().and(lemmas);
+            // postCondition = fmgr.eliminateDeadVariables(toExist, pathFormula.getSsa());
+          } else {
+            postCondition = toExist;
           }
+
           break;
-        case FunctionCallEdge:
-          // TODO: Atleast for Asserts, a handling is necessary
         default:
-          if(fmgr.getBooleanFormulaManager().isTrue(preCondition)) {
+          if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
             logger.log(Level.FINE,"Pathformula is True, so no addtionial Formula in PostCondition for EdgeType: "+ edge.getEdgeType());
             postCondition = preCondition;
             break;
