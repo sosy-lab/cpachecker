@@ -784,4 +784,20 @@ public class ValueAnalysisState
   public Object getPseudoHashCode() {
     return this;
   }
+
+  public boolean compatibleWith(ValueAnalysisState other) {
+    Set<MemoryLocation> diff = getDifference(other);
+
+    for (MemoryLocation mem : diff) {
+      if (!mem.isOnFunctionStack()) {
+        Value thisValue = this.getValueFor(mem);
+        Value otherValue = other.getValueFor(mem);
+        if (!thisValue.equals(otherValue)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
 }

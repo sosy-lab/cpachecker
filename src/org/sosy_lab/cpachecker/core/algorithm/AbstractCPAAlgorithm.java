@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -53,8 +52,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.PseudoPartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
@@ -63,8 +60,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -141,8 +136,8 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
   private final CPAStatistics stats = new CPAStatistics();
 
   protected final TransferRelation transferRelation;
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
+  protected final MergeOperator mergeOperator;
+  protected final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
 
   private final LogManager logger;
@@ -184,7 +179,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       stats.addTimer.stopIfRunning();
       stats.forcedCoveringTimer.stopIfRunning();
 
-      Map<String, ? extends AbstractStatValue> reachedSetStats;
+      /*Map<String, ? extends AbstractStatValue> reachedSetStats = null;
       if (reachedSet instanceof PartitionedReachedSet) {
         reachedSetStats = ((PartitionedReachedSet) reachedSet).getStatistics();
       } else if (reachedSet instanceof PseudoPartitionedReachedSet) {
@@ -192,7 +187,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       } else {
         reachedSetStats = null;
       }
-
+      
       if (reachedSetStats != null) {
         for (Entry<String, ? extends AbstractStatValue> e : reachedSetStats.entrySet()) {
           String key = e.getKey();
@@ -201,7 +196,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
             stats.reachedSetStatistics.put(key, val);
           } else {
             AbstractStatValue newVal = stats.reachedSetStatistics.get(key);
-
+      
             if (newVal instanceof StatCounter) {
               assert val instanceof StatCounter;
               for (int i = 0; i < ((StatCounter) val).getValue(); i++) {
@@ -215,7 +210,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
             }
           }
         }
-      }
+      }*/
     }
   }
 
@@ -332,7 +327,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
         stats.stopTimer.start();
         boolean stop;
         try {
-          stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
+          stop = stop(successor, reachedSet.getReached(successor), successorPrecision);
         } finally {
           stats.stopTimer.stop();
         }
@@ -378,7 +373,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
             for (AbstractState reachedState : reached) {
               shutdownNotifier.shutdownIfNecessary();
               AbstractState mergedState =
-                  mergeOperator.merge(successor, reachedState, successorPrecision);
+                  merge(successor, reachedState, successorPrecision);
 
               if (!mergedState.equals(reachedState)) {
                 logger.log(Level.FINER, "Successor was merged with state from reached set");
@@ -411,7 +406,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       stats.stopTimer.start();
       boolean stop;
       try {
-        stop = stopOperator.stop(successor, reached, successorPrecision);
+        stop = stop(successor, reached, successorPrecision);
       } finally {
         stats.stopTimer.stop();
       }
@@ -431,6 +426,12 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
 
     return false;
   }
+
+  protected abstract boolean stop(AbstractState pSuccessor,
+      Collection<AbstractState> pReached, Precision pSuccessorPrecision) throws CPAException, InterruptedException;
+
+  protected abstract AbstractState merge(AbstractState pSuccessor,
+      AbstractState pReachedState, Precision pSuccessorPrecision) throws CPAException, InterruptedException;
 
   protected abstract void frontier(ReachedSet pReached, AbstractState pSuccessor,
       Precision pPrecision);

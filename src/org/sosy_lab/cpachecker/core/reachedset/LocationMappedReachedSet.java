@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collection;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -38,8 +36,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public class LocationMappedReachedSet extends PartitionedReachedSet {
 
-  public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {
-    super(waitlistFactory);
+  public LocationMappedReachedSet() {
+    super();
   }
 
   @Override

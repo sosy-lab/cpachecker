@@ -23,18 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
 
 /**
  * Special implementation of the reached set that partitions the set by keys that
@@ -51,26 +48,26 @@ import com.google.common.collect.Multimap;
  * reached states. This subset contains exactly those states, whose partition
  * key is equal to the key of the state given as a parameter.
  */
-public class PartitionedReachedSet extends DefaultReachedSet {
+public class PartitionedReachedSet extends MainNestedReachedSet {
 
   private final Multimap<Object, AbstractState> partitionedReached = LinkedHashMultimap.create(100, 1);
 
-  public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
-    super(waitlistFactory);
+  public PartitionedReachedSet() {
+    super();
   }
 
   @Override
-  public void add(AbstractState pState, Precision pPrecision) {
-    super.add(pState, pPrecision);
+  public boolean add(AbstractState pState, Precision pPrecision) {
 
     partitionedReached.put(getPartitionKey(pState), pState);
+    return super.add(pState, pPrecision);
   }
 
   @Override
-  public void remove(AbstractState pState) {
-    super.remove(pState);
+  public boolean remove(AbstractState pState) {
 
     partitionedReached.remove(getPartitionKey(pState), pState);
+    return super.remove(pState);
   }
 
   @Override

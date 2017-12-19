@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 /**
  * Special implementation of the partitioned reached set {@link PartitionedReachedSet}.
@@ -55,7 +54,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
  * This type of reached-set might work best in combination with an analysis
  * that uses the operators merge_sep and stop_sep.
  */
-public class PseudoPartitionedReachedSet extends DefaultReachedSet {
+public class PseudoPartitionedReachedSet extends MainNestedReachedSet {
 
   /**
    * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
@@ -67,13 +66,12 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   private final Table<Optional<Object>, Comparable<?>, SetMultimap<Object, AbstractState>>
       partitionedReached = HashBasedTable.create(1, 1);
 
-  public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
-    super(waitlistFactory);
+  public PseudoPartitionedReachedSet() {
+    super();
   }
 
   @Override
-  public void add(AbstractState pState, Precision pPrecision) {
-    super.add(pState, pPrecision);
+  public boolean add(AbstractState pState, Precision pPrecision) {
 
     Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
@@ -85,11 +83,12 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
       partitionedReached.put(key, pseudoKey, states);
     }
     states.put(pseudoHash, pState);
+
+    return super.add(pState, pPrecision);
   }
 
   @Override
-  public void remove(AbstractState pState) {
-    super.remove(pState);
+  public boolean remove(AbstractState pState) {
 
     Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
@@ -102,6 +101,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
         partitionedReached.remove(key, pseudoKey);
       }
     }
+    return super.remove(pState);
   }
 
   @Override

@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -594,6 +595,10 @@ private boolean classifyNodes = false;
       CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, globalDeclarations, config, logger);
       fptrResolver.resolveFunctionPointers();
     }
+
+    //Transform ldv_thread_create
+    ThreadCreateTransformer TCtransformer = new ThreadCreateTransformer(logger, config);
+    TCtransformer.transform(cfa);
 
     // Transform dummy loops into edges to termination nodes
     transformDummyLoopsToEdges(cfa);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,29 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.reachedset;
+package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.algorithm.DefaultWaitlistElement;
+import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** Basic implementation of ReachedSet. It does not group states by location or any other key. */
-class DefaultReachedSet extends AbstractReachedSet {
 
-  DefaultReachedSet(WaitlistFactory waitlistFactory, MainNestedReachedSet rSet) {
-    super(waitlistFactory, rSet);
+public class DefaultStopOperatorForInferenceObjects implements StopOperator {
+
+  private final static DefaultStopOperatorForInferenceObjects instance = new DefaultStopOperatorForInferenceObjects();
+
+  public static DefaultStopOperatorForInferenceObjects getInstance() {
+    return instance;
   }
 
   @Override
-  public void reAddToWaitlist(AbstractState pState, Precision pPrecision) {
-    DefaultWaitlistElement element = new DefaultWaitlistElement(pState, pPrecision);
-    waitlist.add(element);
+  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+    assert pState instanceof InferenceObject;
+    return pReached.contains(pState);
   }
 
-  @Override
-  public void removeOnlyFromWaitlist(AbstractState pState, Precision pPrecision) {
-    DefaultWaitlistElement element = new DefaultWaitlistElement(pState, pPrecision);
-    waitlist.remove(element);
-  }
 }

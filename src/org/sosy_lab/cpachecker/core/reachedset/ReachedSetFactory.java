@@ -122,6 +122,12 @@ public class ReachedSetFactory {
       + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
+  @Option(
+      secure = true,
+      name = "threadModularReachedSet",
+      description = "use special reached set for thread modular analysis")
+  boolean useThreadModularReachedSet = false;
+
   private Configuration config;
 
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
@@ -172,19 +178,29 @@ public class ReachedSetFactory {
       waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
     }
 
+    MainNestedReachedSet reached;
     switch (reachedSet) {
     case PARTITIONED:
-      return new PartitionedReachedSet(waitlistFactory);
+        reached = new PartitionedReachedSet();
+        break;
 
     case PSEUDOPARTITIONED:
-      return new PseudoPartitionedReachedSet(waitlistFactory);
+        reached = new PseudoPartitionedReachedSet();
+        break;
 
     case LOCATIONMAPPED:
-      return new LocationMappedReachedSet(waitlistFactory);
+        reached = new LocationMappedReachedSet();
+        break;
 
     case NORMAL:
     default:
-      return new DefaultReachedSet(waitlistFactory);
+        reached = new MainNestedReachedSet();
+    }
+
+    if (useThreadModularReachedSet) {
+      return new ThreadModularReachedSet(waitlistFactory, reached);
+    } else {
+      return new DefaultReachedSet(waitlistFactory, reached);
     }
   }
 }

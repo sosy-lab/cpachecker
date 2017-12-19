@@ -46,18 +46,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
-final class CompositeTransferRelation implements TransferRelation {
+final class CompositeTransferRelation implements TransferRelationTM {
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
@@ -464,5 +468,97 @@ final class CompositeTransferRelation implements TransferRelation {
     if (resultCount != states.size()) { return false; }
 
     return result;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      CompositeState compositeState = (CompositeState) pState;
+
+      AbstractStateWithLocations locState = extractStateByType(compositeState, AbstractStateWithLocations.class);
+      if (locState == null) {
+        throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
+      }
+
+      Collection<Pair<AbstractState, InferenceObject>> results = new HashSet<>();
+
+      for (CFAEdge edge : locState.getOutgoingEdges()) {
+        results.addAll(getAbstractSuccessorForEdge(pState, pInferenceObject, pPrecision, edge));
+      }
+
+      return results;
+    } else {
+      return getAbstractSuccessorForEdge(pState, pInferenceObject, pPrecision, null);
+    }
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(AbstractState pState,
+      InferenceObject pInferenceObject, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+    CompositeState compositeState = (CompositeState) pState;
+    CompositePrecision compositePrecision = (CompositePrecision) pPrecision;
+    int resultCount = 1;
+
+    List<Collection<Pair<AbstractState, InferenceObject>>> allComponentsSuccessors = new ArrayList<>();
+
+    for (int i = 0; i < size; i++) {
+      TransferRelation lCurrentTransfer = transferRelations.get(i);
+      AbstractState lCurrentElement = compositeState.get(i);
+      Precision lCurrentPrecision = compositePrecision.get(i);
+
+      InferenceObject innerObject;
+
+      if (pInferenceObject == TauInferenceObject.getInstance()) {
+        innerObject = pInferenceObject;
+      } else {
+        CompositeInferenceObject compositeObject = (CompositeInferenceObject) pInferenceObject;
+        innerObject = compositeObject.getInferenceObject(i);
+      }
+
+      Collection<Pair<AbstractState, InferenceObject>> componentSuccessors;
+      componentSuccessors = ((TransferRelationTM) lCurrentTransfer).getAbstractSuccessorForEdge(
+          lCurrentElement, innerObject, lCurrentPrecision, pCfaEdge);
+
+      resultCount *= componentSuccessors.size();
+
+      if (resultCount == 0) {
+        // shortcut
+        break;
+      }
+
+      allComponentsSuccessors.add(componentSuccessors);
+    }
+    Collection<Pair<AbstractState, InferenceObject>> resultStates =
+        createThreadModularCartesianProduct(allComponentsSuccessors, resultCount);
+
+    return resultStates;
+  }
+
+  private Collection<Pair<AbstractState, InferenceObject>> createThreadModularCartesianProduct(
+      List<Collection<Pair<AbstractState, InferenceObject>>> pAllComponentsSuccessors, int pResultCount) {
+    switch (pResultCount) {
+      case 0:
+        return Collections.emptySet();
+
+      case 1:
+        List<AbstractState> stateElements =
+            from(pAllComponentsSuccessors)
+                .transform(c -> c.iterator().next().getFirst())
+                .toList();
+        List<InferenceObject> objectElements =
+            from(pAllComponentsSuccessors)
+                .transform(c -> c.iterator().next().getSecond())
+                .toList();
+        CompositeState resultState = new CompositeState(stateElements);
+        CompositeInferenceObject resultObject = new CompositeInferenceObject(objectElements);
+        return Collections.singleton(Pair.of(resultState, resultObject));
+
+      default:
+        Preconditions.checkArgument(false, "Not supported");
+        return null;
+    }
+
   }
 }

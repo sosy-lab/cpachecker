@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -135,5 +136,19 @@ public class CPAAlgorithm extends AbstractCPAAlgorithm {
     successors.forEach(s -> result.add(Pair.of(s, prec)));
 
     return result;
+  }
+
+
+  @Override
+  protected boolean stop(AbstractState pSuccessor, Collection<AbstractState> pReached,
+      Precision pSuccessorPrecision) throws CPAException, InterruptedException {
+    return stopOperator.stop(pSuccessor, pReached, pSuccessorPrecision);
+  }
+
+
+  @Override
+  protected AbstractState merge(AbstractState pSuccessor, AbstractState pReachedState,
+      Precision pSuccessorPrecision) throws CPAException, InterruptedException {
+    return mergeOperator.merge(pSuccessor, pReachedState, pSuccessorPrecision);
   }
 }

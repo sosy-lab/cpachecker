@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -108,12 +109,16 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -141,7 +146,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
-    implements StatisticsProvider {
+    implements StatisticsProvider, TransferRelationTM {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
@@ -1670,5 +1675,43 @@ public class ValueAnalysisTransferRelation
 
   private ExpressionValueVisitor getVisitor() {
     return getVisitor(state, functionName);
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    Preconditions.checkArgument(false, "Not supported");
+    return null;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+
+    ValueAnalysisState predeccessor = (ValueAnalysisState) pState;
+
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      Collection<ValueAnalysisState> successors = getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
+
+      Collection<Pair<AbstractState, InferenceObject>> result = new HashSet<>();
+      for (ValueAnalysisState vState : successors) {
+        result.add(Pair.of(vState, ValueInferenceObject.create(predeccessor, vState)));
+      }
+      return result;
+    } else if (pInferenceObject == EmptyInferenceObject.getInstance()) {
+      return Collections.emptySet();
+    } else {
+      ValueAnalysisState result = ValueAnalysisState.copyOf(predeccessor);
+      ValueInferenceObject object = (ValueInferenceObject) pInferenceObject;
+      ValueAnalysisState diff = object.getDifference();
+      assert object.compatibleWith(predeccessor);
+
+      for (MemoryLocation mem : diff.getTrackedMemoryLocations()) {
+        Value val = diff.getValueFor(mem);
+        Type type = diff.getTypeForMemoryLocation(mem);
+        result.assignConstant(mem, val, type);
+      }
+      return Collections.singleton(Pair.of(result, EmptyInferenceObject.getInstance()));
+    }
   }
 }

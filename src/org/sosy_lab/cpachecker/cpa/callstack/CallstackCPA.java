@@ -37,15 +37,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DefaultCompatibilityCheck;
+import org.sosy_lab.cpachecker.core.defaults.DefaultStopOperatorForInferenceObjects;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -53,7 +60,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CallstackCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ConfigurableProgramAnalysisTM {
 
   private final CFA cfa;
 
@@ -162,7 +169,7 @@ public class CallstackCPA extends AbstractCPA
       pConfig.inject(this);
     }
 
-    public TransferRelation initializeTransfer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    public TransferRelationTM initializeTransfer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
       if (traverseBackwards) {
         return new CallstackTransferRelationBackwards(pConfig, pLogger);
       } else {
@@ -171,4 +178,23 @@ public class CallstackCPA extends AbstractCPA
     }
   }
 
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return DefaultCompatibilityCheck.getInstance();
+  }
+
+  @Override
+  public MergeOperator getMergeForInferenceObject() {
+    return MergeSepOperator.getInstance();
+  }
+
+  @Override
+  public StopOperator getStopForInferenceObject() {
+    return DefaultStopOperatorForInferenceObjects.getInstance();
+  }
+
+  @Override
+  public TransferRelationTM getTransferRelation() {
+    return (TransferRelationTM) super.getTransferRelation();
+  }
 }

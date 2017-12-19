@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -80,7 +82,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 @Options(prefix = "cpa.value")
 public class ValueAnalysisCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA,
-        ConfigurableProgramAnalysisWithConcreteCex {
+    ConfigurableProgramAnalysisWithConcreteCex, ConfigurableProgramAnalysisTM {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
@@ -302,5 +304,20 @@ public class ValueAnalysisCPA
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
     return errorPathAllocator.allocateAssignmentsToPath(pPath);
+  }
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return new ValueCompatibleCheck();
+  }
+
+  @Override
+  public MergeOperator getMergeForInferenceObject() {
+    return MergeSepOperator.getInstance();
+  }
+
+  @Override
+  public StopOperator getStopForInferenceObject() {
+    return (s, r, p) -> r.contains(s);
   }
 }

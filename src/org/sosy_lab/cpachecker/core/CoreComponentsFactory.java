@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAThreadModularAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -180,6 +182,13 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "threadModular",
+      description = "use thread modular algorithm for checking multhreaded programs")
+  private boolean useThreadModularAlgorithm = false;
+
 
   @Option(
     secure = true,
@@ -347,7 +356,12 @@ public class CoreComponentsFactory {
               aggregatedReachedSets);
 
     } else {
-      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+      if (useThreadModularAlgorithm) {
+        assert (cpa instanceof ConfigurableProgramAnalysisTM);
+        algorithm = CPAThreadModularAlgorithm.create((ConfigurableProgramAnalysisTM)cpa, logger, shutdownNotifier);
+      } else {
+        algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+      }
 
       if (constructResidualProgram) {
         algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,

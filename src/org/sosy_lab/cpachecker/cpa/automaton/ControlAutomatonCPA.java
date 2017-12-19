@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -74,6 +76,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 public class ControlAutomatonCPA
     implements StatisticsProvider,
         ConfigurableProgramAnalysisWithBAM,
+    ConfigurableProgramAnalysisTM,
         ProofCheckerCPA {
 
   @Option(secure=true, name="dotExport",
@@ -248,5 +251,20 @@ public class ControlAutomatonCPA
 
   boolean isTreatingErrorsAsTargets() {
     return treatErrorsAsTargets;
+  }
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return (s, i) -> true;
+  }
+
+  @Override
+  public MergeOperator getMergeForInferenceObject() {
+    return MergeSepOperator.getInstance();
+  }
+
+  @Override
+  public StopOperator getStopForInferenceObject() {
+    return (s, r, p) -> true;
   }
 }

@@ -28,13 +28,10 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,15 +44,11 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 public abstract class AbstractReachedSet implements ReachedSet {
 
-  private final LinkedHashMap<AbstractState, Precision> reached;
-  private final Set<AbstractState> unmodifiableReached;
-  private @Nullable AbstractState lastState = null;
-  private @Nullable AbstractState firstState = null;
+  protected final MainNestedReachedSet reached;
   protected final Waitlist waitlist;
 
-  AbstractReachedSet(WaitlistFactory waitlistFactory) {
-    reached = new LinkedHashMap<>();
-    unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
+  AbstractReachedSet(WaitlistFactory waitlistFactory, MainNestedReachedSet pReached) {
+    reached = pReached;
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
@@ -64,42 +57,8 @@ public abstract class AbstractReachedSet implements ReachedSet {
     Preconditions.checkNotNull(state);
     Preconditions.checkNotNull(precision);
 
-    if (reached.isEmpty()) {
-      firstState = state;
-    }
-
-    Precision previousPrecision = reached.put(state, precision);
-
-    if (previousPrecision == null) {
-      // State wasn't already in the reached set.
+    if (reached.add(state, precision)) {
       reAddToWaitlist(state, precision);
-      lastState = state;
-
-    } else {
-      // State was already in the reached set.
-      // This happens only if the MergeOperator produces a state that is already there.
-
-      // The state may or may not be currently in the waitlist.
-      // In the first case, we are not allowed to add it to the waitlist,
-      // otherwise it would be in there twice (this method is responsible for
-      // enforcing the set semantics of the waitlist).
-      // In the second case, we do not need
-      // to add it to the waitlist, because it was already handled
-      // (we assume that the CPA would always produce the same successors if we
-      // give it the same state twice).
-
-      // So do nothing here.
-
-      // But check if the new and the old precisions are equal.
-      if (!precision.equals(previousPrecision)) {
-
-        // Restore previous state of reached set
-        // (a method shouldn't change state if it throws an IAE).
-        reached.put(state, previousPrecision);
-
-        throw new IllegalArgumentException(
-            "State added to reached set which is already contained, but with a different precision");
-      }
     }
   }
 
@@ -124,34 +83,16 @@ public abstract class AbstractReachedSet implements ReachedSet {
 
   @Override
   public void updatePrecision(AbstractState s, Precision newPrecision) {
-    Preconditions.checkNotNull(s);
-    Preconditions.checkNotNull(newPrecision);
-
-    Precision oldPrecision = reached.put(s, newPrecision);
-    if (oldPrecision == null) {
-      // State was not contained in the reached set.
-      // Restore previous state and throw exception.
-      reached.remove(s);
-      throw new IllegalArgumentException(
-          "State needs to be in the reached set in order to change the precision.");
-    }
+    reached.updatePrecision(s, newPrecision);
   }
 
   @Override
   public void remove(AbstractState state) {
     Preconditions.checkNotNull(state);
-    int hc = state.hashCode();
-    if (firstState != null && hc == firstState.hashCode() && state.equals(firstState)) {
-      firstState = null;
-    }
-
-    if (lastState != null && hc == lastState.hashCode() && state.equals(lastState)) {
-      lastState = null;
-    }
-    Precision prec = reached.get(state);
+    Precision prec = reached.getPrecision(state);
     if (prec == null) {
       //Covered states are not add to reached set, but they are in subgraph
-      assert !reached.containsKey(state);
+      assert !reached.contains(state);
       return;
     }
     Preconditions.checkNotNull(prec);
@@ -175,25 +116,23 @@ public abstract class AbstractReachedSet implements ReachedSet {
 
   @Override
   public void clear() {
-    firstState = null;
-    lastState = null;
     waitlist.clear();
     reached.clear();
   }
 
   @Override
   public Set<AbstractState> asCollection() {
-    return unmodifiableReached;
+    return reached.asCollection();
   }
 
   @Override
   public Iterator<AbstractState> iterator() {
-    return unmodifiableReached.iterator();
+    return reached.iterator();
   }
 
   @Override
   public Collection<Precision> getPrecisions() {
-    return Collections.unmodifiableCollection(reached.values());
+    return reached.getPrecisions();
   }
 
   @Override
@@ -208,13 +147,12 @@ public abstract class AbstractReachedSet implements ReachedSet {
 
   @Override
   public AbstractState getFirstState() {
-    Preconditions.checkState(firstState != null);
-    return firstState;
+    return reached.getFirstState();
   }
 
   @Override
   public AbstractState getLastState() {
-    return lastState;
+    return reached.getLastState();
   }
 
   @Override
@@ -237,7 +175,7 @@ public abstract class AbstractReachedSet implements ReachedSet {
   @Override
   public Precision getPrecision(AbstractState state) {
     Preconditions.checkNotNull(state);
-    Precision prec = reached.get(state);
+    Precision prec = reached.getPrecision(state);
     Preconditions.checkArgument(prec != null, "State not in reached set:\n%s", state);
     return prec;
   }
@@ -250,7 +188,7 @@ public abstract class AbstractReachedSet implements ReachedSet {
   @Override
   public boolean contains(AbstractState state) {
     Preconditions.checkNotNull(state);
-    return reached.containsKey(state);
+    return reached.contains(state);
   }
 
   @Override
@@ -265,7 +203,7 @@ public abstract class AbstractReachedSet implements ReachedSet {
 
   @Override
   public String toString() {
-    return reached.keySet().toString();
+    return reached.toString();
   }
 
   public Map<String, ? extends AbstractStatValue> getStatistics() {

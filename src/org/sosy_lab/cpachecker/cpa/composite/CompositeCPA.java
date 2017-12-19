@@ -43,7 +43,9 @@ import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -61,7 +63,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CompositeCPA implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CompositeCPA implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM,
+    ProofChecker, ConfigurableProgramAnalysisTM {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -353,5 +356,41 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     }
 
     return true;
+  }
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    ImmutableList.Builder<CompatibilityCheck> checks = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      Preconditions.checkState(
+          cpa instanceof ConfigurableProgramAnalysisTM,
+          "wrapped CPA does not support Thread Modular: " + cpa.getClass().getCanonicalName());
+      checks.add(((ConfigurableProgramAnalysisTM) cpa).getCompatibilityCheck());
+    }
+    return new CompositeCompatibilityCheck(checks.build());
+  }
+
+  @Override
+  public MergeOperator getMergeForInferenceObject() {
+    ImmutableList.Builder<MergeOperator> mergeOps = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      Preconditions.checkState(
+          cpa instanceof ConfigurableProgramAnalysisTM,
+          "wrapped CPA does not support Thread Modular: " + cpa.getClass().getCanonicalName());
+      mergeOps.add(((ConfigurableProgramAnalysisTM) cpa).getMergeForInferenceObject());
+    }
+    return new CompositeMergeForInferenceObjects(mergeOps.build());
+  }
+
+  @Override
+  public StopOperator getStopForInferenceObject() {
+    ImmutableList.Builder<StopOperator> stopOps = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      Preconditions.checkState(
+          cpa instanceof ConfigurableProgramAnalysisTM,
+          "wrapped CPA does not support Thread Modular: " + cpa.getClass().getCanonicalName());
+      stopOps.add(((ConfigurableProgramAnalysisTM) cpa).getStopForInferenceObject());
+    }
+    return new CompositeStopForInferenceObjects(stopOps.build());
   }
 }

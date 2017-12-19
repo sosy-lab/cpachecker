@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
@@ -68,6 +69,13 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState)
       throws CPAException, InterruptedException {
+
+    if (pElement instanceof InferenceObject) {
+      PrecisionAdjustmentResult out =
+          PrecisionAdjustmentResult.create(pElement, pPrecision, Action.CONTINUE);
+
+      return Optional.of(out);
+    }
 
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
