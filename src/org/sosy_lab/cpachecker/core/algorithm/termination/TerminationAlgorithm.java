@@ -43,8 +43,12 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -614,14 +618,18 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState)
       throws InterruptedException {
-    Set<ARGState> workList = Sets.newHashSet(pTargetState);
-    Set<ARGState> firstLoopStates = Sets.newHashSet();
+    Deque<ARGState> workList = new ArrayDeque<>();
+    workList.add(pTargetState);
+    Set<ARGState> seen = new HashSet<>();
+    List<ARGState> firstLoopStates = new ArrayList<>();
 
     // get all loop states having only stem predecessors
     while (!workList.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
-      ARGState next = workList.iterator().next();
-      workList.remove(next);
+      ARGState next = workList.poll();
+      if (!seen.add(next)) {
+        continue; // already seen
+      }
 
       Collection<ARGState> parentLoopStates =
           next.getParents()
