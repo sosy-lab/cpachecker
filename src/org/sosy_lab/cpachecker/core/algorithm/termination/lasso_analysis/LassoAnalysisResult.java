@@ -26,17 +26,15 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Optional;
-
-import javax.annotation.CheckReturnValue;
-
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
+import java.util.Optional;
+import javax.annotation.CheckReturnValue;
 
 public class LassoAnalysisResult {
 
-  private Optional<NonTerminationArgument> nonTerminationArgument;
+  private final Optional<NonTerminationArgument> nonTerminationArgument;
 
-  private Optional<RankingRelation> terminationArgument;
+  private final Optional<RankingRelation> terminationArgument;
 
   public static LassoAnalysisResult unknown() {
     return new LassoAnalysisResult(Optional.empty(), Optional.empty());

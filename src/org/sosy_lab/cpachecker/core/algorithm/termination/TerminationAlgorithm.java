@@ -223,7 +223,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // rebuild termination specification for witness export
     Set<SpecificationProperty> property =
-        Sets.newHashSet(
+        ImmutableSet.of(
             new SpecificationProperty(
                 pCfa.getMainFunction().getFunctionName(),
                 PropertyType.TERMINATION,
