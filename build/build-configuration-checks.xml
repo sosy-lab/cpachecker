@@ -15,6 +15,7 @@
 
     <target name="configuration-checks" depends="build, load-junit, init-configuration-checks" description="Run configuration checks">
         <junit fork="true" printSummary="true" showOutput="false" failureproperty="configuration-checks.failed" timeout="1000000">
+            <sysproperty key="java.awt.headless" value="true" />
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
