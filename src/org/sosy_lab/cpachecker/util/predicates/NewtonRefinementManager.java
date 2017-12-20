@@ -327,10 +327,7 @@ public class NewtonRefinementManager {
               ? Optional.of(pathIterator.getAbstractState())
               : Optional.empty();
       try {
-        pathFormula =
-            pfmgr.makeAnd(
-                pfmgr.makeNewPathFormula(pfmgr.makeEmptyPathFormula(), pathFormula.getSsa()),
-                lastEdge);
+        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), lastEdge);
       } catch (CPATransferException e) {
         throw new CPAException(
             "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")", e);
