@@ -165,6 +165,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
     return delegate.makeNewPathFormula(pOldFormula, pM);
   }

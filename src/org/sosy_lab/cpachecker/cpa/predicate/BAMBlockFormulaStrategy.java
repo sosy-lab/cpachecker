@@ -214,6 +214,7 @@ final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
   }
 
   /* rebuild indices from outer scope */
+  @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
   private PathFormula rebuildStateAfterFunctionCall(
       final PathFormula parentFormula,
       final PathFormula rootFormula,

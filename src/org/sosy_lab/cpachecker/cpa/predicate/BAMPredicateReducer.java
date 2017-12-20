@@ -384,6 +384,7 @@ public class BAMPredicateReducer implements Reducer {
       }
     }
     SSAMap newSSA = builder.build();
+    @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
     AbstractionFormula newAbstractionFormula =
