@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.exceptions;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CompoundException extends CPAException {
 
@@ -35,13 +37,25 @@ public class CompoundException extends CPAException {
   private final List<CPAException> exceptions;
 
   public CompoundException(List<CPAException> pExceptions) {
-    super(
-        "Several exceptions occured during the analysis:\n -> "
-            + Joiner.on("\n -> ").join(Lists.transform(pExceptions, e -> e.getMessage())));
+    super(getMessage(pExceptions));
     exceptions = Collections.unmodifiableList(pExceptions);
   }
 
   public List<CPAException> getExceptions() {
     return exceptions;
+  }
+
+  private static String getMessage(List<CPAException> pExceptions) {
+    Preconditions.checkArgument(
+        pExceptions.size() > 1,
+        "Use a CompoundException only if there actually are multiple exceptions.");
+    List<String> messages =
+        pExceptions.stream().map(Throwable::getMessage).distinct().collect(Collectors.toList());
+    if (messages.size() == 1) {
+      return messages.get(0);
+    }
+    return "Several exceptions occured during the analysis:\n -> "
+        + Joiner.on("\n -> ")
+            .join(Lists.transform(pExceptions, e -> e.getMessage()).stream().distinct().iterator());
   }
 }
