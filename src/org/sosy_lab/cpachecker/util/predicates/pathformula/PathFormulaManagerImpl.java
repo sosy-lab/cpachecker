@@ -282,6 +282,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(),
                            m,
