@@ -6,7 +6,7 @@
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <option name="-valueAnalysis-pcc-result-check-arg"/>
+    <option name="-valueAnalysis-Cegar-pcc-result-check-arg"/>
   </rundefinition>
 
 

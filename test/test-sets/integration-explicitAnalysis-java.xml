@@ -6,7 +6,7 @@
   <option name="-heap">150M</option>
 
   <rundefinition>
-    <option name="-valueAnalysis-java-with-RTT"/>
+    <option name="-valueAnalysis-java-NoCegar-RTT"/>
   </rundefinition>
 
   <tasks>
