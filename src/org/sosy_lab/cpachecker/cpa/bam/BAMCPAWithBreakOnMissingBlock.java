@@ -32,20 +32,21 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class BAMCPAWithoutReachedSetCreation extends AbstractBAMCPA {
+public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(BAMCPAWithoutReachedSetCreation.class);
+    return AutomaticCPAFactory.forType(BAMCPAWithBreakOnMissingBlock.class);
   }
 
   private final BAMCache cache;
   private final BAMDataManager data;
 
-  public BAMCPAWithoutReachedSetCreation(
+  public BAMCPAWithBreakOnMissingBlock(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
@@ -63,13 +64,18 @@ public class BAMCPAWithoutReachedSetCreation extends AbstractBAMCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new BAMTransferRelationWithoutReachedSetCreation(this, shutdownNotifier);
+    return new BAMTransferRelationWithBreakOnMissingBlock(this, shutdownNotifier);
   }
 
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
-    return new BAMPrecisionAdjustment(
-        getWrappedCpa().getPrecisionAdjustment(), data, null, logger, blockPartitioning);
+    return new BAMPrecisionAdjustmentWithBreakOnMissingBlock(
+        getWrappedCpa().getPrecisionAdjustment(), data, logger, blockPartitioning);
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return new BAMStopOperatorWithBreakOnMissingBlock(getWrappedCpa().getStopOperator());
   }
 
   public BAMCache getCache() {

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,18 +33,19 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * This {@link TransferRelation} behaves similar to {@link BAMTransferRelation}.
- * It does not create a new sub-reached-set when reaching a block-entry location,
- * but throws a {@link BlockSummaryMissingException}.
+ * This {@link TransferRelation} behaves similar to {@link BAMTransferRelation}. It does not create
+ * a new sub-reached-set when reaching a block-entry location, but returns a {@link
+ * MissingBlockAbstractionState}.
  */
-public class BAMTransferRelationWithoutReachedSetCreation
+public class BAMTransferRelationWithBreakOnMissingBlock
     extends AbstractBAMTransferRelation<CPATransferException> {
 
-  public BAMTransferRelationWithoutReachedSetCreation(
+  public BAMTransferRelationWithBreakOnMissingBlock(
       AbstractBAMCPA bamCPA, ShutdownNotifier pShutdownNotifier) {
     super(bamCPA, pShutdownNotifier);
   }
@@ -53,7 +55,13 @@ public class BAMTransferRelationWithoutReachedSetCreation
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws InterruptedException, CPATransferException {
-    return getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+    try {
+      return getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+    } catch (MissingBlockAbstractionState e) {
+      return Collections.singleton(e);
+    } catch (CPAException e) {
+      throw new RecursiveAnalysisFailedException(e);
+    }
   }
 
   /**
@@ -62,7 +70,7 @@ public class BAMTransferRelationWithoutReachedSetCreation
    * @param initialState Initial state of the analyzed block.
    * @param pPrecision Initial precision associated with the block start.
    * @param node Node corresponding to the block start.
-   * @throws BlockSummaryMissingException if no cached result is available.
+   * @throws MissingBlockAbstractionState if no cached result is available.
    * @return Set of states associated with the block exit.
    */
   @Override
@@ -92,13 +100,13 @@ public class BAMTransferRelationWithoutReachedSetCreation
 
   /**
    * Analyze the block starting at the node with {@code initialState}. If there is a result in the
-   * cache ({@code data.bamCache}), it is used, otherwise a {@link BlockSummaryMissingException} is
+   * cache ({@code data.bamCache}), it is used, otherwise a {@link MissingBlockAbstractionState} is
    * thrown.
    *
    * @param initialState State associated with the block entry.
    * @param reducedInitialState Reduced {@code initialState}.
    * @param reducedInitialPrecision Reduced precision associated with the block entry.
-   * @throws BlockSummaryMissingException if no cached result is available.
+   * @throws MissingBlockAbstractionState if no cached result is available.
    * @return Set of reduced pairs of abstract states associated with the exit of the block and the
    *     reached-set they belong to.
    */
@@ -121,7 +129,7 @@ public class BAMTransferRelationWithoutReachedSetCreation
 
     if (!isCacheHit(cachedReached, cachedReturnStates)) {
       // no cache hit, block summary missing, -> compute states from scratch or from waitlist
-      throw new BlockSummaryMissingException(
+      throw new MissingBlockAbstractionState(
           initialState, reducedInitialState, reducedInitialPrecision, innerSubtree, cachedReached);
     }
 
