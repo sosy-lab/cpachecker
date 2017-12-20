@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -29,21 +29,22 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
-/** This stop-operator just forwards towards the wrapped stop-operator of the analysis. */
-public class BAMStopOperator implements StopOperator {
+public class AbstractWrapperStopOperator implements StopOperator {
 
   private final StopOperator wrappedStop;
 
-  public BAMStopOperator(StopOperator pWrappedStopOperator) {
+  public AbstractWrapperStopOperator(StopOperator pWrappedStopOperator) {
     wrappedStop = pWrappedStopOperator;
   }
 
   @Override
-  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
+  public boolean stop(
+      AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
     return wrappedStop.stop(pState, pReached, pPrecision);
   }
 
-
+  protected StopOperator getWrappedStop() {
+    return wrappedStop;
+  }
 }
