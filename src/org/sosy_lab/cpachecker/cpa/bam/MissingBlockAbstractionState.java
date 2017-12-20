@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * This class is used to signal a missing block abstraction. It contains some data that might help
@@ -41,10 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * <p>This class implements many interfaces, because we want to insert this state into an arbitrary
  * reached-set, and some types of reached-sets have special requirements.
  */
-public final class MissingBlockAbstractionState extends CPATransferException
+public final class MissingBlockAbstractionState
     implements AbstractState, Partitionable, PseudoPartitionable {
-
-  private static final long serialVersionUID = 0xBADCAB1E;
 
   private final AbstractState state;
   private final AbstractState reducedState;
@@ -65,7 +62,6 @@ public final class MissingBlockAbstractionState extends CPATransferException
       Precision pReducedPrecision,
       Block pBlock,
       ReachedSet pReachedSet) {
-    super("block entry found, block summary not available");
     state = checkNotNull(pState);
     reducedState = checkNotNull(pReducedState);
     reducedPrecision = checkNotNull(pReducedPrecision);
@@ -91,12 +87,6 @@ public final class MissingBlockAbstractionState extends CPATransferException
 
   public ReachedSet getReachedSet() {
     return reachedSet;
-  }
-
-  @Override
-  public synchronized Throwable fillInStackTrace() {
-    // overridden for performance issues, creating stacktrace is expensive and not needed here.
-    return this;
   }
 
   @Override

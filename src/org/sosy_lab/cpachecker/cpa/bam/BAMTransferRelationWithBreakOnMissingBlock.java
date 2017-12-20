@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -50,33 +50,18 @@ public class BAMTransferRelationWithBreakOnMissingBlock
     super(bamCPA, pShutdownNotifier);
   }
 
-  // Override, because we do not want to catch and encapsulate any CPAException
-  @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pState, Precision pPrecision)
-      throws InterruptedException, CPATransferException {
-    try {
-      return getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
-    } catch (MissingBlockAbstractionState e) {
-      return Collections.singleton(e);
-    } catch (CPAException e) {
-      throw new RecursiveAnalysisFailedException(e);
-    }
-  }
-
   /**
    * Enters a new block and returns a cached result from {@link BAMCache} if possible.
    *
    * @param initialState Initial state of the analyzed block.
    * @param pPrecision Initial precision associated with the block start.
    * @param node Node corresponding to the block start.
-   * @throws MissingBlockAbstractionState if no cached result is available.
    * @return Set of states associated with the block exit.
    */
   @Override
   protected Collection<AbstractState> doRecursiveAnalysis(
       final AbstractState initialState, final Precision pPrecision, final CFANode node)
-      throws CPATransferException, InterruptedException {
+      throws InterruptedException {
     final Block outerSubtree = getBlockForState((ARGState) initialState);
     final Block innerSubtree = partitioning.getBlockForCallNode(node);
     assert innerSubtree.getCallNodes().contains(node);
@@ -88,9 +73,16 @@ public class BAMTransferRelationWithBreakOnMissingBlock
 
     final Pair<Collection<AbstractState>, ReachedSet> reducedResult =
         getReducedResult(initialState, reducedInitialState, reducedInitialPrecision, innerSubtree);
+    Collection<AbstractState> cachedReturnStates = reducedResult.getFirst();
+
+    if (cachedReturnStates.size() == 1
+        && Iterables.getOnlyElement(cachedReturnStates) instanceof MissingBlockAbstractionState) {
+      // special case: we abort the current analysis.
+      return cachedReturnStates;
+    }
 
     return expandResultStates(
-        reducedResult.getFirst(),
+        cachedReturnStates,
         reducedResult.getSecond(),
         innerSubtree,
         outerSubtree,
@@ -106,7 +98,6 @@ public class BAMTransferRelationWithBreakOnMissingBlock
    * @param initialState State associated with the block entry.
    * @param reducedInitialState Reduced {@code initialState}.
    * @param reducedInitialPrecision Reduced precision associated with the block entry.
-   * @throws MissingBlockAbstractionState if no cached result is available.
    * @return Set of reduced pairs of abstract states associated with the exit of the block and the
    *     reached-set they belong to.
    */
@@ -114,8 +105,7 @@ public class BAMTransferRelationWithBreakOnMissingBlock
       final AbstractState initialState,
       final AbstractState reducedInitialState,
       final Precision reducedInitialPrecision,
-      final Block innerSubtree)
-      throws CPATransferException {
+      final Block innerSubtree) {
 
     // Try to get an element from cache. A previously computed element consists of
     // a reached set associated with the recursive call.
@@ -129,8 +119,14 @@ public class BAMTransferRelationWithBreakOnMissingBlock
 
     if (!isCacheHit(cachedReached, cachedReturnStates)) {
       // no cache hit, block summary missing, -> compute states from scratch or from waitlist
-      throw new MissingBlockAbstractionState(
-          initialState, reducedInitialState, reducedInitialPrecision, innerSubtree, cachedReached);
+      MissingBlockAbstractionState mbas =
+          new MissingBlockAbstractionState(
+              initialState,
+              reducedInitialState,
+              reducedInitialPrecision,
+              innerSubtree,
+              cachedReached);
+      return Pair.of(Collections.singleton(mbas), cachedReached);
     }
 
     assert cachedReached != null;
