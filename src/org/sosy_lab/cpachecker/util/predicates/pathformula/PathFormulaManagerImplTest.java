@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -272,7 +271,11 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     CFAEdge a_to_b = data.getFirst();
 
     int customIdx = 1337;
-    PathFormula p = makePathFormulaWithCustomIdx(a_to_b, customIdx);
+    SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(customIdx);
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA =
+        pfmgrFwd.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
+    PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
     Assert.assertEquals(customIdx + FreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
@@ -283,11 +286,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
     CFAEdge a_to_b = data.getFirst();
 
-    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
-    pf = pfmgrBwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrBwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrBwd.makeAnd(pf, a_to_b);
 
@@ -303,11 +302,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   public void testDeclarationSSABackward() throws Exception {
     createCFA();
 
-    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
-    pf = pfmgrBwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrBwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
@@ -319,11 +314,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   public void testDeclarationSSAForward() throws Exception {
     createCFA();
 
-    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
-    pf = pfmgrFwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrFwd.makeAnd(pf, x_decl);
 
@@ -335,11 +326,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
     CFAEdge a_to_b = data.getFirst();
 
-    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
-    pf = pfmgrFwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrFwd.makeAnd(pf, a_to_b);
 
@@ -351,20 +338,11 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
   }
 
-
-  /**
-   * Creates a {@link PathFormula} with SSA indexing starting
-   * from the specified value.
-   * Useful for more fine-grained control over SSA indexes.
-   */
-  private PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
-      throws CPATransferException, InterruptedException {
-    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pfmgrFwd.makeNewPathFormula(
-        empty,
-        SSAMap.emptySSAMap().withDefault(ssaIdx));
-
-    return pfmgrFwd.makeAnd(emptyWithCustomSSA, edge);
+  private PathFormula makePathFormulaWithCustomIndex(
+      PathFormulaManager pPfmgr, String pVar, CType pType, int pIndex) {
+    SSAMap ssaMap = SSAMap.emptySSAMap().builder().setIndex(pVar, pType, pIndex).build();
+    PathFormula empty = pPfmgr.makeEmptyPathFormula();
+    return pPfmgr.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
   }
 
   @Test
