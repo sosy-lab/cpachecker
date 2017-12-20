@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -42,7 +43,7 @@ public class ValueInferenceObject implements InferenceObject {
     diff = dst;
   }
 
-  public static ValueInferenceObject create(ValueAnalysisState src, ValueAnalysisState dst) {
+  public static InferenceObject create(ValueAnalysisState src, ValueAnalysisState dst) {
     ValueAnalysisState newSrc = ValueAnalysisState.copyOf(src);
     ValueAnalysisState newDst = ValueAnalysisState.copyOf(dst);
 
@@ -68,7 +69,11 @@ public class ValueInferenceObject implements InferenceObject {
       }
     }
 
-    return new ValueInferenceObject(newSrc, newDst);
+    if (newSrc.equals(newDst)) {
+      return EmptyInferenceObject.getInstance();
+    } else {
+      return new ValueInferenceObject(newSrc, newDst);
+    }
   }
 
   public ValueAnalysisState getDifference() {

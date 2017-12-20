@@ -789,7 +789,7 @@ public class ValueAnalysisState
     Set<MemoryLocation> diff = getDifference(other);
 
     for (MemoryLocation mem : diff) {
-      if (!mem.isOnFunctionStack()) {
+      if (!mem.isOnFunctionStack() && this.contains(mem)) {
         Value thisValue = this.getValueFor(mem);
         Value otherValue = other.getValueFor(mem);
         if (!thisValue.equals(otherValue)) {

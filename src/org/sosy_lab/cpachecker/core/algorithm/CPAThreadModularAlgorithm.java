@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Preconditions;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
@@ -120,7 +119,7 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     Collection<Pair<AbstractState, InferenceObject>> successors;
     successors = ((TransferRelationTM) transferRelation).getAbstractSuccessors(state, object, precision);
 
-    Set<Pair<? extends AbstractState, ? extends Precision>> result = new HashSet<>();
+    Collection<Pair<? extends AbstractState, ? extends Precision>> result = new ArrayList<>();
     for (Pair<AbstractState, InferenceObject> tmpPair : successors) {
       result.add(Pair.of(tmpPair.getFirst(), precision));
       InferenceObject newObject = tmpPair.getSecond();

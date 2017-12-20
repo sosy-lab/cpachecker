@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.ThreadModularWaitlistElement;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -147,7 +148,7 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   public void reAddToWaitlist(AbstractState pState, InferenceObject object, Precision pPrecision) {
     if (pState instanceof InferenceObject) {
       Preconditions.checkArgument(false, "Not supported");
-    } else {
+    } else if (object != EmptyInferenceObject.getInstance()) {
       ThreadModularWaitlistElement element =
           new ThreadModularWaitlistElement(pState, object, pPrecision);
 

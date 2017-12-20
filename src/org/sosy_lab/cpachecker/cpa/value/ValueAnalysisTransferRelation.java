@@ -1693,13 +1693,13 @@ public class ValueAnalysisTransferRelation
     if (pInferenceObject == TauInferenceObject.getInstance()) {
       Collection<ValueAnalysisState> successors = getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
 
-      Collection<Pair<AbstractState, InferenceObject>> result = new HashSet<>();
+      Collection<Pair<AbstractState, InferenceObject>> result = new ArrayList<>();
       for (ValueAnalysisState vState : successors) {
         result.add(Pair.of(vState, ValueInferenceObject.create(predeccessor, vState)));
       }
       return result;
     } else if (pInferenceObject == EmptyInferenceObject.getInstance()) {
-      return Collections.emptySet();
+      return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
     } else {
       ValueAnalysisState result = ValueAnalysisState.copyOf(predeccessor);
       ValueInferenceObject object = (ValueInferenceObject) pInferenceObject;
@@ -1711,7 +1711,11 @@ public class ValueAnalysisTransferRelation
         Type type = diff.getTypeForMemoryLocation(mem);
         result.assignConstant(mem, val, type);
       }
-      return Collections.singleton(Pair.of(result, EmptyInferenceObject.getInstance()));
+      if (result.equals(predeccessor)) {
+        return Collections.emptySet();
+      } else {
+        return Collections.singleton(Pair.of(result, EmptyInferenceObject.getInstance()));
+      }
     }
   }
 }
