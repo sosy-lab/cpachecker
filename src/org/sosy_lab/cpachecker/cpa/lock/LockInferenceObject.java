@@ -43,4 +43,9 @@ public class LockInferenceObject implements InferenceObject {
   public AbstractLockState getState() {
     return state;
   }
+
+  @Override
+  public boolean hasEmptyAction() {
+    return true;
+  }
 }

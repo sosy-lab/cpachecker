@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
@@ -70,7 +71,7 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
   @Override
   protected void frontier(ReachedSet pReached, AbstractState pSuccessor, Precision pPrecision) {
     if (pSuccessor instanceof InferenceObject) {
-      Collection<AbstractState> states = ((ThreadModularReachedSet)pReached).getStates();
+      Collection<AbstractState> states = ((ThreadModularReachedSet) pReached).getStates();
 
       for (AbstractState state : states) {
         if (compatibleCheck.compatible(state, (InferenceObject) pSuccessor)) {
@@ -85,8 +86,8 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
           pReached.reAddToWaitlist(new ThreadModularWaitlistElement(pSuccessor, object, pPrecision));
         }
       }
-      pReached.add(pSuccessor, pPrecision);
     }
+    pReached.add(pSuccessor, pPrecision);
   }
 
   @Override
@@ -145,6 +146,16 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       return mergeForInferenceObject.merge(pSuccessor, pReachedState, pSuccessorPrecision);
     } else {
       return mergeOperator.merge(pSuccessor, pReachedState, pSuccessorPrecision);
+    }
+  }
+
+
+  @Override
+  protected boolean mergeIsNotSep(AbstractState pState) {
+    if (pState instanceof InferenceObject) {
+      return mergeForInferenceObject != MergeSepOperator.getInstance();
+    } else {
+      return mergeOperator != MergeSepOperator.getInstance();
     }
   }
 }

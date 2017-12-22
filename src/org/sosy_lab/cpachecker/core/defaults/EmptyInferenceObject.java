@@ -33,4 +33,9 @@ public class EmptyInferenceObject implements InferenceObject {
   public static EmptyInferenceObject getInstance() {
     return instance;
   }
+
+  @Override
+  public boolean hasEmptyAction() {
+    return true;
+  }
 }

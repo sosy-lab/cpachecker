@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
@@ -150,5 +151,11 @@ public class CPAAlgorithm extends AbstractCPAAlgorithm {
   protected AbstractState merge(AbstractState pSuccessor, AbstractState pReachedState,
       Precision pSuccessorPrecision) throws CPAException, InterruptedException {
     return mergeOperator.merge(pSuccessor, pReachedState, pSuccessorPrecision);
+  }
+
+
+  @Override
+  protected boolean mergeIsNotSep(AbstractState pState) {
+    return mergeOperator != MergeSepOperator.getInstance();
   }
 }

@@ -43,4 +43,9 @@ public class ThreadInferenceObject implements InferenceObject {
   public ThreadState getState() {
     return state;
   }
+
+  @Override
+  public boolean hasEmptyAction() {
+    return true;
+  }
 }

@@ -314,6 +314,7 @@ public class ValueAnalysisCPA
   @Override
   public MergeOperator getMergeForInferenceObject() {
     return MergeSepOperator.getInstance();
+    //return new ValueMergeForInferenceObjects();
   }
 
   @Override

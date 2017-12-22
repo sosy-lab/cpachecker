@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -42,13 +43,17 @@ public class CompositeMergeForInferenceObjects implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException, InterruptedException {
+    if (pState1 == EmptyInferenceObject.getInstance() || pState2 == EmptyInferenceObject.getInstance()) {
+      return pState2;
+    }
+
     CompositeInferenceObject object1 = (CompositeInferenceObject) pState1;
     CompositeInferenceObject object2 = (CompositeInferenceObject) pState2;
     CompositePrecision precision = (CompositePrecision) pPrecision;
 
     assert (object1.getSize() == object2.getSize());
 
-    ImmutableList.Builder<AbstractState> mergedStates = ImmutableList.builder();
+    ImmutableList.Builder<InferenceObject> mergedStates = ImmutableList.builder();
     Iterator<InferenceObject> iter1 = object1.getInferenceObjects().iterator();
     Iterator<InferenceObject> iter2 = object2.getInferenceObjects().iterator();
     Iterator<Precision> iterPrec = precision.getWrappedPrecisions().iterator();
@@ -62,13 +67,13 @@ public class CompositeMergeForInferenceObjects implements MergeOperator {
       if (mergedState != absReachedState) {
         identicalStates = false;
       }
-      mergedStates.add(mergedState);
+      mergedStates.add((InferenceObject) mergedState);
     }
 
     if (identicalStates) {
       return object2;
     } else {
-      return new CompositeState(mergedStates.build());
+      return CompositeInferenceObject.create(mergedStates.build());
     }
   }
 

@@ -21,11 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.cpa.arg;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 
-public interface InferenceObject extends AbstractState {
+public class ARGCompatibilityCheck implements CompatibilityCheck {
 
-  public boolean hasEmptyAction();
+  private final CompatibilityCheck wrappedCheck;
 
+  public ARGCompatibilityCheck(CompatibilityCheck w) {
+    wrappedCheck = w;
+  }
+
+  @Override
+  public boolean compatible(AbstractState pState, InferenceObject pObject) {
+    return wrappedCheck.compatible(((ARGState) pState).getWrappedState(), pObject);
+  }
 }

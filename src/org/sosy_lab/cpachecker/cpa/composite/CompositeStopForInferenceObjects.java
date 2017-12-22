@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -45,6 +46,10 @@ public class CompositeStopForInferenceObjects implements StopOperator {
   }
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+    if (pState == EmptyInferenceObject.getInstance()) {
+      return true;
+    }
+
     CompositeInferenceObject compositeState = (CompositeInferenceObject) pState;
     CompositePrecision compositePrecision = (CompositePrecision) pPrecision;
 

@@ -163,4 +163,14 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   public Collection<AbstractState> getStates() {
     return reached.asCollection();
   }
+
+  @Override
+  public void remove(AbstractState state) {
+    if (state instanceof InferenceObject) {
+      removeOnlyFromWaitlist(state, null);
+      reachedInferenceObjects.remove((InferenceObject) state);
+    } else {
+      super.remove(state);
+    }
+  }
 }

@@ -30,6 +30,8 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 public class InferenceObjectReachedSet implements NestedReachedSet<InferenceObject> {
@@ -93,6 +95,13 @@ public class InferenceObjectReachedSet implements NestedReachedSet<InferenceObje
   }
 
   public void add(InferenceObject pState) {
-    reached.add(pState);
+    if (pState != EmptyInferenceObject.getInstance() &&
+        pState != TauInferenceObject.getInstance()) {
+      reached.add(pState);
+    }
+  }
+
+  public boolean remove(InferenceObject pState) {
+    return reached.remove(pState);
   }
 }

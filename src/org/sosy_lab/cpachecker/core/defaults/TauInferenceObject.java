@@ -33,4 +33,9 @@ public class TauInferenceObject implements InferenceObject {
   public static TauInferenceObject getInstance() {
     return instance;
   }
+
+  @Override
+  public boolean hasEmptyAction() {
+    return true;
+  }
 }

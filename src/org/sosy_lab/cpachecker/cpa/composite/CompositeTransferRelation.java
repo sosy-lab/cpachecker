@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -482,7 +481,7 @@ final class CompositeTransferRelation implements TransferRelationTM {
         throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
       }
 
-      Collection<Pair<AbstractState, InferenceObject>> results = new HashSet<>();
+      Collection<Pair<AbstractState, InferenceObject>> results = new ArrayList<>();
 
       for (CFAEdge edge : locState.getOutgoingEdges()) {
         results.addAll(getAbstractSuccessorForEdge(pState, pInferenceObject, pPrecision, edge));
@@ -553,15 +552,7 @@ final class CompositeTransferRelation implements TransferRelationTM {
                 .transform(c -> c.iterator().next().getSecond())
                 .toList();
         CompositeState resultState = new CompositeState(stateElements);
-        InferenceObject resultObject;
-        boolean notEmpty = from(objectElements)
-            .anyMatch(s -> s != EmptyInferenceObject.getInstance());
-
-        if (notEmpty) {
-          resultObject = new CompositeInferenceObject(objectElements);
-        } else {
-          resultObject = EmptyInferenceObject.getInstance();
-        }
+        InferenceObject resultObject = CompositeInferenceObject.create(objectElements);
         return Collections.singleton(Pair.of(resultState, resultObject));
 
       default:

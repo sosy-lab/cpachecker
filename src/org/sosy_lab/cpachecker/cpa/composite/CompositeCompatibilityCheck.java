@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -40,6 +41,10 @@ public class CompositeCompatibilityCheck implements CompatibilityCheck {
 
   @Override
   public boolean compatible(AbstractState pState, InferenceObject pObject) {
+    if (pObject == EmptyInferenceObject.getInstance()) {
+      return false;
+    }
+
     CompositeState state = (CompositeState) pState;
     CompositeInferenceObject object = (CompositeInferenceObject) pObject;
 

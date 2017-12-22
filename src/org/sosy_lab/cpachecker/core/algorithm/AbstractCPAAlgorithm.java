@@ -38,7 +38,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
@@ -187,7 +186,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       } else {
         reachedSetStats = null;
       }
-      
+
       if (reachedSetStats != null) {
         for (Entry<String, ? extends AbstractStatValue> e : reachedSetStats.entrySet()) {
           String key = e.getKey();
@@ -196,7 +195,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
             stats.reachedSetStatistics.put(key, val);
           } else {
             AbstractStatValue newVal = stats.reachedSetStatistics.get(key);
-      
+
             if (newVal instanceof StatCounter) {
               assert val instanceof StatCounter;
               for (int i = 0; i < ((StatCounter) val).getValue(); i++) {
@@ -362,7 +361,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
 
       // An optimization, we don't bother merging if we know that the
       // merge operator won't do anything (i.e., it is merge-sep).
-      if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
+      if (mergeIsNotSep(successor) && !reached.isEmpty()) {
         stats.mergeTimer.start();
         try {
           List<AbstractState> toRemove = new ArrayList<>();
@@ -443,6 +442,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       WaitlistElement element)
       throws CPATransferException, InterruptedException;
 
+  protected abstract boolean mergeIsNotSep(AbstractState pState);
 
   @Override
   public void collectStatistics(

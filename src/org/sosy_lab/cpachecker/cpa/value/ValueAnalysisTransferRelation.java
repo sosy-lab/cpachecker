@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -1703,13 +1704,19 @@ public class ValueAnalysisTransferRelation
     } else {
       ValueAnalysisState result = ValueAnalysisState.copyOf(predeccessor);
       ValueInferenceObject object = (ValueInferenceObject) pInferenceObject;
-      ValueAnalysisState diff = object.getDifference();
+      ValueAnalysisInformation diff = object.getDifference();
       assert object.compatibleWith(predeccessor);
 
-      for (MemoryLocation mem : diff.getTrackedMemoryLocations()) {
-        Value val = diff.getValueFor(mem);
-        Type type = diff.getTypeForMemoryLocation(mem);
-        result.assignConstant(mem, val, type);
+      Map<MemoryLocation, Value> values = diff.getAssignments();
+      Map<MemoryLocation, Type> types = diff.getLocationTypes();
+      for (MemoryLocation mem : values.keySet()) {
+        Value val = values.get(mem);
+        Type type = types.get(mem);
+        if (val != UnknownValue.getInstance()) {
+          result.assignConstant(mem, val, type);
+        } else {
+          result.forget(mem);
+        }
       }
       if (result.equals(predeccessor)) {
         return Collections.emptySet();

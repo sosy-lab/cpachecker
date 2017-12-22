@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 
@@ -32,7 +35,7 @@ public class CompositeInferenceObject implements InferenceObject {
 
   private final ImmutableList<InferenceObject> inferenceObjects;
 
-  public CompositeInferenceObject(List<InferenceObject> elements) {
+  private CompositeInferenceObject(List<InferenceObject> elements) {
     this.inferenceObjects = ImmutableList.copyOf(elements);
   }
 
@@ -46,5 +49,27 @@ public class CompositeInferenceObject implements InferenceObject {
 
   public Object getSize() {
     return inferenceObjects.size();
+  }
+
+  @Override
+  public boolean hasEmptyAction() {
+    for (InferenceObject o : inferenceObjects) {
+      if (!o.hasEmptyAction()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static InferenceObject create(List<InferenceObject> elements) {
+
+    boolean notEmpty = from(elements)
+        .anyMatch(s -> !s.hasEmptyAction());
+
+    if (notEmpty) {
+      return new CompositeInferenceObject(elements);
+    } else {
+      return EmptyInferenceObject.getInstance();
+    }
   }
 }
