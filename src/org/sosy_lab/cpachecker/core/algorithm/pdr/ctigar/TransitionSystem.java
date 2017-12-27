@@ -334,8 +334,13 @@ public class TransitionSystem {
             SSAMap.emptySSAMap().withDefault(PC_PRIMED_SSA));
     extendedBlockFormula = pBfmgr.and(pcBefore, extendedBlockFormula, pcAfter);
 
-    return pPfmgr.makeNewPathFormula(
-        primedBlockContext.updateFormula(extendedBlockFormula), this.primedContext.getSsa());
+    @SuppressWarnings("deprecation")
+    // TODO: seems buggy because it implicitly combines extendedBlockFormula and
+    // primedContext.getSsa() with PointerTargetSet of primedBlockContext, is this correct?
+    PathFormula pathFormula =
+        pPfmgr.makeNewPathFormula(
+            primedBlockContext.updateFormula(extendedBlockFormula), this.primedContext.getSsa());
+    return pathFormula;
   }
 
   /** Creates a variable with the given name, type, and ssa index. */

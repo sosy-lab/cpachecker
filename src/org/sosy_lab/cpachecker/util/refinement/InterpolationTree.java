@@ -39,9 +39,9 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 

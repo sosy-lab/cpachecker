@@ -1910,6 +1910,10 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# use unsatisfiable Core in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.useUnsatCore = true
+
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false

@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -61,8 +62,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
-import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -102,7 +103,7 @@ class ReachedSetExecutor {
 
   private final ExecutorService pool;
 
-  private final BAMCPAWithoutReachedSetCreation bamcpa;
+  private final BAMCPAWithBreakOnMissingBlock bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
@@ -132,7 +133,7 @@ class ReachedSetExecutor {
       LinkedHashMultimap.create();
 
   public ReachedSetExecutor(
-      BAMCPAWithoutReachedSetCreation pBamCpa,
+      BAMCPAWithBreakOnMissingBlock pBamCpa,
       ReachedSet pRs,
       Block pBlock,
       ReachedSet pMainReachedSet,
@@ -218,12 +219,16 @@ class ReachedSetExecutor {
 
       if (!targetStateFound) {
         // further analysis of the reached-set, sub-analysis is scheduled if necessary
-        try {
-          @SuppressWarnings("unused")
-          AlgorithmStatus tmpStatus = algorithm.run(rs);
-        } catch (BlockSummaryMissingException bsme) {
-          handleMissingBlock(bsme);
+        @SuppressWarnings("unused")
+        AlgorithmStatus tmpStatus = algorithm.run(rs);
+
+        AbstractState lastState = rs.getLastState();
+        if (lastState instanceof MissingBlockAbstractionState) {
+          handleMissingBlock((MissingBlockAbstractionState) lastState);
         }
+
+        assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
+            : "dummy state should be removed from reached-set";
       }
 
       terminationCheckTimer.start();
@@ -384,7 +389,7 @@ class ReachedSetExecutor {
   }
 
   private void addDependencies(
-      BlockSummaryMissingException pBsme, final ReachedSetExecutor subRse) {
+      MissingBlockAbstractionState pBsme, final ReachedSetExecutor subRse) {
     logger.logf(level, "%s :: %s -> %s", this, this, subRse);
     dependsOn.add(pBsme.getState());
     synchronized (subRse.dependingFrom) {
@@ -393,7 +398,7 @@ class ReachedSetExecutor {
   }
 
   /**
-   * When a block summary is missing, the BAM-CPA throws a {@link BlockSummaryMissingException} and
+   * When a block summary is missing, the BAM-CPA throws a {@link MissingBlockAbstractionState} and
    * the CPA-algorithm terminates. Then we use the info from the exception to handle the missing
    * block summary here, such that we
    * <li>remove the initial state from the reached-set,
@@ -402,9 +407,11 @@ class ReachedSetExecutor {
    *
    * @throws UnsupportedCodeException when finding a recursive function call
    */
-  private void handleMissingBlock(BlockSummaryMissingException pBsme)
+  private void handleMissingBlock(MissingBlockAbstractionState pBsme)
       throws UnsupportedCodeException {
     logger.logf(level, "%s :: missing block, bsme=%s", this, id(pBsme.getState()));
+
+    rs.remove(pBsme);
 
     if (targetStateFound) {
       logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
@@ -464,8 +471,8 @@ class ReachedSetExecutor {
     }
   }
 
-  private void scheduleSubAnalysis(BlockSummaryMissingException pBsme,
-      Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
+  private void scheduleSubAnalysis(
+      MissingBlockAbstractionState pBsme, Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
     // remove current state from waitlist to avoid exploration until all sub-blocks are done.
     // The state was removed for exploration,
     // but re-added by CPA-algorithm when throwing the exception
@@ -487,7 +494,7 @@ class ReachedSetExecutor {
    *
    * @return a valid reached-set to be analyzed
    */
-  private ReachedSet createAndRegisterNewReachedSet(BlockSummaryMissingException pBsme) {
+  private ReachedSet createAndRegisterNewReachedSet(MissingBlockAbstractionState pBsme) {
     ReachedSet newRs = pBsme.getReachedSet();
     if (newRs == null) {
       // We are only synchronized in the current method. Thus, we need to check

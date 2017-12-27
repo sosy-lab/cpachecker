@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
 @Options(prefix = "cpa.bam")
 public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofChecker {
 
@@ -132,7 +131,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   public StopOperator getStopOperator() {
     return handleRecursiveProcedures
         ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator())
-        : new BAMStopOperator(getWrappedCpa().getStopOperator());
+        : getWrappedCpa().getStopOperator();
   }
 
   @Override

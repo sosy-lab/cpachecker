@@ -57,10 +57,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -211,7 +211,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (useNewtonRefinement) {
       newtonManager =
           Optional.of(
-              new NewtonRefinementManager(logger, solver, pfmgr));
+              new NewtonRefinementManager(logger, solver, pfmgr, pConfig));
     } else {
       newtonManager = Optional.empty();
     }

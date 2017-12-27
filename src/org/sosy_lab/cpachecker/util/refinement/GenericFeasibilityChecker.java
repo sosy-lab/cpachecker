@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Optional;
-
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -33,16 +36,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Generic feasibility checker

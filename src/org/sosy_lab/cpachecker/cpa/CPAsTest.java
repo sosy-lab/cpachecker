@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -101,7 +101,7 @@ public class CPAsTest {
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
-    cpas.remove(BAMCPAWithoutReachedSetCreation.class);
+    cpas.remove(BAMCPAWithBreakOnMissingBlock.class);
     cpas.remove(CacheCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);

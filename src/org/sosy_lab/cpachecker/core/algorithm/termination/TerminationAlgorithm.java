@@ -43,8 +43,12 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -94,11 +98,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
@@ -219,7 +223,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // rebuild termination specification for witness export
     Set<SpecificationProperty> property =
-        Sets.newHashSet(
+        ImmutableSet.of(
             new SpecificationProperty(
                 pCfa.getMainFunction().getFunctionName(),
                 PropertyType.TERMINATION,
@@ -614,13 +618,18 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState)
       throws InterruptedException {
-    Set<ARGState> workList = Sets.newHashSet(pTargetState);
-    Set<ARGState> firstLoopStates = Sets.newHashSet();
+    Deque<ARGState> workList = new ArrayDeque<>();
+    workList.add(pTargetState);
+    Set<ARGState> seen = new HashSet<>();
+    List<ARGState> firstLoopStates = new ArrayList<>();
 
     // get all loop states having only stem predecessors
     while (!workList.isEmpty()) {
-      ARGState next = workList.iterator().next();
-      workList.remove(next);
+      shutdownNotifier.shutdownIfNecessary();
+      ARGState next = workList.poll();
+      if (!seen.add(next)) {
+        continue; // already seen
+      }
 
       Collection<ARGState> parentLoopStates =
           next.getParents()

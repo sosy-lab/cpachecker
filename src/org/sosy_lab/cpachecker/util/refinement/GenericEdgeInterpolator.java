@@ -24,8 +24,9 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import java.util.Deque;
 import java.util.Optional;
-
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,14 +37,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Deque;
-import java.util.Set;
 
 /**
  * Generic {@link EdgeInterpolator} that creates interpolants based on

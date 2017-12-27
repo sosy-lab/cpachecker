@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -40,37 +40,23 @@ public class PrefixSelector {
 
   public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
-
-    List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
-
-    return Ordering.compound(comparators).min(pInfeasiblePrefixes);
+    return Ordering.compound(createComparators(pPrefixPreference)).min(pInfeasiblePrefixes);
   }
 
   public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
 
-    int minScore = Integer.MAX_VALUE;
+    int defaultScore = Integer.MAX_VALUE;
 
     if (!classification.isPresent()) {
-      return minScore;
+      return defaultScore;
     }
 
     Scorer scorer = factory.createScorer(pPreference);
-
-    for (InfeasiblePrefix prefix : pPrefixes) {
-      minScore = Math.min(minScore, scorer.computeScore(prefix));
-    }
-
-    return minScore;
+    return pPrefixes.stream().mapToInt(p -> scorer.computeScore(p)).min().orElse(defaultScore);
   }
 
   private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
-
-    List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
-    for(PrefixPreference preference : pPrefixPreference) {
-      comparators.add(factory.createScorer(preference).getComparator());
-    }
-
-    return comparators;
+    return Lists.transform(pPrefixPreference, p -> factory.createScorer(p).getComparator());
   }
 
   public static final List<PrefixPreference> NO_SELECTION =

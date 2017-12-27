@@ -41,6 +41,7 @@
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
+            <sysproperty key="java.awt.headless" value="true" />
             <batchtest fork="true" todir="${junit.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
@@ -69,6 +70,7 @@
                 <assertions><enable/></assertions>
                 <formatter type="xml"/>
                 <classpath refid="classpath.junit"/>
+                <sysproperty key="java.awt.headless" value="true" />
                 <batchtest fork="true" todir="${junit.dir}">
                     <fileset dir="${class.dir}">
                         <include name="**/*Test.*"/>

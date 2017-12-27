@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSetValidator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -81,7 +81,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   private final ParallelBAMStatistics stats = new ParallelBAMStatistics();
   private final LogManager logger;
   private final LogManagerWithoutDuplicates oneTimeLogger;
-  private final BAMCPAWithoutReachedSetCreation bamcpa;
+  private final BAMCPAWithBreakOnMissingBlock bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -92,7 +92,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    bamcpa = (BAMCPAWithoutReachedSetCreation) pCpa;
+    bamcpa = (BAMCPAWithBreakOnMissingBlock) pCpa;
     logger = pLogger;
     oneTimeLogger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;

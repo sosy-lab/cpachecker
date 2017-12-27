@@ -30,7 +30,6 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -42,7 +41,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -80,6 +78,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -500,24 +499,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, getDefaultPartition());
     reached.add(initialState, initialPrecision);
-  }
-
-  public static class CompoundException extends CPAException {
-
-    private static final long serialVersionUID = -8880889342586540115L;
-
-    private final List<CPAException> exceptions;
-
-    public CompoundException(List<CPAException> pExceptions) {
-      super(
-          "Several exceptions occured during the analysis:\n -> "
-              + Joiner.on("\n -> ").join(Lists.transform(pExceptions, e -> e.getMessage())));
-      exceptions = Collections.unmodifiableList(pExceptions);
-    }
-
-    public List<CPAException> getExceptions() {
-      return exceptions;
-    }
   }
 
   private static class ParallelAnalysisResult {

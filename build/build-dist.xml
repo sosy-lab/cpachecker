@@ -10,7 +10,7 @@
     <target name="dist-windows" depends="jar">
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
-            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.md *.txt" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
         </zip>
@@ -21,15 +21,15 @@
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2" longfile="posix">
             <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
+                includes="config/** doc/** cpachecker.jar *.md *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* benchmark/**"
-                excludes="*.bat *.sh *.py"
+                includes="*.* benchmark/** **/*.md"
+                excludes="*.bat *.sh *.py **/*.pyc **/__pycache__"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"
-                includes="scripts/*.sh scripts/*.py lib/native/**"
+                includes="scripts/*.sh scripts/*.py scripts/post_processing/coverage/generate_coverage.py lib/native/**"
                 excludes="lib/native/source/** lib/native/*win*/**"
                 prefix="${namet}/"/>
         </tar>
