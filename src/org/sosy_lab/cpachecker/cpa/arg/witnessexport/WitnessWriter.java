@@ -538,6 +538,7 @@ class WitnessWriter implements EdgeAppender {
     return Collections.singletonList(result);
   }
 
+  @SuppressWarnings("unused")
   protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return !isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
   }
@@ -665,7 +666,7 @@ class WitnessWriter implements EdgeAppender {
     Optional<AIdExpression> resultVariable = Optional.empty();
     Optional<String> resultFunction = Optional.empty();
     String functionName = pEdge.getPredecessor().getFunctionName();
-    boolean isFunctionScope = this.isFunctionScope;
+    boolean functionScope = this.isFunctionScope;
 
     for (ARGState state : pFromStates) {
 
@@ -727,7 +728,7 @@ class WitnessWriter implements EdgeAppender {
               if (declaration.getName().contains("static")
                   && !declaration.getOrigName().contains("static")
                   && qualified.contains("::")) {
-                isFunctionScope = true;
+                functionScope = true;
                 functionName = qualified.substring(0, qualified.indexOf("::"));
               }
             }
@@ -834,7 +835,7 @@ class WitnessWriter implements EdgeAppender {
       }
 
       result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
-      if (isFunctionScope) {
+      if (functionScope) {
         if (witnessOptions.revertThreadFunctionRenaming()) {
           functionName = CFACloner.extractFunctionName(functionName);
         }
@@ -858,6 +859,7 @@ class WitnessWriter implements EdgeAppender {
     return Collections.singleton(result);
   }
 
+  @SuppressWarnings("unused")
   protected TransitionCondition addAdditionalInfo(TransitionCondition pCondition,
                                                   CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return pCondition;
@@ -1161,6 +1163,7 @@ class WitnessWriter implements EdgeAppender {
     doc.appendTo(pTarget);
   }
 
+  @SuppressWarnings("unused")
   protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(Optional<CounterexampleInfo>
                                                              pCounterExample) {
     return ImmutableMap.of();
@@ -1175,10 +1178,10 @@ class WitnessWriter implements EdgeAppender {
    */
   private void removeUnnecessarySinkEdges() {
     final Collection<Edge> toRemove = Sets.newIdentityHashSet();
-    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
-      for (Edge edge : leavingEdges) {
+    for (Collection<Edge> leavingEdgesCollection : leavingEdges.asMap().values()) {
+      for (Edge edge : leavingEdgesCollection) {
         if (edge.getTarget().equals(SINK_NODE_ID)) {
-          for (Edge otherEdge : leavingEdges) {
+          for (Edge otherEdge : leavingEdgesCollection) {
             // ignore the edge itself, as well as already handled edges.
             if (edge != otherEdge && !toRemove.contains(otherEdge)) {
               // remove edges with either identical labels or redundant edge-transition
@@ -1199,13 +1202,13 @@ class WitnessWriter implements EdgeAppender {
 
   /** Merge sibling edges (with the same source) that lead to the sink if possible. */
   private void mergeRedundantSinkEdges() {
-    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
+    for (Collection<Edge> leavingEdgesCollection : leavingEdges.asMap().values()) {
       // We only need to do something if we have siblings
-      if (leavingEdges.size() > 1) {
+      if (leavingEdgesCollection.size() > 1) {
 
         // Determine all siblings that go to the sink
         List<Edge> toSink =
-            leavingEdges
+            leavingEdgesCollection
                 .stream()
                 .filter(e -> e.getTarget().equals(SINK_NODE_ID))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -1805,9 +1808,9 @@ class WitnessWriter implements EdgeAppender {
 
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
-        LoopEntryInfo loopEntryInfo = loopEntryInfoMemo.get(pEdge);
-        if (loopEntryInfo != null) {
-          this.loopEntryInfo = loopEntryInfo;
+        LoopEntryInfo loopEntryInformation = loopEntryInfoMemo.get(pEdge);
+        if (loopEntryInformation != null) {
+          this.loopEntryInfo = loopEntryInformation;
           return TraversalProcess.ABORT;
         }
         if (pNode.isLoopStart()) {

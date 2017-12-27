@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -44,7 +43,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     pathInfo = ImmutableList.copyOf(pPathInfo);
   }
 
-  public static CFAPathWithAdditionalInfo of(ARGPath pPath, ConfigurableProgramAnalysis pCPA) {
+  public static CFAPathWithAdditionalInfo of(ARGPath pPath) {
     StateWithAdditionalInfo stateWithAdditionalInfo =
         AbstractStates.extractStateByType(pPath.getFirstState(), StateWithAdditionalInfo.class);
 
