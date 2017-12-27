@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -60,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
@@ -93,7 +93,6 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>,
@@ -2396,10 +2395,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   @Override
-  public Map<String, KeyDef> exportTagConverter() {
-    return ImmutableMap.of(
-        "Warning", KeyDef.WARNING,
-        "Note", KeyDef.NOTE);
+  public AdditionalInfoConverter exportAdditionalInfoConverter() {
+    return new SMGAdditionalInfoConverter();
   }
 
   @Override

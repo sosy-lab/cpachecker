@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class ExtendedWitnessExporter extends WitnessExporter {
@@ -61,7 +58,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    Map<String, KeyDef> tagConverter = initializeTagConverter(pRootState);
+    AdditionalInfoConverter additionalInfoConverter = initializeAdditionalInfoConverter(pRootState);
     WitnessWriter writer =
         new ExtendedWitnessWriter(
             options,
@@ -72,7 +69,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE,
-            tagConverter);
+            additionalInfoConverter);
     writer.writePath(
         pTarget,
         pRootState,
@@ -84,10 +81,10 @@ public class ExtendedWitnessExporter extends WitnessExporter {
         GraphBuilder.ARG_PATH);
   }
 
-  private Map<String,KeyDef> initializeTagConverter(ARGState pRootState) {
+  private AdditionalInfoConverter initializeAdditionalInfoConverter(ARGState pRootState) {
     StateWithAdditionalInfo stateWithAdditionalInfo =
         AbstractStates.extractStateByType(pRootState, StateWithAdditionalInfo.class);
-    return stateWithAdditionalInfo != null ? stateWithAdditionalInfo.exportTagConverter()
-                                           : ImmutableMap.of();
+    return stateWithAdditionalInfo != null ? stateWithAdditionalInfo.exportAdditionalInfoConverter()
+                                           : new AdditionalInfoConverter();
   }
 }

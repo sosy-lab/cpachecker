@@ -21,15 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
-
-public interface StateWithAdditionalInfo extends AbstractState{
-
-  AdditionalInfoConverter exportAdditionalInfoConverter();
-
-  CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath);
+public class AdditionalInfoConverter {
+  @SuppressWarnings("unused")
+  public TransitionCondition convert(TransitionCondition originalTransition, String pTag, Object pValue) {
+    return originalTransition;
+  }
 }

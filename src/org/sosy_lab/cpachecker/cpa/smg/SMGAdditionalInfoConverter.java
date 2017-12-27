@@ -21,15 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.cpa.smg;
 
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
-public interface StateWithAdditionalInfo extends AbstractState{
+public class SMGAdditionalInfoConverter extends AdditionalInfoConverter {
+Map<String, KeyDef> tagConverter = ImmutableMap.of(
+    "Warning", KeyDef.WARNING,
+    "Note", KeyDef.NOTE);
 
-  AdditionalInfoConverter exportAdditionalInfoConverter();
+  @Override
+  public TransitionCondition convert(
+      TransitionCondition originalTransition, String pTag, Object pValue) {
+    String value = pValue.toString();
+    if ("Note".equals(pTag)) {
+      String source = originalTransition.getMapping().get(KeyDef.SOURCECODE);
+      value = source != null ? source
+                             : pValue.toString();
+    }
 
-  CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath);
+    return originalTransition.putAndCopy(tagConverter.get(pTag), value);
+  }
 }

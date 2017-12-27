@@ -36,14 +36,13 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
 public class ExtendedWitnessWriter extends WitnessWriter {
-  Map<String, KeyDef> tagConverter;
+  AdditionalInfoConverter additionalInfoConverter;
   ExtendedWitnessWriter(
       WitnessOptions pOptions,
       CFA pCfa,
@@ -53,10 +52,10 @@ public class ExtendedWitnessWriter extends WitnessWriter {
       @Nullable String pDefaultSourceFileName,
       WitnessType pGraphType,
       InvariantProvider pInvariantProvider,
-      Map<String, KeyDef> pTagConverter) {
+      AdditionalInfoConverter pAdditionalInfoConverter) {
     super(pOptions, pCfa, pMetaData, pFactory, pSimplifier, pDefaultSourceFileName, pGraphType,
         pInvariantProvider);
-    tagConverter = pTagConverter;
+    additionalInfoConverter = pAdditionalInfoConverter;
   }
 
   @Override
@@ -76,9 +75,7 @@ public class ExtendedWitnessWriter extends WitnessWriter {
         String tag = addInfo.getKey();
         Set<Object> values = addInfo.getValue();
         for (Object value : values) {
-          result = result.putAndCopy(tagConvert(tag), value.toString());
-          result = result.putAndCopy(tagConvert(tag), pCondition.getMapping().get(KeyDef
-              .SOURCECODE));
+          result = additionalInfoConverter.convert(result, tag, value);
         }
       }
     }
@@ -92,9 +89,5 @@ public class ExtendedWitnessWriter extends WitnessWriter {
       return false;
     }
     return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
-  }
-
-  private KeyDef tagConvert(String pTag) {
-    return tagConverter.get(pTag);
   }
 }
