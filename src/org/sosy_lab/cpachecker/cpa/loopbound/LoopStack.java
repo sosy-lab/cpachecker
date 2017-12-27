@@ -101,6 +101,10 @@ final class LoopStack implements Iterable<LoopIterationState> {
     }
     if (pObj instanceof LoopStack) {
       LoopStack other = (LoopStack) pObj;
+      // Hash code is cached, so this is also quick
+      if (hashCode() != other.hashCode()) {
+        return false;
+      }
       return size == other.size
           && Objects.equals(head, other.head)
           && Objects.equals(tail, other.tail);

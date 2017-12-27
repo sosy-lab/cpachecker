@@ -29,16 +29,12 @@ import com.google.errorprone.annotations.ForOverride;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -66,10 +62,8 @@ public abstract class RefinementStrategy {
   private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
   private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
-  protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
-    @Override
-    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      writingStatisticsTo(out)
+  protected void printStatistics(PrintStream out) {
+    writingStatisticsTo(out)
         .put(totalPathLengthToInfeasibility)
         .put(numberOfAffectedStates)
         .put(truePathPrefixStates)
@@ -77,8 +71,7 @@ public abstract class RefinementStrategy {
         .put(falsePathSuffixStates)
         .put(differentNontrivialInterpolants)
         .put(equalNontrivialInterpolants);
-    }
-  };
+  }
 
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
@@ -254,6 +247,4 @@ public abstract class RefinementStrategy {
       ARGReachedSet reached,
       List<ARGState> abstractionStatesTrace,
       boolean repeatedCounterexample) throws CPAException, InterruptedException;
-
-  public abstract Statistics getStatistics();
 }

@@ -396,7 +396,8 @@ public class SMGJoinFieldsTest {
             SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expected = IllegalArgumentException.class)
   public void differentSizeCheckTest() {
     SMGRegion obj1 = new SMGRegion(64, "Object 1");
     SMGRegion obj2 = new SMGRegion(96, "Object 2");
@@ -539,7 +540,8 @@ public class SMGJoinFieldsTest {
     SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expected = IllegalArgumentException.class)
   public void nonMemberObjectTest1() {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
@@ -551,7 +553,8 @@ public class SMGJoinFieldsTest {
     new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expected = IllegalArgumentException.class)
   public void nonMemberObjectTest2() {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);

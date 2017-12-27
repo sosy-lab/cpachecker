@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -80,12 +83,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 /** This Transfer-Relation forwards the method 'getAbstractSuccessors()'
  * to an edge-specific sub-method ('AssumeEdge', 'DeclarationEdge', ...).
@@ -250,7 +247,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * It returns NULL for further processing,
    * otherwise the return-value for skipping.  */
   @SuppressWarnings("unused")
-  protected @Nullable Collection<T> preCheck(T state, P precision) {
+  protected @Nullable Collection<T> preCheck(T pState, P pPrecision) {
     return null;
   }
 

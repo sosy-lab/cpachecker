@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -62,7 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -102,6 +103,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
+  private WitnessExporter witnessExporter;
+
   public CounterexampleCPAChecker(
       Configuration config,
       Specification pSpecification,
@@ -117,6 +120,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
+    this.witnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override
@@ -149,11 +153,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
     try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-      ARGUtils.producePathAutomaton(
+      witnessExporter.writeErrorWitness(
           w,
           pRootState,
-          pErrorPathStates,
-          "CounterexampleToCheck",
+          Predicates.in(pErrorPathStates),
+          e -> pErrorPathStates.contains(e.getFirst()) && pErrorPathStates.contains(e.getSecond()),
           getCounterexampleInfo.apply(pErrorState).orElse(null));
     }
 

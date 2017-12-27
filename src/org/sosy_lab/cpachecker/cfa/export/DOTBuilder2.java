@@ -30,8 +30,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.MultimapBuilder.ListMultimapBuilder;
-import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.html.HtmlEscapers;
@@ -142,11 +141,11 @@ public final class DOTBuilder2 {
 
     // local state per function
     private final SetMultimap<String, CFANode> nodes =
-        SetMultimapBuilder.hashKeys().linkedHashSetValues().build();
+        MultimapBuilder.hashKeys().linkedHashSetValues().build();
     private final ListMultimap<String, CFAEdge> edges =
-        ListMultimapBuilder.hashKeys().arrayListValues().build();
+        MultimapBuilder.hashKeys().arrayListValues().build();
     private final ListMultimap<String, List<CFAEdge>> comboedges =
-        ListMultimapBuilder.hashKeys().arrayListValues().build();
+        MultimapBuilder.hashKeys().arrayListValues().build();
 
     private List<CFAEdge> currentComboEdge = null;
 

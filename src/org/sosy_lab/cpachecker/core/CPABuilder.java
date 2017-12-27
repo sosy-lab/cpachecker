@@ -28,7 +28,14 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -48,15 +55,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 @Options
 public class CPABuilder {
@@ -188,7 +186,10 @@ public class CPABuilder {
       // This is the top-level CompositeCPA that is the default,
       // but without any children. This means that the user did not specify any
       // meaningful configuration.
-      throw new InvalidConfigurationException("Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' (for example, '-valueAnalysis' or '-predicateAnalysis'). See README.txt for more details.");
+      throw new InvalidConfigurationException(
+          "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
+              + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
+              + "See README.md for more details.");
     }
 
     // finally call createInstance

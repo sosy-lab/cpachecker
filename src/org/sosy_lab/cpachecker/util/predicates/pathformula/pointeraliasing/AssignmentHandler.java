@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -544,7 +545,7 @@ class AssignmentHandler {
     for (int i = 0; i < length; ++i) {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newLvalue =
-          Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula));
+          AliasedLocation.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula));
       final Expression newRvalue;
 
       // Support both initialization (with a value or nondet) and assignment (from another array
@@ -553,7 +554,7 @@ class AssignmentHandler {
         newRvalue = rvalue;
       } else {
         newRvalue =
-            Location.ofAddress(
+            AliasedLocation.ofAddress(
                 fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula));
       }
 
@@ -622,12 +623,12 @@ class AssignmentHandler {
           final MemoryRegion region =
               regionMgr.makeMemoryRegion(lvalueCompositeType, memberDeclaration);
           newLvalue =
-              Location.ofAddressWithRegion(
+              AliasedLocation.ofAddressWithRegion(
                   fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula), region);
 
         } else {
           newLvalue =
-              Location.ofVariableName(
+              UnaliasedLocation.ofVariableName(
                   getFieldAccessName(lvalue.asUnaliased().getVariableName(), memberDeclaration));
         }
 
@@ -638,11 +639,11 @@ class AssignmentHandler {
           if (rvalue.isAliasedLocation()) {
             final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, memberDeclaration);
             newRvalue =
-                Location.ofAddressWithRegion(
+                AliasedLocation.ofAddressWithRegion(
                     fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula), region);
           } else {
             newRvalue =
-                Location.ofVariableName(
+                UnaliasedLocation.ofVariableName(
                     getFieldAccessName(
                         rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration));
           }

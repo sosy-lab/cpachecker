@@ -57,10 +57,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.NewtonRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.UCBRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -125,6 +126,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     description = "use Newton-based Algorithm for the CPA-Refinement, experimental feature!")
   private boolean useNewtonRefinement = false;
 
+  @Option(
+    secure = true,
+    description = "use UCB predicates for the CPA-Refinement, experimental feature!"
+  )
+  private boolean useUCBRefinement = false;
+
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -158,6 +165,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final InterpolationManager interpolationManager;
   private final RefinementStrategy strategy;
   private final Optional<NewtonRefinementManager> newtonManager;
+  private final Optional<UCBRefinementManager> ucbManager;
 
   public PredicateCPARefiner(
       final Configuration pConfig,
@@ -203,9 +211,15 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (useNewtonRefinement) {
       newtonManager =
           Optional.of(
-              new NewtonRefinementManager(logger, solver, pfmgr));
+              new NewtonRefinementManager(logger, solver, pfmgr, pConfig));
     } else {
       newtonManager = Optional.empty();
+    }
+
+    if (useUCBRefinement) {
+      ucbManager = Optional.of(new UCBRefinementManager(logger, solver, pfmgr));
+    } else {
+      ucbManager = Optional.empty();
     }
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
@@ -277,28 +291,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         formulas = formulas.withBranchingFormula(interpolationManager.buildBranchingFormula(elementsOnPath));
       }
 
-      CounterexampleTraceInfo counterexample;
-
       // find new invariants (this is a noop if no invariants should be used/generated)
       invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
 
-      // Compute invariants if desired, and if the counterexample is not a repeated one
-      // (otherwise invariants for the same location didn't help before, so they won't help now).
-      if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
-        counterexample =
-            performInvariantsRefinement(
-                allStatesTrace,
-                abstractionStatesTrace,
-                formulas);
-
-      } else if (useNewtonRefinement) {
-        logger.log(Level.FINEST, "Starting Newton-based refinement");
-        counterexample = performNewtonRefinement(allStatesTrace, formulas);
-      } else {
-        logger.log(Level.FINEST, "Starting interpolation-based refinement.");
-        counterexample =
-            performInterpolatingRefinement(abstractionStatesTrace, formulas);
-      }
+      CounterexampleTraceInfo counterexample =
+          checkCounterexample(
+              allStatesTrace, abstractionStatesTrace, formulas, repeatedCounterexample);
 
       // if error is spurious refine
       if (counterexample.isSpurious()) {
@@ -338,6 +336,50 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } finally {
       totalRefinement.stop();
+    }
+  }
+
+  /**
+   * Check the given trace (or traces in the DAG) for feasibility and collect information why it is
+   * feasible or why not.
+   *
+   * @param allStatesTrace a concrete path in the ARG.
+   * @param abstractionStatesTrace the list of abstraction states along the path.
+   * @param formulas the list of block formulas for the abstraction states along the path.
+   * @param repeatedCounterexample whether the current counterexample was seen before.
+   * @return information about the counterexample, for example a model (feasible CEX) or
+   *     interpolants (infeasible CEX).
+   */
+  private CounterexampleTraceInfo checkCounterexample(
+      final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace,
+      final BlockFormulas formulas,
+      final boolean repeatedCounterexample)
+      throws CPAException, InterruptedException {
+
+    Preconditions.checkArgument(
+        abstractionStatesTrace.size() == formulas.getSize(),
+        "each abstraction state should have a block formula");
+    Preconditions.checkArgument(
+        abstractionStatesTrace.size() <= allStatesTrace.size(),
+        "each abstraction state should have a state in the counterexample trace");
+
+    if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
+      // Compute invariants if desired, and if the counterexample is not a repeated one
+      // (otherwise invariants for the same location didn't help before, so they won't help now).
+      return performInvariantsRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+
+    } else if (useNewtonRefinement) {
+      logger.log(Level.FINEST, "Starting Newton-based refinement");
+      return performNewtonRefinement(allStatesTrace, formulas);
+
+    } else if (useUCBRefinement) {
+      logger.log(Level.FINEST, "Starting unsat-core-based refinement");
+      return performUCBRefinement(abstractionStatesTrace, formulas);
+
+    } else {
+      logger.log(Level.FINEST, "Starting interpolation-based refinement.");
+      return performInterpolatingRefinement(abstractionStatesTrace, formulas);
     }
   }
 
@@ -408,6 +450,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     assert newtonManager.isPresent();
     // Delegate the refinement task to the NewtonManager
     return newtonManager.get().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
+  }
+
+  private CounterexampleTraceInfo performUCBRefinement(
+      final List<ARGState> pAbstractionStatesTrace, final BlockFormulas pFormulas)
+      throws CPAException, InterruptedException {
+
+    assert ucbManager.isPresent();
+    return ucbManager.get().buildCounterexampleTrace(pAbstractionStatesTrace, pFormulas);
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
@@ -568,11 +618,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
+    if (strategy instanceof StatisticsProvider) {
+      ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
+    }
   }
 
   private class Stats implements Statistics {
-
-    private final Statistics statistics = strategy.getStatistics();
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
@@ -595,14 +646,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           w1.put(prefixSelectionTime);
         }
         w1.put(errorPathProcessing);
-
-        statistics.printStatistics(out, result, reached);
       }
     }
 
     @Override
     public String getName() {
-      return strategy.getStatistics().getName();
+      return "PredicateCPARefiner";
     }
   }
 }

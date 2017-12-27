@@ -63,30 +63,34 @@ public class LlvmParser implements Parser {
   @Override
   public ParseResult parseFile(final String pFilename)
       throws ParserException, IOException, InterruptedException {
-    Module llvmModule;
-    parseTimer.start();
+    Module llvmModule = null;
     try {
-      addLlvmLookupDirs();
-      llvmModule = Module.parseIR(pFilename);
+      parseTimer.start();
+      try {
+        addLlvmLookupDirs();
+        llvmModule = Module.parseIR(pFilename);
 
-    } catch (LLVMException pE) {
-      throw new LLVMParserException("Input program has invalid bitcode signature or is no bitcode "
-          + "file");
+      } catch (LLVMException pE) {
+        throw new LLVMParserException(
+            "Input program has invalid bitcode signature or is no bitcode "
+                + "file");
 
+      } finally {
+        parseTimer.stop();
+      }
+
+      // TODO: Handle/show errors in parser
+
+      try {
+        return buildCfa(llvmModule, pFilename);
+
+      } catch (LLVMException pE) {
+        throw new LLVMParserException(pE);
+      }
     } finally {
-      parseTimer.stop();
-    }
-
-    if (llvmModule == null) {
-      throw new LLVMParserException("Unknown error while parsing");
-    }
-    // TODO: Handle/show errors in parser
-
-    try {
-      return buildCfa(llvmModule, pFilename);
-
-    } catch (LLVMException pE) {
-      throw new LLVMParserException(pE);
+      if (llvmModule != null) {
+        llvmModule.dispose();
+      }
     }
   }
 

@@ -274,6 +274,13 @@ public class PartitioningIOHelper {
       }
     }
 
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      if (currentGraphStatistics != null) {
+        currentGraphStatistics.writeOutputFiles(pResult, pReached);
+      }
+    }
+
     private void computeAndPrintDetailedPartitioningStats(PrintStream pOut) {
       int maxP=0, maxO=0, minP=Integer.MAX_VALUE, minO = Integer.MAX_VALUE, totalO = 0, totalS = 0, current;
 

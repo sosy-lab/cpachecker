@@ -46,7 +46,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.RandomProvider;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
@@ -67,7 +66,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
   private final LogManager logger;
-  private final Random random = RandomProvider.get();
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
   private final Solver solver;
@@ -103,6 +101,8 @@ public final class AbstractionManager {
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
 
+  private final Random random = new Random(0);
+
   public AbstractionManager(
       RegionManager pRmgr, Configuration config, LogManager pLogger, Solver pSolver)
       throws InvalidConfigurationException {
@@ -123,7 +123,8 @@ public final class AbstractionManager {
       toConcreteCache = null;
     }
 
-    new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
+    // don't store it, we wouldn't know when to unregister anyway
+    new AbstractionPredicatesMBean().register();
   }
 
   /**
@@ -505,7 +506,6 @@ public final class AbstractionManager {
       super(
           "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates",
           logger);
-      register();
     }
 
     @Override

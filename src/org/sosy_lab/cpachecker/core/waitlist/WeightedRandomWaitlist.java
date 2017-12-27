@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.OrderStatisticMap;
 import org.sosy_lab.cpachecker.util.OrderStatisticMap.OrderStatisticsMapProxy;
-import org.sosy_lab.cpachecker.util.RandomProvider;
 
 @Options(prefix="analysis.traversal.random")
 public class WeightedRandomWaitlist implements Waitlist {
@@ -46,10 +45,13 @@ public class WeightedRandomWaitlist implements Waitlist {
       + "Has to be a double in the range [0, INF)")
   private double exponent = 1;
 
+  @Option(secure = true, description = "Seed for random values.")
+  private int seed = 0;
+
   private OrderStatisticMap<AbstractState, Waitlist> states;
   private WaitlistFactory waitlistFactory;
   private Comparator<AbstractState> comparator;
-  private Random random = RandomProvider.get();
+  private Random random;
 
   private Configuration config;
 
@@ -64,6 +66,7 @@ public class WeightedRandomWaitlist implements Waitlist {
     }
 
     config = pConfig;
+    random = new Random(seed);
 
     comparator = pComparator;
     states = new OrderStatisticsMapProxy<>(new TreeMap<>(comparator));

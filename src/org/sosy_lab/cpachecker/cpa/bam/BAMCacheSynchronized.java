@@ -56,6 +56,13 @@ public class BAMCacheSynchronized implements BAMCache {
   }
 
   @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    synchronized (this) {
+      cache.writeOutputFiles(pResult, pReached);
+    }
+  }
+
+  @Override
   public @Nullable String getName() {
     return cache.getName();
   }

@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.deterministic;
 
-import java.io.PrintStream;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -35,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class DeterministicVariablesCPA extends AbstractCPA implements StatisticsProvider {
 
@@ -58,20 +55,6 @@ public class DeterministicVariablesCPA extends AbstractCPA implements Statistics
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(
-        new Statistics() {
-
-          @Override
-          public String getName() {
-            return DeterministicVariablesCPA.this.getClass().getSimpleName();
-          }
-
-          @Override
-          public void printStatistics(
-              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-            ((DeterministicVariablesTransferRelation) getTransferRelation())
-                .printStatistics(pOut, pResult, pReached);
-          }
-        });
+    pStatsCollection.add((DeterministicVariablesTransferRelation)getTransferRelation());
   }
 }

@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -96,12 +97,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class provides the refinement strategy for the classical predicate
- * abstraction (adding the predicates from the interpolant to the precision
- * and removing the relevant parts of the ARG).
+ * This class provides the refinement strategy for the classical predicate abstraction (adding the
+ * predicates from the interpolant to the precision and removing the relevant parts of the ARG).
  */
-@Options(prefix="cpa.predicate")
-public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
+@Options(prefix = "cpa.predicate")
+public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
+    implements StatisticsProvider {
 
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
@@ -211,7 +212,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
         .put(argUpdate)
         .spacer();
 
-      basicRefinementStatistics.printStatistics(out, pResult, pReached);
+      PredicateAbstractionRefinementStrategy.this.printStatistics(out);
 
       w0.put(numberOfRefinementsWithStrategy2)
         .ifUpdatedAtLeastOnce(itpSimplification)
@@ -637,8 +638,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public Statistics getStatistics() {
-    return new Stats();
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Stats());
   }
 
   private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(

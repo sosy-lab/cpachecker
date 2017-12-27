@@ -34,7 +34,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -789,7 +788,7 @@ public interface PointerTargetSetBuilder {
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
     @Override
     public int getFreshAllocationId() {
-      return allocationCount = IntMath.checkedAdd(allocationCount, 1);
+      return allocationCount = Math.incrementExact(allocationCount);
     }
   }
 

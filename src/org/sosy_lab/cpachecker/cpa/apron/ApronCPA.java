@@ -141,7 +141,7 @@ public final class ApronCPA
       tempPrecision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       if (initialPrecisionFile != null) {
-        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
+        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile());
       }
       // static full precision is default
     } else {
@@ -240,8 +240,7 @@ public final class ApronCPA
     }
   }
 
-
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile() {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;

@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -38,11 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.regex.Pattern;
 
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
@@ -209,7 +208,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
-    Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
+    Preconditions.checkArgument(getClass().equals(consolidatedPrecision.getClass()));
     return this;
   }
 

@@ -119,7 +119,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
     public CEGARMBean() {
       super("org.sosy_lab.cpachecker:type=CEGAR", logger);
-      register();
     }
 
     @Override
@@ -173,7 +172,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     this.logger = logger;
 
     mRefiner = refinerFactory.create(pCpa);
-    new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
+    // don't store it because we wouldn't know when to unregister anyway
+    new CEGARMBean().register();
   }
 
   /**

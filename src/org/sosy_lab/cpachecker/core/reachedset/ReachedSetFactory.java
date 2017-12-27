@@ -30,9 +30,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.BranchBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.LoopIterationSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -56,6 +58,20 @@ public class ReachedSetFactory {
       description = "handle states with a deeper callstack first"
       + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useLoopIterationCount",
+    description = "handle states with more loop iterations first."
+  )
+  boolean useLoopIterationCount = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useReverseLoopIterationCount",
+    description = "handle states with fewer loop iterations first."
+  )
+  boolean useReverseLoopIterationCount = false;
 
   @Option(secure=true, name="traversal.useLoopstack",
     description= "handle states with a deeper loopstack first.")
@@ -93,9 +109,13 @@ public class ReachedSetFactory {
       description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
   boolean useNumberOfThreads = false;
 
-  @Option(secure=true, name="traversal.weightedDepth",
-      description = "perform a weighted random selection based on the branching depth")
+  @Option(secure=true, name = "traversal.weightedDepth",
+      description = "perform a weighted random selection based on the depth in the ARG")
   boolean useWeightedDepthOrder = false;
+
+  @Option(secure=true, name = "traversal.weightedBranches",
+      description = "perform a weighted random selection based on the branching depth")
+  boolean useWeightedBranchOrder = false;
 
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
@@ -109,10 +129,10 @@ public class ReachedSetFactory {
 
   private Configuration config;
 
-  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  public ReachedSetFactory(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
 
-    this.config = config;
+    this.config = pConfig;
   }
 
   public ReachedSet create() {
@@ -120,6 +140,10 @@ public class ReachedSetFactory {
 
     if (useWeightedDepthOrder) {
       waitlistFactory = DepthBasedWeightedWaitlist.factory(waitlistFactory, config);
+    }
+
+    if (useWeightedBranchOrder) {
+      waitlistFactory = BranchBasedWeightedWaitlist.factory(waitlistFactory, config);
     }
 
     if (useAutomatonInformation) {
@@ -131,6 +155,12 @@ public class ReachedSetFactory {
     }
     if (usePostorder) {
       waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useLoopIterationCount) {
+      waitlistFactory = LoopIterationSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useReverseLoopIterationCount) {
+      waitlistFactory = LoopIterationSortedWaitlist.reversedFactory(waitlistFactory);
     }
     if (useLoopstack) {
       waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);

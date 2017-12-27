@@ -105,6 +105,7 @@ public class CPAcheckerResult {
     }
     if (proofGeneratorStats != null) {
       proofGeneratorStats.printStatistics(target, result, reached);
+      proofGeneratorStats.writeOutputFiles(result, reached);
     }
   }
 

@@ -982,7 +982,9 @@ public class CtoFormulaConverter {
       final CFunctionEntryNode entryNode, final SSAMapBuilder ssa, final Constraints constraints) {
     for (CParameterDeclaration param : entryNode.getFunctionDefinition().getParameters()) {
       // has side-effect of adding to SSAMap!
-      final Formula var = makeFreshVariable(param.getQualifiedName(), param.getType(), ssa);
+      final Formula var =
+          makeFreshVariable(
+              param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);
 
       if (options.addRangeConstraintsForNondet()) {
         addRangeConstraint(var, param.getType(), constraints);
@@ -1492,10 +1494,15 @@ public class CtoFormulaConverter {
     return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  private Formula buildLvalueTerm(CLeftHandSide exp,
-      CFAEdge edge, String function,
-      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
-      Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
+  protected Formula buildLvalueTerm(
+      CLeftHandSide exp,
+      CFAEdge edge,
+      String function,
+      SSAMapBuilder ssa,
+      PointerTargetSetBuilder pts,
+      Constraints constraints,
+      ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException {
     return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
   }
 
@@ -1526,11 +1533,17 @@ public class CtoFormulaConverter {
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
-  /**
-   * @throws InterruptedException may be thrown in subclasses
-   */
-  protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
-      String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException, InterruptedException {
+  /** @throws InterruptedException may be thrown in subclasses */
+  protected BooleanFormula makePredicate(
+      CExpression exp,
+      boolean isTrue,
+      CFAEdge edge,
+      String function,
+      SSAMapBuilder ssa,
+      PointerTargetSetBuilder pts,
+      Constraints constraints,
+      ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException, InterruptedException {
 
     Formula f = exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
     BooleanFormula result = toBooleanFormula(f);

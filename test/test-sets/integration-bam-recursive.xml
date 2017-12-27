@@ -25,7 +25,7 @@
 
   <tasks name="valuePredicate">
     <include>../programs/benchmarks/recursive-simple/s*.c</include>
-    <option name="-valuePredicateAnalysis-bam-rec"/>
+    <option name="-valueAnalysis-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree">

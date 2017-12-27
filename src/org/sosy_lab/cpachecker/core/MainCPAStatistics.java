@@ -33,7 +33,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
@@ -287,6 +286,7 @@ class MainCPAStatistics implements Statistics {
       if (exportCoverage && cfa != null) {
         CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
 
+        out.println();
         out.println("Code Coverage");
         out.println("-----------------------------");
         CoverageReportStdoutSummary.write(infosPerFile, out);
@@ -302,6 +302,7 @@ class MainCPAStatistics implements Statistics {
       }
     }
 
+    out.println();
     out.println("CPAchecker general statistics");
     out.println("-----------------------------");
 
@@ -398,23 +399,8 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     for (Statistics s : subStats) {
-      String name = s.getName();
-      if (!Strings.isNullOrEmpty(name)) {
-        name = name + " statistics";
-        out.println(name);
-        out.println(Strings.repeat("-", name.length()));
-      }
-
-      try {
-        s.printStatistics(out, result, reached);
-      } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Out of memory while generating statistics and writing output files");
-      }
-
-      if (!Strings.isNullOrEmpty(name)) {
-        out.println();
-      }
+      StatisticsUtils.printStatistics(s, out, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(s, logger, result, reached);
     }
   }
 
@@ -525,7 +511,8 @@ class MainCPAStatistics implements Statistics {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
-      cfaCreatorStatistics.printStatistics(out, result, reached);
+      StatisticsUtils.printStatistics(cfaCreatorStatistics, out, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));

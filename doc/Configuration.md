@@ -28,7 +28,7 @@ The following command-line arguments are allowed:
  - `-spec <FILE>`		sets `specification = <FILE>`
  - `-outputpath <DIR>`		sets `output.path = <DIR>`
  - `-logfile <FILE>`		sets `log.file = <FILE>`
- - `-benchmark`			sets `coverage.enabled = true` and `output.disable = true`, and `statistics.memory = false`
+ - `-benchmark`			sets `coverage.enabled = true`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
  - `-nolog`			sets `log.level = OFF` and `log.consoleLevel = OFF`
  - `-noout`			sets `output.disable=true`
  - `-stats`			sets `statistics.print = true`
@@ -70,8 +70,8 @@ be specified.
 
 The usual command line for running CPAchecker is to specify a configuration file
 (either with `-config FILE` or `-CONFIGFILE`) and a program file. Examples:
-`scripts/cpa.sh -predicateAnalysis doc/examples/example.c` and
-`scripts/cpa.sh -config config/predicateAnalysis.properties doc/examples/example.c`
+`scripts/cpa.sh -default doc/examples/example.c` and
+`scripts/cpa.sh -config config/default.properties doc/examples/example.c`
 
 
 Specifying the CPA(s)

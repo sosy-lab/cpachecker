@@ -234,6 +234,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "<=";
         break;
       case BV_NOT:
+        op = "~";
+        break;
       case NOT:
         op = "!";
         break;
@@ -242,10 +244,14 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "^";
         break;
       case BV_AND:
+        op = "&";
+        break;
       case AND:
         op = "&&";
         break;
       case BV_OR:
+        op = "|";
+        break;
       case OR:
         op = "||";
         break;

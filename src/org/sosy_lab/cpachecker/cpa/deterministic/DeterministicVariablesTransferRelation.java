@@ -328,7 +328,7 @@ public class DeterministicVariablesTransferRelation
 
   @Override
   public String getName() {
-    return getClass().getSimpleName();
+    return "DeterministicVariablesCPA";
   }
 
   @Override
