@@ -23,23 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithExtendedInfo;
+import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
   private final ImmutableList<CFAEdgeWithAdditionalInfo> pathInfo;
@@ -49,54 +45,13 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
   }
 
   public static CFAPathWithAdditionalInfo of(ARGPath pPath, ConfigurableProgramAnalysis pCPA) {
-    FluentIterable<ConfigurableProgramAnalysisWithExtendedInfo> cpas =
-        CPAs.asIterable(pCPA).filter(ConfigurableProgramAnalysisWithExtendedInfo.class);
+    StateWithAdditionalInfo stateWithAdditionalInfo =
+        AbstractStates.extractStateByType(pPath.getFirstState(), StateWithAdditionalInfo.class);
 
-    Optional<CFAPathWithAdditionalInfo> result = Optional.empty();
-    for (ConfigurableProgramAnalysisWithExtendedInfo wrappedCpa : cpas) {
-      CFAPathWithAdditionalInfo path = wrappedCpa.createExtendedInfo(pPath);
+    CFAPathWithAdditionalInfo path = stateWithAdditionalInfo.createExtendedInfo(pPath);
 
+    return path;
 
-      if (result.isPresent()) {
-        result = result.get().mergePaths(path);
-        // If there were conflicts during merging, stop
-        if (!result.isPresent()) {
-          break;
-        }
-      } else {
-        result = Optional.of(path);
-      }
-    }
-
-    if (!result.isPresent()) {
-      return CFAPathWithAdditionalInfo.empty();
-    } else {
-      return result.get();
-    }
-  }
-
-  private static CFAPathWithAdditionalInfo empty() {
-    return new CFAPathWithAdditionalInfo(ImmutableList.of());
-  }
-
-  private Optional<CFAPathWithAdditionalInfo> mergePaths(CFAPathWithAdditionalInfo pOtherPath) {
-    if (pOtherPath.size() != this.size()) {
-      return Optional.empty();
-    }
-
-    List<CFAEdgeWithAdditionalInfo> result = new ArrayList<>(size());
-    Iterator<CFAEdgeWithAdditionalInfo> path2Iterator = iterator();
-
-    for (CFAEdgeWithAdditionalInfo edge : this) {
-      CFAEdgeWithAdditionalInfo other = path2Iterator.next();
-      if (!edge.getCFAEdge().equals(other.getCFAEdge())) {
-        return Optional.empty();
-      }
-      CFAEdgeWithAdditionalInfo resultEdge = edge.mergeEdge(other);
-      result.add(resultEdge);
-    }
-
-    return Optional.of(new CFAPathWithAdditionalInfo(result));
   }
 
   @Override

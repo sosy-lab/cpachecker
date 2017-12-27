@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 public interface StateWithAdditionalInfo extends AbstractState{
 
-  default Map<String, KeyDef> exportTagConverter() {
-    return ImmutableMap.of();
-  }
+  Map<String, KeyDef> exportTagConverter();
+
+  CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath);
 }
