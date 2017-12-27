@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -65,7 +66,7 @@ public class CounterexampleInfo extends AbstractAppender {
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null,
-      false, null);
+      false, CFAPathWithAdditionalInfo.empty());
 
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX, CFAPathWithAdditionalInfo pAdditionalInfo) {
@@ -73,6 +74,7 @@ public class CounterexampleInfo extends AbstractAppender {
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignments = pAssignments;
+    additionalInfo = pAdditionalInfo;
     isPreciseCounterExample = pIsPreciseCEX;
 
     if (!spurious) {
@@ -80,7 +82,6 @@ public class CounterexampleInfo extends AbstractAppender {
     } else {
       furtherInfo = null;
     }
-    additionalInfo = pAdditionalInfo;
   }
 
   public static CounterexampleInfo spurious() {
@@ -114,8 +115,13 @@ public class CounterexampleInfo extends AbstractAppender {
    * @return an object representing information about an feasible counterexample with an imprecise
    *     and unreliable representation of the path from the first state to the target state.
    */
+  public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {
+    return feasibleImprecise(checkNotNull(pTargetPath), CFAPathWithAdditionalInfo.empty());
+  }
+
   public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath, CFAPathWithAdditionalInfo pAdditionalInfo) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), null, false, pAdditionalInfo);
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), null, false,
+        checkNotNull(pAdditionalInfo));
   }
 
   /**
@@ -133,19 +139,16 @@ public class CounterexampleInfo extends AbstractAppender {
    * @return an object representing information about an feasible counterexample with an precise
    *     representation of the path from the first state to the target state.
    */
+  public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
+    return feasiblePrecise(checkNotNull(pTargetPath), pAssignments, CFAPathWithAdditionalInfo.empty());
+  }
+
   public static CounterexampleInfo feasiblePrecise(
       ARGPath pTargetPath, CFAPathWithAssumptions pAssignments, CFAPathWithAdditionalInfo pAdditionalInfo) {
     checkArgument(!pAssignments.isEmpty());
     checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true, pAdditionalInfo);
-  }
-
-  public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {
-    return feasibleImprecise(pTargetPath, null);
-  }
-
-  public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
-    return feasiblePrecise(pTargetPath, pAssignments, null);
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true,
+        checkNotNull(pAdditionalInfo));
   }
 
   public boolean isSpurious() {
@@ -204,10 +207,6 @@ public class CounterexampleInfo extends AbstractAppender {
     return assignments;
   }
 
-  public CFAPathWithAdditionalInfo getAdditionalInfo() {
-    return additionalInfo;
-  }
-
   /**
    * Return an assignment from ARGStates to variable values. Note that not every value for every
    * variable is available.
@@ -221,8 +220,10 @@ public class CounterexampleInfo extends AbstractAppender {
   }
 
   public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
-    return additionalInfo.getAdditionalInfoMapping(targetPath);
+    return additionalInfo.isEmpty() ? ImmutableMap.of()
+                                    : additionalInfo.getAdditionalInfoMapping(targetPath);
   }
+
   /**
    * Create a JSON representation of this counterexample,
    * which is used for the HTML report.

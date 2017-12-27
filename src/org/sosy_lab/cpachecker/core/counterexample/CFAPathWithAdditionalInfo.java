@@ -39,18 +39,25 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
   private final ImmutableList<CFAEdgeWithAdditionalInfo> pathInfo;
 
-  public CFAPathWithAdditionalInfo(List<CFAEdgeWithAdditionalInfo> pPathInfo) {
+  private CFAPathWithAdditionalInfo(List<CFAEdgeWithAdditionalInfo> pPathInfo) {
     pathInfo = ImmutableList.copyOf(pPathInfo);
+  }
+
+  public static CFAPathWithAdditionalInfo empty() {
+    return new CFAPathWithAdditionalInfo(ImmutableList.of());
+  }
+
+  public static CFAPathWithAdditionalInfo of(List<CFAEdgeWithAdditionalInfo> pPathInfo) {
+    return new CFAPathWithAdditionalInfo(pPathInfo);
   }
 
   public static CFAPathWithAdditionalInfo of(ARGPath pPath) {
     StateWithAdditionalInfo stateWithAdditionalInfo =
         AbstractStates.extractStateByType(pPath.getFirstState(), StateWithAdditionalInfo.class);
 
-    CFAPathWithAdditionalInfo path = stateWithAdditionalInfo.createExtendedInfo(pPath);
-
+    CFAPathWithAdditionalInfo path = stateWithAdditionalInfo != null ?
+                                     stateWithAdditionalInfo.createExtendedInfo(pPath) : empty();
     return path;
-
   }
 
   @Override

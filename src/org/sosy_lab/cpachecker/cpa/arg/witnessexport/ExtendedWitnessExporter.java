@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
@@ -86,6 +87,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
   private Map<String,KeyDef> initializeTagConverter(ARGState pRootState) {
     StateWithAdditionalInfo stateWithAdditionalInfo =
         AbstractStates.extractStateByType(pRootState, StateWithAdditionalInfo.class);
-    return stateWithAdditionalInfo != null ? stateWithAdditionalInfo.exportTagConverter() : null;
+    return stateWithAdditionalInfo != null ? stateWithAdditionalInfo.exportTagConverter()
+                                           : ImmutableMap.of();
   }
 }

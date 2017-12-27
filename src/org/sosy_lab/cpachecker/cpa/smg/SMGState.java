@@ -2404,7 +2404,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   @Override
   public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
-    //TODO: inject additional info for extended witness
+    //inject additional info for extended witness
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
     Set<Object> invalidChain = new HashSet<>();
@@ -2447,7 +2447,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
     }
-    return new CFAPathWithAdditionalInfo(Lists.reverse(pathWithExtendedInfo));
+    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
   }
 
 }
