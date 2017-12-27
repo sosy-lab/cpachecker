@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
@@ -84,9 +86,11 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>,
+                                 StateWithAdditionalInfo {
 
   // Properties:
   public static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -2392,5 +2396,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public CLangStackFrame getStackFrame() {
     return Iterables.getLast(heap.getStackFrames());
+  }
+
+  @Override
+  public Map<String, KeyDef> exportTagConverter() {
+    return ImmutableMap.of("Warning", KeyDef.WARNING, "Note", KeyDef.NOTE);
   }
 }

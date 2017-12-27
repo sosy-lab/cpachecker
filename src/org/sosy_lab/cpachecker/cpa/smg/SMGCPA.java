@@ -236,6 +236,7 @@ public class SMGCPA
     Set<Object> invalidChain = new HashSet<>();
     SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
     invalidChain.addAll(state.getInvalidChain());
+    String errorDescription = state.getErrorDescription();
     SMGState prevSMGState = state;
     Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
@@ -246,6 +247,10 @@ public class SMGCPA
       SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = CFAEdgeWithAdditionalInfo.of(rIterator
           .getOutgoingEdge());
+      if (errorDescription != null && !errorDescription.isEmpty()) {
+        edgeWithAdditionalInfo.addInfo("Warning", errorDescription);
+        errorDescription = null;
+      }
 
       Set<Object> toCheck = new HashSet<>();
       for (Object elem : invalidChain) {
@@ -258,7 +263,6 @@ public class SMGCPA
               }
             }
             edgeWithAdditionalInfo.addInfo("Note", prevSMGState.getNoteMessageOnElement(elem));
-//            prevSMGState.setNoteDescription(prevSMGState.getNoteMessageOnElement(elem));
 
           } else {
             toCheck.add(elem);

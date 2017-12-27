@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
 public class ExtendedWitnessWriter extends WitnessWriter {
+  Map<String, KeyDef> tagConverter;
   ExtendedWitnessWriter(
       WitnessOptions pOptions,
       CFA pCfa,
@@ -51,9 +52,11 @@ public class ExtendedWitnessWriter extends WitnessWriter {
       Simplifier<Object> pSimplifier,
       @Nullable String pDefaultSourceFileName,
       WitnessType pGraphType,
-      InvariantProvider pInvariantProvider) {
+      InvariantProvider pInvariantProvider,
+      Map<String, KeyDef> pTagConverter) {
     super(pOptions, pCfa, pMetaData, pFactory, pSimplifier, pDefaultSourceFileName, pGraphType,
         pInvariantProvider);
+    tagConverter = pTagConverter;
   }
 
   @Override
@@ -88,6 +91,6 @@ public class ExtendedWitnessWriter extends WitnessWriter {
   }
 
   private KeyDef tagConvert(String pTag) {
-    return KeyDef.NOTE;
+    return tagConverter.get(pTag);
   }
 }
