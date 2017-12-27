@@ -123,7 +123,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidRead;
   private final boolean invalidFree;
   private String errorDescription;
-  private String noteDescription;
 
   private final LogManager logger;
   private final SMGOptions options;
@@ -144,14 +143,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void setErrorDescription(String pErrorDescription) {
     errorDescription = pErrorDescription;
-  }
-
-  public String getNoteDescription() {
-    return noteDescription;
-  }
-
-  public void setNoteDescription(String pNoteDescription) {
-    noteDescription = pNoteDescription;
   }
 
   public String getNoteMessageOnElement(Object elem) {
@@ -236,7 +227,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
     blockEnded = pBlockEnded;
-    noteDescription = pOriginalState.noteDescription;
     errorDescription = pOriginalState.errorDescription;
   }
 
