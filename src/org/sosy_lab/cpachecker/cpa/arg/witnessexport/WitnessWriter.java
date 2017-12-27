@@ -511,7 +511,7 @@ class WitnessWriter implements EdgeAppender {
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
-    if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+    if (handleAsEpsilonEdge(pEdge)) {
       return Collections.singletonList(TransitionCondition.empty());
     }
 
@@ -536,6 +536,10 @@ class WitnessWriter implements EdgeAppender {
           isDefaultCase);
     }
     return Collections.singletonList(result);
+  }
+
+  protected boolean handleAsEpsilonEdge(CFAEdge pEdge) {
+    return !isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
   }
 
   private TransitionCondition getSourceCodeGuards(
@@ -841,6 +845,8 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
+    result = addAdditionalInfo(result, pAdditionalInfo);
+
     // TODO: For correctness witnesses, there may be multiple (disjoint) states for one location
     // available; it is not clear how we should handle thread information there.
     if (witnessOptions.exportThreadId() && pFromStates.size() == 1) {
@@ -850,6 +856,11 @@ class WitnessWriter implements EdgeAppender {
     }
 
     return Collections.singleton(result);
+  }
+
+  protected TransitionCondition addAdditionalInfo(TransitionCondition pCondition,
+                                                  CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return pCondition;
   }
 
   /**
