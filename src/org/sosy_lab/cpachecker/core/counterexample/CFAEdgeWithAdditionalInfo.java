@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -76,5 +78,9 @@ public class CFAEdgeWithAdditionalInfo {
 
   public CFAEdge getCFAEdge() {
     return edge;
+  }
+
+  public Set<Entry<String,ImmutableSet<Object>>> getInfos() {
+    return addinitonalInfo.entrySet();
   }
 }

@@ -220,6 +220,9 @@ public class CounterexampleInfo extends AbstractAppender {
     return assignments.getExactVariableValues(targetPath);
   }
 
+  public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
+    return additionalInfo.getAdditionalInfoMapping(targetPath);
+  }
   /**
    * Create a JSON representation of this counterexample,
    * which is used for the HTML report.

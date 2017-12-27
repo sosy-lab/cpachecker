@@ -26,13 +26,19 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithExtendedInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
@@ -96,5 +102,35 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
   @Override
   protected List<CFAEdgeWithAdditionalInfo> delegate() {
     return pathInfo;
+  }
+
+  public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping(ARGPath pPath) {
+    Map<ARGState, CFAEdgeWithAdditionalInfo> result = new HashMap<>();
+
+    PathIterator pathIterator = pPath.fullPathIterator();
+    int multiEdgeOffset = 0;
+
+    while (pathIterator.hasNext()) {
+      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = pathInfo.get(pathIterator.getIndex() + multiEdgeOffset);
+      CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
+
+      if (!edgeWithAdditionalInfo.getCFAEdge().equals(argPathEdge)) {
+        // path is not equivalent
+        return ImmutableMap.of();
+      }
+
+      final ARGState abstractState;
+      if (pathIterator.isPositionWithState()) {
+        abstractState = pathIterator.getAbstractState();
+      } else {
+        abstractState = pathIterator.getPreviousAbstractState();
+      }
+      result.put(abstractState, edgeWithAdditionalInfo);
+
+      pathIterator.advance();
+    }
+    // last state is ignored
+
+    return result;
   }
 }
