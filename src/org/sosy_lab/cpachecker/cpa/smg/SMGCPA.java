@@ -213,6 +213,7 @@ public class SMGCPA
 
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
+    //TODO: inject additional info for extended witness
     return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
   }
 
