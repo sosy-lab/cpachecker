@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 public interface StateWithAdditionalInfo extends AbstractState{
