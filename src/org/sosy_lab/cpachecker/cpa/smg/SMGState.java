@@ -142,6 +142,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void setNoteDescription(String pNoteDescription) {
     noteDescription = pNoteDescription;
   }
+
+  public String getNoteMessageOnElement(Object elem) {
+    return heap.getNoteMessageOnElement(elem);
+  }
+
   /**
    * Constructor.
    *
@@ -1239,12 +1244,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         SMGSymbolicValue value = SMGKnownSymValue.valueOf(object_edge.getValue());
+        addElementToCurrentChain(object_edge);
         return SMGValueAndState.of(this, value);
       }
     }
 
-    if (heap.isCoveredByNullifiedBlocks(
-        edge)) {
+    if (heap.isCoveredByNullifiedBlocks(edge)) {
       return SMGValueAndState.of(this, SMGKnownSymValue.ZERO);
     }
 
@@ -1253,7 +1258,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGState setInvalidRead() {
-    return new SMGState(this, Property.INVALID_READ);
+    SMGState smgState = new SMGState(this, Property.INVALID_READ);
+    smgState.moveCurrentChainToInvalidChain();
+    return smgState;
   }
 
   /**
@@ -1450,7 +1457,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    */
   public SMGState setInvalidWrite() {
-    return new SMGState(this, Property.INVALID_WRITE);
+    SMGState smgState = new SMGState(this, Property.INVALID_WRITE);
+    smgState.moveCurrentChainToInvalidChain();
+    return smgState;
   }
 
   /**
@@ -1583,15 +1592,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public boolean isGlobal(String variable) {
-    return heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
+    return heap.isGlobal(heap.getObjectForVisibleVariable(variable));
   }
 
   public boolean isGlobal(SMGObject object) {
-    return heap.getGlobalObjects().containsValue(object);
+    return heap.isGlobal(object);
   }
 
   public boolean isHeapObject(SMGObject object) {
-    return heap.getHeapObjects().contains(object);
+    return heap.isHeapObject(object);
   }
 
   /** memory allocated in the heap has to be freed by the user,
@@ -1771,13 +1780,34 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return this;
   }
 
-  public void addInvalidObject(SMGObject pSmgObject) {
-    heap.reportInvalidObject(pSmgObject);
+  public boolean containsInvalidElement(Object elem) {
+    return heap.containsInvalidElement(elem);
   }
 
-  public List<SMGObject> getInvalidObjects() {
-    return heap.getInvalidObjects();
+  public Set<Object> getInvalidChain() {
+    return heap.getInvalidChain();
   }
+
+  public void addInvalidObject(SMGObject pSmgObject) {
+    heap.addInvalidElement(pSmgObject);
+  }
+
+  public void addElementToCurrentChain(Object elem) {
+    heap.addElementToCurrentChain(elem);
+  }
+
+  public Set<Object> getCurrentChain() {
+    return heap.getCurrentChain();
+  }
+
+  public void cleanCurrentChain() {
+    heap.cleanCurrentChain();
+  }
+
+  public void moveCurrentChainToInvalidChain() {
+    heap.moveCurrentChainToInvalidChain();
+  }
+
   /**
    * Drop the stack frame representing the stack of
    * the function with the given name

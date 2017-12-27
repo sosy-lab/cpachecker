@@ -246,6 +246,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
     if (variableObject == null) {
       return SMGAddressValueAndStateList.of(state);
     } else {
+      state.addElementToCurrentChain(variableObject);
       return smgExpressionEvaluator.createAddress(state, variableObject, SMGKnownExpValue.ZERO);
     }
   }

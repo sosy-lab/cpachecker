@@ -43,10 +43,12 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
@@ -100,14 +103,82 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
-  private List<SMGObject> invalidObjects = new ArrayList<>();
+  private Set<Object> invalidChain = new HashSet<>();
+  private Set<Object> currentChain = new HashSet<>();
 
-  public void reportInvalidObject(SMGObject pSMGObject) {
-    invalidObjects.add(pSMGObject);
+  public boolean containsInvalidElement(Object elem) {
+    if (elem instanceof SMGObject) {
+      SMGObject smgObject = (SMGObject) elem;
+      return isHeapObject(smgObject) || isGlobal(smgObject) || isStackObject(smgObject);
+    } else if (elem instanceof SMGEdgeHasValue) {
+      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
+      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter
+          .objectFilter(edgeHasValue.getObject())
+          .filterAtOffset(edgeHasValue.getOffset())
+          .filterHavingValue(edgeHasValue.getValue());
+      Set<SMGEdgeHasValue> edges = getHVEdges(filter);
+      return !edges.isEmpty();
+    } else if (elem instanceof SMGEdgePointsTo) {
+      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
+      SMGEdgePointsToFilter filter = SMGEdgePointsToFilter
+          .targetObjectFilter(edgePointsTo.getObject())
+          .filterAtTargetOffset(edgePointsTo.getOffset())
+          .filterHavingValue(edgePointsTo.getValue());
+      Set<SMGEdgePointsTo> edges = getPtEdges(filter);
+      return !edges.isEmpty();
+    } else if (elem instanceof Integer) {
+      return getValues().contains(elem);
+    } else if (elem instanceof SMGValue) {
+      SMGValue smgValue = (SMGValue) elem;
+      return getValues().contains(smgValue.getAsInt());
+    }
+    return false;
   }
 
-  public List<SMGObject> getInvalidObjects() {
-    return invalidObjects;
+  public void addInvalidElement(Object elem) {
+    invalidChain.add(elem);
+  }
+
+  public void addElementToCurrentChain(Object elem) {
+    // Avoid to add Null element
+    if (elem instanceof SMGValue) {
+      SMGValue smgValue = (SMGValue) elem;
+      if (smgValue.getAsLong() == 0) {
+        return;
+      }
+    }
+    currentChain.add(elem);
+  }
+
+  public void cleanCurrentChain() {
+    currentChain = new HashSet<>();
+  }
+
+  public Set<Object> getCurrentChain() {
+    return currentChain;
+  }
+
+  public void moveCurrentChainToInvalidChain() {
+    invalidChain.addAll(currentChain);
+  }
+
+  public Set<Object> getInvalidChain() {
+    return invalidChain;
+  }
+
+  public String getNoteMessageOnElement(Object elem) {
+    if (elem instanceof SMGEdge) {
+      return "Assign edge";
+    } else if (elem instanceof Integer || elem instanceof SMGValue) {
+      return "Assign value";
+    } else if (elem instanceof SMGObject) {
+      SMGObject smgObject = (SMGObject) elem;
+      if (isFunctionParameter(smgObject)) {
+        return "Function parameter";
+      }
+      return "Object creation";
+    }
+    return null;
   }
 
   static public void setPerformChecks(boolean pSetting, LogManager logger) {
@@ -148,6 +219,8 @@ public class CLangSMG extends SMG {
     heap_objects = pHeap.heap_objects;
     global_objects = pHeap.global_objects;
     has_leaks = pHeap.has_leaks;
+    invalidChain.addAll(pHeap.invalidChain);
+    currentChain.addAll(pHeap.currentChain);
   }
 
   /**
@@ -314,7 +387,7 @@ public class CLangSMG extends SMG {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           //TODO: report stray_object as error
-          reportInvalidObject(stray_object);
+          addInvalidElement(stray_object);
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
@@ -433,6 +506,36 @@ public class CLangSMG extends SMG {
     return stack_objects;
   }
 
+  private boolean isStackObject(SMGObject pObject) {
+
+    String regionLabel = pObject.getLabel();
+
+    for (CLangStackFrame frame : stack_objects) {
+      if ((frame.containsVariable(regionLabel)
+          && frame.getVariable(regionLabel) == pObject)
+          || pObject == frame.getReturnObject()) {
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private boolean isFunctionParameter(SMGObject pObject) {
+    String regionLabel = pObject.getLabel();
+
+    for (CLangStackFrame frame : stack_objects) {
+      List<CParameterDeclaration> parameters = frame.getFunctionDeclaration().getParameters();
+      for (CParameterDeclaration parameter : parameters) {
+        if (parameter.getName().equals(regionLabel) && frame.getVariable(regionLabel) == pObject) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /**
    * Constant.
    *
@@ -462,6 +565,19 @@ public class CLangSMG extends SMG {
    */
   public Map<String, SMGRegion> getGlobalObjects() {
     return global_objects;
+  }
+
+  /**
+   * Constant.
+   *
+   * Checks whether given object is global.
+   *
+   * @param object SMGObject to be checked.
+   * @return True, if the given object is referenced in the set of global objects, false otherwise.
+   *
+   */
+  public boolean isGlobal(SMGObject object) {
+    return global_objects.containsValue(object);
   }
 
   /**

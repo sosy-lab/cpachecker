@@ -472,6 +472,7 @@ public class SMGTransferRelation
       AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
     super.setInfo(abstractState, abstractPrecision, cfaEdge);
     state = new SMGState(state);
+    state.cleanCurrentChain();
   }
 
   @Override

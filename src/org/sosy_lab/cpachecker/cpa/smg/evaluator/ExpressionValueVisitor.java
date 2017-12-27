@@ -197,8 +197,10 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
       SMGObject variableObject = smgState
           .getObjectForVisibleVariable(idExpression.getName());
 
+      smgState.addElementToCurrentChain(variableObject);
       SMGValueAndState result = smgExpressionEvaluator.readValue(smgState, variableObject, SMGKnownExpValue.ZERO,
           smgExpressionEvaluator.getRealExpressionType(idExpression), cfaEdge);
+      result.getSmgState().addElementToCurrentChain(result.getObject());
 
       return SMGValueAndStateList.of(result);
     }
