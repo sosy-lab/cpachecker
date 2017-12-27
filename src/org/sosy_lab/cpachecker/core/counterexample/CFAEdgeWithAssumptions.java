@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -43,7 +42,6 @@ public class CFAEdgeWithAssumptions {
   private final CFAEdge edge;
   private final Collection<AExpressionStatement> expressionStmts;
   private final String comment;
-  private final Map<String, List<Object>> extendedInfo;
 
   /**
    * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the error path.
@@ -53,15 +51,9 @@ public class CFAEdgeWithAssumptions {
    * @param pComment Further comments that should be given to the user about this part of the path but can't be represented as assumption.
    */
   public CFAEdgeWithAssumptions(CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
-    this(pEdge, pExpStmt, pComment, null);
-  }
-
-  public CFAEdgeWithAssumptions(CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt,
-                                String pComment, Map<String, List<Object>> pExtended) {
     edge = Objects.requireNonNull(pEdge);
     expressionStmts = Objects.requireNonNull(pExpStmt);
     comment = Objects.requireNonNull(pComment);
-    extendedInfo = pExtended;
   }
 
   private CFAEdgeWithAssumptions(CFAEdgeWithAssumptions pEdgeWA, CFAEdgeWithAssumptions pEdgeWA2) {
@@ -85,7 +77,6 @@ public class CFAEdgeWithAssumptions {
 
     comment = pEdgeWA.comment;
     expressionStmts = result;
-    extendedInfo = pEdgeWA.extendedInfo;
   }
 
   public Collection<AExpressionStatement> getExpStmts() {
@@ -158,9 +149,7 @@ public class CFAEdgeWithAssumptions {
    * this edge of the error path.
    */
   public String prettyPrint() {
-    String expStmt = this.prettyPrintCode(0);
-    String comment = this.getComment();
-    return expStmt + comment;
+    return prettyPrintCode(0) + getComment();
   }
 
   /**
@@ -181,10 +170,6 @@ public class CFAEdgeWithAssumptions {
   @Nullable
   public String getComment() {
     return comment;
-  }
-
-  public Map<String, List<Object>> getExtendedInfo() {
-    return extendedInfo;
   }
 
   /**

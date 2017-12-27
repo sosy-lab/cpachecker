@@ -234,8 +234,7 @@ class WitnessWriter implements EdgeAppender {
           return new CFAEdgeWithAssumptions(
               pEdgeWithAssumptions.getCFAEdge(),
               expressionStatements,
-              pEdgeWithAssumptions.getComment(),
-              pEdgeWithAssumptions.getExtendedInfo());
+              pEdgeWithAssumptions.getComment());
         }
 
         private boolean isConstant(CExpression pLeftSide) {
@@ -674,8 +673,7 @@ class WitnessWriter implements EdgeAppender {
           allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
-                  pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment(),
-                  currentEdgeWithAssignments.getExtendedInfo());
+                  pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
         }
       }
 
@@ -690,8 +688,7 @@ class WitnessWriter implements EdgeAppender {
         if (functionValidAssignments.size() < assignments.size()) {
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
-                  pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment(),
-                  cfaEdgeWithAssignments.getExtendedInfo());
+                  pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
           FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
 
           if (nextEdges.size() == 1 && state.getChildren().size() == 1) {

@@ -181,20 +181,20 @@ public class CEXExporter {
 
   public CEXExporter(
       Configuration config,
-      LogManager logger,
+      LogManager pLogger,
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
       ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.logger = logger;
+    this.logger = pLogger;
 
     cexFilter =
-        CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
+        CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
-    harnessExporter = new HarnessExporter(config, logger, cfa);
+    harnessExporter = new HarnessExporter(config, pLogger, cfa);
 
     if (!exportSource) {
       errorPathSourceFile = null;

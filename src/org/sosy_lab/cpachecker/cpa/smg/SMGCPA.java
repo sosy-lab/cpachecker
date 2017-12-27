@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,6 +42,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -48,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithExtendedInfo;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -57,13 +65,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIteratorARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 @Options(prefix = "cpa.smg")
 public class SMGCPA
     implements ConfigurableProgramAnalysis,
-        ConfigurableProgramAnalysisWithConcreteCex,
+               ConfigurableProgramAnalysisWithConcreteCex,
+               ConfigurableProgramAnalysisWithExtendedInfo,
         StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -213,8 +225,51 @@ public class SMGCPA
 
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
-    //TODO: inject additional info for extended witness
     return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
+  }
+
+  @Override
+  public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
+    //TODO: inject additional info for extended witness
+    PathIterator rIterator = pPath.reverseFullPathIterator();
+    ARGState lastArgState = rIterator.getAbstractState();
+    Set<Object> invalidChain = new HashSet<>();
+    SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
+    invalidChain.addAll(state.getInvalidChain());
+    SMGState prevSMGState = state;
+    Set<Object> visitedElems = new HashSet<>();
+    List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
+
+    while (rIterator.hasNext()) {
+      rIterator.advance();
+      ARGState argState = rIterator.getAbstractState();
+      SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
+      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = CFAEdgeWithAdditionalInfo.of(rIterator
+          .getOutgoingEdge());
+
+      Set<Object> toCheck = new HashSet<>();
+      for (Object elem : invalidChain) {
+        if (!visitedElems.contains(elem)) {
+          if (!smgState.containsInvalidElement(elem)) {
+            visitedElems.add(elem);
+            for (Object additionalElem : prevSMGState.getCurrentChain()) {
+              if (!visitedElems.contains(additionalElem) && !invalidChain.contains(additionalElem)) {
+                toCheck.add(additionalElem);
+              }
+            }
+            edgeWithAdditionalInfo.addInfo("Note", prevSMGState.getNoteMessageOnElement(elem));
+//            prevSMGState.setNoteDescription(prevSMGState.getNoteMessageOnElement(elem));
+
+          } else {
+            toCheck.add(elem);
+          }
+        }
+      }
+      invalidChain = toCheck;
+      prevSMGState = smgState;
+      pathWithExtendedInfo.add(edgeWithAdditionalInfo);
+    }
+    return new CFAPathWithAdditionalInfo(Lists.reverse(pathWithExtendedInfo));
   }
 
   public LogManager getLogger() {

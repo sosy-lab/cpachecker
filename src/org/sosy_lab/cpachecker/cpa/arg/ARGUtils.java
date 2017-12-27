@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -1296,16 +1297,18 @@ public class ARGUtils {
       return Optional.empty();
     }
 
+    CFAPathWithAdditionalInfo additionalInfo = CFAPathWithAdditionalInfo.of(path, pCPA);
+
     // We should not claim that the counterexample is precise unless we have one unique path
     Set<ARGState> states = path.getStateSet();
     if (states.stream().allMatch(s -> s.getParents().stream().allMatch(p -> states.contains(p)))) {
       CFAPathWithAssumptions assignments =
           CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
       if (!assignments.isEmpty()) {
-        return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments));
+        return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments, additionalInfo));
       }
     }
-    return Optional.of(CounterexampleInfo.feasibleImprecise(path));
+    return Optional.of(CounterexampleInfo.feasibleImprecise(path, additionalInfo));
   }
 
   public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {

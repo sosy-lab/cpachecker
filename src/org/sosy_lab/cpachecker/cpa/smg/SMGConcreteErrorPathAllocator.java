@@ -110,46 +110,6 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public void path(ARGPath argPath) {
-    /**
-     * TODO:
-     *     Modify counterexample by each analysis
-     */
-    PathIterator rIterator = argPath.reverseFullPathIterator();
-    ARGState lastArgState = rIterator.getAbstractState();
-    Set<Object> invalidChain = new HashSet<>();
-    SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-//    invalidChain.addAll(state.getInvalidChain());
-    SMGState prevSMGState = state;
-    Set<Object> visitedElems = new HashSet<>();
-
-    while (rIterator.hasNext()) {
-      rIterator.advance();
-      ARGState argState = rIterator.getAbstractState();
-      SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
-
-      Set<Object> toCheck = new HashSet<>();
-      for (Object elem : invalidChain) {
-        if (!visitedElems.contains(elem)) {
-//          if (!smgState.containsInvalidElement(elem)) {
-//            visitedElems.add(elem);
-//            for (Object additionalElem : prevSMGState.getCurrentChain()) {
-//              if (!visitedElems.contains(additionalElem) && !invalidChain.contains(additionalElem)) {
-//                toCheck.add(additionalElem);
-//              }
-//            }
-//            prevSMGState.setNoteDescription(prevSMGState.getNoteMessageOnElement(elem));
-//          } else {
-//            toCheck.add(elem);
-//          }
-        }
-      }
-      invalidChain = toCheck;
-      prevSMGState = smgState;
-    }
-
-  }
-
   public CFAPathWithAssumptions allocateAssignmentsToPath(
       List<Pair<SMGState, List<CFAEdge>>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);

@@ -727,6 +727,9 @@ counterexample.export.exportImmediately = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# Extended witness with specific analysis information file
+counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
+
 # export counterexample as text file
 counterexample.export.file = "Counterexample.%d.txt"
 
