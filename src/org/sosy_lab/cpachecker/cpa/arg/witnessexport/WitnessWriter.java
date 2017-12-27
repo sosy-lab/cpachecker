@@ -511,7 +511,7 @@ class WitnessWriter implements EdgeAppender {
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
-    if (handleAsEpsilonEdge(pEdge)) {
+    if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
       return Collections.singletonList(TransitionCondition.empty());
     }
 
@@ -538,7 +538,7 @@ class WitnessWriter implements EdgeAppender {
     return Collections.singletonList(result);
   }
 
-  protected boolean handleAsEpsilonEdge(CFAEdge pEdge) {
+  protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return !isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
   }
 
