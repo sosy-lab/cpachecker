@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
@@ -190,5 +191,10 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   @Override
   public void reAddToWaitlist(AbstractState pState) {
     delegate.reAddToWaitlist(pState);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    delegate.printStatistics(pOut);
   }
 }

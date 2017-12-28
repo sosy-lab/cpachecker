@@ -24,13 +24,17 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Preconditions;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
@@ -38,20 +42,58 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ThreadModularReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
 
+  private static class CPAThreadModularStatistics implements Statistics {
+
+    private Timer inferenceObjectsAdd = new Timer();
+    private Timer statesAdd = new Timer();
+
+    private int newStatesForInferenceCount = 0;
+    private int inferenceObjectsStop = 0;
+    private int inferenceObjectsPass = 0;
+    private int inferenceObjectsMerge = 0;
+    private int statesStop = 0;
+    private int statesPass = 0;
+    private int statesMerge = 0;
+
+
+    @Override
+    public String getName() {
+      return "CPA thread modular algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+      out.println("Number of states due to inference objects:  " + newStatesForInferenceCount);
+      out.println("Number of stops for inference objects:      " + inferenceObjectsStop);
+      out.println("Number of passes for inference objects:     " + inferenceObjectsPass);
+      out.println("Number of merges for inference objects:     " + inferenceObjectsMerge);
+      out.println("Number of stops for states:                 " + statesStop);
+      out.println("Number of passes for states:                " + statesPass);
+      out.println("Number of merges for states:                " + statesMerge);
+      out.println();
+      out.println("  Time for inference objects update:         " + inferenceObjectsAdd);
+      out.println("  Time for states update: " + statesAdd);
+    }
+  }
+
   private final CompatibilityCheck compatibleCheck;
   private final StopOperator stopForInferenceObject;
   private final MergeOperator mergeForInferenceObject;
+
+  private final CPAThreadModularStatistics stats = new CPAThreadModularStatistics();
 
 
   protected CPAThreadModularAlgorithm(ConfigurableProgramAnalysisTM pCpa,
@@ -73,19 +115,24 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     if (pSuccessor instanceof InferenceObject) {
       Collection<AbstractState> states = ((ThreadModularReachedSet) pReached).getStates();
 
+      stats.statesAdd.start();
       for (AbstractState state : states) {
         if (compatibleCheck.compatible(state, (InferenceObject) pSuccessor)) {
-          pReached.reAddToWaitlist(new ThreadModularWaitlistElement(state, (InferenceObject) pSuccessor, pPrecision));
+          Precision itsPrecision = pReached.getPrecision(state);
+          pReached.reAddToWaitlist(new ThreadModularWaitlistElement(state, (InferenceObject) pSuccessor, itsPrecision));
         }
       }
+      stats.statesAdd.stop();
     } else {
       Collection<InferenceObject> objects = ((ThreadModularReachedSet) pReached).getInferenceObjects();
 
+      stats.inferenceObjectsAdd.start();
       for (InferenceObject object : objects) {
         if (compatibleCheck.compatible(pSuccessor, object)) {
           pReached.reAddToWaitlist(new ThreadModularWaitlistElement(pSuccessor, object, pPrecision));
         }
       }
+      stats.inferenceObjectsAdd.stop();
     }
     pReached.add(pSuccessor, pPrecision);
   }
@@ -127,26 +174,50 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       if (object != null && newObject != EmptyInferenceObject.getInstance()) {
         result.add(Pair.of(newObject, precision));
       }
+      if (object != null && object != EmptyInferenceObject.getInstance()
+          && object != TauInferenceObject.getInstance()) {
+        stats.newStatesForInferenceCount++;
+      }
     }
     return result;
   }
 
   @Override
   protected boolean stop(AbstractState pSuccessor, Collection<AbstractState> pReached, Precision pSuccessorPrecision) throws CPAException, InterruptedException {
+    boolean result;
     if (pSuccessor instanceof InferenceObject) {
-      return stopForInferenceObject.stop(pSuccessor, pReached, pSuccessorPrecision);
+      result = stopForInferenceObject.stop(pSuccessor, pReached, pSuccessorPrecision);
+      if (result) {
+        stats.inferenceObjectsStop++;
+      } else {
+        stats.inferenceObjectsPass++;
+      }
     } else {
-      return stopOperator.stop(pSuccessor, pReached, pSuccessorPrecision);
+      result = stopOperator.stop(pSuccessor, pReached, pSuccessorPrecision);
+      if (result) {
+        stats.statesStop++;
+      } else {
+        stats.statesPass++;
+      }
     }
+    return result;
   }
 
   @Override
   protected AbstractState merge(AbstractState pSuccessor, AbstractState pReachedState, Precision pSuccessorPrecision) throws CPAException, InterruptedException {
+    AbstractState result;
     if (pSuccessor instanceof InferenceObject) {
-      return mergeForInferenceObject.merge(pSuccessor, pReachedState, pSuccessorPrecision);
+      result = mergeForInferenceObject.merge(pSuccessor, pReachedState, pSuccessorPrecision);
+      if (result != pReachedState) {
+        stats.inferenceObjectsMerge++;
+      }
     } else {
-      return mergeOperator.merge(pSuccessor, pReachedState, pSuccessorPrecision);
+      result = mergeOperator.merge(pSuccessor, pReachedState, pSuccessorPrecision);
+      if (result != pReachedState) {
+        stats.statesMerge++;
+      }
     }
+    return result;
   }
 
 
@@ -157,5 +228,12 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     } else {
       return mergeOperator != MergeSepOperator.getInstance();
     }
+  }
+
+  @Override
+  public void collectStatistics(
+      Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
   }
 }

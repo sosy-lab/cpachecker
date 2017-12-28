@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -294,12 +295,30 @@ public class PredicateInferenceObject implements InferenceObject {
 
         CRightHandSide right = ((CAssignment) stmnt).getRightHandSide();
 
+        FileLocation loc = right.getFileLocation();
+        CType type = right.getExpressionType();
+
+        CFunctionType fType = new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
+        CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "env_func", Collections.emptyList());
+        CExpression name = new CIdExpression(loc, funcDecl);
+
+        CFunctionCallExpression fExp = new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
+
+        right = fExp;
+
         if (right instanceof CExpression) {
           Pair<CExpression, Boolean> newRight = right.accept(transformer);
 
           if (newRight.getSecond() || left.getSecond()) {
             return new PredicateInferenceObject(
                 Collections.singleton(new CExpressionAssignmentStatement(right.getFileLocation(), (CLeftHandSide) left.getFirst(), newRight.getFirst())), a.asFormula());
+          } else {
+            return EmptyInferenceObject.getInstance();
+          }
+        } else {
+          if (left.getSecond()) {
+            return new PredicateInferenceObject(
+              Collections.singleton(new CFunctionCallAssignmentStatement(right.getFileLocation(), (CLeftHandSide) left.getFirst(), fExp)), a.asFormula());
           } else {
             return EmptyInferenceObject.getInstance();
           }
@@ -314,11 +333,12 @@ public class PredicateInferenceObject implements InferenceObject {
     BooleanFormula abs2 = pOther.getGuard();
     Set<CAssignment> formulas2 = pOther.getAction();
 
-    if (abstraction.equals(abs2) && formulas2.containsAll(edgeFormulas)) {
-      return pOther;
-    } else {
-      return new PredicateInferenceObject(Sets.union(edgeFormulas, formulas2), mngr.or(abstraction, abs2));
+    if (abstraction.equals(abs2)) {
+      if (!formulas2.containsAll(edgeFormulas)) {
+        return new PredicateInferenceObject(Sets.union(edgeFormulas, formulas2), abstraction);
+      }
     }
+    return pOther;
   }
 
   public Set<CAssignment> getAction() {
@@ -332,5 +352,10 @@ public class PredicateInferenceObject implements InferenceObject {
   @Override
   public boolean hasEmptyAction() {
     return false;
+  }
+
+  @Override
+  public String toString() {
+    return edgeFormulas.toString();
   }
 }

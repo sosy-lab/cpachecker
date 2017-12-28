@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Interface representing an unmodifiable reached set
@@ -118,4 +117,6 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public boolean isEmpty();
 
   public int size();
+
+  public void printStatistics(PrintStream out);
 }

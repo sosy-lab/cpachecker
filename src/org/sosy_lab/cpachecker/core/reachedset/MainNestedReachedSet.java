@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import com.google.common.base.Preconditions;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -189,4 +193,23 @@ public class MainNestedReachedSet implements NestedReachedSet<AbstractState> {
   public String toString() {
     return reached.keySet().toString();
   }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    int reachedSize = reached.size();
+
+    pOut.println("Main reached set size: " + reachedSize);
+    /*if (!locations.isEmpty()) {
+      int locs = locations.size();
+      pOut.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
+      pOut.println("    Avg states per location:     " + reachedSize / locs);
+      //out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
+    
+      Set<String> functions = from(locations).transform(CFANode::getFunctionName).toSet();
+      pOut.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
+    }*/
+    pOut.println("  Number of target states:       " + from(reached.keySet()).filter(IS_TARGET_STATE).size());
+  }
+
+
 }

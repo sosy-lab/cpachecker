@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -103,9 +105,15 @@ public class ARGTransferRelation implements TransferRelationTM {
     element.markExpanded();
 
     AbstractState wrappedState = element.getWrappedState();
+    InferenceObject wrappedObject;
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      wrappedObject = pInferenceObject;
+    } else {
+      wrappedObject = (InferenceObject) ((ARGInferenceObject) pInferenceObject).getWrappedState();
+    }
     Collection<Pair<AbstractState, InferenceObject>> successors;
     try {
-      successors = ((TransferRelationTM) transferRelation).getAbstractSuccessors(wrappedState, pInferenceObject, pPrecision);
+      successors = ((TransferRelationTM) transferRelation).getAbstractSuccessors(wrappedState, wrappedObject, pPrecision);
     } catch (UnsupportedCodeException e) {
       // setting parent of this unsupported code part
       e.setParentState(element);
@@ -119,7 +127,14 @@ public class ARGTransferRelation implements TransferRelationTM {
     Collection<Pair<AbstractState, InferenceObject>> wrappedSuccessors = new ArrayList<>();
     for (Pair<AbstractState, InferenceObject> absElement : successors) {
       ARGState successorElem = new ARGState(absElement.getFirst(), element);
-      wrappedSuccessors.add(Pair.of(successorElem, absElement.getSecond()));
+      wrappedObject = absElement.getSecond();
+      InferenceObject inferenceObject;
+      if (wrappedObject == EmptyInferenceObject.getInstance()) {
+        inferenceObject = EmptyInferenceObject.getInstance();
+      } else {
+        inferenceObject = new ARGInferenceObject(wrappedObject, element);
+      }
+      wrappedSuccessors.add(Pair.of(successorElem, inferenceObject));
     }
 
     return wrappedSuccessors;

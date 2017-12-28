@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
@@ -36,15 +37,15 @@ import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 public class InferenceObjectReachedSet implements NestedReachedSet<InferenceObject> {
 
-  private final Set<InferenceObject> reached;
+  private final List<InferenceObject> reached;
 
   public InferenceObjectReachedSet() {
-    reached = new HashSet<>();
+    reached = new ArrayList<>();
   }
 
   @Override
   public Collection<InferenceObject> asCollection() {
-    return Collections.unmodifiableSet(reached);
+    return Collections.unmodifiableList(reached);
   }
 
   @Override
@@ -103,5 +104,10 @@ public class InferenceObjectReachedSet implements NestedReachedSet<InferenceObje
 
   public boolean remove(InferenceObject pState) {
     return reached.remove(pState);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    pOut.println("Inference objects number: " + reached.size());
   }
 }

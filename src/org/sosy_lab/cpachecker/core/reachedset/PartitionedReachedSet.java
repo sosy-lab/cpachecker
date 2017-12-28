@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -111,5 +112,19 @@ public class PartitionedReachedSet extends MainNestedReachedSet {
 
   protected Set<?> getKeySet() {
     return Collections.unmodifiableSet(partitionedReached.keySet());
+  }
+
+  public void printStistics(PrintStream out) {
+    super.printStatistics(out);
+    int partitions = getNumberOfPartitions();
+    out.println("  Number of partitions:          " + partitions);
+    out.println("    Avg size of partitions:      " + reached.size() / partitions);
+    Map.Entry<Object, Collection<AbstractState>> maxPartition = getMaxPartition();
+    out.print("    Max size of partitions:      " + maxPartition.getValue().size());
+    if (maxPartition.getValue().size() > 1) {
+      out.println(" (with key " + maxPartition.getKey() + ")");
+    } else {
+      out.println();
+    }
   }
 }

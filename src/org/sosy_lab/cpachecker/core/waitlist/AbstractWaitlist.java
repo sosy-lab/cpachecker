@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
@@ -80,5 +81,10 @@ public abstract class AbstractWaitlist<T extends Collection<WaitlistElement>> im
   @Override
   public String toString() {
     return waitlist.toString();
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    pOut.println("Size of waitlist: " + waitlist.size());
   }
 }

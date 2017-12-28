@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
-import org.sosy_lab.cpachecker.core.waitlist.AbstractWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 public class ThreadModularReachedSet extends AbstractReachedSet {
@@ -68,9 +69,9 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
 
   @Override
   protected void removeOnlyFromWaitlist(AbstractState pState, Precision pPrecision) {
-    Preconditions.checkArgument(waitlist instanceof AbstractWaitlist<?>);
+    Preconditions.checkArgument(waitlist instanceof AbstractSortedWaitlist<?>);
 
-    Iterator<WaitlistElement> iterator = ((AbstractWaitlist<?>) waitlist).iterator();
+    Iterator<WaitlistElement> iterator = ((AbstractSortedWaitlist<?>) waitlist).iterator();
     Predicate<ThreadModularWaitlistElement> check;
 
     if (pState instanceof InferenceObject) {
@@ -172,5 +173,11 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
     } else {
       super.remove(state);
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    super.printStatistics(pOut);
+    reachedInferenceObjects.printStatistics(pOut);
   }
 }

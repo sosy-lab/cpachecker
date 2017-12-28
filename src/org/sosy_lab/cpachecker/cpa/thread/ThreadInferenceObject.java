@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 
@@ -48,4 +49,27 @@ public class ThreadInferenceObject implements InferenceObject {
   public boolean hasEmptyAction() {
     return true;
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Objects.hashCode(state);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null ||
+        getClass() != obj.getClass()) {
+      return false;
+    }
+    ThreadInferenceObject other = (ThreadInferenceObject) obj;
+    return Objects.equals(state, other.state);
+  }
+
+
 }

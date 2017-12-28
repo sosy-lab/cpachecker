@@ -387,6 +387,6 @@ public class PredicateCPA
 
   @Override
   public StopOperator getStopForInferenceObject() {
-    return (s, r, p) -> r.contains(s);
+    return new PredicateStopForInferenceObjects();
   }
 }

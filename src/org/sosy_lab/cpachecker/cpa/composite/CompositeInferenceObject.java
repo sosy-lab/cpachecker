@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
@@ -71,5 +72,12 @@ public class CompositeInferenceObject implements InferenceObject {
     } else {
       return EmptyInferenceObject.getInstance();
     }
+  }
+
+  @Override
+  public String toString() {
+    return from(inferenceObjects)
+        .filter(o -> !o.hasEmptyAction())
+        .join(Joiner.on(", "));
   }
 }

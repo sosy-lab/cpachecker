@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,30 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.reachedset;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.cpachecker.core.algorithm.DefaultWaitlistElement;
+import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** Basic implementation of ReachedSet. It does not group states by location or any other key. */
-class DefaultReachedSet extends AbstractReachedSet {
 
-  DefaultReachedSet(WaitlistFactory waitlistFactory, MainNestedReachedSet rSet) {
-    super(waitlistFactory, rSet);
-  }
+public class PredicateStopForInferenceObjects implements StopOperator {
 
   @Override
-  public void reAddToWaitlist(AbstractState pState, Precision pPrecision) {
-    DefaultWaitlistElement element = new DefaultWaitlistElement(pState, pPrecision);
-    waitlist.add(element);
-  }
+  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+    PredicateInferenceObject target = (PredicateInferenceObject) pState;
 
-  @Override
-  public void removeOnlyFromWaitlist(AbstractState pState, Precision pPrecision) {
-    DefaultWaitlistElement element = new DefaultWaitlistElement(pState, pPrecision);
-    waitlist.remove(element);
+    for (AbstractState state : pReached) {
+      PredicateInferenceObject object = (PredicateInferenceObject) state;
+      if (target.getGuard().equals(object.getGuard())
+          && object.getAction().containsAll(target.getAction())) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }

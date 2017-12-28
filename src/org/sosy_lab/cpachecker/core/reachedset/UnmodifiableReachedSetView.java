@@ -26,14 +26,13 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Live view of an unmodifiable reached state set, where states
@@ -128,6 +127,11 @@ public class UnmodifiableReachedSetView
   @Override
   public int size() {
     return underlying.size();
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    underlying.printStatistics(pOut);
   }
 
 }

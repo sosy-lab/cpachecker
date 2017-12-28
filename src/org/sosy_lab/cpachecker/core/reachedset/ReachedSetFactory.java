@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.waitlist.LoopIterationSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ThreadModularSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -198,6 +199,7 @@ public class ReachedSetFactory {
     }
 
     if (useThreadModularReachedSet) {
+      waitlistFactory = ThreadModularSortedWaitlist.factory(waitlistFactory);
       return new ThreadModularReachedSet(waitlistFactory, reached);
     } else {
       return new DefaultReachedSet(waitlistFactory, reached);

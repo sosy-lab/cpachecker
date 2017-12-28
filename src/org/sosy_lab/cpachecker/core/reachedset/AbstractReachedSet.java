@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -213,5 +214,11 @@ public abstract class AbstractReachedSet implements ReachedSet {
     } else {
       return ImmutableMap.of();
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    reached.printStatistics(out);
+    waitlist.printStatistics(out);
   }
 }

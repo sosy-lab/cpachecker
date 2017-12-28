@@ -254,11 +254,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeForInferenceObject() {
-    return ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getMergeForInferenceObject();
+    return new ARGMergeForInferenceObjects(((ConfigurableProgramAnalysisTM) getWrappedCpa()).getMergeForInferenceObject());
   }
 
   @Override
   public StopOperator getStopForInferenceObject() {
-    return ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getStopForInferenceObject();
+    return new ARGStopSep(((ConfigurableProgramAnalysisTM) getWrappedCpa()).getStopForInferenceObject(),
+        logger,
+        inCPAEnabledAnalysis,
+        keepCoveredStatesInReached);
   }
 }

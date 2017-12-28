@@ -1135,7 +1135,8 @@ public class CtoFormulaConverter {
         callStmt.getFunctionCallExpression().accept(ev);
 
       } else if (!(stmt instanceof CExpressionStatement)) {
-        throw new UnrecognizedCCodeException("Unknown statement", statement, stmt);
+        return bfmgr.makeTrue();
+        //throw new UnrecognizedCCodeException("Unknown statement", statement, stmt);
       }
 
       // side-effect free statement, ignore

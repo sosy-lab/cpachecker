@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -76,7 +75,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -445,6 +443,8 @@ class MainCPAStatistics implements Statistics {
     CFANode mostFrequentLocation = null;
     int mostFrequentLocationCount = 0;
 
+    reached.printStatistics(out);
+
     if (reached instanceof LocationMappedReachedSet) {
       LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
       locations = l.getLocations();
@@ -483,20 +483,6 @@ class MainCPAStatistics implements Statistics {
       out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
     }
 
-    if (reached instanceof PartitionedReachedSet) {
-      PartitionedReachedSet p = (PartitionedReachedSet)reached;
-      int partitions = p.getNumberOfPartitions();
-      out.println("  Number of partitions:          " + partitions);
-      out.println("    Avg size of partitions:      " + reachedSize / partitions);
-      Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
-      out.print  ("    Max size of partitions:      " + maxPartition.getValue().size());
-      if (maxPartition.getValue().size() > 1) {
-        out.println(" (with key " + maxPartition.getKey() + ")");
-      } else {
-        out.println();
-      }
-    }
-    out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
   }
 
   private void printCfaStatistics(PrintStream out) {

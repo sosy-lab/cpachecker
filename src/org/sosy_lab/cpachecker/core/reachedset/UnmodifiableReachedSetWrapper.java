@@ -24,15 +24,14 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.Iterators;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
@@ -116,5 +115,10 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    delegate.printStatistics(pOut);
   }
 }

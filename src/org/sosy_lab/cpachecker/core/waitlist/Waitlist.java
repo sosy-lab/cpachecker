@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import java.io.PrintStream;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 
@@ -69,6 +70,8 @@ public interface Waitlist extends Iterable<WaitlistElement> {
 
   /** Returns the number of elements in the waitlist. */
   int size();
+
+  public void printStatistics(PrintStream pOut);
 
   /** Simple factory interface for waitlist implementations. */
   public static interface WaitlistFactory {

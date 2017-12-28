@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -197,5 +198,10 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   @Override
   public String toString() {
     return waitlist.toString();
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+    pOut.println("Number of keys for waitlists: " + waitlist.size());
   }
 }

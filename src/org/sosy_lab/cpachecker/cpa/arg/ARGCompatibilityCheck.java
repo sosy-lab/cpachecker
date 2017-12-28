@@ -38,6 +38,7 @@ public class ARGCompatibilityCheck implements CompatibilityCheck {
 
   @Override
   public boolean compatible(AbstractState pState, InferenceObject pObject) {
-    return wrappedCheck.compatible(((ARGState) pState).getWrappedState(), pObject);
+    return wrappedCheck.compatible(((ARGState) pState).getWrappedState(),
+        (InferenceObject) ((ARGInferenceObject) pObject).getWrappedState());
   }
 }

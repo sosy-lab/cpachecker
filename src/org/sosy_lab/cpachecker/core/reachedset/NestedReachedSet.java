@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import javax.annotation.Nullable;
@@ -89,4 +90,6 @@ public interface NestedReachedSet<R> extends Iterable<R> {
   public int size();
 
   void clear();
+
+  public void printStatistics(PrintStream pOut);
 }

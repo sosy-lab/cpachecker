@@ -21,55 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.lock;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Preconditions;
-import java.util.Objects;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 
-public class LockInferenceObject implements InferenceObject {
+public class ARGInferenceObject extends ARGState implements InferenceObject {
 
-  private final AbstractLockState state;
-
-  private LockInferenceObject(AbstractLockState pState) {
-    Preconditions.checkNotNull(pState);
-    state = pState;
-  }
-
-  public static LockInferenceObject create(AbstractLockState pState) {
-    return new LockInferenceObject(pState.prepareToStore());
-  }
-
-  public AbstractLockState getState() {
-    return state;
+  public ARGInferenceObject(AbstractState pWrappedState, ARGState pParentElement) {
+    super(pWrappedState, pParentElement);
+    Preconditions.checkArgument(pWrappedState instanceof InferenceObject);
   }
 
   @Override
   public boolean hasEmptyAction() {
-    return true;
+    return ((InferenceObject) getWrappedState()).hasEmptyAction();
   }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Objects.hashCode(state);
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
-      return false;
-    }
-    LockInferenceObject other = (LockInferenceObject) obj;
-    return Objects.equals(state, other.state);
-  }
-
 
 }

@@ -28,12 +28,14 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,6 +66,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -575,6 +578,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
     PredicateAbstractState predeccessor = (PredicateAbstractState) pState;
 
     if (pInferenceObject == TauInferenceObject.getInstance()) {
+
       Collection<? extends AbstractState> successors = getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
 
       Collection<Pair<AbstractState, InferenceObject>> result = new ArrayList<>();
@@ -591,19 +595,40 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
       AbstractionFormula oldAbstraction = predeccessor.getAbstractionFormula();
       PersistentMap<CFANode, Integer> abstractionLocations = predeccessor.getAbstractionLocationsOnPath();
 
+      PredicatePrecision prec = (PredicatePrecision) pPrecision;
       PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula();
 
-      for (CAssignment c : object.getAction()) {
-        CFAEdge fakeEdge =
-            new CStatementEdge("environment", c, c.getFileLocation(),
-                new CFANode("dummy"), new CFANode("dummy"));
-        PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
-        currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+      boolean changed = false;
+
+      if (isRelevant(oldAbstraction.asFormula(), prec.getLocalPredicates().values())) {
+        for (CAssignment c : object.getAction()) {
+          CFAEdge fakeEdge =
+              new CStatementEdge("environment", c, c.getFileLocation(),
+                  new CFANode("dummy"), new CFANode("dummy"));
+          PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
+          currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+        }
+        changed = true;
       }
 
-      PredicateAbstractState newState = PredicateAbstractState.mkNonAbstractionState(currentFormula,
-          oldAbstraction, abstractionLocations);
-      return Collections.singleton(Pair.of(newState, EmptyInferenceObject.getInstance()));
+      if (changed) {
+        PredicateAbstractState newState = PredicateAbstractState.mkNonAbstractionState(currentFormula,
+            oldAbstraction, abstractionLocations);
+        return Collections.singleton(Pair.of(newState, EmptyInferenceObject.getInstance()));
+      } else {
+        return Collections.emptySet();
+      }
     }
+  }
+
+  private boolean isRelevant(BooleanFormula formula, Collection<AbstractionPredicate> predicates) {
+    Set<String> vars = fmgr.extractVariableNames(formula);
+    for (AbstractionPredicate pred : predicates) {
+      Set<String> predVars = fmgr.extractVariableNames(pred.getSymbolicAtom());
+      if (!Sets.intersection(vars, predVars).isEmpty()) {
+        return true;
+      }
+    }
+    return false;
   }
 }

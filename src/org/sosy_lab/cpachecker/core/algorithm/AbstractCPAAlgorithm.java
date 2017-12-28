@@ -401,7 +401,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
           stats.mergeTimer.stop();
         }
       }
-
+      reached = reachedSet.getReached(successor);
       stats.stopTimer.start();
       boolean stop;
       try {
