@@ -27,6 +27,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,43 +42,43 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * Transfer relation for symbolic predicate abstraction. First it computes
- * the strongest post for the given CFA edge. Afterwards it optionally
- * computes an abstraction.
+ * Transfer relation for symbolic predicate abstraction. First it computes the strongest post for
+ * the given CFA edge. Afterwards it optionally computes an abstraction.
  */
 @Options(prefix = "cpa.predicate")
-public class PredicateTransferRelation extends SingleEdgeTransferRelation {
+public class PredicateTransferRelation extends SingleEdgeTransferRelation
+    implements TransferRelationTM {
 
   @Option(secure=true, name = "satCheck",
       description = "maximum blocksize before a satisfiability check is done\n"
@@ -546,5 +554,56 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return result;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(
+      AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    Preconditions.checkArgument(false);
+    return null;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(
+      AbstractState pState,
+      InferenceObject pInferenceObject,
+      Precision pPrecision,
+      CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+
+    PredicateAbstractState predeccessor = (PredicateAbstractState) pState;
+
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      Collection<? extends AbstractState> successors = getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
+
+      Collection<Pair<AbstractState, InferenceObject>> result = new ArrayList<>();
+      for (AbstractState vState : successors) {
+        result.add(Pair.of(vState, PredicateInferenceObject.create(pCfaEdge, predeccessor.getAbstractionFormula())));
+      }
+      return result;
+    } else if (pInferenceObject == EmptyInferenceObject.getInstance()) {
+      return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
+    } else {
+      PredicateInferenceObject object = (PredicateInferenceObject) pInferenceObject;
+
+      PathFormula oldFormula = predeccessor.getPathFormula();
+      AbstractionFormula oldAbstraction = predeccessor.getAbstractionFormula();
+      PersistentMap<CFANode, Integer> abstractionLocations = predeccessor.getAbstractionLocationsOnPath();
+
+      PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula();
+
+      for (CAssignment c : object.getAction()) {
+        CFAEdge fakeEdge =
+            new CStatementEdge("environment", c, c.getFileLocation(),
+                new CFANode("dummy"), new CFANode("dummy"));
+        PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
+        currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+      }
+
+      PredicateAbstractState newState = PredicateAbstractState.mkNonAbstractionState(currentFormula,
+          oldAbstraction, abstractionLocations);
+      return Collections.singleton(Pair.of(newState, EmptyInferenceObject.getInstance()));
+    }
   }
 }

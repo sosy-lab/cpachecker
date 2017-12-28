@@ -162,9 +162,7 @@ public class MainNestedReachedSet implements NestedReachedSet<AbstractState> {
 
   public Precision getPrecision(AbstractState state) {
     Preconditions.checkNotNull(state);
-    Precision prec = reached.get(state);
-    Preconditions.checkArgument(prec != null, "State not in reached set:\n%s", state);
-    return prec;
+    return reached.get(state);
   }
 
   public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {

@@ -137,12 +137,12 @@ public abstract class AbstractReachedSet implements ReachedSet {
 
   @Override
   public Collection<AbstractState> getReached(AbstractState state) {
-    return asCollection();
+    return reached.getReached(state);
   }
 
   @Override
   public Collection<AbstractState> getReached(CFANode location) {
-    return asCollection();
+    return reached.getReached(location);
   }
 
   @Override

@@ -1101,6 +1101,18 @@ public class PredicateAbstractionManager {
     return solver.isUnsat(f);
   }
 
+  public boolean unsat(AbstractionFormula abstractionFormula, AbstractionFormula abstractionFormula2)
+      throws SolverException, InterruptedException {
+
+    BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
+    BooleanFormula absFormula2 = abstractionFormula2.asInstantiatedFormula();
+    BooleanFormula f = bfmgr.and(absFormula, absFormula2);
+
+    logger.log(Level.ALL, "Checking satisfiability of formula", f);
+
+    return solver.isUnsat(f);
+  }
+
   // syntactic creation and manipulation of AbstractionFormulas
 
   /**
@@ -1136,13 +1148,20 @@ public class PredicateAbstractionManager {
    * Both need to have the same block formula.
    */
   public AbstractionFormula makeAnd(AbstractionFormula a1, AbstractionFormula a2) {
-    checkArgument(a1.getBlockFormula().equals(a2.getBlockFormula()));
+    //checkArgument(a1.getBlockFormula().equals(a2.getBlockFormula()));
 
     Region region = amgr.getRegionCreator().makeAnd(a1.asRegion(), a2.asRegion());
     BooleanFormula formula = fmgr.makeAnd(a1.asFormula(), a2.asFormula());
     BooleanFormula instantiatedFormula = fmgr.makeAnd(a1.asInstantiatedFormula(), a2.asInstantiatedFormula());
-
     return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, a1.getBlockFormula(), noAbstractionReuse);
+  }
+
+  public AbstractionFormula makeOr(AbstractionFormula a1, AbstractionFormula a2) throws InterruptedException {
+    Region region = amgr.getRegionCreator().makeOr(a1.asRegion(), a2.asRegion());
+    BooleanFormula formula = fmgr.makeOr(a1.asFormula(), a2.asFormula());
+    BooleanFormula instantiatedFormula = fmgr.makeOr(a1.asInstantiatedFormula(), a2.asInstantiatedFormula());
+    PathFormula pathFormula = pfmgr.makeOr(a1.getBlockFormula(), a2.getBlockFormula());
+    return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, pathFormula, noAbstractionReuse);
   }
 
   private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
