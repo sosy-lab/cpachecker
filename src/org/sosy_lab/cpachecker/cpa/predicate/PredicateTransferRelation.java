@@ -596,7 +596,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
       PersistentMap<CFANode, Integer> abstractionLocations = predeccessor.getAbstractionLocationsOnPath();
 
       PredicatePrecision prec = (PredicatePrecision) pPrecision;
-      PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula();
+      PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
 
       boolean changed = false;
 

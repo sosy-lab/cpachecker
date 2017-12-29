@@ -99,6 +99,14 @@ public class PredicateCPA
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(
+      secure = true,
+      name = "mergeTypeForInferenceObjects",
+      values = { "SEP", "JOIN" },
+      toUppercase = true,
+      description = "which merge operator to use for inference objects")
+  private String mergeTypeForInferenceObjects = "JOIN";
+
   @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
@@ -381,8 +389,13 @@ public class PredicateCPA
 
   @Override
   public MergeOperator getMergeForInferenceObject() {
-    //return MergeSepOperator.getInstance();
-    return new MergeForInferenceObjects(solver.getFormulaManager().getBooleanFormulaManager());
+    if (mergeTypeForInferenceObjects.equals("SEP")) {
+      return MergeSepOperator.getInstance();
+    } else if (mergeTypeForInferenceObjects.equals("JOIN")) {
+      return new MergeForInferenceObjects(solver.getFormulaManager().getBooleanFormulaManager());
+    } else {
+      return null;
+    }
   }
 
   @Override

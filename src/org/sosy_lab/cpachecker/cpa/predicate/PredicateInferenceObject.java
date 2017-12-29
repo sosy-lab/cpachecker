@@ -274,6 +274,8 @@ public class PredicateInferenceObject implements InferenceObject {
   private final Set<CAssignment> edgeFormulas;
   private final BooleanFormula abstraction;
 
+  private final static boolean useUndefFuncs = true;
+
   private PredicateInferenceObject(Set<CAssignment> f, BooleanFormula a) {
     Preconditions.checkNotNull(f);
     Preconditions.checkNotNull(a);
@@ -295,16 +297,18 @@ public class PredicateInferenceObject implements InferenceObject {
 
         CRightHandSide right = ((CAssignment) stmnt).getRightHandSide();
 
-        FileLocation loc = right.getFileLocation();
-        CType type = right.getExpressionType();
+        if (useUndefFuncs) {
+          FileLocation loc = right.getFileLocation();
+          CType type = right.getExpressionType();
 
-        CFunctionType fType = new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
-        CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "env_func", Collections.emptyList());
-        CExpression name = new CIdExpression(loc, funcDecl);
+          CFunctionType fType = new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
+          CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "env_func", Collections.emptyList());
+          CExpression name = new CIdExpression(loc, funcDecl);
 
-        CFunctionCallExpression fExp = new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
+          CFunctionCallExpression fExp = new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
 
-        right = fExp;
+          right = fExp;
+        }
 
         if (right instanceof CExpression) {
           Pair<CExpression, Boolean> newRight = right.accept(transformer);
@@ -316,9 +320,10 @@ public class PredicateInferenceObject implements InferenceObject {
             return EmptyInferenceObject.getInstance();
           }
         } else {
+          CFunctionCallExpression fExp = (CFunctionCallExpression) right;
           if (left.getSecond()) {
             return new PredicateInferenceObject(
-              Collections.singleton(new CFunctionCallAssignmentStatement(right.getFileLocation(), (CLeftHandSide) left.getFirst(), fExp)), a.asFormula());
+                Collections.singleton(new CFunctionCallAssignmentStatement(right.getFileLocation(), (CLeftHandSide) left.getFirst(), fExp)), a.asFormula());
           } else {
             return EmptyInferenceObject.getInstance();
           }
