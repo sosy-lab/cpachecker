@@ -441,7 +441,14 @@ class KInductionProver implements AutoCloseable {
 
     stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
-    FluentIterable<AbstractState> loopHeadStates = filterLoopHeadStates(reached, loopHeads);
+
+    // We cannot use the initial loop-head state,
+    // because its SSA map and pointer-target sets are empty.
+    // We also do not want to always use the last state,
+    // because it may lead to unnecessarily large formulas.
+    FluentIterable<AbstractState> loopHeadStates =
+        filterIteration(AbstractStates.filterLocations(reached, loopHeads), 2);
+
     BooleanFormula loopHeadInv =
         bfmgr.and(
             BMCHelper.assertAt(
@@ -567,17 +574,6 @@ class KInductionProver implements AutoCloseable {
     }
     BooleanFormula assertion = pCandidateInvariant.getAssertion(reached, fmgr, pfmgr, 1);
     return bfmgr.not(assertion);
-  }
-
-  private FluentIterable<AbstractState> filterLoopHeadStates(ReachedSet pReached,
-      ImmutableSet<CFANode> pLoopHeads) {
-    FluentIterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(pReached, pLoopHeads);
-    // We cannot use the initial loop-head state,
-    // because its SSA map and pointer-target sets are empty.
-    // We also do not want to always use the last state,
-    // because it may lead to an unnecessarily large formula.
-    return filterIteration(loopHeadStates, 2);
   }
 
   private FluentIterable<AbstractState> filterIteration(
