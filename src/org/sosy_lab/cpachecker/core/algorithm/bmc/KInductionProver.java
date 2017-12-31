@@ -573,12 +573,11 @@ class KInductionProver implements AutoCloseable {
       ImmutableSet<CFANode> pLoopHeads) {
     FluentIterable<AbstractState> loopHeadStates =
         AbstractStates.filterLocations(pReached, pLoopHeads);
-    FluentIterable<AbstractState> firstItStates = filterIteration(loopHeadStates, 1);
-    FluentIterable<AbstractState> secondItStates = filterIteration(loopHeadStates, 2);
-    if (secondItStates.isEmpty()) {
-      return firstItStates;
-    }
-    return secondItStates;
+    // We cannot use the initial loop-head state,
+    // because its SSA map and pointer-target sets are empty.
+    // We also do not want to always use the last state,
+    // because it may lead to an unnecessarily large formula.
+    return filterIteration(loopHeadStates, 2);
   }
 
   private FluentIterable<AbstractState> filterIteration(
