@@ -26,13 +26,17 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -99,49 +103,89 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
 
   public static AbstractLocationFormulaInvariant makeLocationInvariant(
       final CFANode pLocation, final String pInvariant) {
-    return new AbstractLocationFormulaInvariant(pLocation) {
+    return new SMTLibLocationFormulaInvariant(pLocation, pInvariant);
+  }
 
-      /**
-       * Is the invariant known to be the boolean constant 'false'
-       */
-      private boolean isDefinitelyBooleanFalse = false;
-      private final Map<FormulaManagerView, BooleanFormula> cachedFormulas = new HashMap<>();
+  private static class SMTLibLocationFormulaInvariant extends AbstractLocationFormulaInvariant {
 
-      @Override
-      public BooleanFormula getFormula(
-          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
-          throws CPATransferException, InterruptedException {
-        BooleanFormula formula;
+    /** Is the invariant known to be the boolean constant 'false' */
+    private boolean isDefinitelyBooleanFalse = false;
 
-        if (cachedFormulas.containsKey(pFMGR)) {
-          formula = cachedFormulas.get(pFMGR);
-        } else {
-          formula = pFMGR.parse(pInvariant);
-          cachedFormulas.put(pFMGR, formula);
-        }
+    private final LoadingCache<FormulaManagerView, BooleanFormula> cachedFormulas;
 
-        if (!isDefinitelyBooleanFalse && pFMGR.getBooleanFormulaManager().isFalse(formula)) {
-          isDefinitelyBooleanFalse = true;
-        }
-        return formula;
+    private final String invariant;
+
+    private SMTLibLocationFormulaInvariant(CFANode pLocation, String pInvariant) {
+      super(pLocation);
+      invariant = pInvariant;
+      cachedFormulas =
+          CacheBuilder.newBuilder()
+              .weakKeys()
+              .weakValues()
+              .build(CacheLoader.from(fmgr -> fmgr.parse(invariant)));
+    }
+
+    @Override
+    public BooleanFormula getFormula(
+        FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+        throws CPATransferException, InterruptedException {
+
+      if (isDefinitelyBooleanFalse) {
+        return pFMGR.getBooleanFormulaManager().makeFalse();
       }
 
-      @Override
-      public String toString() {
-        return pInvariant;
+      BooleanFormula formula;
+      try {
+        formula = cachedFormulas.get(pFMGR);
+      } catch (ExecutionException e) {
+        Throwable cause = e.getCause();
+        if (cause != null) {
+          Throwables.propagateIfPossible(
+              cause, CPATransferException.class, InterruptedException.class);
+          throw new UncheckedExecutionException(cause);
+        }
+        throw new UncheckedExecutionException(e);
       }
 
-      @Override
-      public void assumeTruth(ReachedSet pReachedSet) {
-        if (isDefinitelyBooleanFalse) {
-          Iterable<AbstractState> targetStates =
-              ImmutableList.copyOf(AbstractStates.filterLocation(pReachedSet, pLocation));
-          pReachedSet.removeAll(targetStates);
-          for (ARGState s : from(targetStates).filter(ARGState.class)) {
-            s.removeFromARG();
-          }
+      if (!isDefinitelyBooleanFalse && pFMGR.getBooleanFormulaManager().isFalse(formula)) {
+        isDefinitelyBooleanFalse = true;
+      }
+
+      return formula;
+    }
+
+    @Override
+    public String toString() {
+      return invariant;
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof SMTLibLocationFormulaInvariant) {
+        SMTLibLocationFormulaInvariant other = (SMTLibLocationFormulaInvariant) pOther;
+        return invariant.equals(other.invariant);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return invariant.hashCode();
+    }
+
+    @Override
+    public void assumeTruth(ReachedSet pReachedSet) {
+      if (isDefinitelyBooleanFalse) {
+        Iterable<AbstractState> targetStates =
+            ImmutableList.copyOf(AbstractStates.filterLocations(pReachedSet, getLocations()));
+        pReachedSet.removeAll(targetStates);
+        for (ARGState s : from(targetStates).filter(ARGState.class)) {
+          s.removeFromARG();
         }
       }
-    };
+    }
   }
 }
