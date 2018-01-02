@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -102,11 +103,63 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
   }
 
   public static AbstractLocationFormulaInvariant makeLocationInvariant(
+      CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFMGR) {
+    class SpecificSMTLibLocationFormulaInvariant extends AbstractLocationFormulaInvariant {
+
+      private final BooleanFormula invariant;
+
+      private final SMTLibLocationFormulaInvariant delegate;
+
+      public SpecificSMTLibLocationFormulaInvariant() {
+        super(pLocation);
+        invariant = pInvariant;
+        delegate =
+            new SMTLibLocationFormulaInvariant(pLocation, pFMGR.dumpFormula(pInvariant).toString());
+      }
+
+      @Override
+      public BooleanFormula getFormula(
+          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
+          throws CPATransferException, InterruptedException {
+        return delegate.getFormula(pFMGR, pPFMGR, pContext);
+      }
+
+      @Override
+      public void assumeTruth(ReachedSet pReachedSet) {
+        delegate.assumeTruth(pReachedSet);
+      }
+
+      @Override
+      public String toString() {
+        return pInvariant.toString();
+      }
+
+      @Override
+      public boolean equals(Object pOther) {
+        if (this == pOther) {
+          return true;
+        }
+        if (pOther instanceof SpecificSMTLibLocationFormulaInvariant) {
+          return pInvariant.equals(((SpecificSMTLibLocationFormulaInvariant) pOther).invariant);
+        }
+        return false;
+      }
+
+      @Override
+      public int hashCode() {
+        return pInvariant.hashCode();
+      }
+    }
+    return new SpecificSMTLibLocationFormulaInvariant();
+  }
+
+  public static AbstractLocationFormulaInvariant makeLocationInvariant(
       final CFANode pLocation, final String pInvariant) {
     return new SMTLibLocationFormulaInvariant(pLocation, pInvariant);
   }
 
-  private static class SMTLibLocationFormulaInvariant extends AbstractLocationFormulaInvariant {
+  private static final class SMTLibLocationFormulaInvariant
+      extends AbstractLocationFormulaInvariant {
 
     /** Is the invariant known to be the boolean constant 'false' */
     private boolean isDefinitelyBooleanFalse = false;
