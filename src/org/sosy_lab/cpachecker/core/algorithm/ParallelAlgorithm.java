@@ -616,14 +616,30 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsEntry successfullAnalysisStats = null;
       for (StatisticsEntry subStats : allAnalysesStats) {
-        if (subStats.terminated.get()) {
-          Result result = determineAnalysisResult(pResult, subStats.name);
-          for (Statistics s : subStats.subStatistics) {
-            StatisticsUtils.writeOutputFiles(s, logger, result, subStats.reachedSet);
-          }
+        if (isSuccessfulAnalysis(subStats.name)) {
+          successfullAnalysisStats = subStats;
+        } else {
+          writeSubOutputFiles(pResult, subStats);
         }
       }
+      if (successfullAnalysisStats != null) {
+        writeSubOutputFiles(pResult, successfullAnalysisStats);
+      }
+    }
+
+    private void writeSubOutputFiles(Result pResult, StatisticsEntry pSubStats) {
+      if (pSubStats.terminated.get()) {
+        Result result = determineAnalysisResult(pResult, pSubStats.name);
+        for (Statistics s : pSubStats.subStatistics) {
+          StatisticsUtils.writeOutputFiles(s, logger, result, pSubStats.reachedSet);
+        }
+      }
+    }
+
+    private boolean isSuccessfulAnalysis(String pAnalysisName) {
+      return successfulAnalysisName != null && successfulAnalysisName.equals(pAnalysisName);
     }
 
     private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
