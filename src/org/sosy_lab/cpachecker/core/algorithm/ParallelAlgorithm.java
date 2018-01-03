@@ -597,10 +597,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         }
         boolean terminated = subStats.terminated.get();
         if (terminated) {
-          Result result = pResult;
-          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
-            result = Result.UNKNOWN;
-          }
+          Result result = determineAnalysisResult(pResult, subStats.name);
           for (Statistics s : subStats.subStatistics) {
             StatisticsUtils.printStatistics(s, pOut, logger, result, subStats.reachedSet);
           }
@@ -621,15 +618,19 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
       for (StatisticsEntry subStats : allAnalysesStats) {
         if (subStats.terminated.get()) {
-          Result result = pResult;
-          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
-            result = Result.UNKNOWN;
-          }
+          Result result = determineAnalysisResult(pResult, subStats.name);
           for (Statistics s : subStats.subStatistics) {
             StatisticsUtils.writeOutputFiles(s, logger, result, subStats.reachedSet);
           }
         }
       }
+    }
+
+    private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
+      if (successfulAnalysisName != null && !successfulAnalysisName.equals(pActualAnalysisName)) {
+        return Result.UNKNOWN;
+      }
+      return pResult;
     }
   }
 
