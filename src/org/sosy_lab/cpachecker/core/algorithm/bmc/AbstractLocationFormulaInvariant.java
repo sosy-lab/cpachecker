@@ -74,14 +74,10 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
 
   @Override
   public BooleanFormula getAssertion(
-      Iterable<AbstractState> pReachedSet,
-      FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR,
-      int pDefaultIndex)
+      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
     Iterable<AbstractState> locationStates = AbstractStates.filterLocations(pReachedSet, locations);
-    List<BooleanFormula> assertions =
-        BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR, pDefaultIndex);
+    List<BooleanFormula> assertions = BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR);
     return pFMGR.getBooleanFormulaManager().and(assertions);
   }
 

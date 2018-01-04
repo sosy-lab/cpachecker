@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -35,8 +36,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Set;
 
 public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInvariant {
 
@@ -53,10 +52,7 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
 
   @Override
   public BooleanFormula getAssertion(
-      Iterable<AbstractState> pReachedSet,
-      FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR,
-      int pDefaultIndex) {
+      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
     Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
     return pFMGR.getBooleanFormulaManager().not(
         BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));

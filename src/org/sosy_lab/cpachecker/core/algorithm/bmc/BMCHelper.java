@@ -73,8 +73,7 @@ public final class BMCHelper {
       Iterable<AbstractState> pStates,
       final CandidateInvariant pInvariant,
       final FormulaManagerView pFMGR,
-      final PathFormulaManager pPFMGR,
-      int pDefaultIndex)
+      final PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
     return assertAt(
         pStates,
@@ -86,28 +85,21 @@ public final class BMCHelper {
             return pInvariant.getFormula(pFMGR, pPFMGR, pContext);
           }
         },
-        pFMGR,
-        pDefaultIndex);
+        pFMGR);
   }
 
   public static List<BooleanFormula> assertAt(
-      Iterable<AbstractState> pStates,
-      FormulaInContext pInvariant,
-      FormulaManagerView pFMGR,
-      int pDefaultIndex)
+      Iterable<AbstractState> pStates, FormulaInContext pInvariant, FormulaManagerView pFMGR)
       throws CPATransferException, InterruptedException {
     List<BooleanFormula> result = Lists.newArrayList();
     for (AbstractState abstractState : pStates) {
-      result.add(assertAt(abstractState, pInvariant, pFMGR, pDefaultIndex));
+      result.add(assertAt(abstractState, pInvariant, pFMGR));
     }
     return result;
   }
 
   private static BooleanFormula assertAt(
-      AbstractState pState,
-      FormulaInContext pInvariant,
-      FormulaManagerView pFMGR,
-      int pDefaultIndex)
+      AbstractState pState, FormulaInContext pInvariant, FormulaManagerView pFMGR)
       throws CPATransferException, InterruptedException {
     PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
     PathFormula pathFormula = pas.getPathFormula();
@@ -117,9 +109,6 @@ public final class BMCHelper {
       return bfmgr.makeTrue();
     }
     SSAMap ssaMap = pathFormula.getSsa();
-    if (pDefaultIndex > 0) {
-      ssaMap = pathFormula.getSsa().withDefault(pDefaultIndex);
-    }
     BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
     BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);
     return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);

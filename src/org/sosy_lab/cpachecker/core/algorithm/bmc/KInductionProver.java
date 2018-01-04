@@ -426,7 +426,7 @@ class KInductionProver implements AutoCloseable {
             }
           }
           predecessorAssertion =
-              candidateInvariant.getAssertion(predecessorReachedSet, fmgr, pfmgr, 1);
+              candidateInvariant.getAssertion(predecessorReachedSet, fmgr, pfmgr);
         }
       }
       assertions.put(candidateInvariant, predecessorAssertion);
@@ -446,15 +446,14 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula loopHeadInv =
         bfmgr.and(
-            BMCHelper.assertAt(
-                loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
+            BMCHelper.assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
     BooleanFormula invariants = loopHeadInv;
     for (CandidateInvariant candidateInvariant : confirmedCandidates) {
       shutdownNotifier.shutdownIfNecessary();
       invariants =
           bfmgr.and(
               invariants,
-              candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr, 1));
+              candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr));
     }
 
     // Create the formula asserting the faultiness of the successor
@@ -504,13 +503,13 @@ class KInductionProver implements AutoCloseable {
       loopHeadInv =
           bfmgr.and(
               BMCHelper.assertAt(
-                  loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
+                  loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
       while (!isInvariant && !loopHeadInv.equals(oldLoopHeadInv)) {
         shutdownNotifier.shutdownIfNecessary();
         invariants = loopHeadInv;
         for (CandidateInvariant ci : confirmedCandidates) {
           invariants =
-              bfmgr.and(invariants, ci.getAssertion(filterIteration(reached, 2), fmgr, pfmgr, 1));
+              bfmgr.and(invariants, ci.getAssertion(filterIteration(reached, 2), fmgr, pfmgr));
         }
         newInvariants = true;
         push(invariants);
@@ -525,7 +524,7 @@ class KInductionProver implements AutoCloseable {
         loopHeadInv =
             bfmgr.and(
                 BMCHelper.assertAt(
-                    loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
+                    loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
       }
 
       // If the proof is successful, move the problem from the set of open
@@ -549,7 +548,7 @@ class KInductionProver implements AutoCloseable {
         loopHeadInv =
             bfmgr.and(
                 loopHeadInv,
-                candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr, 1));
+                candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr));
         newInvariants = true;
       }
       // Update invariants if required
@@ -573,7 +572,7 @@ class KInductionProver implements AutoCloseable {
     if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
       reached = filterIteration(reached, pK + 1);
     }
-    BooleanFormula assertion = pCandidateInvariant.getAssertion(reached, fmgr, pfmgr, 1);
+    BooleanFormula assertion = pCandidateInvariant.getAssertion(reached, fmgr, pfmgr);
     return bfmgr.not(assertion);
   }
 

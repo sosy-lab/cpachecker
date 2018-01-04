@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -35,10 +36,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class CandidateInvariantConjunction implements CandidateInvariant {
 
@@ -60,13 +57,13 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
   }
 
   @Override
-  public BooleanFormula getAssertion(Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR, int pDefaultIndex)
+  public BooleanFormula getAssertion(
+      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
     BooleanFormula formula = bfmgr.makeTrue();
     for (CandidateInvariant element : elements) {
-      formula = bfmgr.and(formula, element.getAssertion(pReachedSet, pFMGR, pPFMGR, pDefaultIndex));
+      formula = bfmgr.and(formula, element.getAssertion(pReachedSet, pFMGR, pPFMGR));
     }
     return formula;
   }
