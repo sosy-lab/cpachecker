@@ -273,8 +273,7 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula invariant = booleanFormulaManager.makeTrue();
 
-    for (CandidateInvariant candidateInvariant :
-          getConfirmedCandidates(pLocation).filter(CandidateInvariant.class)) {
+    for (CandidateInvariant candidateInvariant : getConfirmedCandidates(pLocation)) {
       invariant = booleanFormulaManager.and(invariant, candidateInvariant.getFormula(pFMGR, pPFMGR, pContext));
     }
 
