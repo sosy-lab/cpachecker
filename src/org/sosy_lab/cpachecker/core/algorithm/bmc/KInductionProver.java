@@ -456,7 +456,10 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula invariants = loopHeadInv;
     for (CandidateInvariant candidateInvariant : confirmedCandidates) {
       shutdownNotifier.shutdownIfNecessary();
-      invariants = bfmgr.and(invariants, candidateInvariant.getAssertion(reached, fmgr, pfmgr, 1));
+      invariants =
+          bfmgr.and(
+              invariants,
+              candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr, 1));
     }
 
     // Create the formula asserting the faultiness of the successor
@@ -511,7 +514,8 @@ class KInductionProver implements AutoCloseable {
         shutdownNotifier.shutdownIfNecessary();
         invariants = loopHeadInv;
         for (CandidateInvariant ci : confirmedCandidates) {
-          invariants = bfmgr.and(invariants, ci.getAssertion(reached, fmgr, pfmgr, 1));
+          invariants =
+              bfmgr.and(invariants, ci.getAssertion(filterIteration(reached, 2), fmgr, pfmgr, 1));
         }
         newInvariants = true;
         push(invariants);
@@ -548,7 +552,9 @@ class KInductionProver implements AutoCloseable {
       if (isInvariant) {
         // Add confirmed candidate
         loopHeadInv =
-            bfmgr.and(loopHeadInv, candidateInvariant.getAssertion(reached, fmgr, pfmgr, 1));
+            bfmgr.and(
+                loopHeadInv,
+                candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr, 1));
         newInvariants = true;
       }
       // Update invariants if required
@@ -577,8 +583,8 @@ class KInductionProver implements AutoCloseable {
   }
 
   private FluentIterable<AbstractState> filterIteration(
-      FluentIterable<AbstractState> pStates, int pIteration) {
-    return pStates.filter(
+      Iterable<AbstractState> pStates, int pIteration) {
+    return FluentIterable.from(pStates).filter(
         pArg0 -> {
           if (pArg0 == null) {
             return false;
