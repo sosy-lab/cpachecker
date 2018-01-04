@@ -269,17 +269,17 @@ class KInductionProver implements AutoCloseable {
       throws CPATransferException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+    BooleanFormulaManager booleanFormulaManager = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = bfmgr.makeTrue();
+    BooleanFormula invariant = booleanFormulaManager.makeTrue();
 
     for (CandidateInvariant candidateInvariant :
           getConfirmedCandidates(pLocation).filter(CandidateInvariant.class)) {
-      invariant = bfmgr.and(invariant, candidateInvariant.getFormula(pFMGR, pPFMGR, pContext));
+      invariant = booleanFormulaManager.and(invariant, candidateInvariant.getFormula(pFMGR, pPFMGR, pContext));
     }
 
     invariant =
-        bfmgr.and(
+        booleanFormulaManager.and(
             invariant,
             currentInvariantsSupplier.getInvariantFor(
                 pLocation, Optional.empty(), pFMGR, pPFMGR, pContext));
@@ -568,11 +568,11 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula getSuccessorViolation(CandidateInvariant pCandidateInvariant,
       ReachedSet pReached, int pK) throws CPATransferException, InterruptedException {
-    FluentIterable<AbstractState> reached = FluentIterable.from(pReached);
+    FluentIterable<AbstractState> states = FluentIterable.from(pReached);
     if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
-      reached = filterIteration(reached, pK + 1);
+      states = filterIteration(states, pK + 1);
     }
-    BooleanFormula assertion = pCandidateInvariant.getAssertion(reached, fmgr, pfmgr);
+    BooleanFormula assertion = pCandidateInvariant.getAssertion(states, fmgr, pfmgr);
     return bfmgr.not(assertion);
   }
 
