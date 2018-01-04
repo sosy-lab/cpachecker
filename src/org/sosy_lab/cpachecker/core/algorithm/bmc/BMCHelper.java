@@ -108,7 +108,7 @@ public final class BMCHelper {
     if (bfmgr.isFalse(stateFormula)) {
       return bfmgr.makeTrue();
     }
-    SSAMap ssaMap = pathFormula.getSsa();
+    SSAMap ssaMap = pathFormula.getSsa().withDefault(1);
     BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
     BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);
     return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);
