@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.annotation.Nullable;
 
 public class StaticCandidateProvider implements CandidateGenerator {
 
@@ -117,7 +118,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
     final Iterator<CandidateInvariant> iterator = candidates.descendingIterator();
     return new Iterator<CandidateInvariant>() {
 
-      private CandidateInvariant candidate;
+      private @Nullable CandidateInvariant candidate;
 
       @Override
       public boolean hasNext() {
@@ -131,9 +132,13 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
       @Override
       public void remove() {
+        if (candidate == null) {
+          throw new IllegalStateException();
+        }
         refutedInvariants.add(candidate);
         iterator.remove();
         order.remove(candidate);
+        candidate = null;
       }
     };
   }
