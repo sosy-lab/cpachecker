@@ -187,20 +187,15 @@ class KInductionProver implements AutoCloseable {
   }
 
   /**
-   * Gets the prover environment to be used within the KInductionProver.
-   *
-   * This prover may be preinitialized with additional supporting invariants.
-   * The presence of these invariants, including pushing them onto and
-   * popping them off of the prover stack, is taken care of automatically.
-   *
-   * @return the prover environment to be used within the KInductionProver.
+   * Checks if the prover instance has been initialized, and, if not, initializes it. Afterwards,
+   * the prover is guaranteed to be initialized.
    */
-  private ProverEnvironment getProver() {
+  @SuppressWarnings("unchecked")
+  private void ensureProverInitialized() {
     if (!isProverInitialized()) {
       prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
     }
     assert isProverInitialized();
-    return prover;
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
@@ -467,7 +462,7 @@ class KInductionProver implements AutoCloseable {
     this.previousK = pK + 1;
 
     // Attempt the induction proofs
-    ProverEnvironment prover = getProver();
+    ensureProverInitialized();
     int numberOfSuccessfulProofs = 0;
     stats.inductionPreparation.stop();
     push(invariants); // Assert the known invariants
