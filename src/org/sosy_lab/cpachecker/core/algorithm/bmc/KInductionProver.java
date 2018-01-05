@@ -369,9 +369,7 @@ class KInductionProver implements AutoCloseable {
     // Create initial reached set:
     // Run algorithm in order to create formula (A & B)
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
-
     LoopIterationBounding stepCaseBoundsCPA = CPAs.retrieveCPA(cpa, LoopIterationBounding.class);
-
     // Initialize the reached set if necessary
     ensureReachedSetInitialized(reached);
 
@@ -424,7 +422,6 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Assert the known invariants at the loop head at end of the first iteration.
-
     stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
 
@@ -446,15 +443,12 @@ class KInductionProver implements AutoCloseable {
               confirmedCandidateInvariants,
               candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr));
     }
-
-    // Create the formula asserting the faultiness of the successor
-
     this.previousK = pK + 1;
+    ensureProverInitialized();
+    stats.inductionPreparation.stop();
 
     // Attempt the induction proofs
-    ensureProverInitialized();
     int numberOfSuccessfulProofs = 0;
-    stats.inductionPreparation.stop();
     boolean invariantsPushed = false;
     boolean newInvariants = true;
 
@@ -486,7 +480,6 @@ class KInductionProver implements AutoCloseable {
       // Record the successor violation formula to reuse its negation as an
       // assertion in a future induction attempt
       violationFormulas.put(candidateInvariant, successorViolation);
-
 
       logger.log(Level.INFO, "Starting induction check...");
 
