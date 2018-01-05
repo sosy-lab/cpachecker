@@ -307,10 +307,8 @@ class KInductionProver implements AutoCloseable {
     return invariant;
   }
 
-  private FluentIterable<LocationFormulaInvariant> getConfirmedCandidates(
-      final CFANode pLocation) {
+  private FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
     return from(confirmedCandidates)
-        .filter(LocationFormulaInvariant.class)
         .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
   }
 
@@ -590,9 +588,8 @@ class KInductionProver implements AutoCloseable {
 
   private Set<CandidateInvariantConjunction> buildArtificialConjunctions(
       final Set<CandidateInvariant> pCandidateInvariants) {
-    FluentIterable<? extends LocationFormulaInvariant> remainingLoopHeadCandidateInvariants =
+    FluentIterable<? extends CandidateInvariant> remainingLoopHeadCandidateInvariants =
         from(pCandidateInvariants)
-            .filter(LocationFormulaInvariant.class)
             .filter(
                 pLocationFormulaInvariant -> {
                   return cfa.getLoopStructure().isPresent()
@@ -609,12 +606,12 @@ class KInductionProver implements AutoCloseable {
     CandidateInvariantConjunction artificialConjunction = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
     Set<CandidateInvariantConjunction> artificialConjunctions = Sets.newHashSet();
 
-    Multimap<String, LocationFormulaInvariant> functionInvariants = HashMultimap.create();
-    Set<LocationFormulaInvariant> others = new HashSet<>();
-    for (LocationFormulaInvariant locationFormulaInvariant : remainingLoopHeadCandidateInvariants) {
-      if (locationFormulaInvariant instanceof AbstractLocationFormulaInvariant) {
+    Multimap<String, CandidateInvariant> functionInvariants = HashMultimap.create();
+    Set<CandidateInvariant> others = new HashSet<>();
+    for (CandidateInvariant locationFormulaInvariant : remainingLoopHeadCandidateInvariants) {
+      if (locationFormulaInvariant instanceof SingleLocationFormulaInvariant) {
         functionInvariants.put(
-            ((AbstractLocationFormulaInvariant) locationFormulaInvariant)
+            ((SingleLocationFormulaInvariant) locationFormulaInvariant)
                 .getLocation()
                 .getFunctionName(),
             locationFormulaInvariant);
@@ -625,7 +622,8 @@ class KInductionProver implements AutoCloseable {
     for (String key : new ArrayList<>(functionInvariants.keys())) {
       functionInvariants.putAll(key, others);
     }
-    for (Map.Entry<String, Collection<LocationFormulaInvariant>> functionInvariantsEntry : functionInvariants.asMap().entrySet()) {
+    for (Map.Entry<String, Collection<CandidateInvariant>> functionInvariantsEntry :
+        functionInvariants.asMap().entrySet()) {
       if (functionInvariantsEntry.getValue().size() > 1
           && functionInvariantsEntry.getValue().size() < remainingLoopHeadCandidateInvariants.size()) {
         // Use filter instead of computed collection
@@ -633,11 +631,11 @@ class KInductionProver implements AutoCloseable {
         artificialConjunctions.add(
             CandidateInvariantConjunction.of(
                 remainingLoopHeadCandidateInvariants.filter(
-                    (Predicate<LocationFormulaInvariant>)
-                        pLocationFormulaInvariant -> {
-                          if (pLocationFormulaInvariant
-                              instanceof AbstractLocationFormulaInvariant) {
-                            return ((AbstractLocationFormulaInvariant) pLocationFormulaInvariant)
+                    (Predicate<CandidateInvariant>)
+                        pCandidateInvariant -> {
+                          if (pCandidateInvariant
+                              instanceof SingleLocationFormulaInvariant) {
+                            return ((SingleLocationFormulaInvariant) pCandidateInvariant)
                                 .getLocation()
                                 .getFunctionName()
                                 .equals(functionInvariantsEntry.getKey());
@@ -663,19 +661,14 @@ class KInductionProver implements AutoCloseable {
    */
   private boolean canBeAsserted(
       CandidateInvariant pCandidateInvariant, Set<CFANode> pImmediateLoopHeads) {
-    if (pCandidateInvariant instanceof LocationFormulaInvariant) {
-      for (CFANode immediateLoopHead : pImmediateLoopHeads) {
-        for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(immediateLoopHead)) {
-          if (loop.getLoopNodes()
-              .stream()
-              .anyMatch(lh -> ((LocationFormulaInvariant) pCandidateInvariant).appliesTo(lh))) {
-            return true;
-          }
+    for (CFANode immediateLoopHead : pImmediateLoopHeads) {
+      for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(immediateLoopHead)) {
+        if (loop.getLoopNodes().stream().anyMatch(lh -> pCandidateInvariant.appliesTo(lh))) {
+          return true;
         }
       }
-      return false;
     }
-    return true;
+    return false;
   }
 
   private void ensureReachedSetInitialized(ReachedSet pReachedSet) throws InterruptedException {

@@ -47,17 +47,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-
-public abstract class AbstractLocationFormulaInvariant implements LocationFormulaInvariant {
+public abstract class SingleLocationFormulaInvariant implements CandidateInvariant {
 
   private final CFANode location;
 
-  public AbstractLocationFormulaInvariant(CFANode pLocation) {
+  public SingleLocationFormulaInvariant(CFANode pLocation) {
     Preconditions.checkNotNull(pLocation);
     this.location = pLocation;
   }
 
-  protected CFANode getLocation() {
+  public final CFANode getLocation() {
     return location;
   }
 
@@ -80,8 +79,8 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
     // Do nothing
   }
 
-  public static LocationFormulaInvariant makeBooleanInvariant(CFANode pLocation, final boolean pValue) {
-    return new AbstractLocationFormulaInvariant(pLocation) {
+  public static CandidateInvariant makeBooleanInvariant(CFANode pLocation, final boolean pValue) {
+    return new SingleLocationFormulaInvariant(pLocation) {
 
       @Override
       public BooleanFormula getFormula(
@@ -92,9 +91,9 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
     };
   }
 
-  public static AbstractLocationFormulaInvariant makeLocationInvariant(
+  public static CandidateInvariant makeLocationInvariant(
       CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFMGR) {
-    class SpecificSMTLibLocationFormulaInvariant extends AbstractLocationFormulaInvariant {
+    class SpecificSMTLibLocationFormulaInvariant extends SingleLocationFormulaInvariant {
 
       private final BooleanFormula invariant;
 
@@ -145,13 +144,13 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
     return new SpecificSMTLibLocationFormulaInvariant();
   }
 
-  public static AbstractLocationFormulaInvariant makeLocationInvariant(
+  public static CandidateInvariant makeLocationInvariant(
       final CFANode pLocation, final String pInvariant) {
     return new SMTLibLocationFormulaInvariant(pLocation, pInvariant);
   }
 
   private static final class SMTLibLocationFormulaInvariant
-      extends AbstractLocationFormulaInvariant {
+      extends SingleLocationFormulaInvariant {
 
     /** Is the invariant known to be the boolean constant 'false' */
     private boolean isDefinitelyBooleanFalse = false;

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -100,50 +100,12 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
   }
 
   public static CandidateInvariantConjunction of(Iterable<? extends CandidateInvariant> pElements) {
-    if (areMatchingLocationInvariants(pElements)) {
-      return new LocationCandidateInvariantConjunction(
-          FluentIterable.from(pElements).filter(LocationFormulaInvariant.class));
-    }
     return new CandidateInvariantConjunction(pElements);
   }
 
-  private static boolean areMatchingLocationInvariants(
-      Iterable<? extends CandidateInvariant> pElements) {
-    FluentIterable<? extends CandidateInvariant> elements = FluentIterable.from(pElements);
-    if (elements.isEmpty()) {
-      return false;
-    }
-    return elements.allMatch(lfi -> lfi instanceof LocationFormulaInvariant);
-  }
-
-  private static class LocationCandidateInvariantConjunction extends CandidateInvariantConjunction
-      implements LocationFormulaInvariant {
-
-    private final FluentIterable<? extends LocationFormulaInvariant> elements;
-
-    private LocationCandidateInvariantConjunction(
-        FluentIterable<? extends LocationFormulaInvariant> pElements) {
-      super(pElements);
-      elements = pElements;
-    }
-
-    @Override
-    public boolean appliesTo(CFANode pLocation) {
-      return elements.anyMatch(e -> e.appliesTo(pLocation));
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      // equals of superclass is fine here
-      return super.equals(pObj);
-    }
-
-    @Override
-    public int hashCode() {
-      // hash code of superclass is fine here
-      return super.hashCode();
-    }
-
+  @Override
+  public boolean appliesTo(CFANode pLocation) {
+    return Iterables.any(elements, e -> e.appliesTo(pLocation));
   }
 
 }

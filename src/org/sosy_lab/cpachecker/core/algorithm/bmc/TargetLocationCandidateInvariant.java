@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public enum TargetLocationCandidateInvariant implements LocationFormulaInvariant {
+public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
   INSTANCE;
 

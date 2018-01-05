@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.SingleLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -35,7 +35,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -82,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
@@ -843,7 +841,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     private final Set<ARGState> elementsOnPath;
     private final List<ARGState> abstractionStatesTrace;
     private final List<InfeasiblePrefix> infeasiblePrefixes;
-    private final List<AbstractLocationFormulaInvariant> foundInvariants = new ArrayList<>();
+    private final List<CandidateInvariant> foundInvariants = new ArrayList<>();
     private final InterpolationManager imgr;
 
     private InvCandidateGenerator(ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
@@ -938,7 +936,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
       for (CandidateInvariant inv : pCandidates) {
         candidates.remove(inv);
-        foundInvariants.add((AbstractLocationFormulaInvariant) inv);
+        foundInvariants.add(inv);
       }
     }
 
@@ -955,12 +953,12 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
 
     @Override
-    public Set<AbstractLocationFormulaInvariant> getConfirmedCandidates() {
+    public Set<CandidateInvariant> getConfirmedCandidates() {
       return new HashSet<>(foundInvariants);
     }
 
     public List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
-      FluentIterable<AbstractLocationFormulaInvariant> found = from(foundInvariants);
+      FluentIterable<CandidateInvariant> found = from(foundInvariants);
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (final CFANode node : abstractionNodes) {
         // we don't want the last node to be here, as the invariant will always
@@ -971,29 +969,20 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         invariants.add(
             Pair.of(
                 found
-                    .filter(
-                        new Predicate<AbstractLocationFormulaInvariant>() {
-                          @Override
-                          public boolean apply(AbstractLocationFormulaInvariant pInput) {
-                            return pInput.appliesTo(node);
-                          }
-                        })
+                    .filter(candidateInvariant -> candidateInvariant.appliesTo(node))
                     .first()
                     .transform(
-                        new Function<AbstractLocationFormulaInvariant, BooleanFormula>() {
-                          @Override
-                          public BooleanFormula apply(AbstractLocationFormulaInvariant pInput) {
-                            try {
-                              return pInput.getFormula(fmgr, pfmgr, null);
-                            } catch (CPATransferException | InterruptedException e) {
-                              // this should never happen, if it does we log
-                              // the exception and return TRUE as invariant
-                              logger.logUserException(
-                                  Level.WARNING,
-                                  e,
-                                  "Invariant could not be" + " retrieved from InvariantGenerator");
-                              return fmgr.getBooleanFormulaManager().makeTrue();
-                            }
+                        candidateInvariant -> {
+                          try {
+                            return candidateInvariant.getFormula(fmgr, pfmgr, null);
+                          } catch (CPATransferException | InterruptedException e) {
+                            // this should never happen, if it does we log
+                            // the exception and return TRUE as invariant
+                            logger.logUserException(
+                                Level.WARNING,
+                                e,
+                                "Invariant could not be" + " retrieved from InvariantGenerator");
+                            return fmgr.getBooleanFormulaManager().makeTrue();
                           }
                         })
                     .or(fmgr.getBooleanFormulaManager().makeTrue()),

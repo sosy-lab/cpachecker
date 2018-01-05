@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
+public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
 
   private final AssumeEdge edge;

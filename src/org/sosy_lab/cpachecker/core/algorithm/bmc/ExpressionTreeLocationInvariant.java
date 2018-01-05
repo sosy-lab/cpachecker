@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 
-public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInvariant
+public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
 
   private final ExpressionTree<AExpression> expressionTree;
@@ -185,8 +185,4 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   }
 
-  @Override
-  public CFANode getLocation() {
-    return location;
-  }
 }
