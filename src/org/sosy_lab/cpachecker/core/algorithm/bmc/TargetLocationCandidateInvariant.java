@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Set;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -39,8 +39,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInvariant {
 
-  public TargetLocationCandidateInvariant(Set<CFANode> pLocations) {
-    super(pLocations);
+  public TargetLocationCandidateInvariant(CFANode pLocation) {
+    super(Collections.singleton(pLocation));
   }
 
   @Override

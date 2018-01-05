@@ -183,8 +183,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
       Set<CFANode> loopHeads = getLoopHeads();
-      return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
+      Iterable<TargetLocationCandidateInvariant> tlcis =
+          from(loopHeads).transform(loopHead -> new TargetLocationCandidateInvariant(loopHead));
+      return new StaticCandidateProvider(tlcis);
     }
   }
 

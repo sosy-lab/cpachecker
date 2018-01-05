@@ -501,11 +501,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
-    final TargetLocationCandidateInvariant safetyProperty;
+    final Collection<TargetLocationCandidateInvariant> safetyProperty;
     if (pCFA.getAllLoopHeads().isPresent()) {
       safetyProperty =
-          new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider));
-      candidates.add(safetyProperty);
+          FluentIterable.from(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider))
+              .transform(loopHead -> new TargetLocationCandidateInvariant(loopHead))
+              .toSet();
+      candidates.addAll(safetyProperty);
     } else {
       safetyProperty = null;
     }
@@ -560,7 +562,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         @Override
         public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
           super.confirmCandidates(pCandidates);
-          if (safetyProperty != null && Iterables.contains(pCandidates, safetyProperty)) {
+          if (safetyProperty != null && getConfirmedCandidates().containsAll(safetyProperty)) {
             safetyPropertyConfirmed = true;
           }
         }
