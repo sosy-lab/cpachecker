@@ -39,6 +39,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -73,9 +74,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -182,9 +183,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      Set<CFANode> loopHeads = getLoopHeads();
       return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
+          Collections.singleton(TargetLocationCandidateInvariant.INSTANCE));
     }
   }
 

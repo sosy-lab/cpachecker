@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
@@ -198,10 +197,6 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
 
-  @Option(secure=true, name="restartAlgorithmWithARGReplay",
-      description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
-  private boolean useRestartAlgorithmWithARGReplay = false;
-
   @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
   private boolean useParallelBAM = false;
 
@@ -270,7 +265,6 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && !useRestartAlgorithmWithARGReplay
         && !runCBMCasExternalTool
         && useBMC;
   }
@@ -324,10 +318,6 @@ public class CoreComponentsFactory {
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
-
-    } else if (useRestartAlgorithmWithARGReplay) {
-      algorithm =
-          new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
       if (cfa.getFileNames().size() > 1) {
@@ -469,8 +459,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm
-        || asConditionalVerifier) {
+    if (useRestartingAlgorithm || useParallelAlgorithm || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {

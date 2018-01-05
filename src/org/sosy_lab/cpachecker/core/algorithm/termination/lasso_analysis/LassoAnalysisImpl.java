@@ -201,7 +201,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private final LassoRankerToolchainStorage toolchainStorage;
 
-  private final Collection<RankingTemplate> rankingTemplates;
+  private final ImmutableList<RankingTemplate> rankingTemplates;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -272,7 +272,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     rankingTemplates = createTemplates(maxTemplateFunctions);
   }
 
-  private static Collection<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
+  private static ImmutableList<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
     ImmutableList.Builder<RankingTemplate> rankingTemplates = ImmutableList.builder();
 
     rankingTemplates.add(new AffineTemplate());

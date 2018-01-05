@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,18 +47,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.*;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsMergeOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ImplicationLessOrEqualOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.SubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-/**
- * Configurable Program Analysis that tracks constraints for analysis.
- */
+/** Configurable Program Analysis that tracks constraints for analysis. */
 @Options(prefix = "cpa.constraints")
-public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class ConstraintsCPA
+    implements ConfigurableProgramAnalysis, StatisticsProvider, AutoCloseable {
 
   public enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
 
@@ -80,7 +82,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private ConstraintsPrecisionAdjustment precisionAdjustment;
   private ConstraintsPrecision precision;
 
-  private Solver solver;
+  private final Solver solver;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
@@ -188,5 +190,10 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     if (mergeOperator instanceof Statistics) {
       statsCollection.add((Statistics) mergeOperator);
     }
+  }
+
+  @Override
+  public void close() {
+    solver.close();
   }
 }

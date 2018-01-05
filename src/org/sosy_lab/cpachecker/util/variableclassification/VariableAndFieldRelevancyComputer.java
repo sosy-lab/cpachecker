@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableOrField.Variable;
 
 /**
  * The class computes global control-flow and context-insensitive over-approximation of sets of
@@ -482,7 +481,7 @@ final class VariableAndFieldRelevancyComputer {
                   result.withDependencies(
                       length.accept(
                           CollectingRHSVisitor.create(
-                              Variable.newVariable(decl.getQualifiedName()))));
+                              VariableOrField.newVariable(decl.getQualifiedName()))));
             }
           }
           for (CExpressionAssignmentStatement init :

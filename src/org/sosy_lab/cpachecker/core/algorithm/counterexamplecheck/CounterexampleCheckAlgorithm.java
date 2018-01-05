@@ -253,6 +253,9 @@ public class CounterexampleCheckAlgorithm
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(this);
+    if (checker instanceof StatisticsProvider) {
+      ((StatisticsProvider) checker).collectStatistics(pStatsCollection);
+    }
   }
 
   @Override
@@ -262,9 +265,6 @@ public class CounterexampleCheckAlgorithm
     if (checkTime.getNumberOfIntervals() > 0) {
       out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
       out.println("Time for counterexample checks:     " + checkTime);
-      if (checker instanceof Statistics) {
-        ((Statistics)checker).printStatistics(out, pResult, pReached);
-      }
     }
   }
 

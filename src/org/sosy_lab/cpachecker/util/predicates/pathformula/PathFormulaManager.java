@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -48,10 +49,10 @@ public interface PathFormulaManager {
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
 
   /**
-   * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link BooleanFormulaManager#or(BooleanFormula, BooleanFormula)},
-   * it also merges the SSA maps and creates the necessary adjustments to the
-   * formulas if the two SSA maps contain different values for the same variables.
+   * Creates a new path formula representing an OR of the two arguments. Differently from {@link
+   * BooleanFormulaManager#or(BooleanFormula, BooleanFormula)}, it also merges the SSA maps and
+   * creates the necessary adjustments to the formulas if the two SSA maps contain different values
+   * for the same variables.
    *
    * @param pF1 a PathFormula
    * @param pF2 a PathFormula
@@ -68,7 +69,16 @@ public interface PathFormulaManager {
 
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
+  /**
+   * Create a copy of a PathFormula but with the given SSAMap. Note that this is almost always the
+   * wrong method to call: if you need to use a specific SSAMap, you probably also need to use a
+   * specific PointerTargetSet! So better call {@link #makeNewPathFormula(PathFormula, SSAMap,
+   * PointerTargetSet)}.
+   */
+  @Deprecated
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
@@ -163,5 +173,13 @@ public interface PathFormulaManager {
 
   public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
 
-  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
+  /**
+   * Builds a weakest precondition for the given edge and the postcondition
+   *
+   * @param pEdge Edge containing the statement for the precondition to be built
+   * @param pPostcond Postcondition
+   * @return Created precondition
+   */
+  public BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException;
 }

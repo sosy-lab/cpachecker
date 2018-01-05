@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.FluentIterable;
@@ -43,10 +44,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -169,6 +170,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
           // continue with feasible prefix
           if (iterator.hasNext()) {
+            checkState(outgoingEdge != null);
             feasiblePrefixBuilder.add(
                 currentState,
                 new BlankEdge(

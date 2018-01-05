@@ -687,7 +687,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
               conv.makeAssignment(
                   lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
         } catch (InterruptedException e1) {
-          CToFormulaConverterWithPointerAliasing.propagateInterruptedException(e1);
+          CtoFormulaConverter.propagateInterruptedException(e1);
         }
 
         constraints.addConstraint(checkNotNull(form));

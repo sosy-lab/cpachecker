@@ -31,25 +31,21 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.CheckReturnValue;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.CheckReturnValue;
-
 public class RankingRelation {
 
-  private final Set<CExpression> rankingRelations;
-  private final Set<BooleanFormula> rankingRelationFormulas;
-  private final Set<BooleanFormula> supportingInvariants;
+  private final ImmutableSet<CExpression> rankingRelations;
+  private final ImmutableSet<BooleanFormula> rankingRelationFormulas;
+  private final ImmutableSet<BooleanFormula> supportingInvariants;
   private final FormulaManagerView formulaManagerView;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -60,7 +56,7 @@ public class RankingRelation {
       FormulaManagerView pFormulaManagerView) {
     rankingRelations = pRankingRelation.map(ImmutableSet::of).orElse(ImmutableSet.of());
     rankingRelationFormulas = ImmutableSet.of(pFormula);
-    supportingInvariants = Collections.emptySet();
+    supportingInvariants = ImmutableSet.of();
     formulaManagerView = checkNotNull(pFormulaManagerView);
     binaryExpressionBuilder = checkNotNull(pBinaryExpressionBuilder);
   }

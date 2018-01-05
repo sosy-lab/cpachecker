@@ -267,10 +267,6 @@ analysis.reachedSet = PARTITIONED
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
-# run a sequence of analysis, where the previous ARG is inserted into the
-# current ARGReplayCPA.
-analysis.restartAlgorithmWithARGReplay = false
-
 # stop after the first error has been found
 analysis.stopAfterError = true
 
@@ -289,6 +285,9 @@ analysis.traversal.order = DFS
 # to be a double in the range [0, INF)
 analysis.traversal.random.exponent = 1
 
+# Seed for random values.
+analysis.traversal.random.seed = 0
+
 # handle abstract states with more automaton matches first? (only if
 # AutomatonCPA enabled)
 analysis.traversal.useAutomatonInformation = false
@@ -300,6 +299,9 @@ analysis.traversal.useCallstack = false
 # handle more abstract states (with less information) first? (only for
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
+
+# handle states with more loop iterations first.
+analysis.traversal.useLoopIterationCount = false
 
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
@@ -314,6 +316,9 @@ analysis.traversal.useNumberOfThreads = false
 # 'analysis.traversal.order'.
 analysis.traversal.usePostorder = false
 
+# handle states with fewer loop iterations first.
+analysis.traversal.useReverseLoopIterationCount = false
+
 # handle states with a more shallow loopstack first.
 analysis.traversal.useReverseLoopstack = false
 
@@ -324,6 +329,9 @@ analysis.traversal.useReverseLoopstack = false
 analysis.traversal.useReversePostorder = false
 
 # perform a weighted random selection based on the branching depth
+analysis.traversal.weightedBranches = false
+
+# perform a weighted random selection based on the depth in the ARG
 analysis.traversal.weightedDepth = false
 
 # After an incomplete analysis constructs a residual program which contains
@@ -408,6 +416,9 @@ bdd.sylvan.tableSize = 26
 
 # Number of worker threads, 0 for automatic.
 bdd.sylvan.threads = 0
+
+# sequentialize all accesses to the BDD library.
+bdd.synchronizeLibraryAccess = false
 
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
@@ -861,6 +872,39 @@ cpa.arg.keepCoveredStatesInReached = false
 #  subsumed by the second wrapped state (and the parents are not yet
 # subsumed).
 cpa.arg.mergeOnWrappedSubsumption = false
+
+# Export final ARG as pixel graphic to the given file name. The suffix is
+# added  corresponding to the value of option cpa.arg.pixelgraphic.formatIf
+# set to 'null', no pixel graphic is exported.
+cpa.arg.pixelGraphicFile = "ARG"
+
+# Format to use for image output
+cpa.arg.pixelgraphic.format = "svg"
+
+# Height of the bitmap in pixels. If set to -1, height is  computed in
+# relation to the width. If both are set to -1, the optimal bitmap size to
+# represent the ARG is used. The final height is height*scaling
+cpa.arg.pixelgraphic.height = -1
+
+# Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
+# to 2, 2 * 2 pixels represent one ARG node, and so on.
+cpa.arg.pixelgraphic.scaling = 2
+
+# Highlight not only corresponding ARG nodes, but background of corresponding
+# line, too. This may give an better overview, but also introduces more
+# clutter
+cpa.arg.pixelgraphic.strongHighlight = true
+
+# Width of the bitmap in pixels. If set to -1, width is computed in relation
+# to the height. If both are set to -1, the optimal bitmap size to represent
+# the ARG is used. The final width is width*scaling
+cpa.arg.pixelgraphic.width = -1
+
+# Padding of the bitmap on the left and right (each) in pixels
+cpa.arg.pixelgraphic.xPadding = 2
+
+# Padding of the bitmap on the top and bottom (each) in pixels
+cpa.arg.pixelgraphic.yPadding = 2
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
@@ -1866,6 +1910,10 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# use unsatisfiable Core in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.useUnsatCore = true
+
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
@@ -1938,6 +1986,9 @@ cpa.predicate.refinement.useNewtonRefinement = false
 # Should the path invariants be created and used (potentially additionally to
 # the other invariants)
 cpa.predicate.refinement.usePathInvariants = false
+
+# use UCB predicates for the CPA-Refinement, experimental feature!
+cpa.predicate.refinement.useUCBRefinement = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -2921,9 +2972,6 @@ precision.variableBlacklist = ""
 # this precision
 precision.variableWhitelist = ""
 
-# Random seed to use. Uses a random number if null is given
-random.seed = no default value
-
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -2991,8 +3039,9 @@ restartAlgorithm.configFiles = no default value
 # after the components computation is finished
 restartAlgorithm.printIntermediateStatistics = true
 
-# List of files with configurations to use. 2 filenames expected.
-restartAlgorithmWithARGReplay.configFiles = no default value
+# let each component of the restart algorithm write output files and not only
+# the last one that is excuted
+restartAlgorithm.writeIntermediateOutputFiles = false
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
@@ -3149,7 +3198,7 @@ undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
 witness.automatonDumpFile = no default value
 
 # Check that the value of the programhash field of the witness matches the
-# SHA-1 hash value computed for the source code.
+# SHA-256 hash value computed for the source code.
 witness.checkProgramHash = true
 
 # Consider assumptions that are provided with the path automaton?

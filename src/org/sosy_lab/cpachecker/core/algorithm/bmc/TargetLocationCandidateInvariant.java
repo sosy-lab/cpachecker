@@ -36,13 +36,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.Set;
+public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
-public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInvariant {
-
-  public TargetLocationCandidateInvariant(Set<CFANode> pLocations) {
-    super(pLocations);
-  }
+  INSTANCE;
 
   @Override
   public BooleanFormula getFormula(
@@ -53,10 +49,7 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
 
   @Override
   public BooleanFormula getAssertion(
-      Iterable<AbstractState> pReachedSet,
-      FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR,
-      int pDefaultIndex) {
+      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
     Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
     return pFMGR.getBooleanFormulaManager().not(
         BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));
@@ -73,23 +66,12 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
 
   @Override
   public String toString() {
-    return "No target locations reachable from: " + getLocations();
+    return "No target locations reachable";
   }
 
   @Override
-  public int hashCode() {
-    return getLocations().hashCode();
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    if (this == pObj) {
-      return true;
-    }
-    if (pObj instanceof TargetLocationCandidateInvariant) {
-      return getLocations().equals(((TargetLocationCandidateInvariant) pObj).getLocations());
-    }
-    return false;
+  public boolean appliesTo(CFANode pLocation) {
+    return true;
   }
 
 }

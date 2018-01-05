@@ -20,8 +20,8 @@
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
 
-        <!-- Dependencies needed for running FindBugs. -->
-        <conf name="findbugs" />
+        <!-- Dependencies needed for running SpotBugs. -->
+        <conf name="spotbugs" />
 
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
@@ -35,7 +35,7 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="23.4-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="23.5-jre" conf="runtime->default; contrib->sources"/>
 
         <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
         <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
@@ -79,7 +79,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.36" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="23.4-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="23.5-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
@@ -88,8 +88,8 @@
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.1.2" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.1.2" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.1.3" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.1.3" conf="build->default; contrib->sources" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -99,15 +99,17 @@
              A source-code formatter for Java -->
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.5" conf="format-source->default"/>
 
-        <!-- FindBugs -->
-        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
-        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.1" conf="build->default"/>
+        <!-- SpotBugs -->
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.1" conf="spotbugs->default"/>
+        <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.1" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-180-g5d91e5ba" conf="runtime->runtime; contrib->sources">
+        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-204-g452b741" conf="runtime->runtime; contrib->sources">
           <!-- Old version of java-cup conflicts with our newer version of java-cup-runtime -->
           <exclude org="net.sf.squirrel-sql.thirdparty-non-maven" module="java-cup"/>
         </dependency>
@@ -116,7 +118,19 @@
              Synthesis of ranking functions for termination analysis. -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2016-09-06-rd1adfdb" conf="runtime->runtime; contrib->sources"/>
 
+        <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.9.1" conf="runtime->default; contrib->sources">
+            <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
+        </dependency>
+        <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.9.1" conf="runtime->default; contrib->sources">
+            <exclude org="xml-apis" module="xml-apis-ext"/>
+            <exclude org="xml-apis" module="xml-apis"/>
+            <exclude org="xalan" module="xalan"/>
+            <exclude org="org.apache.xmlgraphics" module="batik-css"/>
+            <exclude org="org.apache.xmlgraphics" module="batik-util"/>
+        </dependency>
+
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.1.2"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.1.3"/>
+
     </dependencies>
 </ivy-module>

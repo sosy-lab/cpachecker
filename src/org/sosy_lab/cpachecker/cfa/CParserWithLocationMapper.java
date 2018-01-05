@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import org.eclipse.cdt.core.parser.IToken;
 import org.eclipse.cdt.core.parser.OffsetLimitReachedException;
 import org.eclipse.cdt.internal.core.parser.scanner.ILexerLog;
 import org.eclipse.cdt.internal.core.parser.scanner.Lexer;
@@ -120,17 +121,17 @@ public class CParserWithLocationMapper implements CParser {
       int includeStartedWithAbsoluteLine = 1;
 
       Token token;
-      while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
+      while ((token = lx.nextToken()).getType() != IToken.tEND_OF_INPUT) {
         if (token.getType() == Lexer.tNEWLINE) {
           absoluteLineNumber += 1;
           relativeLineNumber += 1;
         }
 
-        if (token.getType() == Token.tPOUND) { // match #
+        if (token.getType() == IToken.tPOUND) { // match #
           // Read the complete line containing the directive...
           ArrayList<Token> directiveTokens = Lists.newArrayList();
           token = lx.nextToken();
-          while (token.getType() != Lexer.tNEWLINE && token.getType() != Token.tEND_OF_INPUT) {
+          while (token.getType() != Lexer.tNEWLINE && token.getType() != IToken.tEND_OF_INPUT) {
             directiveTokens.add(token);
             token = lx.nextToken();
           }

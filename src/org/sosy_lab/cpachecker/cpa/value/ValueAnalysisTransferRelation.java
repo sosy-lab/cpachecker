@@ -1261,23 +1261,24 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision)
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pElements, CFAEdge pCfaEdge, Precision pPrecision)
     throws CPATransferException {
-    assert element instanceof ValueAnalysisState;
+    assert pElement instanceof ValueAnalysisState;
 
     ArrayList<ValueAnalysisState> toStrengthen = new ArrayList<>();
     ArrayList<ValueAnalysisState> result = new ArrayList<>();
-    toStrengthen.add((ValueAnalysisState) element);
-    result.add((ValueAnalysisState) element);
+    toStrengthen.add((ValueAnalysisState) pElement);
+    result.add((ValueAnalysisState) pElement);
 
-    for (AbstractState ae : elements) {
+    for (AbstractState ae : pElements) {
       if (ae instanceof RTTState) {
         result.clear();
-        for (ValueAnalysisState state : toStrengthen) {
-          super.setInfo(element, precision, cfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((RTTState)ae, cfaEdge);
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          Collection<ValueAnalysisState> ret = strengthen((RTTState)ae, pCfaEdge);
           if (ret == null) {
-            result.add(state);
+            result.add(stateToStrengthen);
           } else {
             result.addAll(ret);
           }
@@ -1286,12 +1287,13 @@ public class ValueAnalysisTransferRelation
         toStrengthen.addAll(result);
       } else if (ae instanceof AutomatonState) {
         result.clear();
-        for (ValueAnalysisState state : toStrengthen) {
-          super.setInfo(element, precision, cfaEdge);
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
           AutomatonState autoState = (AutomatonState) ae;
-          Collection<ValueAnalysisState> ret = strengthenAutomatonAssume(autoState, state, cfaEdge);
+          Collection<ValueAnalysisState> ret =
+              strengthenAutomatonAssume(autoState, stateToStrengthen, pCfaEdge);
           if (ret == null) {
-            result.add(state);
+            result.add(stateToStrengthen);
           } else {
             result.addAll(ret);
           }
@@ -1301,13 +1303,13 @@ public class ValueAnalysisTransferRelation
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
-        for (ValueAnalysisState state : toStrengthen) {
-          super.setInfo(element, precision, cfaEdge);
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
           Collection<ValueAnalysisState> ret =
-              constraintsStrengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae, cfaEdge);
+              constraintsStrengthenOperator.strengthen((ValueAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
 
           if (ret == null) {
-            result.add(state);
+            result.add(stateToStrengthen);
           } else {
             result.addAll(ret);
           }
@@ -1316,7 +1318,7 @@ public class ValueAnalysisTransferRelation
         toStrengthen.addAll(result);
       } else if (ae instanceof PointerState) {
 
-        CFAEdge edge = cfaEdge;
+        CFAEdge edge = pCfaEdge;
 
         ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
         ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
@@ -1326,10 +1328,10 @@ public class ValueAnalysisTransferRelation
 
         result.clear();
 
-        for (ValueAnalysisState state : toStrengthen) {
-          super.setInfo(element, precision, cfaEdge);
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
           ValueAnalysisState newState =
-              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
+              strengthenWithPointerInformation(stateToStrengthen, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
 
           newState = handleModf(rightHandSide, pointerState, newState);
 
@@ -1345,10 +1347,10 @@ public class ValueAnalysisTransferRelation
     final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
     for (ValueAnalysisState rawResult : result) {
       // The original state has already been post-processed
-      if (rawResult == element) {
-        postProcessedResult.add(element);
+      if (rawResult == pElement) {
+        postProcessedResult.add(pElement);
       } else {
-        postProcessedResult.addAll(postProcessing(rawResult, cfaEdge));
+        postProcessedResult.addAll(postProcessing(rawResult, pCfaEdge));
       }
     }
 
@@ -1371,13 +1373,13 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleModf(
       ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
       throws UnrecognizedCCodeException, AssertionError {
-    ValueAnalysisState state = pState;
+    ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression) {
       AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
-      AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
-      if (functionNameExpression instanceof AIdExpression) {
-        String functionName = ((AIdExpression) functionNameExpression).getName();
-        if (BuiltinFloatFunctions.matchesModf(functionName)) {
+      AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
+      if (nameExpressionOfCalledFunc instanceof AIdExpression) {
+        String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+        if (BuiltinFloatFunctions.matchesModf(nameOfCalledFunc)) {
           List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
           if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
             AExpression exp = parameters.get(0);
@@ -1399,7 +1401,7 @@ public class ValueAnalysisTransferRelation
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
                   .contains(paramType.getType())) {
                 final BigDecimal integralPartValue;
@@ -1418,9 +1420,9 @@ public class ValueAnalysisTransferRelation
                         functionCallExpression.getFileLocation(),
                         paramType,
                         integralPartValue);
-                state =
+                newState =
                     strengthenWithPointerInformation(
-                        state,
+                        newState,
                         pPointerState,
                         integralPart,
                         target.getExpressionType(),
@@ -1433,7 +1435,7 @@ public class ValueAnalysisTransferRelation
         }
       }
     }
-    return state;
+    return newState;
   }
 
   private ValueAnalysisState strengthenWithPointerInformation(
@@ -1540,22 +1542,22 @@ public class ValueAnalysisTransferRelation
 
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    ValueAnalysisState state = pState;
+    ValueAnalysisState newState = pState;
 
     for (AExpression assumption : pAutomatonState.getAssumptions()) {
-      state = handleAssumption(assumption, true);
+      newState = handleAssumption(assumption, true);
 
-      if (state == null) {
+      if (newState == null) {
         break;
       } else {
-        setInfo(state, precision, pCfaEdge);
+        setInfo(newState, precision, pCfaEdge);
       }
     }
 
-    if (state == null) {
+    if (newState == null) {
       return Collections.emptyList();
     } else {
-      return Collections.singleton(state);
+      return Collections.singleton(newState);
     }
   }
 

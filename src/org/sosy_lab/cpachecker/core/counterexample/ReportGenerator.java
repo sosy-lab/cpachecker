@@ -494,36 +494,32 @@ public class ReportGenerator {
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
     if (reached.getFirstState() instanceof ARGState) {
       reached
-      .asCollection()
-      .forEach(
-          entry -> {
-            int parentStateId = ((ARGState) entry).getStateId();
-            for (CFANode node : AbstractStates.extractLocations(entry)) {
-              if (!argNodes.containsKey(parentStateId)) {
-                if (((ARGState) entry).toDOTLabel().length() > 0) {
-                  createArgNode(parentStateId, node, (ARGState) entry);
-                } else {
-                  createArgNode(parentStateId, node, (ARGState) entry);
-                }
-              }
-              if (!((ARGState) entry).getChildren().isEmpty()) {
-                for (ARGState child : ((ARGState) entry).getChildren()) {
-                  int childStateId = child.getStateId();
-                  // Covered state is not contained in the reached set
-                  if (child.isCovered()) {
-                    String label = child.toDOTLabel().length() > 2 ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2) : "";
-                    createCoveredArgNode(
-                        childStateId,
-                        child,
-                        label);
-                    createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+          .asCollection()
+          .forEach(
+              entry -> {
+                int parentStateId = ((ARGState) entry).getStateId();
+                for (CFANode node : AbstractStates.extractLocations(entry)) {
+                  if (!argNodes.containsKey(parentStateId)) {
+                    createArgNode(parentStateId, node, (ARGState) entry);
                   }
-                  createArgEdge(
-                      parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                  if (!((ARGState) entry).getChildren().isEmpty()) {
+                    for (ARGState child : ((ARGState) entry).getChildren()) {
+                      int childStateId = child.getStateId();
+                      // Covered state is not contained in the reached set
+                      if (child.isCovered()) {
+                        String label =
+                            child.toDOTLabel().length() > 2
+                                ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2)
+                                : "";
+                        createCoveredArgNode(childStateId, child, label);
+                        createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+                      }
+                      createArgEdge(
+                          parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                    }
+                  }
                 }
-              }
-            }
-          });
+              });
     }
   }
 

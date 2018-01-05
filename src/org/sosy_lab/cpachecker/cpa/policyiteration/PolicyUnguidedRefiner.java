@@ -81,7 +81,7 @@ public class PolicyUnguidedRefiner implements Refiner {
     }
   }
 
-  private void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) throws InterruptedException {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

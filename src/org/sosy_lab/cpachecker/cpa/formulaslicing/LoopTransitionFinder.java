@@ -144,7 +144,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       statistics.LBEencodingTimer.stop();
     }
 
-    if (!timeForLoopGeneration.isEmpty()) {
+    if (limits != null && !timeForLoopGeneration.isEmpty()) {
       limits.cancel();
     }
 

@@ -50,10 +50,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -390,6 +390,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
         GenericRefiner.this.printStatistics(pOut, pResult, pReached);
       }
     });
+    pStatsCollection.add(pathExtractor);
+    pStatsCollection.add(interpolator);
   }
 
   private void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
@@ -397,9 +399,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     writer.put(refinementCounter)
         .put(numberOfTargets)
         .put(refinementTime);
-
-    pathExtractor.printStatistics(pOut, pResult, pReached);
-    interpolator.printStatistics(pOut, pResult, pReached);
     printAdditionalStatistics(pOut, pResult, pReached); //hook
   }
 

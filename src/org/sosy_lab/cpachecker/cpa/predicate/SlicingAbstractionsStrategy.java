@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.bui
 import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +48,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -63,15 +65,13 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-
 /**
- * This is an implementation of the Slicing Abstractions idea
- * as RefinementStrategy like in the papers:
- * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
- * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
+ * This is an implementation of the Slicing Abstractions idea as RefinementStrategy like in the
+ * papers: "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2) "Splitting via Interpolants"
+ * (doi:10.1007/978-3-642-27940-9_13)
  */
 @Options(prefix = "cpa.predicate.slicingabstractions")
-public class SlicingAbstractionsStrategy extends RefinementStrategy {
+public class SlicingAbstractionsStrategy extends RefinementStrategy implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -98,7 +98,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
 
-      basicRefinementStatistics.printStatistics(out, pResult, pReached);
+      SlicingAbstractionsStrategy.this.printStatistics(out);
     }
   }
 
@@ -434,8 +434,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   }
 
   @Override
-  public Statistics getStatistics() {
-    return stats;
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
-
 }

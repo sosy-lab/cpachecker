@@ -107,8 +107,9 @@ public class ARGReachedSet {
    * covered by removed elements.
    *
    * @param e The root of the removed subtree, may not be the initial element.
+   * @throws InterruptedException can be thrown in subclass
    */
-  public void removeSubtree(ARGState e) {
+  public void removeSubtree(ARGState e) throws InterruptedException {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
@@ -456,7 +457,9 @@ public class ARGReachedSet {
   public boolean tryToCover(ARGState v) throws CPAException, InterruptedException {
     assert v.mayCover();
 
-    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
+    boolean stop = cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    Preconditions.checkState(!stop);
     // ignore return value of stop, because it will always be false
 
     if (v.isCovered()) {
@@ -510,6 +513,7 @@ public class ARGReachedSet {
     assert v.mayCover();
 
     if (beUnsound) {
+      // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
       cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
       return v.isCovered();
     }
@@ -524,23 +528,6 @@ public class ARGReachedSet {
     public ForwardingARGReachedSet(ARGReachedSet pReached) {
       super(pReached.mReached);
       delegate = pReached;
-    }
-
-    @Override
-    public UnmodifiableReachedSet asReachedSet() {
-      return delegate.asReachedSet();
-    }
-
-    @Override
-    public void removeSubtree(ARGState pE) {
-      delegate.removeSubtree(pE);
-    }
-
-    @Override
-    public void removeSubtree(
-        ARGState pE, Precision pP, Predicate<? super Precision> pPrecisionType)
-        throws InterruptedException {
-      delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }
 

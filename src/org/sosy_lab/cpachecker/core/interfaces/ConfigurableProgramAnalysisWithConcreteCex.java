@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
  * This Cpa can generate a concrete counterexample from an {@link ARGPath} path.

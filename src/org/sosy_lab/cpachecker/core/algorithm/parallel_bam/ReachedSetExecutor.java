@@ -25,15 +25,20 @@ package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.graph.Traverser;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -57,11 +62,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
-import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
  * A wrapper for a single reached-set and the corresponding data-structures. We assume that each
@@ -76,6 +82,9 @@ class ReachedSetExecutor {
 
   /** the working reached-set, single-threaded access. */
   private final ReachedSet rs;
+
+  /** the block for the working reached-set. */
+  private final Block block;
 
   /** the working algorithm for the reached-set, single-threaded access. */
   private final CPAAlgorithm algorithm;
@@ -94,7 +103,7 @@ class ReachedSetExecutor {
 
   private final ExecutorService pool;
 
-  private final BAMCPAWithoutReachedSetCreation bamcpa;
+  private final BAMCPAWithBreakOnMissingBlock bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
@@ -103,6 +112,9 @@ class ReachedSetExecutor {
   private final LogManager logger;
 
   int execCounter = 0; // statistics
+  private final TimerWrapper threadTimer;
+  private final TimerWrapper addingStatesTimer;
+  private final TimerWrapper terminationCheckTimer;
 
   /**
    * This set contains all sub-reached-sets that have to be finished before the current one. The
@@ -120,12 +132,10 @@ class ReachedSetExecutor {
   private final Multimap<ReachedSetExecutor, AbstractState> dependingFrom =
       LinkedHashMultimap.create();
 
-  /** We need to track some data to avoid circular dependencies with recursive function-calls. */
-  private final Set<Block> surroundingBlocks = new LinkedHashSet<>();
-
   public ReachedSetExecutor(
-      BAMCPAWithoutReachedSetCreation pBamCpa,
+      BAMCPAWithBreakOnMissingBlock pBamCpa,
       ReachedSet pRs,
+      Block pBlock,
       ReachedSet pMainReachedSet,
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
       ExecutorService pPool,
@@ -137,6 +147,7 @@ class ReachedSetExecutor {
       LogManager pLogger) {
     bamcpa = pBamCpa;
     rs = pRs;
+    block = pBlock;
     mainReachedSet = pMainReachedSet;
     reachedSetMapping = pReachedSetMapping;
     pool = pPool;
@@ -150,6 +161,13 @@ class ReachedSetExecutor {
     algorithm = algorithmFactory.newInstance();
 
     logger.logf(level, "%s :: creating RSE", this);
+
+    assert pBlock == getBlockForState(pRs.getFirstState());
+    assert !pReachedSetMapping.containsKey(pRs);
+
+    threadTimer = stats.threadTime.getNewTimer();
+    addingStatesTimer = stats.addingStatesTime.getNewTimer();
+    terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
   }
 
   public Runnable asRunnable() {
@@ -170,6 +188,7 @@ class ReachedSetExecutor {
    * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
    */
   private void apply(Collection<AbstractState> pStatesToBeAdded) {
+    threadTimer.start();
     int running = stats.numActiveThreads.incrementAndGet();
     stats.histActiveThreads.insertValue(running);
     stats.numMaxRSE.accumulate(reachedSetMapping.size());
@@ -190,7 +209,9 @@ class ReachedSetExecutor {
           targetStateFound,
           id(pStatesToBeAdded));
 
+      addingStatesTimer.start();
       updateStates(pStatesToBeAdded);
+      addingStatesTimer.stop();
 
       // handle finished reached-set after refinement
       // TODO checking this once on RSE-creation would be sufficient
@@ -198,26 +219,32 @@ class ReachedSetExecutor {
 
       if (!targetStateFound) {
         // further analysis of the reached-set, sub-analysis is scheduled if necessary
-        try {
-          @SuppressWarnings("unused")
-          AlgorithmStatus tmpStatus = algorithm.run(rs);
-        } catch (BlockSummaryMissingException bsme) {
-          handleMissingBlock(bsme);
+        @SuppressWarnings("unused")
+        AlgorithmStatus tmpStatus = algorithm.run(rs);
+
+        AbstractState lastState = rs.getLastState();
+        if (lastState instanceof MissingBlockAbstractionState) {
+          handleMissingBlock((MissingBlockAbstractionState) lastState);
         }
+
+        assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
+            : "dummy state should be removed from reached-set";
       }
 
+      terminationCheckTimer.start();
       handleTermination();
+      terminationCheckTimer.stop();
 
       logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
 
-    } catch (Exception e) {
+    } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
       logger.logException(level, e, e.getClass().getName());
       terminateAnalysis.set(true);
       error.set(e);
       pool.shutdownNow();
-
     } finally {
       stats.numActiveThreads.decrementAndGet();
+      threadTimer.stop();
     }
   }
 
@@ -313,10 +340,11 @@ class ReachedSetExecutor {
 
     AbstractState reducedInitialState = rs.getFirstState();
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
-    Block block = getBlockForState(reducedInitialState);
-    final Collection<AbstractState> exitStates = extractExitStates(pEndsWithTargetState, block);
+    Block innerBlock = getBlockForState(reducedInitialState);
+    final Collection<AbstractState> exitStates =
+        extractExitStates(pEndsWithTargetState, innerBlock);
     Pair<ReachedSet, Collection<AbstractState>> check =
-        bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, block);
+        bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert check.getFirst() == rs
         : String.format(
             "reached-set for initial state should be unique: current rs = %s, cached entry = %s",
@@ -328,7 +356,9 @@ class ReachedSetExecutor {
               id(rs),
               Collections2.transform(exitStates, s -> id(s)),
               Collections2.transform(check.getSecond(), s -> id(s)));
-      bamcpa.getCache().put(reducedInitialState, reducedInitialPrecision, block, exitStates, null);
+      bamcpa
+          .getCache()
+          .put(reducedInitialState, reducedInitialPrecision, innerBlock, exitStates, null);
     }
   }
 
@@ -359,20 +389,16 @@ class ReachedSetExecutor {
   }
 
   private void addDependencies(
-      BlockSummaryMissingException pBsme, final ReachedSetExecutor subRse) {
+      MissingBlockAbstractionState pBsme, final ReachedSetExecutor subRse) {
     logger.logf(level, "%s :: %s -> %s", this, this, subRse);
     dependsOn.add(pBsme.getState());
     synchronized (subRse.dependingFrom) {
       subRse.dependingFrom.put(this, pBsme.getState());
     }
-    synchronized (subRse.surroundingBlocks) {
-      subRse.surroundingBlocks.addAll(surroundingBlocks);
-      subRse.surroundingBlocks.add(pBsme.getBlock());
-    }
   }
 
   /**
-   * When a block summary is missing, the BAM-CPA throws a {@link BlockSummaryMissingException} and
+   * When a block summary is missing, the BAM-CPA throws a {@link MissingBlockAbstractionState} and
    * the CPA-algorithm terminates. Then we use the info from the exception to handle the missing
    * block summary here, such that we
    * <li>remove the initial state from the reached-set,
@@ -381,9 +407,11 @@ class ReachedSetExecutor {
    *
    * @throws UnsupportedCodeException when finding a recursive function call
    */
-  private void handleMissingBlock(BlockSummaryMissingException pBsme)
+  private void handleMissingBlock(MissingBlockAbstractionState pBsme)
       throws UnsupportedCodeException {
-    logger.logf(level, "%s :: starting, bsme=%s", this, id(pBsme.getState()));
+    logger.logf(level, "%s :: missing block, bsme=%s", this, id(pBsme.getState()));
+
+    rs.remove(pBsme);
 
     if (targetStateFound) {
       logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
@@ -424,6 +452,7 @@ class ReachedSetExecutor {
     if (rs.getWaitlist().isEmpty()) {
       // optimization: if no further states are waiting, no need to schedule the current RSE.
       // when sub-analysis is finished, the current analysis is re-started.
+      logger.logf(level, "%s :: not scheduling self, emtpy waitlist", this);
     } else {
       // register current RSE for further analysis.
       // this step results in 'parallel' execution of current analysis and sub-analysis.
@@ -431,12 +460,19 @@ class ReachedSetExecutor {
     }
   }
 
+  /** We need to traverse the RSEs whether there is a cyclic dependency. */
   private boolean hasRecursion(CFANode pEntryLocation) {
-    return Iterables.any(surroundingBlocks, b -> b.getCallNodes().contains(pEntryLocation));
+    synchronized (reachedSetMapping) {
+      // TODO correct lock? we need to avoid RSE-creation during traversal.
+      return Iterables.any(
+          Traverser.<ReachedSetExecutor>forGraph(rse -> rse.dependingFrom.keys())
+              .breadthFirst(this),
+          rse -> rse.block.getCallNodes().contains(pEntryLocation));
+    }
   }
 
-  private void scheduleSubAnalysis(BlockSummaryMissingException pBsme,
-      Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
+  private void scheduleSubAnalysis(
+      MissingBlockAbstractionState pBsme, Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
     // remove current state from waitlist to avoid exploration until all sub-blocks are done.
     // The state was removed for exploration,
     // but re-added by CPA-algorithm when throwing the exception
@@ -458,7 +494,7 @@ class ReachedSetExecutor {
    *
    * @return a valid reached-set to be analyzed
    */
-  private ReachedSet createAndRegisterNewReachedSet(BlockSummaryMissingException pBsme) {
+  private ReachedSet createAndRegisterNewReachedSet(MissingBlockAbstractionState pBsme) {
     ReachedSet newRs = pBsme.getReachedSet();
     if (newRs == null) {
       // We are only synchronized in the current method. Thus, we need to check
@@ -488,6 +524,7 @@ class ReachedSetExecutor {
           new ReachedSetExecutor(
               bamcpa,
               newRs,
+              pBsme.getBlock(),
               mainReachedSet,
               reachedSetMapping,
               pool,
@@ -537,6 +574,21 @@ class ReachedSetExecutor {
   @Override
   public String toString() {
     return "RSE " + idd();
+  }
+
+  /** for debugging */
+  String getDependenciesAsDot() {
+    final List<String> dependencies = new ArrayList<>();
+    synchronized (reachedSetMapping) {
+      for (ReachedSetExecutor rse :
+          Collections2.transform(reachedSetMapping.values(), Pair::getFirst)) {
+        for (ReachedSetExecutor dependentRse : rse.dependingFrom.keys()) {
+          dependencies.add(String.format("\"%s\" -> \"%s\"", rse, dependentRse));
+        }
+      }
+    }
+    Collections.sort(dependencies); // for deterministic dot-graphs
+    return "digraph DEPENDENCIES {\n  " + Joiner.on(";\n  ").join(dependencies) + ";\n}\n";
   }
 
   class ExceptionHandler implements Function<Throwable, Void> {

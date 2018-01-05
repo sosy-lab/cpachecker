@@ -268,6 +268,13 @@ private boolean classifyNodes = false;
         out.println("    Time for CFA export:      " + exportTime);
       }
     }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      if (varClassificationStats != null) {
+        varClassificationStats.writeOutputFiles(pResult, pReached);
+      }
+    }
   }
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();

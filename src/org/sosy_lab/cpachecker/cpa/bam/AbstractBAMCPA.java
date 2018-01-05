@@ -151,7 +151,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
       blockBuilder = new BlockPartitioningBuilder();
     }
     PartitioningHeuristic heuristic = blockHeuristic.create(logger, pCfa, pConfig);
-    BlockPartitioning partitioning = heuristic.buildPartitioning(pCfa, blockBuilder);
+    BlockPartitioning partitioning = heuristic.buildPartitioning(blockBuilder);
     if (exportBlocksPath != null) {
       BlockToDotWriter writer = new BlockToDotWriter(partitioning);
       writer.dump(exportBlocksPath, logger);

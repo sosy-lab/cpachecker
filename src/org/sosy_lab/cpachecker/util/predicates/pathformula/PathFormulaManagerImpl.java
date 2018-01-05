@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -108,6 +110,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
+  private final @Nullable CtoWpConverter wpConverter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -163,11 +166,32 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
 
+      wpConverter = null;
+
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
-      converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
+      converter =
+          new CtoFormulaConverter(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              typeHandler,
+              pDirection);
+
+      wpConverter =
+          new CtoWpConverter(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              typeHandler,
+              pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
@@ -258,6 +282,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(),
                            m,
@@ -534,5 +559,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public void printStatistics(PrintStream out) {
     converter.printStatistics(out);
+  }
+
+  @Override
+  public BooleanFormula buildWeakestPrecondition(
+      final CFAEdge pEdge, final BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException {
+
+    // TODO: refactor as soon as there is a WP converter with pointer aliasing
+
+    if (wpConverter != null) {
+      return wpConverter.makePreconditionForEdge(pEdge, pPostcond);
+    }
+
+    throw new UnsupportedOperationException();
   }
 }

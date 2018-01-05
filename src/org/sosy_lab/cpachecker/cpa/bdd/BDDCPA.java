@@ -196,7 +196,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
                 new TreeSet<>(); // TreeSet for nicer output through ordering
             Collection<String> trackedIntEq = new TreeSet<>();
             Collection<String> trackedIntAdd = new TreeSet<>();
-            for (String var : predmgr.getTrackedVars().keySet()) {
+            for (String var : predmgr.getTrackedVars()) {
               if (varClass.getIntBoolVars().contains(var)) {
                 trackedIntBool.add(var);
               } else if (varClass.getIntEqualVars().contains(var)) {

@@ -116,7 +116,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       constrPrecInc.locallyTracked(currNode, (Constraint) null); // we only need the node
     }
 
-    final ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();
-    precUpdater.updateARGTree(pReached, pRefinementRoot, valuePrecInc, constrPrecInc.build());
+    ARGTreePrecisionUpdater.updateARGTree(
+        pReached, pRefinementRoot, valuePrecInc, constrPrecInc.build());
   }
 }

@@ -52,14 +52,13 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -177,15 +176,15 @@ public class CEXExporter {
       Configuration config,
       LogManager logger,
       CFA cfa,
-      Specification pSpecification,
-      ConfigurableProgramAnalysis cpa)
+      ConfigurableProgramAnalysis cpa,
+      WitnessExporter pWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
 
     cexFilter =
         CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
-    witnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+    witnessExporter = checkNotNull(pWitnessExporter);
     harnessExporter = new HarnessExporter(config, logger, cfa);
 
     if (!exportSource) {

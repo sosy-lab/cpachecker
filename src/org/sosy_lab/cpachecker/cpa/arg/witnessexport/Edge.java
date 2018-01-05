@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
  */
 class Edge implements Comparable<Edge> {
 
-  final String source;
+  private final String source;
 
-  final String target;
+  private final String target;
 
-  final TransitionCondition label;
+  private final TransitionCondition label;
 
   private int hashCode = 0;
 
@@ -94,6 +94,18 @@ class Edge implements Comparable<Edge> {
     return false;
   }
 
+  public String getSource() {
+    return source;
+  }
+
+  public String getTarget() {
+    return target;
+  }
+
+  public TransitionCondition getLabel() {
+    return label;
+  }
+
   public Optional<Edge> tryMerge(Edge pOther) {
     if (!source.equals(pOther.source)) {
       return Optional.empty();
@@ -103,6 +115,9 @@ class Edge implements Comparable<Edge> {
     }
     MapDifference<KeyDef, String> difference =
         Maps.difference(label.getMapping(), pOther.label.getMapping());
+    if (!difference.entriesOnlyOnLeft().isEmpty() || !difference.entriesOnlyOnRight().isEmpty()) {
+      return Optional.empty();
+    }
     TransitionCondition newLabel = pOther.label;
     newLabel = newLabel.putAllAndCopy(label);
     for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :

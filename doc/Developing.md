@@ -91,7 +91,7 @@ Develop CPAchecker from within Eclipse
 Code-Quality Checks and Continuous Integration
 ----------------------------------------------
 
-We use javac, Google Error-Prone, the Eclipse Java Compiler, and FindBugs
+We use javac, Google Error-Prone, the Eclipse Java Compiler, and SpotBugs
 for findings bugs in the source, and we keep CPAchecker
 free of warnings from all these tools.
 You can run them all at once (plus the unit tests) with `ant all-checks`.

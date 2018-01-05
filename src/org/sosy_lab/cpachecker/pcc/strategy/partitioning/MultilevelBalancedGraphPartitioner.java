@@ -114,8 +114,8 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     Deque<Map<Integer, Integer>> matchings = new ArrayDeque<>();
 
     int maxLoad = wGraph.getNumNodes() / pNumPartitions + 1;
-    //The graph size until graph should be contracted
-    int minGraphSize = (int) Math.min(((double) maxLoad) / 15 + 1, 15) * pNumPartitions;
+    // The graph size until graph should be contracted
+    int minGraphSize = (int) (Math.min(((double) maxLoad) / 15 + 1, 15) * pNumPartitions);
     logger.log(Level.FINE,
         String.format("[Multilevel] Coarsen graph down to at least %d nodes",
             minGraphSize));

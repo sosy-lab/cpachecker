@@ -131,37 +131,37 @@ public class NumericValue implements Value, Serializable {
    */
   public NumericValue negate() {
     // TODO explicitfloat: handle the remaining different implementations of Number properly
-    final Number number = getNumber();
+    final Number numberToNegate = getNumber();
 
     // check if number is infinite or NaN
-    if (number instanceof Float) {
-      if (number.equals(Float.POSITIVE_INFINITY)) {
+    if (numberToNegate instanceof Float) {
+      if (numberToNegate.equals(Float.POSITIVE_INFINITY)) {
         return new NumericValue(Float.NEGATIVE_INFINITY);
 
-      } else if (number.equals(Float.NEGATIVE_INFINITY)) {
+      } else if (numberToNegate.equals(Float.NEGATIVE_INFINITY)) {
         return new NumericValue(Float.POSITIVE_INFINITY);
 
-      } else if (number.equals(Float.NaN)) {
+      } else if (numberToNegate.equals(Float.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
       }
-    } else if (number instanceof Double) {
-      if (number.equals(Double.POSITIVE_INFINITY)) {
+    } else if (numberToNegate instanceof Double) {
+      if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
         return new NumericValue(Double.NEGATIVE_INFINITY);
 
-      } else if (number.equals(Double.NEGATIVE_INFINITY)) {
+      } else if (numberToNegate.equals(Double.NEGATIVE_INFINITY)) {
         return new NumericValue(Double.POSITIVE_INFINITY);
 
-      } else if (number.equals(Double.NaN)) {
+      } else if (numberToNegate.equals(Double.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
       }
-    } else if (number instanceof Rational) {
-      return new NumericValue(((Rational) number).negate());
-    } else if (NegativeNaN.VALUE.equals(number)) {
+    } else if (numberToNegate instanceof Rational) {
+      return new NumericValue(((Rational) numberToNegate).negate());
+    } else if (NegativeNaN.VALUE.equals(numberToNegate)) {
       return new NumericValue(Double.NaN);
     }
 
-    if (number instanceof BigDecimal) {
-      BigDecimal bd = (BigDecimal) number;
+    if (numberToNegate instanceof BigDecimal) {
+      BigDecimal bd = (BigDecimal) numberToNegate;
       if (bd.signum() == 0) {
         return new NumericValue(-bd.doubleValue());
       }

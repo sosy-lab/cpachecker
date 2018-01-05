@@ -28,12 +28,17 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -50,47 +55,54 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Class designed to perform a Newton based refinement
  *
- * based on:
+ * <p>based on:
  *
- * "Generating Abstract Explanations of Spurious Counterexamples in C Programs" by Thomas Ball
+ * <p>"Generating Abstract Explanations of Spurious Counterexamples in C Programs" by Thomas Ball
  * Sriram K. Rajamani
  *
- * "Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim Musa,
- * Alexander Nutz, Andreas Podelski
+ * <p>"Craig vs. Newton in Software Model Checking" by Daniel Dietsch, Matthias Heizmann, Betim
+ * Musa, Alexander Nutz, Andreas Podelski
  */
+@Options(prefix = "cpa.predicate.refinement.newtonrefinement")
 public class NewtonRefinementManager {
   private final LogManager logger;
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
+  private final RCNFManager rcnf;
 
   // TODO: make to an option
-  private static final boolean USE_UNSAT_CORE = true;
+  @Option(
+    secure = true,
+    description =
+        "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
+  )
+  private boolean useUnsatCore = true;
 
   public NewtonRefinementManager(
-      LogManager pLogger,
-      Solver pSolver,
-      PathFormulaManager pPfmgr) {
+      LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
+      throws InvalidConfigurationException {
+    config.inject(this, NewtonRefinementManager.class);
     logger = pLogger;
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     pfmgr = pPfmgr;
+    rcnf = new RCNFManager(config);
   }
 
   /**
    * Creates the CounterexampleTraceInfo for the given error path based on the Newton-based
    * refinement approach.
    *
-   * The counterexample should hold pseudo-interpolants based on StrongestPostCondition performed by
-   * Newton.
+   * <p>The counterexample should hold pseudo-interpolants based on StrongestPostCondition performed
+   * by Newton.
    *
    * @param pAllStatesTrace The error path
    * @param pFormulas The Block formulas computed in previous step
    * @return The Counterexample, containing pseudo-interpolants if successful
    */
-  public CounterexampleTraceInfo
-      buildCounterexampleTrace(ARGPath pAllStatesTrace, BlockFormulas pFormulas)
-          throws CPAException, InterruptedException {
+  public CounterexampleTraceInfo buildCounterexampleTrace(
+      ARGPath pAllStatesTrace, BlockFormulas pFormulas) throws CPAException, InterruptedException {
     if (isFeasible(pFormulas.getFormulas())) {
       // Create feasible Counterexampletrace
       return CounterexampleTraceInfo.feasible(
@@ -104,7 +116,7 @@ public class NewtonRefinementManager {
       Optional<List<BooleanFormula>> unsatCore;
 
       // Only compute if unsatCoreOption is set
-      if (USE_UNSAT_CORE) {
+      if (useUnsatCore) {
         unsatCore = Optional.of(computeUnsatCore(pathLocations));
       } else {
         unsatCore = Optional.empty();
@@ -165,8 +177,7 @@ public class NewtonRefinementManager {
       isFeasible = !prover.isUnsat();
     } catch (SolverException e) {
       throw new CPAException(
-          "Prover failed while proving unsatisfiability in Newtonrefinement.",
-          e);
+          "Prover failed while proving unsatisfiability in Newtonrefinement.", e);
     }
     return isFeasible;
   }
@@ -174,21 +185,21 @@ public class NewtonRefinementManager {
   /**
    * Calculates the StrongestPostCondition at all states on a error-trace.
    *
-   * When applied to the Predicate states, they assure that the same error-trace won't occur again.
+   * <p>When applied to the Predicate states, they assure that the same error-trace won't occur
+   * again.
    *
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
-   *        If no list of formulas is applied it computes the regular postCondition
+   *     If no list of formulas is applied it computes the regular postCondition
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
    * @throws CPAException In case the Algorithm failed unexpected
    * @throws InterruptedException In case of interruption
    */
-  private List<BooleanFormula>
-      calculateStrongestPostCondition(
-          List<PathLocation> pPathLocations,
-          Optional<List<BooleanFormula>> pUnsatCore)
-          throws CPAException, InterruptedException {
-    logger.log(Level.INFO, "Calculate Strongest Postcondition for the error trace.");
+  private List<BooleanFormula> calculateStrongestPostCondition(
+      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
+      throws CPAException, InterruptedException {
+    logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
+
     // First Predicate is always true
     BooleanFormula preCondition = fmgr.getBooleanFormulaManager().makeTrue();
 
@@ -201,12 +212,23 @@ public class NewtonRefinementManager {
 
       CFAEdge edge = location.getLastEdge();
       PathFormula pathFormula = location.getPathFormula();
+      Set<BooleanFormula> pathFormulaElements =
+          fmgr.getBooleanFormulaManager().toConjunctionArgs(pathFormula.getFormula(), false);
+
       // Decide whether to abstract this Formula(Only true if unsatCore is present and does not
       // contain the formula
-      boolean abstractThisFormula =
-          pUnsatCore.isPresent() && !pUnsatCore.get().contains(pathFormula.getFormula());
-
-      // Calculate Postcondition based on the edgeType
+      boolean abstractThisFormula = false;
+      if (pUnsatCore.isPresent()) {
+        abstractThisFormula = true;
+        // Split up any conjunction in the pathformula, to be able to identify if contained in
+        // unsat core
+        for (BooleanFormula pathFormulaElement : pathFormulaElements) {
+          if (pUnsatCore.get().contains(pathFormulaElement)) {
+            abstractThisFormula = false;
+            break;
+          }
+        }
+      }
       switch (edge.getEdgeType()) {
         case AssumeEdge:
           // If this formula should be abstracted it does not imply any additional atoms
@@ -219,29 +241,48 @@ public class NewtonRefinementManager {
           }
           break;
         case StatementEdge:
+        case DeclarationEdge:
+        case FunctionCallEdge:
+        case ReturnStatementEdge:
+        case FunctionReturnEdge:
           BooleanFormula toExist;
           // If this formula should be abstracted, this statement havocs the leftHand variable
           // Therefore its previous values can be existentially quantified in the preCondition
           if (abstractThisFormula) {
             toExist = preCondition;
           }
-          // Else we create the disjunction and quantify the old value, yet get a new
+          // Else we create the conjunction and quantify the old value, yet get a new
           // Assignmentformula
           else {
             toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
           }
-          try {
-            // Use Existential-Quantifier-Elimination on dead variables
-            // FIXME: Fails while quantification with Z3(in apply tactics);
-            postCondition = fmgr.eliminateDeadVariables(toExist, pathFormula.getSsa());
-          } catch (SolverException e) {
-            throw new CPAException("Solver failed to compute existence-quantor.", e);
+          if (toExist != fmgr.getBooleanFormulaManager().makeTrue()) {
+            // Create the quantified formula where
+            BooleanFormula quantified = fmgr.quantifyDeadVariables(toExist, pathFormula.getSsa());
+            // eliminate quantifiers using the RCNF-Manager
+            Set<BooleanFormula> lemmas = rcnf.toLemmas(quantified, fmgr);
+            postCondition = fmgr.getBooleanFormulaManager().and(lemmas);
+            // postCondition = fmgr.eliminateDeadVariables(toExist, pathFormula.getSsa());
+          } else {
+            postCondition = toExist;
           }
+
           break;
         default:
+          if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
+            logger.log(
+                Level.FINE,
+                "Pathformula is True, so no addtionial Formula in PostCondition for EdgeType: "
+                    + edge.getEdgeType());
+            postCondition = preCondition;
+            break;
+          }
           // TODO: Determine if it is necessary to do something for other edgetypes
-          postCondition = preCondition;
-          break;
+          throw new UnsupportedOperationException(
+              "Found unsupported Edgetype in Newton Refinement: "
+                  + edge.getDescription()
+                  + " of Type :"
+                  + edge.getEdgeType());
       }
       if (location.hasCorrespondingARGState()) {
         predicates.add(fmgr.simplify(postCondition));
@@ -258,7 +299,6 @@ public class NewtonRefinementManager {
     // Remove the last predicate as always false
     return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
   }
-
 
   /**
    * Builds a list of Path Location. Each Position holds information about its incoming CFAEdge,
@@ -279,20 +319,18 @@ public class NewtonRefinementManager {
     PathIterator pathIterator = pPath.fullPathIterator();
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
 
-    while(pathIterator.hasNext()) {
+    while (pathIterator.hasNext()) {
       pathIterator.advance();
       CFAEdge lastEdge = pathIterator.getIncomingEdge();
-      Optional<ARGState> state = pathIterator.isPositionWithState() ? Optional.of(pathIterator.getAbstractState())
+      Optional<ARGState> state =
+          pathIterator.isPositionWithState()
+              ? Optional.of(pathIterator.getAbstractState())
               : Optional.empty();
       try {
-        pathFormula =
-            pfmgr.makeAnd(
-                pfmgr.makeNewPathFormula(pfmgr.makeEmptyPathFormula(), pathFormula.getSsa()),
-                lastEdge);
+        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), lastEdge);
       } catch (CPATransferException e) {
         throw new CPAException(
-            "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")",
-            e);
+            "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")", e);
       }
       pathLocationList.add(new PathLocation(lastEdge, pathFormula, state));
     }
@@ -305,9 +343,7 @@ public class NewtonRefinementManager {
     final Optional<ARGState> state;
 
     PathLocation(
-        final CFAEdge pLastEdge,
-        final PathFormula pPathFormula,
-        final Optional<ARGState> pState) {
+        final CFAEdge pLastEdge, final PathFormula pPathFormula, final Optional<ARGState> pState) {
       lastEdge = pLastEdge;
       pathFormula = pPathFormula;
       state = pState;
@@ -331,9 +367,7 @@ public class NewtonRefinementManager {
 
     @Override
     public String toString() {
-      return (lastEdge != null
-          ? lastEdge.toString()
-          : ("First State: " + state.get().toDOTLabel()))
+      return (lastEdge != null ? lastEdge.toString() : ("First State: " + state.get().toDOTLabel()))
           + ", PathFormula: "
           + pathFormula.toString();
     }

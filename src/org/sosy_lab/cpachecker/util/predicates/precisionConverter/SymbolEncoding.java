@@ -29,7 +29,16 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -48,18 +57,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 
 public class SymbolEncoding {
@@ -151,7 +148,7 @@ public class SymbolEncoding {
       fType = FormulaType.RationalType;
     } else {
       int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
-      fType = BitvectorType.getBitvectorTypeWithSize(length);
+      fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {

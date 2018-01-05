@@ -91,9 +91,9 @@ public class Partition implements Comparable<Partition>, Serializable {
     values.addAll(newValues);
   }
 
-  void addEdge(CFAEdge edge, int index) {
-    edges.put(edge, index);
-    edgeToPartition.put(edge, index, this);
+  void addEdge(CFAEdge edge, int pIndex) {
+    edges.put(edge, pIndex);
+    edgeToPartition.put(edge, pIndex, this);
   }
 
   /** copies all data from other to current partition */

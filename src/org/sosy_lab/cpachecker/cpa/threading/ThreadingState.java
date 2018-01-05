@@ -112,8 +112,8 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   private ThreadingState withThreadIdsForWitness(
-      PersistentMap<String, Integer> threadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, threadIdsForWitness);
+      PersistentMap<String, Integer> pThreadIdsForWitness) {
+    return new ThreadingState(threads, locks, activeThread, pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
