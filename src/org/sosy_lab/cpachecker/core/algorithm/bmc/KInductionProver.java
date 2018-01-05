@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -125,8 +124,6 @@ class KInductionProver implements AutoCloseable {
   private ExpressionTreeSupplier expressionTreeSupplier;
 
   private BooleanFormula loopHeadInvariants;
-
-  private int stackDepth = 0;
 
   private final Map<CandidateInvariant, BooleanFormula> violationFormulas = Maps.newHashMap();
 
@@ -315,32 +312,8 @@ class KInductionProver implements AutoCloseable {
   @Override
   public void close() {
     if (isProverInitialized()) {
-      while (stackDepth-- > 0 && !shutdownNotifier.shouldShutdown()) {
-        prover.pop();
-      }
       prover.close();
     }
-  }
-
-  /**
-   * Pops the last formula from the prover stack.
-   */
-  private void pop() {
-    Preconditions.checkState(isProverInitialized());
-    Preconditions.checkState(stackDepth > 0);
-    prover.pop();
-    --stackDepth;
-  }
-
-  /**
-   * Pushes the given formula to the prover stack.
-   *
-   * @param pFormula the formula to be pushed.
-   */
-  private void push(BooleanFormula pFormula) {
-    Preconditions.checkState(isProverInitialized());
-    prover.push(pFormula);
-    ++stackDepth;
   }
 
   /**
@@ -454,9 +427,10 @@ class KInductionProver implements AutoCloseable {
       // Update invariants if required
       if (newInvariants) {
         if (invariantsPushed) {
-          pop();
+          prover.pop();
         }
-        push(bfmgr.and(loopHeadInv, confirmedCandidateInvariants)); // Assert the known invariants
+        prover.push(
+            bfmgr.and(loopHeadInv, confirmedCandidateInvariants)); // Assert the known invariants
         newInvariants = false;
         invariantsPushed = true;
       }
@@ -478,8 +452,8 @@ class KInductionProver implements AutoCloseable {
       stats.inductionCheck.start();
 
       // Try to prove the invariance of the assertion
-      push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
-      push(successorViolation); // Assert that the formula is violated at a successor
+      prover.push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
+      prover.push(successorViolation); // Assert that the formula is violated at a successor
 
       boolean isInvariant = false;
       boolean loopHeadInvChanged = true;
@@ -488,7 +462,7 @@ class KInductionProver implements AutoCloseable {
 
         // If we have new loop-head invariants, push them
         if (newInvariants) {
-          push(loopHeadInv);
+          prover.push(loopHeadInv);
         }
 
         // The formula is invariant if the assertions are contradicting
@@ -500,7 +474,7 @@ class KInductionProver implements AutoCloseable {
 
         // If we had new loop-head invariants, we also pushed them and need to pop them now
         if (newInvariants) {
-          pop();
+          prover.pop();
         }
 
         // Re-attempt the proof immediately, if new invariants are available
@@ -522,8 +496,8 @@ class KInductionProver implements AutoCloseable {
         }
         violationFormulas.remove(candidateInvariant);
       }
-      pop(); // Pop invariant successor violation
-      pop(); // Pop invariant predecessor assertion
+      prover.pop(); // Pop invariant successor violation
+      prover.pop(); // Pop invariant predecessor assertion
       if (isInvariant) {
         // Add confirmed candidate
         confirmedCandidateInvariants =
@@ -538,7 +512,7 @@ class KInductionProver implements AutoCloseable {
 
     // Pop loop head invariants
     if (invariantsPushed) {
-      pop();
+      prover.pop();
     }
 
     return numberOfSuccessfulProofs == pCandidateInvariants.size();
