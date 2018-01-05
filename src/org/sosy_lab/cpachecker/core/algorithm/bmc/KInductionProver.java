@@ -487,14 +487,13 @@ class KInductionProver implements AutoCloseable {
 
       boolean newInvariants = false;
       boolean isInvariant = false;
-      BooleanFormula oldLoopHeadInv = null;
-      while (!isInvariant && !loopHeadInv.equals(oldLoopHeadInv)) {
+      boolean loopHeadInvChanged = true;
+      while (!isInvariant && loopHeadInvChanged) {
         shutdownNotifier.shutdownIfNecessary();
 
-        // If we have non-null "old" loop-head invariants, we also have new ones
-        if (oldLoopHeadInv != null) {
+        // If we have new loop-head invariants, push them
+        if (newInvariants) {
           push(loopHeadInv);
-          newInvariants = true;
         }
 
         // The formula is invariant if the assertions are contradicting
@@ -504,18 +503,21 @@ class KInductionProver implements AutoCloseable {
           logger.log(Level.ALL, "Model returned for induction check:", prover.getModelAssignments());
         }
 
-        // If we have non-null "old" loop-head invariants,
-        // we also pushed new ones and need to pop them now
-        if (oldLoopHeadInv != null) {
+        // If we had new loop-head invariants, we also pushed them and need to pop them now
+        if (newInvariants) {
           pop();
         }
 
         // Re-attempt the proof immediately, if new invariants are available
-        oldLoopHeadInv = loopHeadInv;
+        BooleanFormula oldLoopHeadInv = loopHeadInv;
         loopHeadInv =
             bfmgr.and(
                 BMCHelper.assertAt(
                     loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
+        loopHeadInvChanged = !loopHeadInv.equals(oldLoopHeadInv);
+        if (loopHeadInvChanged) {
+          newInvariants = true;
+        }
       }
 
       // If the proof is successful, move the problem from the set of open
