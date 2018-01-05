@@ -485,40 +485,37 @@ class KInductionProver implements AutoCloseable {
       push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
       push(successorViolation); // Assert that the formula is violated at a successor
 
-      // The formula is invariant if the assertions are contradicting
-      boolean isInvariant = prover.isUnsat();
-
-      if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
-        logger.log(Level.ALL, "Model returned for induction check:", prover.getModelAssignments());
-      }
-
-      // Re-attempt the proof immediately, if new invariants are available
       boolean newInvariants = false;
-      if (!isInvariant) {
-        BooleanFormula oldLoopHeadInv = loopHeadInv;
+      boolean isInvariant = false;
+      BooleanFormula oldLoopHeadInv = null;
+      while (!isInvariant && !loopHeadInv.equals(oldLoopHeadInv)) {
+        shutdownNotifier.shutdownIfNecessary();
+
+        // If we have non-null "old" loop-head invariants, we also have new ones
+        if (oldLoopHeadInv != null) {
+          push(loopHeadInv);
+          newInvariants = true;
+        }
+
+        // The formula is invariant if the assertions are contradicting
+        isInvariant = prover.isUnsat();
+
+        if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
+          logger.log(Level.ALL, "Model returned for induction check:", prover.getModelAssignments());
+        }
+
+        // If we have non-null "old" loop-head invariants,
+        // we also pushed new ones and need to pop them now
+        if (oldLoopHeadInv != null) {
+          pop();
+        }
+
+        // Re-attempt the proof immediately, if new invariants are available
+        oldLoopHeadInv = loopHeadInv;
         loopHeadInv =
             bfmgr.and(
                 BMCHelper.assertAt(
                     loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
-        while (!isInvariant && !loopHeadInv.equals(oldLoopHeadInv)) {
-          shutdownNotifier.shutdownIfNecessary();
-          newInvariants = true;
-          push(loopHeadInv);
-          isInvariant = prover.isUnsat();
-
-          if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
-            logger.log(
-                Level.ALL, "Model returned for induction check:", prover.getModelAssignments());
-          }
-
-          pop();
-          oldLoopHeadInv = loopHeadInv;
-          loopHeadInv =
-              bfmgr.and(
-                  BMCHelper.assertAt(
-                      loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
-
-        }
       }
 
       // If the proof is successful, move the problem from the set of open
