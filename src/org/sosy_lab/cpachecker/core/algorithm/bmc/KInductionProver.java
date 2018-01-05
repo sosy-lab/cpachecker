@@ -455,7 +455,8 @@ class KInductionProver implements AutoCloseable {
     ensureProverInitialized();
     int numberOfSuccessfulProofs = 0;
     stats.inductionPreparation.stop();
-    push(bfmgr.and(loopHeadInv, confirmedCandidateInvariants)); // Assert the known invariants
+    boolean invariantsPushed = false;
+    boolean newInvariants = true;
 
     Iterable<CandidateInvariant> artificialConjunctions =
         buildArtificialConjunctions(pCandidateInvariants);
@@ -463,6 +464,16 @@ class KInductionProver implements AutoCloseable {
         Iterables.concat(pCandidateInvariants, artificialConjunctions);
     for (CandidateInvariant candidateInvariant : candidatesToCheck) {
       shutdownNotifier.shutdownIfNecessary();
+
+      // Update invariants if required
+      if (newInvariants) {
+        if (invariantsPushed) {
+          pop();
+        }
+        push(bfmgr.and(loopHeadInv, confirmedCandidateInvariants)); // Assert the known invariants
+        newInvariants = false;
+        invariantsPushed = true;
+      }
 
       // Obtain the predecessor assertion created earlier
       final BooleanFormula predecessorAssertion =
@@ -485,7 +496,6 @@ class KInductionProver implements AutoCloseable {
       push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
       push(successorViolation); // Assert that the formula is violated at a successor
 
-      boolean newInvariants = false;
       boolean isInvariant = false;
       boolean loopHeadInvChanged = true;
       while (!isInvariant && loopHeadInvChanged) {
@@ -540,17 +550,15 @@ class KInductionProver implements AutoCloseable {
                 candidateInvariant.getAssertion(filterIteration(reached, 2), fmgr, pfmgr));
         newInvariants = true;
       }
-      // Update invariants if required
-      if (newInvariants) {
-        pop();
-        push(bfmgr.and(loopHeadInv, confirmedCandidateInvariants));
-      }
       stats.inductionCheck.stop();
 
       logger.log(Level.FINER, "Soundness after induction check:", isInvariant);
     }
 
-    pop(); // Pop loop head invariants
+    // Pop loop head invariants
+    if (invariantsPushed) {
+      pop();
+    }
 
     return numberOfSuccessfulProofs == pCandidateInvariants.size();
   }
