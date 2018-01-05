@@ -145,14 +145,7 @@ public final class BMCHelper {
    * @throws InterruptedException if the unrolling is interrupted.
    */
   public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
-    return unroll(pLogger, pReachedSet, new ReachedSetInitializer() {
-
-      @Override
-      public void initialize(ReachedSet pReachedSet) {
-        // Do nothing
-      }
-
-    }, pAlgorithm, pCPA);
+    return unroll(pLogger, pReachedSet, (rs) -> {}, pAlgorithm, pCPA);
   }
 
   public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
