@@ -31,11 +31,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,31 +50,27 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public abstract class AbstractLocationFormulaInvariant implements LocationFormulaInvariant {
 
-  private final Set<CFANode> locations;
+  private final CFANode location;
 
   public AbstractLocationFormulaInvariant(CFANode pLocation) {
     Preconditions.checkNotNull(pLocation);
-    this.locations = Collections.singleton(pLocation);
+    this.location = pLocation;
   }
 
-  public AbstractLocationFormulaInvariant(Set<? extends CFANode> pLocations) {
-    Preconditions.checkNotNull(pLocations);
-    this.locations = ImmutableSet.copyOf(pLocations);
+  protected CFANode getLocation() {
+    return location;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.algorithm.bmc.LocationInvariant#getLocations()
-   */
   @Override
-  public Set<CFANode> getLocations() {
-    return locations;
+  public boolean appliesTo(CFANode pLocation) {
+    return location.equals(pLocation);
   }
 
   @Override
   public BooleanFormula getAssertion(
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> locationStates = AbstractStates.filterLocations(pReachedSet, locations);
+    Iterable<AbstractState> locationStates = AbstractStates.filterLocation(pReachedSet, location);
     List<BooleanFormula> assertions = BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR);
     return pFMGR.getBooleanFormulaManager().and(assertions);
   }
@@ -127,7 +121,7 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
 
       @Override
       public String toString() {
-        return pInvariant.toString();
+        return pInvariant + " at " + getLocation();
       }
 
       @Override
@@ -136,14 +130,16 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
           return true;
         }
         if (pOther instanceof SpecificSMTLibLocationFormulaInvariant) {
-          return pInvariant.equals(((SpecificSMTLibLocationFormulaInvariant) pOther).invariant);
+          SpecificSMTLibLocationFormulaInvariant other =
+              (SpecificSMTLibLocationFormulaInvariant) pOther;
+          return pInvariant.equals(other.invariant) && getLocation().equals(other.getLocation());
         }
         return false;
       }
 
       @Override
       public int hashCode() {
-        return pInvariant.hashCode();
+        return Objects.hash(getLocation(), pInvariant);
       }
     }
     return new SpecificSMTLibLocationFormulaInvariant();
@@ -229,7 +225,7 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
     public void assumeTruth(ReachedSet pReachedSet) {
       if (isDefinitelyBooleanFalse) {
         Iterable<AbstractState> targetStates =
-            ImmutableList.copyOf(AbstractStates.filterLocations(pReachedSet, getLocations()));
+            ImmutableList.copyOf(AbstractStates.filterLocation(pReachedSet, getLocation()));
         pReachedSet.removeAll(targetStates);
         for (ARGState s : from(targetStates).filter(ARGState.class)) {
           s.removeFromARG();

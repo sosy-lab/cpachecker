@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
@@ -976,7 +975,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                         new Predicate<AbstractLocationFormulaInvariant>() {
                           @Override
                           public boolean apply(AbstractLocationFormulaInvariant pInput) {
-                            return getOnlyElement(pInput.getLocations()).equals(node);
+                            return pInput.appliesTo(node);
                           }
                         })
                     .first()

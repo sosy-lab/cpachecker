@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-
 
 public interface LocationFormulaInvariant extends CandidateInvariant {
 
-  Set<CFANode> getLocations();
+  boolean appliesTo(CFANode pLocation);
 }

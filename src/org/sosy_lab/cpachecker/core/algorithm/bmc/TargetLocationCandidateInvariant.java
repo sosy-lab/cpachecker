@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -37,11 +36,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInvariant {
+public enum TargetLocationCandidateInvariant implements LocationFormulaInvariant {
 
-  public TargetLocationCandidateInvariant(CFANode pLocation) {
-    super(Collections.singleton(pLocation));
-  }
+  INSTANCE;
 
   @Override
   public BooleanFormula getFormula(
@@ -69,23 +66,12 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
 
   @Override
   public String toString() {
-    return "No target locations reachable from: " + getLocations();
+    return "No target locations reachable";
   }
 
   @Override
-  public int hashCode() {
-    return getLocations().hashCode();
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    if (this == pObj) {
-      return true;
-    }
-    if (pObj instanceof TargetLocationCandidateInvariant) {
-      return getLocations().equals(((TargetLocationCandidateInvariant) pObj).getLocations());
-    }
-    return false;
+  public boolean appliesTo(CFANode pLocation) {
+    return true;
   }
 
 }

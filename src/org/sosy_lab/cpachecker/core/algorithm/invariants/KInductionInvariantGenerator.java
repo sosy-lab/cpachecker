@@ -80,7 +80,6 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
@@ -489,7 +488,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           getRelevantAssumeEdges(
               pTargetLocationProvider.tryGetAutomatonTargetLocations(
                   pCFA.getMainFunction(), pSpecification))) {
-        candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+        for (CFANode loopHead : pCFA.getLoopStructure().get().getAllLoopHeads()) {
+          candidates.add(new EdgeFormulaNegation(loopHead, assumeEdge));
+        }
       }
     }
 
@@ -501,16 +502,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
-    final Collection<TargetLocationCandidateInvariant> safetyProperty;
-    if (pCFA.getAllLoopHeads().isPresent()) {
-      safetyProperty =
-          FluentIterable.from(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider))
-              .transform(loopHead -> new TargetLocationCandidateInvariant(loopHead))
-              .toSet();
-      candidates.addAll(safetyProperty);
-    } else {
-      safetyProperty = null;
-    }
+    candidates.add(TargetLocationCandidateInvariant.INSTANCE);
 
     if (pOptions.terminateOnCounterexample) {
       return new StaticCandidateProvider(candidates) {
@@ -547,9 +539,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
                 // Remove the location from the group
                 String groupId = expressionTreeLocationInvariant.getGroupId();
                 Collection<CFANode> remainingLocations = candidateGroupLocations.get(groupId);
-                remainingLocations.removeAll(expressionTreeLocationInvariant.getLocations());
+                remainingLocations.remove(expressionTreeLocationInvariant.getLocation());
 
-                // If no location remains, the invariant has been disproved at all possible locations
+                // If no location remains, the invariant has been disproved at all possible
+                // locations
                 if (remainingLocations.isEmpty()) {
                   pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
                 }
@@ -562,7 +555,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         @Override
         public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
           super.confirmCandidates(pCandidates);
-          if (safetyProperty != null && getConfirmedCandidates().containsAll(safetyProperty)) {
+          if (Iterables.contains(pCandidates, TargetLocationCandidateInvariant.INSTANCE)) {
             safetyPropertyConfirmed = true;
           }
         }

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -129,8 +128,8 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
     }
 
     @Override
-    public Set<CFANode> getLocations() {
-      return elements.transformAndConcat(lfi -> lfi.getLocations()).toSet();
+    public boolean appliesTo(CFANode pLocation) {
+      return elements.anyMatch(e -> e.appliesTo(pLocation));
     }
 
     @Override
