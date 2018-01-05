@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -35,13 +34,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -382,10 +382,7 @@ class KInductionProver implements AutoCloseable {
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
     ReachedSet predecessorReachedSet = null;
 
-    Set<CandidateInvariantConjunction> artificialConjunctions =
-        buildArtificialConjunctions(pCandidateInvariants);
-    Iterable<CandidateInvariant> candidatesToCheck = Iterables.concat(pCandidateInvariants, artificialConjunctions);
-    for (CandidateInvariant candidateInvariant : candidatesToCheck) {
+    for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
       shutdownNotifier.shutdownIfNecessary();
 
       if (!canBeAsserted(candidateInvariant, pImmediateLoopHeads)) {
@@ -460,15 +457,19 @@ class KInductionProver implements AutoCloseable {
     stats.inductionPreparation.stop();
     push(invariants); // Assert the known invariants
 
+    Iterable<CandidateInvariant> artificialConjunctions =
+        buildArtificialConjunctions(pCandidateInvariants);
+    Iterable<CandidateInvariant> candidatesToCheck =
+        Iterables.concat(pCandidateInvariants, artificialConjunctions);
     for (CandidateInvariant candidateInvariant : candidatesToCheck) {
       shutdownNotifier.shutdownIfNecessary();
-      if (artificialConjunctions.contains(candidateInvariant)
-          && isSizeLessThanOrEqualTo(((CandidateInvariantConjunction) candidateInvariant).getElements(), 1)) {
-        continue;
-      }
 
       // Obtain the predecessor assertion created earlier
-      BooleanFormula predecessorAssertion = assertions.get(candidateInvariant);
+      final BooleanFormula predecessorAssertion =
+          bfmgr.and(
+              from(CandidateInvariantConjunction.getConjunctiveParts(candidateInvariant))
+                  .transform(conjunctivePart -> assertions.get(conjunctivePart))
+                  .toList());
       // Create the successor violation formula
       BooleanFormula successorViolation = getSuccessorViolation(candidateInvariant, reached, pK);
       // Record the successor violation formula to reuse its negation as an
@@ -524,14 +525,10 @@ class KInductionProver implements AutoCloseable {
       // If the proof is successful, move the problem from the set of open
       // problems to the set of solved problems
       if (isInvariant) {
-        if (artificialConjunctions.contains(candidateInvariant)) {
-          for (CandidateInvariant element : ((CandidateInvariantConjunction) candidateInvariant).getElements()) {
-            ++numberOfSuccessfulProofs;
-            confirmedCandidates.add(element);
-          }
-        } else {
+        for (CandidateInvariant conjunctivePart :
+            CandidateInvariantConjunction.getConjunctiveParts(candidateInvariant)) {
           ++numberOfSuccessfulProofs;
-          confirmedCandidates.add(candidateInvariant);
+          confirmedCandidates.add(conjunctivePart);
         }
         violationFormulas.remove(candidateInvariant);
       }
@@ -582,13 +579,9 @@ class KInductionProver implements AutoCloseable {
         });
   }
 
-  private static boolean isSizeLessThanOrEqualTo(Iterable<?> pElements, int pLimit) {
-    return Iterables.isEmpty(Iterables.skip(pElements, pLimit));
-  }
-
-  private Set<CandidateInvariantConjunction> buildArtificialConjunctions(
+  private Iterable<CandidateInvariant> buildArtificialConjunctions(
       final Set<CandidateInvariant> pCandidateInvariants) {
-    FluentIterable<? extends CandidateInvariant> remainingLoopHeadCandidateInvariants =
+    FluentIterable<CandidateInvariant> remainingLoopHeadCandidateInvariants =
         from(pCandidateInvariants)
             .filter(
                 pLocationFormulaInvariant -> {
@@ -603,8 +596,6 @@ class KInductionProver implements AutoCloseable {
     if (remainingLoopHeadCandidateInvariants.size() <= 1) {
       return Collections.emptySet();
     }
-    CandidateInvariantConjunction artificialConjunction = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
-    Set<CandidateInvariantConjunction> artificialConjunctions = Sets.newHashSet();
 
     Multimap<String, CandidateInvariant> functionInvariants = HashMultimap.create();
     Set<CandidateInvariant> others = new HashSet<>();
@@ -622,32 +613,73 @@ class KInductionProver implements AutoCloseable {
     for (String key : new ArrayList<>(functionInvariants.keys())) {
       functionInvariants.putAll(key, others);
     }
-    for (Map.Entry<String, Collection<CandidateInvariant>> functionInvariantsEntry :
-        functionInvariants.asMap().entrySet()) {
-      if (functionInvariantsEntry.getValue().size() > 1
-          && functionInvariantsEntry.getValue().size() < remainingLoopHeadCandidateInvariants.size()) {
-        // Use filter instead of computed collection
-        // so that it is updated dynamically if the underlying collection is updated
-        artificialConjunctions.add(
-            CandidateInvariantConjunction.of(
-                remainingLoopHeadCandidateInvariants.filter(
-                    (Predicate<CandidateInvariant>)
-                        pCandidateInvariant -> {
-                          if (pCandidateInvariant
-                              instanceof SingleLocationFormulaInvariant) {
-                            return ((SingleLocationFormulaInvariant) pCandidateInvariant)
-                                .getLocation()
-                                .getFunctionName()
-                                .equals(functionInvariantsEntry.getKey());
-                          }
-                          return true;
-                        })));
-      }
-    }
 
-    artificialConjunctions.add(artificialConjunction);
+    Iterator<Map.Entry<String, Collection<CandidateInvariant>>> functionInvariantsEntryIterator =
+        functionInvariants.asMap().entrySet().iterator();
 
-    return artificialConjunctions;
+    return () ->
+        new Iterator<CandidateInvariant>() {
+
+          private boolean allComputed = false;
+
+          private @Nullable CandidateInvariant next = null;
+
+          @Override
+          public boolean hasNext() {
+            if (next != null) {
+              return true;
+            }
+
+            // Create the next conjunction over function candidates
+            while (next == null && functionInvariantsEntryIterator.hasNext()) {
+              assert !allComputed;
+              Map.Entry<String, Collection<CandidateInvariant>> functionInvariantsEntry =
+                  functionInvariantsEntryIterator.next();
+              // We want at least two operands, but less than "all"; "all" comes separately later
+              if (functionInvariantsEntry.getValue().size() > 1
+                  && functionInvariantsEntry.getValue().size()
+                      < remainingLoopHeadCandidateInvariants.size()) {
+                // Only now, directly before it is used, compute the final set of operands for the
+                // conjunction
+                Set<CandidateInvariant> remainingFunctionCandidateInvariants =
+                    remainingLoopHeadCandidateInvariants
+                        .filter(
+                            pCandidateInvariant -> {
+                              if (pCandidateInvariant instanceof SingleLocationFormulaInvariant) {
+                                return ((SingleLocationFormulaInvariant) pCandidateInvariant)
+                                    .getLocation()
+                                    .getFunctionName()
+                                    .equals(functionInvariantsEntry.getKey());
+                              }
+                              return true;
+                            })
+                        .toSet();
+                // Create the conjunction only if there are actually at least two operands
+                if (remainingFunctionCandidateInvariants.size() > 1) {
+                  next = CandidateInvariantConjunction.of(remainingFunctionCandidateInvariants);
+                }
+              }
+            }
+
+            // Create the conjunction over all operands, if we have not done so yet
+            if (next == null && !allComputed && remainingLoopHeadCandidateInvariants.size() > 1) {
+              allComputed = true;
+              next = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
+            }
+
+            return next != null;
+          }
+
+          @Override
+          public CandidateInvariant next() {
+            if (!hasNext()) {
+              throw new NoSuchElementException("There is no next element.");
+            }
+            CandidateInvariant result = next;
+            next = null;
+            return result;
+          }
+        };
   }
 
   /**

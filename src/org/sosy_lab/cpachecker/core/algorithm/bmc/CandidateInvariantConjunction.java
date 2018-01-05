@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -38,9 +41,12 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class CandidateInvariantConjunction implements CandidateInvariant {
 
-  private final Iterable<? extends CandidateInvariant> elements;
+  private final Set<CandidateInvariant> elements;
 
-  private CandidateInvariantConjunction(Iterable<? extends CandidateInvariant> pElements) {
+  private CandidateInvariantConjunction(ImmutableSet<CandidateInvariant> pElements) {
+    Preconditions.checkArgument(
+        pElements.size() > 1,
+        "It makes no sense to use a CandidateInvariantConjunction unless there are at least two operands.");
     this.elements = Preconditions.checkNotNull(pElements);
   }
 
@@ -74,10 +80,6 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
     }
   }
 
-  public Iterable<? extends CandidateInvariant> getElements() {
-    return elements;
-  }
-
   @Override
   public int hashCode() {
     return elements.hashCode();
@@ -99,8 +101,12 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
     return elements.toString();
   }
 
-  public static CandidateInvariantConjunction of(Iterable<? extends CandidateInvariant> pElements) {
-    return new CandidateInvariantConjunction(pElements);
+  public static CandidateInvariant of(Iterable<? extends CandidateInvariant> pElements) {
+    ImmutableSet<CandidateInvariant> elements = ImmutableSet.copyOf(pElements);
+    if (elements.size() == 1) {
+      return elements.iterator().next();
+    }
+    return new CandidateInvariantConjunction(elements);
   }
 
   @Override
@@ -108,4 +114,11 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
     return Iterables.any(elements, e -> e.appliesTo(pLocation));
   }
 
+  public static Iterable<CandidateInvariant> getConjunctiveParts(
+      CandidateInvariant pCandidateInvariant) {
+    if (pCandidateInvariant instanceof CandidateInvariantConjunction) {
+      return ((CandidateInvariantConjunction) pCandidateInvariant).elements;
+    }
+    return Collections.singleton(pCandidateInvariant);
+  }
 }
