@@ -285,11 +285,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         shutdownNotifier.shutdownIfNecessary();
 
         if (invariantGenerator.isProgramSafe()) {
-          // The reachedSet might contain target states which would give a wrong
-          // indication of safety to the caller. So remove them.
-          for (CandidateInvariant candidateInvariant : candidateGenerator) {
-            candidateInvariant.assumeTruth(reachedSet);
-          }
+          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
@@ -306,6 +302,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           }
 
           if (invariantGenerator.isProgramSafe()) {
+            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
