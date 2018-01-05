@@ -32,7 +32,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import javax.annotation.Nullable;
@@ -70,8 +69,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
     Iterable<AbstractState> locationStates = AbstractStates.filterLocation(pReachedSet, location);
-    List<BooleanFormula> assertions = BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR);
-    return pFMGR.getBooleanFormulaManager().and(assertions);
+    return BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR);
   }
 
   @Override

@@ -433,8 +433,7 @@ class KInductionProver implements AutoCloseable {
         filterIteration(AbstractStates.filterLocations(reached, loopHeads), 2);
 
     BooleanFormula loopHeadInv =
-        bfmgr.and(
-            BMCHelper.assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr));
+        BMCHelper.assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr);
     BooleanFormula confirmedCandidateInvariants = bfmgr.makeTrue();
     for (CandidateInvariant candidateInvariant : confirmedCandidates) {
       shutdownNotifier.shutdownIfNecessary();

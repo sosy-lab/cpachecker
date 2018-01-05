@@ -28,10 +28,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -69,7 +67,7 @@ public final class BMCHelper {
 
   }
 
-  public static List<BooleanFormula> assertAt(
+  public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates,
       final CandidateInvariant pInvariant,
       final FormulaManagerView pFMGR,
@@ -88,12 +86,13 @@ public final class BMCHelper {
         pFMGR);
   }
 
-  public static List<BooleanFormula> assertAt(
+  public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates, FormulaInContext pInvariant, FormulaManagerView pFMGR)
       throws CPATransferException, InterruptedException {
-    List<BooleanFormula> result = Lists.newArrayList();
+    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+    BooleanFormula result = bfmgr.makeTrue();
     for (AbstractState abstractState : pStates) {
-      result.add(assertAt(abstractState, pInvariant, pFMGR));
+      result = bfmgr.and(result, assertAt(abstractState, pInvariant, pFMGR));
     }
     return result;
   }
