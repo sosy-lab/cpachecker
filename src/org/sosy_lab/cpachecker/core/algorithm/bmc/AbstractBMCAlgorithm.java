@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -265,8 +264,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
          @SuppressWarnings("resource")
         KInductionProver kInductionProver = createInductionProver()) {
 
-      Set<CFANode> immediateLoopHeads = null;
-
       do {
         shutdownNotifier.shutdownIfNecessary();
 
@@ -325,13 +322,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             final int k =
                 CPAs.retrieveCPA(cpa, LoopIterationBounding.class).getMaxLoopIterations();
 
-            if (immediateLoopHeads == null) {
-              immediateLoopHeads = getImmediateLoopHeads(reachedSet);
-            }
             Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
             shutdownNotifier.shutdownIfNecessary();
-            sound = sound || kInductionProver.check(k, candidates, immediateLoopHeads);
-            candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
+
+            if (!sound) {
+              Set<Object> checkedKeys = getCheckedKeys(reachedSet);
+              sound = kInductionProver.check(k, candidates, checkedKeys);
+              candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
+            }
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -351,36 +349,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   }
 
   /**
-   * Gets all loop heads in the reached set
-   * that were reached without unrolling any loops.
+   * Gets all keys of loop-iteration reporting states that were reached by unrolling.
    *
    * @param pReachedSet the reached set.
-   * @return all loop heads in the reached set
-   * that were reached without unrolling any loops.
+   * @return all keys of loop-iteration reporting states that were reached by unrolling.
    */
-  private Set<CFANode> getImmediateLoopHeads(ReachedSet pReachedSet) {
+  private Set<Object> getCheckedKeys(ReachedSet pReachedSet) {
     return AbstractStates.filterLocations(pReachedSet, getLoopHeads())
-        .filter(
-            new Predicate<AbstractState>() {
-
-              @Override
-              public boolean apply(AbstractState pLoopHeadState) {
-                LoopIterationReportingState state =
-                    AbstractStates.extractStateByType(
-                        pLoopHeadState, LoopIterationReportingState.class);
-                for (CFANode location : AbstractStates.extractLocations(pLoopHeadState)) {
-                  Set<Loop> loops = cfa.getLoopStructure().get().getLoopsForLoopHead(location);
-                  for (Loop loop : loops) {
-                    if (state.getIteration(loop) <= 1
-                        && state.getDeepestIterationLoops().equals(loops)) {
-                      return true;
-                    }
-                  }
-                }
-                return false;
-              }
-            })
-        .transformAndConcat(AbstractStates::extractLocations)
+        .transform(s -> AbstractStates.extractStateByType(s, LoopIterationReportingState.class))
+        .transform(LoopIterationReportingState::getPartitionKey)
         .toSet();
   }
 

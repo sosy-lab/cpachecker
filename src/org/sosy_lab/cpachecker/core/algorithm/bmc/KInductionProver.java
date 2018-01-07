@@ -321,6 +321,8 @@ class KInductionProver implements AutoCloseable {
    *
    * @param pK The k value to use in the check.
    * @param pCandidateInvariants What should be checked.
+   * @param pCheckedKeys the keys of loop-iteration reporting states that were checked by BMC: only
+   *     for those can we assert predecessor safety of an unproven candidate invariant.
    * @return <code>true</code> if k-induction successfully proved the correctness of all candidate invariants.
    * @throws CPAException if the bounded analysis constructing the step case encountered an exception.
    * @throws InterruptedException if the bounded analysis constructing the step case was interrupted.
@@ -328,7 +330,7 @@ class KInductionProver implements AutoCloseable {
   public final boolean check(
       final int pK,
       final Set<CandidateInvariant> pCandidateInvariants,
-      final Set<CFANode> pImmediateLoopHeads)
+      final Set<Object> pCheckedKeys)
       throws CPAException, InterruptedException, SolverException {
     stats.inductionPreparation.start();
 
@@ -355,11 +357,6 @@ class KInductionProver implements AutoCloseable {
 
     for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
       shutdownNotifier.shutdownIfNecessary();
-
-      if (!canBeAsserted(candidateInvariant, pImmediateLoopHeads)) {
-        assertions.put(candidateInvariant, bfmgr.makeTrue());
-        continue;
-      }
 
       final BooleanFormula predecessorAssertion;
       if (candidateInvariant instanceof TargetLocationCandidateInvariant) {
@@ -388,7 +385,8 @@ class KInductionProver implements AutoCloseable {
             }
           }
           predecessorAssertion =
-              candidateInvariant.getAssertion(predecessorReachedSet, fmgr, pfmgr);
+              candidateInvariant.getAssertion(
+                  filterBmcChecked(predecessorReachedSet, pCheckedKeys), fmgr, pfmgr);
         }
       }
       assertions.put(candidateInvariant, predecessorAssertion);
@@ -533,9 +531,9 @@ class KInductionProver implements AutoCloseable {
   private BooleanFormula getSuccessorViolation(CandidateInvariant pCandidateInvariant,
       ReachedSet pReached, int pK) throws CPATransferException, InterruptedException {
     FluentIterable<AbstractState> states = FluentIterable.from(pReached);
-    if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
-      states = filterIteration(states, pK + 1);
-    }
+    // if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
+    states = filterIteration(states, pK + 1);
+    // }
     BooleanFormula assertion = pCandidateInvariant.getAssertion(states, fmgr, pfmgr);
     return bfmgr.not(assertion);
   }
@@ -559,6 +557,20 @@ class KInductionProver implements AutoCloseable {
           LoopIterationReportingState ls = AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
           return ls != null && ls.getDeepestIteration() == pIteration;
         });
+  }
+
+  private FluentIterable<AbstractState> filterBmcChecked(
+      Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
+    return FluentIterable.from(pStates)
+        .filter(
+            pArg0 -> {
+              if (pArg0 == null) {
+                return false;
+              }
+              LoopIterationReportingState ls =
+                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
+              return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
+            });
   }
 
   private Iterable<CandidateInvariant> buildArtificialConjunctions(
@@ -662,27 +674,6 @@ class KInductionProver implements AutoCloseable {
             return result;
           }
         };
-  }
-
-  /**
-   * Check if the given invariant may be asserted at k predecessors,
-   * given all loop heads reachable without unrolling any loops.
-   *
-   * @param pCandidateInvariant the candidate invariant.
-   * @param pImmediateLoopHeads all loop heads reachable without unrolling any loops.
-   * @return {@code true} if the invariant may be asserted for k predecessors,
-   * {@code false} otherwise.
-   */
-  private boolean canBeAsserted(
-      CandidateInvariant pCandidateInvariant, Set<CFANode> pImmediateLoopHeads) {
-    for (CFANode immediateLoopHead : pImmediateLoopHeads) {
-      for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(immediateLoopHead)) {
-        if (loop.getLoopNodes().stream().anyMatch(lh -> pCandidateInvariant.appliesTo(lh))) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   private void ensureReachedSetInitialized(ReachedSet pReachedSet) throws InterruptedException {
