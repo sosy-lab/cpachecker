@@ -538,7 +538,7 @@ class KInductionProver implements AutoCloseable {
     return bfmgr.not(assertion);
   }
 
-  private FluentIterable<AbstractState> filterInductiveAssertionIteration(
+  private static FluentIterable<AbstractState> filterInductiveAssertionIteration(
       Iterable<AbstractState> pStates) {
     // We cannot use the states from the first iteration,
     // because its SSA map and pointer-target sets are incomplete.
@@ -547,7 +547,7 @@ class KInductionProver implements AutoCloseable {
     return filterIteration(pStates, 2);
   }
 
-  private FluentIterable<AbstractState> filterIteration(
+  private static FluentIterable<AbstractState> filterIteration(
       Iterable<AbstractState> pStates, int pIteration) {
     return FluentIterable.from(pStates).filter(
         pArg0 -> {
@@ -559,7 +559,7 @@ class KInductionProver implements AutoCloseable {
         });
   }
 
-  private FluentIterable<AbstractState> filterBmcChecked(
+  private static FluentIterable<AbstractState> filterBmcChecked(
       Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
     return FluentIterable.from(pStates)
         .filter(
