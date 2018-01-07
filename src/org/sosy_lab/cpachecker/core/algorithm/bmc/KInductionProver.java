@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -415,6 +416,9 @@ class KInductionProver implements AutoCloseable {
     boolean invariantsPushed = false;
     boolean newInvariants = true;
 
+    // Assert that *some* successor is reached
+    prover.push(BMCHelper.createFormulaFor(filterEndStates(reached), bfmgr));
+
     Iterable<CandidateInvariant> artificialConjunctions =
         buildArtificialConjunctions(pCandidateInvariants);
     Iterable<CandidateInvariant> candidatesToCheck =
@@ -513,6 +517,8 @@ class KInductionProver implements AutoCloseable {
       prover.pop();
     }
 
+    prover.pop(); // Pop end states
+
     return numberOfSuccessfulProofs == pCandidateInvariants.size();
   }
 
@@ -570,6 +576,15 @@ class KInductionProver implements AutoCloseable {
               LoopIterationReportingState ls =
                   AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
               return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
+            });
+  }
+
+  private static FluentIterable<AbstractState> filterEndStates(Iterable<AbstractState> pStates) {
+    return FluentIterable.from(pStates)
+        .filter(
+            s -> {
+              ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
+              return argState != null && argState.getChildren().isEmpty();
             });
   }
 
