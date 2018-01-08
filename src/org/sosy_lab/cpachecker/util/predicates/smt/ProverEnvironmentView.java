@@ -26,18 +26,15 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.java_smt.api.SolverException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Wrapping handler for ProverEnvironment.
@@ -79,7 +76,7 @@ class ProverEnvironmentView implements ProverEnvironment{
 
   @Nullable
   @Override
-  public Void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) throws InterruptedException {
     return delegate.push(f);
   }
 
@@ -89,7 +86,7 @@ class ProverEnvironmentView implements ProverEnvironment{
   }
 
   @Override
-  public Void addConstraint(BooleanFormula constraint) {
+  public Void addConstraint(BooleanFormula constraint) throws InterruptedException {
     return delegate.addConstraint(constraint);
   }
 

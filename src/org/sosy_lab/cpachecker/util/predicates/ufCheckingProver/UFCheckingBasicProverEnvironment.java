@@ -24,25 +24,24 @@
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Get the model, substitute implementation for UFs which were used to replace
@@ -98,7 +97,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public T push(BooleanFormula f) {
+  public T push(BooleanFormula f) throws InterruptedException {
 
     // add new level
     pushedConstraints.addLast(0);
@@ -122,7 +121,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public T addConstraint(BooleanFormula constraint) {
+  public T addConstraint(BooleanFormula constraint) throws InterruptedException {
     return delegate.addConstraint(constraint);
   }
 
@@ -184,6 +183,12 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
     pushedConstraints.addLast(pushedConstraints.removeLast() + additionalConstraints);
 
     return unsat;
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> pAssumptions)
+      throws SolverException, InterruptedException {
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -24,16 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.java_smt.api.SolverException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Model wrapping for InterpolatingProverEnvironment
@@ -50,7 +48,7 @@ class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnviro
   }
 
   @Override
-  public E push(BooleanFormula f) {
+  public E push(BooleanFormula f) throws InterruptedException {
     return delegate.push(f);
   }
 
@@ -60,7 +58,7 @@ class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnviro
   }
 
   @Override
-  public E addConstraint(BooleanFormula constraint) {
+  public E addConstraint(BooleanFormula constraint) throws InterruptedException {
     return delegate.addConstraint(constraint);
   }
 

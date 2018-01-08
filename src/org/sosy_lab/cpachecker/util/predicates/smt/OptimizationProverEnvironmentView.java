@@ -24,16 +24,15 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
-
-import java.util.Optional;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula.
@@ -51,9 +50,8 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
     wrappingHandler = pFormulaManager.getFormulaWrappingHandler();
   }
 
-
   @Override
-  public Void addConstraint(BooleanFormula constraint) {
+  public Void addConstraint(BooleanFormula constraint) throws InterruptedException {
     return delegate.addConstraint(constraint);
   }
 
@@ -79,7 +77,7 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
   }
 
   @Override
-  public Void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) throws InterruptedException {
     return delegate.push(f);
   }
 
@@ -91,6 +89,12 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
   @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
     return delegate.isUnsat();
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> pAssumptions)
+      throws SolverException, InterruptedException {
+    return delegate.isUnsatWithAssumptions(pAssumptions);
   }
 
   @Override

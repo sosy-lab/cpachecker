@@ -26,18 +26,16 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.java_smt.api.SolverException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This is a class that allows to use a different SMT solver for interpolation
@@ -62,7 +60,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public T push(BooleanFormula mainF) {
+  public T push(BooleanFormula mainF) throws InterruptedException {
     BooleanFormula itpF = itpFmgr.parse(mainFmgr.dumpFormula(mainF).toString());
     return itpEnv.push(itpF);
   }
@@ -73,7 +71,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public T addConstraint(BooleanFormula constraint) {
+  public T addConstraint(BooleanFormula constraint) throws InterruptedException {
     return itpEnv.addConstraint(convertToItp(constraint));
   }
 
