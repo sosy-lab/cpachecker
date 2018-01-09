@@ -387,7 +387,9 @@ class KInductionProver implements AutoCloseable {
           }
           predecessorAssertion =
               candidateInvariant.getAssertion(
-                  filterBmcChecked(predecessorReachedSet, pCheckedKeys), fmgr, pfmgr);
+                  filterBmcChecked(filterIteration(predecessorReachedSet, pK), pCheckedKeys),
+                  fmgr,
+                  pfmgr);
         }
       }
       assertions.put(candidateInvariant, predecessorAssertion);
@@ -536,33 +538,52 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula getSuccessorViolation(CandidateInvariant pCandidateInvariant,
       ReachedSet pReached, int pK) throws CPATransferException, InterruptedException {
-    FluentIterable<AbstractState> states = FluentIterable.from(pReached);
-    // if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
-    states = filterIteration(states, pK + 1);
-    // }
-    BooleanFormula assertion = pCandidateInvariant.getAssertion(states, fmgr, pfmgr);
+    BooleanFormula assertion =
+        pCandidateInvariant.getAssertion(filterIteration(pReached, pK + 1), fmgr, pfmgr);
     return bfmgr.not(assertion);
   }
 
-  private static FluentIterable<AbstractState> filterInductiveAssertionIteration(
+  private FluentIterable<AbstractState> filterInductiveAssertionIteration(
       Iterable<AbstractState> pStates) {
-    // We cannot use the states from the first iteration,
-    // because its SSA map and pointer-target sets are incomplete.
-    // We also do not want to always use the last iteration,
-    // because that may lead to unnecessarily large formulas.
-    return filterIteration(pStates, 2);
+    return filterIteration(pStates, 1);
   }
 
-  private static FluentIterable<AbstractState> filterIteration(
+  private FluentIterable<AbstractState> filterIteration(
       Iterable<AbstractState> pStates, int pIteration) {
-    return FluentIterable.from(pStates).filter(
-        pArg0 -> {
-          if (pArg0 == null) {
-            return false;
-          }
-          LoopIterationReportingState ls = AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
-          return ls != null && ls.getDeepestIteration() == pIteration;
-        });
+    return FluentIterable.from(pStates)
+        .filter(
+            state -> {
+              if (state == null) {
+                return false;
+              }
+              LoopIterationReportingState ls =
+                  AbstractStates.extractStateByType(state, LoopIterationReportingState.class);
+              if (ls == null) {
+                return false;
+              }
+              /*
+               * We want to consider as an "iteration" i
+               * all states with loop-iteration counter i that are
+               * - either target states or
+               * - not at a loop head
+               * and all states with loop-iteration counter i+1
+               * that are at a loop head.
+               *
+               * Reason:
+               * 1) A target state that is also a loop head
+               * does not count as a loop-head for our purposes,
+               * because the error "exits" the loop.
+               * 2) It is more convenient to make a loop-head state "belong"
+               * to the previous iteration instead of the one it starts.
+               */
+              int filterIt =
+                  !AbstractStates.IS_TARGET_STATE.apply(state)
+                          && from(AbstractStates.extractLocations(state))
+                              .allMatch(loopHeads::contains)
+                      ? pIteration + 1
+                      : pIteration;
+              return ls.getDeepestIteration() == filterIt;
+            });
   }
 
   private static FluentIterable<AbstractState> filterBmcChecked(
