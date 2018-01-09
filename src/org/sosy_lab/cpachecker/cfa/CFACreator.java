@@ -639,7 +639,7 @@ private boolean classifyNodes = false;
       // at least one BlankEdge as successor and predecessor
       if (node.getNumEnteringEdges() < 2
           || !(node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof BlankEdge)
-          || enteringEdges(node).anyMatch(isBlankEdge)) {
+          || !enteringEdges(node).anyMatch(isBlankEdge)) {
         continue;
       }
 
