@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 
@@ -130,7 +131,9 @@ public class SymbolEncoding {
       return encodedSymbols.get(symbol);
     }
 
-    symbol = symbol.split("@")[0]; // sometimes we need to clean up SSA-indices
+    symbol =
+        FormulaManagerView.parseName(symbol)
+            .getFirst(); // sometimes we need to clean up SSA-indices
     for (CSimpleDeclaration decl : decls) {
       if (symbol.equals(decl.getQualifiedName())) {
         CType cType = decl.getType().getCanonicalType();

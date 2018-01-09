@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -1503,13 +1504,13 @@ public class AssumptionToEdgeAllocator {
 
         return handlePotentialIntegerOverflow(integerValue, pType);
       } else {
-        String[] numberParts = value.split("\\.");
+        List<String> numberParts = Splitter.on('.').splitToList(value);
 
-        if (numberParts.length == 2 &&
-            numberParts[1].matches("0*") &&
-            numberParts[0].matches("((-)?)\\d*")) {
+        if (numberParts.size() == 2
+            && numberParts.get(1).matches("0*")
+            && numberParts.get(0).matches("((-)?)\\d*")) {
 
-          BigInteger integerValue = new BigInteger(numberParts[0]);
+          BigInteger integerValue = new BigInteger(numberParts.get(0));
 
           return handlePotentialIntegerOverflow(integerValue, pType);
         }

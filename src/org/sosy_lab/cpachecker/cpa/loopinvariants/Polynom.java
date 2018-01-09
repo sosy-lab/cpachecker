@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
+import com.google.common.base.Splitter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.OptionalDouble;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.AddExpression;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Addition;
@@ -34,9 +38,6 @@ import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Multiplication;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Variable;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.EvaluationVisitor;
-
-import java.util.HashMap;
-import java.util.OptionalDouble;
 
 /**
  *
@@ -63,20 +64,20 @@ public class Polynom {
   public void fromString(String pInvariant) {
     pInvariant = pInvariant.startsWith("-") ? pInvariant.replaceFirst("-", "(-1) * ") : pInvariant;
     String addition = pInvariant.replace(" -", " + (-1) * ");
-    String[] summands = addition.split("\\+");
-    PolynomExpression exp = getAddExpression(summands[summands.length - 1]);
-    for (int i = summands.length - 2; i >= 0; i--) {
-      exp = new Addition(getAddExpression(summands[i]), (AddExpression) exp);
+    List<String> summands = Splitter.on('+').splitToList(addition);
+    PolynomExpression exp = getAddExpression(summands.get(summands.size() - 1));
+    for (int i = summands.size() - 2; i >= 0; i--) {
+      exp = new Addition(getAddExpression(summands.get(i)), (AddExpression) exp);
     }
 
     this.poly = exp;
   }
 
   private MultExpression getAddExpression(String summand) {
-    String[] factors = summand.split("\\*");
-    MultExpression exp = getMult(factors[factors.length - 1]);
-    for (int i = factors.length - 2; i >= 0; i--) {
-      exp = new Multiplication((ExpoExpression) getMult(factors[i]), exp);
+    List<String> factors = Splitter.on('*').splitToList(summand);
+    MultExpression exp = getMult(factors.get(factors.size() - 1));
+    for (int i = factors.size() - 2; i >= 0; i--) {
+      exp = new Multiplication((ExpoExpression) getMult(factors.get(i)), exp);
     }
     return exp;
   }
@@ -89,8 +90,8 @@ public class Polynom {
     } else if (factor.matches("[a-zA-Z0-9\\(\\)]*")) {
       exp = new Variable(factor);
     } else if (factor.contains("^")) {
-      String[] expo = factor.split("\\^");
-      exp = new Exponent(new Variable(expo[0]), getMult(expo[1]));
+      List<String> expo = Splitter.on('^').splitToList(factor);
+      exp = new Exponent(new Variable(expo.get(0)), getMult(expo.get(1)));
     } else if (factor.matches("\\(-1\\)")) {
       exp = new Constant(-1);
     }

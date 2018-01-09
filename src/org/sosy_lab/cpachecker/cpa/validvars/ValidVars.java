@@ -25,17 +25,17 @@ package org.sosy_lab.cpachecker.cpa.validvars;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 
 public class ValidVars implements Serializable {
@@ -56,10 +56,10 @@ public class ValidVars implements Serializable {
   }
 
   public boolean containsVar(String varName) {
-    String[] split = varName.split("::");
-    if (split.length > 1) {
-      Set<String> functionVars = localValidVars.get(split[0]);
-      return functionVars != null ? functionVars.contains(split[1]) : false;
+    List<String> split = Splitter.on("::").splitToList(varName);
+    if (split.size() > 1) {
+      Set<String> functionVars = localValidVars.get(split.get(0));
+      return functionVars != null ? functionVars.contains(split.get(1)) : false;
     } else {
       return globalValidVars.contains(varName);
     }

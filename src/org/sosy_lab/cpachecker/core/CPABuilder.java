@@ -136,8 +136,8 @@ public class CPABuilder {
     Preconditions.checkNotNull(optionValue);
 
     // parse option (may be of syntax "classname alias"
-    String[] optionParts = optionValue.trim().split("\\s+");
-    String cpaName = optionParts[0];
+    List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue.trim());
+    String cpaName = optionParts.get(0);
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaName);
 
     if (!usedAliases.add(cpaAlias)) {
@@ -206,16 +206,17 @@ public class CPABuilder {
     return cpa;
   }
 
-  private String getCPAAlias(String optionValue, String optionName,
-      String[] optionParts, String cpaName) throws InvalidConfigurationException {
+  private String getCPAAlias(
+      String optionValue, String optionName, List<String> optionParts, String cpaName)
+      throws InvalidConfigurationException {
 
-    if (optionParts.length == 1) {
+    if (optionParts.size() == 1) {
       // no user-specified alias, use last part of class name
       int dotIndex = cpaName.lastIndexOf('.');
       return (dotIndex >= 0 ? cpaName.substring(dotIndex+1) : cpaName);
 
-    } else if (optionParts.length == 2) {
-      return optionParts[1];
+    } else if (optionParts.size() == 2) {
+      return optionParts.get(1);
 
     } else {
       throw new InvalidConfigurationException("Option " + optionName + " contains invalid CPA specification \"" + optionValue + "\"!");
