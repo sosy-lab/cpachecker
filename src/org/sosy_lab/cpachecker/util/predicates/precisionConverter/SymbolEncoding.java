@@ -261,8 +261,6 @@ public class SymbolEncoding {
     public int hashCode() {
       return returnType.hashCode() + 17 * parameterTypes.hashCode();
     }
-
-    public final static Type<Integer> BOOL = new Type<>(-1);
   }
 
   public static class UnknownFormulaSymbolException extends CPAException {

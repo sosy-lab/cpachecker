@@ -27,12 +27,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 
 import apache.harmony.math.BigInteger;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -40,15 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 
 public class BVConverter extends Converter {
@@ -314,7 +310,7 @@ public class BVConverter extends Converter {
       Pair<String, Type<FormulaType<?>>> cond = terms.get(0);
       Pair<String, Type<FormulaType<?>>> eIf = terms.get(1);
       Pair<String, Type<FormulaType<?>>> eElse = terms.get(2);
-      if (Type.BOOL.equals(eIf.getSecond())) {
+      if (FormulaType.BooleanType.equals(eIf.getSecond().getReturnType())) {
         return Pair.of(format("(ite %s %s %s)",
             cond.getFirst(),
             eIf.getFirst(),
