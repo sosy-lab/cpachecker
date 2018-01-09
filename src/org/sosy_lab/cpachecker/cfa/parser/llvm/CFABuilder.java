@@ -225,7 +225,12 @@ public class CFABuilder extends LlvmAstVisitor {
             || variableDeclarations.containsKey(functionArg.getAddress());
         CType expectedType = typeConverter.getCType(functionArg.typeOf());
         parameterTypes.add(expectedType);
-        parameters.add(getAssignedIdExpression(functionArg, expectedType));
+        if (functionArg.isConstant()) {
+          parameters.add(getConstant(functionArg));
+        } else {
+          assert variableDeclarations.containsKey(functionArg.getAddress());
+          parameters.add(getAssignedIdExpression(functionArg, expectedType));
+        }
       }
 
       CFunctionType functionType = new CFunctionType(returnType, parameterTypes, false);
