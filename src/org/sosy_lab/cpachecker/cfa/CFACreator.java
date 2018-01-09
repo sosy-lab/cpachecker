@@ -562,13 +562,16 @@ private boolean classifyNodes = false;
     return parseResult;
   }
 
-  /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
-   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them.
+  /**
+   * This method changes the CFAs of the functions with adding, removing, replacing or moving
+   * CFAEdges. The CFAs are independent, i.e. there are no super-edges (functioncall- and
+   * return-edges) between them.
    *
    * @return either a modified old CFA or a complete new CFA
    */
-  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
-          throws InvalidConfigurationException, CParserException, InterruptedException {
+  private MutableCFA postProcessingOnMutableCFAs(
+      MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
+      throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
