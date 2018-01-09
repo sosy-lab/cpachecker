@@ -619,10 +619,14 @@ public class CFABuilder extends LlvmAstVisitor {
     return variableDeclarations.get(itemId);
   }
 
-  private CExpression getAssignedIdExpression(final Value pItem, final CType pExpectedType) {
+  private CExpression getAssignedIdExpression(final Value pItem, final CType pExpectedType)
+      throws LLVMException{
     logger.log(Level.FINE, "Getting var declaration for item");
-    assert variableDeclarations.containsKey(pItem.getAddress())
-        : "ID expression has no declaration!";
+
+    if(!variableDeclarations.containsKey(pItem.getAddress())) {
+      throw new LLVMException("ID expression has no declaration: " + pItem);
+    }
+
     CSimpleDeclaration assignedVarDeclaration = variableDeclarations.get(pItem.getAddress());
     String assignedVarName = assignedVarDeclaration.getName();
     CType expressionType = assignedVarDeclaration.getType();
