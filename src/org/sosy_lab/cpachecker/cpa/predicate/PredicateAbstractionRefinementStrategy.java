@@ -551,7 +551,17 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
     // best to use strategy one iff newPredicatesFound.
-    boolean newPredicatesFound = !targetStatePrecision.getLocalPredicates().entries().containsAll(newPredicates.entries());
+    // TODO right now this works only with location-specific predicates, not with other values of
+    // cpa.predicate.precision.sharing
+    boolean newPredicatesFound = false;
+    for (Map.Entry<LocationInstance, AbstractionPredicate> entry : newPredicates.entries()) {
+      if (!targetStatePrecision
+          .getLocalPredicates()
+          .containsEntry(entry.getKey().getLocation(), entry.getValue())) {
+        newPredicatesFound = true;
+        break;
+      }
+    }
 
     ARGState firstInterpolationPoint = pAffectedStates.get(0);
     if (!newPredicatesFound) {
