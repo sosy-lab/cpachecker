@@ -110,7 +110,7 @@ public class LoopBoundState
 
   @Override
   public Object getPartitionKey() {
-    return this;
+    return this.setStop(false);
   }
 
   @Override
