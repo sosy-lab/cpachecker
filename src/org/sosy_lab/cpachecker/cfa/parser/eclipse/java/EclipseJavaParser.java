@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.MoreFiles;
+import com.google.errorprone.annotations.MustBeClosed;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -206,6 +207,8 @@ class EclipseJavaParser implements Parser {
     return astsOfFoundFiles;
   }
 
+  @MustBeClosed
+  @SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
   private Stream<Path> getJavaFilesInPath(Path mainDirectory) throws IOException {
     return Files.walk(mainDirectory, FileVisitOption.FOLLOW_LINKS)
         .filter(Files::isRegularFile)
