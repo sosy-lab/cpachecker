@@ -28,12 +28,12 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -100,7 +100,7 @@ public class SymbolEncoding {
     put(symbol, new Type<FormulaType<?>>(getBitvectorTypeWithSize(length)));
   }
 
-  public void put(String symbol, FormulaType<?> pReturnType, List<FormulaType<?>> pArgs) {
+  public void put(String symbol, FormulaType<?> pReturnType, ImmutableList<FormulaType<?>> pArgs) {
     put(symbol, new Type<>(pReturnType, pArgs));
   }
 
@@ -217,16 +217,16 @@ public class SymbolEncoding {
 
     private boolean signed = true; // default case: signed identifiers
     private final T returnType;
-    private final List<T> parameterTypes;
+    private final ImmutableList<T> parameterTypes;
 
-    public Type(T pReturnType, List<T> pParameterTypes) {
+    public Type(T pReturnType, ImmutableList<T> pParameterTypes) {
       this.returnType = pReturnType;
       this.parameterTypes = pParameterTypes;
     }
 
     public Type(T pReturnType) {
       this.returnType = pReturnType;
-      this.parameterTypes = Collections.<T>emptyList();
+      this.parameterTypes = ImmutableList.of();
     }
 
     public T getReturnType() { return returnType; }
