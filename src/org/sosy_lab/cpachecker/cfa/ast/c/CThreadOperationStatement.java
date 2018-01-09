@@ -28,7 +28,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class CThreadOperationStatement extends CFunctionCallStatement {
 
+  private static final long serialVersionUID = -7543988390816591658L;
+
   public static class CThreadCreateStatement extends CThreadOperationStatement {
+
+    private static final long serialVersionUID = -1211707394397959801L;
 
     public CThreadCreateStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall,
         boolean pSelfParallel, String pVarName) {
@@ -37,6 +41,8 @@ public class CThreadOperationStatement extends CFunctionCallStatement {
   }
 
   public static class CThreadJoinStatement extends CThreadOperationStatement {
+
+    private static final long serialVersionUID = -2328781305617198230L;
 
     public CThreadJoinStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall,
         boolean pSelfParallel, String pVarName) {
