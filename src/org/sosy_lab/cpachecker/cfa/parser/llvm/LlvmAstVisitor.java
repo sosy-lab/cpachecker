@@ -75,21 +75,22 @@ public abstract class LlvmAstVisitor {
     globalDeclarations = new ArrayList<>();
   }
 
-  public void visit(final Module pItem) throws LLVMException {
+  public void visit(final Module pItem, final String pFileName) throws LLVMException {
     if (pItem.getFirstFunction() == null) {
       return;
     }
 
-    addFunctionDeclarations(pItem);
+    addFunctionDeclarations(pItem, pFileName);
 
     /* create globals */
     iterateOverGlobals(pItem);
 
     /* create CFA for all functions */
-    iterateOverFunctions(pItem);
+    iterateOverFunctions(pItem, pFileName);
   }
 
-  private void addFunctionDeclarations(final Module pItem) throws LLVMException {
+  private void addFunctionDeclarations(final Module pItem, final String pFileName)
+      throws LLVMException {
     for (Value func : pItem) {
       String funcName = func.getValueName();
       assert !funcName.isEmpty();
@@ -99,7 +100,7 @@ public abstract class LlvmAstVisitor {
         continue;
       }
 
-      declareFunction(func);
+      declareFunction(func, pFileName);
     }
   }
 
@@ -114,7 +115,7 @@ public abstract class LlvmAstVisitor {
     assert globalItemLast != null;
 
     while (true) {
-      // ADeclaration decl = visitGlobalItem(globalItem);
+      // ADeclaration decl = visitGlobalItem(globalItem, pFileName);
       // globalDeclarations.add(Pair.of(decl, globalItem.toString()));
 
       /* we processed the last global variable? */
@@ -135,7 +136,8 @@ public abstract class LlvmAstVisitor {
     edge.getSuccessor().addEnteringEdge(edge);
   }
 
-  private void iterateOverFunctions(final Module pItem) throws LLVMException {
+  private void iterateOverFunctions(final Module pItem, final String pFileName)
+      throws LLVMException {
     Function lastFunc = pItem.getLastFunction().asFunction();
     Function currFunc = null;
     do {
@@ -158,22 +160,22 @@ public abstract class LlvmAstVisitor {
       }
 
       // handle the function definition
-      FunctionEntryNode en = visitFunction(currFunc);
+      FunctionEntryNode en = visitFunction(currFunc, pFileName);
       assert en != null;
       addNode(funcName, en);
 
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
       SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
-      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, funcName, basicBlocks);
+      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, funcName, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
       // basic block
       // BlankEdge.buildNoopEdge(en, entryBB);
-      addEdge(new BlankEdge("entry", FileLocation.DUMMY, en, entryBB, "Function start edge"));
+      addEdge(new BlankEdge("entry", en.getFileLocation(), en, entryBB, "Function start edge"));
 
       // add branching between instructions
-      addJumpsBetweenBasicBlocks(currFunc, basicBlocks);
+      addJumpsBetweenBasicBlocks(currFunc, basicBlocks, pFileName);
 
       functions.put(funcName, en);
 
@@ -191,7 +193,8 @@ public abstract class LlvmAstVisitor {
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
       final String pFuncName,
-      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks)
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final String pFileName)
       throws LLVMException {
     if (pFunction.countBasicBlocks() == 0) {
       return null;
@@ -206,7 +209,8 @@ public abstract class LlvmAstVisitor {
         entryBB = label;
       }
 
-      BasicBlockInfo bbi = handleInstructions(pEntryNode.getExitNode(), pFuncName, block);
+      BasicBlockInfo bbi =
+          handleInstructions(pEntryNode.getExitNode(), pFuncName, block, pFileName);
       pBasicBlocks.put(block.hashCode(), new BasicBlockInfo(label, bbi.getExitNode()));
 
       // add an edge from label to the first node
@@ -214,7 +218,7 @@ public abstract class LlvmAstVisitor {
       addEdge(
           new BlankEdge(
               "label_to_first",
-              FileLocation.DUMMY,
+              pEntryNode.getFileLocation(),
               label,
               bbi.getEntryNode(),
               "edge to first instr"));
@@ -226,7 +230,9 @@ public abstract class LlvmAstVisitor {
 
   /** Add branching edges between first and last nodes of basic blocks. */
   private void addJumpsBetweenBasicBlocks(
-      final Function pFunction, final SortedMap<Integer, BasicBlockInfo> pBasicBlocks)
+      final Function pFunction,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final String pFileName)
       throws LLVMException {
     // for every basic block, get the last instruction and
     // add edges from it to labels where it jumps
@@ -255,19 +261,30 @@ public abstract class LlvmAstVisitor {
       assert succNum == 2;
 
       // get the operands and add branching edges
-      CExpression condition = getBranchCondition(terminatorInst, pFunction.getValueName());
+      CExpression condition =
+          getBranchCondition(terminatorInst, pFunction.getValueName(), pFileName);
 
       BasicBlock succ = terminatorInst.getSuccessor(0);
       CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
       addEdge(
           new CAssumeEdge(
-              condition.toASTString(), FileLocation.DUMMY, brNode, label, condition, true));
+              condition.toASTString(),
+              condition.getFileLocation(),
+              brNode,
+              label,
+              condition,
+              true));
 
       succ = terminatorInst.getSuccessor(1);
       label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
       addEdge(
           new CAssumeEdge(
-              condition.toASTString(), FileLocation.DUMMY, brNode, label, condition, false));
+              condition.toASTString(),
+              condition.getFileLocation(),
+              brNode,
+              label,
+              condition,
+              false));
     }
   }
 
@@ -290,7 +307,10 @@ public abstract class LlvmAstVisitor {
 
   /** Create a chain of nodes and edges corresponding to one basic block. */
   private BasicBlockInfo handleInstructions(
-      final FunctionExitNode exitNode, final String funcName, final BasicBlock pItem)
+      final FunctionExitNode exitNode,
+      final String funcName,
+      final BasicBlock pItem,
+      final String pFileName)
       throws LLVMException {
     assert pItem.getFirstInstruction() != null; // empty BB not supported
 
@@ -307,7 +327,7 @@ public abstract class LlvmAstVisitor {
       }
 
       // process this basic block
-      List<CAstNode> expressions = visitInstruction(I, funcName);
+      List<CAstNode> expressions = visitInstruction(I, funcName, pFileName);
       if (expressions == null) {
         curNode = newNode(funcName);
         addEdge(
@@ -318,33 +338,28 @@ public abstract class LlvmAstVisitor {
       }
 
       for (CAstNode expr : expressions) {
+        FileLocation exprLocation = expr.getFileLocation();
         // build an edge with this expression over it
         if (expr instanceof CDeclaration) {
           curNode = newNode(funcName);
           addEdge(
               new CDeclarationEdge(
-                  expr.toASTString(), FileLocation.DUMMY, prevNode, curNode, (CDeclaration) expr));
+                  expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
         } else if (expr instanceof CReturnStatement) {
           curNode = exitNode;
           addEdge(
               new CReturnStatementEdge(
-                  I.toString(), (CReturnStatement) expr, FileLocation.DUMMY, prevNode, exitNode));
+                  I.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
         } else if (I.isUnreachableInst()) {
           curNode = exitNode;
-          addEdge(
-              new BlankEdge(
-                  I.toString(),
-                  FileLocation.DUMMY,
-                  prevNode,
-                  curNode,
-                  "unreachable"));
+          addEdge(new BlankEdge(I.toString(), exprLocation, prevNode, curNode, "unreachable"));
         } else {
           curNode = newNode(funcName);
           addEdge(
               new CStatementEdge(
                   expr.toASTString() + I.toString(),
                   (CStatement) expr,
-                  FileLocation.DUMMY,
+                  exprLocation,
                   prevNode,
                   curNode));
         }
@@ -380,14 +395,16 @@ public abstract class LlvmAstVisitor {
     }
   }
 
-  protected abstract FunctionEntryNode visitFunction(final Value pItem) throws LLVMException;
-
-  protected abstract void declareFunction(final Value pItem) throws LLVMException;
-
-  protected abstract List<CAstNode> visitInstruction(Value pItem, String pFunctionName)
+  protected abstract FunctionEntryNode visitFunction(final Value pItem, final String pFileName)
       throws LLVMException;
 
-  protected abstract CExpression getBranchCondition(Value pItem, String funcName)
+  protected abstract void declareFunction(final Value pItem, final String pFileName)
+      throws LLVMException;
+
+  protected abstract List<CAstNode> visitInstruction(
+      Value pItem, String pFunctionName, String pFileName) throws LLVMException;
+
+  protected abstract CExpression getBranchCondition(Value pItem, String funcName, String pFilename)
       throws LLVMException;
 
   protected abstract ADeclaration visitGlobalItem(final Value pItem);
