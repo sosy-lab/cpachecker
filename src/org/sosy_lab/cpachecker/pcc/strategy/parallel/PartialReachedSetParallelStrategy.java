@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -95,7 +96,8 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       }
 
       // check initial element
-      AbstractState initialState = pReachedSet.popFromWaitlist();
+      WaitlistElementWithAbstractState element = (WaitlistElementWithAbstractState) pReachedSet.popFromWaitlist();
+      AbstractState initialState = element.getAbstractState();
       assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
 
       try {

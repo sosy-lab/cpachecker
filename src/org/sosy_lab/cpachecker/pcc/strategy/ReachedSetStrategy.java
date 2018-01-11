@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
@@ -89,7 +90,8 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
     Precision initialPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
 
     // check if initial element covered
-    AbstractState initialState = pReachedSet.popFromWaitlist();
+    WaitlistElementWithAbstractState element = (WaitlistElementWithAbstractState) pReachedSet.popFromWaitlist();
+    AbstractState initialState = element.getAbstractState();
     assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
 
     try {

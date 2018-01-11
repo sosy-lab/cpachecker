@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -99,7 +100,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     Collection<AbstractState> inOtherPartition = new HashSet<>();
     Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getSavedReachedSetSize());
 
-    AbstractState initialState = pReachedSet.popFromWaitlist();
+    WaitlistElementWithAbstractState element = (WaitlistElementWithAbstractState) pReachedSet.popFromWaitlist();
+    AbstractState initialState = element.getAbstractState();
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create reading thread");

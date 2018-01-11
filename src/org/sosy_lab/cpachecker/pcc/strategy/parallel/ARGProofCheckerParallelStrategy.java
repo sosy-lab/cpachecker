@@ -49,6 +49,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -167,7 +168,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       // check root
       ARGState root = args[args.length - 1];
 
-      AbstractState initialState = pReachedSet.popFromWaitlist();
+      WaitlistElementWithAbstractState element = (WaitlistElementWithAbstractState) pReachedSet.popFromWaitlist();
+      AbstractState initialState = element.getAbstractState();
 
       logger.log(Level.FINE, "Checking root state");
 
