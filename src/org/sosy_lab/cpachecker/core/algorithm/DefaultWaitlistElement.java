@@ -86,6 +86,6 @@ public class DefaultWaitlistElement implements WaitlistElementWithAbstractState 
     }
     DefaultWaitlistElement other = (DefaultWaitlistElement) obj;
     return Objects.equals(state, other.state)
-        && Objects.equals(precision, precision);
+        && Objects.equals(precision, other.precision);
   }
 }
