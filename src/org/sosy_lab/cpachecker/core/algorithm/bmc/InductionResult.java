@@ -76,7 +76,7 @@ public class InductionResult {
     if (isSuccessful()) {
       throw new IllegalStateException("Input assignments are only present if induction failed.");
     }
-    assert inputAssignments == null;
+    assert inputAssignments != null;
     return inputAssignments;
   }
 
