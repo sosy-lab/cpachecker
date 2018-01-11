@@ -266,7 +266,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public String toString() {
-    return getCurrentThreadName();
+    return threadSet.toString();
   }
 
   public static class StoredThreadState extends ThreadState {

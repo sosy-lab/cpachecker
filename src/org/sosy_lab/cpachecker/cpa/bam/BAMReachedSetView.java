@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -122,5 +123,11 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
   @Override
   public int size() {
     throw new UnsupportedOperationException("should not be needed");
+  }
+
+
+  @Override
+  public void printStatistics(PrintStream pOut) {
+
   }
 }
