@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -71,7 +72,6 @@ public class NewtonRefinementManager {
   private final PathFormulaManager pfmgr;
   private final RCNFManager rcnf;
 
-  // TODO: make to an option
   @Option(
     secure = true,
     description =
@@ -121,7 +121,6 @@ public class NewtonRefinementManager {
       } else {
         unsatCore = Optional.empty();
       }
-      // TODO: Manipulate Path in such way, that unnecessary parts of the predicates are removed
 
       // Calculate StrongestPost
       List<BooleanFormula> predicates =
@@ -266,7 +265,6 @@ public class NewtonRefinementManager {
           } else {
             postCondition = toExist;
           }
-
           break;
         default:
           if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
@@ -277,14 +275,15 @@ public class NewtonRefinementManager {
             postCondition = preCondition;
             break;
           }
-          // TODO: Determine if it is necessary to do something for other edgetypes
+
+          // Throw an exception if the type of the Edge is none of the above but it holds a PathFormula
           throw new UnsupportedOperationException(
               "Found unsupported Edgetype in Newton Refinement: "
                   + edge.getDescription()
                   + " of Type :"
                   + edge.getEdgeType());
       }
-      if (location.hasCorrespondingARGState()) {
+      if (location.hasCorrespondingARGState() && location.hasAbstractionState()) {
         predicates.add(fmgr.simplify(postCondition));
       }
       // PostCondition is preCondition for next location
@@ -337,6 +336,13 @@ public class NewtonRefinementManager {
     return pathLocationList;
   }
 
+  /**
+   * Class holding the information of a location on program path. Each Location is associated to its
+   * incoming CFAEdge.
+   *
+   * <p>Internal implementation used to aggregate the corresponding information in a way to make
+   * iteration-steps more comprehensible
+   */
   private static class PathLocation {
     final CFAEdge lastEdge;
     final PathFormula pathFormula;
@@ -348,17 +354,45 @@ public class NewtonRefinementManager {
       pathFormula = pPathFormula;
       state = pState;
     }
-
+    /**
+     * Get the incoming edge of this location
+     *
+     * @return The CFAEdge
+     */
     CFAEdge getLastEdge() {
       return lastEdge;
     }
 
+    /**
+     * Get the pathFormula of the location. Is the PathFormula of the incoming edge, but with the
+     * context of the location in the path
+     *
+     * @return The PathFormula
+     */
     PathFormula getPathFormula() {
       return pathFormula;
     }
 
+    /**
+     * Check if the location has a corresponding ARGState
+     *
+     * @return true iff there is a ARGState associated to the location
+     */
     boolean hasCorrespondingARGState() {
       return state.isPresent();
+    }
+
+    /**
+     * Check if the location has a corresponding Abstraction state
+     *
+     * @return true iff there is an corresponding state and this state also is an abstraction state
+     */
+    boolean hasAbstractionState() {
+      if (hasCorrespondingARGState()) {
+        return PredicateAbstractState.getPredicateState(state.get()).isAbstractionState();
+      } else {
+        return false;
+      }
     }
 
     // Optional<ARGState> getARGState() {
