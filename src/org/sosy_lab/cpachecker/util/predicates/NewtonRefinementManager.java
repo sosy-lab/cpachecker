@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.Tactic;
 
 /**
  * Class designed to perform a Newton based refinement
@@ -70,7 +72,6 @@ public class NewtonRefinementManager {
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
-  private final RCNFManager rcnf;
 
   @Option(
     secure = true,
@@ -87,7 +88,6 @@ public class NewtonRefinementManager {
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     pfmgr = pPfmgr;
-    rcnf = new RCNFManager(config);
   }
 
   /**
@@ -244,27 +244,8 @@ public class NewtonRefinementManager {
         case FunctionCallEdge:
         case ReturnStatementEdge:
         case FunctionReturnEdge:
-          BooleanFormula toExist;
-          // If this formula should be abstracted, this statement havocs the leftHand variable
-          // Therefore its previous values can be existentially quantified in the preCondition
-          if (abstractThisFormula) {
-            toExist = preCondition;
-          }
-          // Else we create the conjunction and quantify the old value, yet get a new
-          // Assignmentformula
-          else {
-            toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
-          }
-          if (toExist != fmgr.getBooleanFormulaManager().makeTrue()) {
-            // Create the quantified formula where
-            BooleanFormula quantified = fmgr.quantifyDeadVariables(toExist, pathFormula.getSsa());
-            // eliminate quantifiers using the RCNF-Manager
-            Set<BooleanFormula> lemmas = rcnf.toLemmas(quantified, fmgr);
-            postCondition = fmgr.getBooleanFormulaManager().and(lemmas);
-            // postCondition = fmgr.eliminateDeadVariables(toExist, pathFormula.getSsa());
-          } else {
-            postCondition = toExist;
-          }
+          postCondition =
+              calculatePostconditionForAssignment(preCondition, pathFormula, abstractThisFormula);
           break;
         default:
           if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
@@ -297,6 +278,67 @@ public class NewtonRefinementManager {
     }
     // Remove the last predicate as always false
     return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
+  }
+
+  /**
+   * Calculate the Strongest postcondition of an assignment
+   *
+   * @param preCondition The condition prior to the assignment
+   * @param pathFormula The PathFormula associated with the assignment
+   * @param abstractThisFormula Sets whether to abstract this assignment(when true, the assignment
+   *     basically havocs the assigned variable)
+   * @return The postCondition as BooleanFormula
+   * @throws InterruptedException When interrupted
+   */
+  private BooleanFormula calculatePostconditionForAssignment(
+      BooleanFormula preCondition, PathFormula pathFormula, boolean abstractThisFormula)
+      throws InterruptedException {
+
+    BooleanFormula postCondition;
+    BooleanFormula toExist;
+
+    // If this formula should be abstracted, this statement havocs the leftHand variable
+    // Therefore its previous values can be existentially quantified in the preCondition
+    if (abstractThisFormula) {
+      toExist = preCondition;
+    }
+    // Else we create the conjunction and quantify the old value, yet get a new
+    // Assignmentformula
+    else {
+      toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+    }
+    // If the toExist is true, the postCondition is True too.
+    if (toExist == fmgr.getBooleanFormulaManager().makeTrue()) {
+      postCondition = toExist;
+    } else {
+      // Get the set of intermediate Variables
+      Set<String> intermediateVarNames =
+          FluentIterable.from(fmgr.extractVariableNames(toExist))
+              .filter((e) -> fmgr.isIntermediate(e, pathFormula.getSsa()))
+              .toSet();
+      // If there are no intermediate Variables, no quantification is necessary
+      if (intermediateVarNames.isEmpty()) {
+        postCondition = toExist;
+      } else {
+        List<BooleanFormula> intermediateVarFormulas =
+            FluentIterable.from(intermediateVarNames)
+                .transform(
+                    (e) -> {
+                      return fmgr.getBooleanFormulaManager().makeVariable(e);
+                    })
+                .toList();
+
+        // TODO: Try to avoid quantification with techniques like:
+        //          Destructive Equality Resolution (DER)
+        //          Unconnected Parameter Drop (UPD)
+
+        // Quantify the toExist formula and try to eliminate the quantifiers
+        BooleanFormula quantified =
+            fmgr.getQuantifiedFormulaManager().exists(intermediateVarFormulas, toExist);
+        postCondition = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+      }
+    }
+    return postCondition;
   }
 
   /**
