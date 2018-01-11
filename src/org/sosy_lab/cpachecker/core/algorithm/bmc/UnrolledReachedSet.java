@@ -28,6 +28,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -51,6 +52,8 @@ public class UnrolledReachedSet {
   private @Nullable Set<Object> containedLoopBoundKeys = null;
 
   private int k = -1;
+
+  private AlgorithmStatus lastStatus = AlgorithmStatus.SOUND_AND_PRECISE;
 
   public UnrolledReachedSet(
       Algorithm pAlgorithm,
@@ -85,12 +88,13 @@ public class UnrolledReachedSet {
     }
   }
 
-  public void ensureK() throws InterruptedException, CPAException {
+  public AlgorithmStatus ensureK() throws InterruptedException, CPAException {
     if (getDesiredK() > k) {
-      ensureK.ensureK(algorithm, cpa, reachedSet);
+      lastStatus = ensureK.ensureK(algorithm, cpa, reachedSet);
       k = getDesiredK();
       containedLoopBoundKeys = null;
     }
+    return lastStatus;
   }
 
   public Set<Object> getContainedLoopBoundKeys() {
@@ -119,7 +123,8 @@ public class UnrolledReachedSet {
 
   interface EnsureK {
 
-    void ensureK(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA, ReachedSet pReachedSet)
+    AlgorithmStatus ensureK(
+        Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA, ReachedSet pReachedSet)
         throws InterruptedException, CPAException;
   }
 }
