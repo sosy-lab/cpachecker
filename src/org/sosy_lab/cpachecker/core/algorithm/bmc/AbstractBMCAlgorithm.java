@@ -33,10 +33,18 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -140,6 +148,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private final TargetLocationProvider targetLocationProvider;
 
   private final @Nullable ShutdownRequestListener propagateSafetyInterrupt;
+
+  /** The candidate invariants that have been proven to hold at the loop heads. */
+  private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -327,8 +338,30 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
             if (!sound) {
               Set<Object> checkedKeys = getCheckedKeys(reachedSet);
-              sound = kInductionProver.check(k, candidates, checkedKeys);
-              candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
+              sound = true;
+              Iterable<CandidateInvariant> artificialConjunctions =
+                  buildArtificialConjunctions(candidates);
+              Iterable<CandidateInvariant> candidatesToCheck =
+                  Iterables.concat(candidates, artificialConjunctions);
+              for (CandidateInvariant candidate : candidatesToCheck) {
+                if (kInductionProver.check(
+                    Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
+                    k,
+                    candidate,
+                    checkedKeys)) {
+                  Iterables.addAll(
+                      confirmedCandidates,
+                      CandidateInvariantConjunction.getConjunctiveParts(candidate));
+                  candidateGenerator.confirmCandidates(
+                      CandidateInvariantConjunction.getConjunctiveParts(candidate));
+                  if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
+                    sound = true;
+                    break;
+                  }
+                } else {
+                  sound = false;
+                }
+              }
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -618,5 +651,113 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         AggregatedReachedSets pAggregatedReachedSets,
         TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException;
 
+  }
+
+  protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
+    return from(confirmedCandidates)
+        .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
+  }
+
+  private Iterable<CandidateInvariant> buildArtificialConjunctions(
+      final Set<CandidateInvariant> pCandidateInvariants) {
+    FluentIterable<CandidateInvariant> remainingLoopHeadCandidateInvariants =
+        from(pCandidateInvariants)
+            .filter(
+                pLocationFormulaInvariant -> {
+                  return cfa.getLoopStructure().isPresent()
+                      && cfa.getLoopStructure()
+                          .get()
+                          .getAllLoopHeads()
+                          .stream()
+                          .anyMatch(lh -> pLocationFormulaInvariant.appliesTo(lh));
+                })
+            .filter(Predicates.not(Predicates.in(confirmedCandidates)));
+    if (remainingLoopHeadCandidateInvariants.size() <= 1) {
+      return Collections.emptySet();
+    }
+
+    Multimap<String, CandidateInvariant> functionInvariants = HashMultimap.create();
+    Set<CandidateInvariant> others = new HashSet<>();
+    for (CandidateInvariant locationFormulaInvariant : remainingLoopHeadCandidateInvariants) {
+      if (locationFormulaInvariant instanceof SingleLocationFormulaInvariant) {
+        functionInvariants.put(
+            ((SingleLocationFormulaInvariant) locationFormulaInvariant)
+                .getLocation()
+                .getFunctionName(),
+            locationFormulaInvariant);
+      } else {
+        others.add(locationFormulaInvariant);
+      }
+    }
+    for (String key : new ArrayList<>(functionInvariants.keys())) {
+      functionInvariants.putAll(key, others);
+    }
+
+    Iterator<Map.Entry<String, Collection<CandidateInvariant>>> functionInvariantsEntryIterator =
+        functionInvariants.asMap().entrySet().iterator();
+
+    return () ->
+        new Iterator<CandidateInvariant>() {
+
+          private boolean allComputed = false;
+
+          private @Nullable CandidateInvariant next = null;
+
+          @Override
+          public boolean hasNext() {
+            if (next != null) {
+              return true;
+            }
+
+            // Create the next conjunction over function candidates
+            while (next == null && functionInvariantsEntryIterator.hasNext()) {
+              assert !allComputed;
+              Map.Entry<String, Collection<CandidateInvariant>> functionInvariantsEntry =
+                  functionInvariantsEntryIterator.next();
+              // We want at least two operands, but less than "all"; "all" comes separately later
+              if (functionInvariantsEntry.getValue().size() > 1
+                  && functionInvariantsEntry.getValue().size()
+                      < remainingLoopHeadCandidateInvariants.size()) {
+                // Only now, directly before it is used, compute the final set of operands for the
+                // conjunction
+                Set<CandidateInvariant> remainingFunctionCandidateInvariants =
+                    remainingLoopHeadCandidateInvariants
+                        .filter(
+                            pCandidateInvariant -> {
+                              if (pCandidateInvariant instanceof SingleLocationFormulaInvariant) {
+                                return ((SingleLocationFormulaInvariant) pCandidateInvariant)
+                                    .getLocation()
+                                    .getFunctionName()
+                                    .equals(functionInvariantsEntry.getKey());
+                              }
+                              return true;
+                            })
+                        .toSet();
+                // Create the conjunction only if there are actually at least two operands
+                if (remainingFunctionCandidateInvariants.size() > 1) {
+                  next = CandidateInvariantConjunction.of(remainingFunctionCandidateInvariants);
+                }
+              }
+            }
+
+            // Create the conjunction over all operands, if we have not done so yet
+            if (next == null && !allComputed && remainingLoopHeadCandidateInvariants.size() > 1) {
+              allComputed = true;
+              next = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
+            }
+
+            return next != null;
+          }
+
+          @Override
+          public CandidateInvariant next() {
+            if (!hasNext()) {
+              throw new NoSuchElementException("There is no next element.");
+            }
+            CandidateInvariant result = next;
+            next = null;
+            return result;
+          }
+        };
   }
 }
