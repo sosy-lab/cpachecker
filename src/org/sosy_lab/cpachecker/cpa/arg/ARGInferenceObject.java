@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 public class ARGInferenceObject extends ARGState implements InferenceObject {
 
+  private static final long serialVersionUID = 721626977113066162L;
+
   public ARGInferenceObject(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState, pParentElement);
     Preconditions.checkArgument(pWrappedState instanceof InferenceObject);

@@ -29,7 +29,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -57,8 +56,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
     private List<ThreadLabel> rSet;
 
     private ThreadStateBuilder(ThreadState state) {
-      tSet = new LinkedList<>(state.threadSet);
-      rSet = new LinkedList<>(state.removedSet);
+      tSet = new ArrayList<>(state.threadSet);
+      rSet = new ArrayList<>(state.removedSet);
     }
 
     public void handleParentThread(CThreadCreateStatement tCall) throws CPATransferException {
@@ -260,7 +259,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
   }
 
   public static ThreadState emptyState(LocationState l, CallstackState c) {
-    List<ThreadLabel> emptySet = new LinkedList<>();
+    List<ThreadLabel> emptySet = new ArrayList<>();
     return new ThreadState(l, c, emptySet, emptySet);
   }
 
