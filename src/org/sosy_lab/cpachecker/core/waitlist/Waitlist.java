@@ -106,12 +106,12 @@ public interface Waitlist extends Iterable<WaitlistElement> {
       public Waitlist createWaitlistInstance() {
         return new RandomWaitlist();
       }
-    },
-    RANDOM_PATH {
+    }/*,
+     RANDOM_PATH {
       @Override
       public Waitlist createWaitlistInstance() {
         return new RandomPathWaitlist();
       }
-    }
+     }*/
   }
 }

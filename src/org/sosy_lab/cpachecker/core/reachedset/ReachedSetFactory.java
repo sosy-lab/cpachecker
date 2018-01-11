@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopIterationSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
@@ -140,9 +139,9 @@ public class ReachedSetFactory {
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
 
-    if (useWeightedDepthOrder) {
+    /*if (useWeightedDepthOrder) {
       waitlistFactory = DepthBasedWeightedWaitlist.factory(waitlistFactory, config);
-    }
+    }*/
 
     if (useAutomatonInformation) {
       waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);
