@@ -367,11 +367,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     Iterable<CandidateInvariant> candidatesToCheck =
         Iterables.concat(candidates, artificialConjunctions);
     for (CandidateInvariant candidate : candidatesToCheck) {
-      if (kInductionProver.check(
-          Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
-          k,
-          candidate,
-          checkedKeys)) {
+      InductionResult inductionResult =
+          kInductionProver.check(
+              Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
+              k,
+              candidate,
+              checkedKeys);
+      if (inductionResult.isSuccessful()) {
         Iterables.addAll(
             confirmedCandidates,
             CandidateInvariantConjunction.getConjunctiveParts(candidate));
