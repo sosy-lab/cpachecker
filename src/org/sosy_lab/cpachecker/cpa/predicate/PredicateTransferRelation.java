@@ -123,6 +123,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final PredicateInferenceObjectManager ifmgr;
 
   private final AnalysisDirection direction;
 
@@ -133,7 +134,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
-      PredicateAbstractionManager pPredAbsManager)
+      PredicateAbstractionManager pPredAbsManager,
+      PredicateInferenceObjectManager pInferenceManager)
       throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
@@ -144,6 +146,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
     direction = pDirection;
+    ifmgr = pInferenceManager;
   }
 
   @Override
@@ -583,7 +586,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
 
       Collection<Pair<AbstractState, InferenceObject>> result = new ArrayList<>();
       for (AbstractState vState : successors) {
-        result.add(Pair.of(vState, PredicateInferenceObject.create(pCfaEdge, predeccessor.getAbstractionFormula())));
+        result.add(Pair.of(vState, ifmgr.create(pCfaEdge, predeccessor.getAbstractionFormula())));
       }
       return result;
     } else if (pInferenceObject == EmptyInferenceObject.getInstance()) {
@@ -597,18 +600,22 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
 
       PredicatePrecision prec = (PredicatePrecision) pPrecision;
       PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
+      PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
 
       boolean changed = false;
 
-      if (isRelevant(oldAbstraction.asFormula(), prec.getLocalPredicates().values())) {
-        for (CAssignment c : object.getAction()) {
-          CFAEdge fakeEdge =
-              new CStatementEdge("environment", c, c.getFileLocation(),
-                  new CFANode("dummy"), new CFANode("dummy"));
+      for (CAssignment c : object.getAction()) {
+        CFAEdge fakeEdge =
+            new CStatementEdge("environment", c, c.getFileLocation(),
+                new CFANode("dummy"), new CFANode("dummy"));
+
+        PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
+
+        if (isRelevant(testFormula.getFormula(), prec.getLocalPredicates().values())) {
           PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
           currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+          changed = true;
         }
-        changed = true;
       }
 
       if (changed) {
@@ -622,10 +629,24 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
   }
 
   private boolean isRelevant(BooleanFormula formula, Collection<AbstractionPredicate> predicates) {
-    Set<String> vars = fmgr.extractVariableNames(formula);
+    if (predicates.isEmpty()) {
+      return false;
+    }
+    Set<String> vars = fmgr.extractVariableNames(fmgr.uninstantiate(formula));
+    Set<String> funcs = fmgr.extractFunctionNames(fmgr.uninstantiate(formula));
+    Set<String> onlyUFs = Sets.difference(funcs, vars);
+    if (vars.isEmpty() || !onlyUFs.isEmpty()) {
+      return true;
+    }
     for (AbstractionPredicate pred : predicates) {
+      if (bfmgr.isFalse(pred.getSymbolicAtom())) {
+        // Ignore predicate "false", it means "check for satisfiability".
+        continue;
+      }
       Set<String> predVars = fmgr.extractVariableNames(pred.getSymbolicAtom());
-      if (!Sets.intersection(vars, predVars).isEmpty()) {
+      Set<String> predFuncs = fmgr.extractFunctionNames(pred.getSymbolicAtom());
+      Set<String> predOnlyUFs = Sets.difference(predFuncs, predVars);
+      if (!Sets.intersection(vars, predVars).isEmpty() || predVars.isEmpty() || !predOnlyUFs.isEmpty()) {
         return true;
       }
     }

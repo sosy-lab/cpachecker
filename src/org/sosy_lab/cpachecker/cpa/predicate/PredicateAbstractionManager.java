@@ -1113,6 +1113,14 @@ public class PredicateAbstractionManager {
     return solver.isUnsat(f);
   }
 
+  public boolean unsat(BooleanFormula f)
+      throws SolverException, InterruptedException {
+
+    logger.log(Level.ALL, "Checking satisfiability of formula", f);
+
+    return solver.isUnsat(f);
+  }
+
   // syntactic creation and manipulation of AbstractionFormulas
 
   /**

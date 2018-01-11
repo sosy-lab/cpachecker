@@ -28,9 +28,21 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 
 public class PredicateStopForInferenceObjects implements StopOperator {
+
+  private final BooleanFormulaManagerView mngr;
+  private final PredicateAbstractionManager amngr;
+
+  public PredicateStopForInferenceObjects(BooleanFormulaManagerView pMngr,
+      PredicateAbstractionManager pAbstractionManager) {
+    mngr = pMngr;
+    amngr = pAbstractionManager;
+  }
 
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
@@ -38,11 +50,28 @@ public class PredicateStopForInferenceObjects implements StopOperator {
 
     for (AbstractState state : pReached) {
       PredicateInferenceObject object = (PredicateInferenceObject) state;
-      if (target.getGuard().equals(object.getGuard())
-          && object.getAction().containsAll(target.getAction())) {
-        return true;
+      if (object.getAction().containsAll(target.getAction())) {
+        BooleanFormula abs1 = target.getGuard();
+        BooleanFormula abs2 = object.getGuard();
+        if (mngr.isTrue(abs2)) {
+          return true;
+        }
+        if (mngr.isTrue(abs1)) {
+          return false;
+        }
+        BooleanFormula implication = mngr.implication(abs1, abs2);
+        BooleanFormula negation = mngr.not(implication);
+        try {
+          if (amngr.unsat(negation)) {
+            //Covered
+            return true;
+          }
+        } catch (SolverException | InterruptedException e) {
+          return false;
+        }
       }
     }
+
     return false;
   }
 

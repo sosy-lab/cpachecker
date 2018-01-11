@@ -28,14 +28,13 @@ import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 
 public class MergeForInferenceObjects implements MergeOperator {
 
-  private final BooleanFormulaManager mngr;
+  private final PredicateInferenceObjectManager mngr;
 
-  public MergeForInferenceObjects(BooleanFormulaManager pMngr) {
+  public MergeForInferenceObjects(PredicateInferenceObjectManager pMngr) {
     mngr = pMngr;
   }
 
@@ -45,7 +44,7 @@ public class MergeForInferenceObjects implements MergeOperator {
     PredicateInferenceObject object1 = (PredicateInferenceObject) pState1;
     PredicateInferenceObject object2 = (PredicateInferenceObject) pState2;
 
-    InferenceObject result = object1.join(object2, mngr);
+    InferenceObject result = mngr.join(object1, object2);
 
     if (result.equals(object2)) {
       return pState2;

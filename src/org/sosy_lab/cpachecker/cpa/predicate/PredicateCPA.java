@@ -128,6 +128,7 @@ public class PredicateCPA
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
+  private final PredicateInferenceObjectManager inferenceObjectsManager;
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
@@ -201,9 +202,12 @@ public class PredicateCPA
                 ? invariantsManager
                 : TrivialInvariantSupplier.INSTANCE);
 
+    inferenceObjectsManager = new PredicateInferenceObjectManager(config,
+        solver.getFormulaManager().getBooleanFormulaManager(), predicateManager);
+
     transfer =
         new PredicateTransferRelation(
-            config, logger, direction, formulaManager, pfMgr, blk, predicateManager);
+            config, logger, direction, formulaManager, pfMgr, blk, predicateManager, inferenceObjectsManager);
 
     topState = PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
@@ -392,7 +396,7 @@ public class PredicateCPA
     if (mergeTypeForInferenceObjects.equals("SEP")) {
       return MergeSepOperator.getInstance();
     } else if (mergeTypeForInferenceObjects.equals("JOIN")) {
-      return new MergeForInferenceObjects(solver.getFormulaManager().getBooleanFormulaManager());
+      return new MergeForInferenceObjects(inferenceObjectsManager);
     } else {
       return null;
     }
@@ -400,6 +404,6 @@ public class PredicateCPA
 
   @Override
   public StopOperator getStopForInferenceObject() {
-    return new PredicateStopForInferenceObjects();
+    return new PredicateStopForInferenceObjects(solver.getFormulaManager().getBooleanFormulaManager(), predicateManager);
   }
 }
