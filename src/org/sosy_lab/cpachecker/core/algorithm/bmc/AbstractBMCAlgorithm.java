@@ -329,40 +329,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           }
 
           // try to prove program safety via induction
-          if (induction) {
-            final int k =
-                CPAs.retrieveCPA(cpa, LoopIterationBounding.class).getMaxLoopIterations();
-
-            Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
-            shutdownNotifier.shutdownIfNecessary();
-
-            if (!sound) {
-              Set<Object> checkedKeys = getCheckedKeys(reachedSet);
-              sound = true;
-              Iterable<CandidateInvariant> artificialConjunctions =
-                  buildArtificialConjunctions(candidates);
-              Iterable<CandidateInvariant> candidatesToCheck =
-                  Iterables.concat(candidates, artificialConjunctions);
-              for (CandidateInvariant candidate : candidatesToCheck) {
-                if (kInductionProver.check(
-                    Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
-                    k,
-                    candidate,
-                    checkedKeys)) {
-                  Iterables.addAll(
-                      confirmedCandidates,
-                      CandidateInvariantConjunction.getConjunctiveParts(candidate));
-                  candidateGenerator.confirmCandidates(
-                      CandidateInvariantConjunction.getConjunctiveParts(candidate));
-                  if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
-                    sound = true;
-                    break;
-                  }
-                } else {
-                  sound = false;
-                }
-              }
-            }
+          if (induction && !sound) {
+            sound = checkStepCase(reachedSet, candidateGenerator, kInductionProver);
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -379,6 +347,45 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private boolean checkStepCase(
+      final ReachedSet reachedSet,
+      final CandidateGenerator candidateGenerator,
+      KInductionProver kInductionProver)
+      throws InterruptedException, CPAException, SolverException {
+
+    final int k = CPAs.retrieveCPA(cpa, LoopIterationBounding.class).getMaxLoopIterations();
+
+    Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
+    shutdownNotifier.shutdownIfNecessary();
+
+    Set<Object> checkedKeys = getCheckedKeys(reachedSet);
+    boolean sound = true;
+    Iterable<CandidateInvariant> artificialConjunctions =
+        buildArtificialConjunctions(candidates);
+    Iterable<CandidateInvariant> candidatesToCheck =
+        Iterables.concat(candidates, artificialConjunctions);
+    for (CandidateInvariant candidate : candidatesToCheck) {
+      if (kInductionProver.check(
+          Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
+          k,
+          candidate,
+          checkedKeys)) {
+        Iterables.addAll(
+            confirmedCandidates,
+            CandidateInvariantConjunction.getConjunctiveParts(candidate));
+        candidateGenerator.confirmCandidates(
+            CandidateInvariantConjunction.getConjunctiveParts(candidate));
+        if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
+          sound = true;
+          break;
+        }
+      } else {
+        sound = false;
+      }
+    }
+    return sound;
   }
 
   /**
