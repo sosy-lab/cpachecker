@@ -109,7 +109,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
-  @Option(description="Export one abstraction formula for each abstraction state into a file?",
+  @Option(secure = true, description = "Export one abstraction formula for each abstraction state into a file?",
       name="abstractions.export")
   private boolean abstractionsExport = true;
   @Option(secure=true, description="file that consists of one abstraction formula for each abstraction state",
