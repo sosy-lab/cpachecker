@@ -151,11 +151,14 @@ public class PredicateInferenceObjectManager {
         }
       } else if (decl instanceof CParameterDeclaration) {
         FileLocation loc = pIastIdExpression.getFileLocation();
-        CType type = ((CParameterDeclaration) decl).getType();
-        String name = rename.apply(((CParameterDeclaration) decl).getName());
+        CParameterDeclaration pDecl = ((CParameterDeclaration) decl);
+        CType type = pDecl.getType();
+        String name = rename.apply(pDecl.getName());
+        String origName = rename.apply(pDecl.getOrigName());
+        String qualName = rename.apply(pDecl.getQualifiedName());
 
         CVariableDeclaration newDecl =
-            new CVariableDeclaration(loc, false, CStorageClass.AUTO, type, name, name, name, null);
+            new CVariableDeclaration(loc, false, CStorageClass.AUTO, type, name, origName, qualName, null);
 
         return Pair.of(new CIdExpression(loc, newDecl), false);
       }
@@ -398,7 +401,11 @@ public class PredicateInferenceObjectManager {
 
     CFunctionType fType = new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
     String retType = fType.getReturnType().getCanonicalType().toString();
-    retType = retType.replace(" ", "_");
+    retType = retType
+        .replace(" ", "_")
+        .replace("(", "")
+        .replace(")", "")
+        .replace("*", "");
     CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "__VERIFIER_nondet_" + retType, Collections.emptyList());
     CExpression name = new CIdExpression(loc, funcDecl);
 
