@@ -638,7 +638,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
     Set<String> vars = fmgr.extractVariableNames(fmgr.uninstantiate(formula));
     Set<String> funcs = fmgr.extractFunctionNames(fmgr.uninstantiate(formula));
     Set<String> onlyUFs = Sets.difference(funcs, vars);
-    if (vars.isEmpty() || !onlyUFs.isEmpty()) {
+    if (vars.isEmpty() && onlyUFs.isEmpty()) {
       return true;
     }
     for (AbstractionPredicate pred : predicates) {
@@ -649,7 +649,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
       Set<String> predVars = fmgr.extractVariableNames(pred.getSymbolicAtom());
       Set<String> predFuncs = fmgr.extractFunctionNames(pred.getSymbolicAtom());
       Set<String> predOnlyUFs = Sets.difference(predFuncs, predVars);
-      if (!Sets.intersection(vars, predVars).isEmpty() || predVars.isEmpty() || !predOnlyUFs.isEmpty()) {
+      if (!Sets.intersection(vars, predVars).isEmpty()
+          || !Sets.intersection(onlyUFs, predOnlyUFs).isEmpty()) {
         return true;
       }
     }
