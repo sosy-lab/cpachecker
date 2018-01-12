@@ -26,10 +26,23 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
 
-public interface StateWithAdditionalInfo extends AbstractState{
+/**
+ * Provides interface for state with additional info to be written to extended witness
+ * {@link ExtendedWitnessWriter}
+ */
+public interface AbstractStateWithAdditionalInfo extends AbstractState{
 
+  /**
+   * Converter for additional witness tags supported by analysis
+   */
   AdditionalInfoConverter exportAdditionalInfoConverter();
 
+  /**
+   * Create additional info based on current error path
+   * @param pPath base path to be enriched
+   * @return result path with additional info
+   */
   CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath);
 }

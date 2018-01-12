@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -96,7 +96,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>,
-                                 StateWithAdditionalInfo {
+                                 AbstractStateWithAdditionalInfo {
 
   // Properties:
   public static final String HAS_INVALID_FREES = "has-invalid-frees";

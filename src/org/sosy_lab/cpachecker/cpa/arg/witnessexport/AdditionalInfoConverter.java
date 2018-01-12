@@ -23,7 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
+
 public class AdditionalInfoConverter {
+
+  /**
+   * Default converter implementation should be overwritten by {@link AbstractStateWithAdditionalInfo}
+   * @param originalTransition transition to enrich by additional information
+   * @param pTag additional tag
+   * @param pValue corresponding value
+   * @return extended transition for dumping by {@link ExtendedWitnessWriter}
+   */
   @SuppressWarnings("unused")
   public TransitionCondition convert(TransitionCondition originalTransition, String pTag, Object pValue) {
     return originalTransition;

@@ -33,7 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -82,8 +82,8 @@ public class ExtendedWitnessExporter extends WitnessExporter {
   }
 
   private AdditionalInfoConverter initializeAdditionalInfoConverter(ARGState pRootState) {
-    StateWithAdditionalInfo stateWithAdditionalInfo =
-        AbstractStates.extractStateByType(pRootState, StateWithAdditionalInfo.class);
+    AbstractStateWithAdditionalInfo stateWithAdditionalInfo =
+        AbstractStates.extractStateByType(pRootState, AbstractStateWithAdditionalInfo.class);
     return stateWithAdditionalInfo != null ? stateWithAdditionalInfo.exportAdditionalInfoConverter()
                                            : new AdditionalInfoConverter();
   }

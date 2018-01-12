@@ -30,12 +30,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.StateWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+/**
+ * This class represents a path of cfaEdges, that contain the additional Information to be
+ * exported to extended witness {@link ExtendedWitnessWriter}.
+ */
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
   private final ImmutableList<CFAEdgeWithAdditionalInfo> pathInfo;
 
@@ -52,8 +57,8 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
   }
 
   public static CFAPathWithAdditionalInfo of(ARGPath pPath) {
-    StateWithAdditionalInfo stateWithAdditionalInfo =
-        AbstractStates.extractStateByType(pPath.getFirstState(), StateWithAdditionalInfo.class);
+    AbstractStateWithAdditionalInfo stateWithAdditionalInfo =
+        AbstractStates.extractStateByType(pPath.getFirstState(), AbstractStateWithAdditionalInfo.class);
 
     CFAPathWithAdditionalInfo path = stateWithAdditionalInfo != null ?
                                      stateWithAdditionalInfo.createExtendedInfo(pPath) : empty();

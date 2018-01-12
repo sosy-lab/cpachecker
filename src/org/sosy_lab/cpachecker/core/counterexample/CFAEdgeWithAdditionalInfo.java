@@ -29,10 +29,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
 
+
+/**
+ * Contains additional info for a given statement, which is represented as cfa edge {@link CFAEdge},
+ * in the error path. Converter should be provided by state {@link AbstractStateWithAdditionalInfo}
+ */
 public class CFAEdgeWithAdditionalInfo {
   private final Map<String, ImmutableSet<Object>> addinitonalInfo;
   private final CFAEdge edge;
@@ -40,22 +44,6 @@ public class CFAEdgeWithAdditionalInfo {
   CFAEdgeWithAdditionalInfo(Map<String, ImmutableSet<Object>> pAddinitonalInfo, CFAEdge pEdge) {
     addinitonalInfo = new HashMap<>(pAddinitonalInfo);
     edge = Objects.requireNonNull(pEdge);
-  }
-
-  public CFAEdgeWithAdditionalInfo(
-      CFAEdgeWithAdditionalInfo pEdge1,
-      CFAEdgeWithAdditionalInfo pEdge2) {
-    assert pEdge1.edge.equals(pEdge2.edge);
-
-    /*
-     * Constructor used when merging to edges.
-     */
-    edge = pEdge1.edge;
-    addinitonalInfo = Stream.concat(pEdge1.addinitonalInfo.entrySet().stream(),
-        pEdge2.addinitonalInfo.entrySet().stream()).collect(Collectors.toMap(
-            entry -> entry.getKey(),
-            entry -> entry.getValue(),
-            (set1, set2) -> ImmutableSet.builder().addAll(set1).addAll(set2).build()));
   }
 
   public static CFAEdgeWithAdditionalInfo of(CFAEdge pEdge) {
@@ -70,10 +58,6 @@ public class CFAEdgeWithAdditionalInfo {
     addinitonalInfo.merge(tag, addInfos, (v1, v2) -> ImmutableSet.builder().addAll
         (v1).addAll(v2).build());
 
-  }
-
-  CFAEdgeWithAdditionalInfo mergeEdge(CFAEdgeWithAdditionalInfo pEdge) {
-    return new CFAEdgeWithAdditionalInfo(this, pEdge);
   }
 
   public CFAEdge getCFAEdge() {
