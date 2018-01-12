@@ -338,7 +338,7 @@ public class PredicateInferenceObjectManager {
         CRightHandSide right = ((CAssignment) stmnt).getRightHandSide();
         CAssignment newAssignement;
 
-        if (useUndefFuncs || stmnt instanceof CFunctionCallAssignmentStatement && edge instanceof CStatementEdge) {
+        if (useUndefFuncs || (stmnt instanceof CFunctionCallAssignmentStatement && edge instanceof CStatementEdge)) {
           CFunctionCallExpression fExp = prepareUndefFunctionFor(right);
 
           newAssignement = new CFunctionCallAssignmentStatement(fExp.getFileLocation(), (CLeftHandSide) left.getFirst(), fExp);
