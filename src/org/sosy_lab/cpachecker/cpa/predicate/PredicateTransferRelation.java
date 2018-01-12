@@ -102,6 +102,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
+  @Option(secure = true, description = "Apply only relevant effects.")
+  private boolean applyRelevantEffects = true;
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -611,7 +614,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
 
         PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
 
-        if (isRelevant(testFormula.getFormula(), prec.getLocalPredicates().values())) {
+        if (!applyRelevantEffects || isRelevant(testFormula.getFormula(), prec.getLocalPredicates().values())) {
           PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
           currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
           changed = true;

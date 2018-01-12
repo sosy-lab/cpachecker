@@ -71,5 +71,9 @@ public class LockInferenceObject implements InferenceObject {
     return Objects.equals(state, other.state);
   }
 
+  @Override
+  public String toString() {
+    return state.toString();
+  }
 
 }

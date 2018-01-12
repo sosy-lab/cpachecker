@@ -203,7 +203,7 @@ public class PredicateCPA
                 : TrivialInvariantSupplier.INSTANCE);
 
     inferenceObjectsManager = new PredicateInferenceObjectManager(config,
-        solver.getFormulaManager().getBooleanFormulaManager(), predicateManager);
+        solver.getFormulaManager().getBooleanFormulaManager(), predicateManager, formulaManager);
 
     transfer =
         new PredicateTransferRelation(

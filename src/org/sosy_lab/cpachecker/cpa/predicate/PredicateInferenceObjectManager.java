@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.BiFunction;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -75,15 +75,31 @@ import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-@Options(prefix = "cpa.predicate")
+@Options(prefix = "cpa.predicate.inferenceObjects")
 public class PredicateInferenceObjectManager {
 
-  private static class ExpressionTransformer implements CRightHandSideVisitor<Pair<CExpression, Boolean>, NoException> {
+  private final Function<String, String> rename = s -> s + "__ENV";
 
-    private final BiFunction<String, CType, String> rename = (s, t) -> t.toString() + "__" + s + "__ENV";
+  private final Function<String, String> localRename = s -> {
+    if (s.contains("::")) {
+      //local var, rename
+      return rename.apply(s);
+    } else {
+      return s;
+    }
+  };
+
+  private class ExpressionTransformer implements CRightHandSideVisitor<Pair<CExpression, Boolean>, NoException> {
+
+    private final CFAEdge edge;
+
+    public ExpressionTransformer(CFAEdge pEdge) {
+      edge = pEdge;
+    }
 
     @Override
     public Pair<CExpression, Boolean> visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws NoException {
@@ -124,9 +140,9 @@ public class PredicateInferenceObjectManager {
         } else if (decl instanceof CVariableDeclaration) {
           FileLocation loc = pIastIdExpression.getFileLocation();
           CType type = ((CVariableDeclaration) decl).getType();
-          String name = rename.apply(((CVariableDeclaration) decl).getName(), type);
-          String origName = rename.apply(((CVariableDeclaration) decl).getOrigName(), type);
-          String qualifName = rename.apply(((CVariableDeclaration) decl).getQualifiedName(), type);
+          String name = rename.apply(((CVariableDeclaration) decl).getName());
+          String origName = rename.apply(((CVariableDeclaration) decl).getOrigName());
+          String qualifName = rename.apply(((CVariableDeclaration) decl).getQualifiedName());
 
           CDeclaration newDecl =
               new CVariableDeclaration(loc, false, CStorageClass.AUTO, type, name, origName, qualifName, null);
@@ -136,7 +152,7 @@ public class PredicateInferenceObjectManager {
       } else if (decl instanceof CParameterDeclaration) {
         FileLocation loc = pIastIdExpression.getFileLocation();
         CType type = ((CParameterDeclaration) decl).getType();
-        String name = rename.apply(((CParameterDeclaration) decl).getName(), type);
+        String name = rename.apply(((CParameterDeclaration) decl).getName());
 
         CVariableDeclaration newDecl =
             new CVariableDeclaration(loc, false, CStorageClass.AUTO, type, name, name, name, null);
@@ -259,54 +275,53 @@ public class PredicateInferenceObjectManager {
 
     @Override
     public Pair<CExpression, Boolean> visit(CFunctionCallExpression pIastFunctionCallExpression) throws NoException {
+      CFunctionCallExpression fExp = pIastFunctionCallExpression;
+      CIdExpression rhs;
 
-      FileLocation loc = pIastFunctionCallExpression.getFileLocation();
-      CType type = pIastFunctionCallExpression.getExpressionType();
+      CFunctionSummaryEdge summary = ((CFunctionReturnEdge) edge).getSummaryEdge();
+      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
+          summary.getFunctionEntry().getReturnVariable();
 
+      assert returnVariableDeclaration.isPresent();
 
-      CFunctionDeclaration oldDecl = pIastFunctionCallExpression.getDeclaration();
-      FileLocation fLoc = oldDecl.getFileLocation();
-      CFunctionType oldType = oldDecl.getType();
-      CFunctionType fType = new CFunctionType(oldType.getReturnType(), Collections.emptyList(), false);
-      CFunctionDeclaration funcDecl = new CFunctionDeclaration(fLoc, fType, "env_func", Collections.emptyList());
-      CExpression name = new CIdExpression(fLoc, funcDecl);
+      rhs = new CIdExpression(fExp.getFileLocation(), returnVariableDeclaration.get());
 
-      CFunctionCallExpression fExp = new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
-      return null;
+      return Pair.of(rhs, false);
     }
 
   }
 
-  @Option(
-      secure = true,
-      name = "inferenceObjects.useUndefFunctions",
+  @Option(secure = true, name = "useUndefFunctions",
       description = "Use undefined assignments (havoc abstraction)")
   private boolean useUndefFuncs = true;
 
-  @Option(
-      secure = true,
-      name = "inferenceObjects.abstractionLattice",
+  @Option(secure = true, name = "abstractionLattice",
       description = "merge inference objects only with equal abstraction")
   private boolean abstractionLattice = false;
 
-  private final BooleanFormulaManagerView mngr;
-  private final PredicateAbstractionManager amngr;
+  @Option(secure = true, name = "emptyAbstraction",
+      description = "do not consider abstraction from inference objects")
+  private boolean emptyAbstraction = false;
 
-  public PredicateInferenceObjectManager(Configuration pConfig, BooleanFormulaManagerView pMngr,
-      PredicateAbstractionManager pAbstractionManager) throws InvalidConfigurationException {
+  private final BooleanFormulaManager mngr;
+  private final PredicateAbstractionManager amngr;
+  private final FormulaManagerView fmngr;
+
+  public PredicateInferenceObjectManager(Configuration pConfig, BooleanFormulaManager pMngr,
+      PredicateAbstractionManager pAbstractionManager, FormulaManagerView pFManager) throws InvalidConfigurationException {
     pConfig.inject(this);
     mngr = pMngr;
     amngr = pAbstractionManager;
+    fmngr = pFManager;
   }
 
   public InferenceObject create(CFAEdge edge, AbstractionFormula a) {
-    CFAEdge currentEdge = edge;
     CStatement stmnt;
 
-    if (currentEdge instanceof CFunctionReturnEdge) {
+    if (edge instanceof CFunctionReturnEdge) {
       CFunctionSummaryEdge summary = ((CFunctionReturnEdge) edge).getSummaryEdge();
       stmnt = summary.getExpression();
-    } else if (currentEdge instanceof CStatementEdge) {
+    } else if (edge instanceof CStatementEdge) {
       stmnt = ((CStatementEdge) edge).getStatement();
     } else {
       return EmptyInferenceObject.getInstance();
@@ -315,41 +330,24 @@ public class PredicateInferenceObjectManager {
     if (stmnt instanceof CAssignment) {
       CExpression exp = ((CAssignment) stmnt).getLeftHandSide();
 
-      ExpressionTransformer transformer = new ExpressionTransformer();
+      ExpressionTransformer transformer = new ExpressionTransformer(edge);
       Pair<CExpression, Boolean> left = exp.accept(transformer);
 
-      CRightHandSide right = ((CAssignment) stmnt).getRightHandSide();
+      if (left.getSecond()) {
 
-      if (useUndefFuncs) {
-        FileLocation loc = right.getFileLocation();
-        CType type = right.getExpressionType();
+        CRightHandSide right = ((CAssignment) stmnt).getRightHandSide();
+        CAssignment newAssignement;
 
-        CFunctionType fType = new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
-        CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "env_func", Collections.emptyList());
-        CExpression name = new CIdExpression(loc, funcDecl);
+        if (useUndefFuncs || stmnt instanceof CFunctionCallAssignmentStatement && edge instanceof CStatementEdge) {
+          CFunctionCallExpression fExp = prepareUndefFunctionFor(right);
 
-        CFunctionCallExpression fExp = new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
-
-        right = fExp;
-      }
-
-      if (right instanceof CExpression) {
-        Pair<CExpression, Boolean> newRight = right.accept(transformer);
-
-        if (newRight.getSecond() || left.getSecond()) {
-          return new PredicateInferenceObject(
-              Collections.singleton(new CExpressionAssignmentStatement(right.getFileLocation(), (CLeftHandSide) left.getFirst(), newRight.getFirst())), a.asFormula());
+          newAssignement = new CFunctionCallAssignmentStatement(fExp.getFileLocation(), (CLeftHandSide) left.getFirst(), fExp);
         } else {
-          return EmptyInferenceObject.getInstance();
+          Pair<CExpression, Boolean> newRight = right.accept(transformer);
+
+          newAssignement = new CExpressionAssignmentStatement(newRight.getFirst().getFileLocation(), (CLeftHandSide) left.getFirst(), newRight.getFirst());
         }
-      } else {
-        CFunctionCallExpression fExp = (CFunctionCallExpression) right;
-        if (left.getSecond()) {
-          return new PredicateInferenceObject(
-              Collections.singleton(new CFunctionCallAssignmentStatement(right.getFileLocation(), (CLeftHandSide) left.getFirst(), fExp)), a.asFormula());
-        } else {
-          return EmptyInferenceObject.getInstance();
-        }
+        return new PredicateInferenceObject(Collections.singleton(newAssignement), prepareFormula(a.asFormula()));
       }
     }
     return EmptyInferenceObject.getInstance();
@@ -393,4 +391,25 @@ public class PredicateInferenceObjectManager {
     }
   }
 
+  private CFunctionCallExpression prepareUndefFunctionFor(CRightHandSide right) {
+
+    FileLocation loc = right.getFileLocation();
+    CType type = right.getExpressionType();
+
+    CFunctionType fType = new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
+    String retType = fType.getReturnType().getCanonicalType().toString();
+    retType = retType.replace(" ", "_");
+    CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "__VERIFIER_nondet_" + retType, Collections.emptyList());
+    CExpression name = new CIdExpression(loc, funcDecl);
+
+    return new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
+  }
+
+  private BooleanFormula prepareFormula(BooleanFormula formula) {
+    if (emptyAbstraction) {
+      return mngr.makeTrue();
+    }
+    BooleanFormula result = fmngr.renameFreeVariablesAndUFs(formula, localRename);
+    return result;
+  }
 }

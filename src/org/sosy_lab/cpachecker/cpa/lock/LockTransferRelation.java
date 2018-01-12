@@ -39,6 +39,8 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -83,6 +85,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+@Options(prefix = "cpa.lock")
 public class LockTransferRelation extends SingleEdgeTransferRelation implements TransferRelationTM {
 
   public static class LockStatistics implements Statistics {
@@ -107,6 +110,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation implements 
     }
 
   }
+
+  @Option(description = "Use non-trivial guards", secure = true)
+  private boolean emptyEffects = false;
 
   private final Map<String, AnnotationInfo> annotatedFunctions;
 
@@ -369,7 +375,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation implements 
       throws CPATransferException, InterruptedException {
     if (pInferenceObject == TauInferenceObject.getInstance()) {
       return from(getAbstractSuccessors(pState, pPrecision))
-          .transform(s -> Pair.of((AbstractState) s, (InferenceObject) LockInferenceObject.create((AbstractLockState) s)))
+          .transform(s -> Pair.of((AbstractState) s, prepareInferenceObject((AbstractLockState) s)))
           .toSet();
     } else {
       return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
@@ -381,10 +387,17 @@ public class LockTransferRelation extends SingleEdgeTransferRelation implements 
       throws CPATransferException, InterruptedException {
     if (pInferenceObject == TauInferenceObject.getInstance()) {
       return from(getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge))
-          .transform(s -> Pair.of((AbstractState) s, (InferenceObject) LockInferenceObject.create(s)))
+          .transform(s -> Pair.of((AbstractState) s, prepareInferenceObject(s)))
           .toSet();
     } else {
       return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
     }
+  }
+
+  private InferenceObject prepareInferenceObject(AbstractLockState s) {
+    if (emptyEffects) {
+      return EmptyInferenceObject.getInstance();
+    }
+    return LockInferenceObject.create(s);
   }
 }
