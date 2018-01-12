@@ -405,7 +405,7 @@ public class PredicateInferenceObjectManager {
         .replace(" ", "_")
         .replace("(", "")
         .replace(")", "")
-        .replace("*", "");
+        .replace("*", "_p_");
     CFunctionDeclaration funcDecl = new CFunctionDeclaration(loc, fType, "__VERIFIER_nondet_" + retType, Collections.emptyList());
     CExpression name = new CIdExpression(loc, funcDecl);
 
