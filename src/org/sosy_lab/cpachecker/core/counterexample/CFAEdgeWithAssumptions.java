@@ -149,9 +149,7 @@ public class CFAEdgeWithAssumptions {
    * this edge of the error path.
    */
   public String prettyPrint() {
-    String expStmt = this.prettyPrintCode(0);
-    String comment = this.getComment();
-    return expStmt + comment;
+    return prettyPrintCode(0) + getComment();
   }
 
   /**
