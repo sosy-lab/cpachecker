@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -32,6 +33,9 @@ public class LockCompatibilityCheck implements CompatibilityCheck {
 
   @Override
   public boolean compatible(AbstractState pState, InferenceObject pObject) {
+    if (pObject == EmptyInferenceObject.getInstance()) {
+      return true;
+    }
     AbstractLockState state = (AbstractLockState) pState;
     LockInferenceObject object = (LockInferenceObject) pObject;
     return state.isCompatibleWith(object.getState());

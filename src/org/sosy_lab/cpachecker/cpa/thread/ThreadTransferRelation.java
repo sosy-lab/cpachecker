@@ -111,8 +111,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation implement
             return Collections.emptySet();
           }
         }
-      } catch (CPATransferException e) {
-        return Collections.emptySet();
       } finally {
         threadStatistics.tSetTimer.stop();
       }
