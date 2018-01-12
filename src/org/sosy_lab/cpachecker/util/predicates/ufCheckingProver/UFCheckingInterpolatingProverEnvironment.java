@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class UFCheckingInterpolatingProverEnvironment<T> extends UFCheckingBasicProverEnvironment<T>
     implements InterpolatingProverEnvironment<T> {
@@ -48,26 +46,20 @@ public class UFCheckingInterpolatingProverEnvironment<T> extends UFCheckingBasic
   }
 
   @Override
-  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> pAssumptions)
-      throws SolverException, InterruptedException {
-    // TODO forward to isUnsat() ??
-    return delegate.isUnsatWithAssumptions(pAssumptions);
-  }
-
-  @Override
   public BooleanFormula getInterpolant(List<T> formulasOfA)
       throws SolverException, InterruptedException {
     return delegate.getInterpolant(formulasOfA);
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas)
+  public List<BooleanFormula> getSeqInterpolants(List<? extends Collection<T>> partitionedFormulas)
       throws SolverException, InterruptedException {
     return delegate.getSeqInterpolants(partitionedFormulas);
   }
 
   @Override
-  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree)
+  public List<BooleanFormula> getTreeInterpolants(
+      List<? extends Collection<T>> partitionedFormulas, int[] startOfSubTree)
       throws SolverException, InterruptedException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }

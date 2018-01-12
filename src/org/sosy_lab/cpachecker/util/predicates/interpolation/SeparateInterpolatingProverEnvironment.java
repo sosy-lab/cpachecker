@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
@@ -104,7 +106,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas)
+  public List<BooleanFormula> getSeqInterpolants(List<? extends Collection<T>> partitionedFormulas)
       throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(partitionedFormulas);
     final List<BooleanFormula> result = new ArrayList<>();
@@ -115,7 +117,8 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree)
+  public List<BooleanFormula> getTreeInterpolants(
+      List<? extends Collection<T>> partitionedFormulas, int[] startOfSubTree)
       throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
     final List<BooleanFormula> result = new ArrayList<>();
@@ -141,5 +144,28 @@ public class SeparateInterpolatingProverEnvironment<T>
   @Override
   public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
     return itpEnv.getModelAssignments();
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    return Lists.transform(itpEnv.getUnsatCore(), this::convertToMain);
+  }
+
+  @Override
+  public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
+      Collection<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
+    Optional<List<BooleanFormula>> opt =
+        itpEnv.unsatCoreOverAssumptions(Collections2.transform(pAssumptions, this::convertToItp));
+    if (opt.isPresent()) {
+      return Optional.of(Lists.transform(opt.get(), this::convertToMain));
+    } else {
+      return opt;
+    }
+  }
+
+  @Override
+  public <R> R allSat(AllSatCallback<R> pCallback, List<BooleanFormula> pImportant)
+      throws InterruptedException, SolverException {
+    return itpEnv.allSat(pCallback, Lists.transform(pImportant, this::convertToItp));
   }
 }

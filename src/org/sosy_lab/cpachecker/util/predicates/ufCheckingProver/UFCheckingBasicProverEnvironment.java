@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -186,12 +187,6 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> pAssumptions)
-      throws SolverException, InterruptedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public Model getModel() throws SolverException {
     return delegate.getModel();
   }
@@ -204,5 +199,28 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public void close() {
     delegate.close();
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.isUnsatWithAssumptions(assumptions);
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    return delegate.getUnsatCore();
+  }
+
+  @Override
+  public <R> R allSat(AllSatCallback<R> callback, List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
+    return delegate.allSat(callback, important);
+  }
+
+  @Override
+  public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
+      Collection<BooleanFormula> assumptions) throws SolverException, InterruptedException {
+    return delegate.unsatCoreOverAssumptions(assumptions);
   }
 }
