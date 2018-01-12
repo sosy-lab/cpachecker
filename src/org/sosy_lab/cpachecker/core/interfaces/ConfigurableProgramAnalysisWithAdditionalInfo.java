@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
 
 /**
- * Provides interface for state with additional info to be written to extended witness
+ * Provides interface for CPA with additional info to be written to extended witness
  * {@link ExtendedWitnessWriter}
  */
-public interface AbstractStateWithAdditionalInfo extends AbstractState{
+public interface ConfigurableProgramAnalysisWithAdditionalInfo {
 
   /**
    * Converter for additional witness tags supported by analysis

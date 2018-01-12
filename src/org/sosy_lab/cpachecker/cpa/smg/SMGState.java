@@ -27,7 +27,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,16 +49,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
@@ -92,11 +84,9 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>,
-                                 AbstractStateWithAdditionalInfo {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
 
   // Properties:
   public static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -2393,58 +2383,4 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public CLangStackFrame getStackFrame() {
     return Iterables.getLast(heap.getStackFrames());
   }
-
-  @Override
-  public AdditionalInfoConverter exportAdditionalInfoConverter() {
-    return new SMGAdditionalInfoConverter();
-  }
-
-  @Override
-  public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
-    //inject additional info for extended witness
-    PathIterator rIterator = pPath.reverseFullPathIterator();
-    ARGState lastArgState = rIterator.getAbstractState();
-    Set<Object> invalidChain = new HashSet<>();
-    SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    invalidChain.addAll(state.getInvalidChain());
-    String description = state.getErrorDescription();
-    SMGState prevSMGState = state;
-    Set<Object> visitedElems = new HashSet<>();
-    List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
-
-    while (rIterator.hasNext()) {
-      rIterator.advance();
-      ARGState argState = rIterator.getAbstractState();
-      SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
-      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = CFAEdgeWithAdditionalInfo.of(rIterator
-          .getOutgoingEdge());
-      if (description != null && !description.isEmpty()) {
-        edgeWithAdditionalInfo.addInfo("Warning", description);
-        description = null;
-      }
-
-      Set<Object> toCheck = new HashSet<>();
-      for (Object elem : invalidChain) {
-        if (!visitedElems.contains(elem)) {
-          if (!smgState.containsInvalidElement(elem)) {
-            visitedElems.add(elem);
-            for (Object additionalElem : prevSMGState.getCurrentChain()) {
-              if (!visitedElems.contains(additionalElem) && !invalidChain.contains(additionalElem)) {
-                toCheck.add(additionalElem);
-              }
-            }
-            edgeWithAdditionalInfo.addInfo("Note", prevSMGState.getNoteMessageOnElement(elem));
-
-          } else {
-            toCheck.add(elem);
-          }
-        }
-      }
-      invalidChain = toCheck;
-      prevSMGState = smgState;
-      pathWithExtendedInfo.add(edgeWithAdditionalInfo);
-    }
-    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
-  }
-
 }

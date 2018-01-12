@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
 public class ExtendedWitnessWriter extends WitnessWriter {
-  AdditionalInfoConverter additionalInfoConverter;
   ExtendedWitnessWriter(
       WitnessOptions pOptions,
       CFA pCfa,
@@ -51,11 +50,9 @@ public class ExtendedWitnessWriter extends WitnessWriter {
       Simplifier<Object> pSimplifier,
       @Nullable String pDefaultSourceFileName,
       WitnessType pGraphType,
-      InvariantProvider pInvariantProvider,
-      AdditionalInfoConverter pAdditionalInfoConverter) {
+      InvariantProvider pInvariantProvider) {
     super(pOptions, pCfa, pMetaData, pFactory, pSimplifier, pDefaultSourceFileName, pGraphType,
         pInvariantProvider);
-    additionalInfoConverter = pAdditionalInfoConverter;
   }
 
   @Override
@@ -67,6 +64,15 @@ public class ExtendedWitnessWriter extends WitnessWriter {
   }
 
   @Override
+  public Set<AdditionalInfoConverter> getAdditionalInfoConverters(Optional<CounterexampleInfo>
+                                                                 pCounterExample) {
+    if (pCounterExample.isPresent()) {
+      return pCounterExample.get().getAdditionalInfoConverters();
+    }
+    return ImmutableSet.of();
+  }
+
+  @Override
   protected TransitionCondition addAdditionalInfo(
       TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     TransitionCondition result = pCondition;
@@ -75,7 +81,9 @@ public class ExtendedWitnessWriter extends WitnessWriter {
         String tag = addInfo.getKey();
         Set<Object> values = addInfo.getValue();
         for (Object value : values) {
-          result = additionalInfoConverter.convert(result, tag, value);
+          for (AdditionalInfoConverter converter : additionalInfoConverters) {
+            result = converter.convert(result, tag, value);
+          }
         }
       }
     }

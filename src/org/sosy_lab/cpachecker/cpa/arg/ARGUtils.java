@@ -1297,7 +1297,7 @@ public class ARGUtils {
       return Optional.empty();
     }
 
-    CFAPathWithAdditionalInfo additionalInfo = CFAPathWithAdditionalInfo.of(path);
+    CFAPathWithAdditionalInfo additionalInfo = CFAPathWithAdditionalInfo.of(path, pCPA);
 
     // We should not claim that the counterexample is precise unless we have one unique path
     Set<ARGState> states = path.getStateSet();

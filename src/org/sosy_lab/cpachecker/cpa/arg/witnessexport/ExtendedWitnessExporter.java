@@ -33,9 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
@@ -58,7 +56,6 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    AdditionalInfoConverter additionalInfoConverter = initializeAdditionalInfoConverter(pRootState);
     WitnessWriter writer =
         new ExtendedWitnessWriter(
             options,
@@ -68,8 +65,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
             simplifier,
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
-            InvariantProvider.TrueInvariantProvider.INSTANCE,
-            additionalInfoConverter);
+            InvariantProvider.TrueInvariantProvider.INSTANCE);
     writer.writePath(
         pTarget,
         pRootState,
@@ -79,12 +75,5 @@ public class ExtendedWitnessExporter extends WitnessExporter {
         Optional.empty(),
         Optional.of(pCounterExample),
         GraphBuilder.ARG_PATH);
-  }
-
-  private AdditionalInfoConverter initializeAdditionalInfoConverter(ARGState pRootState) {
-    AbstractStateWithAdditionalInfo stateWithAdditionalInfo =
-        AbstractStates.extractStateByType(pRootState, AbstractStateWithAdditionalInfo.class);
-    return stateWithAdditionalInfo != null ? stateWithAdditionalInfo.exportAdditionalInfoConverter()
-                                           : new AdditionalInfoConverter();
   }
 }

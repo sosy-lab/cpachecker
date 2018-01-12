@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
@@ -401,6 +402,8 @@ class WitnessWriter implements EdgeAppender {
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
   private boolean isFunctionScope = false;
+  protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
+
 
   WitnessWriter(
       WitnessOptions pOptions,
@@ -1087,6 +1090,7 @@ class WitnessWriter implements EdgeAppender {
     Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
+    additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
     if (pCounterExample.isPresent()) {
       if (pCounterExample.get().isPreciseCounterExample()) {
@@ -1137,6 +1141,7 @@ class WitnessWriter implements EdgeAppender {
         isRelevantEdge,
         valueMap,
         additionalInfo,
+        additionalInfoConverters,
         doc,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
@@ -1167,6 +1172,12 @@ class WitnessWriter implements EdgeAppender {
   protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(Optional<CounterexampleInfo>
                                                              pCounterExample) {
     return ImmutableMap.of();
+  }
+
+  @SuppressWarnings("unused")
+  protected Set<AdditionalInfoConverter> getAdditionalInfoConverters(Optional<CounterexampleInfo>
+                                                              pCounterExample) {
+    return ImmutableSet.of();
   }
 
   /** Remove edges that lead to the sink but have a sibling edge that has the same label.

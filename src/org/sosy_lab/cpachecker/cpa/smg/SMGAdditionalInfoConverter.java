@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
-public class SMGAdditionalInfoConverter extends AdditionalInfoConverter {
+public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {
 Map<String, KeyDef> tagConverter = ImmutableMap.of(
     "Warning", KeyDef.WARNING,
     "Note", KeyDef.NOTE);

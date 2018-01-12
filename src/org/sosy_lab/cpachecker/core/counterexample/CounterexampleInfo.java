@@ -30,6 +30,7 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -39,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class CounterexampleInfo extends AbstractAppender {
@@ -222,6 +225,11 @@ public class CounterexampleInfo extends AbstractAppender {
   public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
     return additionalInfo.isEmpty() ? ImmutableMap.of()
                                     : additionalInfo.getAdditionalInfoMapping(targetPath);
+  }
+
+  public Set<AdditionalInfoConverter> getAdditionalInfoConverters() {
+    return additionalInfo.isEmpty() ? ImmutableSet.of()
+                                    : additionalInfo.getAdditionalInfoConverters();
   }
 
   /**
