@@ -89,7 +89,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   @Override
   public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
-    return itpEnv.isUnsatWithAssumptions(assumptions);
+    return itpEnv.isUnsatWithAssumptions(Collections2.transform(assumptions, this::convertToItp));
   }
 
   @Override
