@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -50,10 +53,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
  * Class designed to perform a Newton based refinement
@@ -320,25 +327,154 @@ public class NewtonRefinementManager {
       if (intermediateVarNames.isEmpty()) {
         postCondition = toExist;
       } else {
-        List<BooleanFormula> intermediateVarFormulas =
-            FluentIterable.from(intermediateVarNames)
-                .transform(
-                    (e) -> {
-                      return fmgr.getBooleanFormulaManager().makeVariable(e);
-                    })
-                .toList();
+        boolean quantificationNecessary = true;
 
+        List<Formula> intermediateVarFormulas =
+            new ArrayList<>(
+                Maps.filterKeys(
+                        extractVariables(toExist),
+                        (e) -> fmgr.isIntermediate(e, pathFormula.getSsa()))
+                    .values());
         // TODO: Try to avoid quantification with techniques like:
         //          Destructive Equality Resolution (DER)
         //          Unconnected Parameter Drop (UPD)
 
-        // Quantify the toExist formula and try to eliminate the quantifiers
-        BooleanFormula quantified =
-            fmgr.getQuantifiedFormulaManager().exists(intermediateVarFormulas, toExist);
-        postCondition = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+        // TODO: At this moment to try the concept, only single existential variables are treated
+        //       Later looping through the set may be necessary
+        // Try to apply Destructive Equality Resolution (DER) :
+        if (intermediateVarFormulas.size() == 1) {
+          Formula potentialQuantifier = intermediateVarFormulas.get(0);
+
+          // Try if it is possible to apply DER to find a replacement for the potentialQuantifier
+          Optional<Formula> replacement = getReplacementIfDERPossible(potentialQuantifier, toExist);
+
+          // If a replacement was found, DER is possible, and will be applied
+          if(replacement.isPresent()) {
+            toExist = applyDER(toExist, potentialQuantifier, replacement.get());
+            quantificationNecessary = false; // TODO: Needs to
+          }
+        }
+
+        // If quantification still necessary:
+        //      Quantify the toExist formula and try to eliminate quantifiers
+        if (quantificationNecessary) {
+          BooleanFormula quantified =
+              fmgr.getQuantifiedFormulaManager().exists(intermediateVarFormulas, toExist);
+          postCondition = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+          // TODO: If still quantified, over-approximate formula by dropping Conjuncts containing the
+          // quantified variable
+
+        } else {
+          postCondition = toExist;
+        }
       }
     }
     return postCondition;
+  }
+
+  /**
+   * Check if it is possible to apply the Destructive Equality Resolution on the formula that would
+   * be existentially quantified.
+   *
+   * @param potentialQuantifier The Variable to quantify
+   * @param toExist The formula to existentially quantify the variable in
+   * @return An Optional<Formula>. If the Optional is empty DER cannot be applied.Else the returned
+   *     Formula is the formula the potentialQuantifier should be replaced with.
+   */
+  private Optional<Formula> getReplacementIfDERPossible(
+      final Formula potentialQuantifier, final Formula toExist) {
+    // TODO: seems kind of dirty, try to find a better way
+    List<Formula> replacement = new ArrayList<>();
+
+    fmgr.visitRecursively(
+        toExist,
+        new DefaultFormulaVisitor<TraversalProcess>() {
+
+          @Override
+          protected TraversalProcess visitDefault(Formula pF) {
+            return TraversalProcess.CONTINUE;
+          }
+
+          @Override
+          public TraversalProcess visitFunction(
+              Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+            switch (pFunctionDeclaration.getKind()) {
+              case EQ: // check those functions that represent equality
+              case BV_EQ:
+              case FP_EQ:
+                // Same story here kind of ugly
+                // TODO: Needs additional check for the same variable with lower ssa(Reason for Exception Z3Exception: Formulas should not contain unbound variables)
+                if (pArgs.get(0).equals(potentialQuantifier)
+                    && !fmgr.extractVariableNames(pArgs.get(1))
+                        .containsAll(fmgr.extractVariableNames(potentialQuantifier))) {
+                  replacement.add(pArgs.get(1));
+                  return TraversalProcess.ABORT;
+                } else if (pArgs.get(1).equals(potentialQuantifier)
+                    && !fmgr.extractVariableNames(pArgs.get(0))
+                        .containsAll(fmgr.extractVariableNames(potentialQuantifier))) {
+                  replacement.add(pArgs.get(0));
+                  return TraversalProcess.ABORT;
+                } else {
+                  return TraversalProcess.CONTINUE;
+                }
+              default: // Ignore all other functions
+                return TraversalProcess.CONTINUE;
+            }
+          }
+        });
+    assert (replacement.size() <= 1);
+    if (replacement.size() == 0) {
+      return Optional.empty();
+    } else {
+      return Optional.of(replacement.get(0));
+    }
+  }
+  /**
+   * Apply the Destructive Equality Resolution. Replace all occurrences of the otherwise quantified
+   * Variable by the term it is equal as we know from calling getReplacementIfDERPossible()
+   *
+   * @param formula The Formula to replace in
+   * @param toSubstitute The otherwise quantified variable
+   * @param replacement The replacement for the quantified variable
+   * @return The formula with all occurences of toSubstitute replaced by replacement.
+   */
+  private BooleanFormula applyDER(
+      final BooleanFormula formula, final Formula toSubstitute, final Formula replacement) {
+    Map<Formula, Formula> substitution = new HashMap<>();
+    substitution.put(toSubstitute, replacement);
+    return fmgr.substitute(formula, substitution);
+  }
+
+  /**
+   * Extract the Variables in a given Formula and store them in a Map, where its name is the key and
+   * its Formula is the value.
+   *
+   * <p>Has the advantage compared to extractVariableNames, that the Type information still is
+   * intact in the formula.
+   *
+   * @param formula The formula to extract the variables from
+   * @return A Map<String, Formula> where the Names are the keys are the formulas.
+   */
+  private Map<String, Formula> extractVariables(BooleanFormula formula) {
+    Map<String,Formula> result = new HashMap<>();
+    fmgr.visitRecursively(
+        formula,
+        new DefaultFormulaVisitor<TraversalProcess>() {
+
+          @Override
+          protected TraversalProcess visitDefault(Formula pF) {
+            return TraversalProcess.CONTINUE;
+          }
+
+          @Override
+          public TraversalProcess visitFreeVariable(Formula pF, String pName) {
+            result.put(pName, pF);
+            return TraversalProcess.CONTINUE;
+          }
+        });
+    assert result.size() == fmgr.extractVariableNames(formula).size()
+        : "Should have same number of elements as the extractVariableNames method";
+    return ImmutableMap.copyOf(result);
   }
 
   /**
