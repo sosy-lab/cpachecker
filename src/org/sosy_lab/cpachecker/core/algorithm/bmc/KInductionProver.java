@@ -47,6 +47,8 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -69,6 +71,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -557,6 +562,7 @@ class KInductionProver implements AutoCloseable {
               .get()
               .getAllLoops()
               .stream()
+              .filter(loop -> !isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)
               .filter(loopHeads::contains)
@@ -572,6 +578,39 @@ class KInductionProver implements AutoCloseable {
       }
     }
     return BMCHelper.unroll(logger, pReached, pAlg, pCPA);
+  }
+
+  private static boolean isTrivialSelfLoop(Loop pLoop) {
+    Set<CFANode> loopHeads = pLoop.getLoopHeads();
+    if (loopHeads.size() != 1) {
+      return false;
+    }
+    CFANode loopHead = loopHeads.iterator().next();
+    class TrivialSelfLoopVisitor implements CFAVisitor {
+
+      private boolean valid = true;
+
+      @Override
+      public TraversalProcess visitEdge(CFAEdge pEdge) {
+        if (!pEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
+            || !pLoop.getLoopNodes().contains(pEdge.getSuccessor())) {
+          valid = false;
+          return TraversalProcess.ABORT;
+        }
+        if (pEdge.getSuccessor().equals(loopHead)) {
+          return TraversalProcess.SKIP;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitNode(CFANode pNode) {
+        return TraversalProcess.CONTINUE;
+      }
+    }
+    TrivialSelfLoopVisitor visitor = new TrivialSelfLoopVisitor();
+    CFATraversal.dfs().traverseOnce(loopHead, visitor);
+    return visitor.valid;
   }
 
   private BooleanFormula extractInputAssignments(
