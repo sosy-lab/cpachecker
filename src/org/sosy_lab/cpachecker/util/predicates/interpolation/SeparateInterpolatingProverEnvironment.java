@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.List;
@@ -109,23 +108,16 @@ public class SeparateInterpolatingProverEnvironment<T>
   public List<BooleanFormula> getSeqInterpolants(List<? extends Collection<T>> partitionedFormulas)
       throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(partitionedFormulas);
-    final List<BooleanFormula> result = new ArrayList<>();
-    for (BooleanFormula itp : itps) {
-      result.add(convertToMain(itp));
-    }
-    return result;
+    return Lists.transform(itps, this::convertToMain);
   }
 
   @Override
   public List<BooleanFormula> getTreeInterpolants(
       List<? extends Collection<T>> partitionedFormulas, int[] startOfSubTree)
       throws SolverException, InterruptedException {
-    final List<BooleanFormula> itps = itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
-    final List<BooleanFormula> result = new ArrayList<>();
-    for (BooleanFormula itp : itps) {
-      result.add(convertToMain(itp));
-    }
-    return result;
+    final List<BooleanFormula> itps =
+        itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
+    return Lists.transform(itps, this::convertToMain);
   }
 
   private BooleanFormula convertToItp(BooleanFormula f) {
