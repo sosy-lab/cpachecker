@@ -576,6 +576,9 @@ class KInductionProver implements AutoCloseable {
             pCPA.getInitialState(relevantLoopHead, StateSpacePartition.getDefaultPartition());
         pReached.add(initialState, precision);
       }
+      if (pReached.isEmpty()) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
     }
     return BMCHelper.unroll(logger, pReached, pAlg, pCPA);
   }
