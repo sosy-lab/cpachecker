@@ -187,16 +187,6 @@ class KInductionProver implements AutoCloseable {
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
   }
 
-  /**
-   * Checks if the prover is already initialized.
-   *
-   * @return {@code true} if the prover is initialized, {@code false}
-   * otherwise.
-   */
-  private boolean isProverInitialized() {
-    return prover != null;
-  }
-
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (invariantGenerationRunning) {
       try {
@@ -279,9 +269,7 @@ class KInductionProver implements AutoCloseable {
 
   @Override
   public void close() {
-    if (isProverInitialized()) {
-      prover.close();
-    }
+    prover.close();
   }
 
   /**
