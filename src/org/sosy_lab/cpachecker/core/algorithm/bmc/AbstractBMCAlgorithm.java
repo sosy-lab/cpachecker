@@ -451,7 +451,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     if (safe) {
       pInductionProblem.assumeTruth(pReachedSet);
-    } else {
+    } else if (pInductionProblem == TargetLocationCandidateInvariant.INSTANCE) {
       analyzeCounterexample(program, pReachedSet, pProver);
     }
 
