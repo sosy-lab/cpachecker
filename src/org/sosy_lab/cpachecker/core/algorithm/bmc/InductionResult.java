@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -35,7 +36,7 @@ public class InductionResult {
 
   private final boolean successful;
 
-  private final Set<CounterexampleToInductivity> model;
+  private final Set<SingleLocationFormulaInvariant> model;
 
   private final BooleanFormula inputAssignments;
 
@@ -43,7 +44,7 @@ public class InductionResult {
 
   private InductionResult(
       boolean pSuccessful,
-      Set<CounterexampleToInductivity> pModel,
+      Set<? extends SingleLocationFormulaInvariant> pModel,
       @Nullable BooleanFormula pInputAssignments,
       int pK) {
     if (pSuccessful != pModel.isEmpty() || pSuccessful != (pInputAssignments == null)) {
@@ -55,7 +56,7 @@ public class InductionResult {
           "k must not be negative for failed induction results, but is " + pK);
     }
     successful = pSuccessful;
-    model = pModel;
+    model = ImmutableSet.copyOf(pModel);
     inputAssignments = pInputAssignments;
     k = pK;
   }
@@ -64,7 +65,7 @@ public class InductionResult {
     return successful;
   }
 
-  public Set<CounterexampleToInductivity> getModel() {
+  public Set<SingleLocationFormulaInvariant> getModel() {
     if (isSuccessful()) {
       throw new IllegalStateException("A model is only present if induction failed.");
     }
@@ -93,7 +94,9 @@ public class InductionResult {
   }
 
   public static InductionResult getFailed(
-      Set<CounterexampleToInductivity> pModel, BooleanFormula pInputAssignments, int pK) {
+      Set<? extends SingleLocationFormulaInvariant> pModel,
+      BooleanFormula pInputAssignments,
+      int pK) {
     return new InductionResult(false, pModel, pInputAssignments, pK);
   }
 }

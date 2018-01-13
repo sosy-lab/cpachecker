@@ -73,6 +73,16 @@ public final class BMCHelper {
       final FormulaManagerView pFMGR,
       final PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
+    return assertAt(pStates, pInvariant, pFMGR, pPFMGR, false);
+  }
+
+  public static BooleanFormula assertAt(
+      Iterable<AbstractState> pStates,
+      final CandidateInvariant pInvariant,
+      final FormulaManagerView pFMGR,
+      final PathFormulaManager pPFMGR,
+      boolean pForce)
+      throws CPATransferException, InterruptedException {
     return assertAt(
         pStates,
         new FormulaInContext() {
@@ -83,22 +93,32 @@ public final class BMCHelper {
             return pInvariant.getFormula(pFMGR, pPFMGR, pContext);
           }
         },
-        pFMGR);
+        pFMGR,
+        pForce);
   }
 
   public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates, FormulaInContext pInvariant, FormulaManagerView pFMGR)
       throws CPATransferException, InterruptedException {
+    return assertAt(pStates, pInvariant, pFMGR, false);
+  }
+
+  public static BooleanFormula assertAt(
+      Iterable<AbstractState> pStates,
+      FormulaInContext pInvariant,
+      FormulaManagerView pFMGR,
+      boolean pForce)
+      throws CPATransferException, InterruptedException {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeTrue();
     for (AbstractState abstractState : pStates) {
-      result = bfmgr.and(result, assertAt(abstractState, pInvariant, pFMGR));
+      result = bfmgr.and(result, assertAt(abstractState, pInvariant, pFMGR, pForce));
     }
     return result;
   }
 
   private static BooleanFormula assertAt(
-      AbstractState pState, FormulaInContext pInvariant, FormulaManagerView pFMGR)
+      AbstractState pState, FormulaInContext pInvariant, FormulaManagerView pFMGR, boolean pForce)
       throws CPATransferException, InterruptedException {
     PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
     PathFormula pathFormula = pas.getPathFormula();
@@ -110,6 +130,9 @@ public final class BMCHelper {
     SSAMap ssaMap = pathFormula.getSsa().withDefault(1);
     BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
     BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);
+    if (pForce) {
+      return instantiatedFormula;
+    }
     return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);
   }
 

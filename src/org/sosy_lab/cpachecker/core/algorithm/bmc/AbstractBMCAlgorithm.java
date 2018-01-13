@@ -537,16 +537,19 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   }
 
   protected @Nullable KInductionProver createInductionProver() {
-     return induction ? new KInductionProver(
-        cfa,
-        logger,
-        stepCaseAlgorithm,
-        stepCaseCPA,
-        invariantGenerator,
-        stats,
-        reachedSetFactory,
-        shutdownNotifier,
-        getLoopHeads()) : null;
+    return induction
+        ? new KInductionProver(
+            cfa,
+            logger,
+            stepCaseAlgorithm,
+            stepCaseCPA,
+            invariantGenerator,
+            stats,
+            reachedSetFactory,
+            shutdownNotifier,
+            getLoopHeads(),
+            false)
+        : null;
   }
 
   /**

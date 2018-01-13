@@ -89,7 +89,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
     };
   }
 
-  public static CandidateInvariant makeLocationInvariant(
+  public static SingleLocationFormulaInvariant makeLocationInvariant(
       CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFMGR) {
     class SpecificSMTLibLocationFormulaInvariant extends SingleLocationFormulaInvariant {
 
