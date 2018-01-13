@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -88,12 +87,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -114,8 +111,6 @@ class KInductionProver implements AutoCloseable {
 
   private final UnrolledReachedSet reachedSet;
 
-  private final Solver solver;
-
   private final FormulaManagerView fmgr;
 
   private final BooleanFormulaManagerView bfmgr;
@@ -128,7 +123,7 @@ class KInductionProver implements AutoCloseable {
 
   private final InvariantGenerator invariantGenerator;
 
-  private @Nullable ProverEnvironment prover = null;
+  private final ProverEnvironmentWithFallback prover;
 
   private final boolean unsatCoreGeneration;
 
@@ -169,9 +164,20 @@ class KInductionProver implements AutoCloseable {
             algorithm, cpa, pLoopHeads, reachedSetFactory.create(), this::ensureK);
 
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    solver = stepCasePredicateCPA.getSolver();
     unsatCoreGeneration = pUnsatCoreGeneration;
-    fmgr = solver.getFormulaManager();
+    if (pUnsatCoreGeneration) {
+      prover =
+          new ProverEnvironmentWithFallback(
+              stepCasePredicateCPA.getSolver(),
+              false,
+              ProverOptions.GENERATE_UNSAT_CORE,
+              ProverOptions.GENERATE_MODELS);
+    } else {
+      prover =
+          new ProverEnvironmentWithFallback(
+              stepCasePredicateCPA.getSolver(), false, ProverOptions.GENERATE_MODELS);
+    }
+    fmgr = stepCasePredicateCPA.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
     loopHeadInvariants = bfmgr.makeTrue();
@@ -189,24 +195,6 @@ class KInductionProver implements AutoCloseable {
    */
   private boolean isProverInitialized() {
     return prover != null;
-  }
-
-  /**
-   * Checks if the prover instance has been initialized, and, if not, initializes it. Afterwards,
-   * the prover is guaranteed to be initialized.
-   */
-  @SuppressWarnings("unchecked")
-  private void ensureProverInitialized() {
-    if (!isProverInitialized()) {
-      if (unsatCoreGeneration) {
-        prover =
-            solver.newProverEnvironment(
-                ProverOptions.GENERATE_MODELS, ProverOptions.GENERATE_UNSAT_CORE);
-      } else {
-        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-      }
-    }
-    assert isProverInitialized();
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
@@ -411,7 +399,6 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
     this.previousK = pK + 1;
-    ensureProverInitialized();
     stats.inductionPreparation.stop();
 
     // Attempt the induction proofs
@@ -846,4 +833,5 @@ class KInductionProver implements AutoCloseable {
     }
     return ctis.build();
   }
+
 }
