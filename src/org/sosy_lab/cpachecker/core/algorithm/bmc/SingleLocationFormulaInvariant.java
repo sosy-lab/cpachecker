@@ -90,7 +90,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
   }
 
   public static SingleLocationFormulaInvariant makeLocationInvariant(
-      CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFMGR) {
+      CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pOriginalFormulaManager) {
     class SpecificSMTLibLocationFormulaInvariant extends SingleLocationFormulaInvariant {
 
       private final BooleanFormula invariant;
@@ -101,7 +101,8 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
         super(pLocation);
         invariant = pInvariant;
         delegate =
-            new SMTLibLocationFormulaInvariant(pLocation, pFMGR.dumpFormula(pInvariant).toString());
+            new SMTLibLocationFormulaInvariant(
+                pLocation, pOriginalFormulaManager.dumpFormula(pInvariant).toString());
       }
 
       @Override
