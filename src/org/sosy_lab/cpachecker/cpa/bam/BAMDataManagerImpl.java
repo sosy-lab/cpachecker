@@ -145,6 +145,9 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
       AbstractState reducedState, Block innerBlock) {
+    assert !expandedStateToBlockExit.containsKey(expandedState)
+        : "expanded state was registered before with data "
+            + expandedStateToBlockExit.get(expandedState);
     expandedStateToBlockExit.put(
         expandedState, new BlockExitData(reducedState, innerBlock, expandedPrecision));
   }
