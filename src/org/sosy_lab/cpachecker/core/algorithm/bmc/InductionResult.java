@@ -38,7 +38,7 @@ public class InductionResult {
 
   private final Set<SingleLocationFormulaInvariant> model;
 
-  private final BooleanFormula inputAssignments;
+  private final @Nullable BooleanFormula inputAssignments;
 
   private final int k;
 

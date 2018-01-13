@@ -52,9 +52,9 @@ class ProverEnvironmentWithFallback
 
   private final Solver solver;
 
-  private InterpolatingProverEnvironment<Object> interpolatingProverEnvironment;
+  private @Nullable InterpolatingProverEnvironment<Object> interpolatingProverEnvironment;
 
-  private ProverEnvironment proverEnvironment;
+  private @Nullable ProverEnvironment proverEnvironment;
 
   private boolean closed = false;
 
