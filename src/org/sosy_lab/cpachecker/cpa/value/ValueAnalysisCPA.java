@@ -69,6 +69,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -101,7 +103,6 @@ public class ValueAnalysisCPA
   private final AbstractDomain abstractDomain =
       DelegateAbstractDomain.<ValueAnalysisState>getInstance();
   private VariableTrackingPrecision precision;
-  private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisCPAStatistics statistics;
   private final StateToFormulaWriter writer;
 
@@ -116,6 +117,8 @@ public class ValueAnalysisCPA
   private MemoryLocationValueHandler unknownValueHandler;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
   private final ValueTransferOptions transferOptions;
+  private final PrecAdjustmentOptions precisionAdjustmentOptions;
+  private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
@@ -128,12 +131,13 @@ public class ValueAnalysisCPA
 
     precision           = initializePrecision(config, cfa);
     statistics          = new ValueAnalysisCPAStatistics(this, config);
-    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, statistics, cfa);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
     unknownValueHandler = new SymbolicValueAssigner(config);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
     transferOptions = new ValueTransferOptions(config);
+    precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
+    precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -271,7 +275,8 @@ public class ValueAnalysisCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return new ValueAnalysisPrecisionAdjustment(
+        statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
   }
 
   public Configuration getConfiguration() {
@@ -298,8 +303,8 @@ public class ValueAnalysisCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+    pStatsCollection.add(precisionAdjustmentStatistics);
     writer.collectStatistics(pStatsCollection);
-    precisionAdjustment.collectStatistics(pStatsCollection);
   }
 
   @Override
