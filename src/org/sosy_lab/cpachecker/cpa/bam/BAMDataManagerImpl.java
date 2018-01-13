@@ -84,6 +84,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
       block = pBlock;
       expandedPrecision = pExpandedPrecision;
     }
+
+    @Override
+    public String toString() {
+      return String.format("Data <%s, %s, %s>", reducedState, block, expandedPrecision);
+    }
   }
 
   /**
@@ -107,6 +112,9 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void replaceStateInCaches(
       AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
+    if (oldState == newState) {
+      return; // nothing to do
+    }
     if (oldStateMustExist || expandedStateToBlockExit.containsKey(oldState)) {
       final BlockExitData entry = expandedStateToBlockExit.remove(oldState);
       expandedStateToBlockExit.put(newState, entry);
@@ -250,7 +258,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
     return expandedStateToBlockExit.containsKey(state);
   }
 
-  static int getId(AbstractState state) {
+  private static int getId(AbstractState state) {
     return ((ARGState) state).getStateId();
   }
 
