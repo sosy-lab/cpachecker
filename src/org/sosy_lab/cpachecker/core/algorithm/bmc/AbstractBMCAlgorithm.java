@@ -306,6 +306,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
           boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
           if (!safe) {
+            if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
             candidateInvariantIterator.remove();
           }
 
