@@ -268,11 +268,6 @@ public class BAMDataManagerImpl implements BAMDataManager {
     return bamCache;
   }
 
-  @Override
-  public void clearExpandedStateToExpandedPrecision() {
-    expandedStateToExpandedPrecision.clear();
-  }
-
   /** return a matching precision for the given state, or Null if state is not found. */
   @Override
   public @Nullable Precision getExpandedPrecisionForState(AbstractState pState) {
