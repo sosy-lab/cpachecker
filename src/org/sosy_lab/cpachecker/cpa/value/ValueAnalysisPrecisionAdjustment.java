@@ -27,11 +27,9 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -162,7 +160,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         new ThreadSafeTimerContainer("Total time for abstraction computation");
     private final ThreadSafeTimerContainer totalEnforcePathTimer =
         new ThreadSafeTimerContainer("Total time for path thresholds");
-    private final Set<MemoryLocation> trackedMemoryLocation = Sets.newConcurrentHashSet();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -171,7 +168,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       writer.put(totalLivenessTimer);
       writer.put(totalAbstractionTimer);
       writer.put(totalEnforcePathTimer);
-      writer.put("Number of tracked memory locations", trackedMemoryLocation.size());
     }
 
     @Override
@@ -189,7 +185,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   private final TimerWrapper totalLiveness;
   private final TimerWrapper totalAbstraction;
   private final TimerWrapper totalEnforcePath;
-  private final Set<MemoryLocation> trackedMemoryLocation;
 
   @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private boolean performPrecisionBasedAbstraction = false;
@@ -208,7 +203,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     totalLiveness = pStatistics.totalLivenessTimer.getNewTimer();
     totalAbstraction = pStatistics.totalAbstractionTimer.getNewTimer();
     totalEnforcePath = pStatistics.totalEnforcePathTimer.getNewTimer();
-    trackedMemoryLocation = pStatistics.trackedMemoryLocation;
   }
 
   @Override
@@ -248,9 +242,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       enforcePathThreshold(resultState, pPrecision, assignments);
       totalEnforcePath.stop();
     }
-
-    // all memory locations contained in the state here are both tracked and have a known valuation
-    trackedMemoryLocation.addAll(resultState.getTrackedMemoryLocations());
 
     resultState = resultState.equals(pState) ? pState : resultState;
 
