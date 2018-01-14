@@ -33,18 +33,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -125,8 +122,6 @@ class KInductionProver implements AutoCloseable {
 
   private final ProverEnvironmentWithFallback prover;
 
-  private final boolean unsatCoreGeneration;
-
   private ExpressionTreeSupplier expressionTreeSupplier;
 
   private BooleanFormula loopHeadInvariants;
@@ -164,7 +159,6 @@ class KInductionProver implements AutoCloseable {
             algorithm, cpa, pLoopHeads, reachedSetFactory.create(), this::ensureK);
 
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    unsatCoreGeneration = pUnsatCoreGeneration;
     if (pUnsatCoreGeneration) {
       prover =
           new ProverEnvironmentWithFallback(
@@ -294,7 +288,12 @@ class KInductionProver implements AutoCloseable {
       CandidateInvariant pCandidateInvariant,
       Set<Object> pCheckedKeys)
       throws CPAException, InterruptedException, SolverException {
-    return check(pPredecessorAssumptions, pK, pCandidateInvariant, pCheckedKeys, false);
+    return check(
+        pPredecessorAssumptions,
+        pK,
+        pCandidateInvariant,
+        pCheckedKeys,
+        StandardLiftings.NO_LIFTING);
   }
 
   /**
@@ -306,8 +305,7 @@ class KInductionProver implements AutoCloseable {
    * @param pCandidateInvariant What should be checked at k + 1.
    * @param pCheckedKeys the keys of loop-iteration reporting states that were checked by BMC: only
    *     for those can we assert predecessor safety of an unproven candidate invariant.
-   * @param pReduceModel Whether to try to reduce the model assignments to a relevant subset using
-   *     an UNSAT core.
+   * @param pLifting The strategy to use to try to reduce the model assignments if the check fails.
    * @return <code>true</code> if k-induction successfully proved the correctness of the candidate
    *     invariant, <code>false</code> and a model otherwise.
    * @throws CPAException if the bounded analysis constructing the step case encountered an
@@ -320,7 +318,7 @@ class KInductionProver implements AutoCloseable {
       int pK,
       CandidateInvariant pCandidateInvariant,
       Set<Object> pCheckedKeys,
-      boolean pReduceModel)
+      Lifting pLifting)
       throws CPAException, InterruptedException, SolverException {
 
     stats.inductionPreparation.start();
@@ -449,7 +447,7 @@ class KInductionProver implements AutoCloseable {
           if (!loopHeadInvChanged) {
             inputAssignments = extractInputAssignments(reached, modelAssignments);
             Set<CounterexampleToInductivity> detectedCTIs = extractCTIs(reached, modelAssignments);
-            if (pReduceModel) {
+            if (pLifting.canLift()) {
               prover.pop(); // Pop the loop-head invariants
               prover.pop(); // Pop the successor violation
               // Push the successor assertion
@@ -461,41 +459,19 @@ class KInductionProver implements AutoCloseable {
               ImmutableSet.Builder<SingleLocationFormulaInvariant> reducedCTIsBuilder =
                   ImmutableSet.builder();
               for (CounterexampleToInductivity cti : detectedCTIs) {
-                Iterator<CandidateInvariant> literalIterator =
-                    cti.splitLiterals(fmgr, true).iterator();
-                boolean isUnsat = false;
-                List<BooleanFormula> assertedLiterals = new ArrayList<>();
-                while (literalIterator.hasNext() && !isUnsat) {
-                  CandidateInvariant literal = literalIterator.next();
-                  BooleanFormula literalFormula = BMCHelper.assertAt(
-                      filterInductiveAssertionIteration(loopHeadStates),
-                      literal,
-                      fmgr,
-                      pfmgr,
-                      true);
-                  assertedLiterals.add(literalFormula);
-                  prover.push(literalFormula);
-                  isUnsat = prover.isUnsat();
-                }
-                int pushes = assertedLiterals.size();
-                if (isUnsat) {
-                  if (assertedLiterals.size() > 1 && unsatCoreGeneration) {
-                    assertedLiterals.retainAll(prover.getUnsatCore());
-                  }
-                  reducedCTIsBuilder.add(
-                      SingleLocationFormulaInvariant.makeLocationInvariant(
-                          cti.getLocation(),
-                          fmgr.uninstantiate(bfmgr.and(assertedLiterals)),
-                          fmgr));
-                } else {
-                  reducedCTIsBuilder.add(cti);
-                }
-                // Pop all asserted literals
-                IntStream.range(0, pushes)
-                    .forEach(
-                        i -> {
-                          prover.pop();
-                        });
+                final SingleLocationFormulaInvariant reducedCTI =
+                    pLifting.lift(
+                        fmgr,
+                        prover,
+                        cti,
+                        (p ->
+                            BMCHelper.assertAt(
+                                filterInductiveAssertionIteration(loopHeadStates),
+                                p,
+                                fmgr,
+                                pfmgr,
+                                true)));
+                reducedCTIsBuilder.add(reducedCTI);
               }
               model = reducedCTIsBuilder.build();
               prover.pop(); // Pop input assignments
