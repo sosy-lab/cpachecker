@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
@@ -37,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.ImmutableConcatList;
 
 class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
@@ -146,7 +145,8 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
           precisionAdjustment.strengthen(
               oldElement,
               oldPrecision,
-              from(wrappedStates.subList(0, i)).append(wrappedStates.subList(i + 1, dim)).toList());
+              new ImmutableConcatList<>(
+                  wrappedStates.subList(0, i), wrappedStates.subList(i + 1, dim)));
       if (!out.isPresent()) {
         return Optional.empty();
       }
