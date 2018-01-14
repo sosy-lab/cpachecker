@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.FluentIterable;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -77,4 +79,16 @@ public interface CandidateInvariant {
   void assumeTruth(ReachedSet pReachedSet);
 
   boolean appliesTo(CFANode pLocation);
+
+  /**
+   * Filters the given states to those this candidate invariant can be applied to.
+   *
+   * @param pStates the states to filter.
+   * @return the filtered states.
+   */
+  default Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
+    return FluentIterable.from(pStates)
+        .filter(
+            s -> FluentIterable.from(AbstractStates.extractLocations(s)).anyMatch(this::appliesTo));
+  }
 }

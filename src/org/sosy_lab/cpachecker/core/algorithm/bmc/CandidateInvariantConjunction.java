@@ -142,13 +142,6 @@ public class CandidateInvariantConjunction {
     }
 
     @Override
-    public BooleanFormula getAssertion(
-        Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
-        throws CPATransferException, InterruptedException {
-      return delegate.getAssertion(pReachedSet, pFMGR, pPFMGR);
-    }
-
-    @Override
     public void assumeTruth(ReachedSet pReachedSet) {
       delegate.assumeTruth(pReachedSet);
     }

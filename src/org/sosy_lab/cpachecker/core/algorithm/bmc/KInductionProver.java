@@ -535,9 +535,15 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula getSuccessorViolation(CandidateInvariant pCandidateInvariant,
       ReachedSet pReached, int pK) throws CPATransferException, InterruptedException {
-    BooleanFormula assertion =
-        pCandidateInvariant.getAssertion(filterIteration(pReached, pK + 1), fmgr, pfmgr);
-    return bfmgr.not(assertion);
+    BooleanFormula violationAssertion = bfmgr.makeFalse();
+    Iterable<AbstractState> assertionLocations =
+        filterIteration(pCandidateInvariant.filterApplicable(pReached), pK + 1);
+    for (AbstractState s : assertionLocations) {
+      BooleanFormula stateInvariantAssertion =
+          pCandidateInvariant.getAssertion(Collections.singleton(s), fmgr, pfmgr);
+      violationAssertion = bfmgr.or(violationAssertion, bfmgr.not(stateInvariantAssertion));
+    }
+    return violationAssertion;
   }
 
   private FluentIterable<AbstractState> filterInductiveAssertionIteration(

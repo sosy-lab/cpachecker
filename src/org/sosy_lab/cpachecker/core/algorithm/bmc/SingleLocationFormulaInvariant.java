@@ -65,16 +65,21 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
   }
 
   @Override
-  public BooleanFormula getAssertion(
+  public final BooleanFormula getAssertion(
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> locationStates = AbstractStates.filterLocation(pReachedSet, location);
+    Iterable<AbstractState> locationStates = filterApplicable(pReachedSet);
     return BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR);
   }
 
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     // Do nothing
+  }
+
+  @Override
+  public Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
+    return AbstractStates.filterLocation(pStates, location);
   }
 
   public static CandidateInvariant makeBooleanInvariant(CFANode pLocation, final boolean pValue) {
@@ -222,8 +227,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
     @Override
     public void assumeTruth(ReachedSet pReachedSet) {
       if (isDefinitelyBooleanFalse) {
-        Iterable<AbstractState> targetStates =
-            ImmutableList.copyOf(AbstractStates.filterLocation(pReachedSet, getLocation()));
+        Iterable<AbstractState> targetStates = ImmutableList.copyOf(filterApplicable(pReachedSet));
         pReachedSet.removeAll(targetStates);
         for (ARGState s : from(targetStates).filter(ARGState.class)) {
           s.removeFromARG();
