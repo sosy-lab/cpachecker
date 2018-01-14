@@ -282,7 +282,7 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the step case was
    *     interrupted.
    */
-  public final InductionResult check(
+  public final InductionResult<CandidateInvariant> check(
       Iterable<CandidateInvariant> pPredecessorAssumptions,
       int pK,
       CandidateInvariant pCandidateInvariant,
@@ -293,6 +293,7 @@ class KInductionProver implements AutoCloseable {
         pK,
         pCandidateInvariant,
         pCheckedKeys,
+        InvariantAbstraction.noAbstraction(),
         StandardLiftings.NO_LIFTING);
   }
 
@@ -305,6 +306,8 @@ class KInductionProver implements AutoCloseable {
    * @param pCandidateInvariant What should be checked at k + 1.
    * @param pCheckedKeys the keys of loop-iteration reporting states that were checked by BMC: only
    *     for those can we assert predecessor safety of an unproven candidate invariant.
+   * @param pInvariantAbstraction The strategy to use to try to abstract the invariant if the check
+   *     succeeds.
    * @param pLifting The strategy to use to try to reduce the model assignments if the check fails.
    * @return <code>true</code> if k-induction successfully proved the correctness of the candidate
    *     invariant, <code>false</code> and a model otherwise.
@@ -313,13 +316,16 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the step case was
    *     interrupted.
    */
-  public final InductionResult check(
-      Iterable<CandidateInvariant> pPredecessorAssumptions,
-      int pK,
-      CandidateInvariant pCandidateInvariant,
-      Set<Object> pCheckedKeys,
-      Lifting pLifting)
-      throws CPAException, InterruptedException, SolverException {
+  public final <
+          S extends CandidateInvariant, T extends CandidateInvariant, D extends SuccessorViolation>
+      InductionResult<T> check(
+          Iterable<CandidateInvariant> pPredecessorAssumptions,
+          int pK,
+          S pCandidateInvariant,
+          Set<Object> pCheckedKeys,
+          InvariantAbstraction<S, T, D> pInvariantAbstraction,
+          Lifting pLifting)
+          throws CPAException, InterruptedException, SolverException {
 
     stats.inductionPreparation.start();
 
@@ -402,10 +408,11 @@ class KInductionProver implements AutoCloseable {
                 .transform(conjunctivePart -> assertions.get(conjunctivePart))
                 .toList());
     // Create the successor violation formula
-    BooleanFormula successorViolation = getSuccessorViolation(pCandidateInvariant, reached, pK);
+    D successorViolation =
+        getSuccessorViolation(pInvariantAbstraction, pCandidateInvariant, reached, pK);
     // Record the successor violation formula to reuse its negation as an
     // assertion in a future induction attempt
-    violationFormulas.put(pCandidateInvariant, successorViolation);
+    violationFormulas.put(pCandidateInvariant, successorViolation.getViolationAssertion());
 
     logger.log(Level.INFO, "Starting induction check...");
 
@@ -414,20 +421,17 @@ class KInductionProver implements AutoCloseable {
     // Try to prove the invariance of the assertion
     prover.push(successorExistsAssertion);
     prover.push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
-    prover.push(successorViolation); // Assert that the formula is violated at a successor
+    // Assert that the formula is violated at a successor
+    Object successorViolationAssertionId = prover.push(successorViolation.getViolationAssertion());
 
-    boolean isInvariant = false;
-    boolean loopHeadInvChanged = true;
-    Set<? extends SingleLocationFormulaInvariant> model = Collections.emptySet();
-    BooleanFormula inputAssignments = bfmgr.makeTrue();
-    while (!isInvariant && loopHeadInvChanged) {
+    InductionResult<T> result = null;
+    while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
-      loopHeadInvChanged = false;
 
       prover.push(loopHeadInv); // Assert the known loop-head invariants
 
       // The formula is invariant if the assertions are contradicting
-      isInvariant = prover.isUnsat();
+      boolean isInvariant = prover.isUnsat();
 
       if (!isInvariant) {
 
@@ -435,7 +439,7 @@ class KInductionProver implements AutoCloseable {
         // if new invariants are available
         BooleanFormula oldLoopHeadInv = loopHeadInv;
         loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
-        loopHeadInvChanged = !loopHeadInv.equals(oldLoopHeadInv);
+        boolean loopHeadInvChanged = !loopHeadInv.equals(oldLoopHeadInv);
 
         // We need to produce the model if we are in the last iteration
         // or want to log the model
@@ -444,8 +448,12 @@ class KInductionProver implements AutoCloseable {
           if (logger.wouldBeLogged(Level.ALL)) {
             logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
           }
+
           if (!loopHeadInvChanged) {
-            inputAssignments = extractInputAssignments(reached, modelAssignments);
+            // We are in the last iteration and failed to prove the candidate invariant
+
+            Set<? extends SingleLocationFormulaInvariant> model = Collections.emptySet();
+            BooleanFormula inputAssignments = extractInputAssignments(reached, modelAssignments);
             Set<CounterexampleToInductivity> detectedCTIs = extractCTIs(reached, modelAssignments);
             if (pLifting.canLift()) {
               prover.pop(); // Pop the loop-head invariants
@@ -478,30 +486,34 @@ class KInductionProver implements AutoCloseable {
             } else {
               model = detectedCTIs;
             }
+            result = InductionResult.getFailed(model, inputAssignments, pK);
           }
         }
+      } else {
+        T abstractedInvariant =
+            pInvariantAbstraction.performAbstraction(
+                prover, successorViolation, successorViolationAssertionId);
+        result = InductionResult.getSuccessful(abstractedInvariant);
       }
 
       prover.pop(); // Pop the loop-head invariants
     }
 
     // If the proof is successful, remove its violation formula from the cache
-    if (isInvariant) {
+    if (result.isSuccessful()) {
       violationFormulas.remove(pCandidateInvariant);
+      prover.pop(); // Pop invariant successor violation
+    } else {
+      prover.pop(); // Pop invariant successor assertion
     }
-
-    prover.pop(); // Pop invariant successor violation (or assertion, if we reduced a model)
     prover.pop(); // Pop invariant predecessor assertion
     prover.pop(); // Pop end states
 
     stats.inductionCheck.stop();
 
-    logger.log(Level.FINER, "Soundness after induction check:", isInvariant);
+    logger.log(Level.FINER, "Soundness after induction check:", result.isSuccessful());
 
-    if (isInvariant) {
-      return InductionResult.getSuccessful();
-    }
-    return InductionResult.getFailed(model, inputAssignments, pK);
+    return result;
   }
 
   private BooleanFormula assertCandidate(
@@ -533,17 +545,17 @@ class KInductionProver implements AutoCloseable {
     return BMCHelper.assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr);
   }
 
-  private BooleanFormula getSuccessorViolation(CandidateInvariant pCandidateInvariant,
-      ReachedSet pReached, int pK) throws CPATransferException, InterruptedException {
-    BooleanFormula violationAssertion = bfmgr.makeFalse();
-    Iterable<AbstractState> assertionLocations =
+  private <S extends CandidateInvariant, T extends CandidateInvariant, D extends SuccessorViolation>
+      D getSuccessorViolation(
+          InvariantAbstraction<S, T, D> pInvariantAbstraction,
+          S pCandidateInvariant,
+          ReachedSet pReached,
+          int pK)
+          throws CPATransferException, InterruptedException {
+    Iterable<AbstractState> assertionStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK + 1);
-    for (AbstractState s : assertionLocations) {
-      BooleanFormula stateInvariantAssertion =
-          pCandidateInvariant.getAssertion(Collections.singleton(s), fmgr, pfmgr);
-      violationAssertion = bfmgr.or(violationAssertion, bfmgr.not(stateInvariantAssertion));
-    }
-    return violationAssertion;
+    return pInvariantAbstraction.getSuccessorViolation(
+        fmgr, pfmgr, pCandidateInvariant, assertionStates);
   }
 
   private FluentIterable<AbstractState> filterInductiveAssertionIteration(

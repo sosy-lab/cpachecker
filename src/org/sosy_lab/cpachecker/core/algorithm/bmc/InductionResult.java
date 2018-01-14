@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import ap.Prover.ProofResult;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class InductionResult {
+public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 
-  private static final InductionResult SUCCESSFUL =
-      new InductionResult(true, Collections.emptySet(), null, -1);
-
-  private final boolean successful;
+  private final @Nullable T invariantAbstraction;
 
   private final Set<SingleLocationFormulaInvariant> model;
 
@@ -42,27 +41,41 @@ public class InductionResult {
 
   private final int k;
 
+  private InductionResult(T pInvariantAbstraction) {
+    invariantAbstraction = Objects.requireNonNull(pInvariantAbstraction);
+    model = Collections.emptySet();
+    inputAssignments = null;
+    k = -1;
+  }
+
   private InductionResult(
-      boolean pSuccessful,
       Set<? extends SingleLocationFormulaInvariant> pModel,
-      @Nullable BooleanFormula pInputAssignments,
+      BooleanFormula pInputAssignments,
       int pK) {
-    if (pSuccessful != pModel.isEmpty() || pSuccessful != (pInputAssignments == null)) {
+    if (pModel.isEmpty()) {
       throw new IllegalArgumentException(
-          "A model should be present if and only if induction failed.");
+          "A model should be present if (and only if) induction failed.");
     }
-    if (!pSuccessful && pK < 0) {
+    if (pK < 0) {
       throw new IllegalArgumentException(
           "k must not be negative for failed induction results, but is " + pK);
     }
-    successful = pSuccessful;
+    invariantAbstraction = null;
     model = ImmutableSet.copyOf(pModel);
     inputAssignments = pInputAssignments;
     k = pK;
   }
 
   public boolean isSuccessful() {
-    return successful;
+    return invariantAbstraction != null;
+  }
+
+  public T getInvariantAbstraction() {
+    if (!isSuccessful()) {
+      throw new IllegalArgumentException(
+          "An invariant abstraction is only present if induction succeeded.");
+    }
+    return invariantAbstraction;
   }
 
   public Set<SingleLocationFormulaInvariant> getModel() {
@@ -89,14 +102,15 @@ public class InductionResult {
     return k;
   }
 
-  public static InductionResult getSuccessful() {
-    return SUCCESSFUL;
+  public static <T extends CandidateInvariant> InductionResult<T> getSuccessful(
+      T pInvariantAbstraction) {
+    return new InductionResult<>(pInvariantAbstraction);
   }
 
-  public static InductionResult getFailed(
+  public static <T extends CandidateInvariant> InductionResult<T> getFailed(
       Set<? extends SingleLocationFormulaInvariant> pModel,
       BooleanFormula pInputAssignments,
       int pK) {
-    return new InductionResult(false, pModel, pInputAssignments, pK);
+    return new InductionResult<>(pModel, pInputAssignments, pK);
   }
 }
