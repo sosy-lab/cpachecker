@@ -37,6 +37,7 @@ public class ImmutableConcatList<T> extends AbstractList<T> {
   private final ImmutableList<List<? extends T>> lists;
 
   @SafeVarargs
+  @SuppressWarnings("varargs")
   public ImmutableConcatList(List<? extends T>... pLists) {
     lists = ImmutableList.copyOf(pLists);
   }
