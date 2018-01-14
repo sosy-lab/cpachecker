@@ -68,13 +68,13 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
     // so lets use the (expanded) inner precision.
-    Precision validPrecision = data.getExpandedPrecisionForState(pElement);
-    if (validPrecision != null) {
-      assert AbstractStates.isTargetState(pElement)
-              || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))
-          : "precision for state " + pElement + " cannot be found.";
-    } else {
-      validPrecision = pPrecision;
+    Precision validPrecision = pPrecision;
+    if (AbstractStates.isTargetState(pElement)
+        || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))) {
+      Precision expandedPrecision = data.getExpandedPrecisionForState(pElement);
+      if (expandedPrecision != null) {
+        validPrecision = expandedPrecision;
+      }
     }
 
     Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
