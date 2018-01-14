@@ -112,7 +112,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void replaceStateInCaches(
       AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
-    if (oldState == newState) {
+    if (oldState.equals(newState)) {
       return; // nothing to do
     }
     if (oldStateMustExist || expandedStateToBlockExit.containsKey(oldState)) {
@@ -145,11 +145,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
       AbstractState reducedState, Block innerBlock) {
-    assert !expandedStateToBlockExit.containsKey(expandedState)
-        : "expanded state was registered before with data "
-            + expandedStateToBlockExit.get(expandedState);
-    expandedStateToBlockExit.put(
-        expandedState, new BlockExitData(reducedState, innerBlock, expandedPrecision));
+    BlockExitData previousValue =
+        expandedStateToBlockExit.put(
+            expandedState, new BlockExitData(reducedState, innerBlock, expandedPrecision));
+    assert previousValue == null
+        : "expanded state was registered before with data " + previousValue;
   }
 
   /**
