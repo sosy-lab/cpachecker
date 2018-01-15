@@ -30,6 +30,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -57,14 +60,19 @@ import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
+@Options(prefix = "cpa.thread")
 public class ThreadTransferRelation extends SingleEdgeTransferRelation implements TransferRelationTM {
   private final TransferRelation locationTransfer;
   private final CallstackTransferRelation callstackTransfer;
   private final ThreadCPAStatistics threadStatistics;
 
+  @Option(secure = true, description = "The case when the same thread is created several times we do not support." +
+      "We may skip or fail in this case.")
+  private boolean skipTheSameThread = false;
+
   public ThreadTransferRelation(TransferRelation l,
-      TransferRelation c, Configuration pConfiguration) {
+      TransferRelation c, Configuration pConfiguration) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     locationTransfer = l;
     callstackTransfer = (CallstackTransferRelation) c;
     threadStatistics = new ThreadCPAStatistics();
@@ -110,6 +118,12 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation implement
           if (isThreadCreateFunction(functionCall)) {
             return Collections.emptySet();
           }
+        }
+      } catch (CPATransferException e) {
+        if (skipTheSameThread) {
+          return Collections.emptySet();
+        } else {
+          throw e;
         }
       } finally {
         threadStatistics.tSetTimer.stop();

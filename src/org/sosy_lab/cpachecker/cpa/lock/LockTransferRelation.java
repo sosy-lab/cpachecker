@@ -121,6 +121,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation implements 
   private final LockStatistics stats;
 
   public LockTransferRelation(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
     this.logger = logger;
 
     ConfigurationParser parser = new ConfigurationParser(config);
