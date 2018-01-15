@@ -131,8 +131,8 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private Optional<CompositeState> callStrengthen(
       CompositeState pCompositeState, CompositePrecision pCompositePrecision)
       throws CPAException, InterruptedException {
-    List<AbstractState> wrappedStates = pCompositeState.getWrappedStates();
-    List<Precision> wrappedPrecisions = pCompositePrecision.getWrappedPrecisions();
+    ImmutableList<AbstractState> wrappedStates = pCompositeState.getWrappedStates();
+    ImmutableList<Precision> wrappedPrecisions = pCompositePrecision.getWrappedPrecisions();
     int dim = wrappedStates.size();
     ImmutableList.Builder<AbstractState> newElements = ImmutableList.builder();
 

@@ -24,22 +24,28 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import java.util.AbstractList;
+import java.util.Iterator;
 import java.util.List;
 
-/**
- * Immutable list that is the concatenation of immutable sub-lists.
- *
- * <p>Changes on sub-lists will be reflected in the concatenated list.
- */
-public class ImmutableConcatList<T> extends AbstractList<T> {
+/** Immutable list that is the concatenation of immutable sub-lists. */
+@Immutable(containerOf = "T")
+@SuppressWarnings("Immutable") // Field modCount of AbstractList is mutable but irrelevant
+public final class ImmutableConcatList<T> extends AbstractList<T> {
 
-  private final ImmutableList<List<? extends T>> lists;
+  private final ImmutableList<ImmutableList<? extends T>> lists;
 
   @SafeVarargs
   @SuppressWarnings("varargs")
-  public ImmutableConcatList(List<? extends T>... pLists) {
+  public ImmutableConcatList(ImmutableList<? extends T>... pLists) {
     lists = ImmutableList.copyOf(pLists);
+  }
+
+  @Override
+  public Iterator<T> iterator() {
+    return Iterables.concat(lists).iterator();
   }
 
   @Override
