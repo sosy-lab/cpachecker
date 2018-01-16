@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
@@ -280,12 +283,13 @@ public class NewtonRefinementManager {
       // PostCondition is preCondition for next location
       preCondition = postCondition;
     }
-    // Check the unsatisfiability of the last predicate
-    try {
-      assert solver.isUnsat(predicates.get(predicates.size() - 1));
-    } catch (SolverException e) {
-      throw new CPAException("Solver failed to solve the unsatisfiability of the last predicate");
-    }
+    // TODO: Ask Philipp if necessary, as CPAChecker produces error if same errorlocation occurs again
+    //    // Check the unsatisfiability of the last predicate
+    //    try {
+    //      assert solver.isUnsat(predicates.get(predicates.size() - 1));
+    //    } catch (SolverException e) {
+    //      throw new CPAException("Solver failed to solve the unsatisfiability of the last predicate");
+    //    }
     // Remove the last predicate as always false
     return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
   }
@@ -363,13 +367,14 @@ public class NewtonRefinementManager {
       return toExist; // No more intermediate Vars
     }
 
-    // Quantify the toExist formula and try to eliminate quantifiers
-    BooleanFormula quantified =
-        fmgr.getQuantifiedFormulaManager()
-            .exists(new ArrayList<>(intermediateVars.values()), toExist);
-    return fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
-    // TODO: If still quantified, over-approximate formula by dropping Conjuncts containing the
-    // quantified variable
+    BooleanFormula quantified = toExist;
+    for (Entry<String, Formula> entry : intermediateVars.entrySet()) {
+      quantified = quantifyRelevantFormulaParts(entry.getValue(), quantified);
+    }
+
+    //try to eliminate quantifiers
+    BooleanFormula afterQE = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+    return overapproximateQuantifiedFormulas(afterQE);
   }
 
   /**
@@ -403,7 +408,6 @@ public class NewtonRefinementManager {
               case BV_EQ:
               case FP_EQ:
                 // Same story here kind of ugly
-                // TODO: Needs additional check for the same variable with lower ssa(Reason for Exception Z3Exception: Formulas should not contain unbound variables)
                 if (pArgs.get(0).equals(potentialQuantifier)
                     && !fmgr.extractVariableNames(pArgs.get(1))
                         .containsAll(fmgr.extractVariableNames(potentialQuantifier))) {
@@ -475,6 +479,77 @@ public class NewtonRefinementManager {
     assert result.size() == fmgr.extractVariableNames(formula).size()
         : "Should have same number of elements as the extractVariableNames method";
     return ImmutableMap.copyOf(result);
+  }
+
+  /**
+   * Quantifies a conjunctive formula in such way, that only those parts that contain the quantified
+   * variable are quantified
+   *
+   * @param quantifiedVar The variable to quantify
+   * @param quantifiedFormula The formula to quantify
+   * @return A conjunctive formula containing of quantified and unquantified conjuncts
+   */
+  private BooleanFormula quantifyRelevantFormulaParts(
+      Formula quantifiedVar, BooleanFormula quantifiedFormula) {
+    Set<String> names = fmgr.extractVariableNames(quantifiedVar);
+    assert names.size() == 1;
+    String quantifiedVarName = Iterables.getOnlyElement(names);
+
+    // Get all parts of a Conjunction
+    Set<BooleanFormula> parts =
+        fmgr.getBooleanFormulaManager().toConjunctionArgs(quantifiedFormula, false);
+    Set<BooleanFormula> toQuantify = new HashSet<>();
+    Set<BooleanFormula> noQuantify = new HashSet<>();
+    for (BooleanFormula part : parts) {
+      if (fmgr.extractVariableNames(part).contains(quantifiedVarName)) {
+        toQuantify.add(part);
+      } else {
+        noQuantify.add(part);
+      }
+    }
+    BooleanFormula noQuantFormula = fmgr.getBooleanFormulaManager().and(noQuantify);
+    BooleanFormula quantFormula = fmgr.getBooleanFormulaManager().and(toQuantify);
+    BooleanFormula result =
+        fmgr.makeAnd(
+            noQuantFormula, fmgr.getQuantifiedFormulaManager().exists(quantifiedVar, quantFormula));
+
+    return result;
+  }
+
+  /**
+   * Overapproximate a conjunction of quantified and unquantified conjuncts by removing the
+   * quantified parts
+   *
+   * @param formula The formula to overapproximate
+   * @return The Formula without quantified conjuncts
+   */
+  private BooleanFormula overapproximateQuantifiedFormulas(BooleanFormula formula) {
+    Set<BooleanFormula> parts = fmgr.getBooleanFormulaManager().toConjunctionArgs(formula, false);
+    BooleanFormula result = fmgr.getBooleanFormulaManager().makeTrue();
+    for (BooleanFormula part : parts) {
+      if (fmgr.visit(
+          part,
+          new DefaultFormulaVisitor<Boolean>() {
+
+            @Override
+            protected Boolean visitDefault(Formula pF) {
+              return true;
+            }
+
+            @Override
+            public Boolean visitQuantifier(
+                BooleanFormula pF,
+                Quantifier pQ,
+                List<Formula> pBoundVariables,
+                BooleanFormula pBody) {
+              return false;
+            }
+          })) {
+        result = fmgr.makeAnd(result, part);
+      }
+    }
+
+    return result;
   }
 
   /**
