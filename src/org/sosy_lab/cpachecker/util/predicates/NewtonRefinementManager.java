@@ -23,17 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -300,8 +303,6 @@ public class NewtonRefinementManager {
   private BooleanFormula calculatePostconditionForAssignment(
       BooleanFormula preCondition, PathFormula pathFormula, boolean abstractThisFormula)
       throws InterruptedException {
-
-    BooleanFormula postCondition;
     BooleanFormula toExist;
 
     // If this formula should be abstracted, this statement havocs the leftHand variable
@@ -309,67 +310,66 @@ public class NewtonRefinementManager {
     if (abstractThisFormula) {
       toExist = preCondition;
     }
-    // Else we create the conjunction and quantify the old value, yet get a new
-    // Assignmentformula
     else {
       toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
     }
     // If the toExist is true, the postCondition is True too.
     if (toExist == fmgr.getBooleanFormulaManager().makeTrue()) {
-      postCondition = toExist;
-    } else {
-      // Get the set of intermediate Variables
-      Set<String> intermediateVarNames =
-          FluentIterable.from(fmgr.extractVariableNames(toExist))
-              .filter((e) -> fmgr.isIntermediate(e, pathFormula.getSsa()))
-              .toSet();
+      return toExist;
+    }
+    // Get all intermediate Variables, stored in map to hold both String and Formula
+    // Mutable as removing entries might be necessary.
+    Map<String, Formula> intermediateVars =
+        Maps.newHashMap(
+            Maps.filterEntries(
+                extractVariables(toExist),
+                new Predicate<Entry<String, Formula>>() {
+
+                  @Override
+                  public boolean apply(@Nullable Entry<String, Formula> pInput) {
+                    if (pInput == null) {
+                      return false;
+                    } else {
+                      return fmgr.isIntermediate(pInput.getKey(), pathFormula.getSsa());
+                    }
+                  }
+                }));
+
       // If there are no intermediate Variables, no quantification is necessary
-      if (intermediateVarNames.isEmpty()) {
-        postCondition = toExist;
-      } else {
-        boolean quantificationNecessary = true;
+      if (intermediateVars.isEmpty()) {
+        return toExist;
+    }
+    // TODO: Try to avoid quantification with techniques like:
+    //          Destructive Equality Resolution (DER)
+    //          Unconnected Parameter Drop (UPD)
 
-        List<Formula> intermediateVarFormulas =
-            new ArrayList<>(
-                Maps.filterKeys(
-                        extractVariables(toExist),
-                        (e) -> fmgr.isIntermediate(e, pathFormula.getSsa()))
-                    .values());
-        // TODO: Try to avoid quantification with techniques like:
-        //          Destructive Equality Resolution (DER)
-        //          Unconnected Parameter Drop (UPD)
+    // Try to apply Destructive Equality Resolution (DER) :
+    Iterator<Entry<String, Formula>> varIterator = intermediateVars.entrySet().iterator();
+    while (varIterator.hasNext()) {
+      Entry<String, Formula> intermediateVar = varIterator.next();
 
-        // TODO: At this moment to try the concept, only single existential variables are treated
-        //       Later looping through the set may be necessary
-        // Try to apply Destructive Equality Resolution (DER) :
-        if (intermediateVarFormulas.size() == 1) {
-          Formula potentialQuantifier = intermediateVarFormulas.get(0);
+      // Try if it is possible to apply DER to find a replacement for the potentialQuantifier
+      Optional<Formula> replacement =
+          getReplacementIfDERPossible(intermediateVar.getValue(), toExist);
 
-          // Try if it is possible to apply DER to find a replacement for the potentialQuantifier
-          Optional<Formula> replacement = getReplacementIfDERPossible(potentialQuantifier, toExist);
-
-          // If a replacement was found, DER is possible, and will be applied
-          if(replacement.isPresent()) {
-            toExist = applyDER(toExist, potentialQuantifier, replacement.get());
-            quantificationNecessary = false; // TODO: Needs to
-          }
-        }
-
-        // If quantification still necessary:
-        //      Quantify the toExist formula and try to eliminate quantifiers
-        if (quantificationNecessary) {
-          BooleanFormula quantified =
-              fmgr.getQuantifiedFormulaManager().exists(intermediateVarFormulas, toExist);
-          postCondition = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
-          // TODO: If still quantified, over-approximate formula by dropping Conjuncts containing the
-          // quantified variable
-
-        } else {
-          postCondition = toExist;
+      // If a replacement was found, DER is possible, and will be applied
+      if (replacement.isPresent()) {
+        toExist = applyDER(toExist, intermediateVar.getValue(), replacement.get());
+        intermediateVars.remove(intermediateVar.getKey());
         }
       }
+
+    if (intermediateVars.isEmpty()) {
+      return toExist; // No more intermediate Vars
     }
-    return postCondition;
+
+    // Quantify the toExist formula and try to eliminate quantifiers
+    BooleanFormula quantified =
+        fmgr.getQuantifiedFormulaManager()
+            .exists(new ArrayList<>(intermediateVars.values()), toExist);
+    return fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+    // TODO: If still quantified, over-approximate formula by dropping Conjuncts containing the
+    // quantified variable
   }
 
   /**
