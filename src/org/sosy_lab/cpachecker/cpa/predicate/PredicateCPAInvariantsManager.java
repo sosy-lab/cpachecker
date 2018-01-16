@@ -893,8 +893,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 try {
                   List<BooleanFormula> pathFormula = pInput.getPathFormulae();
                   BlockFormulas formulas =
-                      new BlockFormulas(pathFormula).withBranchingFormula(
-                          imgr.buildBranchingFormula(elementsOnPath));
+                      new BlockFormulas(pathFormula, imgr.buildBranchingFormula(elementsOnPath));
                   // the prefix is not filled up with trues if it is shorter than
                   // the path so we need to do it ourselves
                   while (pathFormula.size() < abstractionStatesTrace.size()) {
@@ -902,8 +901,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   }
                   interpolants =
                       imgr.buildCounterexampleTrace(
-                              formulas,
-                              ImmutableList.copyOf(abstractionStatesTrace))
+                              formulas, ImmutableList.copyOf(abstractionStatesTrace))
                           .getInterpolants();
 
                 } catch (CPAException | InterruptedException e) {
