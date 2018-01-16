@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -60,10 +59,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -651,22 +648,6 @@ public final class InterpolationManager {
   }
 
   /**
-   * Build a formula containing a predicate for all branching situations in the
-   * ARG. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ARG are feasible.
-   *
-   * This method may be called with an empty set, in which case it does nothing
-   * and returns the formula "true".
-   *
-   * @param pElementsOnPath The ARG states that should be considered.
-   * @return A formula containing a predicate for each branching.
-   */
-  public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
-      throws CPATransferException, InterruptedException {
-    return pmgr.buildBranchingFormula(pElementsOnPath);
-  }
-
-  /**
    * Get information about the error path from the solver after the formulas
    * have been proved to be satisfiable.
    *
@@ -811,8 +792,7 @@ public final class InterpolationManager {
         if (getUsefulBlocks) {
           formulas =
               new BlockFormulas(
-                  Collections.unmodifiableList(getUsefulBlocks(formulas.getFormulas())),
-                  formulas.getBranchingFormula());
+                  getUsefulBlocks(formulas.getFormulas()), formulas.getBranchingFormula());
         }
 
         if (dumpInterpolationProblems) {
