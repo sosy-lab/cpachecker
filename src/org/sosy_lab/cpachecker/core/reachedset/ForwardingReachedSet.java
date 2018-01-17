@@ -197,4 +197,9 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   public void printStatistics(PrintStream pOut) {
     delegate.printStatistics(pOut);
   }
+
+  @Override
+  public int getWaitlistSize() {
+    return delegate.getWaitlistSize();
+  }
 }

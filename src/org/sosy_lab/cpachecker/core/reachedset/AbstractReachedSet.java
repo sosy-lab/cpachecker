@@ -169,6 +169,11 @@ public abstract class AbstractReachedSet implements ReachedSet {
   }
 
   @Override
+  public int getWaitlistSize() {
+    return waitlist.size();
+  }
+
+  @Override
   public WaitlistElement popFromWaitlist() {
     return waitlist.pop();
   }

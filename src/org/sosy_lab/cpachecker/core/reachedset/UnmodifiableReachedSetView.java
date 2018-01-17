@@ -134,4 +134,9 @@ public class UnmodifiableReachedSetView
     underlying.printStatistics(pOut);
   }
 
+  @Override
+  public int getWaitlistSize() {
+    return underlying.getWaitlistSize();
+  }
+
 }

@@ -121,4 +121,9 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   public void printStatistics(PrintStream pOut) {
     delegate.printStatistics(pOut);
   }
+
+  @Override
+  public int getWaitlistSize() {
+    return delegate.getWaitlistSize();
+  }
 }

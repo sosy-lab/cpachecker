@@ -222,7 +222,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
 
       // Pick next state using strategy
       // BFS, DFS or top sort according to the configuration
-      int size = reachedSet.getWaitlist().size();
+      int size = reachedSet.getWaitlistSize();
       if (size >= stats.maxWaitlistSize) {
         stats.maxWaitlistSize = size;
       }
