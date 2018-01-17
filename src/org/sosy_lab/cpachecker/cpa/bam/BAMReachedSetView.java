@@ -130,4 +130,9 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
   public void printStatistics(PrintStream pOut) {
 
   }
+
+  @Override
+  public int getWaitlistSize() {
+    return 0;
+  }
 }
