@@ -214,7 +214,7 @@ public class ARGStatistics implements Statistics {
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if (cexExporter.dumpErrorPathImmediately() && !exportARG) {
+    if (cexExporter.dumpErrorPathImmediately() && !exportARG && !translateARG) {
       return;
     }
 
