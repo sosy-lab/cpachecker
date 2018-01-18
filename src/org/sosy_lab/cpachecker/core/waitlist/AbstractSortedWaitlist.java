@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -49,6 +48,51 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
  * <p>The iterators created by this class are unmodifiable.
  */
 public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements Waitlist {
+
+  private class WaitlistIterator implements Iterator<WaitlistElement> {
+
+    private Iterator<WaitlistElement> currentIterator;
+    private Waitlist currentWaitlist;
+    private K currentKey;
+    private final Iterator<K> keyIterator;
+
+    public WaitlistIterator() {
+      keyIterator = waitlist.keySet().iterator();
+      currentIterator = null;
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (currentIterator != null && currentIterator.hasNext()) {
+        return true;
+      } else if (keyIterator.hasNext()) {
+        currentKey = keyIterator.next();
+        currentWaitlist = waitlist.get(currentKey);
+        currentIterator = currentWaitlist.iterator();
+        return hasNext();
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public WaitlistElement next() {
+      if (hasNext()) {
+        return currentIterator.next();
+      }
+      return null;
+    }
+
+    @Override
+    public void remove() {
+      currentIterator.remove();
+      if (currentWaitlist.isEmpty()) {
+        keyIterator.remove();
+      }
+      size--;
+    }
+
+  }
 
   private final WaitlistFactory wrappedWaitlist;
 
@@ -120,7 +164,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   @Override
   public Iterator<WaitlistElement> iterator() {
-    return Iterables.concat(waitlist.values()).iterator();
+    return new WaitlistIterator();
   }
 
   @Override

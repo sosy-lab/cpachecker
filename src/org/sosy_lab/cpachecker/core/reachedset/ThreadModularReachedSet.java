@@ -29,9 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.ThreadModularWaitlistElement;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
@@ -79,16 +77,13 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
     } else {
       check = w -> w.getState().equals(pState);
     }
-    Set<WaitlistElement> toRemove = new HashSet<>();
     while (iterator.hasNext()) {
       ThreadModularWaitlistElement current = (ThreadModularWaitlistElement) iterator.next();
 
       if (check.apply(current)) {
-        toRemove.add(current);
+        iterator.remove();
       }
     }
-
-    toRemove.forEach(e -> waitlist.remove(e));
   }
 
   @Override
