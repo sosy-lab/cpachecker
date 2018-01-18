@@ -23,70 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Model wrapping for InterpolatingProverEnvironment
- */
-class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnvironment<E> {
+/** Model wrapping for InterpolatingProverEnvironment */
+class InterpolatingProverEnvironmentView<E> extends BasicProverEnvironmentView<E>
+    implements InterpolatingProverEnvironment<E> {
 
   private final InterpolatingProverEnvironment<E> delegate;
-  private final FormulaWrappingHandler wrappingHandler;
 
   InterpolatingProverEnvironmentView(
       InterpolatingProverEnvironment<E> pDelegate, FormulaWrappingHandler pWrappingHandler) {
+    super(pDelegate, pWrappingHandler);
     delegate = pDelegate;
-    wrappingHandler = pWrappingHandler;
-  }
-
-  @Override
-  public E push(BooleanFormula f) {
-    return delegate.push(f);
-  }
-
-  @Override
-  public void pop() {
-    delegate.pop();
-  }
-
-  @Override
-  public E addConstraint(BooleanFormula constraint) {
-    return delegate.addConstraint(constraint);
-  }
-
-  @Override
-  public void push() {
-    delegate.push();
-  }
-
-  @Override
-  public boolean isUnsat() throws SolverException, InterruptedException {
-    return delegate.isUnsat();
-  }
-
-  @Override
-  public Model getModel() throws SolverException {
-    return new ModelView(delegate.getModel(), wrappingHandler);
-  }
-
-  @Override
-  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
-    return ProverEnvironmentView.fixModelAssignments(delegate.getModelAssignments());
-  }
-
-  @Override
-  public void close() {
-    delegate.close();
   }
 
   @Override
@@ -96,22 +48,16 @@ class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnviro
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(
-      List<Set<E>> partitionedFormulas)
+  public List<BooleanFormula> getSeqInterpolants(List<? extends Collection<E>> partitionedFormulas)
       throws SolverException, InterruptedException {
     return delegate.getSeqInterpolants(partitionedFormulas);
   }
 
   @Override
   public List<BooleanFormula> getTreeInterpolants(
-      List<Set<E>> partitionedFormulas, int[] startOfSubTree)
+      List<? extends Collection<E>> partitionedFormulas, int[] startOfSubTree)
       throws SolverException, InterruptedException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }
 
-  @Override
-  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
-      throws SolverException, InterruptedException {
-    return delegate.isUnsatWithAssumptions(assumptions);
-  }
 }

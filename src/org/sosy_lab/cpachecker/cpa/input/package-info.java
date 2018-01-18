@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,15 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
-
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-
-
-public interface LocationFormulaInvariant extends CandidateInvariant {
-
-  Set<CFANode> getLocations();
-}
+/**
+ * The InputCPA flags states in which input from an external function call is
+ * received.
+ */
+package org.sosy_lab.cpachecker.cpa.input;

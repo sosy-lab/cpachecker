@@ -84,9 +84,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate")

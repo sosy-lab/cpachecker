@@ -28,10 +28,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -69,12 +67,21 @@ public final class BMCHelper {
 
   }
 
-  public static List<BooleanFormula> assertAt(
+  public static BooleanFormula assertAt(
+      Iterable<AbstractState> pStates,
+      final CandidateInvariant pInvariant,
+      final FormulaManagerView pFMGR,
+      final PathFormulaManager pPFMGR)
+      throws CPATransferException, InterruptedException {
+    return assertAt(pStates, pInvariant, pFMGR, pPFMGR, false);
+  }
+
+  public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates,
       final CandidateInvariant pInvariant,
       final FormulaManagerView pFMGR,
       final PathFormulaManager pPFMGR,
-      int pDefaultIndex)
+      boolean pForce)
       throws CPATransferException, InterruptedException {
     return assertAt(
         pStates,
@@ -87,27 +94,31 @@ public final class BMCHelper {
           }
         },
         pFMGR,
-        pDefaultIndex);
+        pForce);
   }
 
-  public static List<BooleanFormula> assertAt(
+  public static BooleanFormula assertAt(
+      Iterable<AbstractState> pStates, FormulaInContext pInvariant, FormulaManagerView pFMGR)
+      throws CPATransferException, InterruptedException {
+    return assertAt(pStates, pInvariant, pFMGR, false);
+  }
+
+  public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates,
       FormulaInContext pInvariant,
       FormulaManagerView pFMGR,
-      int pDefaultIndex)
+      boolean pForce)
       throws CPATransferException, InterruptedException {
-    List<BooleanFormula> result = Lists.newArrayList();
+    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+    BooleanFormula result = bfmgr.makeTrue();
     for (AbstractState abstractState : pStates) {
-      result.add(assertAt(abstractState, pInvariant, pFMGR, pDefaultIndex));
+      result = bfmgr.and(result, assertAt(abstractState, pInvariant, pFMGR, pForce));
     }
     return result;
   }
 
   private static BooleanFormula assertAt(
-      AbstractState pState,
-      FormulaInContext pInvariant,
-      FormulaManagerView pFMGR,
-      int pDefaultIndex)
+      AbstractState pState, FormulaInContext pInvariant, FormulaManagerView pFMGR, boolean pForce)
       throws CPATransferException, InterruptedException {
     PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
     PathFormula pathFormula = pas.getPathFormula();
@@ -116,12 +127,12 @@ public final class BMCHelper {
     if (bfmgr.isFalse(stateFormula)) {
       return bfmgr.makeTrue();
     }
-    SSAMap ssaMap = pathFormula.getSsa();
-    if (pDefaultIndex > 0) {
-      ssaMap = pathFormula.getSsa().withDefault(pDefaultIndex);
-    }
+    SSAMap ssaMap = pathFormula.getSsa().withDefault(1);
     BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
     BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);
+    if (pForce) {
+      return instantiatedFormula;
+    }
     return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);
   }
 
@@ -157,14 +168,7 @@ public final class BMCHelper {
    * @throws InterruptedException if the unrolling is interrupted.
    */
   public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
-    return unroll(pLogger, pReachedSet, new ReachedSetInitializer() {
-
-      @Override
-      public void initialize(ReachedSet pReachedSet) {
-        // Do nothing
-      }
-
-    }, pAlgorithm, pCPA);
+    return unroll(pLogger, pReachedSet, (rs) -> {}, pAlgorithm, pCPA);
   }
 
   public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {

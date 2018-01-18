@@ -41,12 +41,14 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
@@ -112,16 +114,25 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
             @Override
             public BooleanFormula getInvariantFor(
-                CFANode location,
-                Optional<CallstackStateEqualsWrapper> callstackInformation,
-                FormulaManagerView fmgr,
-                PathFormulaManager pfmgr,
+                CFANode pLocation,
+                Optional<CallstackStateEqualsWrapper> pCallstackInformation,
+                FormulaManagerView pFMGR,
+                PathFormulaManager pPFMGR,
                 PathFormula pContext) {
               try {
-                return prover.getCurrentLocationInvariants(
-                    location, fmgr, pfmgr, pContext);
+                BooleanFormulaManager booleanFormulaManager = pFMGR.getBooleanFormulaManager();
+                BooleanFormula invariant = booleanFormulaManager.makeTrue();
+
+                for (CandidateInvariant candidateInvariant : getConfirmedCandidates(pLocation)) {
+                  invariant =
+                      booleanFormulaManager.and(
+                          invariant, candidateInvariant.getFormula(pFMGR, pPFMGR, pContext));
+                }
+                return booleanFormulaManager.and(
+                    invariant,
+                    prover.getCurrentLocationInvariants(pLocation, pFMGR, pPFMGR, pContext));
               } catch (InterruptedException | CPAException e) {
-                return fmgr.getBooleanFormulaManager().makeTrue();
+                return pFMGR.getBooleanFormulaManager().makeTrue();
               }
             }
           };
@@ -129,9 +140,22 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
           new ExpressionTreeSupplier() {
 
             @Override
-            public ExpressionTree<Object> getInvariantFor(CFANode location) {
+            public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
               try {
-                return prover.getCurrentLocationInvariants(location);
+
+                ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+
+                for (ExpressionTreeCandidateInvariant expressionTreeCandidateInvariant :
+                    getConfirmedCandidates(pLocation)
+                        .filter(ExpressionTreeCandidateInvariant.class)) {
+                  invariant =
+                      And.of(invariant, expressionTreeCandidateInvariant.asExpressionTree());
+                  if (ExpressionTrees.getFalse().equals(invariant)) {
+                    break;
+                  }
+                }
+
+                return And.of(invariant, prover.getCurrentLocationInvariants(pLocation));
               } catch (InterruptedException e) {
                 return ExpressionTrees.getTrue();
               }

@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Predicates.instanceOf;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
-
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -36,7 +32,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -74,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
@@ -568,13 +562,16 @@ private boolean classifyNodes = false;
     return parseResult;
   }
 
-  /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
-   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them.
+  /**
+   * This method changes the CFAs of the functions with adding, removing, replacing or moving
+   * CFAEdges. The CFAs are independent, i.e. there are no super-edges (functioncall- and
+   * return-edges) between them.
    *
    * @return either a modified old CFA or a complete new CFA
    */
-  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
-          throws InvalidConfigurationException, CParserException, InterruptedException {
+  private MutableCFA postProcessingOnMutableCFAs(
+      MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
+      throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
@@ -602,9 +599,6 @@ private boolean classifyNodes = false;
       fptrResolver.resolveFunctionPointers();
     }
 
-    // Transform dummy loops into edges to termination nodes
-    transformDummyLoopsToEdges(cfa);
-
     if (useFunctionCallUnwinding) {
       // must be done before adding global vars
       final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
@@ -625,57 +619,6 @@ private boolean classifyNodes = false;
     }
 
     return cfa;
-  }
-
-  /** Transform dummy loops into edges to termination nodes */
-  private void transformDummyLoopsToEdges(MutableCFA cfa) throws InterruptedException {
-    List<CFANode> toAdd = new ArrayList<>(1);
-    Predicate<Object> isBlankEdge = instanceOf(BlankEdge.class);
-
-    for (CFANode node : cfa.getAllNodes()) {
-      this.shutdownNotifier.shutdownIfNecessary();
-
-      // only potential loop heads are interesting for us, they also need to have
-      // at least one BlankEdge as successor and predecessor
-      if (node.getNumEnteringEdges() < 2
-          || !(node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof BlankEdge)
-          || enteringEdges(node).anyMatch(isBlankEdge)) {
-        continue;
-      }
-
-      Set<CFANode> visited = new HashSet<>();
-      CFANode current = node;
-      while (current.getNumLeavingEdges() == 1
-          && current.getLeavingEdge(0) instanceof BlankEdge
-          && visited.add(current)) {
-
-        CFAEdge leavingBlankEdge = current.getLeavingEdge(0);
-        CFANode succ = leavingBlankEdge.getSuccessor();
-
-        // Found empty loop
-        if (succ.equals(node)) {
-          leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
-          leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
-          CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
-          BlankEdge terminationEdge =
-              new BlankEdge(
-                  leavingBlankEdge.getRawStatement(),
-                  leavingBlankEdge.getFileLocation(),
-                  leavingBlankEdge.getPredecessor(),
-                  terminationNode,
-                  leavingBlankEdge.getDescription());
-          terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
-          terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
-          toAdd.add(terminationNode);
-        }
-
-        current = succ;
-      }
-    }
-
-    for (CFANode nodeToAdd : toAdd) {
-      cfa.addNode(nodeToAdd);
-    }
   }
 
   /** check, whether the program contains function calls to crate a new thread. */

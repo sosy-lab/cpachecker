@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -93,6 +94,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
+
+  @Option(
+    secure = true,
+    description = "compress the produced assumption automaton using GZIP compression."
+  )
+  private boolean compressAutomaton = false;
 
   @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
@@ -550,11 +557,27 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         }
 
         if (assumptionAutomatonFile != null) {
-          try (Writer w = IO.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
-           produceAssumptionAutomaton(w, pReached);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+
+          if (!compressAutomaton) {
+            try (Writer w = IO.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
+              produceAssumptionAutomaton(w, pReached);
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            }
+          } else {
+            assumptionAutomatonFile =
+                assumptionAutomatonFile.resolveSibling(
+                    assumptionAutomatonFile.getFileName() + ".gz");
+            try {
+              IO.writeGZIPFile(
+                  assumptionAutomatonFile,
+                  Charset.defaultCharset(),
+                  (Appender) appendable -> produceAssumptionAutomaton(appendable, pReached));
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            }
           }
+
           put(out, "Number of states in automaton", automatonStates);
         }
       }

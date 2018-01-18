@@ -64,6 +64,10 @@ public class LlvmTypeConverter {
   }
 
   public CType getCType(final TypeRef pLlvmType) throws LLVMException {
+    return getCType(pLlvmType, true);
+  }
+
+  public CType getCType(final TypeRef pLlvmType, final boolean pIsSigned) throws LLVMException {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
@@ -81,7 +85,7 @@ public class LlvmTypeConverter {
         return getFloatType(typeKind);
       case Integer:
         int integerWidth = pLlvmType.getIntTypeWidth();
-        return getIntegerType(integerWidth, isConst, isVolatile);
+        return getIntegerType(integerWidth, isConst, isVolatile, pIsSigned);
 
       case Function:
         return getFunctionType(pLlvmType);
@@ -183,11 +187,14 @@ public class LlvmTypeConverter {
   }
 
   private CType getIntegerType(
-      final int pIntegerWidth, final boolean pIsConst, final boolean pIsVolatile) {
-    final boolean isSigned = true;
+      final int pIntegerWidth,
+      final boolean pIsConst,
+      final boolean pIsVolatile,
+      final boolean pIsSigned
+  ) {
     final boolean isComplex = false;
     final boolean isImaginary = false;
-    final boolean isUnsigned = false;
+    final boolean isUnsigned = !pIsSigned;
 
     final boolean isLong = false;
     boolean isShort = false;
@@ -225,7 +232,7 @@ public class LlvmTypeConverter {
         basicType,
         isLong,
         isShort,
-        isSigned,
+        pIsSigned,
         isUnsigned,
         isComplex,
         isImaginary,

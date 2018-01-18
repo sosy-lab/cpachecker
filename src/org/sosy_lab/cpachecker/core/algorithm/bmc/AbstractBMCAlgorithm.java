@@ -33,10 +33,18 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -76,7 +84,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -141,6 +148,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private final TargetLocationProvider targetLocationProvider;
 
   private final @Nullable ShutdownRequestListener propagateSafetyInterrupt;
+
+  /** The candidate invariants that have been proven to hold at the loop heads. */
+  private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -265,8 +275,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
          @SuppressWarnings("resource")
         KInductionProver kInductionProver = createInductionProver()) {
 
-      Set<CFANode> immediateLoopHeads = null;
-
       do {
         shutdownNotifier.shutdownIfNecessary();
 
@@ -285,11 +293,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         shutdownNotifier.shutdownIfNecessary();
 
         if (invariantGenerator.isProgramSafe()) {
-          // The reachedSet might contain target states which would give a wrong
-          // indication of safety to the caller. So remove them.
-          for (CandidateInvariant candidateInvariant : candidateGenerator) {
-            candidateInvariant.assumeTruth(reachedSet);
-          }
+          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
@@ -302,10 +306,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
           boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
           if (!safe) {
+            if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
             candidateInvariantIterator.remove();
           }
 
           if (invariantGenerator.isProgramSafe()) {
+            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -324,17 +332,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           }
 
           // try to prove program safety via induction
-          if (induction) {
-            final int k =
-                CPAs.retrieveCPA(cpa, LoopIterationBounding.class).getMaxLoopIterations();
-
-            if (immediateLoopHeads == null) {
-              immediateLoopHeads = getImmediateLoopHeads(reachedSet);
-            }
-            Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
-            shutdownNotifier.shutdownIfNecessary();
-            sound = sound || kInductionProver.check(k, candidates, immediateLoopHeads);
-            candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
+          if (induction && !sound) {
+            sound = checkStepCase(reachedSet, candidateGenerator, kInductionProver);
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -353,37 +352,57 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  private boolean checkStepCase(
+      final ReachedSet reachedSet,
+      final CandidateGenerator candidateGenerator,
+      KInductionProver kInductionProver)
+      throws InterruptedException, CPAException, SolverException {
+
+    final int k = CPAs.retrieveCPA(cpa, LoopIterationBounding.class).getMaxLoopIterations();
+
+    Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
+    shutdownNotifier.shutdownIfNecessary();
+
+    Set<Object> checkedKeys = getCheckedKeys(reachedSet);
+    boolean sound = true;
+    Iterable<CandidateInvariant> artificialConjunctions =
+        buildArtificialConjunctions(candidates);
+    Iterable<CandidateInvariant> candidatesToCheck =
+        Iterables.concat(candidates, artificialConjunctions);
+    for (CandidateInvariant candidate : candidatesToCheck) {
+      InductionResult<CandidateInvariant> inductionResult =
+          kInductionProver.check(
+              Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
+              k,
+              candidate,
+              checkedKeys);
+      if (inductionResult.isSuccessful()) {
+        Iterables.addAll(
+            confirmedCandidates,
+            CandidateInvariantConjunction.getConjunctiveParts(candidate));
+        candidateGenerator.confirmCandidates(
+            CandidateInvariantConjunction.getConjunctiveParts(candidate));
+        if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
+          sound = true;
+          break;
+        }
+      } else {
+        sound = false;
+      }
+    }
+    return sound;
+  }
+
   /**
-   * Gets all loop heads in the reached set
-   * that were reached without unrolling any loops.
+   * Gets all keys of loop-iteration reporting states that were reached by unrolling.
    *
    * @param pReachedSet the reached set.
-   * @return all loop heads in the reached set
-   * that were reached without unrolling any loops.
+   * @return all keys of loop-iteration reporting states that were reached by unrolling.
    */
-  private Set<CFANode> getImmediateLoopHeads(ReachedSet pReachedSet) {
+  private Set<Object> getCheckedKeys(ReachedSet pReachedSet) {
     return AbstractStates.filterLocations(pReachedSet, getLoopHeads())
-        .filter(
-            new Predicate<AbstractState>() {
-
-              @Override
-              public boolean apply(AbstractState pLoopHeadState) {
-                LoopIterationReportingState state =
-                    AbstractStates.extractStateByType(
-                        pLoopHeadState, LoopIterationReportingState.class);
-                for (CFANode location : AbstractStates.extractLocations(pLoopHeadState)) {
-                  Set<Loop> loops = cfa.getLoopStructure().get().getLoopsForLoopHead(location);
-                  for (Loop loop : loops) {
-                    if (state.getIteration(loop) <= 1
-                        && state.getDeepestIterationLoops().equals(loops)) {
-                      return true;
-                    }
-                  }
-                }
-                return false;
-              }
-            })
-        .transformAndConcat(AbstractStates::extractLocations)
+        .transform(s -> AbstractStates.extractStateByType(s, LoopIterationReportingState.class))
+        .transform(LoopIterationReportingState::getPartitionKey)
         .toSet();
   }
 
@@ -422,7 +441,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
 
   protected boolean boundedModelCheck(final ReachedSet pReachedSet, final ProverEnvironment pProver, CandidateInvariant pInductionProblem) throws CPATransferException, InterruptedException, SolverException {
-    BooleanFormula program = bfmgr.not(pInductionProblem.getAssertion(pReachedSet, fmgr, pmgr, 0));
+    BooleanFormula program = bfmgr.not(pInductionProblem.getAssertion(pReachedSet, fmgr, pmgr));
     logger.log(Level.INFO, "Starting satisfiability check...");
     stats.satCheck.start();
     pProver.push(program);
@@ -432,7 +451,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     if (safe) {
       pInductionProblem.assumeTruth(pReachedSet);
-    } else {
+    } else if (pInductionProblem == TargetLocationCandidateInvariant.INSTANCE) {
       analyzeCounterexample(program, pReachedSet, pProver);
     }
 
@@ -521,16 +540,19 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   }
 
   protected @Nullable KInductionProver createInductionProver() {
-     return induction ? new KInductionProver(
-        cfa,
-        logger,
-        stepCaseAlgorithm,
-        stepCaseCPA,
-        invariantGenerator,
-        stats,
-        reachedSetFactory,
-        shutdownNotifier,
-        getLoopHeads()) : null;
+    return induction
+        ? new KInductionProver(
+            cfa,
+            logger,
+            stepCaseAlgorithm,
+            stepCaseCPA,
+            invariantGenerator,
+            stats,
+            reachedSetFactory,
+            shutdownNotifier,
+            getLoopHeads(),
+            false)
+        : null;
   }
 
   /**
@@ -644,5 +666,113 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         AggregatedReachedSets pAggregatedReachedSets,
         TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException;
 
+  }
+
+  protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
+    return from(confirmedCandidates)
+        .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
+  }
+
+  private Iterable<CandidateInvariant> buildArtificialConjunctions(
+      final Set<CandidateInvariant> pCandidateInvariants) {
+    FluentIterable<CandidateInvariant> remainingLoopHeadCandidateInvariants =
+        from(pCandidateInvariants)
+            .filter(
+                pLocationFormulaInvariant -> {
+                  return cfa.getLoopStructure().isPresent()
+                      && cfa.getLoopStructure()
+                          .get()
+                          .getAllLoopHeads()
+                          .stream()
+                          .anyMatch(lh -> pLocationFormulaInvariant.appliesTo(lh));
+                })
+            .filter(Predicates.not(Predicates.in(confirmedCandidates)));
+    if (remainingLoopHeadCandidateInvariants.size() <= 1) {
+      return Collections.emptySet();
+    }
+
+    Multimap<String, CandidateInvariant> functionInvariants = HashMultimap.create();
+    Set<CandidateInvariant> others = new HashSet<>();
+    for (CandidateInvariant locationFormulaInvariant : remainingLoopHeadCandidateInvariants) {
+      if (locationFormulaInvariant instanceof SingleLocationFormulaInvariant) {
+        functionInvariants.put(
+            ((SingleLocationFormulaInvariant) locationFormulaInvariant)
+                .getLocation()
+                .getFunctionName(),
+            locationFormulaInvariant);
+      } else {
+        others.add(locationFormulaInvariant);
+      }
+    }
+    for (String key : new ArrayList<>(functionInvariants.keys())) {
+      functionInvariants.putAll(key, others);
+    }
+
+    Iterator<Map.Entry<String, Collection<CandidateInvariant>>> functionInvariantsEntryIterator =
+        functionInvariants.asMap().entrySet().iterator();
+
+    return () ->
+        new Iterator<CandidateInvariant>() {
+
+          private boolean allComputed = false;
+
+          private @Nullable CandidateInvariant next = null;
+
+          @Override
+          public boolean hasNext() {
+            if (next != null) {
+              return true;
+            }
+
+            // Create the next conjunction over function candidates
+            while (next == null && functionInvariantsEntryIterator.hasNext()) {
+              assert !allComputed;
+              Map.Entry<String, Collection<CandidateInvariant>> functionInvariantsEntry =
+                  functionInvariantsEntryIterator.next();
+              // We want at least two operands, but less than "all"; "all" comes separately later
+              if (functionInvariantsEntry.getValue().size() > 1
+                  && functionInvariantsEntry.getValue().size()
+                      < remainingLoopHeadCandidateInvariants.size()) {
+                // Only now, directly before it is used, compute the final set of operands for the
+                // conjunction
+                Set<CandidateInvariant> remainingFunctionCandidateInvariants =
+                    remainingLoopHeadCandidateInvariants
+                        .filter(
+                            pCandidateInvariant -> {
+                              if (pCandidateInvariant instanceof SingleLocationFormulaInvariant) {
+                                return ((SingleLocationFormulaInvariant) pCandidateInvariant)
+                                    .getLocation()
+                                    .getFunctionName()
+                                    .equals(functionInvariantsEntry.getKey());
+                              }
+                              return true;
+                            })
+                        .toSet();
+                // Create the conjunction only if there are actually at least two operands
+                if (remainingFunctionCandidateInvariants.size() > 1) {
+                  next = CandidateInvariantConjunction.of(remainingFunctionCandidateInvariants);
+                }
+              }
+            }
+
+            // Create the conjunction over all operands, if we have not done so yet
+            if (next == null && !allComputed && remainingLoopHeadCandidateInvariants.size() > 1) {
+              allComputed = true;
+              next = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
+            }
+
+            return next != null;
+          }
+
+          @Override
+          public CandidateInvariant next() {
+            if (!hasNext()) {
+              throw new NoSuchElementException("There is no next element.");
+            }
+            CandidateInvariant result = next;
+            next = null;
+            return result;
+          }
+        };
   }
 }

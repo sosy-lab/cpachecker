@@ -597,10 +597,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         }
         boolean terminated = subStats.terminated.get();
         if (terminated) {
-          Result result = pResult;
-          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
-            result = Result.UNKNOWN;
-          }
+          Result result = determineAnalysisResult(pResult, subStats.name);
           for (Statistics s : subStats.subStatistics) {
             StatisticsUtils.printStatistics(s, pOut, logger, result, subStats.reachedSet);
           }
@@ -619,17 +616,37 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsEntry successfullAnalysisStats = null;
       for (StatisticsEntry subStats : allAnalysesStats) {
-        if (subStats.terminated.get()) {
-          Result result = pResult;
-          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
-            result = Result.UNKNOWN;
-          }
-          for (Statistics s : subStats.subStatistics) {
-            StatisticsUtils.writeOutputFiles(s, logger, result, subStats.reachedSet);
-          }
+        if (isSuccessfulAnalysis(subStats.name)) {
+          successfullAnalysisStats = subStats;
+        } else {
+          writeSubOutputFiles(pResult, subStats);
         }
       }
+      if (successfullAnalysisStats != null) {
+        writeSubOutputFiles(pResult, successfullAnalysisStats);
+      }
+    }
+
+    private void writeSubOutputFiles(Result pResult, StatisticsEntry pSubStats) {
+      if (pSubStats.terminated.get()) {
+        Result result = determineAnalysisResult(pResult, pSubStats.name);
+        for (Statistics s : pSubStats.subStatistics) {
+          StatisticsUtils.writeOutputFiles(s, logger, result, pSubStats.reachedSet);
+        }
+      }
+    }
+
+    private boolean isSuccessfulAnalysis(String pAnalysisName) {
+      return successfulAnalysisName != null && successfulAnalysisName.equals(pAnalysisName);
+    }
+
+    private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
+      if (successfulAnalysisName != null && !successfulAnalysisName.equals(pActualAnalysisName)) {
+        return Result.UNKNOWN;
+      }
+      return pResult;
     }
   }
 

@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 
+
 public abstract class PathTranslator {
 
   protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {

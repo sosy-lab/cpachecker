@@ -99,14 +99,14 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
   }
 
   private boolean isSat(ProverEnvironment pProverEnvironment, BooleanFormula pFormula) {
+    // XXX This method returns false on shutdowns and interrupts, which is probably a bug
     if (shutdownNotifier.shouldShutdown()) {
       return false;
     }
 
-    pProverEnvironment.push(pFormula);
-    boolean isSat;
     try {
-      isSat = !pProverEnvironment.isUnsat();
+      pProverEnvironment.push(pFormula);
+      return !pProverEnvironment.isUnsat();
 
     } catch (SolverException e) {
       logger.logException(SEVERE, e, null);
@@ -118,6 +118,5 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
     } finally {
       pProverEnvironment.pop();
     }
-    return isSat;
   }
 }

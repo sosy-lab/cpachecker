@@ -287,8 +287,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       BlockFormulas formulas =
           createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
-      if(!formulas.hasBranchingFormula()) {
-        formulas = formulas.withBranchingFormula(interpolationManager.buildBranchingFormula(elementsOnPath));
+      if (!formulas.hasBranchingFormula()) {
+        formulas = formulas.withBranchingFormula(pfmgr.buildBranchingFormula(elementsOnPath));
       }
 
       // find new invariants (this is a noop if no invariants should be used/generated)

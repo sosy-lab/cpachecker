@@ -30,22 +30,19 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
-import org.sosy_lab.java_smt.api.FormulaType;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 
 public class IntConverter extends Converter {
@@ -239,7 +236,7 @@ public class IntConverter extends Converter {
       Pair<String, Type<FormulaType<?>>> eIf = terms.get(1);
       Pair<String, Type<FormulaType<?>>> eElse = terms.get(2);
       FormulaType<?> type;
-      if (Type.BOOL.equals(eIf.getSecond())) {
+      if (FormulaType.BooleanType.equals(eIf.getSecond().getReturnType())) {
         type = FormulaType.BooleanType;
       } else {
         type = FormulaType.IntegerType;

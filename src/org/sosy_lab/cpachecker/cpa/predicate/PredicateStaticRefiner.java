@@ -215,9 +215,9 @@ public class PredicateStaticRefiner extends StaticRefiner
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
-    if(!formulas.hasBranchingFormula()) {
-      formulas = formulas.withBranchingFormula(
-          itpManager.buildBranchingFormula(elementsOnPath));
+    if (!formulas.hasBranchingFormula()) {
+      formulas =
+          formulas.withBranchingFormula(pathFormulaManager.buildBranchingFormula(elementsOnPath));
     }
 
     CounterexampleTraceInfo counterexample;

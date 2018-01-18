@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
+import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -132,8 +133,8 @@ public class CalculationHelper {
       Matcher matcher = p.matcher(line);
       if (matcher.matches()) {
         String basisStr = matcher.group(1);
-        String[] basisPolyStrs = basisStr.split(", ");
-        List<String> res = new ArrayList<>(basisPolyStrs.length);
+        Iterable<String> basisPolyStrs = Splitter.on(", ").split(basisStr);
+        List<String> res = new ArrayList<>();
         for (String str : basisPolyStrs) {
           res.add(str.replace("**", "^"));
         }

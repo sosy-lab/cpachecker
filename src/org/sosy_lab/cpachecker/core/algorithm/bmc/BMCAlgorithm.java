@@ -39,6 +39,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -182,9 +183,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      Set<CFANode> loopHeads = getLoopHeads();
       return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
+          Collections.singleton(TargetLocationCandidateInvariant.INSTANCE));
     }
   }
 

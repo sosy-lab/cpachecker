@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.util.states;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
@@ -110,26 +112,28 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   public static MemoryLocation valueOf(String pVariableName) {
 
-    String[] nameParts    = pVariableName.split("::");
-    String[] offsetParts  = pVariableName.split("/");
+    List<String> nameParts = Splitter.on("::").splitToList(pVariableName);
+    List<String> offsetParts = Splitter.on('/').splitToList(pVariableName);
 
-    boolean isScoped  = nameParts.length == 2;
-    boolean hasOffset = offsetParts.length == 2;
+    boolean isScoped = nameParts.size() == 2;
+    boolean hasOffset = offsetParts.size() == 2;
 
-    @Nullable Long offset =
-        hasOffset ? Long.parseLong(offsetParts[1]) : null;
+    @Nullable Long offset = hasOffset ? Long.parseLong(offsetParts.get(1)) : null;
 
     if (isScoped) {
+      String functionName = nameParts.get(0);
+      String varName = nameParts.get(1);
       if (hasOffset) {
-        nameParts[1] = nameParts[1].replace("/" + offset, "");
+        varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(nameParts[0], nameParts[1], offset);
+      return new MemoryLocation(functionName, varName, offset);
 
     } else {
+      String varName = nameParts.get(0);
       if (hasOffset) {
-        nameParts[0] = nameParts[0].replace("/" + offset, "");
+        varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
+      return new MemoryLocation(varName.replace("/" + offset, ""), offset);
     }
   }
 

@@ -146,13 +146,6 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   }
 
   @Override
-  public void clearExpandedStateToExpandedPrecision() {
-    synchronized (this) {
-      manager.clearExpandedStateToExpandedPrecision();
-    }
-  }
-
-  @Override
   @Nullable
   public Precision getExpandedPrecisionForState(AbstractState pState) {
     synchronized (this) {

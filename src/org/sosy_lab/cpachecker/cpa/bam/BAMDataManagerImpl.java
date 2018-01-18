@@ -70,24 +70,26 @@ public class BAMDataManagerImpl implements BAMDataManager {
   /** Mapping of non-reduced initial states to {@link ReachedSet}. */
   private final Table<AbstractState, AbstractState, ReachedSet> initialStateToReachedSet =
       HashBasedTable.create();
-  /**
-   * Mapping from expanded states at the end of the block to corresponding
-   * reduced states, from which the key state was originally expanded.
-   * */
-  private final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
 
-  /**
-   * Mapping from expanded states at a block-end to
-   * inner blocks of the corresponding reduced state,
-   * from which the key was originally expanded.
-   **/
-  private final Map<AbstractState, Block> expandedStateToBlock = new HashMap<>();
+  private final Map<AbstractState, BlockExitData> expandedStateToBlockExit = new HashMap<>();
 
-  /**
-   * Mapping from expanded states at a block-end to
-   * corresponding expanded precisions.
-   **/
-  private final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new HashMap<>();
+  private static class BlockExitData {
+
+    private final AbstractState reducedState;
+    private final Block block;
+    private final Precision expandedPrecision;
+
+    BlockExitData(AbstractState pReducedState, Block pBlock, Precision pExpandedPrecision) {
+      reducedState = pReducedState;
+      block = pBlock;
+      expandedPrecision = pExpandedPrecision;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("Data <%s, %s, %s>", reducedState, block, expandedPrecision);
+    }
+  }
 
   /**
    * The corresponding blocks will not start the recursive analysis
@@ -110,20 +112,12 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void replaceStateInCaches(
       AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
-
-    if (oldStateMustExist || expandedStateToReducedState.containsKey(oldState)) {
-      final AbstractState reducedState = expandedStateToReducedState.remove(oldState);
-      expandedStateToReducedState.put(newState, reducedState);
+    if (oldState.equals(newState)) {
+      return; // nothing to do
     }
-
-    if (oldStateMustExist || expandedStateToBlock.containsKey(oldState)) {
-      final Block innerBlock = expandedStateToBlock.remove(oldState);
-      expandedStateToBlock.put(newState, innerBlock);
-    }
-
-    if (oldStateMustExist || expandedStateToExpandedPrecision.containsKey(oldState)) {
-      final Precision expandedPrecision = expandedStateToExpandedPrecision.remove(oldState);
-      expandedStateToExpandedPrecision.put(newState, expandedPrecision);
+    if (oldStateMustExist || expandedStateToBlockExit.containsKey(oldState)) {
+      final BlockExitData entry = expandedStateToBlockExit.remove(oldState);
+      expandedStateToBlockExit.put(newState, entry);
     }
   }
 
@@ -151,9 +145,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
       AbstractState reducedState, Block innerBlock) {
-    expandedStateToReducedState.put(expandedState, reducedState);
-    expandedStateToBlock.put(expandedState, innerBlock);
-    expandedStateToExpandedPrecision.put(expandedState, expandedPrecision);
+    BlockExitData previousValue =
+        expandedStateToBlockExit.put(
+            expandedState, new BlockExitData(reducedState, innerBlock, expandedPrecision));
+    assert previousValue == null
+        : "expanded state was registered before with data " + previousValue;
   }
 
   /**
@@ -168,19 +164,22 @@ public class BAMDataManagerImpl implements BAMDataManager {
    **/
   @Override
   public boolean alreadyReturnedFromSameBlock(AbstractState state, Block block) {
-    while (expandedStateToReducedState.containsKey(state)) {
-      if (expandedStateToBlock.containsKey(state) && block == expandedStateToBlock.get(state)) {
+    BlockExitData data = expandedStateToBlockExit.get(state);
+    while (data != null) {
+      if (block == data.block) {
         return true;
       }
-      state = expandedStateToReducedState.get(state);
+      data = expandedStateToBlockExit.get(data.reducedState);
     }
     return false;
   }
 
   @Override
   public AbstractState getInnermostState(AbstractState state) {
-    while (expandedStateToReducedState.containsKey(state)) {
-      state = expandedStateToReducedState.get(state);
+    BlockExitData data = expandedStateToBlockExit.get(state);
+    while (data != null) {
+      state = data.reducedState;
+      data = expandedStateToBlockExit.get(state);
     }
     return state;
   }
@@ -194,10 +193,14 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public List<AbstractState> getExpandedStatesList(AbstractState state) {
     List<AbstractState> lst = new ArrayList<>();
-    AbstractState tmp = state;
-    while (expandedStateToReducedState.containsKey(tmp)) {
-      lst.add(tmp);
-      tmp = expandedStateToReducedState.get(tmp);
+    BlockExitData data;
+    while (true) {
+      data = expandedStateToBlockExit.get(state);
+      if (data == null) {
+        break;
+      }
+      lst.add(state);
+      state = data.reducedState;
     }
     return Lists.reverse(lst);
   }
@@ -243,23 +246,22 @@ public class BAMDataManagerImpl implements BAMDataManager {
 
   @Override
   public AbstractState getReducedStateForExpandedState(AbstractState state) {
-    assert expandedStateToReducedState.containsKey(state) : "no match for state: " + state;
-    return expandedStateToReducedState.get(state);
+    assert hasExpandedState(state) : "no match for state: " + state;
+    return expandedStateToBlockExit.get(state).reducedState;
   }
 
   @Override
   public Block getInnerBlockForExpandedState(AbstractState state) {
-    assert expandedStateToReducedState.containsKey(state);
-    assert expandedStateToBlock.containsKey(state);
-    return expandedStateToBlock.get(state);
+    assert hasExpandedState(state) : "no match for state: " + state;
+    return expandedStateToBlockExit.get(state).block;
   }
 
   @Override
   public boolean hasExpandedState(AbstractState state) {
-    return expandedStateToReducedState.containsKey(state);
+    return expandedStateToBlockExit.containsKey(state);
   }
 
-  static int getId(AbstractState state) {
+  private static int getId(AbstractState state) {
     return ((ARGState) state).getStateId();
   }
 
@@ -268,15 +270,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
     return bamCache;
   }
 
-  @Override
-  public void clearExpandedStateToExpandedPrecision() {
-    expandedStateToExpandedPrecision.clear();
-  }
-
   /** return a matching precision for the given state, or Null if state is not found. */
   @Override
   public @Nullable Precision getExpandedPrecisionForState(AbstractState pState) {
-    return expandedStateToExpandedPrecision.get(pState);
+    final BlockExitData data = expandedStateToBlockExit.get(pState);
+    return data == null ? null : data.expandedPrecision;
   }
 
   @Override
@@ -295,8 +293,10 @@ public class BAMDataManagerImpl implements BAMDataManager {
     }
 
     str.append("expanded state to reduced state:\n");
-    for (Entry<AbstractState, AbstractState> entry : sorted(expandedStateToReducedState)) {
-      str.append(String.format("    %s -> %s%n", getId(entry.getKey()), getId(entry.getValue())));
+    for (Entry<AbstractState, BlockExitData> entry : sorted(expandedStateToBlockExit)) {
+      str.append(
+          String.format(
+              "    %s -> %s%n", getId(entry.getKey()), getId(entry.getValue().reducedState)));
     }
 
     return str.toString();
@@ -312,9 +312,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public void clear() {
     initialStateToReachedSet.clear();
-    expandedStateToBlock.clear();
-    expandedStateToExpandedPrecision.clear();
-    expandedStateToReducedState.clear();
+    expandedStateToBlockExit.clear();
     bamCache.clear();
   }
 

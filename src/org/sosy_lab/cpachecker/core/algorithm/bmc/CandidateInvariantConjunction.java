@@ -25,7 +25,13 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -36,118 +42,174 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-import java.util.Set;
+public class CandidateInvariantConjunction {
 
-import javax.annotation.Nullable;
+  private static interface Conjunction extends CandidateInvariant {
 
-public class CandidateInvariantConjunction implements CandidateInvariant {
+    Set<CandidateInvariant> getOperands();
 
-  private final Iterable<? extends CandidateInvariant> elements;
-
-  private CandidateInvariantConjunction(Iterable<? extends CandidateInvariant> pElements) {
-    this.elements = Preconditions.checkNotNull(pElements);
   }
 
-  @Override
-  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR,
-      @Nullable PathFormula pContext) throws CPATransferException, InterruptedException {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula formula = bfmgr.makeTrue();
-    for (CandidateInvariant element : elements) {
-      formula = bfmgr.and(formula, element.getFormula(pFMGR, pPFMGR, pContext));
-    }
-    return formula;
-  }
+  private static class GenericConjunction implements Conjunction {
 
-  @Override
-  public BooleanFormula getAssertion(Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR, int pDefaultIndex)
-      throws CPATransferException, InterruptedException {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula formula = bfmgr.makeTrue();
-    for (CandidateInvariant element : elements) {
-      formula = bfmgr.and(formula, element.getAssertion(pReachedSet, pFMGR, pPFMGR, pDefaultIndex));
-    }
-    return formula;
-  }
+    private final Set<CandidateInvariant> operands;
 
-  @Override
-  public void assumeTruth(ReachedSet pReachedSet) {
-    for (CandidateInvariant element : elements) {
-      element.assumeTruth(pReachedSet);
-    }
-  }
-
-  public Iterable<? extends CandidateInvariant> getElements() {
-    return elements;
-  }
-
-  @Override
-  public int hashCode() {
-    return elements.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    if (this == pObj) {
-      return true;
-    }
-    if (pObj instanceof CandidateInvariantConjunction) {
-      return elements.equals(((CandidateInvariantConjunction) pObj).elements);
-    }
-    return false;
-  }
-
-  @Override
-  public String toString() {
-    return elements.toString();
-  }
-
-  public static CandidateInvariantConjunction of(Iterable<? extends CandidateInvariant> pElements) {
-    if (areMatchingLocationInvariants(pElements)) {
-      return new LocationCandidateInvariantConjunction(
-          FluentIterable.from(pElements).filter(LocationFormulaInvariant.class));
-    }
-    return new CandidateInvariantConjunction(pElements);
-  }
-
-  private static boolean areMatchingLocationInvariants(
-      Iterable<? extends CandidateInvariant> pElements) {
-    FluentIterable<? extends CandidateInvariant> elements = FluentIterable.from(pElements);
-    if (elements.isEmpty()) {
-      return false;
-    }
-    return elements.allMatch(lfi -> lfi instanceof LocationFormulaInvariant);
-  }
-
-  private static class LocationCandidateInvariantConjunction extends CandidateInvariantConjunction
-      implements LocationFormulaInvariant {
-
-    private final FluentIterable<? extends LocationFormulaInvariant> elements;
-
-    private LocationCandidateInvariantConjunction(
-        FluentIterable<? extends LocationFormulaInvariant> pElements) {
-      super(pElements);
-      elements = pElements;
+    private GenericConjunction(ImmutableSet<? extends CandidateInvariant> pOperands) {
+      Preconditions.checkArgument(
+          pOperands.size() > 1,
+          "It makes no sense to use a CandidateInvariantConjunction unless there are at least two operands.");
+      this.operands = ImmutableSet.copyOf(pOperands);
     }
 
     @Override
-    public Set<CFANode> getLocations() {
-      return elements.transformAndConcat(lfi -> lfi.getLocations()).toSet();
+    public BooleanFormula getFormula(
+        FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
+        throws CPATransferException, InterruptedException {
+      BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+      BooleanFormula formula = bfmgr.makeTrue();
+      for (CandidateInvariant operand : operands) {
+        formula = bfmgr.and(formula, operand.getFormula(pFMGR, pPFMGR, pContext));
+      }
+      return formula;
     }
 
     @Override
-    public boolean equals(Object pObj) {
-      // equals of superclass is fine here
-      return super.equals(pObj);
+    public BooleanFormula getAssertion(
+        Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
+        throws CPATransferException, InterruptedException {
+      BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+      BooleanFormula formula = bfmgr.makeTrue();
+      for (CandidateInvariant operand : operands) {
+        formula = bfmgr.and(formula, operand.getAssertion(pReachedSet, pFMGR, pPFMGR));
+      }
+      return formula;
+    }
+
+    @Override
+    public void assumeTruth(ReachedSet pReachedSet) {
+      for (CandidateInvariant element : operands) {
+        element.assumeTruth(pReachedSet);
+      }
     }
 
     @Override
     public int hashCode() {
-      // hash code of superclass is fine here
-      return super.hashCode();
+      return operands.hashCode();
     }
 
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof GenericConjunction) {
+        return operands.equals(((GenericConjunction) pObj).operands);
+      }
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return operands.toString();
+    }
+
+    @Override
+    public boolean appliesTo(CFANode pLocation) {
+      return Iterables.any(operands, e -> e.appliesTo(pLocation));
+    }
+
+    @Override
+    public Set<CandidateInvariant> getOperands() {
+      return operands;
+    }
   }
 
+  private static class SingleLocationConjunction extends SingleLocationFormulaInvariant
+      implements Conjunction {
+
+    private final Conjunction delegate;
+
+    private SingleLocationConjunction(Iterable<SingleLocationFormulaInvariant> pOperands) {
+      super(getSingleLocation(pOperands));
+      delegate = new GenericConjunction(ImmutableSet.copyOf(pOperands));
+    }
+
+    @Override
+    public BooleanFormula getFormula(
+        FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
+        throws CPATransferException, InterruptedException {
+      return delegate.getFormula(pFMGR, pPFMGR, pContext);
+    }
+
+    @Override
+    public void assumeTruth(ReachedSet pReachedSet) {
+      delegate.assumeTruth(pReachedSet);
+    }
+
+    @Override
+    public Set<CandidateInvariant> getOperands() {
+      return delegate.getOperands();
+    }
+  }
+
+  public static CandidateInvariant of(Iterable<? extends CandidateInvariant> pOperands) {
+    ImmutableSet<? extends CandidateInvariant> operands = ImmutableSet.copyOf(flatten(pOperands));
+    if (operands.size() == 1) {
+      return operands.iterator().next();
+    }
+    FluentIterable<SingleLocationFormulaInvariant> singleLocationOperands = FluentIterable.from(operands).filter(SingleLocationFormulaInvariant.class);
+    if (singleLocationOperands.size() == operands.size()) {
+      Set<CFANode> locations =
+          singleLocationOperands
+              .transform(SingleLocationFormulaInvariant::getLocation)
+              .toSet();
+      if (locations.size() == 1) {
+        // This admittedly hacky cast is safe here, because:
+        // 1) We know all elements are of the desired type SingleLocationConjunction, and
+        // 2) the set is immutable, so it will stay that way.
+        // Thus, we don't need to create another copy.
+        @SuppressWarnings({"unchecked"})
+        SingleLocationConjunction result =
+            new SingleLocationConjunction((ImmutableSet<SingleLocationFormulaInvariant>) operands);
+        return result;
+      }
+    }
+    return new GenericConjunction(operands);
+  }
+
+  private static Iterable<CandidateInvariant> flatten(
+      Iterable<? extends CandidateInvariant> pOperands) {
+    return FluentIterable.from(pOperands)
+        .transformAndConcat(
+            operand -> {
+              if (operand instanceof Conjunction) {
+                return flatten(((Conjunction) operand).getOperands());
+              }
+              return Collections.singleton(operand);
+            });
+  }
+
+  public static Iterable<CandidateInvariant> getConjunctiveParts(
+      CandidateInvariant pCandidateInvariant) {
+    if (pCandidateInvariant instanceof Conjunction) {
+      return ((Conjunction) pCandidateInvariant).getOperands();
+    }
+    return Collections.singleton(pCandidateInvariant);
+  }
+
+  private static CFANode getSingleLocation(
+      Iterable<SingleLocationFormulaInvariant> pSingleLocationFormulaInvariants) {
+    Iterator<SingleLocationFormulaInvariant> it = pSingleLocationFormulaInvariants.iterator();
+    if (it.hasNext()) {
+      CFANode location = it.next().getLocation();
+      if (it.hasNext()) {
+        assert Iterators.all(it, inv -> inv.getLocation().equals(location))
+            : "Expected all operands to apply to the same single location, but at least two are different: "
+                + pSingleLocationFormulaInvariants;
+        return location;
+      }
+    }
+    throw new IllegalArgumentException(
+        "It makes no sense to use a CandidateInvariantConjunction unless there are at least two operands.");
+  }
 }
