@@ -68,14 +68,16 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 @Options(prefix = "conditional.verifier")
 public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(secure=true,
+  @Option(
+    secure = true,
     description =
         "configuration for the verification of the residual program which is constructed from another verifier's condition"
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path verifierConfig;
 
-  @Option(secure=true, description = "configuration of the residual program generator")
+
+  @Option(secure = true, description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path generatorConfig;
 
@@ -232,6 +234,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;
         cpa = coreComponents.createCPA(cfaResidProg, spec);
+        collectStatistics(cpa);
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Get verification algorithm");
@@ -267,9 +270,9 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private void collectStatistics(final Algorithm pAlgorithm) {
-    if (pAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) pAlgorithm).collectStatistics(stats.substats);
+  private void collectStatistics(final Object pStatisticsProviderCandidate) {
+    if (pStatisticsProviderCandidate instanceof StatisticsProvider) {
+      ((StatisticsProvider) pStatisticsProviderCandidate).collectStatistics(stats.substats);
     }
   }
 
@@ -298,6 +301,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
 
       for (Statistics substat : substats) {
         substat.printStatistics(pOut, pResult, pReached);
+        substat.writeOutputFiles(pResult, pReached);
       }
     }
 
