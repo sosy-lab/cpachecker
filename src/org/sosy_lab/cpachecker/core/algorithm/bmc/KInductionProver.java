@@ -165,13 +165,12 @@ class KInductionProver implements AutoCloseable {
       prover =
           new ProverEnvironmentWithFallback(
               stepCasePredicateCPA.getSolver(),
-              false,
               ProverOptions.GENERATE_UNSAT_CORE,
               ProverOptions.GENERATE_MODELS);
     } else {
       prover =
           new ProverEnvironmentWithFallback(
-              stepCasePredicateCPA.getSolver(), false, ProverOptions.GENERATE_MODELS);
+              stepCasePredicateCPA.getSolver(), ProverOptions.GENERATE_MODELS);
     }
     fmgr = stepCasePredicateCPA.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();

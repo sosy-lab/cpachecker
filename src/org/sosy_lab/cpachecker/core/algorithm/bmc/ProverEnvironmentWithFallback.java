@@ -62,12 +62,11 @@ class ProverEnvironmentWithFallback
 
   private boolean isUnsat = false;
 
-  public ProverEnvironmentWithFallback(
-      Solver pSolver, boolean pUseInterpolation, ProverOptions... pProverOptions) {
+  public ProverEnvironmentWithFallback(Solver pSolver, ProverOptions... pProverOptions) {
     solver = pSolver;
-    useInterpolation = pUseInterpolation;
     proverOptions = EnumSet.noneOf(ProverOptions.class);
     proverOptions.addAll(Arrays.asList(pProverOptions));
+    useInterpolation = proverOptions.contains(ProverOptions.GENERATE_UNSAT_CORE);
   }
 
   private ProverOptions[] getOptions() {
@@ -299,5 +298,9 @@ class ProverEnvironmentWithFallback
       return interpolatingProverEnvironment.allSat(pArg0, pArg1);
     }
     return proverEnvironment.allSat(pArg0, pArg1);
+  }
+
+  public boolean isEmpty() {
+    return stack.isEmpty();
   }
 }
