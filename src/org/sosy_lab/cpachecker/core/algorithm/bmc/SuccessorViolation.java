@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import java.util.Set;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface SuccessorViolation {
 
-  BooleanFormula getViolationAssertion();
+  Set<BooleanFormula> getViolationAssertion();
 }

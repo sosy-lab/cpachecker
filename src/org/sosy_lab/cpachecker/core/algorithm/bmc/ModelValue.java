@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
@@ -35,6 +36,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
@@ -88,6 +90,22 @@ public class ModelValue {
   @Override
   public int hashCode() {
     return Objects.hash(variableName, value, formulaType);
+  }
+
+  public Optional<Formula> getVariable(FormulaManagerView pFMGR) {
+    if (formulaType.isIntegerType()) {
+      IntegerFormulaManagerView ifm = pFMGR.getIntegerFormulaManager();
+      return Optional.of(ifm.makeVariable(variableName));
+    }
+    if (formulaType instanceof BitvectorType) {
+      BitvectorFormulaManager bvm = pFMGR.getBitvectorFormulaManager();
+      return Optional.of(bvm.makeVariable((BitvectorType) formulaType, variableName));
+    }
+    if (formulaType instanceof FloatingPointType) {
+      FloatingPointFormulaManager fpm = pFMGR.getFloatingPointFormulaManager();
+      return Optional.of(fpm.makeVariable(variableName, (FloatingPointType) formulaType));
+    }
+    return Optional.empty();
   }
 
   public BooleanFormula toAssignment(FormulaManagerView pFMGR) {

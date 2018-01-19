@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.input.InputState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -115,6 +116,8 @@ class KInductionProver implements AutoCloseable {
   private final BooleanFormulaManagerView bfmgr;
 
   private final PathFormulaManager pfmgr;
+
+  private final PredicateAbstractionManager pam;
 
   private final BMCStatistics stats;
 
@@ -175,6 +178,7 @@ class KInductionProver implements AutoCloseable {
     fmgr = stepCasePredicateCPA.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
+    pam = stepCasePredicateCPA.getPredicateManager();
     loopHeadInvariants = bfmgr.makeTrue();
 
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
@@ -293,7 +297,7 @@ class KInductionProver implements AutoCloseable {
         pK,
         pCandidateInvariant,
         pCheckedKeys,
-        InvariantAbstraction.noAbstraction(),
+        InvariantAbstractions.noAbstraction(),
         StandardLiftings.NO_LIFTING);
   }
 
@@ -413,7 +417,8 @@ class KInductionProver implements AutoCloseable {
         getSuccessorViolation(pInvariantAbstraction, pCandidateInvariant, reached, pK);
     // Record the successor violation formula to reuse its negation as an
     // assertion in a future induction attempt
-    violationFormulas.put(pCandidateInvariant, successorViolation.getViolationAssertion());
+    violationFormulas.put(
+        pCandidateInvariant, bfmgr.and(successorViolation.getViolationAssertion()));
 
     logger.log(Level.INFO, "Starting induction check...");
 
@@ -423,7 +428,11 @@ class KInductionProver implements AutoCloseable {
     prover.push(successorExistsAssertion);
     prover.push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
     // Assert that the formula is violated at a successor
-    Object successorViolationAssertionId = prover.push(successorViolation.getViolationAssertion());
+    Map<BooleanFormula, Object> successorViolationAssertionIds = new HashMap<>();
+    for (BooleanFormula successorViolationComponent : successorViolation.getViolationAssertion()) {
+      successorViolationAssertionIds.put(
+          successorViolationComponent, prover.push(successorViolationComponent));
+    }
 
     InductionResult<T> result = null;
     while (result == null) {
@@ -458,11 +467,18 @@ class KInductionProver implements AutoCloseable {
             Set<CounterexampleToInductivity> detectedCTIs = extractCTIs(reached, modelAssignments);
             if (pLifting.canLift()) {
               prover.pop(); // Pop the loop-head invariants
-              prover.pop(); // Pop the successor violation
+              // Pop the successor violation
+              successorViolationAssertionIds
+                  .values()
+                  .forEach(
+                      id -> {
+                        prover.pop();
+                      });
               // Push the successor assertion
               BooleanFormula candidateAssertion =
                   assertCandidate(reached, pCandidateInvariant, pK + 1);
-              prover.push(candidateAssertion);
+              successorViolationAssertionIds =
+                  Collections.singletonMap(candidateAssertion, prover.push(candidateAssertion));
               prover.push(loopHeadInv); // Push the known loop-head invariants back on
               prover.push(inputAssignments);
               ImmutableSet.Builder<SingleLocationFormulaInvariant> reducedCTIsBuilder =
@@ -493,7 +509,11 @@ class KInductionProver implements AutoCloseable {
       } else {
         T abstractedInvariant =
             pInvariantAbstraction.performAbstraction(
-                prover, successorViolation, successorViolationAssertionId);
+                prover,
+                pam,
+                successorViolation,
+                successorViolationAssertionIds,
+                Optional.of(loopHeadInv));
         result = InductionResult.getSuccessful(abstractedInvariant);
       }
 
@@ -503,10 +523,16 @@ class KInductionProver implements AutoCloseable {
     // If the proof is successful, remove its violation formula from the cache
     if (result.isSuccessful()) {
       violationFormulas.remove(pCandidateInvariant);
-      prover.pop(); // Pop invariant successor violation
-    } else {
-      prover.pop(); // Pop invariant successor assertion
     }
+
+    // Pop invariant successor violation (or, if we lifted a CTI, its assertion)
+    successorViolationAssertionIds
+        .values()
+        .forEach(
+            id -> {
+              prover.pop();
+            });
+
     prover.pop(); // Pop invariant predecessor assertion
     prover.pop(); // Pop end states
 

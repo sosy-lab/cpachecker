@@ -27,6 +27,9 @@ import com.google.common.collect.FluentIterable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 
 public class CounterexampleToInductivity extends SingleLocationFormulaInvariant {
 
@@ -50,15 +54,19 @@ public class CounterexampleToInductivity extends SingleLocationFormulaInvariant 
   @Override
   public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR,
       @Nullable PathFormula pContext) throws CPATransferException, InterruptedException {
+    return getFormula(pFMGR);
+  }
+
+  public BooleanFormula getFormula(FormulaManagerView pFMGR) {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula model = bfmgr.makeTrue();
+    BooleanFormula modelFormula = bfmgr.makeTrue();
     for (Map.Entry<String, ModelValue> valueAssignment : this.model.entrySet()) {
       String variableName = valueAssignment.getKey();
       ModelValue v = valueAssignment.getValue();
       assert variableName.equals(v.getVariableName());
-      model = bfmgr.and(model, v.toAssignment(pFMGR));
+      modelFormula = bfmgr.and(modelFormula, v.toAssignment(pFMGR));
     }
-    return model;
+    return modelFormula;
   }
 
   public Map<String, ModelValue> getAssignments() {
@@ -71,6 +79,11 @@ public class CounterexampleToInductivity extends SingleLocationFormulaInvariant 
       throw new IllegalArgumentException(pVarName + " is not part of this CTI");
     }
     return new CounterexampleToInductivity(getLocation(), reducedModel);
+  }
+
+  @Override
+  public SingleLocationFormulaInvariant negate() {
+    return new NegatedCounterexampleToInductivity(this);
   }
 
   @Override
@@ -110,5 +123,15 @@ public class CounterexampleToInductivity extends SingleLocationFormulaInvariant 
                     : Collections.singleton(
                         SingleLocationFormulaInvariant.makeLocationInvariant(
                             getLocation(), v.toAssignment(pFMGR), pFMGR)));
+  }
+
+  public Set<Formula> getVariables(FormulaManagerView pFMGR) {
+    return model
+        .values()
+        .stream()
+        .map(mv -> mv.getVariable(pFMGR))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toSet());
   }
 }
