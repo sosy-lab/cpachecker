@@ -53,6 +53,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -186,7 +187,8 @@ public class PredicateAbstractionManager {
 
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
 
-  private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  private final Map<Pair<BooleanFormula, ImmutableSet<BooleanFormula>>, AbstractionFormula>
+      abstractionCache;
 
   // Cache for satisfiability queries: if formula is contained, it is unsat
   private final Set<BooleanFormula> unsatisfiabilityCache;
@@ -304,7 +306,6 @@ public class PredicateAbstractionManager {
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
-    final BooleanFormula f;
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
@@ -340,12 +341,15 @@ public class PredicateAbstractionManager {
       }
     }
 
-    f = primaryFormula;
+    final BooleanFormula f = primaryFormula;
 
     // caching
-    Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
+    Pair<BooleanFormula, ImmutableSet<BooleanFormula>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(f, ImmutableSet.copyOf(remainingPredicates));
+      ImmutableSet<BooleanFormula> instantiatedPreds =
+          Collections3.transformedImmutableSetCopy(
+              remainingPredicates, pred -> instantiator.apply(pred.getSymbolicAtom()));
+      absKey = Pair.of(f, instantiatedPreds);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
