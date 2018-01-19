@@ -68,14 +68,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 @Options(prefix = "conditional.verifier")
 public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(
+  @Option(secure=true,
     description =
         "configuration for the verification of the residual program which is constructed from another verifier's condition"
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path verifierConfig;
 
-  @Option(description = "configuration of the residual program generator")
+  @Option(secure=true, description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path generatorConfig;
 
