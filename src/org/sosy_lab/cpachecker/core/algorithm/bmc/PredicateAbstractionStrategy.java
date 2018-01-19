@@ -38,7 +38,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class AllSATAbstraction implements AbstractionStrategy {
+public class PredicateAbstractionStrategy implements AbstractionStrategy {
 
   private final Map<PredicateAbstractionManager, Multimap<CFANode, AbstractionPredicate>>
       precision = new HashMap<>();

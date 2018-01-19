@@ -29,8 +29,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -348,6 +351,20 @@ public final class BMCHelper {
     TrivialSelfLoopVisitor visitor = new TrivialSelfLoopVisitor();
     CFATraversal.dfs().traverseOnce(loopHead, visitor);
     return visitor.valid;
+  }
+
+  static BooleanFormula disjoinStateViolationAssertions(
+      BooleanFormulaManager pBfmgr,
+      Multimap<BooleanFormula, BooleanFormula> pSuccessorViolationAssertions) {
+    BooleanFormula disjunction = pBfmgr.makeFalse();
+    for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> stateWithViolations :
+        pSuccessorViolationAssertions.asMap().entrySet()) {
+      disjunction =
+          pBfmgr.or(
+              disjunction,
+              pBfmgr.and(stateWithViolations.getKey(), pBfmgr.and(stateWithViolations.getValue())));
+    }
+    return disjunction;
   }
 
   public static interface FormulaInContext {

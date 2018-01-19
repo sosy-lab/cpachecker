@@ -23,24 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -53,62 +45,33 @@ public class InvariantAbstractions {
   }
 
   private static class NoAbstraction<S extends CandidateInvariant>
-      implements InvariantAbstraction<S, S, SimpleSuccessorViolation<S>> {
+      implements InvariantAbstraction<S, S> {
 
     private static NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
 
     private NoAbstraction() {}
 
     @Override
-    public SimpleSuccessorViolation<S> getSuccessorViolation(
-        FormulaManagerView pFMGR,
-        PathFormulaManager pPFMGR,
-        S pCandidateInvariant,
-        Iterable<AbstractState> pAssertionStates)
-        throws CPATransferException, InterruptedException {
-      BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-      BooleanFormula successorAssertion =
-          pCandidateInvariant.getAssertion(pAssertionStates, pFMGR, pPFMGR);
-      return new SimpleSuccessorViolation<>(pCandidateInvariant, bfmgr.not(successorAssertion));
-    }
-
-    @Override
     public S performAbstraction(
         ProverEnvironmentWithFallback pProver,
+        FormulaManagerView pFmgr,
         PredicateAbstractionManager pPam,
-        SimpleSuccessorViolation<S> pSuccessorViolation,
+        S pInvariant,
+        Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
         Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
         Optional<BooleanFormula> pAssertedInvariants) {
-      return pSuccessorViolation.candidateInvariant;
-    }
-  }
-
-  private static class SimpleSuccessorViolation<S> implements SuccessorViolation {
-
-    private final S candidateInvariant;
-
-    private final BooleanFormula violationAssertion;
-
-    private SimpleSuccessorViolation(S pCandidateInvariant, BooleanFormula pViolationAssertion) {
-      candidateInvariant = Objects.requireNonNull(pCandidateInvariant);
-      violationAssertion = Objects.requireNonNull(pViolationAssertion);
-    }
-
-    @Override
-    public Set<BooleanFormula> getViolationAssertion() {
-      return Collections.singleton(violationAssertion);
+      return pInvariant;
     }
   }
 
   @SuppressWarnings("unchecked")
-  public static <S extends CandidateInvariant> InvariantAbstraction<S, S, ?> noAbstraction() {
+  public static <S extends CandidateInvariant> InvariantAbstraction<S, S> noAbstraction() {
     return (NoAbstraction<S>) NoAbstraction.INSTANCE;
   }
 
   private static class InterpolatingAbstraction
       implements InvariantAbstraction<
-          SingleLocationFormulaInvariant, SingleLocationFormulaInvariant,
-          InterpolatingAbstractionSuccessorViolation> {
+          SingleLocationFormulaInvariant, SingleLocationFormulaInvariant> {
 
     private final AbstractionStrategy abstractionStrategy;
 
@@ -117,29 +80,17 @@ public class InvariantAbstractions {
     }
 
     @Override
-    public InterpolatingAbstractionSuccessorViolation getSuccessorViolation(
-        FormulaManagerView pFMGR,
-        PathFormulaManager pPFMGR,
-        SingleLocationFormulaInvariant pCandidateInvariant,
-        Iterable<AbstractState> pAssertionStates)
-        throws CPATransferException, InterruptedException {
-      return new InterpolatingAbstractionSuccessorViolation(
-          pFMGR, pPFMGR, pCandidateInvariant, pAssertionStates);
-    }
-
-    @Override
     public SingleLocationFormulaInvariant performAbstraction(
         ProverEnvironmentWithFallback pProver,
+        FormulaManagerView pFmgr,
         PredicateAbstractionManager pPam,
-        InterpolatingAbstractionSuccessorViolation pSuccessorViolation,
+        SingleLocationFormulaInvariant pInvariant,
+        Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
         Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
         Optional<BooleanFormula> pAssertedInvariants)
         throws SolverException, InterruptedException {
-      FormulaManagerView fmgr = pSuccessorViolation.fmgr;
-      BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-      CFANode location = pSuccessorViolation.candidateInvariant.getLocation();
-      Multimap<BooleanFormula, BooleanFormula> stateViolationAssertions =
-          pSuccessorViolation.stateViolationAssertions;
+      BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+      CFANode location = pInvariant.getLocation();
       SingleLocationFormulaInvariant refinedInvariant;
 
       // There are two non-trivial cases we should consider (for efficiency):
@@ -153,13 +104,13 @@ public class InvariantAbstractions {
         Collection<Object> invariantAssertionIds =
             Maps.filterKeys(
                     pSuccessorViolationAssertionIds,
-                    formula -> !stateViolationAssertions.keySet().contains(formula))
+                    formula -> !pStateViolationAssertions.keySet().contains(formula))
                 .values();
         BooleanFormula interpolant = pProver.getInterpolant(invariantAssertionIds);
-        interpolant = bfmgr.not(fmgr.uninstantiate(interpolant));
-        abstractionStrategy.refinePrecision(pPam, location, fmgr.extractAtoms(interpolant, true));
+        interpolant = bfmgr.not(pFmgr.uninstantiate(interpolant));
+        abstractionStrategy.refinePrecision(pPam, location, pFmgr.extractAtoms(interpolant, true));
         refinedInvariant =
-            SingleLocationFormulaInvariant.makeLocationInvariant(location, interpolant, fmgr);
+            SingleLocationFormulaInvariant.makeLocationInvariant(location, interpolant, pFmgr);
       } else {
 
         // Case 2: There was more than one state (or zero states),
@@ -169,7 +120,7 @@ public class InvariantAbstractions {
         // Since the disjunction was unsatisfiable,
         // each disjunctive component must be unsatisfiable, too:
         BooleanFormula interpolantDisjunction = bfmgr.makeFalse();
-        if (!stateViolationAssertions.isEmpty()) {
+        if (!pStateViolationAssertions.isEmpty()) {
           if (pAssertedInvariants.isPresent()) {
             pProver.pop(); // Pop asserted invariants
           }
@@ -180,7 +131,7 @@ public class InvariantAbstractions {
 
           boolean firstIteration = true;
           for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> entry :
-              stateViolationAssertions.asMap().entrySet()) {
+              pStateViolationAssertions.asMap().entrySet()) {
             if (firstIteration) {
               firstIteration = false;
             } else {
@@ -192,11 +143,11 @@ public class InvariantAbstractions {
             Object invariantViolationAssertionId = pProver.push(bfmgr.and(entry.getValue()));
             if (!pProver.isUnsat()) {
               pProver.pop(); // Pop the invariant-violation assertion
-              return pSuccessorViolation.candidateInvariant;
+              return pInvariant;
             }
             BooleanFormula interpolant =
                 pProver.getInterpolant(Arrays.asList(invariantViolationAssertionId));
-            interpolant = bfmgr.not(fmgr.uninstantiate(interpolant));
+            interpolant = bfmgr.not(pFmgr.uninstantiate(interpolant));
             interpolantDisjunction = bfmgr.or(interpolantDisjunction, interpolant);
 
             pProver.pop(); // Pop the invariant-violation assertion
@@ -210,80 +161,15 @@ public class InvariantAbstractions {
         }
         refinedInvariant =
             SingleLocationFormulaInvariant.makeLocationInvariant(
-                location, interpolantDisjunction, fmgr);
+                location, interpolantDisjunction, pFmgr);
       }
       refinedInvariant =
-          CandidateInvariantConjunction.ofSingleLocation(
-              pSuccessorViolation.candidateInvariant, refinedInvariant);
+          CandidateInvariantConjunction.ofSingleLocation(pInvariant, refinedInvariant);
       return refinedInvariant;
     }
   }
 
-  private static class InterpolatingAbstractionSuccessorViolation implements SuccessorViolation {
-
-    private final FormulaManagerView fmgr;
-
-    private final SingleLocationFormulaInvariant candidateInvariant;
-
-    private final Multimap<BooleanFormula, BooleanFormula> stateViolationAssertions;
-
-    private final Set<BooleanFormula> violationAssertion;
-
-    public InterpolatingAbstractionSuccessorViolation(
-        FormulaManagerView pFMGR,
-        PathFormulaManager pPFMGR,
-        SingleLocationFormulaInvariant pCandidateInvariant,
-        Iterable<AbstractState> pAssertionStates)
-        throws CPATransferException, InterruptedException {
-      fmgr = Objects.requireNonNull(pFMGR);
-      candidateInvariant = Objects.requireNonNull(pCandidateInvariant);
-      BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-      ImmutableMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
-          ImmutableMultimap.builder();
-      for (AbstractState state : pAssertionStates) {
-        Set<AbstractState> stateAsSet = Collections.singleton(state);
-        BooleanFormula stateFormula = BMCHelper.createFormulaFor(stateAsSet, bfmgr);
-        BooleanFormula invariantFormula =
-            BMCHelper.assertAt(stateAsSet, pCandidateInvariant, pFMGR, pPFMGR, true);
-        stateViolationAssertionsBuilder.put(stateFormula, bfmgr.not(invariantFormula));
-      }
-      stateViolationAssertions = stateViolationAssertionsBuilder.build();
-
-      // Build the set of (conjunctive) assertions.
-      // Since the states need to be disjoined, the only way we can have more than one entry
-      // is if there is only one state.
-      if (stateViolationAssertions.size() == 1) {
-        BooleanFormula onlyStateFormula = Iterables.getOnlyElement(stateViolationAssertions.keys());
-        Set<BooleanFormula> violationAssertionBuilder = new HashSet<>(4);
-        violationAssertionBuilder.add(onlyStateFormula);
-        violationAssertionBuilder.addAll(stateViolationAssertions.get(onlyStateFormula));
-        violationAssertion = ImmutableSet.copyOf(violationAssertionBuilder);
-      } else {
-        BooleanFormula disjunctiveViolationAssertion = bfmgr.makeFalse();
-        for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> entry :
-            stateViolationAssertions.asMap().entrySet()) {
-          BooleanFormula stateFormula = entry.getKey();
-          BooleanFormula invariantFormula = bfmgr.and(entry.getValue());
-          BooleanFormula stateInvariantAssertion = bfmgr.and(stateFormula, invariantFormula);
-          disjunctiveViolationAssertion =
-              bfmgr.or(disjunctiveViolationAssertion, stateInvariantAssertion);
-        }
-        violationAssertion = ImmutableSet.of(disjunctiveViolationAssertion);
-      }
-    }
-
-    @Override
-    public Set<BooleanFormula> getViolationAssertion() {
-      return violationAssertion;
-    }
-
-    @Override
-    public String toString() {
-      return "Violation of " + candidateInvariant;
-    }
-  }
-
-  static InvariantAbstraction<SingleLocationFormulaInvariant, SingleLocationFormulaInvariant, ?>
+  static InvariantAbstraction<SingleLocationFormulaInvariant, SingleLocationFormulaInvariant>
       interpolatingAbstraction(AbstractionStrategy pAbstractionStrategy) {
     return new InterpolatingAbstraction(pAbstractionStrategy);
   }

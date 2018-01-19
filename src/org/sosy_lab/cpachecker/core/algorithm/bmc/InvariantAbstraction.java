@@ -23,29 +23,22 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.Multimap;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public interface InvariantAbstraction<S, T, D extends SuccessorViolation> {
-
-  D getSuccessorViolation(
-      FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR,
-      S pCandidateInvariant,
-      Iterable<AbstractState> pAssertionStates)
-      throws CPATransferException, InterruptedException;
+public interface InvariantAbstraction<S, T> {
 
   T performAbstraction(
       ProverEnvironmentWithFallback pProver,
+      FormulaManagerView pFmgr,
       PredicateAbstractionManager pPam,
-      D pSuccessorViolation,
+      S pInvariant,
+      Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
       Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
       Optional<BooleanFormula> pAssertedInvariants)
       throws SolverException, InterruptedException;

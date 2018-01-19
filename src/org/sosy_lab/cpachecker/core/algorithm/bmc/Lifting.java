@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -34,6 +35,7 @@ public interface Lifting {
 
   SingleLocationFormulaInvariant lift(
       FormulaManagerView pFMGR,
+      PredicateAbstractionManager pPam,
       ProverEnvironmentWithFallback pProver,
       CounterexampleToInductivity cti,
       AssertPredecessor pAssertPredecessor)
