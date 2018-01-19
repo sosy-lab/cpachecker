@@ -133,6 +133,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final RegionManager rmgr;
   private final AbstractionManager absmgr;
   private final PredicateAbstractionManager amgr;
+  private final PredicateInferenceObjectManager omgr;
 
   private final PredicateAbstractDomain domain;
   private final MergeOperator merge;
@@ -156,7 +157,8 @@ class PredicateCPAStatistics extends AbstractStatistics {
       PredicateAbstractDomain pDomain,
       MergeOperator pMerge,
       PredicateTransferRelation pTransfer,
-      PredicatePrecisionAdjustment pPrec)
+      PredicatePrecisionAdjustment pPrec,
+      PredicateInferenceObjectManager pOMngr)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
@@ -171,6 +173,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     merge = pMerge;
     trans = pTransfer;
     prec = pPrec;
+    omgr = pOMngr;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
@@ -364,7 +367,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
     }
-    out.println("Time for prec operator:              " + prec.totalPrecTime);
+    out.println("Time for prec operator:                " + prec.totalPrecTime);
+    out.println("Time for inference objects application: " + trans.inferenceObjectTimer);
+    out.println("  Time for converting:                  " + trans.convertingTimer);
+    out.println("  Time for makeOr:                      " + trans.makeOrTimer);
+    out.println("  Time for relevance computing:         " + trans.relevanceTimer);
+    out.println("  Time for predicate preparation:       " + trans.prepareTimer);
     if (prec.numAbstractions > 0) {
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
@@ -391,6 +399,9 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (merge instanceof PredicateMergeOperator) {
       out.println("Time for merge operator:             " + ((PredicateMergeOperator)merge).totalMergeTime);
     }
+
+    out.println("Time for merge of inference objects:   " + omgr.totalMergeTime);
+    out.println("Time for creation of inference objects:   " + omgr.creationTimer);
 
     out.println("Time for coverage check:             " + domain.coverageCheckTimer);
     if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {

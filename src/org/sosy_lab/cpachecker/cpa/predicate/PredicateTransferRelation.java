@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,6 +113,11 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
   final Timer abstractionCheckTimer = new Timer();
+  final Timer inferenceObjectTimer = new Timer();
+  final Timer convertingTimer = new Timer();
+  final Timer makeOrTimer = new Timer();
+  final Timer relevanceTimer = new Timer();
+  final Timer prepareTimer = new Timer();
 
   int numSatChecksFalse = 0;
   int numStrengthenChecksFalse = 0;
@@ -595,6 +601,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
     } else if (pInferenceObject == EmptyInferenceObject.getInstance()) {
       return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
     } else {
+      inferenceObjectTimer.start();
       PredicateInferenceObject object = (PredicateInferenceObject) pInferenceObject;
 
       PathFormula oldFormula = predeccessor.getPathFormula();
@@ -603,24 +610,45 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
 
       PredicatePrecision prec = (PredicatePrecision) pPrecision;
       PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
-      PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
 
       boolean changed = false;
+
+      Pair<Set<String>, Set<String>> extractedPredicateInfo = null;
+
+      if (applyRelevantEffects) {
+        prepareTimer.start();
+        extractedPredicateInfo = preparePredicates(prec.getLocalPredicates().values());
+        prepareTimer.stop();
+      }
 
       for (CAssignment c : object.getAction()) {
         CFAEdge fakeEdge =
             new CStatementEdge("environment", c, c.getFileLocation(),
                 new CFANode("dummy"), new CFANode("dummy"));
 
-        PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
+        boolean needToApply = true;
 
-        if (!applyRelevantEffects || isRelevant(testFormula.getFormula(), prec.getLocalPredicates().values())) {
+        if (applyRelevantEffects) {
+          PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
+          convertingTimer.start();
+          PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
+          convertingTimer.stop();
+
+          needToApply = isRelevant(testFormula.getFormula(), extractedPredicateInfo);
+        }
+
+        if (needToApply) {
+          convertingTimer.start();
           PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
+          convertingTimer.stop();
+          makeOrTimer.start();
           currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+          makeOrTimer.stop();
           changed = true;
         }
       }
 
+      inferenceObjectTimer.stop();
       if (changed) {
         PredicateAbstractState newState = PredicateAbstractState.mkNonAbstractionState(currentFormula,
             oldAbstraction, abstractionLocations);
@@ -631,16 +659,30 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
     }
   }
 
-  private boolean isRelevant(BooleanFormula formula, Collection<AbstractionPredicate> predicates) {
-    if (predicates.isEmpty()) {
-      return false;
-    }
+  private boolean isRelevant(BooleanFormula formula, Pair<Set<String>, Set<String>> predicates) {
+    relevanceTimer.start();
     Set<String> vars = fmgr.extractVariableNames(fmgr.uninstantiate(formula));
     Set<String> funcs = fmgr.extractFunctionNames(fmgr.uninstantiate(formula));
     Set<String> onlyUFs = Sets.difference(funcs, vars);
     if (vars.isEmpty() && onlyUFs.isEmpty()) {
+      relevanceTimer.stop();
       return true;
     }
+    Set<String> predVars = predicates.getFirst();
+    Set<String> predFuncs = predicates.getSecond();
+    if (!Sets.intersection(vars, predVars).isEmpty()
+        || !Sets.intersection(onlyUFs, predFuncs).isEmpty()) {
+      relevanceTimer.stop();
+      return true;
+    }
+    relevanceTimer.stop();
+    return false;
+  }
+
+  private Pair<Set<String>, Set<String>> preparePredicates(Collection<AbstractionPredicate> predicates) {
+    Set<String> resultingVars = new HashSet<>();
+    Set<String> resultingFuncs = new HashSet<>();
+
     for (AbstractionPredicate pred : predicates) {
       if (bfmgr.isFalse(pred.getSymbolicAtom())) {
         // Ignore predicate "false", it means "check for satisfiability".
@@ -649,11 +691,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
       Set<String> predVars = fmgr.extractVariableNames(pred.getSymbolicAtom());
       Set<String> predFuncs = fmgr.extractFunctionNames(pred.getSymbolicAtom());
       Set<String> predOnlyUFs = Sets.difference(predFuncs, predVars);
-      if (!Sets.intersection(vars, predVars).isEmpty()
-          || !Sets.intersection(onlyUFs, predOnlyUFs).isEmpty()) {
-        return true;
-      }
+      resultingVars.addAll(predVars);
+      resultingFuncs.addAll(predOnlyUFs);
     }
-    return false;
+    return Pair.of(resultingVars, resultingFuncs);
   }
 }

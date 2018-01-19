@@ -261,7 +261,8 @@ public class PredicateCPA
             domain,
             merge,
             transfer,
-            prec);
+            prec,
+            inferenceObjectsManager);
   }
 
   @Override

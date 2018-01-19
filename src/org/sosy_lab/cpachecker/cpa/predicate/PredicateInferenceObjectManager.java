@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -310,6 +311,9 @@ public class PredicateInferenceObjectManager {
   private final PredicateAbstractionManager amngr;
   private final FormulaManagerView fmngr;
 
+  final Timer totalMergeTime = new Timer();
+  final Timer creationTimer = new Timer();
+
   public PredicateInferenceObjectManager(Configuration pConfig, BooleanFormulaManager pMngr,
       PredicateAbstractionManager pAbstractionManager, FormulaManagerView pFManager) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -321,12 +325,14 @@ public class PredicateInferenceObjectManager {
   public InferenceObject create(CFAEdge edge, AbstractionFormula a) {
     CStatement stmnt;
 
+    creationTimer.start();
     if (edge instanceof CFunctionReturnEdge) {
       CFunctionSummaryEdge summary = ((CFunctionReturnEdge) edge).getSummaryEdge();
       stmnt = summary.getExpression();
     } else if (edge instanceof CStatementEdge) {
       stmnt = ((CStatementEdge) edge).getStatement();
     } else {
+      creationTimer.stop();
       return EmptyInferenceObject.getInstance();
     }
 
@@ -350,9 +356,11 @@ public class PredicateInferenceObjectManager {
 
           newAssignement = new CExpressionAssignmentStatement(newRight.getFirst().getFileLocation(), (CLeftHandSide) left.getFirst(), newRight.getFirst());
         }
+        creationTimer.stop();
         return new PredicateInferenceObject(Collections.singleton(newAssignement), prepareFormula(a.asFormula()));
       }
     }
+    creationTimer.stop();
     return EmptyInferenceObject.getInstance();
   }
 
@@ -365,32 +373,37 @@ public class PredicateInferenceObjectManager {
     Set<CAssignment> newFormulas;
     BooleanFormula newAbs;
 
-    if (abstractionLattice) {
-      if (!abs1.equals(abs2)) {
+    totalMergeTime.start();
+    try {
+      if (abstractionLattice) {
+        if (!abs1.equals(abs2)) {
+          return pSecond;
+        } else {
+          newAbs = abs2;
+        }
+      } else {
+        if (mngr.isTrue(abs2)) {
+          newAbs = abs2;
+        } else if (mngr.isTrue(abs1)) {
+          newAbs = abs1;
+        } else {
+          newAbs = mngr.or(abs1, abs2);
+        }
+      }
+
+      if (formulas2.containsAll(formulas1)) {
+        newFormulas = formulas2;
+      } else {
+        newFormulas = Sets.union(formulas1, formulas2);
+      }
+
+      if (newAbs == abs2 && newFormulas == formulas2) {
         return pSecond;
       } else {
-        newAbs = abs2;
+        return new PredicateInferenceObject(newFormulas, newAbs);
       }
-    } else {
-      if (mngr.isTrue(abs2)) {
-        newAbs = abs2;
-      } else if (mngr.isTrue(abs1)) {
-        newAbs = abs1;
-      } else {
-        newAbs = mngr.or(abs1, abs2);
-      }
-    }
-
-    if (formulas2.containsAll(formulas1)) {
-      newFormulas = formulas2;
-    } else {
-      newFormulas = Sets.union(formulas1, formulas2);
-    }
-
-    if (newAbs == abs2 && newFormulas == formulas2) {
-      return pSecond;
-    } else {
-      return new PredicateInferenceObject(newFormulas, newAbs);
+    } finally {
+      totalMergeTime.stop();
     }
   }
 
