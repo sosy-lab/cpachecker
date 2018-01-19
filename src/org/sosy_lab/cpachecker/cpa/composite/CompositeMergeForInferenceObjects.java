@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.lock.LockInferenceObject;
+import org.sosy_lab.cpachecker.cpa.simplethread.SimpleThreadInferenceObject;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadInferenceObject;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -67,6 +68,7 @@ public class CompositeMergeForInferenceObjects implements MergeOperator {
       AbstractState mergedState;
 
       if (absSuccessorState instanceof ThreadInferenceObject ||
+          absSuccessorState instanceof SimpleThreadInferenceObject ||
           absSuccessorState instanceof LockInferenceObject) {
         //Do not merge
         if (absSuccessorState.equals(absReachedState)) {
