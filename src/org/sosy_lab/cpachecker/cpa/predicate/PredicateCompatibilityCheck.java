@@ -51,7 +51,7 @@ public class PredicateCompatibilityCheck implements CompatibilityCheck {
     BooleanFormula stateFormula = state.getAbstractionFormula().asFormula();
     BooleanFormula objectFormula = object.getGuard();
 
-    BooleanFormula f = mngr.or(stateFormula, objectFormula);
+    BooleanFormula f = mngr.and(stateFormula, objectFormula);
 
     try {
       return !solver.isUnsat(f);
