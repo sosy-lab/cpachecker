@@ -267,6 +267,9 @@ analysis.reachedSet = PARTITIONED
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# Split program in subprograms which can be analyzed separately afterwards
+analysis.split.program = false
+
 # stop after the first error has been found
 analysis.stopAfterError = true
 
@@ -2974,6 +2977,15 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
+
+# where to export conditions
+program.splitter.conditionFile = "Condition.%d.txt"
+
+# export program splitting as conditions (assumption automata)
+program.splitter.exportAsCondition = true
+
+# maximal number
+program.splitter.max = 2
 
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
