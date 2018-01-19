@@ -2984,6 +2984,9 @@ program.splitter.conditionFile = "Condition.%d.txt"
 # export program splitting as conditions (assumption automata)
 program.splitter.exportAsCondition = true
 
+# Which program split heuristic to use
+program.splitter.heuristic = no default value
+
 # maximal number
 program.splitter.max = 2
 
