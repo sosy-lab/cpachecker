@@ -140,7 +140,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
 
     // Algorithm is never meant to prove or falsify a property, only does splitting for later
     // (parallel) conditional model checking
-    return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+    return AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
   }
 
   private void extractSplitConditions(final ReachedSet pReached) throws InterruptedException {
