@@ -29,6 +29,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -40,6 +42,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -317,6 +320,30 @@ public final class BMCHelper {
 
   public static Predicate<AbstractState> getLocationPredicate(Set<CFANode> pLocations) {
     return state -> from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
+  }
+
+  public static Set<ARGState> filterAncestors(
+      Iterable<ARGState> pStates, Predicate<? super AbstractState> pDescendant) {
+    Multimap<ARGState, ARGState> parentToTarget = HashMultimap.create();
+    for (ARGState state : FluentIterable.from(pStates).filter(pDescendant::test)) {
+      if (state.getChildren().isEmpty()) {
+        Collection<ARGState> parents = state.getParents();
+        for (ARGState parent : parents) {
+          parentToTarget.put(parent, state);
+        }
+      }
+    }
+    Set<ARGState> redundantStates = Sets.newHashSet();
+    for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
+      ARGState parent = family.getKey();
+      Collection<ARGState> children = family.getValue();
+      Set<CFAEdge> edges =
+          FluentIterable.from(children).transformAndConcat(parent::getEdgesToChild).toSet();
+      if (edges.size() == 1 && !(edges.iterator().next() instanceof AssumeEdge)) {
+        Iterables.addAll(redundantStates, Iterables.skip(children, 1));
+      }
+    }
+    return redundantStates;
   }
 
   public static boolean isTrivialSelfLoop(Loop pLoop) {

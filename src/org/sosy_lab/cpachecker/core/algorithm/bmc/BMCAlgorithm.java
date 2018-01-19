@@ -24,14 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -55,7 +53,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -217,7 +214,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Error found, creating error path");
 
       Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = redundantStates(targetStates);
+      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
       redundantStates.forEach(state -> {
         state.removeFromARG();
       });
@@ -327,28 +324,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } finally {
       stats.errorPathCreation.stop();
     }
-  }
-
-  private Set<ARGState> redundantStates(Iterable<ARGState> pStates) {
-    Multimap<ARGState, ARGState> parentToTarget = HashMultimap.create();
-    for (ARGState state : FluentIterable.from(pStates).filter(AbstractStates.IS_TARGET_STATE)) {
-      if (state.getChildren().isEmpty()) {
-        Collection<ARGState> parents = state.getParents();
-        for (ARGState parent : parents) {
-          parentToTarget.put(parent, state);
-        }
-      }
-    }
-    Set<ARGState> redundantStates = Sets.newHashSet();
-    for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
-      ARGState parent = family.getKey();
-      Collection<ARGState> children = family.getValue();
-      Set<CFAEdge> edges = FluentIterable.from(children).transformAndConcat(parent::getEdgesToChild).toSet();
-      if (edges.size() == 1 && !(edges.iterator().next() instanceof AssumeEdge)) {
-        Iterables.addAll(redundantStates, Iterables.skip(children, 1));
-      }
-    }
-    return redundantStates;
   }
 
   @Override
