@@ -41,14 +41,18 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateInferenceObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGState extends AbstractSingleWrapperState
@@ -75,6 +79,8 @@ public class ARGState extends AbstractSingleWrapperState
   private ARGState mergedWith = null;
 
   private final int stateId;
+
+  private ARGInferenceObject appliedEffect = null;
 
   // If this is a target state, we may store additional information here.
   private transient CounterexampleInfo counterexample;
@@ -205,6 +211,17 @@ public class ARGState extends AbstractSingleWrapperState
           allEdges.add(leavingEdge);
           currentLoc = leavingEdge.getSuccessor();
         }
+        ARGInferenceObject object = pChild.getAppliedEffect();
+        if (allEdges.isEmpty() && object != null) {
+          //environment
+          PredicateInferenceObject pO = AbstractStates.extractStateByType(object, PredicateInferenceObject.class);
+          Set<CAssignment> effects = pO.getAction();
+
+          for (CAssignment a : effects) {
+            CFAEdge dummyEdge = new CStatementEdge("environment: " + a, a, FileLocation.DUMMY, currentLoc, childLoc);
+            allEdges.add(dummyEdge);
+          }
+        }
       }
       return allEdges;
     } else {
@@ -271,6 +288,15 @@ public class ARGState extends AbstractSingleWrapperState
   void setHasCoveredParent(boolean pHasCoveredParent) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     hasCoveredParent = pHasCoveredParent;
+  }
+
+  public void setAppliedEffect(ARGInferenceObject pObject) {
+    assert appliedEffect == null;
+    appliedEffect = pObject;
+  }
+
+  public ARGInferenceObject getAppliedEffect() {
+    return appliedEffect;
   }
 
   // merged-with marker so that stop can return true for merged elements
@@ -480,6 +506,7 @@ public class ARGState extends AbstractSingleWrapperState
       parent.children.remove(this);
     }
     parents.clear();
+    appliedEffect = null;
   }
 
   /**
@@ -530,6 +557,9 @@ public class ARGState extends AbstractSingleWrapperState
     }
 
     destroyed = true;
+
+    assert replacement.appliedEffect == null;
+    replacement.appliedEffect = this.appliedEffect;
   }
 
   /* (non-Javadoc)
@@ -568,6 +598,7 @@ public class ARGState extends AbstractSingleWrapperState
     this.wasExpanded = pTemplateState.wasExpanded;
     this.mayCover = pTemplateState.mayCover;
     this.hasCoveredParent = pTemplateState.hasCoveredParent;
+    this.appliedEffect = pTemplateState.appliedEffect;
 
   }
 

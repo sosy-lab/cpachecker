@@ -595,9 +595,9 @@ class WitnessWriter implements EdgeAppender {
     Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa.getMainFunction());
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      //if (!min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
-      }
+      //}
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
     }
     if (witnessOptions.exportLineNumbers() && maxFileLocation.isPresent()) {

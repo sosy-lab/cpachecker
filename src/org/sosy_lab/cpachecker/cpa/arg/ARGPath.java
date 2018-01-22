@@ -43,10 +43,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -138,7 +136,6 @@ public class ARGPath extends AbstractAppender {
 
     List<CFAEdge> fullPath = new ArrayList<>();
     PathIterator it = pathIterator();
-    CFAEdge dummyEdge = null;
 
     while (it.hasNext()) {
       ARGState prev = it.getAbstractState();
@@ -156,8 +153,7 @@ public class ARGPath extends AbstractAppender {
 
         if (curNode.equals(nextNode)) {
           //environment
-          dummyEdge = new CStatementEdge("environment", null, FileLocation.DUMMY, curNode, nextNode);
-          fullPath.add(dummyEdge);
+          fullPath.addAll(prev.getEdgesToChild(succ));
           continue;
         }
 

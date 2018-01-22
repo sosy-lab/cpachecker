@@ -328,13 +328,13 @@ public class CEXExporter {
                     Predicates.in(pathElements),
                     isTargetPathEdge));
 
-    writeErrorPathFile(
+    /*writeErrorPathFile(
         errorPathAutomatonFile,
         uniqueId,
         (Appender)
             pAppendable ->
                 ARGUtils.producePathAutomaton(
-                    pAppendable, rootState, pathElements, "ErrorPath" + uniqueId, counterexample));
+            pAppendable, rootState, pathElements, "ErrorPath" + uniqueId, counterexample));*/
 
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {

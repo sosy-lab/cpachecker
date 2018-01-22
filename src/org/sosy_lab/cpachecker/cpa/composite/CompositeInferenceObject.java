@@ -29,10 +29,12 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 
-public class CompositeInferenceObject implements InferenceObject {
+public class CompositeInferenceObject implements InferenceObject, AbstractWrapperState {
 
   private final ImmutableList<InferenceObject> inferenceObjects;
 
@@ -79,5 +81,12 @@ public class CompositeInferenceObject implements InferenceObject {
     return from(inferenceObjects)
         .filter(o -> !o.hasEmptyAction())
         .join(Joiner.on(", "));
+  }
+
+  @Override
+  public Iterable<AbstractState> getWrappedStates() {
+    return from(inferenceObjects)
+        .transform(o -> (AbstractState) o)
+        .toList();
   }
 }

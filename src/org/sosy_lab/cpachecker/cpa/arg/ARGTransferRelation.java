@@ -127,6 +127,9 @@ public class ARGTransferRelation implements TransferRelationTM {
     Collection<Pair<AbstractState, InferenceObject>> wrappedSuccessors = new ArrayList<>();
     for (Pair<AbstractState, InferenceObject> absElement : successors) {
       ARGState successorElem = new ARGState(absElement.getFirst(), element);
+      if (pInferenceObject != TauInferenceObject.getInstance()) {
+        successorElem.setAppliedEffect((ARGInferenceObject) pInferenceObject);
+      }
       wrappedObject = absElement.getSecond();
       InferenceObject inferenceObject;
       if (wrappedObject == EmptyInferenceObject.getInstance()) {

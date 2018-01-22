@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.cpa.arg.ARGInferenceObject;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -85,6 +86,9 @@ enum GraphBuilder {
         // Process child states
         for (ARGState child : argEdges.getSecond()) {
 
+          if (child instanceof ARGInferenceObject) {
+            continue;
+          }
           String childStateId = getId(child);
           List<CFAEdge> allEdgeToNextState = s.getEdgesToChild(child);
           String prevStateId = sourceStateNodeId;
@@ -136,6 +140,9 @@ enum GraphBuilder {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
+                if (sibling instanceof ARGInferenceObject || sibling.getAppliedEffect() != null) {
+                  continue;
+                }
                 if (sibling != child && s.getEdgeToChild(sibling).equals(siblingEdge)) {
                   addArtificialSinkEdge = false;
                   break;
