@@ -31,10 +31,9 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public abstract class SplitInfoState implements NonMergeableAbstractState, AbstractQueryableState {
+public abstract class SplitInfoState implements AbstractQueryableState {
 
   public abstract SplitInfoState getSplitPart(int numSplitParts, int splitPart);
 
