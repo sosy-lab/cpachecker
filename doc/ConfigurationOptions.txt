@@ -3030,7 +3030,7 @@ residualprogram.file = "residualProgram.c"
 # Define kind of folder to use when combining condition with folding approach
 # in residual program generation
 residualprogram.folderType = CFA
-  enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
+  enum:     [CFA, LOOP_ALWAYS, LOOP_BOUND, LOOP_SAME_CONTEXT]
 
 # Collect statistical data about size of residual program
 residualprogram.statistics.size = false
