@@ -3039,6 +3039,9 @@ residualprogram.statistics.size = false
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
+# How often may a loop be unrolled before it must be folded
+residualprogram.unrollBound = 2
+
 # wether to start next algorithm independently from the previous result
 restartAlgorithm.alwaysRestart = false
 

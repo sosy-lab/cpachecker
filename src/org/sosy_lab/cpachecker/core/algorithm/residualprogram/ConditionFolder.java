@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -446,7 +447,8 @@ public abstract class ConditionFolder {
     }
 
     @Override
-    protected @Nullable Pair<CFANode, CallstackStateEqualsWrapper> getRootFoldId(ARGState pRoot) {
+    protected @Nullable Pair<CFANode, CallstackStateEqualsWrapper> getRootFoldId(
+        final ARGState pRoot) {
       return getID(AbstractStates.extractLocation(pRoot), pRoot);
     }
 
@@ -512,49 +514,89 @@ public abstract class ConditionFolder {
       return newLoopContext;
     }
 
-
-
     @Override
-    protected String getRootFoldId(ARGState pRoot) {
+    protected String getRootFoldId(final ARGState pRoot) {
+      CFANode rootLoc = AbstractStates.extractLocation(pRoot);
+      if (cfa.getAllLoopHeads().get().contains(rootLoc)) {
+        return "|L" + rootLoc.getNodeNumber() + "L";
+      }
       return "";
     }
 
     @Override
-    protected String adaptID(CFAEdge pEdge, String pLoopContext, ARGState pChild) {
+    protected String adaptID(
+        final CFAEdge pEdge, final String pLoopContext, final ARGState pChild) {
       return extendLoopContext(pEdge, pLoopContext);
     }
   }
 
-  // @Options(prefix = "residualprogram")
+  @Options(prefix = "residualprogram")
   private static class BoundUnrollingLoopFolder extends LoopFolder<String> {
 
-    // private final LoopInfo loopInfo;
+    private final LoopInfo loopInfo;
 
-    /*@Option(
+    @Option(
       secure = true,
       description = "How often may a loop be unrolled before it must be folded",
       name = "unrollBound"
     )
     @IntegerOption(min = 2)
-    private int maxUnrolls = 2;*/
+    private int maxUnrolls = 2;
 
     private BoundUnrollingLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
       super(pCfa);
       pConfig.inject(this);
-      // loopInfo = new LoopInfo(pCfa);
+      loopInfo = new LoopInfo(pCfa);
     }
 
     @Override
-    protected String getRootFoldId(ARGState pRoot) {
-      // TODO consider case that it is a loop than need to start counting here
+    protected String getRootFoldId(final ARGState pRoot) {
+      CFANode rootLoc = AbstractStates.extractLocation(pRoot);
+      if (cfa.getAllLoopHeads().get().contains(rootLoc)) {
+        return "|" + rootLoc.getNodeNumber() + ":1";
+      }
       return "";
     }
 
     @Override
     protected String adaptID(CFAEdge pEdge, String pFoldID, ARGState pChild) {
-      // TODO Auto-generated method stub
-      return "";
+      String newLoopBoundID = pFoldID;
+      int prevLoopIt = 0;
+
+      // leave loop
+      if (loopInfo.leaveLoop(pEdge) && newLoopBoundID.contains("|")) {
+        newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
+      }
+
+      // next loop iteration
+      if (loopInfo.startNewLoopIteation(pEdge) && newLoopBoundID.contains("|")) {
+        prevLoopIt =
+            Integer.parseInt(
+                newLoopBoundID.substring(
+                    newLoopBoundID.lastIndexOf(":") + 1, newLoopBoundID.length() - 1));
+        newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
+      }
+
+      if (pEdge instanceof FunctionReturnEdge && newLoopBoundID.contains("/")) {
+        newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("/"));
+      }
+      if (pEdge instanceof FunctionCallEdge) {
+        newLoopBoundID =
+            newLoopBoundID
+                + "/"
+                + "N"
+                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
+                + "N";
+      }
+
+      // enter loop or start next iteration
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
+        newLoopBoundID +=
+            "|" + pEdge.getSuccessor().getNodeNumber() + ":" + Math.max(prevLoopIt + 1, maxUnrolls);
+      }
+
+      return newLoopBoundID;
     }
 
   }
