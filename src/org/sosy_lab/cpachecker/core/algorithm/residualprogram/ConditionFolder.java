@@ -574,7 +574,7 @@ public abstract class ConditionFolder {
         prevLoopIt =
             Integer.parseInt(
                 newLoopBoundID.substring(
-                    newLoopBoundID.lastIndexOf(":") + 1, newLoopBoundID.length() - 1));
+                    newLoopBoundID.lastIndexOf(":") + 1, newLoopBoundID.length()));
         newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
       }
 
