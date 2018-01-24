@@ -321,6 +321,17 @@ public class ConfigurationFileChecks {
                 Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
+    try (Reader r =
+            Files.newBufferedReader(
+                Paths.get("config/specification/SplitterGuidingAutomaton.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/SplitterGuidingAutomaton.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
   }
 
   @Test

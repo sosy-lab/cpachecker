@@ -23,79 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.util.Objects;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import com.google.common.collect.Multimap;
+import java.util.Map;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
-public interface InvariantAbstraction<S, T, D extends SuccessorViolation> {
-
-  D getSuccessorViolation(
-      FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR,
-      S pCandidateInvariant,
-      Iterable<AbstractState> pAssertionStates)
-      throws CPATransferException, InterruptedException;
+public interface InvariantAbstraction<S, T> {
 
   T performAbstraction(
       ProverEnvironmentWithFallback pProver,
-      D pSuccessorViolation,
-      Object pSuccessorViolationAssertionId);
-
-  public static class NoAbstraction<S extends CandidateInvariant>
-      implements InvariantAbstraction<S, S, SimpleSuccessorViolation<S>> {
-
-    private static NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
-
-    private NoAbstraction() {}
-
-    @Override
-    public SimpleSuccessorViolation<S> getSuccessorViolation(
-        FormulaManagerView pFMGR,
-        PathFormulaManager pPFMGR,
-        S pCandidateInvariant,
-        Iterable<AbstractState> pAssertionStates)
-        throws CPATransferException, InterruptedException {
-      BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-      BooleanFormula successorAssertion =
-          pCandidateInvariant.getAssertion(pAssertionStates, pFMGR, pPFMGR);
-      return new SimpleSuccessorViolation<>(pCandidateInvariant, bfmgr.not(successorAssertion));
-    }
-
-    @Override
-    public S performAbstraction(
-        ProverEnvironmentWithFallback pProver,
-        SimpleSuccessorViolation<S> pSuccessorViolation,
-        Object pSuccessorViolationAssertionId) {
-      return pSuccessorViolation.candidateInvariant;
-    }
-
-  }
-
-  public static class SimpleSuccessorViolation<S> implements SuccessorViolation {
-
-    private final S candidateInvariant;
-
-    private final BooleanFormula violationAssertion;
-
-    private SimpleSuccessorViolation(
-        S pCandidateInvariant, BooleanFormula pViolationAssertion) {
-      candidateInvariant = Objects.requireNonNull(pCandidateInvariant);
-      violationAssertion = Objects.requireNonNull(pViolationAssertion);
-    }
-
-    @Override
-    public BooleanFormula getViolationAssertion() {
-      return violationAssertion;
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  public static <S extends CandidateInvariant>
-      InvariantAbstraction<S, S, SimpleSuccessorViolation<S>> noAbstraction() {
-    return (NoAbstraction<S>) NoAbstraction.INSTANCE;
-  }
+      FormulaManagerView pFmgr,
+      PredicateAbstractionManager pPam,
+      S pInvariant,
+      Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
+      Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
+      Optional<BooleanFormula> pAssertedInvariants)
+      throws SolverException, InterruptedException;
 }

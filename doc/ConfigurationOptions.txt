@@ -267,6 +267,9 @@ analysis.reachedSet = PARTITIONED
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# Split program in subprograms which can be analyzed separately afterwards
+analysis.split.program = false
+
 # stop after the first error has been found
 analysis.stopAfterError = true
 
@@ -2975,6 +2978,18 @@ precision.variableBlacklist = ""
 # this precision
 precision.variableWhitelist = ""
 
+# where to export conditions
+program.splitter.conditionFile = "Condition.%d.txt"
+
+# export program splitting as conditions (assumption automata)
+program.splitter.exportAsCondition = true
+
+# Which program split heuristic to use
+program.splitter.heuristic = no default value
+
+# maximal number
+program.splitter.max = 2
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -3015,7 +3030,7 @@ residualprogram.file = "residualProgram.c"
 # Define kind of folder to use when combining condition with folding approach
 # in residual program generation
 residualprogram.folderType = CFA
-  enum:     [CFA, LOOP_ALWAYS, LOOP_SAME_CONTEXT]
+  enum:     [CFA, LOOP_ALWAYS, LOOP_BOUND, LOOP_SAME_CONTEXT]
 
 # Collect statistical data about size of residual program
 residualprogram.statistics.size = false
@@ -3023,6 +3038,9 @@ residualprogram.statistics.size = false
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+
+# How often may a loop be unrolled before it must be folded
+residualprogram.unrollBound = 2
 
 # wether to start next algorithm independently from the previous result
 restartAlgorithm.alwaysRestart = false

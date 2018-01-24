@@ -28,6 +28,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -150,6 +151,11 @@ public class CandidateInvariantConjunction {
     public Set<CandidateInvariant> getOperands() {
       return delegate.getOperands();
     }
+
+    @Override
+    public String toString() {
+      return delegate.toString();
+    }
   }
 
   public static CandidateInvariant of(Iterable<? extends CandidateInvariant> pOperands) {
@@ -169,12 +175,33 @@ public class CandidateInvariantConjunction {
         // 2) the set is immutable, so it will stay that way.
         // Thus, we don't need to create another copy.
         @SuppressWarnings({"unchecked"})
-        SingleLocationConjunction result =
-            new SingleLocationConjunction((ImmutableSet<SingleLocationFormulaInvariant>) operands);
+        SingleLocationFormulaInvariant result =
+            ofSingleLocation((Iterable<SingleLocationFormulaInvariant>) operands);
         return result;
       }
     }
     return new GenericConjunction(operands);
+  }
+
+  public static SingleLocationFormulaInvariant ofSingleLocation(
+      SingleLocationFormulaInvariant... pOperands) {
+    return ofSingleLocation(Arrays.asList(pOperands));
+  }
+
+  public static SingleLocationFormulaInvariant ofSingleLocation(Iterable<? extends SingleLocationFormulaInvariant> pOperands) {
+    Set<SingleLocationFormulaInvariant> operands = ImmutableSet.copyOf(pOperands);
+    if (operands.size() == 1) {
+      return operands.iterator().next();
+    }
+    if (operands.size() == 2) {
+      Iterator<SingleLocationFormulaInvariant> opIt = operands.iterator();
+      SingleLocationFormulaInvariant op1 = opIt.next();
+      SingleLocationFormulaInvariant op2 = opIt.next();
+      if (op1.getLocation().equals(op2.getLocation()) && op1.negate().equals(op2)) {
+        return SingleLocationFormulaInvariant.makeBooleanInvariant(op1.getLocation(), false);
+      }
+    }
+    return new SingleLocationConjunction(operands);
   }
 
   private static Iterable<CandidateInvariant> flatten(
@@ -195,6 +222,12 @@ public class CandidateInvariantConjunction {
       return ((Conjunction) pCandidateInvariant).getOperands();
     }
     return Collections.singleton(pCandidateInvariant);
+  }
+
+  public static Iterable<CandidateInvariant> getConjunctiveParts(
+      Iterable<CandidateInvariant> pCandidateInvariants) {
+    return FluentIterable.from(pCandidateInvariants)
+        .transformAndConcat(CandidateInvariantConjunction::getConjunctiveParts);
   }
 
   private static CFANode getSingleLocation(

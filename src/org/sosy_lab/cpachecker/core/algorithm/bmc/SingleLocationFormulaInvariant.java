@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public abstract class SingleLocationFormulaInvariant implements CandidateInvariant {
 
@@ -82,32 +83,103 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
     return AbstractStates.filterLocation(pStates, location);
   }
 
-  public static CandidateInvariant makeBooleanInvariant(CFANode pLocation, final boolean pValue) {
-    return new SingleLocationFormulaInvariant(pLocation) {
+  public SingleLocationFormulaInvariant negate() {
+    return new SingleLocationFormulaInvariant(location) {
+
+      @Override
+      public BooleanFormula getFormula(
+          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
+          throws CPATransferException, InterruptedException {
+        return pFMGR
+            .getBooleanFormulaManager()
+            .not(SingleLocationFormulaInvariant.this.getFormula(pFMGR, pPFMGR, pContext));
+      }
+
+      @Override
+      public SingleLocationFormulaInvariant negate() {
+        return SingleLocationFormulaInvariant.this;
+      }
+
+      @Override
+      public void assumeTruth(ReachedSet pReachedSet) {
+        // Do nothing
+      }
+
+      @Override
+      public String toString() {
+        return "!" + SingleLocationFormulaInvariant.this;
+      }
+    };
+  }
+
+  public static SingleLocationFormulaInvariant makeBooleanInvariant(
+      CFANode pLocation, final boolean pValue) {
+    class SingleLocationBooleanInvariant extends SingleLocationFormulaInvariant {
+
+      private SingleLocationBooleanInvariant() {
+        super(pLocation);
+      }
+
+      private final boolean value = pValue;
 
       @Override
       public BooleanFormula getFormula(
           FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
           throws CPATransferException, InterruptedException {
-        return pFMGR.getBooleanFormulaManager().makeBoolean(pValue);
+        return pFMGR.getBooleanFormulaManager().makeBoolean(value);
       }
-    };
+
+      @Override
+      public SingleLocationFormulaInvariant negate() {
+        return makeBooleanInvariant(pLocation, !pValue);
+      }
+
+      @Override
+      public boolean equals(Object pOther) {
+        if (this == pOther) {
+          return true;
+        }
+        if (pOther instanceof SingleLocationBooleanInvariant) {
+          SingleLocationBooleanInvariant other = (SingleLocationBooleanInvariant) pOther;
+          return getLocation().equals(other.getLocation()) && value == other.value;
+        }
+        return false;
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(pLocation, value);
+      }
+
+      @Override
+      public String toString() {
+        return Boolean.toString(value) + " at " + getLocation();
+      }
+    }
+    return new SingleLocationBooleanInvariant();
   }
 
   public static SingleLocationFormulaInvariant makeLocationInvariant(
       CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pOriginalFormulaManager) {
+    BooleanFormulaManager bfmgr = pOriginalFormulaManager.getBooleanFormulaManager();
+    if (bfmgr.isTrue(pInvariant)) {
+      return SingleLocationFormulaInvariant.makeBooleanInvariant(pLocation, true);
+    }
+    if (bfmgr.isFalse(pInvariant)) {
+      return SingleLocationFormulaInvariant.makeBooleanInvariant(pLocation, false);
+    }
     class SpecificSMTLibLocationFormulaInvariant extends SingleLocationFormulaInvariant {
 
       private final BooleanFormula invariant;
 
       private final SMTLibLocationFormulaInvariant delegate;
 
-      public SpecificSMTLibLocationFormulaInvariant() {
+      public SpecificSMTLibLocationFormulaInvariant(BooleanFormula pInv) {
         super(pLocation);
-        invariant = pInvariant;
+        invariant = pInv;
         delegate =
             new SMTLibLocationFormulaInvariant(
-                pLocation, pOriginalFormulaManager.dumpFormula(pInvariant).toString());
+                pLocation, pOriginalFormulaManager.dumpFormula(pInv).toString());
       }
 
       @Override
@@ -124,7 +196,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
       @Override
       public String toString() {
-        return pInvariant + " at " + getLocation();
+        return invariant + " at " + getLocation();
       }
 
       @Override
@@ -135,17 +207,22 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
         if (pOther instanceof SpecificSMTLibLocationFormulaInvariant) {
           SpecificSMTLibLocationFormulaInvariant other =
               (SpecificSMTLibLocationFormulaInvariant) pOther;
-          return pInvariant.equals(other.invariant) && getLocation().equals(other.getLocation());
+          return delegate.equals(other.delegate);
         }
         return false;
       }
 
       @Override
       public int hashCode() {
-        return Objects.hash(getLocation(), pInvariant);
+        return delegate.hashCode();
+      }
+
+      @Override
+      public SingleLocationFormulaInvariant negate() {
+        return new SpecificSMTLibLocationFormulaInvariant(bfmgr.not(invariant));
       }
     }
-    return new SpecificSMTLibLocationFormulaInvariant();
+    return new SpecificSMTLibLocationFormulaInvariant(pInvariant);
   }
 
   public static CandidateInvariant makeLocationInvariant(
@@ -214,14 +291,14 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       }
       if (pOther instanceof SMTLibLocationFormulaInvariant) {
         SMTLibLocationFormulaInvariant other = (SMTLibLocationFormulaInvariant) pOther;
-        return invariant.equals(other.invariant);
+        return getLocation().equals(other.getLocation()) && invariant.equals(other.invariant);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return invariant.hashCode();
+      return Objects.hash(getLocation(), invariant.hashCode());
     }
 
     @Override

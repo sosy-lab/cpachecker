@@ -21,12 +21,34 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.cpa.splitter.heuristics;
 
-import java.util.Set;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import java.util.Collection;
+import java.util.Collections;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
-public interface SuccessorViolation {
+public class SplitAtAssumes implements SplitHeuristic {
 
-  Set<BooleanFormula> getViolationAssertion();
+  public SplitAtAssumes() {}
+
+  @Override
+  public boolean removeSplitIndices(final CFAEdge pCfaEdge) {
+    return false;
+  }
+
+  @Override
+  public Collection<Integer> getIndicesToRemove(final CFAEdge pCfaEdge) {
+    return Collections.emptyList();
+  }
+
+  @Override
+  public boolean divideSplitIndices(CFAEdge pCfaEdge) {
+    return pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
+  }
+
+  @Override
+  public int divideIntoHowManyParts(CFAEdge pCfaEdge) {
+    return 2;
+  }
 }

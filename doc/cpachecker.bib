@@ -1,206 +1,106 @@
+% Papers about CPAchecker (except those from the Software Systems Lab).
+% Please add your papers here,
+% they will then be added to the publications list on the CPAchecker webpage:
+% https://cpachecker.sosy-lab.org/doc.php
+% You can use the keys pdf and url to link to a PDF version and the supplementary webpage.
 
-% Rules for this file:
-
-% Remove technical reports if conference/journal paper is available
-% Order by year
-% Abbreviate given names
-% No duplicate entries
-
-% 2007
-
-@InProceedings{CPA,
-  author =     {D.~Beyer and T.~A.~Henzinger and G.~Th{\'e}oduloz},
-  title =      {Configurable Software Verification:
-                Concretizing the Convergence of 
-                Model Checking and Program Analysis},
-  booktitle =  {Proc.\ CAV},
-  publisher =  {Springer},
-  series =     {LNCS~4590},
-  pages =      {504-518},
-  year =       {2007},
-  isbn =       {978-3-540-73367-6},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2007-CAV.Configurable_Software_Verification.pdf},
-}
-
-% 2008
-
-@InProceedings{CPAplus,
-  author =     {D.~Beyer and T.~A.~Henzinger and 
-                G.~Th{\'e}oduloz},
-  title =      {Program Analysis with Dynamic Precision Adjustment},
-  booktitle =  {Proc.\ ASE},
-  publisher =  {IEEE},
-  pages =      {29-38},
-  year =       {2008},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2008-ASE.Program_Analysis_with_Dynamic_Precision_Adjustment.pdf},
-}
-
-% 2009
-
-@InProceedings{LBE,
-  author    = {D.~Beyer and A.~Cimatti and A.~Griggio and M.~E.~Keremoglu and R.~Sebastiani},
-  title     = {Software Model Checking via Large-Block Encoding},
-  booktitle = {Proc.\ FMCAD},
-  year      = {2009},
-  pages     = {25-32},
-  publisher = {IEEE},
-  Url =       {http://www.sosy-lab.org/~dbeyer/Publications/2009-FMCAD.Software_Model_Checking_via_Large-Block_Encoding.pdf},
-}
-
-% 2010
-
-@InProceedings{ABE,
-  author =     {D.~Beyer and M.~E.~Keremoglu and P.~Wendler},
-  title =      {Predicate Abstraction with Adjustable-Block Encoding},
-  booktitle =  {Proc.\ FMCAD},
-  pages =      {189-197},
-  year =       {2010},
-  publisher =  {FMCAD},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2010-FMCAD.Predicate_Abstraction_with_Adjustable-Block_Encoding.pdf},
-}
-
-% 2011
-
-@InProceedings{CPACHECKER,
-  author =     {D.~Beyer and M.~E.~Keremoglu},
-  title =      {{{\sc CPAchecker}}: A Tool for Configurable Software Verification},
-  booktitle =  {Proc.\ CAV},
-  publisher =  {Springer},
-  series =     {LNCS~6806},
-  pages =      {184-190},
-  year =       {2011},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2011-CAV.CPAchecker_A_Tool_for_Configurable_Software_Verification.pdf},
-}
-
-% 2012
-
-@InProceedings{ConditionalModelChecking,
-  author =     {D.~Beyer and T.~A.~Henzinger and M.~E.~Keremoglu and P.~Wendler},
-  title =      {Conditional Model Checking: {A} Technique to Pass Information between Verifiers},
-  booktitle =  {Proc.\ FSE},
-  publisher =  {ACM},
-  articleno =  {57},
-  pages =      {},
-  year =       {2012},
-  isbn =       {978-1-4503-1614-9},
-  Url =        {http://www.sosy-lab.org/~dbeyer/Publications/2012-FSE.Conditional_Model_Checking.pdf},
-}
-
-@InProceedings{IMPACT-COMPARISON,
-  author =     {D.~Beyer and P.~Wendler},
-  title =      {Algorithms for Software Model Checking: Predicate Abstraction vs. {{\sc Impact}}},
-  booktitle =  {Proc.\ FMCAD},
-  publisher =  {FMCAD},
-  pages =      {106-113},
-  year =       {2012},
-  isbn =       {978-1-4673-4831-7},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2012-FMCAD.Algorithms_for_Software_Model_Checking.pdf}
-}
-
-% 2013
-
-@InProceedings{CPAexplicit,
-  author =     {D.~Beyer and S.~L{\"o}we},
-  title =      {Explicit-State Software Model Checking Based on {CEGAR} and Interpolation},
-  booktitle =  {Proc.\ FASE},
-  publisher =  {Springer},
-  series =     {LNCS~7793},
-  pages =      {146-162},
-  year =       {2013},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2013-FASE.Explicit-State_Software_Model_Checking_Based_on_CEGAR_and_Interpolation.pdf},
-}
-
-@InProceedings{REUSE-Reach,
-  author =     {D.~Beyer and A.~Holzer and M.~Tautschnig and H.~Veith},
-  title =      {Information Reuse for Multi-goal Reachability Analyses},
-  booktitle =  {Proc.\ ESOP},
-  publisher =  {Springer},
-  series =     {LNCS~7792},
-  pages =      {472-491},
-  year =       {2013},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2013-ESOP.Information_Reuse_for_Multi-goal_Reachability_Analyses.pdf},
-}
-
-@InProceedings{SPLverifier,
-  author =     {S.~Apel and A.~v.~Rhein and P.~Wendler and A.~Gr{\"o}{\ss}linger and D.~Beyer},
-  title =      {Strategies for Product-Line Verification: Case Studies and Experiments},
-  booktitle =  {Proc.\ ICSE},
-  publisher =  {IEEE},
-  pages =      {482-491},
-  year =       {2013},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2013-ICSE.Strategies_for_Product-Line_Verification.pdf},
-}
-
-@inproceedings{ReuseVerificationResultsSPIN,
-  author     = {D.~Beyer and P.~Wendler},
-  title      = {Reuse of Verification Results: 
-                Conditional Model Checking, Precision Reuse, 
-                and Verification Witnesses},
-  booktitle  = {Proc.\ SPIN},
-  series    = {LNCS~7976},
+@inproceedings{CPALIEN-COMP14,
+  author    = {Petr M{\"{u}}ller and
+               Tom{\'{a}}s Vojnar},
+  title     = {CPAlien: Shape Analyzer for CPAChecker (Competition Contribution)},
+  booktitle = {Proceedings of the 20th International Conference on
+                  Tools and Algorithms for the Construction and of Analysis Systems (TACAS~2014, Grenoble, France, April 5-13)},
+  editor    = {E.~Abraham and K. Havelund},
+  series    = {LNCS~8413},
+  pages     = {395--397},
   publisher = {Springer},
-  year       = {2013},
-  pages      = {1-17},
-  ee         = {http://dx.doi.org/10.1007/978-3-642-39176-7_1},
-  doi        = {10.1007/978-3-642-39176-7_1},
-  Url        = {http://www.sosy-lab.org/~dbeyer/Publications/2013-SPIN.Reuse_of_Verification_Results.pdf}
+  year      = {2014},
+  url       = {https://doi.org/10.1007/978-3-642-54862-8_28},
+  doi       = {10.1007/978-3-642-54862-8_28},
+  keyword   = {CPAchecker,SV-COMP,Software Model Checking},
 }
 
-@inproceedings{PrecisionReuse,
-  author    = {D.~Beyer and S.~L{\"o}we and E.~Novikov and A.~Stahlbauer and P.~Wendler},
-  title     = {Precision reuse for efficient regression verification},
-  booktitle = {Proc.\ ESEC/FSE},
+@inproceedings{ProgramsFromProofsGI,
+  author    = {Daniel Wonisch and
+               Alexander Schremmer and
+               Heike Wehrheim},
+  editor    = {Wilhelm Hasselbring and
+               Nils Christian Ehmke},
+  title     = {Programs from Proofs - Approach and Applications},
+  booktitle = {Tagungsband Software Engineering 2014, Fachtagung des GI-Fachbereichs Softwaretechnik,
+               25. Februar - 28. Februar 2014, Kiel, Deutschland},
+  series    = {{LNI}~227},
+  pages     = {67--68},
+  publisher = {{GI}},
+  year      = {2014},
+  keyword   = {CPAchecker,Software Model Checking},
+}
+
+@inproceedings{ProgramsFromProofs,
+  author    = {Daniel Wonisch and
+               Alexander Schremmer and
+               Heike Wehrheim},
+  editor    = {Natasha Sharygina and
+               Helmut Veith},
+  title     = {Programs from Proofs - {A} {PCC} Alternative},
+  booktitle = {Proceedings of the 25th International Conference on
+               Computer Aided Verification (CAV~2013, Saint Petersburg, Russia, July 13-19, 2013)},
+  series    = {LNCS~8044},
+  pages     = {912--927},
+  publisher = {Springer},
   year      = {2013},
-  pages     = {389-399},
-  publisher = {ACM},
-  Url       = {http://www.sosy-lab.org/~dbeyer/Publications/2013-FSE.Precision_Reuse_for_Efficient_Regression_Verification.pdf},
+  url       = {https://doi.org/10.1007/978-3-642-39799-8_65},
+  doi       = {10.1007/978-3-642-39799-8_65},
+  keyword   = {CPAchecker,Software Model Checking},
 }
 
-@InProceedings{CPABDD,
-  author =     {D. Beyer and A. Stahlbauer},
-  title =      {{BDD}-Based Software Model Checking with {{\sc CPAchecker}}},
-  booktitle =  {Proc.\ MEMICS},
-  publisher =  {Springer},
-  series =     {LNCS~7721},
-  pages =      {1-11},
-  year =       {2013},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2013-MEMICS.BDD-Based_Software_Model_Checking_with_CPAchecker.pdf},
+@inproceedings{ZeroOverheadRuntimeMonitoring,
+  author    = {Daniel Wonisch and
+               Alexander Schremmer and
+               Heike Wehrheim},
+  editor    = {Robert M. Hierons and
+               Mercedes G. Merayo and
+               Mario Bravetti},
+  title     = {Zero Overhead Runtime Monitoring},
+  booktitle = {Proceedings of the 11th International Conference on
+               Software Engineering and Formal Methods (SEFM~2013, Madrid, Spain, September 25-27, 2013)},
+  series    = {LNCS~8137},
+  pages     = {244--258},
+  publisher = {Springer},
+  year      = {2013},
+  url       = {https://doi.org/10.1007/978-3-642-40561-7_17},
+  doi       = {10.1007/978-3-642-40561-7_17},
+  keyword   = {CPAchecker,Software Model Checking},
 }
 
-@InProceedings{DomainTypes,
-  author =     {S.~Apel and D.~Beyer and K.~Friedberger and F.~Raimondi and A.~v.~Rhein},
-  title =      {Domain Types: Abstract-Domain Selection Based on Variable Usage},
-  booktitle =  {Proc.\ HVC},
-  publisher =  {Springer},
-  series =     {LNCS~8244},
-  pages =      {262–278},
-  year =       {2013},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2013-HVC.Domain_Types_Abstract-Domain_Selection_Based_on_Variable_Usage.pdf},
+@inproceedings{BAM,
+  author    = {Daniel Wonisch and
+               Heike Wehrheim},
+  editor    = {Toshiaki Aoki and
+               Kenji Taguchi},
+  title     = {Predicate Analysis with Block-Abstraction Memoization},
+  booktitle = {Proceedings of the 14th International Conference on
+               Formal Engineering Methods, (ICFEM~2012, Kyoto, Japan, November 12-16, 2012)},
+  series    = {LNCS~7635},
+  pages     = {332--347},
+  publisher = {Springer},
+  year      = {2012},
+  url       = {https://doi.org/10.1007/978-3-642-34281-3_24},
+  doi       = {10.1007/978-3-642-34281-3_24},
+  keyword   = {CPAchecker,Software Model Checking},
 }
 
-% 2014
-
-@InProceedings{CPAppEngine,
-  author =     {D.~Beyer and G.~Dresler and P.~Wendler},
-  title =      {Software Verification in the {Google} {App-Engine} Cloud},
-  booktitle =  {Proc.\ CAV},
-  publisher =  {Springer},
-  series =     {LNCS~8559},
-  pages =      {327-333},
-  year =       {2014},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2014-CAV.Software_Verification_in_the_Google_App-Engine_Cloud.pdf},
+@inproceedings{CPACHECKERMEMO-COMP12,
+  author    = {Daniel Wonisch},
+  title     = {Block Abstraction Memoization for CPAchecker (Competition Contribution)},
+  booktitle = {Proceedings of the 18th International Conference on
+                  Tools and Algorithms for the Construction and of Analysis Systems (TACAS~2012, Tallinn, Estonia, March 27-30)},
+  editor    = {C.~Flanagan and B.~K{\"o}nig},
+  series    = {LNCS~7214},
+  pages     = {531--533},
+  publisher = {Springer},
+  year      = {2012},
+  url       = {https://doi.org/10.1007/978-3-642-28756-5_41},
+  doi       = {10.1007/978-3-642-28756-5_41},
+  keyword   = {CPAchecker,SV-COMP,Software Model Checking},
 }
-
-% 2015
-
-@TechReport{kInduction-TR,
-  author =     {D.~Beyer and M.~Dangl and P.~Wendler},
-  title =      {Combining k-Induction with Continuously-Refined Invariants},
-  institution ={University of Passau},
-  number =     {MIP-1503},
-  month =      {January},
-  year =       {2015},
-  Url  =       {http://www.sosy-lab.org/~dbeyer/Publications/2015-PA-TR1503.Combining_k-Induction_with_Continuously-Refined_Invariants.pdf},
-}
-
-

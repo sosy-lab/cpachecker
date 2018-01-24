@@ -21,12 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
-
-import java.util.Set;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-
-public interface SuccessorViolation {
-
-  Set<BooleanFormula> getViolationAssertion();
-}
+/** CPA for recording how to split a program into conditions */
+package org.sosy_lab.cpachecker.cpa.splitter;

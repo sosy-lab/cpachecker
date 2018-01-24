@@ -56,6 +56,11 @@ public class NegatedCounterexampleToInductivity extends SingleLocationFormulaInv
     return model;
   }
 
+  @Override
+  public SingleLocationFormulaInvariant negate() {
+    return getCTI();
+  }
+
   public CounterexampleToInductivity getCTI() {
     return operand;
   }

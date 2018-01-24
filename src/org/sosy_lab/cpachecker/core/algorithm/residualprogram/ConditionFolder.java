@@ -34,7 +34,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -60,11 +62,106 @@ public abstract class ConditionFolder {
   public enum FOLDER_TYPE {
     CFA,
     LOOP_ALWAYS,
+    LOOP_BOUND,
     LOOP_SAME_CONTEXT
   }
 
   private interface MergeUpdateFunction {
     public void updateAfterMerging(ARGState merged, ARGState mergedInto);
+  }
+
+  private static class LoopInfo {
+
+    private final CFA cfa;
+    private final Map<CFANode, Loop> loopMap;
+
+    public LoopInfo(final CFA pCfa) {
+      cfa = pCfa;
+      loopMap = buildLoopMap();
+    }
+
+    private Map<CFANode, Loop> buildLoopMap() {
+      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.getAllNodes().size());
+
+      Deque<Pair<CFANode, List<Loop>>> toVisit = new ArrayDeque<>();
+      toVisit.push(Pair.of(cfa.getMainFunction(), Collections.emptyList()));
+      loopMapResult.put(cfa.getMainFunction(), null);
+      List<Loop> loopStack, succLoopStack;
+      CFANode node;
+      Loop l, lsucc;
+
+      while (!toVisit.isEmpty()) {
+        node = toVisit.peek().getFirst();
+        loopStack = toVisit.pop().getSecond();
+        if (loopStack.isEmpty()) {
+          l = null;
+        } else {
+          l = loopStack.get(loopStack.size() - 1);
+        }
+
+        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          if (loopMapResult.containsKey(edge.getSuccessor())) {
+            continue;
+          }
+
+          succLoopStack = loopStack;
+          lsucc = l;
+
+          if (edge instanceof CFunctionReturnEdge) {
+            continue; // successor treated by FunctionSummaryEdge
+          }
+
+          if (edge instanceof CFunctionCallEdge) {
+            lsucc = null;
+            succLoopStack = Collections.emptyList();
+          }
+
+          while (lsucc != null && lsucc.getOutgoingEdges().contains(edge)) {
+            // leave edge
+            succLoopStack = new ArrayList<>(succLoopStack);
+            succLoopStack.remove(succLoopStack.size() - 1);
+            if (succLoopStack.isEmpty()) {
+              lsucc = null;
+            } else {
+              lsucc = succLoopStack.get(succLoopStack.size() - 1);
+            }
+          }
+
+          if (cfa.getAllLoopHeads().get().contains(edge.getSuccessor())) {
+            Set<Loop> loop = cfa.getLoopStructure().get().getLoopsForLoopHead(edge.getSuccessor());
+            assert (loop.size() >= 1);
+            lsucc = loop.iterator().next();
+
+            if (succLoopStack == loopStack) {
+              succLoopStack = new ArrayList<>(succLoopStack);
+            }
+            succLoopStack.add(lsucc);
+          }
+
+          loopMapResult.put(edge.getSuccessor(), lsucc);
+          toVisit.push(Pair.of(edge.getSuccessor(), succLoopStack));
+        }
+      }
+      return loopMapResult;
+    }
+
+    public boolean leaveLoop(final CFAEdge pEdge) {
+      Loop l = loopMap.get(pEdge.getPredecessor());
+      return l != null
+          && !(pEdge instanceof CFunctionCallEdge)
+          && !(pEdge instanceof CFunctionReturnEdge)
+          && l != loopMap.get(pEdge.getSuccessor())
+          && !l.getLoopNodes().contains(pEdge.getSuccessor());
+    }
+
+    public boolean startNewLoopIteation(final CFAEdge pEdge) {
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
+        if (loopMap.get(pEdge.getPredecessor()) == loopMap.get(pEdge.getSuccessor())) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 
   @Options(prefix = "residualprogram")
@@ -88,6 +185,8 @@ public abstract class ConditionFolder {
         return new CFAFolder();
       case LOOP_ALWAYS:
         return new LoopAlwaysFolder(pCfa);
+      case LOOP_BOUND:
+        return new BoundUnrollingLoopFolder(pCfa, pConfig);
       case LOOP_SAME_CONTEXT:
         return new ContextLoopFolder(pCfa);
       default:
@@ -199,214 +298,29 @@ public abstract class ConditionFolder {
     }
   }
 
-  private static class LoopAlwaysFolder extends ConditionFolder {
+  private abstract static class LoopFolder<T> extends ConditionFolder {
+    protected final CFA cfa;
+    protected final Set<CFANode> loopHeads;
 
-    private final CFA cfa;
-
-    public LoopAlwaysFolder(final CFA pCfa) {
+    public LoopFolder(final CFA pCfa) {
       cfa = pCfa;
+      Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
+      loopHeads = cfa.getAllLoopHeads().get();
     }
+
+    protected abstract T getRootFoldId(final ARGState pRoot);
+
+    protected abstract T adaptID(CFAEdge pEdge, T pFoldID, ARGState pChild);
 
     @Override
     public ARGState foldARG(final ARGState pRoot) {
-      Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
-      Set<CFANode> loopHeads = cfa.getAllLoopHeads().get();
 
-      Map<ARGState, ARGState> oldARGToFoldedState = new HashMap<>();
-      Map<ARGState, Set<ARGState>> newARGToFoldedStates = new HashMap<>();
-      Map<Pair<CFANode, CallstackStateEqualsWrapper>, ARGState> loopHeadToFoldedARGState =
-          new HashMap<>();
-
-      MergeUpdateFunction update = (merge, mergeInto) -> {
-        for (ARGState oldState : newARGToFoldedStates.remove(merge)) {
-          oldARGToFoldedState.put(oldState, mergeInto);
-          newARGToFoldedStates.get(mergeInto).add(oldState);
-        }
-      };
-
-      Deque<ARGState> waitlist = new ArrayDeque<>();
-      ARGState foldedNode;
-      Set<ARGState> foldedStates;
-      ARGState oldState, newState, newChild;
-      CFANode loc;
-      CFAEdge edge;
-      Pair<CFANode, CallstackStateEqualsWrapper> inlinedLoc;
-
-      foldedNode = new ARGState(pRoot.getWrappedState(), null);
-      oldARGToFoldedState.put(pRoot, foldedNode);
-      foldedStates = new HashSet<>();
-      foldedStates.add(pRoot);
-      newARGToFoldedStates.put(foldedNode, foldedStates);
-      loc = AbstractStates.extractLocation(pRoot);
-      if (loopHeads.contains(loc)) {
-        loopHeadToFoldedARGState.put(
-            Pair.of(
-                loc,
-                new CallstackStateEqualsWrapper(
-                    AbstractStates.extractStateByType(pRoot, CallstackState.class))),
-            foldedNode);
-      }
-      waitlist.push(pRoot);
-
-      while (!waitlist.isEmpty()) {
-        oldState = waitlist.pop();
-
-        for (ARGState child : oldState.getChildren()) {
-          loc = AbstractStates.extractLocation(child);
-          edge = oldState.getEdgeToChild(child);
-          child = getUncoveredChild(child);
-
-          if (!oldARGToFoldedState.containsKey(child)) {
-            if (loopHeads.contains(loc)) {
-              inlinedLoc =
-                  Pair.of(
-                      loc,
-                      new CallstackStateEqualsWrapper(
-                          AbstractStates.extractStateByType(child, CallstackState.class)));
-              foldedNode = loopHeadToFoldedARGState.get(inlinedLoc);
-              if (foldedNode == null) {
-                foldedNode = new ARGState(child.getWrappedState(), null);
-                foldedStates = new HashSet<>();
-                newARGToFoldedStates.put(foldedNode, foldedStates);
-                loopHeadToFoldedARGState.put(inlinedLoc, foldedNode);
-              }
-
-            } else {
-              foldedNode = null;
-              newState = oldARGToFoldedState.get(oldState);
-              for (ARGState newARGChild : newState.getChildren()) {
-                if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
-                  foldedNode = newARGChild;
-                  // there should be only one such child, thus break
-                  break;
-                }
-              }
-
-              if (foldedNode == null) {
-                foldedNode = new ARGState(child.getWrappedState(), null);
-                foldedStates = new HashSet<>();
-                newARGToFoldedStates.put(foldedNode, foldedStates);
-              }
-            }
-
-            oldARGToFoldedState.put(child, foldedNode);
-            newARGToFoldedStates.get(foldedNode).add(child);
-            waitlist.push(child);
-
-          } else {
-            newState = oldARGToFoldedState.get(oldState);
-            newChild = null;
-            for (ARGState newARGChild : newState.getChildren()) {
-              if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
-                newChild = newARGChild;
-                // there should be only one such child, thus break
-                break;
-              }
-            }
-
-            if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
-              merge(
-                  newChild,
-                  oldARGToFoldedState.get(child),
-                  update);
-            }
-          }
-
-          newChild = oldARGToFoldedState.get(child);
-          newChild.addParent(oldARGToFoldedState.get(oldState));
-        }
-      }
-
-      return oldARGToFoldedState.get(pRoot);
-    }
-  }
-
-  private static class ContextLoopFolder extends ConditionFolder {
-    private final Map<CFANode, Loop> loopMap;
-
-    private final CFA cfa;
-
-    private ContextLoopFolder(final CFA pCfa) {
-      cfa = pCfa;
-
-      loopMap = buildLoopMap();
-    }
-
-    private Map<CFANode, Loop> buildLoopMap() {
-      Map<CFANode, Loop> loopMap = Maps.newHashMapWithExpectedSize(cfa.getAllNodes().size());
-
-      Deque<Pair<CFANode, List<Loop>>> toVisit = new ArrayDeque<>();
-      toVisit.push(Pair.of(cfa.getMainFunction(), Collections.emptyList()));
-      loopMap.put(cfa.getMainFunction(), null);
-      List<Loop> loopStack, succLoopStack;
-      CFANode node;
-      Loop l, lsucc;
-
-      while (!toVisit.isEmpty()) {
-        node = toVisit.peek().getFirst();
-        loopStack = toVisit.pop().getSecond();
-        if (loopStack.isEmpty()) {
-          l = null;
-        } else {
-          l = loopStack.get(loopStack.size() - 1);
-        }
-
-        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-          if (loopMap.containsKey(edge.getSuccessor())) {
-            continue;
-          }
-
-          succLoopStack = loopStack;
-          lsucc = l;
-
-          if (edge instanceof CFunctionReturnEdge) {
-            continue; // successor treated by FunctionSummaryEdge
-          }
-
-          if (edge instanceof CFunctionCallEdge) {
-            lsucc = null;
-            succLoopStack = Collections.emptyList();
-          }
-
-          while (lsucc != null && lsucc.getOutgoingEdges().contains(edge)) {
-            // leave edge
-            succLoopStack = new ArrayList<>(succLoopStack);
-            succLoopStack.remove(succLoopStack.size() - 1);
-            if (succLoopStack.isEmpty()) {
-              lsucc = null;
-            } else {
-              lsucc = succLoopStack.get(succLoopStack.size() - 1);
-            }
-          }
-
-          if (cfa.getAllLoopHeads().get().contains(edge.getSuccessor())) {
-            Set<Loop> loop = cfa.getLoopStructure().get().getLoopsForLoopHead(edge.getSuccessor());
-            assert (loop.size() >= 1);
-            lsucc = loop.iterator().next();
-
-            if (succLoopStack == loopStack) {
-              succLoopStack = new ArrayList<>(succLoopStack);
-            }
-            succLoopStack.add(lsucc);
-          }
-
-          loopMap.put(edge.getSuccessor(), lsucc);
-          toVisit.push(Pair.of(edge.getSuccessor(), succLoopStack));
-        }
-      }
-      return loopMap;
-    }
-
-    @Override
-    public ARGState foldARG(final ARGState pRoot) {
-      Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
-      Set<CFANode> loopHeads = cfa.getAllLoopHeads().get();
 
       Map<ARGState, ARGState> oldARGToFoldedState = new HashMap<>();
       Map<ARGState, Set<ARGState>> newARGToFoldedStates = new HashMap<>();
       // takes function call context and taken branches into account
-      Map<String, ARGState> loopContextToFoldedARGState = new HashMap<>();
-      Map<ARGState, Set<String>> foldedARGStateToLoopContexts = new HashMap<>();
+      Map<T, ARGState> loopHeadFoldIDToFoldedARGState = new HashMap<>();
+      Map<ARGState, Set<T>> foldedARGStateToFoldIDs = new HashMap<>();
 
       MergeUpdateFunction update =
           (merge, mergeInto) -> {
@@ -414,22 +328,22 @@ public abstract class ConditionFolder {
               oldARGToFoldedState.put(oldState, mergeInto);
               newARGToFoldedStates.get(mergeInto).add(oldState);
             }
-            if (foldedARGStateToLoopContexts.containsKey(merge)) {
-              for (String loopContext : foldedARGStateToLoopContexts.remove(merge)) {
-                loopContextToFoldedARGState.put(loopContext, mergeInto);
-                foldedARGStateToLoopContexts.get(mergeInto).add(loopContext);
+            if (foldedARGStateToFoldIDs.containsKey(merge)) {
+              for (T foldID : foldedARGStateToFoldIDs.remove(merge)) {
+                loopHeadFoldIDToFoldedARGState.put(foldID, mergeInto);
+                foldedARGStateToFoldIDs.get(mergeInto).add(foldID);
               }
             }
           };
 
-      Deque<Pair<ARGState, String>> waitlist = new ArrayDeque<>();
+      Deque<Pair<ARGState, T>> waitlist = new ArrayDeque<>();
       ARGState foldedNode;
       Set<ARGState> foldedStates;
-      Set<String> loopContexts;
+      Set<T> loopContexts;
       ARGState oldState, newState, newChild;
       CFANode loc, locChild;
       CFAEdge edge;
-      String loopContext, loopContextChild;
+      T foldID, foldIDChild;
 
       foldedNode = new ARGState(pRoot.getWrappedState(), null);
       oldARGToFoldedState.put(pRoot, foldedNode);
@@ -437,17 +351,18 @@ public abstract class ConditionFolder {
       foldedStates.add(pRoot);
       newARGToFoldedStates.put(foldedNode, foldedStates);
       loc = AbstractStates.extractLocation(pRoot);
+      T id = getRootFoldId(pRoot);
       if (loopHeads.contains(loc)) {
-        loopContextToFoldedARGState.put("", foldedNode);
+        loopHeadFoldIDToFoldedARGState.put(id, foldedNode);
         loopContexts = new HashSet<>();
-        loopContexts.add("");
-        foldedARGStateToLoopContexts.put(foldedNode, loopContexts);
+        loopContexts.add(id);
+        foldedARGStateToFoldIDs.put(foldedNode, loopContexts);
       }
-      waitlist.push(Pair.of(pRoot, ""));
+      waitlist.push(Pair.of(pRoot, id));
 
       while (!waitlist.isEmpty()) {
         oldState = waitlist.peek().getFirst();
-        loopContext = waitlist.pop().getSecond();
+        foldID = waitlist.pop().getSecond();
         loc = AbstractStates.extractLocation(oldState);
 
         for (ARGState child : oldState.getChildren()) {
@@ -455,18 +370,18 @@ public abstract class ConditionFolder {
           edge = oldState.getEdgeToChild(child);
           child = getUncoveredChild(child);
 
-          loopContextChild = extendLoopContext(edge, loopContext);
+          foldIDChild = adaptID(edge, foldID, child);
 
           if (!oldARGToFoldedState.containsKey(child)) {
             if (loopHeads.contains(locChild)
-                && loopContextToFoldedARGState.containsKey(loopContextChild)) {
-              foldedNode = loopContextToFoldedARGState.get(loopContextChild);
+                && loopHeadFoldIDToFoldedARGState.containsKey(foldIDChild)) {
+              foldedNode = loopHeadFoldIDToFoldedARGState.get(foldIDChild);
               assert (locChild == AbstractStates.extractLocation(foldedNode));
             } else {
               foldedNode = null;
               newState = oldARGToFoldedState.get(oldState);
               for (ARGState newARGChild : newState.getChildren()) {
-                if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+                if (edge.equals(newState.getEdgeToChild(newARGChild))) {
                   foldedNode = newARGChild;
                   // there should be only one such child, thus break
                   break;
@@ -480,23 +395,23 @@ public abstract class ConditionFolder {
               }
 
               if (loopHeads.contains(locChild)) {
-                loopContextToFoldedARGState.put(loopContextChild, foldedNode);
-                if (!foldedARGStateToLoopContexts.containsKey(foldedNode)) {
-                  foldedARGStateToLoopContexts.put(foldedNode, new HashSet<>());
+                loopHeadFoldIDToFoldedARGState.put(foldIDChild, foldedNode);
+                if (!foldedARGStateToFoldIDs.containsKey(foldedNode)) {
+                  foldedARGStateToFoldIDs.put(foldedNode, new HashSet<>());
                 }
-                foldedARGStateToLoopContexts.get(foldedNode).add(loopContextChild);
+                foldedARGStateToFoldIDs.get(foldedNode).add(foldIDChild);
               }
             }
 
             oldARGToFoldedState.put(child, foldedNode);
             newARGToFoldedStates.get(foldedNode).add(child);
-            waitlist.push(Pair.of(child, loopContextChild));
+            waitlist.push(Pair.of(child, foldIDChild));
 
           } else {
             newState = oldARGToFoldedState.get(oldState);
             newChild = null;
             for (ARGState newARGChild : newState.getChildren()) {
-              if (edge != null && edge.equals(newState.getEdgeToChild(newARGChild))) {
+              if (edge.equals(newState.getEdgeToChild(newARGChild))) {
                 newChild = newARGChild;
                 // there should be only one such child, thus break
                 break;
@@ -504,10 +419,7 @@ public abstract class ConditionFolder {
             }
 
             if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
-              merge(
-                  newChild,
-                  oldARGToFoldedState.get(child),
-                 update);
+              merge(newChild, oldARGToFoldedState.get(child), update);
             }
           }
 
@@ -518,16 +430,59 @@ public abstract class ConditionFolder {
 
       return oldARGToFoldedState.get(pRoot);
     }
+  }
+
+  private static class LoopAlwaysFolder extends LoopFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
+
+    public LoopAlwaysFolder(final CFA pCfa) {
+      super(pCfa);
+    }
+
+    @Override
+    protected @Nullable Pair<CFANode, CallstackStateEqualsWrapper> adaptID(
+        final CFAEdge pEdge,
+        final Pair<CFANode, CallstackStateEqualsWrapper> pFoldID,
+        final ARGState child) {
+      return getID(pEdge.getSuccessor(), child);
+    }
+
+    @Override
+    protected @Nullable Pair<CFANode, CallstackStateEqualsWrapper> getRootFoldId(
+        final ARGState pRoot) {
+      return getID(AbstractStates.extractLocation(pRoot), pRoot);
+    }
+
+    private @Nullable Pair<CFANode, CallstackStateEqualsWrapper> getID(
+        final CFANode node, final ARGState argNode) {
+      if (loopHeads.contains(node)) {
+        return Pair.of(
+            node,
+            new CallstackStateEqualsWrapper(
+                AbstractStates.extractStateByType(argNode, CallstackState.class)));
+      }
+
+      return null;
+    }
+  }
+
+  private static class ContextLoopFolder extends LoopFolder<String> {
+    private final LoopInfo loopInfo;
+
+    private ContextLoopFolder(final CFA pCfa) {
+      super(pCfa);
+
+      loopInfo = new LoopInfo(cfa);
+    }
 
     private String extendLoopContext(final CFAEdge pEdge, final String pLoopContext) {
       String newLoopContext = pLoopContext;
       // leave loop
-      if (leaveLoop(pEdge) && newLoopContext.contains("|")) {
+      if (loopInfo.leaveLoop(pEdge) && newLoopContext.contains("|")) {
         newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|"));
       }
 
       // next loop iteration
-      if (startNewLoopIteation(pEdge) && newLoopContext.contains("|")) {
+      if (loopInfo.startNewLoopIteation(pEdge) && newLoopContext.contains("|")) {
         newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("|"));
       }
 
@@ -559,22 +514,90 @@ public abstract class ConditionFolder {
       return newLoopContext;
     }
 
-    private boolean leaveLoop(final CFAEdge pEdge) {
-      Loop l = loopMap.get(pEdge.getPredecessor());
-      return l != null
-          && !(pEdge instanceof CFunctionCallEdge)
-          && !(pEdge instanceof CFunctionReturnEdge)
-          && l != loopMap.get(pEdge.getSuccessor())
-          && !l.getLoopNodes().contains(pEdge.getSuccessor());
+    @Override
+    protected String getRootFoldId(final ARGState pRoot) {
+      CFANode rootLoc = AbstractStates.extractLocation(pRoot);
+      if (cfa.getAllLoopHeads().get().contains(rootLoc)) {
+        return "|L" + rootLoc.getNodeNumber() + "L";
+      }
+      return "";
     }
 
-    private boolean startNewLoopIteation(final CFAEdge pEdge) {
-      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
-        if (loopMap.get(pEdge.getPredecessor()) == loopMap.get(pEdge.getSuccessor())) {
-          return true;
-        }
-      }
-      return false;
+    @Override
+    protected String adaptID(
+        final CFAEdge pEdge, final String pLoopContext, final ARGState pChild) {
+      return extendLoopContext(pEdge, pLoopContext);
     }
+  }
+
+  @Options(prefix = "residualprogram")
+  private static class BoundUnrollingLoopFolder extends LoopFolder<String> {
+
+    private final LoopInfo loopInfo;
+
+    @Option(
+      secure = true,
+      description = "How often may a loop be unrolled before it must be folded",
+      name = "unrollBound"
+    )
+    @IntegerOption(min = 2)
+    private int maxUnrolls = 2;
+
+    private BoundUnrollingLoopFolder(final CFA pCfa, final Configuration pConfig)
+        throws InvalidConfigurationException {
+      super(pCfa);
+      pConfig.inject(this);
+      loopInfo = new LoopInfo(pCfa);
+    }
+
+    @Override
+    protected String getRootFoldId(final ARGState pRoot) {
+      CFANode rootLoc = AbstractStates.extractLocation(pRoot);
+      if (cfa.getAllLoopHeads().get().contains(rootLoc)) {
+        return "|" + rootLoc.getNodeNumber() + ":1";
+      }
+      return "";
+    }
+
+    @Override
+    protected String adaptID(CFAEdge pEdge, String pFoldID, ARGState pChild) {
+      String newLoopBoundID = pFoldID;
+      int prevLoopIt = 0;
+
+      // leave loop
+      if (loopInfo.leaveLoop(pEdge) && newLoopBoundID.contains("|")) {
+        newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
+      }
+
+      // next loop iteration
+      if (loopInfo.startNewLoopIteation(pEdge) && newLoopBoundID.contains("|")) {
+        prevLoopIt =
+            Integer.parseInt(
+                newLoopBoundID.substring(
+                    newLoopBoundID.lastIndexOf(":") + 1, newLoopBoundID.length() - 1));
+        newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
+      }
+
+      if (pEdge instanceof FunctionReturnEdge && newLoopBoundID.contains("/")) {
+        newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("/"));
+      }
+      if (pEdge instanceof FunctionCallEdge) {
+        newLoopBoundID =
+            newLoopBoundID
+                + "/"
+                + "N"
+                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
+                + "N";
+      }
+
+      // enter loop or start next iteration
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
+        newLoopBoundID +=
+            "|" + pEdge.getSuccessor().getNodeNumber() + ":" + Math.max(prevLoopIt + 1, maxUnrolls);
+      }
+
+      return newLoopBoundID;
+    }
+
   }
 }

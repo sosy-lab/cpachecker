@@ -21,12 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.cpa.splitter.heuristics;
 
-import java.util.Set;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import java.util.Collection;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public interface SuccessorViolation {
+public interface SplitHeuristic {
 
-  Set<BooleanFormula> getViolationAssertion();
+  // methods should be have the same for both kinds of assumption edges
+
+  boolean removeSplitIndices(CFAEdge pCfaEdge);
+
+  Collection<Integer> getIndicesToRemove(CFAEdge pCfaEdge);
+
+  boolean divideSplitIndices(CFAEdge pCfaEdge);
+
+  int divideIntoHowManyParts(CFAEdge pCfaEdge);
+
+  interface Factory {
+    SplitHeuristic create(Configuration pConfig, LogManager pLogger, int pMaxSplits)
+        throws InvalidConfigurationException;
+  }
 }
