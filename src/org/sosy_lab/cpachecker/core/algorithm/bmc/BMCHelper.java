@@ -258,7 +258,7 @@ public final class BMCHelper {
     return FluentIterable.from(pStates).filter(END_STATE_FILTER::test);
   }
 
-  private static FluentIterable<AbstractState> filterIterationsBetween(
+  public static FluentIterable<AbstractState> filterIterationsBetween(
       Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
     Objects.requireNonNull(pLoopHeads);
     if (pMinIt > pMaxIt) {
@@ -312,6 +312,7 @@ public final class BMCHelper {
      * 2) It is more convenient to make a loop-head state "belong"
      * to the previous iteration instead of the one it starts.
      */
+
     return !AbstractStates.IS_TARGET_STATE.apply(state)
             && getLocationPredicate(pLoopHeads).test(state)
         ? pIteration + 1

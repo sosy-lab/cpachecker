@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,13 +43,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class PredicateAbstractionStrategy implements AbstractionStrategy {
 
-  private final Map<PredicateAbstractionManager, Multimap<CFANode, AbstractionPredicate>>
+  private final Map<PredicateAbstractionManager, SetMultimap<CFANode, AbstractionPredicate>>
       precision = new HashMap<>();
+
+  private final Multimap<PredicateAbstractionManager, AbstractionPredicate> globalPrecision =
+      HashMultimap.create();
 
   private final SetMultimap<FormulaType<Formula>, Formula> seenVariables = HashMultimap.create();
 
   private Multimap<CFANode, AbstractionPredicate> getPrecision(PredicateAbstractionManager pPam) {
-    Multimap<CFANode, AbstractionPredicate> pamPrecision = precision.get(pPam);
+    SetMultimap<CFANode, AbstractionPredicate> pamPrecision = precision.get(pPam);
     if (pamPrecision == null) {
       pamPrecision = HashMultimap.create();
       precision.put(pPam, pamPrecision);
@@ -54,11 +60,27 @@ public class PredicateAbstractionStrategy implements AbstractionStrategy {
     return pamPrecision;
   }
 
+  private Collection<AbstractionPredicate> getPrecision(
+      PredicateAbstractionManager pPam, CFANode pLocation) {
+    Collection<AbstractionPredicate> localPrec = getPrecision(pPam).get(pLocation);
+    Collection<AbstractionPredicate> globalPrec = globalPrecision.get(pPam);
+    if (globalPrec.isEmpty()) {
+      return localPrec;
+    }
+    if (localPrec.isEmpty()) {
+      return globalPrec;
+    }
+    List<AbstractionPredicate> combined = new ArrayList<>(localPrec.size() + globalPrec.size());
+    combined.addAll(localPrec);
+    combined.addAll(globalPrec);
+    return combined;
+  }
+
   @Override
   public BooleanFormula performAbstraction(
       PredicateAbstractionManager pPam, CFANode pLocation, BooleanFormula pFormula)
       throws InterruptedException, SolverException {
-    return pPam.computeAbstraction(pFormula, getPrecision(pPam).get(pLocation));
+    return pPam.computeAbstraction(pFormula, getPrecision(pPam, pLocation));
   }
 
   @Override
@@ -66,7 +88,15 @@ public class PredicateAbstractionStrategy implements AbstractionStrategy {
       PredicateAbstractionManager pPam, CFANode pLocation, Iterable<BooleanFormula> pPredicates) {
     Multimap<CFANode, AbstractionPredicate> pamPrecision = getPrecision(pPam);
     for (BooleanFormula pPredicate : pPredicates) {
-      pamPrecision.putAll(pLocation, pPam.getPredicatesForAtomsOf(pPredicate));
+      pamPrecision.put(pLocation, pPam.getPredicateFor(pPredicate));
+    }
+  }
+
+  @Override
+  public void refinePrecision(
+      PredicateAbstractionManager pPam, Iterable<BooleanFormula> pPredicates) {
+    for (BooleanFormula pPredicate : pPredicates) {
+      globalPrecision.put(pPam, pPam.getPredicateFor(pPredicate));
     }
   }
 

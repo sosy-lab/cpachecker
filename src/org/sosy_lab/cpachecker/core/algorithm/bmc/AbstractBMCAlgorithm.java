@@ -379,9 +379,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       if (inductionResult.isSuccessful()) {
         Iterables.addAll(
             confirmedCandidates,
-            CandidateInvariantConjunction.getConjunctiveParts(candidate));
+            CandidateInvariantCombination.getConjunctiveParts(candidate));
         candidateGenerator.confirmCandidates(
-            CandidateInvariantConjunction.getConjunctiveParts(candidate));
+            CandidateInvariantCombination.getConjunctiveParts(candidate));
         if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
           sound = true;
           break;
@@ -750,7 +750,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
                         .toSet();
                 // Create the conjunction only if there are actually at least two operands
                 if (remainingFunctionCandidateInvariants.size() > 1) {
-                  next = CandidateInvariantConjunction.of(remainingFunctionCandidateInvariants);
+                  next = CandidateInvariantCombination.conjunction(remainingFunctionCandidateInvariants);
                 }
               }
             }
@@ -758,7 +758,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             // Create the conjunction over all operands, if we have not done so yet
             if (next == null && !allComputed && remainingLoopHeadCandidateInvariants.size() > 1) {
               allComputed = true;
-              next = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
+              next = CandidateInvariantCombination.conjunction(remainingLoopHeadCandidateInvariants);
             }
 
             return next != null;

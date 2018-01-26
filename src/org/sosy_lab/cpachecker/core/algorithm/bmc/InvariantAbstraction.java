@@ -24,22 +24,30 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.Multimap;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public interface InvariantAbstraction<S, T> {
+public interface InvariantAbstraction<S extends CandidateInvariant, T extends CandidateInvariant> {
 
   T performAbstraction(
       ProverEnvironmentWithFallback pProver,
       FormulaManagerView pFmgr,
       PredicateAbstractionManager pPam,
       S pInvariant,
+      AssertCandidate pAssertPredecessor,
+      AssertCandidate pAssertSuccessor,
+      AssertCandidate pAssertCti,
       Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
-      Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
-      Optional<BooleanFormula> pAssertedInvariants)
-      throws SolverException, InterruptedException;
+      Optional<BooleanFormula> pAssertedInvariants,
+      NextCti pNextCti)
+      throws SolverException, InterruptedException, CPATransferException;
+
+  public static interface NextCti {
+
+    Optional<CounterexampleToInductivity> getNextCti() throws SolverException;
+  }
 }

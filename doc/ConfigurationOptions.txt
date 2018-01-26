@@ -2895,9 +2895,31 @@ pcc.strategy = no default value
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
+# Which strategy to use to perform abstraction of successful proof results or
+# when lifting with the lifting strategy ABSTRACTION_BASED_LIFTING.
+pdr.abstractionStrategy = NO_ABSTRACTION
+  enum:     [NO_ABSTRACTION, ALLSAT_BASED_PREDICATE_ABSTRACTION]
+
+# Whether to adjust conditions (i.e. increment k) after frontier extension.
+pdr.conditionAdjustmentCriterion = NEVER
+  enum:     [NEVER, ALWAYS]
+
 # Try to shorten the lifted state further by checking if the lifting query is
 # still valid after dropping each literal in turn.
 pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
+
+# Which strategy to use to perform invariant refinement on successful proof
+# results.
+pdr.invariantRefinementStrategy = NO_REFINEMENT
+  enum:     [NO_REFINEMENT, ABSTRACTION_REFINEMENT]
+
+# Maximum number of ignored lifting abstraction failures within a
+# proof-obligation trace.
+pdr.liftingAbstractionFailureThreshold = 0
+
+# Which strategy to use to abstract counterexamples to inductivity.
+pdr.liftingStrategy = NO_LIFTING
+  enum:     [NO_LIFTING, UNSAT_CORE_BASED_LIFTING, ABSTRACTION_BASED_LIFTING]
 
 # The maximum number of attempts at dropping literals during the inductive
 # generalization of states.
@@ -2906,6 +2928,10 @@ pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
 # The maximum number of literals that should be dropped during the inductive
 # generalization of states.
 pdr.maxLiteralsToDropDuringGeneralization = 5
+
+# Maximum number of accepted spurious transitions within a proof-obligation
+# trace before a consecution abstraction failure triggers a refinement.
+pdr.spuriousTransitionCountThreshold = 0
 
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope

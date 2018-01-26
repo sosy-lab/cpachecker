@@ -23,21 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public interface Lifting {
+public interface AssertCandidate {
 
-  boolean canLift();
-
-  SymbolicCandiateInvariant lift(
-      FormulaManagerView pFMGR,
-      PredicateAbstractionManager pPam,
-      ProverEnvironmentWithFallback pProver,
-      BlockedCounterexampleToInductivity pBlockedConcreteCti,
-      AssertCandidate pAssertPredecessor)
-      throws CPATransferException, InterruptedException, SolverException;
+  BooleanFormula assertCandidate(CandidateInvariant pCandidate)
+      throws CPATransferException, InterruptedException;
 }

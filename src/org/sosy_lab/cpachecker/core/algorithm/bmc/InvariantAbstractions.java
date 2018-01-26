@@ -23,16 +23,22 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -57,9 +63,12 @@ public class InvariantAbstractions {
         FormulaManagerView pFmgr,
         PredicateAbstractionManager pPam,
         S pInvariant,
+        AssertCandidate pAssertPredecessor,
+        AssertCandidate pAssertSuccessorViolation,
+        AssertCandidate pAssertCti,
         Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
-        Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
-        Optional<BooleanFormula> pAssertedInvariants) {
+        Optional<BooleanFormula> pAssertedInvariants,
+        NextCti pNextCti) {
       return pInvariant;
     }
   }
@@ -69,108 +78,251 @@ public class InvariantAbstractions {
     return (NoAbstraction<S>) NoAbstraction.INSTANCE;
   }
 
-  private static class InterpolatingAbstraction
-      implements InvariantAbstraction<
-          SingleLocationFormulaInvariant, SingleLocationFormulaInvariant> {
-
-    private final AbstractionStrategy abstractionStrategy;
-
-    private InterpolatingAbstraction(AbstractionStrategy pAbstractionStrategy) {
-      abstractionStrategy = Objects.requireNonNull(pAbstractionStrategy);
-    }
+  public static enum InterpolatingAbstraction
+      implements InvariantAbstraction<SymbolicCandiateInvariant, SymbolicCandiateInvariant> {
+    INSTANCE;
 
     @Override
-    public SingleLocationFormulaInvariant performAbstraction(
+    public SymbolicCandiateInvariant performAbstraction(
         ProverEnvironmentWithFallback pProver,
         FormulaManagerView pFmgr,
         PredicateAbstractionManager pPam,
-        SingleLocationFormulaInvariant pInvariant,
+        SymbolicCandiateInvariant pInvariant,
+        AssertCandidate pAssertPredecessor,
+        AssertCandidate pAssertSuccessorViolation,
+        AssertCandidate pAssertCti,
         Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
-        Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
-        Optional<BooleanFormula> pAssertedInvariants)
-        throws SolverException, InterruptedException {
-      BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
-      CFANode location = pInvariant.getLocation();
-      SingleLocationFormulaInvariant refinedInvariant;
+        Optional<BooleanFormula> pAssertedInvariants,
+        NextCti pNextCti)
+        throws SolverException, InterruptedException, CPATransferException {
 
-      // There are two non-trivial cases we should consider (for efficiency):
-      // Case 1: There was exactly one state, so we already have nice conjunction.
-      // The conjunctive parts should have been pushed separately,
-      // to the special handling of InterpolatingAbstractionSuccessorViolation.
-      // We can detect this case by checking if there is more than one assertion id:
-      if (pSuccessorViolationAssertionIds.size() > 1) {
-        // The relevant assertion ids for interpolation are those where the formulas
-        // are not in the set of state formulas:
-        Collection<Object> invariantAssertionIds =
-            Maps.filterKeys(
-                    pSuccessorViolationAssertionIds,
-                    formula -> !pStateViolationAssertions.keySet().contains(formula))
-                .values();
-        BooleanFormula interpolant = pProver.getInterpolant(invariantAssertionIds);
-        interpolant = bfmgr.not(pFmgr.uninstantiate(interpolant));
-        abstractionStrategy.refinePrecision(pPam, location, pFmgr.extractAtoms(interpolant, true));
-        refinedInvariant =
-            SingleLocationFormulaInvariant.makeLocationInvariant(location, interpolant, pFmgr);
-      } else {
-
-        // Case 2: There was more than one state (or zero states),
-        // and so the violation formula is one big disjunction.
-        // What we want to do now is pop this disjunction
-        // and push (and interpolate for) each disjunctive component separately.
-        // Since the disjunction was unsatisfiable,
-        // each disjunctive component must be unsatisfiable, too:
-        BooleanFormula interpolantDisjunction = bfmgr.makeFalse();
-        if (!pStateViolationAssertions.isEmpty()) {
-          if (pAssertedInvariants.isPresent()) {
-            pProver.pop(); // Pop asserted invariants
-          }
-          pProver.pop(); // Pop the big disjunction
-          if (pAssertedInvariants.isPresent()) {
-            pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
-          }
-
-          boolean firstIteration = true;
-          for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> entry :
-              pStateViolationAssertions.asMap().entrySet()) {
-            if (firstIteration) {
-              firstIteration = false;
-            } else {
-              pProver.pop(); // Pop the previous state assertion
-            }
-
-            pProver.push(entry.getKey()); // Push the state assertion
-            // Push the invariant-violation assertion
-            Object invariantViolationAssertionId = pProver.push(bfmgr.and(entry.getValue()));
-            if (!pProver.isUnsat()) {
-              pProver.pop(); // Pop the invariant-violation assertion
-              return pInvariant;
-            }
-            BooleanFormula interpolant =
-                pProver.getInterpolant(Arrays.asList(invariantViolationAssertionId));
-            interpolant = bfmgr.not(pFmgr.uninstantiate(interpolant));
-            interpolantDisjunction = bfmgr.or(interpolantDisjunction, interpolant);
-
-            pProver.pop(); // Pop the invariant-violation assertion
-          }
-          // We deliberately leave the last state assertion on the stack
-          // so that at least the stack size is the same as before
-        }
-        if (!bfmgr.isTrue(interpolantDisjunction)) {
-          abstractionStrategy.refinePrecision(
-              pPam, location, Collections.singleton(interpolantDisjunction));
-        }
-        refinedInvariant =
-            SingleLocationFormulaInvariant.makeLocationInvariant(
-                location, interpolantDisjunction, pFmgr);
+      if (pStateViolationAssertions.isEmpty()) {
+        return pInvariant;
       }
-      refinedInvariant =
-          CandidateInvariantConjunction.ofSingleLocation(pInvariant, refinedInvariant);
+
+      Set<BooleanFormula> relevantLiterals = new LinkedHashSet<>();
+
+      if (pAssertedInvariants.isPresent()) {
+        pProver.pop(); // Pop asserted invariants
+      }
+      pProver.pop(); // Pop the big violation disjunction
+
+      if (pAssertedInvariants.isPresent()) {
+        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+      }
+
+      // Find the relevant literals for each disjunct
+      for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> entry :
+          pStateViolationAssertions.asMap().entrySet()) {
+
+        pProver.push(entry.getKey()); // Push the state assertion
+
+        Collection<BooleanFormula> invariantAssertionComponents = entry.getValue();
+        if (!determineRelevantLiterals(
+            pProver, pFmgr, invariantAssertionComponents, relevantLiterals)) {
+          // We deliberately leave the previous state assertion
+          // so that the prover stack size matches,
+          // which makes prover cleanup easier for the caller.
+          return pInvariant;
+        }
+        pProver.pop(); // Pop the previous state assertion
+      }
+
+      // Now we need to ensure consecution still succeeds
+      // or restore it by adding literals back
+      return restoreConsecution(
+          pProver,
+          pFmgr,
+          relevantLiterals,
+          pInvariant,
+          pAssertPredecessor,
+          pAssertSuccessorViolation,
+          pAssertCti,
+          pAssertedInvariants,
+          pNextCti);
+    }
+
+    private SymbolicCandiateInvariant restoreConsecution(
+        ProverEnvironmentWithFallback pProver,
+        FormulaManagerView pFmgr,
+        Set<BooleanFormula> pChosenLiterals,
+        SymbolicCandiateInvariant pInvariant,
+        AssertCandidate pAssertPredecessor,
+        AssertCandidate pAssertSuccessorViolation,
+        AssertCandidate pAssertCti,
+        Optional<BooleanFormula> pAssertedInvariants,
+        NextCti pNextCti)
+        throws InterruptedException, CPATransferException, SolverException {
+      BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+
+      Map<BooleanFormula, SymbolicCandiateInvariant> remainingLiterals = new LinkedHashMap<>();
+
+      for (BooleanFormula literal : SymbolicCandiateInvariant.getConjunctionOperands(
+          pFmgr, pInvariant.getPlainFormula(pFmgr), true)) {
+        if (!pChosenLiterals.contains(literal)) {
+          SymbolicCandiateInvariant symbolicLiteral =
+              SymbolicCandiateInvariant.makeSymbolicInvariant(
+                  pInvariant.getApplicableLocations(), pInvariant.getStateFilter(), literal, pFmgr);
+          remainingLiterals.put(literal, symbolicLiteral);
+        }
+      }
+
+      boolean restored = remainingLiterals.isEmpty();
+
+      SymbolicCandiateInvariant refinedInvariant =
+          SymbolicCandiateInvariant.makeSymbolicInvariant(
+              pInvariant.getApplicableLocations(),
+              pInvariant.getStateFilter(),
+              bfmgr.not(bfmgr.and(pChosenLiterals)),
+              pFmgr);
+
+      // If all literals were added already, we can immediately return,
+      // we just need to restore the stack size by pushing a dummy
+      if (remainingLiterals.isEmpty()) {
+        pProver.push(bfmgr.makeTrue());
+        return refinedInvariant;
+      }
+
+      if (pAssertedInvariants.isPresent()) {
+        pProver.pop(); // Pop asserted invariants
+      }
+      pProver.pop(); // Pop the candidate assertion
+      if (pAssertedInvariants.isPresent()) {
+        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+      }
+
+      while (!restored) {
+        // Check consecution
+        pProver.push(pAssertPredecessor.assertCandidate(refinedInvariant));
+        pProver.push(pAssertSuccessorViolation.assertCandidate(refinedInvariant));
+
+        // If consecution succeeds, we are done
+        if (pProver.isUnsat()) {
+          restored = true;
+        } else {
+          // If consecution does not succeed, check why (cti)
+          // so that we can try to fix the problem
+          Optional<CounterexampleToInductivity> cti = pNextCti.getNextCti();
+          if (!cti.isPresent()) {
+            return pInvariant;
+          }
+
+          // Find and add all literals whose negation is implied by the model.
+          // This should be rather cheap to do.
+          SymbolicCandiateInvariant assertableCti =
+              SymbolicCandiateInvariant.makeSymbolicInvariant(
+                  pInvariant.getApplicableLocations(),
+                  pInvariant.getStateFilter(),
+                  cti.get().getFormula(pFmgr),
+                  pFmgr);
+          pProver.push(pAssertCti.assertCandidate(assertableCti));
+
+          Iterator<Map.Entry<BooleanFormula, SymbolicCandiateInvariant>> remainingLiteralIterator =
+              remainingLiterals.entrySet().iterator();
+          boolean isUnsat = false;
+          do {
+            Map.Entry<BooleanFormula, SymbolicCandiateInvariant> remainingLiteral = remainingLiteralIterator.next();
+            pProver.push(pAssertPredecessor.assertCandidate(remainingLiteral.getValue()));
+            isUnsat = pProver.isUnsat();
+            pProver.pop(); // Pop the literal
+            if (isUnsat) {
+              remainingLiteralIterator.remove();
+              pChosenLiterals.add(remainingLiteral.getKey());
+            }
+          } while (!isUnsat && remainingLiteralIterator.hasNext());
+
+          pProver.pop(); // Pop the model
+
+          if (!isUnsat) {
+            return pInvariant;
+          }
+
+          refinedInvariant =
+              SymbolicCandiateInvariant.makeSymbolicInvariant(
+                  pInvariant.getApplicableLocations(),
+                  pInvariant.getStateFilter(),
+                  bfmgr.not(bfmgr.and(pChosenLiterals)),
+                  pFmgr);
+
+          if (remainingLiterals.isEmpty()) {
+            return refinedInvariant;
+          }
+
+          pProver.pop(); // Pop the predecessor assertion
+          pProver.pop(); // Pop the successor-violation assertion
+          restored = false;
+        }
+      }
+
       return refinedInvariant;
     }
-  }
 
-  static InvariantAbstraction<SingleLocationFormulaInvariant, SingleLocationFormulaInvariant>
-      interpolatingAbstraction(AbstractionStrategy pAbstractionStrategy) {
-    return new InterpolatingAbstraction(pAbstractionStrategy);
+    private boolean determineRelevantLiterals(
+        ProverEnvironmentWithFallback pProver,
+        FormulaManagerView pFmgr,
+        Collection<BooleanFormula> pInvariantAssertionComponents,
+        Set<BooleanFormula> pRelevantLiterals)
+        throws SolverException, InterruptedException {
+
+      Set<BooleanFormula> literals =
+          FluentIterable.from(pInvariantAssertionComponents)
+              .transformAndConcat(
+                  c -> SymbolicCandiateInvariant.getConjunctionOperands(pFmgr, c, true))
+              .stream()
+              .collect(Collectors.toCollection(HashSet::new));
+
+      // We need to use all state literals
+      Iterator<BooleanFormula> literalIterator = literals.iterator();
+      while (literalIterator.hasNext()) {
+        BooleanFormula literal = literalIterator.next();
+        BooleanFormula uninstantiatedRemainingLiteral = pFmgr.uninstantiate(literal);
+        if (pFmgr
+            .extractVariableNames(uninstantiatedRemainingLiteral)
+            .contains(TotalTransitionRelation.getLocationVariableName())) {
+          pRelevantLiterals.add(uninstantiatedRemainingLiteral);
+          literalIterator.remove();
+        }
+      }
+
+      boolean isUnsat = pProver.isUnsat();
+
+      // Push as many of the remaining invariant-violation assertions as required for
+      // unsatisfiability
+      literalIterator = literals.iterator();
+      List<BooleanFormula> pushedLiterals = new ArrayList<>();
+      while (!isUnsat && literalIterator.hasNext()) {
+        BooleanFormula literal = literalIterator.next();
+        pProver.push(literal);
+        pushedLiterals.add(literal);
+        literalIterator.remove();
+        isUnsat = pProver.isUnsat();
+      }
+      int nPushedLiterals = pushedLiterals.size();
+
+      if (!pProver.isUnsat()) {
+        // Pop the invariant-violation assertions
+        IntStream.range(0, nPushedLiterals)
+            .forEach(
+                i -> {
+                  pProver.pop();
+                });
+        return false;
+      }
+
+      if (pProver.supportsUnsatCoreGeneration()) {
+        pushedLiterals.retainAll(pProver.getUnsatCore());
+      }
+      for (BooleanFormula pushedLiteral : pushedLiterals) {
+        pRelevantLiterals.add(pFmgr.uninstantiate(pushedLiteral));
+      }
+
+      // Pop the invariant-violation assertions
+      IntStream.range(0, nPushedLiterals)
+          .forEach(
+              i -> {
+                pProver.pop();
+              });
+      return true;
+    }
   }
 }

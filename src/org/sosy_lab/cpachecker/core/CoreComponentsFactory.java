@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -60,7 +61,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
@@ -366,14 +366,14 @@ public class CoreComponentsFactory {
 
       if (usePDR) {
         algorithm =
-            new PDRAlgorithm(
-                reachedSetFactory,
-                cpa,
+            new PdrAlgorithm(
                 algorithm,
-                cfa,
+                cpa,
                 config,
                 logger,
+                reachedSetFactory,
                 shutdownNotifier,
+                cfa,
                 specification);
       }
 

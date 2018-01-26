@@ -83,35 +83,6 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
     return AbstractStates.filterLocation(pStates, location);
   }
 
-  public SingleLocationFormulaInvariant negate() {
-    return new SingleLocationFormulaInvariant(location) {
-
-      @Override
-      public BooleanFormula getFormula(
-          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
-          throws CPATransferException, InterruptedException {
-        return pFMGR
-            .getBooleanFormulaManager()
-            .not(SingleLocationFormulaInvariant.this.getFormula(pFMGR, pPFMGR, pContext));
-      }
-
-      @Override
-      public SingleLocationFormulaInvariant negate() {
-        return SingleLocationFormulaInvariant.this;
-      }
-
-      @Override
-      public void assumeTruth(ReachedSet pReachedSet) {
-        // Do nothing
-      }
-
-      @Override
-      public String toString() {
-        return "!" + SingleLocationFormulaInvariant.this;
-      }
-    };
-  }
-
   public static SingleLocationFormulaInvariant makeBooleanInvariant(
       CFANode pLocation, final boolean pValue) {
     class SingleLocationBooleanInvariant extends SingleLocationFormulaInvariant {
@@ -127,11 +98,6 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
           FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
           throws CPATransferException, InterruptedException {
         return pFMGR.getBooleanFormulaManager().makeBoolean(value);
-      }
-
-      @Override
-      public SingleLocationFormulaInvariant negate() {
-        return makeBooleanInvariant(pLocation, !pValue);
       }
 
       @Override
@@ -215,11 +181,6 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       @Override
       public int hashCode() {
         return delegate.hashCode();
-      }
-
-      @Override
-      public SingleLocationFormulaInvariant negate() {
-        return new SpecificSMTLibLocationFormulaInvariant(bfmgr.not(invariant));
       }
     }
     return new SpecificSMTLibLocationFormulaInvariant(pInvariant);

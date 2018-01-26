@@ -23,21 +23,38 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
-public interface Lifting {
+public class ProofResult {
 
-  boolean canLift();
+  private final boolean successful;
 
-  SymbolicCandiateInvariant lift(
-      FormulaManagerView pFMGR,
-      PredicateAbstractionManager pPam,
-      ProverEnvironmentWithFallback pProver,
-      BlockedCounterexampleToInductivity pBlockedConcreteCti,
-      AssertCandidate pAssertPredecessor)
-      throws CPATransferException, InterruptedException, SolverException;
+  private final Optional<AlgorithmStatus> earlyReturn;
+
+  protected ProofResult(boolean pSuccessful) {
+    successful = pSuccessful;
+    earlyReturn = Optional.empty();
+  }
+
+  protected ProofResult(AlgorithmStatus pEarlyReturn) {
+    successful = false;
+    earlyReturn = Optional.of(pEarlyReturn);
+  }
+
+  public boolean isSuccessful() {
+    return successful;
+  }
+
+  public Optional<AlgorithmStatus> getEarlyReturn() {
+    return earlyReturn;
+  }
+
+  @Override
+  public String toString() {
+    if (earlyReturn.isPresent()) {
+      return earlyReturn.get().toString();
+    }
+    return successful ? "Successful" : "Failure";
+  }
 }

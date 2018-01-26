@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.IntStream;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -45,13 +45,13 @@ enum StandardLiftings implements Lifting {
     }
 
     @Override
-    public SingleLocationFormulaInvariant lift(
+    public SymbolicCandiateInvariant lift(
         FormulaManagerView pFMGR,
         PredicateAbstractionManager pPam,
         ProverEnvironmentWithFallback pProver,
-        CounterexampleToInductivity pCti,
-        AssertPredecessor pAssertPredecessor) {
-      return pCti;
+        BlockedCounterexampleToInductivity pBlockedConcreteCti,
+        AssertCandidate pAssertPredecessor) {
+      return pBlockedConcreteCti;
     }
   },
 
@@ -63,57 +63,60 @@ enum StandardLiftings implements Lifting {
     }
 
     @Override
-    public SingleLocationFormulaInvariant lift(
+    public SymbolicCandiateInvariant lift(
         FormulaManagerView pFMGR,
         PredicateAbstractionManager pPam,
         ProverEnvironmentWithFallback pProver,
-        CounterexampleToInductivity pCti,
-        AssertPredecessor pAssertPredecessor)
+        BlockedCounterexampleToInductivity pBlockedConcreteCti,
+        AssertCandidate pAssertPredecessor)
         throws CPATransferException, InterruptedException, SolverException {
       return unsatBasedLifting(
           pFMGR,
           pProver,
-          pCti,
-          cti -> cti.splitLiterals(pFMGR, true),
+          pBlockedConcreteCti,
+          pBlockedConcreteCti.getCti().splitLiterals(pFMGR, true),
           pAssertPredecessor,
           DoNothingUnsatCallback.INSTANCE);
     }
 
   };
 
-  public static <T extends SingleLocationFormulaInvariant>
-      SingleLocationFormulaInvariant unsatBasedLifting(
-          FormulaManagerView pFMGR,
-          ProverEnvironmentWithFallback pProver,
-          T pCti,
-          Function<? super T, Iterable<? extends CandidateInvariant>> pSplitLiterals,
-          AssertPredecessor pAssertPredecessor,
-          UnsatCallback pUnsatCallback)
-          throws CPATransferException, InterruptedException, SolverException {
-    Iterator<? extends CandidateInvariant> literalIterator = pSplitLiterals.apply(pCti).iterator();
+  public static <T extends SymbolicCandiateInvariant> SymbolicCandiateInvariant unsatBasedLifting(
+      FormulaManagerView pFMGR,
+      ProverEnvironmentWithFallback pProver,
+      T pBlockedCti,
+      Iterable<? extends CandidateInvariant> pCtiLiterals,
+      AssertCandidate pAssertPredecessor,
+      UnsatCallback pUnsatCallback)
+      throws CPATransferException, InterruptedException, SolverException {
+    Iterator<? extends CandidateInvariant> literalIterator = pCtiLiterals.iterator();
+    assert !pProver.isUnsat();
     boolean isUnsat = false;
     List<BooleanFormula> assertedLiterals = new ArrayList<>();
     List<Object> ctiLiteralAssertionIds = new ArrayList<>();
     while (literalIterator.hasNext() && !isUnsat) {
       CandidateInvariant literal = literalIterator.next();
-      BooleanFormula literalFormula = pAssertPredecessor.assertPredecessor(literal);
+      BooleanFormula literalFormula = pAssertPredecessor.assertCandidate(literal);
       assertedLiterals.add(literalFormula);
       ctiLiteralAssertionIds.add(pProver.push(literalFormula));
       isUnsat = pProver.isUnsat();
     }
     int pushes = assertedLiterals.size();
-    final SingleLocationFormulaInvariant liftedCTI;
+    final SymbolicCandiateInvariant liftedBlockedCti;
     if (isUnsat) {
       if (assertedLiterals.size() > 1 && pProver.supportsUnsatCoreGeneration()) {
         assertedLiterals.retainAll(pProver.getUnsatCore());
       }
       BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-      liftedCTI =
-          SingleLocationFormulaInvariant.makeLocationInvariant(
-              pCti.getLocation(), pFMGR.uninstantiate(bfmgr.and(assertedLiterals)), pFMGR);
-      pUnsatCallback.unsat(liftedCTI, ctiLiteralAssertionIds);
+      liftedBlockedCti =
+          SymbolicCandiateInvariant.makeSymbolicInvariant(
+              pBlockedCti.getApplicableLocations(),
+              pBlockedCti.getStateFilter(),
+              pFMGR.makeNot(pFMGR.uninstantiate(bfmgr.and(assertedLiterals))),
+              pFMGR);
+      pUnsatCallback.unsat(liftedBlockedCti, ctiLiteralAssertionIds);
     } else {
-      liftedCTI = pCti;
+      liftedBlockedCti = pBlockedCti;
     }
     // Pop all asserted literals
     IntStream.range(0, pushes)
@@ -121,12 +124,12 @@ enum StandardLiftings implements Lifting {
             i -> {
               pProver.pop();
             });
-    return liftedCTI;
+    return liftedBlockedCti;
   }
 
   static interface UnsatCallback {
 
-    void unsat(SingleLocationFormulaInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
+    void unsat(SymbolicCandiateInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
         throws SolverException, InterruptedException;
   }
 
@@ -135,8 +138,7 @@ enum StandardLiftings implements Lifting {
     INSTANCE;
 
     @Override
-    public void unsat(
-        SingleLocationFormulaInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds) {
+    public void unsat(SymbolicCandiateInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds) {
       // Do nothing
     }
   }

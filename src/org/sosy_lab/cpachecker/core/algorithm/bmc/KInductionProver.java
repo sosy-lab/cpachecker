@@ -33,10 +33,10 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterati
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantAbstraction.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -408,8 +410,8 @@ class KInductionProver implements AutoCloseable {
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
         bfmgr.and(
-            from(CandidateInvariantConjunction.getConjunctiveParts(
-                    CandidateInvariantConjunction.of(pPredecessorAssumptions)))
+            from(CandidateInvariantCombination.getConjunctiveParts(
+                    CandidateInvariantCombination.conjunction(pPredecessorAssumptions)))
                 .transform(conjunctivePart -> assertions.get(conjunctivePart))
                 .toList());
     // Create the successor violation formula
@@ -429,18 +431,11 @@ class KInductionProver implements AutoCloseable {
     prover.push(successorExistsAssertion);
     prover.push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
     // Assert that the formula is violated at a successor
-    Map<BooleanFormula, Object> successorViolationAssertionIds = new HashMap<>(4);
-    if (successorViolationAssertions.size() == 1) {
-      BooleanFormula singleStateFormula = successorViolationAssertions.keySet().iterator().next();
-      successorViolationAssertionIds.put(singleStateFormula, prover.push(singleStateFormula));
-      BooleanFormula violationFormula =
-          bfmgr.and(successorViolationAssertions.get(singleStateFormula));
-      successorViolationAssertionIds.put(violationFormula, prover.push(violationFormula));
-    } else {
-      successorViolationAssertionIds.put(successorViolation, prover.push(successorViolation));
-    }
+    prover.push(successorViolation);
 
     InductionResult<T> result = null;
+    AssertCandidate assertPredecessor =
+        (p -> assertAt(filterInductiveAssertionIteration(loopHeadStates), p, fmgr, pfmgr, true));
     while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -460,7 +455,7 @@ class KInductionProver implements AutoCloseable {
         // We need to produce the model if we are in the last iteration
         // or want to log the model
         if (!loopHeadInvChanged || logger.wouldBeLogged(Level.ALL)) {
-          ImmutableList<ValueAssignment> modelAssignments = prover.getModelAssignments();
+          List<ValueAssignment> modelAssignments = prover.getModelAssignments();
           if (logger.wouldBeLogged(Level.ALL)) {
             logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
           }
@@ -468,61 +463,75 @@ class KInductionProver implements AutoCloseable {
           if (!loopHeadInvChanged) {
             // We are in the last iteration and failed to prove the candidate invariant
 
-            Set<? extends SingleLocationFormulaInvariant> model = Collections.emptySet();
+            Iterable<? extends SymbolicCandiateInvariant> badStateBlockingClauses =
+                Collections.emptySet();
             BooleanFormula inputAssignments = extractInputAssignments(reached, modelAssignments);
-            Set<CounterexampleToInductivity> detectedCTIs = extractCTIs(reached, modelAssignments);
+            Iterable<CounterexampleToInductivity> detectedCtis =
+                extractCTIs(reached, modelAssignments);
             if (pLifting.canLift()) {
               prover.pop(); // Pop the loop-head invariants
               // Pop the successor violation
-              successorViolationAssertionIds
-                  .values()
-                  .forEach(
-                      id -> {
-                        prover.pop();
-                      });
+              prover.pop();
               // Push the successor assertion
               BooleanFormula candidateAssertion =
                   assertCandidate(reached, pCandidateInvariant, pK + 1);
-              successorViolationAssertionIds =
-                  Collections.singletonMap(candidateAssertion, prover.push(candidateAssertion));
+              prover.push(candidateAssertion);
               prover.push(loopHeadInv); // Push the known loop-head invariants back on
               prover.push(inputAssignments);
-              ImmutableSet.Builder<SingleLocationFormulaInvariant> reducedCTIsBuilder =
+              ImmutableSet.Builder<SymbolicCandiateInvariant> badStateBlockingClauseBuilder =
                   ImmutableSet.builder();
-              for (CounterexampleToInductivity cti : detectedCTIs) {
-                final SingleLocationFormulaInvariant reducedCTI =
+              for (CounterexampleToInductivity cti : detectedCtis) {
+                final SymbolicCandiateInvariant blockedReducedCti =
                     pLifting.lift(
                         fmgr,
                         pam,
                         prover,
-                        cti,
-                        (p ->
-                            assertAt(
-                                filterInductiveAssertionIteration(loopHeadStates),
-                                p,
-                                fmgr,
-                                pfmgr,
-                                true)));
-                reducedCTIsBuilder.add(reducedCTI);
+                        SymbolicCandiateInvariant.blockCti(loopHeads, cti, fmgr),
+                        assertPredecessor);
+                badStateBlockingClauseBuilder.add(blockedReducedCti);
               }
-              model = reducedCTIsBuilder.build();
+              badStateBlockingClauses = badStateBlockingClauseBuilder.build();
               prover.pop(); // Pop input assignments
             } else {
-              model = detectedCTIs;
+              badStateBlockingClauses =
+                  Iterables.transform(
+                      detectedCtis,
+                      cti -> SymbolicCandiateInvariant.blockCti(loopHeads, cti, fmgr));
             }
-            result = InductionResult.getFailed(model, inputAssignments, pK);
+            result = InductionResult.getFailed(badStateBlockingClauses, inputAssignments, pK);
           }
         }
       } else {
+        AssertCandidate assertSuccessorViolation =
+            (candidate) -> {
+              Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
+                  getSuccessorViolationAssertions(pCandidateInvariant, pK + 1);
+              // Record the successor violation formula to reuse its negation as an
+              // assertion in a future induction attempt
+              return BMCHelper.disjoinStateViolationAssertions(bfmgr, succViolationAssertions);
+            };
+        NextCti nextCti =
+            () -> {
+              List<ValueAssignment> modelAssignments = prover.getModelAssignments();
+              Iterable<CounterexampleToInductivity> detectedCtis =
+                  extractCTIs(reached, modelAssignments);
+              if (Iterables.isEmpty(detectedCtis)) {
+                return Optional.empty();
+              }
+              return Optional.of(detectedCtis.iterator().next());
+            };
         T abstractedInvariant =
             pInvariantAbstraction.performAbstraction(
                 prover,
                 fmgr,
                 pam,
                 pCandidateInvariant,
+                assertPredecessor,
+                assertSuccessorViolation,
+                assertPredecessor,
                 successorViolationAssertions,
-                successorViolationAssertionIds,
-                Optional.of(loopHeadInv));
+                Optional.of(loopHeadInv),
+                nextCti);
         result = InductionResult.getSuccessful(abstractedInvariant);
       }
 
@@ -535,12 +544,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Pop invariant successor violation (or, if we lifted a CTI, its assertion)
-    successorViolationAssertionIds
-        .values()
-        .forEach(
-            id -> {
-              prover.pop();
-            });
+    prover.pop();
 
     prover.pop(); // Pop invariant predecessor assertion
     prover.pop(); // Pop end states
