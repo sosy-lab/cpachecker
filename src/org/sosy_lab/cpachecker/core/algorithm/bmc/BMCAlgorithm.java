@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="bmc")
@@ -169,7 +168,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       return super.run(reachedSet);
     } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
+      throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
       invariantGenerator.cancel();
     }
@@ -186,7 +185,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  protected boolean boundedModelCheck(final ReachedSet pReachedSet, final ProverEnvironment pProver, CandidateInvariant pInductionProblem) throws CPATransferException, InterruptedException, SolverException {
+  protected boolean boundedModelCheck(
+      final ReachedSet pReachedSet,
+      final ProverEnvironmentWithFallback pProver,
+      CandidateInvariant pInductionProblem)
+      throws CPATransferException, InterruptedException, SolverException {
     if (!checkTargetStates) {
       return true;
     }
@@ -195,14 +198,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * This method tries to find a feasible path to (one of) the target state(s).
-   * It does so by asking the solver for a satisfying assignment.
+   * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
+   * the solver for a satisfying assignment.
    */
   @Override
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
-      final ProverEnvironment pProver)
+      final ProverEnvironmentWithFallback pProver)
       throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");

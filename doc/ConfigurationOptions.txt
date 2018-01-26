@@ -465,6 +465,9 @@ bmc.invariantsExport = no default value
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
+# Use generalized counterexamples to induction as candidate invariants.
+bmc.usePropertyDirection = false
+
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
@@ -2910,8 +2913,8 @@ pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
 
 # Which strategy to use to perform invariant refinement on successful proof
 # results.
-pdr.invariantRefinementStrategy = NO_REFINEMENT
-  enum:     [NO_REFINEMENT, ABSTRACTION_REFINEMENT]
+pdr.invariantRefinementStrategy = NO_STRENGTHENING
+  enum:     [NO_STRENGTHENING, UNSAT_CORE_BASED_STRENGTHENING]
 
 # Maximum number of ignored lifting abstraction failures within a
 # proof-obligation trace.

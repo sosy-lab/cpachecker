@@ -32,16 +32,21 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -66,7 +71,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
 
   private final Predicate<? super AbstractState> stateFilter;
 
-  private final String textualRepresentation;
+  private final Supplier<String> textualRepresentation;
 
   /** Is the invariant known to be the boolean constant 'false' */
   private boolean isDefinitelyBooleanFalse = false;
@@ -75,7 +80,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
       Iterable<CFANode> pApplicableLocations,
       Predicate<? super AbstractState> pStateFilter,
       String pInvariant,
-      String pTextualRepresentation) {
+      Supplier<String> pTextualRepresentation) {
     applicableLocations = ImmutableSet.copyOf(pApplicableLocations);
     cachedFormulas =
         CacheBuilder.newBuilder()
@@ -109,7 +114,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
 
   @Override
   public String toString() {
-    return textualRepresentation;
+    return textualRepresentation.get();
   }
 
   @Override
@@ -219,7 +224,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
         pApplicableLocations,
         pStateFilter,
         pOriginalFormulaManager.dumpFormula(pInvariant).toString(),
-        pInvariant.toString());
+        pInvariant::toString);
   }
 
   public static Iterable<BooleanFormula> getConjunctionOperands(
@@ -308,7 +313,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
           pFmgr
               .dumpFormula(pFmgr.getBooleanFormulaManager().not(pCtiToBlock.getFormula(pFmgr)))
               .toString(),
-          "");
+          () -> "");
       blockedCti = Objects.requireNonNull(pCtiToBlock);
     }
 
@@ -345,5 +350,29 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
     public int hashCode() {
       return super.hashCode();
     }
+  }
+
+  public static Multimap<Set<AbstractState>, SymbolicCandiateInvariant> indexByApplicableStates(
+      Iterable<SymbolicCandiateInvariant> pCandidateInvariants, Iterable<AbstractState> pStates) {
+    if (Iterables.isEmpty(pCandidateInvariants)) {
+      return ImmutableMultimap.of();
+    }
+    ImmutableMultimap.Builder<Set<AbstractState>, SymbolicCandiateInvariant> builder =
+        ImmutableMultimap.builder();
+
+    Iterator<SymbolicCandiateInvariant> candidateIterator = pCandidateInvariants.iterator();
+    SymbolicCandiateInvariant first = candidateIterator.next();
+    Set<AbstractState> firstApplicableStates = Sets.newHashSet(first.filterApplicable(pStates));
+    builder.put(firstApplicableStates, first);
+    while (candidateIterator.hasNext()) {
+      SymbolicCandiateInvariant current = candidateIterator.next();
+      if (current.stateFilter.equals(first.stateFilter) && current.applicableLocations.equals(first.applicableLocations)) {
+        builder.put(firstApplicableStates, current);
+      } else {
+        builder.put(Sets.newHashSet(current.filterApplicable(pStates)), current);
+      }
+    }
+
+    return builder.build();
   }
 }

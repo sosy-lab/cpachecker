@@ -44,21 +44,21 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class InvariantAbstractions {
+public class InvariantStrengthenings {
 
-  private InvariantAbstractions() {
+  private InvariantStrengthenings() {
     // Utility class
   }
 
   private static class NoAbstraction<S extends CandidateInvariant>
-      implements InvariantAbstraction<S, S> {
+      implements InvariantStrengthening<S, S> {
 
     private static NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
 
     private NoAbstraction() {}
 
     @Override
-    public S performAbstraction(
+    public S strengthenInvariant(
         ProverEnvironmentWithFallback pProver,
         FormulaManagerView pFmgr,
         PredicateAbstractionManager pPam,
@@ -74,16 +74,16 @@ public class InvariantAbstractions {
   }
 
   @SuppressWarnings("unchecked")
-  public static <S extends CandidateInvariant> InvariantAbstraction<S, S> noAbstraction() {
+  public static <S extends CandidateInvariant> InvariantStrengthening<S, S> noStrengthening() {
     return (NoAbstraction<S>) NoAbstraction.INSTANCE;
   }
 
-  public static enum InterpolatingAbstraction
-      implements InvariantAbstraction<SymbolicCandiateInvariant, SymbolicCandiateInvariant> {
+  private static enum UnsatCoreBasedRefinement
+      implements InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant> {
     INSTANCE;
 
     @Override
-    public SymbolicCandiateInvariant performAbstraction(
+    public SymbolicCandiateInvariant strengthenInvariant(
         ProverEnvironmentWithFallback pProver,
         FormulaManagerView pFmgr,
         PredicateAbstractionManager pPam,
@@ -324,5 +324,41 @@ public class InvariantAbstractions {
               });
       return true;
     }
+  }
+
+  public static <T extends CandidateInvariant> InvariantStrengthening<T, T> unsatCoreBasedStrengthening() {
+    return new InvariantStrengthening<T, T>() {
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public T strengthenInvariant(
+          ProverEnvironmentWithFallback pProver,
+          FormulaManagerView pFmgr,
+          PredicateAbstractionManager pPam,
+          T pInvariant,
+          AssertCandidate pAssertPredecessor,
+          AssertCandidate pAssertSuccessorViolation,
+          AssertCandidate pAssertCti,
+          Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
+          Optional<BooleanFormula> pAssertedInvariants,
+          NextCti pNextCti)
+          throws SolverException, InterruptedException, CPATransferException {
+        if (pInvariant instanceof SymbolicCandiateInvariant) {
+          return (T)
+              UnsatCoreBasedRefinement.INSTANCE.strengthenInvariant(
+                  pProver,
+                  pFmgr,
+                  pPam,
+                  (SymbolicCandiateInvariant) pInvariant,
+                  pAssertPredecessor,
+                  pAssertSuccessorViolation,
+                  pAssertCti,
+                  pStateViolationAssertions,
+                  pAssertedInvariants,
+                  pNextCti);
+        }
+        return pInvariant;
+      }
+    };
   }
 }

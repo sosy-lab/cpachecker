@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 
@@ -38,20 +37,16 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 
   private final Set<SymbolicCandiateInvariant> badStateBlockingClauses;
 
-  private final @Nullable BooleanFormula inputAssignments;
-
   private final int k;
 
   private InductionResult(T pInvariantAbstraction) {
     invariantAbstraction = Objects.requireNonNull(pInvariantAbstraction);
     badStateBlockingClauses = Collections.emptySet();
-    inputAssignments = null;
     k = -1;
   }
 
   private InductionResult(
       Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
-      BooleanFormula pInputAssignments,
       int pK) {
     if (Iterables.isEmpty(pBadStateBlockingClauses)) {
       throw new IllegalArgumentException(
@@ -63,7 +58,6 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     }
     invariantAbstraction = null;
     badStateBlockingClauses = ImmutableSet.copyOf(pBadStateBlockingClauses);
-    inputAssignments = pInputAssignments;
     k = pK;
   }
 
@@ -88,14 +82,6 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     return badStateBlockingClauses;
   }
 
-  public BooleanFormula getInputAssignments() {
-    if (isSuccessful()) {
-      throw new IllegalStateException("Input assignments are only present if induction failed.");
-    }
-    assert inputAssignments != null;
-    return inputAssignments;
-  }
-
   public int getK() {
     if (isSuccessful()) {
       throw new IllegalStateException(
@@ -111,8 +97,7 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 
   public static <T extends CandidateInvariant> InductionResult<T> getFailed(
       Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
-      BooleanFormula pInputAssignments,
       int pK) {
-    return new InductionResult<>(pBadStateBlockingClauses, pInputAssignments, pK);
+    return new InductionResult<>(pBadStateBlockingClauses, pK);
   }
 }

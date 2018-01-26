@@ -31,15 +31,15 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public interface InvariantAbstraction<S extends CandidateInvariant, T extends CandidateInvariant> {
+public interface InvariantStrengthening<S extends CandidateInvariant, T extends CandidateInvariant> {
 
-  T performAbstraction(
+  T strengthenInvariant(
       ProverEnvironmentWithFallback pProver,
       FormulaManagerView pFmgr,
       PredicateAbstractionManager pPam,
       S pInvariant,
       AssertCandidate pAssertPredecessor,
-      AssertCandidate pAssertSuccessor,
+      AssertCandidate pAssertSuccessorViolation,
       AssertCandidate pAssertCti,
       Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
       Optional<BooleanFormula> pAssertedInvariants,

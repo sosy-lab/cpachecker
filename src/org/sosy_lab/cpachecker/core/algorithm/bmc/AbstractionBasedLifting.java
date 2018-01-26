@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -78,13 +80,14 @@ public class AbstractionBasedLifting implements Lifting {
             pFMGR);
 
     // First, check if abstract lifting succeeds
-    SuccessCheckingLiftingUnsatCallback abstractLiftingUnsatCallback = new SuccessCheckingLiftingUnsatCallback();
+    SuccessCheckingLiftingUnsatCallback abstractLiftingUnsatCallback =
+        new SuccessCheckingLiftingUnsatCallback();
     SymbolicCandiateInvariant unsatLiftedAbstractBlockingClause =
         StandardLiftings.unsatBasedLifting(
             pFMGR,
             pProver,
             blockedAbstractCti,
-            blockedAbstractCti.negate(pFMGR).splitLiterals(pFMGR, true),
+            blockedAbstractCti.negate(pFMGR).splitLiterals(pFMGR, false),
             pAssertPredecessor,
             abstractLiftingUnsatCallback);
     if (abstractLiftingUnsatCallback.isSuccessful()) {
@@ -133,7 +136,11 @@ public class AbstractionBasedLifting implements Lifting {
       super.unsat(pLiftedCTI, pCtiLiteralAssertionIds);
       // Lifting is indeed successful, but we can do even better using interpolation
       if (prover.supportsInterpolation()) {
-        interpolant = prover.getInterpolant(pCtiLiteralAssertionIds);
+        try {
+          interpolant = prover.getInterpolant(pCtiLiteralAssertionIds);
+        } catch (SolverException solverException) {
+          // TODO log that interpolation was switched off
+        }
       }
     }
 
@@ -158,57 +165,82 @@ public class AbstractionBasedLifting implements Lifting {
         throws CPATransferException, InterruptedException, SolverException;
   }
 
-  public static enum EagerRefinementLAFStrategy implements LiftingAbstractionFailureStrategy {
+  public static enum RefinementLAFStrategies implements LiftingAbstractionFailureStrategy {
+    IGNORE {
 
-    INSTANCE;
-
-    @Override
-    public SymbolicCandiateInvariant handleLAF(
-        FormulaManagerView pFMGR,
-        PredicateAbstractionManager pPam,
-        ProverEnvironmentWithFallback pProver,
-        BlockedCounterexampleToInductivity pBlockedConcreteCti,
-        SymbolicCandiateInvariant pBlockedAbstractCti,
-        AssertCandidate pAssertPredecessor,
-        AbstractionStrategy pAbstractionStrategy)
-        throws CPATransferException, InterruptedException, SolverException {
-
-      // If abstract lifting fails, check if concrete lifting succeeds (it should)
-      InterpolatingLiftingUnsatCallback concreteLiftingUnsatCallback =
-          new InterpolatingLiftingUnsatCallback(pProver);
-      SymbolicCandiateInvariant unsatLiftedConcreteCTI =
-          StandardLiftings.unsatBasedLifting(
-              pFMGR,
-              pProver,
-              pBlockedConcreteCti,
-              pBlockedConcreteCti.getCti().splitLiterals(pFMGR, true),
-              pAssertPredecessor,
-              concreteLiftingUnsatCallback);
-      if (concreteLiftingUnsatCallback.isSuccessful()) {
-        // Abstract lifting failed, but concrete lifting succeeded
-        BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-        BooleanFormula interpolant = concreteLiftingUnsatCallback.getInterpolant();
-        if (interpolant != null) {
-          interpolant = pFMGR.uninstantiate(interpolant);
-        } else {
-          return unsatLiftedConcreteCTI;
-        }
-        refinePrecision(
-            pAbstractionStrategy,
-            pPam,
-            pFMGR,
-            pBlockedConcreteCti.getCti().getLocation(),
-            interpolant);
-        return SymbolicCandiateInvariant.makeSymbolicInvariant(
-            pBlockedConcreteCti.getApplicableLocations(),
-            pBlockedConcreteCti.getStateFilter(),
-            bfmgr.not(
-                bfmgr.and(bfmgr.not(pBlockedAbstractCti.getPlainFormula(pFMGR)), interpolant)),
-            pFMGR);
+      @Override
+      public SymbolicCandiateInvariant handleLAF(
+          FormulaManagerView pFMGR,
+          PredicateAbstractionManager pPam,
+          ProverEnvironmentWithFallback pProver,
+          BlockedCounterexampleToInductivity pBlockedConcreteCti,
+          SymbolicCandiateInvariant pBlockedAbstractCti,
+          AssertCandidate pAssertPredecessor,
+          AbstractionStrategy pAbstractionStrategy)
+          throws CPATransferException, InterruptedException, SolverException {
+        return pBlockedAbstractCti;
       }
+    },
 
-      return pBlockedConcreteCti;
-    }
+    EAGER {
+
+      @Override
+      public SymbolicCandiateInvariant handleLAF(
+          FormulaManagerView pFMGR,
+          PredicateAbstractionManager pPam,
+          ProverEnvironmentWithFallback pProver,
+          BlockedCounterexampleToInductivity pBlockedConcreteCti,
+          SymbolicCandiateInvariant pBlockedAbstractCti,
+          AssertCandidate pAssertPredecessor,
+          AbstractionStrategy pAbstractionStrategy)
+          throws CPATransferException, InterruptedException, SolverException {
+
+        // If abstract lifting fails, check if concrete lifting succeeds (it should)
+        InterpolatingLiftingUnsatCallback concreteLiftingUnsatCallback =
+            new InterpolatingLiftingUnsatCallback(pProver);
+        Iterable<CandidateInvariant> ctiLiterals =
+            Iterables.concat(
+                Collections.singleton(pBlockedAbstractCti.negate(pFMGR)),
+                pBlockedConcreteCti.getCti().splitLiterals(pFMGR, false));
+        SymbolicCandiateInvariant unsatLiftedConcreteCTI =
+            StandardLiftings.unsatBasedLifting(
+                pFMGR,
+                pProver,
+                pBlockedConcreteCti,
+                ctiLiterals,
+                pAssertPredecessor,
+                concreteLiftingUnsatCallback);
+        if (concreteLiftingUnsatCallback.isSuccessful()) {
+          // Abstract lifting failed, but concrete lifting succeeded
+          BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+          BooleanFormula interpolant = concreteLiftingUnsatCallback.getInterpolant();
+          if (interpolant != null) {
+            interpolant = pFMGR.uninstantiate(interpolant);
+          } else {
+            return unsatLiftedConcreteCTI;
+          }
+          if (!bfmgr.isTrue(interpolant)) {
+            refinePrecision(
+                pAbstractionStrategy,
+                pPam,
+                pFMGR,
+                pBlockedConcreteCti.getCti().getLocation(),
+                interpolant);
+          }
+
+          SymbolicCandiateInvariant refinedBlockingClause =
+              SymbolicCandiateInvariant.makeSymbolicInvariant(
+                  pBlockedConcreteCti.getApplicableLocations(),
+                  pBlockedConcreteCti.getStateFilter(),
+                  bfmgr.not(
+                      bfmgr.and(
+                          bfmgr.not(pBlockedAbstractCti.getPlainFormula(pFMGR)), interpolant)),
+                  pFMGR);
+          return refinedBlockingClause;
+        }
+        return pBlockedConcreteCti;
+      }
+    };
   }
 
   private static void refinePrecision(

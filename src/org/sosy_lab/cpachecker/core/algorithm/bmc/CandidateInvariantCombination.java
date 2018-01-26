@@ -52,6 +52,8 @@ public class CandidateInvariantCombination {
 
     boolean isConjunction();
 
+    @Override
+    Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates);
   }
 
   private static class GenericCombination implements Combination {
@@ -157,6 +159,17 @@ public class CandidateInvariantCombination {
     @Override
     public boolean isConjunction() {
       return conjunction;
+    }
+
+    @Override
+    public Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
+      return FluentIterable.from(pStates)
+          .filter(
+              s ->
+                  operands
+                      .stream()
+                      .anyMatch(
+                          op -> !Iterables.isEmpty(op.filterApplicable(Collections.singleton(s)))));
     }
   }
 

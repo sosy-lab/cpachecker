@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractionBasedLifting.LiftingAbstractionFailureStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantAbstraction.NextCti;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.PartialTransitionRelation.CtiWithInputs;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -175,7 +176,9 @@ public class PdrAlgorithm implements Algorithm {
     config = pConfig;
     stats = new PdrStatistics();
     basicPdrOptions = new BasicPdrOptions(config);
-    abstractionStrategy = basicPdrOptions.abstractionStrategyFactory.createAbstractionStrategy();
+    abstractionStrategy =
+        basicPdrOptions.abstractionStrategyFactory.createAbstractionStrategy(
+            cfa.getVarClassification());
 
     shutdownNotifier = pShutdownNotifier;
     targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
@@ -270,7 +273,7 @@ public class PdrAlgorithm implements Algorithm {
                       frameInvariants,
                       pTransitionRelation,
                       frameClause,
-                      InvariantAbstractions.noAbstraction(),
+                      InvariantStrengthenings.noStrengthening(),
                       StandardLiftings.NO_LIFTING);
               if (pushAttempt.isSuccessful()) {
                 toPush.add(frameClause);
@@ -467,7 +470,7 @@ public class PdrAlgorithm implements Algorithm {
         assert implies(prover, invariants, abstractBlockingClause);
         learnClause(pFrameSet, frameIndex + 1, abstractResult.getInvariantRefinement());
         logger.log(
-            Level.INFO,
+            Level.FINEST,
             "Learned clause "
                 + abstractBlockingClause
                 + " at frame index "
@@ -483,13 +486,13 @@ public class PdrAlgorithm implements Algorithm {
         // lifting-abstraction failure (LAF).
 
         // Check concrete CTI
-        InvariantAbstraction<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
+        InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
             invariantAbstraction =
                 mustRefineOnConsecutionAbstractionFailure(obligation)
                     ? basicPdrOptions
                         .getInvariantRefinementStrategy()
                         .createRefinementStrategy(abstractionStrategy)
-                    : InvariantAbstractions.noAbstraction();
+                    : InvariantStrengthenings.noStrengthening();
         DetectingLiftingAbstractionFailureStrategy lafsForConcreteCheck =
             new DetectingLiftingAbstractionFailureStrategy(eagerLiftingRefinement);
         Lifting liftingForConcreteCheck =
@@ -516,7 +519,7 @@ public class PdrAlgorithm implements Algorithm {
             SymbolicCandiateInvariant refined = concreteResult.getInvariantRefinement();
             assert implies(prover, invariants, refined);
             logger.log(
-                Level.INFO,
+                Level.FINEST,
                 "Learned clause "
                     + refined
                     + " at frame index "
@@ -628,7 +631,6 @@ public class PdrAlgorithm implements Algorithm {
                     pLafsForCheck.getBlockedConcreteCtiForSpuriousAbstraction(
                         badStateBlockingClause),
                     pOldObligation.getNSpuriousTransitions(),
-                    pCheckResult.getInputAssignments(),
                     pCheckResult.getK()));
   }
 
@@ -662,7 +664,7 @@ public class PdrAlgorithm implements Algorithm {
             predecessorAssertions,
             pTransitionRelation,
             pRootCandidateInvariant,
-            InvariantAbstractions.noAbstraction(),
+            InvariantStrengthenings.noStrengthening(),
             basicPdrOptions.getLiftingStrategy().createLifting(abstractionStrategy, lafs));
 
     if (inductionResult.isSuccessful()) {
@@ -684,7 +686,6 @@ public class PdrAlgorithm implements Algorithm {
             blockedConcreteCti,
             oldFrontierIndex - 1,
             0,
-            inductionResult.getInputAssignments(),
             pTransitionRelation.getInitiationRelation().getDesiredK(),
             pRootCandidateInvariant));
   }
@@ -695,7 +696,7 @@ public class PdrAlgorithm implements Algorithm {
           Set<CandidateInvariant> pPredecessorAssertions,
           TotalTransitionRelation pTransitionRelation,
           S pCandidateInvariant,
-          InvariantAbstraction<S, T> pInvariantRefinement,
+          InvariantStrengthening<S, T> pInvariantRefinement,
           Lifting pLifting)
           throws SolverException, InterruptedException, CPATransferException {
 
@@ -749,7 +750,7 @@ public class PdrAlgorithm implements Algorithm {
           };
 
       T refinedInvariant =
-          pInvariantRefinement.performAbstraction(
+          pInvariantRefinement.strengthenInvariant(
               pProver,
               fmgr,
               pam,
@@ -808,7 +809,7 @@ public class PdrAlgorithm implements Algorithm {
     assert pProver.isEmpty();
 
     return InductionResult.getFailed(
-        Collections.singleton(blockedAbstractCti), inputs, violatedPartialTransition.getDesiredK());
+        Collections.singleton(blockedAbstractCti), violatedPartialTransition.getDesiredK());
   }
 
   private Optional<AlgorithmStatus> handleConfirmedCandidates(
@@ -928,7 +929,7 @@ public class PdrAlgorithm implements Algorithm {
     int k = 0;
     BooleanFormula program = bfmgr.makeTrue();
     for (ProofObligation currentObligation : pObligation) {
-      k += currentObligation.getInputAssignmentLength();
+      k += currentObligation.getLength();
       pBmcReachedSet.setDesiredK(k + 1);
       pBmcReachedSet.ensureK();
       /* FIXME
@@ -1201,8 +1202,8 @@ public class PdrAlgorithm implements Algorithm {
       description =
           "Which strategy to use to perform invariant refinement on successful proof results."
     )
-    private InvariantRefinementStrategies invariantRefinementStrategy =
-        InvariantRefinementStrategies.NO_REFINEMENT;
+    private InvariantStrengtheningStrategies invariantRefinementStrategy =
+        InvariantStrengtheningStrategies.NO_STRENGTHENING;
 
     @Option(
       secure = true,
@@ -1231,7 +1232,7 @@ public class PdrAlgorithm implements Algorithm {
       return abstractionStrategyFactory;
     }
 
-    public InvariantRefinementStrategies getInvariantRefinementStrategy() {
+    public InvariantStrengtheningStrategies getInvariantRefinementStrategy() {
       return invariantRefinementStrategy;
     }
 
@@ -1292,7 +1293,8 @@ public class PdrAlgorithm implements Algorithm {
   private static enum AbstractionStrategyFactories {
     NO_ABSTRACTION {
       @Override
-      AbstractionStrategy createAbstractionStrategy() {
+      AbstractionStrategy createAbstractionStrategy(
+          Optional<VariableClassification> pVariableClassification) {
         return AbstractionStrategy.NoAbstraction.INSTANCE;
       }
 
@@ -1304,8 +1306,9 @@ public class PdrAlgorithm implements Algorithm {
 
     ALLSAT_BASED_PREDICATE_ABSTRACTION {
       @Override
-      AbstractionStrategy createAbstractionStrategy() {
-        return new PredicateAbstractionStrategy();
+      AbstractionStrategy createAbstractionStrategy(
+          Optional<VariableClassification> pVariableClassification) {
+        return new PredicateAbstractionStrategy(pVariableClassification);
       }
 
       @Override
@@ -1314,29 +1317,31 @@ public class PdrAlgorithm implements Algorithm {
       }
     };
 
-    abstract AbstractionStrategy createAbstractionStrategy();
+    abstract AbstractionStrategy createAbstractionStrategy(
+        Optional<VariableClassification> pVariableClassification);
 
     abstract Set<ProverOptions> getRequiredProverOptions();
   }
 
-  static enum InvariantRefinementStrategies {
-    NO_REFINEMENT {
+  static enum InvariantStrengtheningStrategies {
+
+    NO_STRENGTHENING {
       @Override
-      InvariantAbstraction<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
+      InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
           createRefinementStrategy(AbstractionStrategy pAbstractionStrategy) {
-        return InvariantAbstractions.noAbstraction();
+        return InvariantStrengthenings.noStrengthening();
       }
     },
 
-    ABSTRACTION_REFINEMENT {
+    UNSAT_CORE_BASED_STRENGTHENING {
       @Override
-      InvariantAbstraction<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
+      InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
           createRefinementStrategy(AbstractionStrategy pAbstractionStrategy) {
-        return InvariantAbstractions.InterpolatingAbstraction.INSTANCE;
+        return InvariantStrengthenings.unsatCoreBasedStrengthening();
       }
     };
 
-    abstract InvariantAbstraction<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
+    abstract InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
         createRefinementStrategy(AbstractionStrategy pAbstractionStrategy);
   }
 
@@ -1382,7 +1387,7 @@ public class PdrAlgorithm implements Algorithm {
         throws CPATransferException, InterruptedException, SolverException {
       if (eager) {
         // Lifting refinement:
-        return AbstractionBasedLifting.EagerRefinementLAFStrategy.INSTANCE.handleLAF(
+        return AbstractionBasedLifting.RefinementLAFStrategies.EAGER.handleLAF(
             pFMGR,
             pPam,
             pProver,

@@ -395,6 +395,20 @@ public final class BMCHelper {
     return disjunction;
   }
 
+  static FluentIterable<AbstractState> filterBmcChecked(
+      Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
+    return FluentIterable.from(pStates)
+        .filter(
+            pArg0 -> {
+              if (pArg0 == null) {
+                return false;
+              }
+              LoopIterationReportingState ls =
+                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
+              return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
+            });
+  }
+
   public static interface FormulaInContext {
 
     BooleanFormula getFormulaInContext(PathFormula pContext)

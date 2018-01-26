@@ -103,17 +103,19 @@ public class CounterexampleToInductivity {
       FormulaManagerView pFMGR, boolean pSplitEquals) {
     return FluentIterable.from(model.values())
         .transformAndConcat(
-            v ->
-                pSplitEquals
-                    ? FluentIterable.from(
-                            pFMGR.splitNumeralEqualityIfPossible(v.toAssignment(pFMGR)))
-                        .transform(
-                            f ->
-                                SingleLocationFormulaInvariant.makeLocationInvariant(
-                                    getLocation(), f, pFMGR))
-                    : Collections.singleton(
-                        SingleLocationFormulaInvariant.makeLocationInvariant(
-                            getLocation(), v.toAssignment(pFMGR), pFMGR)));
+            v -> {
+              if (pSplitEquals) {
+                return FluentIterable.from(
+                        pFMGR.splitNumeralEqualityIfPossible(v.toAssignment(pFMGR)))
+                    .transform(
+                        f ->
+                            SingleLocationFormulaInvariant.makeLocationInvariant(
+                                getLocation(), f, pFMGR));
+              }
+              return Collections.singleton(
+                  SingleLocationFormulaInvariant.makeLocationInvariant(
+                      getLocation(), v.toAssignment(pFMGR), pFMGR));
+            });
   }
 
   public Set<Formula> getVariables(FormulaManagerView pFMGR) {

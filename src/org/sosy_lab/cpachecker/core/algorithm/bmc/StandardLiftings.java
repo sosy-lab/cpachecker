@@ -74,7 +74,7 @@ enum StandardLiftings implements Lifting {
           pFMGR,
           pProver,
           pBlockedConcreteCti,
-          pBlockedConcreteCti.getCti().splitLiterals(pFMGR, true),
+          pBlockedConcreteCti.getCti().splitLiterals(pFMGR, false),
           pAssertPredecessor,
           DoNothingUnsatCallback.INSTANCE);
     }
@@ -90,18 +90,28 @@ enum StandardLiftings implements Lifting {
       UnsatCallback pUnsatCallback)
       throws CPATransferException, InterruptedException, SolverException {
     Iterator<? extends CandidateInvariant> literalIterator = pCtiLiterals.iterator();
-    assert !pProver.isUnsat();
     boolean isUnsat = false;
+    boolean checked = false;
     List<BooleanFormula> assertedLiterals = new ArrayList<>();
     List<Object> ctiLiteralAssertionIds = new ArrayList<>();
     while (literalIterator.hasNext() && !isUnsat) {
       CandidateInvariant literal = literalIterator.next();
       BooleanFormula literalFormula = pAssertPredecessor.assertCandidate(literal);
-      assertedLiterals.add(literalFormula);
-      ctiLiteralAssertionIds.add(pProver.push(literalFormula));
-      isUnsat = pProver.isUnsat();
+      for (BooleanFormula component : pFMGR.splitNumeralEqualityIfPossible(literalFormula)) {
+        assertedLiterals.add(component);
+        checked = false;
+        ctiLiteralAssertionIds.add(pProver.push(component));
+      }
+      if (!pProver.supportsUnsatCoreGeneration()) {
+        isUnsat = pProver.isUnsat();
+        checked = true;
+      }
     }
-    int pushes = assertedLiterals.size();
+    if (!checked) {
+      isUnsat = pProver.isUnsat();
+      checked = true;
+    }
+    int pushes = ctiLiteralAssertionIds.size();
     final SymbolicCandiateInvariant liftedBlockedCti;
     if (isUnsat) {
       if (assertedLiterals.size() > 1 && pProver.supportsUnsatCoreGeneration()) {

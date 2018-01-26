@@ -33,7 +33,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public abstract class ProofObligation
     implements Iterable<ProofObligation>, Comparable<ProofObligation> {
@@ -46,17 +45,14 @@ public abstract class ProofObligation
 
   private final int nSpuriousTransitions;
 
-  private final BooleanFormula inputAssignment;
-
-  private final int inputAssignmentLength;
+  private final int length;
 
   private ProofObligation(
       SymbolicCandiateInvariant pAbstractBlockingClause,
       Optional<SymbolicCandiateInvariant> pConcreteBlockingClause,
       int pFrameIndex,
       int pNSpuriousTransitions,
-      BooleanFormula pInputAssignment,
-      int pInputAssignmentLength) {
+      int pLength) {
     blockedAbstractCti = Objects.requireNonNull(pAbstractBlockingClause);
     blockedConcreteCti = Objects.requireNonNull(pConcreteBlockingClause);
     if (pFrameIndex < 0) {
@@ -68,12 +64,10 @@ public abstract class ProofObligation
           "Number of spurious transitions must not be negative, but is " + pNSpuriousTransitions);
     }
     nSpuriousTransitions = pNSpuriousTransitions;
-    inputAssignment = Objects.requireNonNull(pInputAssignment);
-    if (pInputAssignmentLength < 1) {
-      throw new IllegalArgumentException(
-          "Input assignment length must be positive but is " + pInputAssignmentLength);
+    if (pLength < 1) {
+      throw new IllegalArgumentException("Length must be positive but is " + pLength);
     }
-    inputAssignmentLength = pInputAssignmentLength;
+    length = pLength;
   }
 
   private static class NonLeafProofObligation extends ProofObligation {
@@ -84,16 +78,14 @@ public abstract class ProofObligation
         SymbolicCandiateInvariant pAbstractBlockingClause,
         Optional<SymbolicCandiateInvariant> pConcreteBlockingClause,
         int pNSpuriousTransitions,
-        BooleanFormula pInputAssignment,
-        int pInputAssignmentLength,
+        int pLength,
         ProofObligation pCause) {
       super(
           pAbstractBlockingClause,
           pConcreteBlockingClause,
           pCause.getFrameIndex() - 1,
           pNSpuriousTransitions,
-          pInputAssignment,
-          pInputAssignmentLength);
+          pLength);
       cause = Objects.requireNonNull(pCause);
     }
 
@@ -152,8 +144,7 @@ public abstract class ProofObligation
           getBlockedAbstractCti(),
           getBlockedConcreteCti(),
           getNSpuriousTransitions() + 1,
-          getInputAssignment(),
-          getInputAssignmentLength(),
+          getLength(),
           cause);
     }
 
@@ -163,8 +154,7 @@ public abstract class ProofObligation
           getBlockedAbstractCti(),
           getBlockedConcreteCti(),
           getNSpuriousTransitions(),
-          getInputAssignment(),
-          getInputAssignmentLength(),
+          getLength(),
           cause.incrementFrameIndex());
     }
 
@@ -184,16 +174,14 @@ public abstract class ProofObligation
         Optional<SymbolicCandiateInvariant> pBlockedConcreteCti,
         int pFrameIndex,
         int pNSpuriousTransitions,
-        BooleanFormula pInputAssignment,
-        int pInputAssignmentLength,
+        int pLength,
         CandidateInvariant pViolatedInvariant) {
       super(
           pBlockedAbstractCti,
           pBlockedConcreteCti,
           pFrameIndex,
           pNSpuriousTransitions,
-          pInputAssignment,
-          pInputAssignmentLength);
+          pLength);
       violatedInvariant = Objects.requireNonNull(pViolatedInvariant);
     }
 
@@ -214,8 +202,7 @@ public abstract class ProofObligation
           getBlockedConcreteCti(),
           getFrameIndex(),
           getNSpuriousTransitions() + 1,
-          getInputAssignment(),
-          getInputAssignmentLength(),
+          getLength(),
           violatedInvariant);
     }
 
@@ -226,8 +213,7 @@ public abstract class ProofObligation
           getBlockedConcreteCti(),
           getFrameIndex() + 1,
           getNSpuriousTransitions(),
-          getInputAssignment(),
-          getInputAssignmentLength(),
+          getLength(),
           getViolatedInvariant());
     }
 
@@ -291,12 +277,8 @@ public abstract class ProofObligation
     return nSpuriousTransitions;
   }
 
-  public BooleanFormula getInputAssignment() {
-    return inputAssignment;
-  }
-
-  public int getInputAssignmentLength() {
-    return inputAssignmentLength;
+  public int getLength() {
+    return length;
   }
 
   @Override
@@ -310,8 +292,7 @@ public abstract class ProofObligation
           && nSpuriousTransitions == other.nSpuriousTransitions
           && blockedConcreteCti.equals(other.blockedConcreteCti)
           && blockedAbstractCti.equals(other.blockedAbstractCti)
-          && inputAssignment.equals(other.inputAssignment)
-          && inputAssignmentLength == other.inputAssignmentLength
+          && length == other.length
           && getViolatedInvariant().equals(other.getViolatedInvariant());
     }
     return false;
@@ -324,8 +305,7 @@ public abstract class ProofObligation
         nSpuriousTransitions,
         blockedConcreteCti,
         blockedAbstractCti,
-        inputAssignment,
-        inputAssignmentLength,
+        length,
         getViolatedInvariant());
   }
 
@@ -345,14 +325,12 @@ public abstract class ProofObligation
       SymbolicCandiateInvariant pBlockedAbstractCti,
       Optional<SymbolicCandiateInvariant> pBlockedConcreteCti,
       int pNSpuriousTransitions,
-      BooleanFormula pInputAssignment,
-      int pInputAssignmentLength) {
+      int pLength) {
     return new NonLeafProofObligation(
         pBlockedAbstractCti,
         pBlockedConcreteCti,
         pNSpuriousTransitions,
-        pInputAssignment,
-        pInputAssignmentLength,
+        pLength,
         this);
   }
 
@@ -361,16 +339,14 @@ public abstract class ProofObligation
       Optional<SymbolicCandiateInvariant> pBlockedConcreteCti,
       int pFrameIndex,
       int pNSpuriousTransitions,
-      BooleanFormula pInputAssignment,
-      int pInputAssignmentLength,
+      int pLength,
       CandidateInvariant pViolatedInvariant) {
     return new LeafProofObligation(
         pBlockedAbstractCti,
         pBlockedConcreteCti,
         pFrameIndex,
         pNSpuriousTransitions,
-        pInputAssignment,
-        pInputAssignmentLength,
+        pLength,
         pViolatedInvariant);
   }
 }

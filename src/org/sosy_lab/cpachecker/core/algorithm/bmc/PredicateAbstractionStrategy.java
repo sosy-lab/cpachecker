@@ -24,18 +24,24 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -44,12 +50,19 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateAbstractionStrategy implements AbstractionStrategy {
 
   private final Map<PredicateAbstractionManager, SetMultimap<CFANode, AbstractionPredicate>>
-      precision = new HashMap<>();
+      precision = new LinkedHashMap<>();
 
   private final Multimap<PredicateAbstractionManager, AbstractionPredicate> globalPrecision =
-      HashMultimap.create();
+      LinkedHashMultimap.create();
 
-  private final SetMultimap<FormulaType<Formula>, Formula> seenVariables = HashMultimap.create();
+  private final SetMultimap<FormulaType<Formula>, Formula> seenVariables =
+      LinkedHashMultimap.create();
+
+  private final Optional<VariableClassification> variableClassification;
+
+  public PredicateAbstractionStrategy(Optional<VariableClassification> pVarClassification) {
+    variableClassification = Objects.requireNonNull(pVarClassification);
+  }
 
   private Multimap<CFANode, AbstractionPredicate> getPrecision(PredicateAbstractionManager pPam) {
     SetMultimap<CFANode, AbstractionPredicate> pamPrecision = precision.get(pPam);
@@ -114,14 +127,43 @@ public class PredicateAbstractionStrategy implements AbstractionStrategy {
       FormulaType<Formula> variableType = pFMGR.getFormulaType(variable);
       Set<Formula> seenVariablesOfSameType = seenVariables.get(variableType);
       if (!seenVariablesOfSameType.contains(variable)) {
+        String variableName = pFMGR.extractVariableNames(variable).iterator().next();
         for (Formula previouslySeenVariable : seenVariablesOfSameType) {
-          BooleanFormula leq = pFMGR.makeLessOrEqual(variable, previouslySeenVariable, true);
-          pamPrecision.put(pLocation, pPam.getPredicateFor(leq));
-          BooleanFormula geq = pFMGR.makeGreaterOrEqual(variable, previouslySeenVariable, true);
-          pamPrecision.put(pLocation, pPam.getPredicateFor(geq));
+          String previouslySeenVariableName =
+              pFMGR.extractVariableNames(previouslySeenVariable).iterator().next();
+          if (isLeqRelevant(variableName, previouslySeenVariableName)) {
+            BooleanFormula leq = pFMGR.makeLessOrEqual(variable, previouslySeenVariable, true);
+            pamPrecision.put(pLocation, pPam.getPredicateFor(leq));
+            BooleanFormula geq = pFMGR.makeGreaterOrEqual(variable, previouslySeenVariable, true);
+            pamPrecision.put(pLocation, pPam.getPredicateFor(geq));
+          }
         }
         seenVariables.put(variableType, variable);
       }
     }
+  }
+
+  private boolean isLeqRelevant(String pVar1, String pVar2) {
+    if (!variableClassification.isPresent()) {
+      return true;
+    }
+    VariableClassification varClassification = variableClassification.get();
+    Set<String> intAddVars = varClassification.getIntAddVars();
+    if (intAddVars.contains(pVar1) && intAddVars.contains(pVar2)) {
+      return true;
+    }
+    for (Partition partition :
+        Iterables.concat(
+            varClassification.getIntEqualPartitions(),
+            varClassification.getIntBoolPartitions())) {
+      Set<String> partitionVariables = partition.getVars();
+      if (partitionVariables.contains(pVar1)) {
+        return partitionVariables.contains(pVar2);
+      }
+      if (partitionVariables.contains(pVar2)) {
+        return partitionVariables.contains(pVar1);
+      }
+    }
+    return true;
   }
 }
