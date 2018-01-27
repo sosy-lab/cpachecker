@@ -289,8 +289,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     AlgorithmStatus status;
 
     try (ProverEnvironmentWithFallback prover =
-            new ProverEnvironmentWithFallback(
-                solver, ProverOptions.GENERATE_MODELS, ProverOptions.GENERATE_UNSAT_CORE);
+            new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS);
         @SuppressWarnings("resource")
             KInductionProver kInductionProver = createInductionProver()) {
 
@@ -721,7 +720,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             reachedSetFactory,
             shutdownNotifier,
             getLoopHeads(),
-            true)
+            usePropertyDirection)
         : null;
   }
 
