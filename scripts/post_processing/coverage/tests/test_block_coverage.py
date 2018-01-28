@@ -56,7 +56,8 @@ class TestCoverageWhile(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=start_time)
+                start_time=start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -79,7 +80,8 @@ class TestCoverageIf(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=start_time)
+                start_time=start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -102,7 +104,8 @@ class TestCoverageSwitch(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=start_time)
+                start_time=start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -125,7 +128,8 @@ class TestCoverageWhileWithCall(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=start_time)
+                start_time=start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -148,7 +152,8 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=start_time)
+                start_time=start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
 
@@ -171,7 +176,8 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=start_time)
+                start_time=start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
         # Compound expression in cond (lines 3-4) is considered as fully
