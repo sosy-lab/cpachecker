@@ -210,7 +210,8 @@ def get_cpachecker_executable():
     # Directories the CPAchecker executable may ly in.
     # It's important to put '.' and './scripts' last, because we
     # want to look at the "real" PATH directories first
-    path_candidates = os.environ["PATH"].split(os.pathsep) + ['.', '.' + os.sep + 'scripts']
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    path_candidates = os.environ["PATH"].split(os.pathsep) + [script_dir, '.', '.' + os.sep + 'scripts']
     for path in path_candidates:
         path = path.strip('"')
         exe_file = os.path.join(path, executable_name)
