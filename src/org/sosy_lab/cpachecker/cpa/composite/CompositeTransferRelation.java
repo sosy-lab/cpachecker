@@ -42,9 +42,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -518,9 +521,22 @@ final class CompositeTransferRelation implements TransferRelationTM {
       }
 
       Collection<Pair<AbstractState, InferenceObject>> componentSuccessors;
+
+      boolean resetCallstacksFlag = false;
+      if (lCurrentTransfer instanceof CallstackTransferRelation &&
+          pCfaEdge instanceof CFunctionSummaryStatementEdge) {
+        CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pCfaEdge).getFunctionCall();
+        if (functionCall instanceof CThreadCreateStatement) {
+          resetCallstacksFlag = true;
+          ((CallstackTransferRelation) lCurrentTransfer).enableRecursiveContext();
+        }
+      }
       componentSuccessors = ((TransferRelationTM) lCurrentTransfer).getAbstractSuccessorForEdge(
           lCurrentElement, innerObject, lCurrentPrecision, pCfaEdge);
 
+      if (resetCallstacksFlag) {
+        ((CallstackTransferRelation) lCurrentTransfer).disableRecursiveContext();
+      }
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {
