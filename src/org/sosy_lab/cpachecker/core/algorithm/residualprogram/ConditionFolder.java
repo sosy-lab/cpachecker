@@ -609,7 +609,7 @@ public abstract class ConditionFolder {
       // enter loop or start next iteration
       if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
         newLoopBoundID +=
-            "|" + pEdge.getSuccessor().getNodeNumber() + ":" + Math.max(prevLoopIt + 1, maxUnrolls);
+            "|" + pEdge.getSuccessor().getNodeNumber() + ":" + Math.min(prevLoopIt + 1, maxUnrolls);
       }
 
       return newLoopBoundID;
