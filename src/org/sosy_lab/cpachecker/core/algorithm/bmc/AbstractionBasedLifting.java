@@ -64,8 +64,6 @@ public class AbstractionBasedLifting implements Lifting {
     CounterexampleToInductivity cti = pBlockedConcreteCti.getCti();
     BooleanFormula concreteCTIFormula = cti.getFormula(pFMGR);
 
-    abstractionStrategy.refinePrecision(pPam, cti.getLocation(), pFMGR, cti.getVariables(pFMGR));
-
     BooleanFormula abstractCtiFormula =
         abstractionStrategy.performAbstraction(pPam, cti.getLocation(), concreteCTIFormula);
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
