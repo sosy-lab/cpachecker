@@ -27,7 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,11 +45,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
 
 public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
@@ -90,21 +88,23 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
           int positionOfA, BooleanFormula lastItp)
               throws InterruptedException, SolverException {
 
+    final AbstractState abstractionState =
+        checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).getSecond());
+    final CFANode node = AbstractStates.extractLocation(abstractionState);
+    final BooleanFormula itp;
+
     // use a new prover, because we use several distinct queries
     try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
 
       final List<T> A = new ArrayList<>();
 
       // If we have entered or exited a function, update the stack of entry points
-      final AbstractState abstractionState = checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).getSecond());
-      final CFANode node = AbstractStates.extractLocation(abstractionState);
-
       if (node instanceof FunctionEntryNode && callHasReturn(formulasWithStatesAndGroupdIds, positionOfA)) {
         // && (positionOfA > 0)) {
         // case 2 from paper
         final BooleanFormula call = formulasWithStatesAndGroupdIds.get(positionOfA).getFirst();
         callstack.addLast(Triple.of(lastItp, call, node));
-        final BooleanFormula itp = bfmgr.makeTrue();
+        itp = bfmgr.makeTrue();
         interpolants.add(itp);
         return itp; // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
       }
@@ -130,9 +130,10 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
       assert unsat : "formulas were unsat before, they have to be unsat now.";
 
       // get interpolant of A and B, for B we use the complementary set of A
-      final BooleanFormula itp = itpProver.getInterpolant(A);
+      itp = itpProver.getInterpolant(A);
+    }
 
-      if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
+    if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
         // case 4, we are returning from a function, rule 4
         Triple<BooleanFormula, BooleanFormula, CFANode> scopingItp = callstack.removeLast();
 
@@ -172,10 +173,9 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
           return itp2;
         }
 
-      } else {
+    } else {
         interpolants.add(itp);
         return itp;
-      }
     }
   }
 }
