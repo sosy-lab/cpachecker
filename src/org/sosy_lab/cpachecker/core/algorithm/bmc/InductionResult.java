@@ -25,44 +25,39 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import ap.Prover.ProofResult;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 
   private final @Nullable T invariantAbstraction;
 
-  private final Set<SingleLocationFormulaInvariant> model;
-
-  private final @Nullable BooleanFormula inputAssignments;
+  private final Set<SymbolicCandiateInvariant> badStateBlockingClauses;
 
   private final int k;
 
   private InductionResult(T pInvariantAbstraction) {
     invariantAbstraction = Objects.requireNonNull(pInvariantAbstraction);
-    model = Collections.emptySet();
-    inputAssignments = null;
+    badStateBlockingClauses = Collections.emptySet();
     k = -1;
   }
 
   private InductionResult(
-      Set<? extends SingleLocationFormulaInvariant> pModel,
-      BooleanFormula pInputAssignments,
+      Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
       int pK) {
-    if (pModel.isEmpty()) {
+    if (Iterables.isEmpty(pBadStateBlockingClauses)) {
       throw new IllegalArgumentException(
-          "A model should be present if (and only if) induction failed.");
+          "Bad-state blocking invariants should be present if (and only if) induction failed.");
     }
     if (pK < 0) {
       throw new IllegalArgumentException(
           "k must not be negative for failed induction results, but is " + pK);
     }
     invariantAbstraction = null;
-    model = ImmutableSet.copyOf(pModel);
-    inputAssignments = pInputAssignments;
+    badStateBlockingClauses = ImmutableSet.copyOf(pBadStateBlockingClauses);
     k = pK;
   }
 
@@ -70,7 +65,7 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     return invariantAbstraction != null;
   }
 
-  public T getInvariantAbstraction() {
+  public T getInvariantRefinement() {
     if (!isSuccessful()) {
       throw new IllegalArgumentException(
           "An invariant abstraction is only present if induction succeeded.");
@@ -78,20 +73,13 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     return invariantAbstraction;
   }
 
-  public Set<SingleLocationFormulaInvariant> getModel() {
+  public Set<SymbolicCandiateInvariant> getBadStateBlockingClauses() {
     if (isSuccessful()) {
-      throw new IllegalStateException("A model is only present if induction failed.");
+      throw new IllegalStateException(
+          "Auxiliary-invariants for blocking bad states are only available if induction failed.");
     }
-    assert !model.isEmpty();
-    return model;
-  }
-
-  public BooleanFormula getInputAssignments() {
-    if (isSuccessful()) {
-      throw new IllegalStateException("Input assignments are only present if induction failed.");
-    }
-    assert inputAssignments != null;
-    return inputAssignments;
+    assert !badStateBlockingClauses.isEmpty();
+    return badStateBlockingClauses;
   }
 
   public int getK() {
@@ -108,9 +96,8 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   }
 
   public static <T extends CandidateInvariant> InductionResult<T> getFailed(
-      Set<? extends SingleLocationFormulaInvariant> pModel,
-      BooleanFormula pInputAssignments,
+      Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
       int pK) {
-    return new InductionResult<>(pModel, pInputAssignments, pK);
+    return new InductionResult<>(pBadStateBlockingClauses, pK);
   }
 }

@@ -58,5 +58,6 @@
 	<classpathentry kind="lib" path="lib/java/runtime/batik-svggen.jar" sourcepath="lib/java-contrib/batik-svggen-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-xml.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/princess_2.12.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

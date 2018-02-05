@@ -23,22 +23,31 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
+import com.google.common.collect.Multimap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public interface Lifting {
+public interface InvariantStrengthening<S extends CandidateInvariant, T extends CandidateInvariant> {
 
-  boolean canLift();
-
-  SymbolicCandiateInvariant lift(
-      FormulaManagerView pFMGR,
-      PredicateAbstractionManager pPam,
+  T strengthenInvariant(
       ProverEnvironmentWithFallback pProver,
-      BlockedCounterexampleToInductivity pBlockedConcreteCti,
+      FormulaManagerView pFmgr,
+      PredicateAbstractionManager pPam,
+      S pInvariant,
       AssertCandidate pAssertPredecessor,
-      Iterable<Object> pAssertionIds)
-      throws CPATransferException, InterruptedException, SolverException;
+      AssertCandidate pAssertSuccessorViolation,
+      AssertCandidate pAssertCti,
+      Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
+      Optional<BooleanFormula> pAssertedInvariants,
+      NextCti pNextCti)
+      throws SolverException, InterruptedException, CPATransferException;
+
+  public static interface NextCti {
+
+    Optional<CounterexampleToInductivity> getNextCti() throws SolverException;
+  }
 }

@@ -30,31 +30,23 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class CounterexampleToInductivity extends SingleLocationFormulaInvariant {
+public class CounterexampleToInductivity {
+
+  private final CFANode location;
 
   private final PersistentSortedMap<String, ModelValue> model;
 
   public CounterexampleToInductivity(CFANode pLocation, Map<String, ModelValue> pModel) {
-    super(pLocation);
+    location = Objects.requireNonNull(pLocation);
     model = PathCopyingPersistentTreeMap.copyOf(pModel);
-  }
-
-  @Override
-  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR,
-      @Nullable PathFormula pContext) throws CPATransferException, InterruptedException {
-    return getFormula(pFMGR);
   }
 
   public BooleanFormula getFormula(FormulaManagerView pFMGR) {
@@ -81,9 +73,8 @@ public class CounterexampleToInductivity extends SingleLocationFormulaInvariant 
     return new CounterexampleToInductivity(getLocation(), reducedModel);
   }
 
-  @Override
-  public SingleLocationFormulaInvariant negate() {
-    return new NegatedCounterexampleToInductivity(this);
+  public CFANode getLocation() {
+    return location;
   }
 
   @Override
@@ -112,17 +103,19 @@ public class CounterexampleToInductivity extends SingleLocationFormulaInvariant 
       FormulaManagerView pFMGR, boolean pSplitEquals) {
     return FluentIterable.from(model.values())
         .transformAndConcat(
-            v ->
-                pSplitEquals
-                    ? FluentIterable.from(
-                            pFMGR.splitNumeralEqualityIfPossible(v.toAssignment(pFMGR)))
-                        .transform(
-                            f ->
-                                SingleLocationFormulaInvariant.makeLocationInvariant(
-                                    getLocation(), f, pFMGR))
-                    : Collections.singleton(
-                        SingleLocationFormulaInvariant.makeLocationInvariant(
-                            getLocation(), v.toAssignment(pFMGR), pFMGR)));
+            v -> {
+              if (pSplitEquals) {
+                return FluentIterable.from(
+                        pFMGR.splitNumeralEqualityIfPossible(v.toAssignment(pFMGR)))
+                    .transform(
+                        f ->
+                            SingleLocationFormulaInvariant.makeLocationInvariant(
+                                getLocation(), f, pFMGR));
+              }
+              return Collections.singleton(
+                  SingleLocationFormulaInvariant.makeLocationInvariant(
+                      getLocation(), v.toAssignment(pFMGR), pFMGR));
+            });
   }
 
   public Set<Formula> getVariables(FormulaManagerView pFMGR) {

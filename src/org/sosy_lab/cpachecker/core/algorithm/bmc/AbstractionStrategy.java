@@ -40,6 +40,8 @@ public interface AbstractionStrategy {
   void refinePrecision(
       PredicateAbstractionManager pPam, CFANode pLocation, Iterable<BooleanFormula> pPredicates);
 
+  void refinePrecision(PredicateAbstractionManager pPam, Iterable<BooleanFormula> pPredicates);
+
   void refinePrecision(
       PredicateAbstractionManager pPam,
       CFANode pLocation,
@@ -61,6 +63,12 @@ public interface AbstractionStrategy {
           PredicateAbstractionManager pPam,
           CFANode pLocation,
           Iterable<BooleanFormula> pPredicates) {
+        // Do nothing
+      }
+
+      @Override
+      public void refinePrecision(
+          PredicateAbstractionManager pPam, Iterable<BooleanFormula> pPredicates) {
         // Do nothing
       }
 

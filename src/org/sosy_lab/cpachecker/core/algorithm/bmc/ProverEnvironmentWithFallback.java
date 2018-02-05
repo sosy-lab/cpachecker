@@ -232,7 +232,18 @@ class ProverEnvironmentWithFallback
     } else {
       assertionIds = ImmutableList.copyOf(pAssertionIds);
     }
-    return interpolatingProverEnvironment.getInterpolant(assertionIds);
+    try {
+      return interpolatingProverEnvironment.getInterpolant(assertionIds);
+    } catch (SolverException solverException) {
+      interpolatingProverEnvironment.close();
+      interpolatingProverEnvironment = null;
+      proverEnvironment = solver.newProverEnvironment(getOptions());
+      Iterator<BooleanFormula> it = stack.descendingIterator();
+      while (it.hasNext()) {
+        proverEnvironment.push(it.next());
+      }
+      throw solverException;
+    }
   }
 
   @Override

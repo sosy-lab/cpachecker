@@ -32,24 +32,35 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterati
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -58,13 +69,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -88,12 +99,21 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
  * Instances of this class are used to prove the safety of a program by
@@ -298,7 +318,7 @@ class KInductionProver implements AutoCloseable {
         pK,
         pCandidateInvariant,
         pCheckedKeys,
-        InvariantAbstractions.noAbstraction(),
+        InvariantStrengthenings.noStrengthening(),
         StandardLiftings.NO_LIFTING);
   }
 
@@ -327,7 +347,7 @@ class KInductionProver implements AutoCloseable {
           int pK,
           S pCandidateInvariant,
           Set<Object> pCheckedKeys,
-          InvariantAbstraction<S, T> pInvariantAbstraction,
+          InvariantStrengthening<S, T> pInvariantAbstraction,
           Lifting pLifting)
           throws CPAException, InterruptedException, SolverException {
 
@@ -355,7 +375,8 @@ class KInductionProver implements AutoCloseable {
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
 
-    for (CandidateInvariant candidateInvariant : pPredecessorAssumptions) {
+    for (CandidateInvariant candidateInvariant :
+        CandidateInvariantCombination.getConjunctiveParts(pPredecessorAssumptions)) {
       shutdownNotifier.shutdownIfNecessary();
 
       final BooleanFormula predecessorAssertion;
@@ -378,7 +399,8 @@ class KInductionProver implements AutoCloseable {
           // Build the formula
           predecessorAssertion =
               candidateInvariant.getAssertion(
-                  filterBmcChecked(filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys),
+                  BMCHelper.filterBmcChecked(
+                      filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys),
                   fmgr,
                   pfmgr);
         }
@@ -408,8 +430,8 @@ class KInductionProver implements AutoCloseable {
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
         bfmgr.and(
-            from(CandidateInvariantConjunction.getConjunctiveParts(
-                    CandidateInvariantConjunction.of(pPredecessorAssumptions)))
+            from(CandidateInvariantCombination.getConjunctiveParts(
+                    CandidateInvariantCombination.conjunction(pPredecessorAssumptions)))
                 .transform(conjunctivePart -> assertions.get(conjunctivePart))
                 .toList());
     // Create the successor violation formula
@@ -426,21 +448,16 @@ class KInductionProver implements AutoCloseable {
     stats.inductionCheck.start();
 
     // Try to prove the invariance of the assertion
-    prover.push(successorExistsAssertion);
-    prover.push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
+    Object successorExistsAssertionId = prover.push(successorExistsAssertion);
+    Object predecessorAssertionId =
+        prover.push(
+            predecessorAssertion); // Assert the formula we want to prove at the predecessors
     // Assert that the formula is violated at a successor
-    Map<BooleanFormula, Object> successorViolationAssertionIds = new HashMap<>(4);
-    if (successorViolationAssertions.size() == 1) {
-      BooleanFormula singleStateFormula = successorViolationAssertions.keySet().iterator().next();
-      successorViolationAssertionIds.put(singleStateFormula, prover.push(singleStateFormula));
-      BooleanFormula violationFormula =
-          bfmgr.and(successorViolationAssertions.get(singleStateFormula));
-      successorViolationAssertionIds.put(violationFormula, prover.push(violationFormula));
-    } else {
-      successorViolationAssertionIds.put(successorViolation, prover.push(successorViolation));
-    }
+    prover.push(successorViolation);
 
     InductionResult<T> result = null;
+    AssertCandidate assertPredecessor =
+        (p -> assertAt(filterInductiveAssertionIteration(loopHeadStates), p, fmgr, pfmgr, true));
     while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -460,7 +477,7 @@ class KInductionProver implements AutoCloseable {
         // We need to produce the model if we are in the last iteration
         // or want to log the model
         if (!loopHeadInvChanged || logger.wouldBeLogged(Level.ALL)) {
-          ImmutableList<ValueAssignment> modelAssignments = prover.getModelAssignments();
+          List<ValueAssignment> modelAssignments = prover.getModelAssignments();
           if (logger.wouldBeLogged(Level.ALL)) {
             logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
           }
@@ -468,61 +485,85 @@ class KInductionProver implements AutoCloseable {
           if (!loopHeadInvChanged) {
             // We are in the last iteration and failed to prove the candidate invariant
 
-            Set<? extends SingleLocationFormulaInvariant> model = Collections.emptySet();
-            BooleanFormula inputAssignments = extractInputAssignments(reached, modelAssignments);
-            Set<CounterexampleToInductivity> detectedCTIs = extractCTIs(reached, modelAssignments);
+            Iterable<? extends SymbolicCandiateInvariant> badStateBlockingClauses =
+                Collections.emptySet();
+            Map<CounterexampleToInductivity, BooleanFormula> detectedCtis =
+                extractCTIs(reached, modelAssignments, pCheckedKeys, pCandidateInvariant, pK + 1);
             if (pLifting.canLift()) {
               prover.pop(); // Pop the loop-head invariants
               // Pop the successor violation
-              successorViolationAssertionIds
-                  .values()
-                  .forEach(
-                      id -> {
-                        prover.pop();
-                      });
+              prover.pop();
               // Push the successor assertion
               BooleanFormula candidateAssertion =
                   assertCandidate(reached, pCandidateInvariant, pK + 1);
-              successorViolationAssertionIds =
-                  Collections.singletonMap(candidateAssertion, prover.push(candidateAssertion));
-              prover.push(loopHeadInv); // Push the known loop-head invariants back on
-              prover.push(inputAssignments);
-              ImmutableSet.Builder<SingleLocationFormulaInvariant> reducedCTIsBuilder =
+              Object candidateSuccessorAssertionId = prover.push(candidateAssertion);
+              Object invariantsAssertionId =
+                  prover.push(loopHeadInv); // Push the known loop-head invariants back on
+
+              ImmutableSet.Builder<SymbolicCandiateInvariant> badStateBlockingClauseBuilder =
                   ImmutableSet.builder();
-              for (CounterexampleToInductivity cti : detectedCTIs) {
-                final SingleLocationFormulaInvariant reducedCTI =
+              for (Map.Entry<CounterexampleToInductivity, BooleanFormula> ctiWithInput :
+                  detectedCtis.entrySet()) {
+                // Push the input assignments
+                Object inputAssertionId = prover.push(ctiWithInput.getValue());
+                final SymbolicCandiateInvariant blockedReducedCti =
                     pLifting.lift(
                         fmgr,
                         pam,
                         prover,
-                        cti,
-                        (p ->
-                            assertAt(
-                                filterInductiveAssertionIteration(loopHeadStates),
-                                p,
-                                fmgr,
-                                pfmgr,
-                                true)));
-                reducedCTIsBuilder.add(reducedCTI);
+                        SymbolicCandiateInvariant.blockCti(loopHeads, ctiWithInput.getKey(), fmgr),
+                        assertPredecessor,
+                        Arrays.asList(
+                            successorExistsAssertionId,
+                            predecessorAssertionId,
+                            candidateSuccessorAssertionId,
+                            invariantsAssertionId,
+                            inputAssertionId));
+                badStateBlockingClauseBuilder.add(blockedReducedCti);
+                prover.pop(); // Pop input assignments
               }
-              model = reducedCTIsBuilder.build();
-              prover.pop(); // Pop input assignments
+              badStateBlockingClauses = badStateBlockingClauseBuilder.build();
             } else {
-              model = detectedCTIs;
+              badStateBlockingClauses =
+                  Iterables.transform(
+                      detectedCtis.keySet(),
+                      cti -> SymbolicCandiateInvariant.blockCti(loopHeads, cti, fmgr));
             }
-            result = InductionResult.getFailed(model, inputAssignments, pK);
+            result = InductionResult.getFailed(badStateBlockingClauses, pK);
           }
         }
       } else {
+        AssertCandidate assertSuccessorViolation =
+            (candidate) -> {
+              Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
+                  getSuccessorViolationAssertions(pCandidateInvariant, pK + 1);
+              // Record the successor violation formula to reuse its negation as an
+              // assertion in a future induction attempt
+              return BMCHelper.disjoinStateViolationAssertions(bfmgr, succViolationAssertions);
+            };
+        NextCti nextCti =
+            () -> {
+              List<ValueAssignment> modelAssignments = prover.getModelAssignments();
+              Iterable<CounterexampleToInductivity> detectedCtis =
+                  extractCTIs(reached, modelAssignments, pCheckedKeys, pCandidateInvariant, pK + 1)
+                      .keySet();
+              if (Iterables.isEmpty(detectedCtis)) {
+                return Optional.empty();
+              }
+              return Optional.of(detectedCtis.iterator().next());
+            };
         T abstractedInvariant =
-            pInvariantAbstraction.performAbstraction(
+            pInvariantAbstraction.strengthenInvariant(
                 prover,
                 fmgr,
                 pam,
                 pCandidateInvariant,
+                assertPredecessor,
+                assertSuccessorViolation,
+                assertPredecessor,
                 successorViolationAssertions,
-                successorViolationAssertionIds,
-                Optional.of(loopHeadInv));
+                Optional.of(loopHeadInv),
+                nextCti);
         result = InductionResult.getSuccessful(abstractedInvariant);
       }
 
@@ -535,12 +576,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Pop invariant successor violation (or, if we lifted a CTI, its assertion)
-    successorViolationAssertionIds
-        .values()
-        .forEach(
-            id -> {
-              prover.pop();
-            });
+    prover.pop();
 
     prover.pop(); // Pop invariant predecessor assertion
     prover.pop(); // Pop end states
@@ -585,20 +621,6 @@ class KInductionProver implements AutoCloseable {
     return filterIteration(pStates, 1, loopHeads);
   }
 
-  private static FluentIterable<AbstractState> filterBmcChecked(
-      Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
-    return FluentIterable.from(pStates)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
-              return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
-            });
-  }
-
   private AlgorithmStatus ensureK(
       Algorithm pAlg, ConfigurableProgramAnalysis pCPA, ReachedSet pReached)
       throws InterruptedException, CPAException {
@@ -629,52 +651,18 @@ class KInductionProver implements AutoCloseable {
     return unroll(logger, pReached, pAlg, pCPA);
   }
 
-  private BooleanFormula extractInputAssignments(
-      ReachedSet pReached, Iterable<ValueAssignment> pModelAssignments) {
-    BooleanFormula inputAssignments = bfmgr.makeTrue();
-    if (pReached.isEmpty()
-        || AbstractStates.extractStateByType(pReached.getFirstState(), InputState.class) == null) {
-      return inputAssignments;
-    }
-    Map<String, CType> types = Maps.newHashMap();
-    Multimap<String, Integer> inputs = extractInputs(pReached, types);
-    if (inputs.isEmpty()) {
-      return inputAssignments;
-    }
-    for (ValueAssignment valueAssignment : pModelAssignments) {
-      if (!valueAssignment.isFunction()) {
-        String fullName = valueAssignment.getName();
-        Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
-        String actualName = pair.getFirst();
-        OptionalInt index = pair.getSecond();
-        Object value = valueAssignment.getValue();
-        if (index.isPresent() && value instanceof Number && inputs.containsKey(actualName)) {
-          Formula formula = valueAssignment.getKey();
-          FormulaType<?> formulaType = fmgr.getFormulaType(formula);
-          ModelValue modelValue =
-              new ModelValue(actualName, formulaType, (Number) valueAssignment.getValue());
-          SSAMap ssaForInstantiation =
-              SSAMap.emptySSAMap()
-                  .builder()
-                  .setIndex(actualName, types.get(actualName), index.getAsInt())
-                  .build();
-          inputAssignments =
-              bfmgr.and(
-                  inputAssignments,
-                  fmgr.instantiate(modelValue.toAssignment(fmgr), ssaForInstantiation));
-        }
-      }
-    }
-    return inputAssignments;
-  }
-
-  private Multimap<String, Integer> extractInputs(ReachedSet pReached, Map<String, CType> types) {
+  private Multimap<String, Integer> extractInputs(Iterable<AbstractState> pReached, Map<String, CType> types) {
     Multimap<String, Integer> inputs = LinkedHashMultimap.create();
-    for (AbstractState s : pReached) {
-      InputState is = AbstractStates.extractStateByType(s, InputState.class);
-      if (is != null) {
-        PredicateAbstractState pas =
-            AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+    Set<AbstractState> visited = new HashSet<>();
+    Deque<AbstractState> waitlist = new ArrayDeque<>();
+    Iterables.addAll(waitlist, pReached);
+    visited.addAll(waitlist);
+    while (!waitlist.isEmpty()) {
+      AbstractState current = waitlist.poll();
+      InputState is = AbstractStates.extractStateByType(current, InputState.class);
+      PredicateAbstractState pas =
+          AbstractStates.extractStateByType(current, PredicateAbstractState.class);
+      if (is != null && pas != null) {
         SSAMap ssaMap = pas.getPathFormula().getSsa();
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
@@ -687,17 +675,35 @@ class KInductionProver implements AutoCloseable {
           types.put(varName, ssaMap.getType(varName));
         }
       }
+      ARGState argState = AbstractStates.extractStateByType(current, ARGState.class);
+      if (argState != null) {
+        for (ARGState parent : argState.getParents()) {
+          if (visited.add(parent)) {
+            waitlist.offer(parent);
+          }
+        }
+      }
     }
     return inputs;
   }
 
-  private Set<CounterexampleToInductivity> extractCTIs(
-      ReachedSet pReached, Iterable<ValueAssignment> pModelAssignments) {
+  private Map<CounterexampleToInductivity, BooleanFormula> extractCTIs(
+      Iterable<AbstractState> pReached,
+      Iterable<ValueAssignment> pModelAssignments,
+      Set<Object> pCheckedKeys,
+      CandidateInvariant pCandidateInvariant,
+      int pK) {
 
     Map<String, CType> types = Maps.newHashMap();
-    Multimap<String, Integer> inputs = extractInputs(pReached, types);
 
-    ImmutableSet.Builder<CounterexampleToInductivity> ctis = ImmutableSet.builder();
+    FluentIterable<AbstractState> inputStates =
+        filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);
+    if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+      inputStates = inputStates.filter(AbstractStates.IS_TARGET_STATE);
+    }
+    Multimap<String, Integer> inputs = extractInputs(inputStates, types);
+
+    Map<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
     for (CFANode loopHead : loopHeads) {
       // We compute the CTI state "at the start of the second loop iteration",
       // because that is where we will later apply it (or its negation) as a candidate invariant.
@@ -706,14 +712,25 @@ class KInductionProver implements AutoCloseable {
       // but technically, this is easier:
       FluentIterable<AbstractState> loopHeadStates =
           filterIteration(
-              AbstractStates.filterLocations(pReached, ImmutableSet.of(loopHead)), 1, loopHeads);
+              AbstractStates.filterLocations(
+                  BMCHelper.filterBmcChecked(pReached, pCheckedKeys), ImmutableSet.of(loopHead)),
+              1,
+              loopHeads);
 
       for (AbstractState loopHeadState : loopHeadStates) {
         PredicateAbstractState pas =
             AbstractStates.extractStateByType(loopHeadState, PredicateAbstractState.class);
         SSAMap ssaMap = pas.getPathFormula().getSsa();
+        Supplier<Map<String, Formula>> variableFormulas =
+            Suppliers.memoize(
+                () -> {
+                  VariableMapper variableMapper = new VariableMapper();
+                  fmgr.visitRecursively(pas.getPathFormula().getFormula(), variableMapper);
+                  return variableMapper.variableFormulas;
+                });
 
         ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
+        BooleanFormula input = bfmgr.makeTrue();
 
         for (ValueAssignment valueAssignment : pModelAssignments) {
           if (!valueAssignment.isFunction()) {
@@ -727,7 +744,10 @@ class KInductionProver implements AutoCloseable {
                 && ssaMap.getIndex(actualName) == index.getAsInt()
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
-              Formula formula = valueAssignment.getKey();
+              Formula formula = variableFormulas.get().get(fullName);
+              if (formula == null) {
+                formula = valueAssignment.getKey();
+              }
               FormulaType<?> formulaType = fmgr.getFormulaType(formula);
               modelBuilder.put(
                   actualName,
@@ -735,33 +755,216 @@ class KInductionProver implements AutoCloseable {
             }
           }
         }
+
         Map<String, ModelValue> model = modelBuilder.build();
         if (!model.isEmpty()) {
           CounterexampleToInductivity cti = new CounterexampleToInductivity(loopHead, model);
-          ctis.add(cti);
+
+          if (ctis.containsKey(cti)) {
+            continue;
+          }
+
+          Supplier<? extends Set<AbstractState>> endStates =
+              Suppliers.memoize(() -> BMCHelper.filterEndStates(pReached).toSet());
+
+          for (ValueAssignment valueAssignment : pModelAssignments) {
+            String fullName = valueAssignment.getName();
+            Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
+            String actualName = pair.getSecond().isPresent() ? pair.getFirst() : fullName;
+            OptionalInt index = pair.getSecond();
+            Object value = valueAssignment.getValue();
+            boolean isUnconnected = false;
+            if (index.isPresent()
+                && ssaMap.containsVariable(actualName)
+                && index.getAsInt() < ssaMap.getIndex(actualName)) {
+              isUnconnected = !variableFormulas.get().containsKey(fullName);
+            }
+            if ((!index.isPresent()
+                    || (index.isPresent()
+                        && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))
+                && value instanceof Number) {
+              Formula formula = variableFormulas.get().get(fullName);
+              if (formula == null) {
+                formula = valueAssignment.getKey();
+              }
+              FormulaType<?> formulaType = fmgr.getFormulaType(formula);
+              BooleanFormula assignment = bfmgr.makeTrue();
+              if (!valueAssignment.isFunction()) {
+                ModelValue modelValue =
+                    new ModelValue(actualName, formulaType, (Number) valueAssignment.getValue());
+                assignment = modelValue.toAssignment(fmgr);
+                if (index.isPresent()) {
+                  CType type = types.get(actualName);
+                  if (type == null && ssaMap.containsVariable(actualName)) {
+                    type = ssaMap.getType(actualName);
+                  }
+                  if (type == null) {
+                    for (PredicateAbstractState endState :
+                        AbstractStates.projectToType(
+                            endStates.get(), PredicateAbstractState.class)) {
+                      type = endState.getPathFormula().getSsa().getType(actualName);
+                      if (type != null) {
+                        break;
+                      }
+                    }
+                  }
+                  if (type != null) {
+                    SSAMap ssaForInstantiation =
+                        SSAMap.emptySSAMap()
+                            .builder()
+                            .setIndex(actualName, type, index.getAsInt())
+                            .build();
+                    assignment = fmgr.instantiate(assignment, ssaForInstantiation);
+                  }
+                }
+              } else {
+                for (PredicateAbstractState endState :
+                    AbstractStates.projectToType(endStates.get(), PredicateAbstractState.class)) {
+                  BooleanFormula pathFormula =
+                      bfmgr.and(
+                          endState.getAbstractionFormula().getBlockFormula().getFormula(),
+                          endState.getPathFormula().getFormula());
+                  VariableFinder variableFinder = new VariableFinder(fullName);
+                  fmgr.visitRecursively(pathFormula, variableFinder);
+                  if (variableFinder.variable != null) {
+                    formulaType = fmgr.getFormulaType(variableFinder.variable);
+                    if (formulaType instanceof ArrayFormulaType) {
+                      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) formulaType;
+                      if (arrayType.getIndexType() instanceof BitvectorType
+                          && arrayType.getElementType() instanceof BitvectorType) {
+                        BitvectorFormulaManager bfvm = fmgr.getBitvectorFormulaManager();
+                        BitvectorType indexType = (BitvectorType) arrayType.getIndexType();
+                        BitvectorFormula arrayIndex =
+                            bfvm.makeBitvector(
+                                indexType.getSize(),
+                                (BigInteger) valueAssignment.getArgInterpretation(0));
+                        BitvectorType elementType = (BitvectorType) arrayType.getElementType();
+                        BitvectorFormula element =
+                            bfvm.makeBitvector(elementType.getSize(), (BigInteger) value);
+                        @SuppressWarnings("unchecked")
+                        ArrayFormula<BitvectorFormula, BitvectorFormula> arrayFormula =
+                            (ArrayFormula<BitvectorFormula, BitvectorFormula>)
+                                variableFinder.variable;
+                        BitvectorFormula select =
+                            fmgr.getArrayFormulaManager().select(arrayFormula, arrayIndex);
+                        assignment = bfvm.equal(select, element);
+                      }
+                    }
+                    break;
+                  }
+                }
+              }
+              input = bfmgr.and(input, assignment);
+            }
+          }
+
+          ctis.put(cti, input);
         }
       }
     }
-    return ctis.build();
+    return ctis;
   }
 
   private Multimap<BooleanFormula, BooleanFormula> getSuccessorViolationAssertions(
       CandidateInvariant pCandidateInvariant, int pK)
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
-    Iterable<AbstractState> assertionStates =
-        filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
 
     ImmutableMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
         ImmutableMultimap.builder();
+    Iterable<AbstractState> assertionStates =
+        filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
+
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);
       BooleanFormula stateFormula = BMCHelper.createFormulaFor(stateAsSet, bfmgr);
-      BooleanFormula invariantFormula =
-          BMCHelper.assertAt(stateAsSet, pCandidateInvariant, fmgr, pfmgr, true);
+      BooleanFormula invariantFormula = bfmgr.makeTrue();
+      for (CandidateInvariant component :
+          CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+        if (!Iterables.isEmpty(component.filterApplicable(stateAsSet))) {
+          invariantFormula =
+              bfmgr.and(
+                  invariantFormula, BMCHelper.assertAt(stateAsSet, component, fmgr, pfmgr, true));
+        }
+      }
       stateViolationAssertionsBuilder.put(stateFormula, bfmgr.not(invariantFormula));
     }
 
     return stateViolationAssertionsBuilder.build();
+  }
+
+  private static class VariableFinder implements FormulaVisitor<TraversalProcess> {
+
+    private final String variableName;
+
+    private @Nullable Formula variable = null;
+
+    public VariableFinder(String pVariableName) {
+      variableName = Objects.requireNonNull(pVariableName);
+    }
+
+    @Override
+    public TraversalProcess visitQuantifier(
+        BooleanFormula pArg0, Quantifier pArg1, List<Formula> pArg2, BooleanFormula pArg3) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitFunction(
+        Formula pArg0, List<Formula> pArg1, FunctionDeclaration<?> pArg2) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitFreeVariable(Formula pArg0, String pArg1) {
+      if (pArg1.equals(variableName)) {
+        variable = pArg0;
+        return TraversalProcess.ABORT;
+      }
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitConstant(Formula pArg0, Object pArg1) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitBoundVariable(Formula pArg0, int pArg1) {
+      return TraversalProcess.CONTINUE;
+    }
+  }
+
+  private static class VariableMapper implements FormulaVisitor<TraversalProcess> {
+
+    private final Map<String, Formula> variableFormulas = new HashMap<>();
+
+    @Override
+    public TraversalProcess visitQuantifier(
+        BooleanFormula pArg0, Quantifier pArg1, List<Formula> pArg2, BooleanFormula pArg3) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitFunction(
+        Formula pArg0, List<Formula> pArg1, FunctionDeclaration<?> pArg2) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitFreeVariable(Formula pArg0, String pArg1) {
+      variableFormulas.put(pArg1, pArg0);
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitConstant(Formula pArg0, Object pArg1) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitBoundVariable(Formula pArg0, int pArg1) {
+      return TraversalProcess.CONTINUE;
+    }
   }
 }

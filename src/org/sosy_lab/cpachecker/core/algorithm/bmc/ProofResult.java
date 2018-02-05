@@ -23,23 +23,38 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.Multimap;
-import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
-public interface InvariantAbstraction<S, T> {
+public class ProofResult {
 
-  T performAbstraction(
-      ProverEnvironmentWithFallback pProver,
-      FormulaManagerView pFmgr,
-      PredicateAbstractionManager pPam,
-      S pInvariant,
-      Multimap<BooleanFormula, BooleanFormula> pStateViolationAssertions,
-      Map<BooleanFormula, Object> pSuccessorViolationAssertionIds,
-      Optional<BooleanFormula> pAssertedInvariants)
-      throws SolverException, InterruptedException;
+  private final boolean successful;
+
+  private final Optional<AlgorithmStatus> earlyReturn;
+
+  protected ProofResult(boolean pSuccessful) {
+    successful = pSuccessful;
+    earlyReturn = Optional.empty();
+  }
+
+  protected ProofResult(AlgorithmStatus pEarlyReturn) {
+    successful = false;
+    earlyReturn = Optional.of(pEarlyReturn);
+  }
+
+  public boolean isSuccessful() {
+    return successful;
+  }
+
+  public Optional<AlgorithmStatus> getEarlyReturn() {
+    return earlyReturn;
+  }
+
+  @Override
+  public String toString() {
+    if (earlyReturn.isPresent()) {
+      return earlyReturn.get().toString();
+    }
+    return successful ? "Successful" : "Failure";
+  }
 }

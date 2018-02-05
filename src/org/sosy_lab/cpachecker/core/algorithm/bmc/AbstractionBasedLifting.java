@@ -23,21 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.FluentIterable;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StandardLiftings.UnsatCallback;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 public class AbstractionBasedLifting implements Lifting {
 
@@ -57,55 +53,53 @@ public class AbstractionBasedLifting implements Lifting {
   }
 
   @Override
-  public SingleLocationFormulaInvariant lift(
+  public SymbolicCandiateInvariant lift(
       FormulaManagerView pFMGR,
       PredicateAbstractionManager pPam,
       ProverEnvironmentWithFallback pProver,
-      CounterexampleToInductivity pCti,
-      AssertPredecessor pAssertPredecessor)
+      BlockedCounterexampleToInductivity pBlockedConcreteCti,
+      AssertCandidate pAssertPredecessor,
+      Iterable<Object> pAssertionIds)
       throws CPATransferException, InterruptedException, SolverException {
-    CFANode location = pCti.getLocation();
-    BooleanFormula concreteCTIFormula = pCti.getFormula(pFMGR);
+    CounterexampleToInductivity cti = pBlockedConcreteCti.getCti();
+    BooleanFormula concreteCTIFormula = cti.getFormula(pFMGR);
 
-    abstractionStrategy.refinePrecision(pPam, location, pFMGR, pCti.getVariables(pFMGR));
-
-    BooleanFormula abstractCTIFormula =
-        abstractionStrategy.performAbstraction(pPam, pCti.getLocation(), concreteCTIFormula);
-    SingleLocationFormulaInvariant abstractCTI =
-        SingleLocationFormulaInvariant.makeLocationInvariant(
-            location, abstractCTIFormula, pFMGR);
+    BooleanFormula abstractCtiFormula =
+        abstractionStrategy.performAbstraction(pPam, cti.getLocation(), concreteCTIFormula);
+    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+    BooleanFormula blockedAbstractCtiFormula = bfmgr.not(abstractCtiFormula);
+    SymbolicCandiateInvariant blockedAbstractCti =
+        SymbolicCandiateInvariant.makeSymbolicInvariant(
+            pBlockedConcreteCti.getApplicableLocations(),
+            pBlockedConcreteCti.getStateFilter(),
+            blockedAbstractCtiFormula,
+            pFMGR);
 
     // First, check if abstract lifting succeeds
-    SuccessCheckingLiftingUnsatCallback abstractLiftingUnsatCallback = new SuccessCheckingLiftingUnsatCallback();
-    SingleLocationFormulaInvariant unsatLiftedAbstractCTI =
+    SuccessCheckingLiftingUnsatCallback abstractLiftingUnsatCallback =
+        new SuccessCheckingLiftingUnsatCallback();
+    SymbolicCandiateInvariant unsatLiftedAbstractBlockingClause =
         StandardLiftings.unsatBasedLifting(
             pFMGR,
             pProver,
-            abstractCTI,
-            cti -> splitLiterals(pFMGR, location, abstractCTIFormula),
+            blockedAbstractCti,
+            blockedAbstractCti.negate(pFMGR).splitLiterals(pFMGR, false),
             pAssertPredecessor,
+            pAssertionIds,
             abstractLiftingUnsatCallback);
     if (abstractLiftingUnsatCallback.isSuccessful()) {
-      return unsatLiftedAbstractCTI;
+      return unsatLiftedAbstractBlockingClause;
     }
 
     return lafStrategy.handleLAF(
-        pFMGR, pPam, pProver, pCti, abstractCTI, pAssertPredecessor, abstractionStrategy);
-  }
-
-  private Iterable<CandidateInvariant> splitLiterals(
-      FormulaManagerView pFMGR, CFANode pLocation, BooleanFormula pAbstractCTIFormula) {
-    Set<BooleanFormula> operands =
-        pFMGR.getBooleanFormulaManager().toConjunctionArgs(pAbstractCTIFormula, true);
-    if (operands.isEmpty()) {
-      return Collections.singleton(
-          SingleLocationFormulaInvariant.makeLocationInvariant(
-              pLocation, pAbstractCTIFormula, pFMGR));
-    }
-    return FluentIterable.from(operands)
-        .transform(
-            operand ->
-                SingleLocationFormulaInvariant.makeLocationInvariant(pLocation, operand, pFMGR));
+        pFMGR,
+        pPam,
+        pProver,
+        pBlockedConcreteCti,
+        blockedAbstractCti,
+        pAssertPredecessor,
+        pAssertionIds,
+        abstractionStrategy);
   }
 
   private static class SuccessCheckingLiftingUnsatCallback implements UnsatCallback {
@@ -114,7 +108,9 @@ public class AbstractionBasedLifting implements Lifting {
 
     @Override
     public void unsat(
-        SingleLocationFormulaInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
+        SymbolicCandiateInvariant pLiftedCTI,
+        Iterable<Object> pCtiLiteralAssertionIds,
+        Iterable<Object> pOtherAssertionIds)
         throws SolverException, InterruptedException {
       successful = true;
     }
@@ -127,22 +123,33 @@ public class AbstractionBasedLifting implements Lifting {
   private static class InterpolatingLiftingUnsatCallback
       extends SuccessCheckingLiftingUnsatCallback {
 
+    private final FormulaManagerView fmgr;
+
     private final ProverEnvironmentWithFallback prover;
 
     private @Nullable BooleanFormula interpolant = null;
 
-    InterpolatingLiftingUnsatCallback(ProverEnvironmentWithFallback pProver) {
+    InterpolatingLiftingUnsatCallback(
+        FormulaManagerView pFmgr, ProverEnvironmentWithFallback pProver) {
+      fmgr = Objects.requireNonNull(pFmgr);
       prover = Objects.requireNonNull(pProver);
     }
 
     @Override
     public void unsat(
-        SingleLocationFormulaInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
+        SymbolicCandiateInvariant pLiftedCTI,
+        Iterable<Object> pCtiLiteralAssertionIds,
+        Iterable<Object> pOtherAssertionIds)
         throws SolverException, InterruptedException {
-      super.unsat(pLiftedCTI, pCtiLiteralAssertionIds);
+      super.unsat(pLiftedCTI, pCtiLiteralAssertionIds, pOtherAssertionIds);
       // Lifting is indeed successful, but we can do even better using interpolation
       if (prover.supportsInterpolation()) {
-        interpolant = prover.getInterpolant(pCtiLiteralAssertionIds);
+        try {
+          interpolant =
+              fmgr.getBooleanFormulaManager().not(prover.getInterpolant(pOtherAssertionIds));
+        } catch (SolverException solverException) {
+          // TODO log that interpolation was switched off
+        }
       }
     }
 
@@ -156,127 +163,106 @@ public class AbstractionBasedLifting implements Lifting {
 
   static interface LiftingAbstractionFailureStrategy {
 
-    SingleLocationFormulaInvariant handleLAF(
+    SymbolicCandiateInvariant handleLAF(
         FormulaManagerView pFMGR,
         PredicateAbstractionManager pPam,
         ProverEnvironmentWithFallback pProver,
-        CounterexampleToInductivity pConcreteCti,
-        SingleLocationFormulaInvariant pAbstractCTI,
-        AssertPredecessor pAssertPredecessor,
+        BlockedCounterexampleToInductivity pBlockedConcreteCti,
+        SymbolicCandiateInvariant pBlockedAbstractCti,
+        AssertCandidate pAssertPredecessor,
+        Iterable<Object> pAssertionIds,
         AbstractionStrategy pAbstractionStrategy)
         throws CPATransferException, InterruptedException, SolverException;
   }
 
-  public static enum EagerRefinementLAFStrategy implements LiftingAbstractionFailureStrategy {
+  public static enum RefinementLAFStrategies implements LiftingAbstractionFailureStrategy {
+    IGNORE {
 
-    INSTANCE;
-
-    @Override
-    public SingleLocationFormulaInvariant handleLAF(
-        FormulaManagerView pFMGR,
-        PredicateAbstractionManager pPam,
-        ProverEnvironmentWithFallback pProver,
-        CounterexampleToInductivity pConcreteCti,
-        SingleLocationFormulaInvariant pAbstractCTI,
-        AssertPredecessor pAssertPredecessor,
-        AbstractionStrategy pAbstractionStrategy)
-        throws CPATransferException, InterruptedException, SolverException {
-      CFANode location = pConcreteCti.getLocation();
-
-      // If abstract lifting fails, check if concrete lifting succeeds (it should)
-      InterpolatingLiftingUnsatCallback concreteLiftingUnsatCallback =
-          new InterpolatingLiftingUnsatCallback(pProver);
-      SingleLocationFormulaInvariant unsatLiftedConcreteCTI =
-          StandardLiftings.unsatBasedLifting(
-              pFMGR,
-              pProver,
-              pConcreteCti,
-              cti -> pConcreteCti.splitLiterals(pFMGR, true),
-              pAssertPredecessor,
-              concreteLiftingUnsatCallback);
-      if (concreteLiftingUnsatCallback.isSuccessful()) {
-        // Abstract lifting failed, but concrete lifting succeeded
-        BooleanFormula interpolant = concreteLiftingUnsatCallback.getInterpolant();
-        if (interpolant != null) {
-          interpolant = pFMGR.uninstantiate(interpolant);
-        } else {
-          interpolant = pConcreteCti.getFormula(pFMGR);
-        }
-        pAbstractionStrategy.refinePrecision(pPam, location, pFMGR.extractAtoms(interpolant, true));
-        SingleLocationFormulaInvariant interpolantInvariant =
-            SingleLocationFormulaInvariant.makeLocationInvariant(location, interpolant, pFMGR);
-
-        SingleLocationFormulaInvariant trueAtLocation =
-            SingleLocationFormulaInvariant.makeBooleanInvariant(location, true);
-        if (trueAtLocation.equals(pAbstractCTI)) {
-          return interpolantInvariant;
-        }
-
-        return CandidateInvariantConjunction.ofSingleLocation(pAbstractCTI, interpolantInvariant);
+      @Override
+      public SymbolicCandiateInvariant handleLAF(
+          FormulaManagerView pFMGR,
+          PredicateAbstractionManager pPam,
+          ProverEnvironmentWithFallback pProver,
+          BlockedCounterexampleToInductivity pBlockedConcreteCti,
+          SymbolicCandiateInvariant pBlockedAbstractCti,
+          AssertCandidate pAssertPredecessor,
+          Iterable<Object> pAssertionIds,
+          AbstractionStrategy pAbstractionStrategy)
+          throws CPATransferException, InterruptedException, SolverException {
+        return pBlockedAbstractCti;
       }
+    },
 
-      return unsatLiftedConcreteCTI;
-    }
+    EAGER {
+
+      @Override
+      public SymbolicCandiateInvariant handleLAF(
+          FormulaManagerView pFMGR,
+          PredicateAbstractionManager pPam,
+          ProverEnvironmentWithFallback pProver,
+          BlockedCounterexampleToInductivity pBlockedConcreteCti,
+          SymbolicCandiateInvariant pBlockedAbstractCti,
+          AssertCandidate pAssertPredecessor,
+          Iterable<Object> pAssertionIds,
+          AbstractionStrategy pAbstractionStrategy)
+          throws CPATransferException, InterruptedException, SolverException {
+
+        // If abstract lifting fails, check if concrete lifting succeeds (it should)
+        InterpolatingLiftingUnsatCallback concreteLiftingUnsatCallback =
+            new InterpolatingLiftingUnsatCallback(pFMGR, pProver);
+        Iterable<CandidateInvariant> ctiLiterals =
+            pBlockedConcreteCti.getCti().splitLiterals(pFMGR, false);
+        SymbolicCandiateInvariant unsatLiftedConcreteCTI =
+            StandardLiftings.unsatBasedLifting(
+                pFMGR,
+                pProver,
+                pBlockedConcreteCti,
+                ctiLiterals,
+                pAssertPredecessor,
+                pAssertionIds,
+                concreteLiftingUnsatCallback);
+        if (concreteLiftingUnsatCallback.isSuccessful()) {
+          // Abstract lifting failed, but concrete lifting succeeded
+          BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+          BooleanFormula interpolant = concreteLiftingUnsatCallback.getInterpolant();
+          if (interpolant != null) {
+            interpolant = pFMGR.uninstantiate(interpolant);
+          } else {
+            return unsatLiftedConcreteCTI;
+          }
+          if (!bfmgr.isTrue(interpolant)) {
+            refinePrecision(
+                pAbstractionStrategy,
+                pPam,
+                pFMGR,
+                pBlockedConcreteCti.getCti().getLocation(),
+                interpolant);
+          }
+
+          SymbolicCandiateInvariant refinedBlockingClause =
+              SymbolicCandiateInvariant.makeSymbolicInvariant(
+                  pBlockedConcreteCti.getApplicableLocations(),
+                  pBlockedConcreteCti.getStateFilter(),
+                  bfmgr.not(
+                      bfmgr.and(
+                          bfmgr.not(pBlockedAbstractCti.getPlainFormula(pFMGR)), interpolant)),
+                  pFMGR);
+          return refinedBlockingClause;
+        }
+        return pBlockedConcreteCti;
+      }
+    };
   }
 
-  private static Iterable<BooleanFormula> getConjunctionOperands(FormulaManagerView pFMGR, BooleanFormula pFormula) {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    return bfmgr.visit(
-        pFormula,
-        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
-
-          @Override
-          protected Iterable<BooleanFormula> visitDefault() {
-            return pFMGR.splitNumeralEqualityIfPossible(pFormula);
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitAnd(List<BooleanFormula> pArg0) {
-            return FluentIterable.from(pArg0)
-                .transformAndConcat(operand -> getConjunctionOperands(pFMGR, operand));
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitNot(BooleanFormula pArg0) {
-            FluentIterable<BooleanFormula> disjunctionOperands =
-                FluentIterable.from(getDisjunctionOperands(pFMGR, pArg0));
-            if (disjunctionOperands.skip(1).isEmpty()) {
-              return disjunctionOperands;
-            }
-            return disjunctionOperands.transformAndConcat(
-                innerOp -> getConjunctionOperands(pFMGR, bfmgr.not(innerOp)));
-          }
-        });
-  }
-
-  private static Iterable<BooleanFormula> getDisjunctionOperands(
-      FormulaManagerView pFMGR, BooleanFormula pFormula) {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    return bfmgr.visit(
-        pFormula,
-        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
-
-          @Override
-          protected Iterable<BooleanFormula> visitDefault() {
-            return Collections.singleton(pFormula);
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitOr(List<BooleanFormula> pArg0) {
-            return FluentIterable.from(pArg0)
-                .transformAndConcat(operand -> getDisjunctionOperands(pFMGR, operand));
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitNot(BooleanFormula pArg0) {
-            FluentIterable<BooleanFormula> conjunctionOperands =
-                FluentIterable.from(getConjunctionOperands(pFMGR, pArg0));
-            if (conjunctionOperands.skip(1).isEmpty()) {
-              return conjunctionOperands;
-            }
-            return conjunctionOperands.transformAndConcat(
-                innerOp -> getDisjunctionOperands(pFMGR, bfmgr.not(innerOp)));
-          }
-        });
+  private static void refinePrecision(
+      AbstractionStrategy pAbstractionStrategy,
+      PredicateAbstractionManager pPam,
+      FormulaManagerView pFMGR,
+      CFANode pLocation,
+      BooleanFormula pInterpolant) {
+    pAbstractionStrategy.refinePrecision(
+        pPam,
+        pLocation,
+        SymbolicCandiateInvariant.getConjunctionOperands(pFMGR, pInterpolant, true));
   }
 }
