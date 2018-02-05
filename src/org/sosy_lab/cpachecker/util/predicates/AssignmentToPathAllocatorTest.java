@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
@@ -79,18 +80,24 @@ public class AssignmentToPathAllocatorTest {
     ValueAssignment varX =
         new ValueAssignment(
             mock(Formula.class),
+            mock(Formula.class),
+            mock(BooleanFormula.class),
             FormulaManagerView.instantiateVariableName("x", ssaMap),
             1,
             ImmutableList.of());
     ValueAssignment varY =
         new ValueAssignment(
             mock(Formula.class),
+            mock(Formula.class),
+            mock(BooleanFormula.class),
             FormulaManagerView.instantiateVariableName("y", ssaMap),
             1,
             ImmutableList.of());
     ValueAssignment varZ =
         new ValueAssignment(
             mock(Formula.class),
+            mock(Formula.class),
+            mock(BooleanFormula.class),
             FormulaManagerView.instantiateVariableName("z", ssaMap),
             1,
             ImmutableList.of());
