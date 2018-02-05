@@ -36,6 +36,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -719,9 +720,11 @@ public class PdrAlgorithm implements Algorithm {
     // TODO this can probably done more efficiently
     // by keeping the assertions and transitions on the stack;
     // we just need to make sure then to recreate that stack when the transition changes
-    pProver.push(pTransitionRelation.getTransitionFormula());
-    pProver.push(pTransitionRelation.getPredecessorAssertions(pPredecessorAssertions));
-    pProver.push(pTransitionRelation.getPredecessorAssertion(pCandidateInvariant));
+    Object transitionAssertionId = pProver.push(pTransitionRelation.getTransitionFormula());
+    Object predecessorAssertionId =
+        pProver.push(pTransitionRelation.getPredecessorAssertions(pPredecessorAssertions));
+    Object candidateAssertionId =
+        pProver.push(pTransitionRelation.getPredecessorAssertion(pCandidateInvariant));
 
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions = pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
     BooleanFormula successorViolation =
@@ -792,12 +795,25 @@ public class PdrAlgorithm implements Algorithm {
       assert !pProver.isUnsat();
 
       // Push the candidate successor assertion
-      pProver.push(pTransitionRelation.getSuccessorAssertion(pCandidateInvariant));
+      Object successorAssertionId =
+          pProver.push(pTransitionRelation.getSuccessorAssertion(pCandidateInvariant));
 
-      pProver.push(inputs); // Push the input assignments
+      Object inputAssertionId = pProver.push(inputs); // Push the input assignments
 
       // Lift
-      blockedAbstractCti = pLifting.lift(fmgr, pam, pProver, blockedConcreteCti, assertSinglePredecessor);
+      blockedAbstractCti =
+          pLifting.lift(
+              fmgr,
+              pam,
+              pProver,
+              blockedConcreteCti,
+              assertSinglePredecessor,
+              Arrays.asList(
+                  transitionAssertionId,
+                  predecessorAssertionId,
+                  candidateAssertionId,
+                  successorAssertionId,
+                  inputAssertionId));
       pProver.pop(); // Pop input assignments
       pProver.pop(); // Pop the candidate successor assertion
     }
@@ -1383,6 +1399,7 @@ public class PdrAlgorithm implements Algorithm {
         BlockedCounterexampleToInductivity pBlockedConcreteCti,
         SymbolicCandiateInvariant pBlockedAbstractCti,
         AssertCandidate pAssertPredecessor,
+        Iterable<Object> pAssertionIds,
         AbstractionStrategy pAbstractionStrategy)
         throws CPATransferException, InterruptedException, SolverException {
       if (eager) {
@@ -1394,6 +1411,7 @@ public class PdrAlgorithm implements Algorithm {
             pBlockedConcreteCti,
             pBlockedAbstractCti,
             pAssertPredecessor,
+            pAssertionIds,
             pAbstractionStrategy);
       }
       spuriousAbstractions.put(pBlockedAbstractCti, pBlockedConcreteCti);

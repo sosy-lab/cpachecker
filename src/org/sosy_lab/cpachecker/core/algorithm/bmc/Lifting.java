@@ -38,6 +38,7 @@ public interface Lifting {
       PredicateAbstractionManager pPam,
       ProverEnvironmentWithFallback pProver,
       BlockedCounterexampleToInductivity pBlockedConcreteCti,
-      AssertCandidate pAssertPredecessor)
+      AssertCandidate pAssertPredecessor,
+      Iterable<Object> pAssertionIds)
       throws CPATransferException, InterruptedException, SolverException;
 }

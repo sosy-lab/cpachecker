@@ -50,7 +50,8 @@ enum StandardLiftings implements Lifting {
         PredicateAbstractionManager pPam,
         ProverEnvironmentWithFallback pProver,
         BlockedCounterexampleToInductivity pBlockedConcreteCti,
-        AssertCandidate pAssertPredecessor) {
+        AssertCandidate pAssertPredecessor,
+        Iterable<Object> pAssertionIds) {
       return pBlockedConcreteCti;
     }
   },
@@ -68,7 +69,8 @@ enum StandardLiftings implements Lifting {
         PredicateAbstractionManager pPam,
         ProverEnvironmentWithFallback pProver,
         BlockedCounterexampleToInductivity pBlockedConcreteCti,
-        AssertCandidate pAssertPredecessor)
+        AssertCandidate pAssertPredecessor,
+        Iterable<Object> pAssertionIds)
         throws CPATransferException, InterruptedException, SolverException {
       return unsatBasedLifting(
           pFMGR,
@@ -76,6 +78,7 @@ enum StandardLiftings implements Lifting {
           pBlockedConcreteCti,
           pBlockedConcreteCti.getCti().splitLiterals(pFMGR, false),
           pAssertPredecessor,
+          pAssertionIds,
           DoNothingUnsatCallback.INSTANCE);
     }
 
@@ -87,6 +90,7 @@ enum StandardLiftings implements Lifting {
       T pBlockedCti,
       Iterable<? extends CandidateInvariant> pCtiLiterals,
       AssertCandidate pAssertPredecessor,
+      Iterable<Object> pAssertionIds,
       UnsatCallback pUnsatCallback)
       throws CPATransferException, InterruptedException, SolverException {
     Iterator<? extends CandidateInvariant> literalIterator = pCtiLiterals.iterator();
@@ -124,7 +128,7 @@ enum StandardLiftings implements Lifting {
               pBlockedCti.getStateFilter(),
               pFMGR.makeNot(pFMGR.uninstantiate(bfmgr.and(assertedLiterals))),
               pFMGR);
-      pUnsatCallback.unsat(liftedBlockedCti, ctiLiteralAssertionIds);
+      pUnsatCallback.unsat(liftedBlockedCti, ctiLiteralAssertionIds, pAssertionIds);
     } else {
       liftedBlockedCti = pBlockedCti;
     }
@@ -139,7 +143,10 @@ enum StandardLiftings implements Lifting {
 
   static interface UnsatCallback {
 
-    void unsat(SymbolicCandiateInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
+    void unsat(
+        SymbolicCandiateInvariant pLiftedCTI,
+        Iterable<Object> pCtiLiteralAssertionIds,
+        Iterable<Object> pOtherAssertionIds)
         throws SolverException, InterruptedException;
   }
 
@@ -148,7 +155,10 @@ enum StandardLiftings implements Lifting {
     INSTANCE;
 
     @Override
-    public void unsat(SymbolicCandiateInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds) {
+    public void unsat(
+        SymbolicCandiateInvariant pLiftedCTI,
+        Iterable<Object> pCtiLiteralAssertionIds,
+        Iterable<Object> pOtherAssertionIds) {
       // Do nothing
     }
   }

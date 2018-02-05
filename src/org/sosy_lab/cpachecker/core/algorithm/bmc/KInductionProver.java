@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterati
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -42,6 +43,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -55,6 +57,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -445,8 +448,10 @@ class KInductionProver implements AutoCloseable {
     stats.inductionCheck.start();
 
     // Try to prove the invariance of the assertion
-    prover.push(successorExistsAssertion);
-    prover.push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
+    Object successorExistsAssertionId = prover.push(successorExistsAssertion);
+    Object predecessorAssertionId =
+        prover.push(
+            predecessorAssertion); // Assert the formula we want to prove at the predecessors
     // Assert that the formula is violated at a successor
     prover.push(successorViolation);
 
@@ -491,22 +496,29 @@ class KInductionProver implements AutoCloseable {
               // Push the successor assertion
               BooleanFormula candidateAssertion =
                   assertCandidate(reached, pCandidateInvariant, pK + 1);
-              prover.push(candidateAssertion);
-              prover.push(loopHeadInv); // Push the known loop-head invariants back on
+              Object candidateSuccessorAssertionId = prover.push(candidateAssertion);
+              Object invariantsAssertionId =
+                  prover.push(loopHeadInv); // Push the known loop-head invariants back on
 
               ImmutableSet.Builder<SymbolicCandiateInvariant> badStateBlockingClauseBuilder =
                   ImmutableSet.builder();
               for (Map.Entry<CounterexampleToInductivity, BooleanFormula> ctiWithInput :
                   detectedCtis.entrySet()) {
                 // Push the input assignments
-                prover.push(ctiWithInput.getValue());
+                Object inputAssertionId = prover.push(ctiWithInput.getValue());
                 final SymbolicCandiateInvariant blockedReducedCti =
                     pLifting.lift(
                         fmgr,
                         pam,
                         prover,
                         SymbolicCandiateInvariant.blockCti(loopHeads, ctiWithInput.getKey(), fmgr),
-                        assertPredecessor);
+                        assertPredecessor,
+                        Arrays.asList(
+                            successorExistsAssertionId,
+                            predecessorAssertionId,
+                            candidateSuccessorAssertionId,
+                            invariantsAssertionId,
+                            inputAssertionId));
                 badStateBlockingClauseBuilder.add(blockedReducedCti);
                 prover.pop(); // Pop input assignments
               }
@@ -709,7 +721,13 @@ class KInductionProver implements AutoCloseable {
         PredicateAbstractState pas =
             AbstractStates.extractStateByType(loopHeadState, PredicateAbstractState.class);
         SSAMap ssaMap = pas.getPathFormula().getSsa();
-        Map<String, Formula> variableFormulas = null;
+        Supplier<Map<String, Formula>> variableFormulas =
+            Suppliers.memoize(
+                () -> {
+                  VariableMapper variableMapper = new VariableMapper();
+                  fmgr.visitRecursively(pas.getPathFormula().getFormula(), variableMapper);
+                  return variableMapper.variableFormulas;
+                });
 
         ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
         BooleanFormula input = bfmgr.makeTrue();
@@ -726,7 +744,10 @@ class KInductionProver implements AutoCloseable {
                 && ssaMap.getIndex(actualName) == index.getAsInt()
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
-              Formula formula = valueAssignment.getKey();
+              Formula formula = variableFormulas.get().get(fullName);
+              if (formula == null) {
+                formula = valueAssignment.getKey();
+              }
               FormulaType<?> formulaType = fmgr.getFormulaType(formula);
               modelBuilder.put(
                   actualName,
@@ -743,7 +764,8 @@ class KInductionProver implements AutoCloseable {
             continue;
           }
 
-          Set<AbstractState> endStates = null;
+          Supplier<? extends Set<AbstractState>> endStates =
+              Suppliers.memoize(() -> BMCHelper.filterEndStates(pReached).toSet());
 
           for (ValueAssignment valueAssignment : pModelAssignments) {
             String fullName = valueAssignment.getName();
@@ -755,18 +777,16 @@ class KInductionProver implements AutoCloseable {
             if (index.isPresent()
                 && ssaMap.containsVariable(actualName)
                 && index.getAsInt() < ssaMap.getIndex(actualName)) {
-              if (variableFormulas == null) {
-                VariableMapper variableMapper = new VariableMapper();
-                fmgr.visitRecursively(pas.getPathFormula().getFormula(), variableMapper);
-                variableFormulas = variableMapper.variableFormulas;
-              }
-              isUnconnected = !variableFormulas.containsKey(fullName);
+              isUnconnected = !variableFormulas.get().containsKey(fullName);
             }
             if ((!index.isPresent()
                     || (index.isPresent()
                         && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))
                 && value instanceof Number) {
-              Formula formula = valueAssignment.getKey();
+              Formula formula = variableFormulas.get().get(fullName);
+              if (formula == null) {
+                formula = valueAssignment.getKey();
+              }
               FormulaType<?> formulaType = fmgr.getFormulaType(formula);
               BooleanFormula assignment = bfmgr.makeTrue();
               if (!valueAssignment.isFunction()) {
@@ -779,11 +799,9 @@ class KInductionProver implements AutoCloseable {
                     type = ssaMap.getType(actualName);
                   }
                   if (type == null) {
-                    if (endStates == null) {
-                      endStates = BMCHelper.filterEndStates(pReached).toSet();
-                    }
                     for (PredicateAbstractState endState :
-                        AbstractStates.projectToType(endStates, PredicateAbstractState.class)) {
+                        AbstractStates.projectToType(
+                            endStates.get(), PredicateAbstractState.class)) {
                       type = endState.getPathFormula().getSsa().getType(actualName);
                       if (type != null) {
                         break;
@@ -800,11 +818,8 @@ class KInductionProver implements AutoCloseable {
                   }
                 }
               } else {
-                if (endStates == null) {
-                  endStates = BMCHelper.filterEndStates(pReached).toSet();
-                }
                 for (PredicateAbstractState endState :
-                    AbstractStates.projectToType(endStates, PredicateAbstractState.class)) {
+                    AbstractStates.projectToType(endStates.get(), PredicateAbstractState.class)) {
                   BooleanFormula pathFormula =
                       bfmgr.and(
                           endState.getAbstractionFormula().getBlockFormula().getFormula(),

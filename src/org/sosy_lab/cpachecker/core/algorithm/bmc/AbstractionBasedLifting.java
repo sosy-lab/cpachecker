@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.Iterables;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,7 +58,8 @@ public class AbstractionBasedLifting implements Lifting {
       PredicateAbstractionManager pPam,
       ProverEnvironmentWithFallback pProver,
       BlockedCounterexampleToInductivity pBlockedConcreteCti,
-      AssertCandidate pAssertPredecessor)
+      AssertCandidate pAssertPredecessor,
+      Iterable<Object> pAssertionIds)
       throws CPATransferException, InterruptedException, SolverException {
     CounterexampleToInductivity cti = pBlockedConcreteCti.getCti();
     BooleanFormula concreteCTIFormula = cti.getFormula(pFMGR);
@@ -89,6 +87,7 @@ public class AbstractionBasedLifting implements Lifting {
             blockedAbstractCti,
             blockedAbstractCti.negate(pFMGR).splitLiterals(pFMGR, false),
             pAssertPredecessor,
+            pAssertionIds,
             abstractLiftingUnsatCallback);
     if (abstractLiftingUnsatCallback.isSuccessful()) {
       return unsatLiftedAbstractBlockingClause;
@@ -101,6 +100,7 @@ public class AbstractionBasedLifting implements Lifting {
         pBlockedConcreteCti,
         blockedAbstractCti,
         pAssertPredecessor,
+        pAssertionIds,
         abstractionStrategy);
   }
 
@@ -109,7 +109,10 @@ public class AbstractionBasedLifting implements Lifting {
     private boolean successful = false;
 
     @Override
-    public void unsat(SymbolicCandiateInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
+    public void unsat(
+        SymbolicCandiateInvariant pLiftedCTI,
+        Iterable<Object> pCtiLiteralAssertionIds,
+        Iterable<Object> pOtherAssertionIds)
         throws SolverException, InterruptedException {
       successful = true;
     }
@@ -122,22 +125,30 @@ public class AbstractionBasedLifting implements Lifting {
   private static class InterpolatingLiftingUnsatCallback
       extends SuccessCheckingLiftingUnsatCallback {
 
+    private final FormulaManagerView fmgr;
+
     private final ProverEnvironmentWithFallback prover;
 
     private @Nullable BooleanFormula interpolant = null;
 
-    InterpolatingLiftingUnsatCallback(ProverEnvironmentWithFallback pProver) {
+    InterpolatingLiftingUnsatCallback(
+        FormulaManagerView pFmgr, ProverEnvironmentWithFallback pProver) {
+      fmgr = Objects.requireNonNull(pFmgr);
       prover = Objects.requireNonNull(pProver);
     }
 
     @Override
-    public void unsat(SymbolicCandiateInvariant pLiftedCTI, List<Object> pCtiLiteralAssertionIds)
+    public void unsat(
+        SymbolicCandiateInvariant pLiftedCTI,
+        Iterable<Object> pCtiLiteralAssertionIds,
+        Iterable<Object> pOtherAssertionIds)
         throws SolverException, InterruptedException {
-      super.unsat(pLiftedCTI, pCtiLiteralAssertionIds);
+      super.unsat(pLiftedCTI, pCtiLiteralAssertionIds, pOtherAssertionIds);
       // Lifting is indeed successful, but we can do even better using interpolation
       if (prover.supportsInterpolation()) {
         try {
-          interpolant = prover.getInterpolant(pCtiLiteralAssertionIds);
+          interpolant =
+              fmgr.getBooleanFormulaManager().not(prover.getInterpolant(pOtherAssertionIds));
         } catch (SolverException solverException) {
           // TODO log that interpolation was switched off
         }
@@ -161,6 +172,7 @@ public class AbstractionBasedLifting implements Lifting {
         BlockedCounterexampleToInductivity pBlockedConcreteCti,
         SymbolicCandiateInvariant pBlockedAbstractCti,
         AssertCandidate pAssertPredecessor,
+        Iterable<Object> pAssertionIds,
         AbstractionStrategy pAbstractionStrategy)
         throws CPATransferException, InterruptedException, SolverException;
   }
@@ -176,6 +188,7 @@ public class AbstractionBasedLifting implements Lifting {
           BlockedCounterexampleToInductivity pBlockedConcreteCti,
           SymbolicCandiateInvariant pBlockedAbstractCti,
           AssertCandidate pAssertPredecessor,
+          Iterable<Object> pAssertionIds,
           AbstractionStrategy pAbstractionStrategy)
           throws CPATransferException, InterruptedException, SolverException {
         return pBlockedAbstractCti;
@@ -192,16 +205,15 @@ public class AbstractionBasedLifting implements Lifting {
           BlockedCounterexampleToInductivity pBlockedConcreteCti,
           SymbolicCandiateInvariant pBlockedAbstractCti,
           AssertCandidate pAssertPredecessor,
+          Iterable<Object> pAssertionIds,
           AbstractionStrategy pAbstractionStrategy)
           throws CPATransferException, InterruptedException, SolverException {
 
         // If abstract lifting fails, check if concrete lifting succeeds (it should)
         InterpolatingLiftingUnsatCallback concreteLiftingUnsatCallback =
-            new InterpolatingLiftingUnsatCallback(pProver);
+            new InterpolatingLiftingUnsatCallback(pFMGR, pProver);
         Iterable<CandidateInvariant> ctiLiterals =
-            Iterables.concat(
-                Collections.singleton(pBlockedAbstractCti.negate(pFMGR)),
-                pBlockedConcreteCti.getCti().splitLiterals(pFMGR, false));
+            pBlockedConcreteCti.getCti().splitLiterals(pFMGR, false);
         SymbolicCandiateInvariant unsatLiftedConcreteCTI =
             StandardLiftings.unsatBasedLifting(
                 pFMGR,
@@ -209,6 +221,7 @@ public class AbstractionBasedLifting implements Lifting {
                 pBlockedConcreteCti,
                 ctiLiterals,
                 pAssertPredecessor,
+                pAssertionIds,
                 concreteLiftingUnsatCallback);
         if (concreteLiftingUnsatCallback.isSuccessful()) {
           // Abstract lifting failed, but concrete lifting succeeded
