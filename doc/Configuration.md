@@ -83,6 +83,13 @@ CPA. Without an alias, the class name is used as identifier. Configuration
 options that should be used for only one instance of a CPA can be prefixed
 with "alias.". Their values override the options without this prefix.
 
+For example, to set the solver logfile in the PredicateCPA, you can use
+"PredicateCPA.solver.logfile=predicate.%03d.smt2", even if the real option is
+"solver.logfile" and there is no such option in the PredicateCPA.
+The configuration framework will automatically remove the prefix alias and
+apply the renamed option for all classes that are build with the instance of
+ConfigurationOptions given as parameter to PredicateCPA.
+
 If the package name starts with `org.sosy_lab.cpachecker.`, this prefix can be
 omitted.
 
