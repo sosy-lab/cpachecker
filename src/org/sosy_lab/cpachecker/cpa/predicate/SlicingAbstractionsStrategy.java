@@ -264,8 +264,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     // After that we only need to slice edges of the states we split
     if (!initialSliceDone) {
       @SuppressWarnings("unchecked")
-      List<ARGState> all = (List<ARGState>)(List<? extends AbstractState>)pReached.asReachedSet().asCollection().stream().
-          filter(x->getPredicateState(x).isAbstractionState()).collect(Collectors.toList());
+      List<ARGState> all =
+          (List<ARGState>)
+              (List<? extends AbstractState>)
+                  pReached
+                      .asReachedSet()
+                      .asCollection()
+                      .stream()
+                      .filter(x -> SlicingAbstractionsUtils.isAbstractionState((ARGState) x))
+                      .collect(Collectors.toList());
       sliceEdges(all, infeasiblePartOfART, abstractionStatesTrace, rootState);
       initialSliceDone = true;
     } else {
@@ -303,7 +310,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                           .asReachedSet()
                           .asCollection()
                           .stream()
-                          .filter(x -> getPredicateState(x).isAbstractionState())
+                          .filter(x -> SlicingAbstractionsUtils.isAbstractionState((ARGState) x))
                           .collect(Collectors.toList());
           sliceEdges(all, null, null, null);
         }

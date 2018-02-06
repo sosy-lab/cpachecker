@@ -73,7 +73,7 @@ public class SlicingAbstractionsUtils {
    *         via which originState can be reached from the corresponding key
    */
   public static Map<ARGState, List<ARGState>> calculateIncomingSegments(ARGState originState) {
-    checkArgument(getPredicateState(originState).isAbstractionState());
+    checkArgument(isAbstractionState(originState));
 
     final Map<ARGState, List<ARGState>> result = new TreeMap<>();
     final List<ARGState> startAbstractionStates = calculateStartStates(originState);
@@ -99,13 +99,13 @@ public class SlicingAbstractionsUtils {
    * @return A list of (abstraction) states from which originState can be reached
    */
   public static List<ARGState> calculateStartStates(ARGState originState) {
-    checkArgument(getPredicateState(originState).isAbstractionState());
+    checkArgument(isAbstractionState(originState));
     final Set<ARGState> result = new HashSet<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
 
     for (ARGState parent: originState.getParents()) {
 
-      if (getPredicateState(parent).isAbstractionState()) {
+      if (isAbstractionState(parent)) {
         result.add(parent);
         continue;
       }
@@ -114,7 +114,7 @@ public class SlicingAbstractionsUtils {
       while (!waitlist.isEmpty()) {
         ARGState currentState = waitlist.pop();
         for (ARGState s : currentState.getParents()) {
-          if (getPredicateState(s).isAbstractionState()) {
+          if (isAbstractionState(s)) {
             result.add(s);
             waitlist.clear();
             break;
@@ -135,7 +135,7 @@ public class SlicingAbstractionsUtils {
    *         which can be reached from originState
    */
   public static Map<ARGState, List<ARGState>> calculateOutgoingSegments(ARGState originState) {
-    checkArgument(getPredicateState(originState).isAbstractionState());
+    checkArgument(isAbstractionState(originState));
 
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
@@ -147,7 +147,7 @@ public class SlicingAbstractionsUtils {
     frontier.put(originState, PersistentLinkedList.of());
     for (ARGState startState: outgoingStates) {
       // we need to treat AbstractionStates differently!
-      if (!getPredicateState(startState).isAbstractionState()) {
+      if (!isAbstractionState(startState)) {
           waitlist.add(startState);
       } else {
         segmentMap.put(startState, PersistentLinkedList.of());
@@ -190,7 +190,7 @@ public class SlicingAbstractionsUtils {
       // AbstractionState - add the currentStateList to the
       // segmentMap with the child as key
       for (ARGState child : currentState.getChildren()) {
-        if (getPredicateState(child).isAbstractionState()) {
+        if (isAbstractionState(child)) {
           if (segmentMap.containsKey(child)) {
             PersistentList<ARGState> storedStateList = (PersistentList<ARGState>) segmentMap.get(child);
             for (ARGState s : currentStateList.reversed()) {
@@ -220,6 +220,9 @@ public class SlicingAbstractionsUtils {
     return segmentMap;
   }
 
+  public static boolean isAbstractionState(ARGState pState) {
+    return getPredicateState(pState).isAbstractionState() || !pState.wasExpanded();
+  }
 
   /**
    * @param start The (abstraction) state to start at
@@ -483,10 +486,12 @@ public class SlicingAbstractionsUtils {
     }
 
     final List<ARGState> abstractionStatesOnErrorPath;
-    abstractionStatesOnErrorPath = path.asStatesList().asList().
-        stream().
-        filter(x->PredicateAbstractState.getPredicateState(x).isAbstractionState()).
-        collect(Collectors.toList());
+    abstractionStatesOnErrorPath =
+        path.asStatesList()
+            .asList()
+            .stream()
+            .filter(x -> isAbstractionState(x))
+            .collect(Collectors.toList());
 
     final Set<ARGState> statesOnErrorPath = new HashSet<>();
     statesOnErrorPath.addAll(abstractionStatesOnErrorPath);
