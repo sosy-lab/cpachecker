@@ -45,7 +45,7 @@ public class ARGToDotWriter {
 
   private final Appendable sb;
 
-  ARGToDotWriter(Appendable pSb) throws IOException {
+  public ARGToDotWriter(Appendable pSb) throws IOException {
     sb = pSb;
 
     sb.append("digraph ARG {\n");
@@ -232,7 +232,7 @@ public class ARGToDotWriter {
     sb.append("}\n");
   }
 
-  void finish() throws IOException {
+  public void finish() throws IOException {
     sb.append("}\n");
   }
 
