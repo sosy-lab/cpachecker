@@ -24,12 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 
 public interface Splitable {
 
   AbstractState forkWithReplacements(Collection<AbstractState> pReplacementStates);
 
+  static boolean isReplaceable(AbstractState toBeReplaced, AbstractState replacement) {
+    if (toBeReplaced instanceof PredicateAbstractState
+        && replacement instanceof PredicateAbstractState) {
+      return true;
+    }
+    return replacement.getClass().isInstance(toBeReplaced);
+  }
 }

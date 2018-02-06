@@ -540,7 +540,7 @@ public class ARGState extends AbstractSingleWrapperState
     AbstractState wrappedState = this.getWrappedState();
     AbstractState newWrappedState = null;
     for (AbstractState state : pReplacementStates) {
-      if (state.getClass().isInstance(wrappedState)) {
+      if (Splitable.isReplaceable(wrappedState, state)) {
         newWrappedState = state;
         break;
       }

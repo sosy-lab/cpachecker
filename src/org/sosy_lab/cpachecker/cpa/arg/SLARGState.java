@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.predicate.EdgeSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 
 /** ARGState for Symbolic Locations */
 public class SLARGState extends ARGState
@@ -225,7 +224,8 @@ public class SLARGState extends ARGState
     AbstractState wrappedState = this.getWrappedState();
     AbstractState newWrappedState = null;
     for (AbstractState state : pReplacementStates) {
-      if (isReplaceable(wrappedState, state) /*state.getClass().isInstance(wrappedState)*/) {
+      if (Splitable.isReplaceable(
+          wrappedState, state) /*state.getClass().isInstance(wrappedState)*/) {
         newWrappedState = state;
         break;
       }
@@ -242,14 +242,6 @@ public class SLARGState extends ARGState
     newState.makeTwinOf(this);
 
     return newState;
-  }
-
-  private static boolean isReplaceable(AbstractState toBeReplaced, AbstractState replacement) {
-    if (toBeReplaced instanceof PredicateAbstractState
-        && replacement instanceof PredicateAbstractState) {
-      return true;
-    }
-    return replacement.getClass().isInstance(toBeReplaced);
   }
 
   /**

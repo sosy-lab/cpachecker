@@ -287,7 +287,8 @@ public class CompositeState
       int targetSize = newWrappedStates.size()+1;
       // will state be replaced?
       for (AbstractState replacement : pReplacementStates) {
-        if (!newWrappedStates.contains(replacement) && replacement.getClass().isInstance(state)) {
+        if (!newWrappedStates.contains(replacement)
+            && Splitable.isReplaceable(state, replacement)) {
           newWrappedStates.add(replacement);
           break;
         }
