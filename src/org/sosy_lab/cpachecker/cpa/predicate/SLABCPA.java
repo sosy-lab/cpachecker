@@ -96,7 +96,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     return new SLARGState(
-        null, null, true, false, predicateCpa.getInitialState(null, null));
+        null, null, true, false, getWrappedCpa().getInitialState(pNode, pPartition));
   }
 
   private EdgeSet makeTotalTransitionEdgeSet() {
