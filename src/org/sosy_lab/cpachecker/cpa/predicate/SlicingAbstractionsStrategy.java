@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkAbs
 import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -333,8 +334,25 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         if (!isInfeasible) {
           segmentStateSet.removeAll(segment);
         } else {
-          if (segment.size()==0) {
-            key.removeParent(currentState);
+          if (key.getParents().contains(currentState)) {
+            // checking for segement.size()==0 would not be enough, because we could also
+            // have this:
+            // 1-->A-->2
+            // |       ^
+            // \-------|
+            key.removeParent(currentState); // this removes 1->2 in the above example
+          }
+          if (!Collections.disjoint(key.getParents(), segment)) {
+            // Consider the following case, where abstraction states have numbers and
+            // non-abstractions
+            // states are shown as letters:
+            // 1-->A-->2
+            //     \-->3
+            // if 1~>3 is infeasible, but 1~>2 is not, we cannot remove A, so we need to cut A->3:
+            for (ARGState s :
+                Sets.intersection(Sets.newHashSet(key.getParents()), Sets.newHashSet(segment))) {
+              key.removeParent(s); // this is the cut of A->3 in the example of the comment above
+            }
           }
         }
       }
