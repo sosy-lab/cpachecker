@@ -113,6 +113,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
   private boolean optimizeSlicing = true;
 
+  @Option(
+      secure = true,
+      description = "Whether to remove parts fo the ARG from which no target state is reachable"
+    )
+    private boolean removeSafeRegions = true;
+
   private final Stats stats = new Stats();
 
   private final BooleanFormulaManagerView bfmgr;
@@ -234,7 +240,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     } else {
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the root state.
       // Then handling more than one root state would be no problem.
-      throw new CPAException("More than one root state present!");
+      throw new CPAException(
+          String.format(
+              "More than one root state present!(%s)",
+              rootStates.stream().map(x -> x.getStateId()).collect(Collectors.toList())));
     }
 
     stats.sliceEdges.start();
@@ -255,9 +264,20 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     //pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
     // Instead we use a different method:
     stats.calcReached.start();
-    pReached.recalculateReachedSet(rootStates.iterator().next());
-    pReached.removeSafeRegions();
+    // pReached.recalculateReachedSet(rootState);
+    // pReached.removeSafeRegions();
+    pReached.recalculateReachedSet(rootState);
+
     stats.calcReached.stop();
+
+    // This way we can check if startRefinementOfPath is called
+    // before performRefinementForState:
+    forkedStateMap.clear();
+    mayShortcutSlicing = null;
+
+    if (removeSafeRegions) {
+      pReached.removeSafeRegions();
+    }
 
     stats.argUpdate.stop();
 
@@ -277,10 +297,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       stats.coverTime.stop();
     }
 
-    // This way we can check if startRefinementOfPath is called
-    // before performRefinementForState:
-    forkedStateMap = null;
-    mayShortcutSlicing = null;
   }
 
   private void sliceEdges(final List<ARGState> pChangedElements,
