@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -142,6 +143,7 @@ public class SlicingAbstractionsUtils {
     final Deque<ARGState> waitlist = new ArrayDeque<>();
     final Map<ARGState, PersistentList<ARGState>> frontier = new TreeMap<>();
     final Map<ARGState, List<ARGState>> segmentMap = new TreeMap<>();
+    final Collection<ARGState> reachableNonAbstractionStates = nonAbstractionReach(originState);
 
     // prepare initial state
     frontier.put(originState, PersistentLinkedList.of());
@@ -160,7 +162,12 @@ public class SlicingAbstractionsUtils {
       // get element from waitlist. Re-queue if we have not yet
       // explored all of its parents!
       ARGState currentState = waitlist.pop();
-      if (!frontier.keySet().containsAll(currentState.getParents())) {
+      if (!frontier
+          .keySet()
+          .containsAll(
+              FluentIterable.from(currentState.getParents())
+                  .filter(x -> reachableNonAbstractionStates.contains(x))
+                  .toList())) {
         waitlist.add(currentState);
         continue;
       }
@@ -169,6 +176,9 @@ public class SlicingAbstractionsUtils {
       // build the state list for this state:
       PersistentList<ARGState> currentStateList = null;//PersistentLinkedList.of();
       for (ARGState parent : currentState.getParents()) {
+        if (!reachableNonAbstractionStates.contains(parent)) {
+          continue;
+        }
         PersistentList<ARGState> parentStateList = frontier.get(parent);
         if (currentStateList == null) {
           currentStateList = parentStateList;
@@ -218,6 +228,24 @@ public class SlicingAbstractionsUtils {
     }
 
     return segmentMap;
+  }
+
+  private static Collection<ARGState> nonAbstractionReach(ARGState pOriginState) {
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    final Set<ARGState> reachable = new HashSet<>();
+    waitlist.push(pOriginState);
+    reachable.add(pOriginState);
+    while (!waitlist.isEmpty()) {
+      ARGState s = waitlist.pop();
+      List<ARGState> l =
+          FluentIterable.from(s.getChildren())
+              .filter(x -> !SlicingAbstractionsUtils.isAbstractionState(x))
+              .filter(x -> !reachable.contains(x))
+              .toList();
+      waitlist.addAll(l);
+      reachable.addAll(l);
+    }
+    return reachable;
   }
 
   public static boolean isAbstractionState(ARGState pState) {
