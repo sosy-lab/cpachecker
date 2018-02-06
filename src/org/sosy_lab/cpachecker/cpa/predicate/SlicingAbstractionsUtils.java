@@ -263,7 +263,7 @@ public class SlicingAbstractionsUtils {
 
     // generate the PathFormula for the path between start and stop
     // using the relevant non-abstraction states
-    pfb = buildFormulaBuilder(start,stop,segmentList);
+    pfb = buildFormulaBuilder(start, stop, segmentList, pPfmgr);
     PathFormula p = pfb.build(pPfmgr,startFormula);
 
     //add the abstraction formula of abstraction state if the caller wants this:
@@ -277,7 +277,8 @@ public class SlicingAbstractionsUtils {
     return pathFormula;
   }
 
-  private static PathFormulaBuilder buildFormulaBuilder(ARGState start, ARGState stop, List<ARGState> segmentList) {
+  private static PathFormulaBuilder buildFormulaBuilder(
+      ARGState start, ARGState stop, List<ARGState> segmentList, PathFormulaManager pPfmgr) {
     final Map<ARGState, PathFormulaBuilder> finishedBuilders = new TreeMap<>();
     List<ARGState> allList = new ArrayList<>(segmentList);
     allList.add(0, start);
@@ -318,7 +319,7 @@ public class SlicingAbstractionsUtils {
         }
       }
       if (currentBuilder == null) {
-        currentBuilder = new PathFormulaBuilder();
+        currentBuilder = pPfmgr.createNewPathFormulaBuilder();
       }
       finishedBuilders.put(currentState,currentBuilder);
     }
@@ -326,7 +327,8 @@ public class SlicingAbstractionsUtils {
     return finishedBuilders.get(stop);
   }
 
-  private static PathFormula invariantPathFormulaFromState(ARGState state, SSAMap pSSAMap,PointerTargetSet pPts, Solver pSolver) {
+  private static PathFormula invariantPathFormulaFromState(
+      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, Solver pSolver) {
     BooleanFormula initFormula = getPredicateState(state).getAbstractionFormula().asFormula();
     BooleanFormula instatiatedInitFormula = pSolver.getFormulaManager().instantiate(initFormula,pSSAMap);
     return emptyPathFormulaWithSSAMap(instatiatedInitFormula, pSSAMap, pPts);
