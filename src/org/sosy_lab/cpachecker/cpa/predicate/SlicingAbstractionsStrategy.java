@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -126,6 +127,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   private final ImpactUtility impact;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
+  private final ARGLogger argLogger;
 
   // During the refinement of a single path,
   // a reference to the abstraction of the last state we have seen
@@ -150,6 +152,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     impact = new ImpactUtility(config, pSolver.getFormulaManager(), pPredAbsMgr);
     pfmgr = pPathFormulaManager;
     solver = pSolver;
+    argLogger = new ARGLogger(config);
 
     config.inject(this);
   }
@@ -246,6 +249,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
               rootStates.stream().map(x -> x.getStateId()).collect(Collectors.toList())));
     }
 
+    argLogger.log("in refinement before slicing!", pReached.asReachedSet().asCollection());
     stats.sliceEdges.start();
     // optimization: Slice all edges only on first iteration
     // After that we only need to slice edges of the states we split
@@ -260,6 +264,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
     stats.sliceEdges.stop();
 
+    argLogger.log("in refinement after slicing!", pReached.asReachedSet().asCollection());
     // We do not have a tree, so this does not make sense anymore:
     //pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
     // Instead we use a different method:
@@ -278,6 +283,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     if (removeSafeRegions) {
       pReached.removeSafeRegions();
     }
+
+    argLogger.log("in refinement after pruning!", pReached.asReachedSet().asCollection());
 
     stats.argUpdate.stop();
 

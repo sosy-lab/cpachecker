@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.bui
 
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -61,10 +63,13 @@ public class SLABRefiner implements Refiner {
   // private LogManager logger;
   // private PredicateCPAInvariantsManager invariantsManager;
   private Solver solver;
+  private ARGLogger argLogger;
 
-  public SLABRefiner(ARGBasedRefiner pRefiner, SLABCPA pSlabCpa) {
+  public SLABRefiner(ARGBasedRefiner pRefiner, SLABCPA pSlabCpa, Configuration config)
+      throws InvalidConfigurationException {
     refiner = pRefiner;
     slabCpa = pSlabCpa;
+    argLogger = new ARGLogger(config);
     solver = slabCpa.getPredicateCpa().getSolver();
 
   }
@@ -85,7 +90,7 @@ public class SLABRefiner implements Refiner {
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
     ARGBasedRefiner refiner =  factory.create(strategy);
-    return new SLABRefiner(refiner, argCpa);
+    return new SLABRefiner(refiner, argCpa, predicateCpa.getConfiguration());
   }
 
   @Override
@@ -94,9 +99,11 @@ public class SLABRefiner implements Refiner {
 
     removeInfeasibleStates(pReached);
 
+    argLogger.log("in refinement after removeInfeasibleStates", pReached.asCollection());
 
     sliceEdges(from(pReached).transform(x -> (SLARGState) x).toList());
 
+    argLogger.log("in refinement after sliceEdges", pReached.asCollection());
 
     // TODO: Refactor CPAchecker to only use one kind of "Optional"!
     com.google.common.base.Optional<AbstractState> optionalTargetState;
@@ -114,6 +121,7 @@ public class SLABRefiner implements Refiner {
         ARGReachedSet reached = new ARGReachedSet(pReached, slabCpa);
         assert errorPath != null;
         counterexample = refiner.performRefinementForPath(reached, errorPath);
+        argLogger.log("in refinement after sliceEdges", pReached.asCollection());
         if (!counterexample.isSpurious()) {
           ((ARGState) targetState).addCounterexampleInformation(counterexample);
           return false;
@@ -122,6 +130,7 @@ public class SLABRefiner implements Refiner {
         break;
       }
     }
+    argLogger.log("after successful refinement", pReached.asCollection());
     return true;
   }
 
