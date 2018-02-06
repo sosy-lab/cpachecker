@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkAbstractionState;
 import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -46,6 +47,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -55,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -345,8 +348,21 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
-        boolean infeasible = checkEdge(currentState, key, segment,
-            pAbstractionStatesTrace, rootState, pInfeasiblePartOfART, pChangedElements);
+        boolean infeasible;
+        if (currentState instanceof SLARGState) {
+          infeasible = checkSymbolicEdge(currentState, key, segment);
+        } else {
+          infeasible =
+              checkEdge(
+                  currentState,
+                  key,
+                  segment,
+                  pAbstractionStatesTrace,
+                  rootState,
+                  pInfeasiblePartOfART,
+                  pChangedElements);
+        }
+
         infeasibleMap.put(key, infeasible);
         segmentStateSet.addAll(segment);
       }
@@ -386,6 +402,26 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
   }
 
+  private boolean checkEdgeSet(SLARGState startState, SLARGState endState)
+      throws InterruptedException, CPAException {
+    assert startState.getChildren().contains(endState);
+    EdgeSet edgeSet = startState.getEdgeSetToChild(endState);
+    boolean infeasible = true;
+    CFAEdge savedEdge = edgeSet.choose();
+    for (CFAEdge cfaEdge : edgeSet.getEdges()) {
+      edgeSet.select(cfaEdge);
+      if (isInfeasibleEdge(startState, endState, ImmutableList.of())) {
+        edgeSet.removeEdge(cfaEdge);
+      } else {
+        infeasible = false;
+      }
+    }
+    if (!infeasible && edgeSet.getEdges().contains(savedEdge)) {
+      edgeSet.select(savedEdge);
+    }
+    return infeasible;
+  }
+
   private boolean checkEdge(ARGState startState, ARGState endState,
       List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace, ARGState rootState,
       ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements)
@@ -408,7 +444,33 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       assert (!mustBeInfeasible || infeasible) : "Edge " + startState.getStateId() + " -> "
           + endState.getStateId() + " must be infeasible!";
     }
+
+    assert !(startState instanceof SLARGState)
+        || ((SLARGState) startState).getEdgeSetToChild(endState) == null
+        || ((SLARGState) startState).getEdgeSetToChild(endState).getEdges().size() > 0
+        || infeasible;
     return infeasible;
+  }
+
+  private boolean checkSymbolicEdge(
+      ARGState pStartState, ARGState pEndState, List<ARGState> pSegmentList)
+      throws InterruptedException, CPAException {
+    boolean edgeSetExists = pStartState.getChildren().contains(pEndState);
+    boolean segmentExists = !pSegmentList.isEmpty();
+    if (segmentExists && !edgeSetExists) {
+      return isInfeasibleEdge(pStartState, pEndState, pSegmentList);
+    } else if (!segmentExists && edgeSetExists) {
+      return checkEdgeSet((SLARGState) pStartState, (SLARGState) pEndState);
+    } else if (segmentExists && edgeSetExists) {
+      boolean edgeSetInfeasible = checkEdgeSet((SLARGState) pStartState, (SLARGState) pEndState);
+      if (edgeSetInfeasible) {
+        pEndState.removeParent(pStartState);
+      }
+      boolean segmentInfeasible = isInfeasibleEdge(pStartState, pEndState, pSegmentList);
+      return edgeSetInfeasible && segmentInfeasible;
+    } else {
+      throw new RuntimeException("Checking a nonexisting transition in the ARG!");
+    }
   }
 
   private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList)
@@ -434,6 +496,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   private boolean mustBeInfeasible(ARGState parent, ARGState child,
       List<ARGState> abstractionStatesTrace, ARGState rootState, ARGState infeasiblePartOfART,
       List<ARGState> pChangedElements) {
+    if (rootState == null) {
+      return false;
+    }
     // Slicing Abstraction guarantees that the edges marked with mustBeInfeasible
     // here MUST be infeasible because of the properties of inductive interpolants
 

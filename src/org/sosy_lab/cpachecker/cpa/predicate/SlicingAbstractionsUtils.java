@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -99,7 +100,7 @@ public class SlicingAbstractionsUtils {
    */
   public static List<ARGState> calculateStartStates(ARGState originState) {
     checkArgument(getPredicateState(originState).isAbstractionState());
-    final List<ARGState> result = new ArrayList<>();
+    final Set<ARGState> result = new HashSet<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
 
     for (ARGState parent: originState.getParents()) {
@@ -123,7 +124,7 @@ public class SlicingAbstractionsUtils {
         }
       }
     }
-    return result;
+    return new ArrayList<>(result);
   }
 
   /**
@@ -376,10 +377,17 @@ public class SlicingAbstractionsUtils {
       ARGState oldEndState, ARGState newStartState, ARGState newEndState, ARGReachedSet pReached) {
 
     // we need to treat the case where we have no intermediate non-abstraction states differently:
-    if (pSegmentStates.size() == 0) {
-      newEndState.addParent(newStartState);
-      assert (newEndState != newStartState) : "Self loop in ARG discovered. Splitting might be wrong!";
-      return;
+    if (oldEndState.getParents().contains(oldStartState)) {
+      if (oldStartState instanceof SLARGState) {
+        EdgeSet newEdgeSet =
+            new EdgeSet(((SLARGState) oldStartState).getEdgeSetToChild(oldEndState));
+        ((SLARGState) newEndState).addParent((SLARGState) newStartState, newEdgeSet);
+      } else {
+        newEndState.addParent(newStartState);
+      }
+      if (newEndState == newStartState) {
+        // self loop already exists, no need to copy something
+      }
     }
 
     // now if we have intermediate non-abstraction states, we copy them appropriately
@@ -388,19 +396,28 @@ public class SlicingAbstractionsUtils {
     // list index as the state itself (or isn't in the list at all)
     List<ARGState> newSegmentStates = new ArrayList<>();
     for (ARGState existingState : pSegmentStates) {
-      ARGState newState = new ARGState(existingState.getWrappedState(), null);
+      ARGState newState;
+      if (!(existingState instanceof SLARGState)) {
+        newState = new ARGState(existingState.getWrappedState(), null);
+      } else {
+        newState = new SLARGState((SLARGState) existingState);
+      }
       newState.makeTwinOf(existingState);
       newSegmentStates.add(newState);
       for (ARGState parent : existingState.getParents()) {
         if (pSegmentStates.contains(parent)) {
-          newState.addParent(newSegmentStates.get(pSegmentStates.indexOf(parent)));
+          copyParent(
+              parent,
+              existingState,
+              newSegmentStates.get(pSegmentStates.indexOf(parent)),
+              newState);
         }
       }
       if (existingState.getParents().contains(oldStartState)) {
-        newState.addParent(newStartState);
+        copyParent(oldStartState, existingState, newStartState, newState);
       }
       if (existingState.getChildren().contains(oldEndState)) {
-        newEndState.addParent(newState);
+        copyParent(existingState, oldEndState, newState, newEndState);
       }
     }
     addForkedStatesToReachedSet(newSegmentStates, pSegmentStates, pReached);
@@ -410,6 +427,16 @@ public class SlicingAbstractionsUtils {
     checkArgument(newStates.size()==originalStates.size());
     for (int i = 0; i< newStates.size(); i++) {
       pReached.addForkedState(newStates.get(i),originalStates.get(i));
+    }
+  }
+
+  private static void copyParent(
+      ARGState oldParent, ARGState oldState, ARGState newParent, ARGState newState) {
+    if (!(newParent instanceof SLARGState)) {
+      newState.addParent(newParent);
+    } else {
+      EdgeSet newEdgeSet = new EdgeSet(((SLARGState) oldParent).getEdgeSetToChild(oldState));
+      ((SLARGState) newState).addParent((SLARGState) newParent, newEdgeSet);
     }
   }
 
