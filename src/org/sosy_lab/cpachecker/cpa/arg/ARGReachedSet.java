@@ -123,7 +123,7 @@ public class ARGReachedSet {
    * States which have become unreachable get properly detached
    */
   public void recalculateReachedSet(ARGState rootState) {
-    removeReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
+    removeUnReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
   }
 
   /**
@@ -135,12 +135,12 @@ public class ARGReachedSet {
         .filter(AbstractStates.IS_TARGET_STATE)
         .toList();
     if (!targetStates.isEmpty()) {
-      removeReachableFrom(targetStates,
+      removeUnReachableFrom(targetStates,
           ARGState::getParents, x -> x.wasExpanded());
     }
   }
 
-  private void removeReachableFrom(Collection<AbstractState> startStates,
+  private void removeUnReachableFrom(Collection<AbstractState> startStates,
       Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       Predicate<ARGState> allowedToRemove) {
     Deque<AbstractState> toVisit = new ArrayDeque<>(startStates);
