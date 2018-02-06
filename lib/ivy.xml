@@ -112,6 +112,9 @@
         <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-40-g94ea257f" conf="runtime->runtime; contrib->sources">
           <!-- Old version of java-cup conflicts with our newer version of java-cup-runtime -->
           <exclude org="net.sf.squirrel-sql.thirdparty-non-maven" module="java-cup"/>
+          <!-- Guava 23.6 causes some false alarms with SpotBugs, 23.5 works fine.
+               It is not included by JavaSMT itself, but via its dependency CheckStyle. -->
+          <exclude org="com.google.guava" module="guava"/>
         </dependency>
 
         <!-- LassoRanker
