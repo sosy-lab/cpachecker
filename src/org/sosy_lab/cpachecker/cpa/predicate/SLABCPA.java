@@ -31,6 +31,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -55,6 +56,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
   private ShutdownNotifier shutdownNotifier;
   private PredicateCPA predicateCpa;
   private CFA cfa;
+  private Specification specification;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SLABCPA.class);//.withOptions(BlockOperator.class);
@@ -65,7 +67,8 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     super(pWrappedCpa);
     domain =
@@ -78,6 +81,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
+    specification = pSpecification;
   }
 
   @Override
@@ -85,7 +89,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
     return new SLABTransferRelation(
         getWrappedCpa().getTransferRelation(),
         makeTotalTransitionEdgeSet(),
-        new SymbolicLocationsUtility(getPredicateCpa()));
+        new SymbolicLocationsUtility(getPredicateCpa(), specification));
   }
 
   @Override

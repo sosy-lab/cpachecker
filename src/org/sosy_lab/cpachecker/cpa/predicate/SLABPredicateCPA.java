@@ -54,11 +54,12 @@ public class SLABPredicateCPA extends PredicateCPA {
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     super(pConfig, pLogger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
-    transferRelation = new SLABPredicateTransferRelation(this);
+    transferRelation = new SLABPredicateTransferRelation(this, pSpecification);
 
     // it is not allowed to throw InterruptedException if we want to use AutomaticCPAFactory:
     try {
-      startState = new SymbolicLocationsUtility(this).makePredicateState(true, false);
+      startState =
+          new SymbolicLocationsUtility(this, pSpecification).makePredicateState(true, false);
     } catch (InterruptedException e) {
       throw new CPAException("Building of initial state was interrupted!", e);
     }
@@ -70,7 +71,7 @@ public class SLABPredicateCPA extends PredicateCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SLABPredicateTransferRelation(this);
+    return transferRelation;
   }
 
   @Override

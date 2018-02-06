@@ -38,15 +38,15 @@ public class SLABTransferRelation implements TransferRelation {
 
   private TransferRelation transferRelation;
   private EdgeSet allTransitions;
-  private SymbolicLocationsUtility slabPredicateUtility;
+  private SymbolicLocationsUtility symbolicLocationsUtility;
 
   public SLABTransferRelation(
       TransferRelation pTransferRelation,
       EdgeSet pAllTransitions,
-      SymbolicLocationsUtility pSlabPredicateUtility) {
+      SymbolicLocationsUtility pSymbolicLocationseUtility) {
     transferRelation = pTransferRelation;
     allTransitions = pAllTransitions;
-    slabPredicateUtility = pSlabPredicateUtility;
+    symbolicLocationsUtility = pSymbolicLocationseUtility;
   }
 
   @Override
@@ -62,8 +62,8 @@ public class SLABTransferRelation implements TransferRelation {
       boolean isInit;
       boolean isError;
       try {
-        isInit = slabPredicateUtility.isInit(absElement);
-        isError = slabPredicateUtility.isError(absElement);
+        isInit = symbolicLocationsUtility.isInit(absElement);
+        isError = symbolicLocationsUtility.isError(absElement);
       } catch (SolverException e) {
         throw new CPATransferException("Could not determine successor due to SolverException", e);
       }

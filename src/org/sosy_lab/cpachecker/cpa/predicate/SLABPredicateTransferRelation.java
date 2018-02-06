@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -35,8 +36,8 @@ public class SLABPredicateTransferRelation implements TransferRelation {
 
   private SymbolicLocationsUtility symbolicLocationsUtility;
 
-  public SLABPredicateTransferRelation(PredicateCPA pPredicateCpa) {
-    symbolicLocationsUtility = new SymbolicLocationsUtility(pPredicateCpa);
+  public SLABPredicateTransferRelation(PredicateCPA pPredicateCpa, Specification pSpecification) {
+    symbolicLocationsUtility = new SymbolicLocationsUtility(pPredicateCpa, pSpecification);
   }
 
   @Override

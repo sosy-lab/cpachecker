@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -45,13 +48,16 @@ public class SymbolicLocationsUtility {
   private FormulaManagerView fmgr;
   private PredicateAbstractionManager pamgr;
   private PathFormulaManager pfmgr;
+  private ImmutableSet<CFANode> targetNodes;
 
-  public SymbolicLocationsUtility(PredicateCPA pPredicateCpa) {
+  public SymbolicLocationsUtility(PredicateCPA pPredicateCpa, Specification pSpecification) {
     cfa = pPredicateCpa.getCfa();
     solver = pPredicateCpa.getSolver();
     fmgr = solver.getFormulaManager();
     pamgr = pPredicateCpa.getPredicateManager();
     pfmgr = pPredicateCpa.getPathFormulaManager();
+    TargetLocationProvider tlp = new TargetLocationProviderImpl(pPredicateCpa.getShutdownNotifier(), pPredicateCpa.getLogger(), cfa);
+    targetNodes = tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction(), pSpecification);
   }
 
   public PredicateAbstractState makePredicateState(boolean init, boolean error)
@@ -85,16 +91,11 @@ public class SymbolicLocationsUtility {
   public BooleanFormula makeError() {
     // TODO: use TargetLocationProvider here!
     BooleanFormula formula = null;
-    for (CFANode node : cfa.getAllNodes()) {
-      if (node instanceof CLabelNode) {
-        CLabelNode label = (CLabelNode) node;
-        if (label.getLabel().equals("ERROR")) {
-          if (formula == null) {
-            formula = makeProgramCounter(label);
-          } else {
-            formula = fmgr.makeOr(formula, makeProgramCounter(label));
-          }
-        }
+    for (CFANode node : targetNodes) {
+      if (formula == null) {
+        formula = makeProgramCounter(node);
+      } else {
+        formula = fmgr.makeOr(formula, makeProgramCounter(node));
       }
     }
     return formula;
