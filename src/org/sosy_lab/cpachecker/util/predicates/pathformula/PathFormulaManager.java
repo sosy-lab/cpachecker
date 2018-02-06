@@ -173,6 +173,10 @@ public interface PathFormulaManager {
 
   public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
 
+  default PathFormulaBuilder createNewPathFormulaBuilder() {
+    return new PathFormulaBuilder();
+  }
+
   /**
    * Builds a weakest precondition for the given edge and the postcondition
    *

@@ -87,4 +87,9 @@ public class PathFormulaBuilder {
     return pathFormula;
  }
 
+  public static class Factory {
+    public PathFormulaBuilder create() {
+      return new PathFormulaBuilder();
+    }
+  }
 }

@@ -47,6 +47,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -98,6 +99,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
+  @Option(
+    secure = true,
+    description = "Which path formula builder to use. One of [\"DEFAULT\", \"SYMBOLICLOCATIONS\"]"
+  )
+  private String pathFormulaBuilder = "DEFAULT";
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -111,6 +118,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
   private final @Nullable CtoWpConverter wpConverter;
+  private final PathFormulaBuilder.Factory pfbFactory;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -194,6 +202,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+    }
+
+    switch (pathFormulaBuilder) {
+      case "DEFAULT":
+        pfbFactory = new PathFormulaBuilder.Factory();
+        break;
+      case "SYMBOLICLOCATIONS":
+        pfbFactory =
+            new SymbolicLocationPathFormulaBuilder.Factory(
+                new CBinaryExpressionBuilder(pMachineModel, pLogger));
+        break;
+      default:
+        throw new InvalidConfigurationException("Invalid type of path formula builder specified!");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -554,6 +575,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     return pMainFormula;
+  }
+
+  @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return pfbFactory.create();
   }
 
   @Override
