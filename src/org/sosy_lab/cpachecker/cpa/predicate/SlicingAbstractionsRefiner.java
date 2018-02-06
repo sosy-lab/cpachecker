@@ -82,10 +82,6 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
     return new SlicingAbstractionsRefiner(refiner, argCpa);
   }
 
-  /*
-   * (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.Refiner#performRefinement(org.sosy_lab.cpachecker.core.reachedset.ReachedSet)
-   */
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     CounterexampleInfo counterexample = null;
