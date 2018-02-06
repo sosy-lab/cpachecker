@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -265,7 +266,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     try {
       final ImmutableList<CFANode> errorPath =
           ImmutableList.copyOf(
-              Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
+              allStatesTrace
+                  .asStatesList()
+                  .stream()
+                  .map(AbstractStates.EXTRACT_LOCATION)
+                  .filter(x -> x != null)
+                  .collect(Collectors.toList()));
       final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
       lastErrorPaths.add(errorPath);
 
