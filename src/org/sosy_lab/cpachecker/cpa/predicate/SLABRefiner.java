@@ -59,11 +59,9 @@ public class SLABRefiner implements Refiner {
 
   private final ARGBasedRefiner refiner;
   private SLABCPA slabCpa;
-  //private SLABStrategy strategy;
-  // private LogManager logger;
-  // private PredicateCPAInvariantsManager invariantsManager;
   private Solver solver;
   private ARGLogger argLogger;
+  private boolean initialSliceDone = false;
 
   public SLABRefiner(ARGBasedRefiner pRefiner, SLABCPA pSlabCpa, Configuration config)
       throws InvalidConfigurationException {
@@ -97,24 +95,23 @@ public class SLABRefiner implements Refiner {
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     CounterexampleInfo counterexample = null;
 
-    removeInfeasibleStates(pReached);
+    if (!initialSliceDone) {
+      // get rid of states where the state formula is already unsatisfiable. This is just an
+      // optimization and in accordance with the SLAB paper:
+      removeInfeasibleStates(pReached);
+      argLogger.log("in refinement after removeInfeasibleStates", pReached.asCollection());
 
-    argLogger.log("in refinement after removeInfeasibleStates", pReached.asCollection());
+      sliceEdges(from(pReached).transform(x -> (SLARGState) x).toList());
+      argLogger.log("in refinement after sliceEdges", pReached.asCollection());
 
-    sliceEdges(from(pReached).transform(x -> (SLARGState) x).toList());
-
-    argLogger.log("in refinement after sliceEdges", pReached.asCollection());
+      initialSliceDone = true;
+    }
 
     // TODO: Refactor CPAchecker to only use one kind of "Optional"!
     com.google.common.base.Optional<AbstractState> optionalTargetState;
     while (true) {
 
-      optionalTargetState =
-          from(pReached)
-              .firstMatch(
-                  x ->
-                      ((SLARGState) x).isTarget()
-                          && !((SLARGState) x).isInit() /*AbstractStates.IS_TARGET_STATE*/);
+      optionalTargetState = from(pReached).firstMatch(x -> ((SLARGState) x).isTarget());
       if (optionalTargetState.isPresent()) {
         AbstractState targetState = optionalTargetState.get();
         ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
@@ -135,7 +132,6 @@ public class SLABRefiner implements Refiner {
   }
 
   private void sliceEdges(List<SLARGState> allStates) throws InterruptedException, CPAException {
-    //Map<SLABState, SLABState> toSlice = new HashMap<>();
     for (SLARGState parent : allStates) {
       List<SLARGState> toSlice = new ArrayList<>();
       for (ARGState argChild : parent.getChildren()) {
@@ -151,10 +147,15 @@ public class SLABRefiner implements Refiner {
     }
   }
 
+  /*
+   * check edge whether it is infeasible. This is only needed in the beginning of the first refinement pass
+   */
   private boolean checkEdge(SLARGState startState, SLARGState endState)
       throws InterruptedException, CPAException {
     assert startState.getChildren().contains(endState);
     EdgeSet edgeSet = startState.getEdgeSetToChild(endState);
+
+    // Optimization (from SLAB paper): remove all edges going out of target states:
     if (startState.isTarget()) {
       for (CFAEdge cfaEdge : edgeSet.getEdges()) {
         edgeSet.removeEdge(cfaEdge);
@@ -199,7 +200,7 @@ public class SLABRefiner implements Refiner {
     return infeasible;
   }
 
-  public void removeInfeasibleStates(ReachedSet pReached)
+  private void removeInfeasibleStates(ReachedSet pReached)
       throws InterruptedException, CPAException {
     List<SLARGState> toRemove = new ArrayList<>();
     for (AbstractState state : pReached) {
