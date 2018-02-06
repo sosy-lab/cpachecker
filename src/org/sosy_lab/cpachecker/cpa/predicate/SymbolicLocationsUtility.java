@@ -112,12 +112,14 @@ public class SymbolicLocationsUtility {
   public boolean isInit(AbstractState pAbsElement) throws SolverException, InterruptedException {
     PredicateAbstractState predicateState =
         checkNotNull(AbstractStates.extractStateByType(pAbsElement, PredicateAbstractState.class));
-    return solver.implies(makeInit(), predicateState.getAbstractionFormula().asFormula());
+    return !solver.isUnsat(
+        fmgr.makeAnd(makeInit(), predicateState.getAbstractionFormula().asFormula()));
   }
 
   public boolean isError(AbstractState pAbsElement) throws SolverException, InterruptedException {
     PredicateAbstractState predicateState =
         checkNotNull(AbstractStates.extractStateByType(pAbsElement, PredicateAbstractState.class));
-    return solver.implies(makeError(), predicateState.getAbstractionFormula().asFormula());
+    return !solver.isUnsat(
+        fmgr.makeAnd(makeError(), predicateState.getAbstractionFormula().asFormula()));
   }
 }
