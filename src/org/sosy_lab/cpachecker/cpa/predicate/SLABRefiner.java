@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,6 +36,8 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
@@ -55,7 +58,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SLABRefiner implements Refiner {
+public class SLABRefiner implements Refiner, StatisticsProvider {
 
   private final ARGBasedRefiner refiner;
   private SLABCPA slabCpa;
@@ -220,5 +223,12 @@ public class SLABRefiner implements Refiner {
       }
     }
     pReached.removeAll(toRemove);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (refiner instanceof StatisticsProvider) {
+      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+    }
   }
 }

@@ -86,6 +86,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     private final Timer copyEdges = new Timer();
     private final Timer sliceEdges = new Timer();
     private final Timer calcReached = new Timer();
+    private int refinementCount = 0;
+    private int solverCallCount = 0;
 
     @Override
     public String getName() {
@@ -96,15 +98,25 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("  Computing abstraction of itp:       " + impact.abstractionTime);
       out.println("  Checking whether itp is new:        " + impact.itpCheckTime);
+      out.println("  Number of refinements:                  " + refinementCount);
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println("    Copy edges:                       " + copyEdges);
       out.println("    Slice edges:                      " + sliceEdges);
+      out.println("      Solver calls:                       " + solverCallCount);
       out.println("    Recalculate ReachedSet:           " + calcReached);
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
 
       SlicingAbstractionsStrategy.this.printStatistics(out);
+    }
+
+    public void increaseRefinementCounter() {
+      refinementCount++;
+    }
+
+    public void increaseSolverCallCounter() {
+      solverCallCount++;
     }
   }
 
@@ -169,6 +181,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   @Override
   protected void startRefinementOfPath() {
     checkState(lastAbstraction == null);
+    stats.increaseRefinementCounter();
     lastAbstraction = predAbsMgr.makeTrueAbstractionFormula(null);
     forkedStateMap = new HashMap<>();
     mayShortcutSlicing = true;
@@ -622,6 +635,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
+      stats.increaseSolverCallCounter();
       if (thmProver.isUnsat()) {
         infeasible = true;
       } else {
