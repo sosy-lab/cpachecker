@@ -63,13 +63,13 @@ public class ARGState extends AbstractSingleWrapperState
   private final Collection<ARGState> children = new ArrayList<>(1);
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
-  private ARGState mCoveredBy = null;
-  private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
+  protected ARGState mCoveredBy = null;
+  protected Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
   private boolean wasExpanded = false;
   private boolean mayCover = true;
-  private boolean destroyed = false;
+  protected boolean destroyed = false;
   private boolean hasCoveredParent = false;
 
   private ARGState mergedWith = null;
