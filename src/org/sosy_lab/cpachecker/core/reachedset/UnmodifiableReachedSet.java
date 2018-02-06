@@ -81,10 +81,12 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public Collection<AbstractState> getReached(CFANode location);
 
   /**
-   * Returns the first state that was added to the reached set.
+   * Returns the first state that was added to the reached set. May return null if the first state
+   * got removed again.
+   *
    * @throws IllegalStateException If the reached set is empty.
    */
-  public AbstractState getFirstState();
+  public @Nullable AbstractState getFirstState();
 
   /**
    * Returns the last state that was added to the reached set.

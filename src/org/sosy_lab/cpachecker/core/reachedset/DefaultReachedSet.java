@@ -201,7 +201,6 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public AbstractState getFirstState() {
-    Preconditions.checkState(firstState != null);
     return firstState;
   }
 
