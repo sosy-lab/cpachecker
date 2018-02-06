@@ -371,10 +371,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
           // now do the same the other way around (check for outgoing edges that do not have a
           removeOutgoingEdgesWithLocationMismatch(newState);
         }
-      } else if (predState.isAbstractionState() && !((SLARGState) state).isInit()) {
+      } else if (predState.isAbstractionState() && !((ARGState) state).getParents().isEmpty()) {
         // here it is only sound to check for outgoing edges that do not have a suitable incoming
         // edge
+        if (state instanceof SLARGState) {
         removeOutgoingEdgesWithLocationMismatch(state);
+        }
       }
     }
     return changed;
@@ -440,7 +442,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         return true;
       }
     }
-    if (pState.getChildren().size() > 1 || pState.getParents().size() > 1) {
+    if (SlicingAbstractionsUtils.calculateIncomingSegments(pState).entrySet().size() > 1
+        || SlicingAbstractionsUtils.calculateOutgoingSegments(pState).entrySet().size() > 1) {
       return true;
     }
     return false;
