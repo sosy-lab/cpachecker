@@ -41,7 +41,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,14 +52,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -99,14 +96,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.ArrayFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
@@ -744,14 +735,12 @@ class KInductionProver implements AutoCloseable {
                 && ssaMap.getIndex(actualName) == index.getAsInt()
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
-              Formula formula = variableFormulas.get().get(fullName);
-              if (formula == null) {
-                formula = valueAssignment.getKey();
-              }
-              FormulaType<?> formulaType = fmgr.getFormulaType(formula);
+              BooleanFormula assignment =
+                  fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
               modelBuilder.put(
                   actualName,
-                  new ModelValue(actualName, formulaType, (Number) valueAssignment.getValue()));
+                  new ModelValue(
+                      actualName, fmgr.dumpFormula(assignment).toString(), assignment::toString));
             }
           }
         }
@@ -764,15 +753,11 @@ class KInductionProver implements AutoCloseable {
             continue;
           }
 
-          Supplier<? extends Set<AbstractState>> endStates =
-              Suppliers.memoize(() -> BMCHelper.filterEndStates(pReached).toSet());
-
           for (ValueAssignment valueAssignment : pModelAssignments) {
             String fullName = valueAssignment.getName();
             Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
             String actualName = pair.getSecond().isPresent() ? pair.getFirst() : fullName;
             OptionalInt index = pair.getSecond();
-            Object value = valueAssignment.getValue();
             boolean isUnconnected = false;
             if (index.isPresent()
                 && ssaMap.containsVariable(actualName)
@@ -780,80 +765,10 @@ class KInductionProver implements AutoCloseable {
               isUnconnected = !variableFormulas.get().containsKey(fullName);
             }
             if ((!index.isPresent()
-                    || (index.isPresent()
-                        && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))
-                && value instanceof Number) {
-              Formula formula = variableFormulas.get().get(fullName);
-              if (formula == null) {
-                formula = valueAssignment.getKey();
-              }
-              FormulaType<?> formulaType = fmgr.getFormulaType(formula);
-              BooleanFormula assignment = bfmgr.makeTrue();
-              if (!valueAssignment.isFunction()) {
-                ModelValue modelValue =
-                    new ModelValue(actualName, formulaType, (Number) valueAssignment.getValue());
-                assignment = modelValue.toAssignment(fmgr);
-                if (index.isPresent()) {
-                  CType type = types.get(actualName);
-                  if (type == null && ssaMap.containsVariable(actualName)) {
-                    type = ssaMap.getType(actualName);
-                  }
-                  if (type == null) {
-                    for (PredicateAbstractState endState :
-                        AbstractStates.projectToType(
-                            endStates.get(), PredicateAbstractState.class)) {
-                      type = endState.getPathFormula().getSsa().getType(actualName);
-                      if (type != null) {
-                        break;
-                      }
-                    }
-                  }
-                  if (type != null) {
-                    SSAMap ssaForInstantiation =
-                        SSAMap.emptySSAMap()
-                            .builder()
-                            .setIndex(actualName, type, index.getAsInt())
-                            .build();
-                    assignment = fmgr.instantiate(assignment, ssaForInstantiation);
-                  }
-                }
-              } else {
-                for (PredicateAbstractState endState :
-                    AbstractStates.projectToType(endStates.get(), PredicateAbstractState.class)) {
-                  BooleanFormula pathFormula =
-                      bfmgr.and(
-                          endState.getAbstractionFormula().getBlockFormula().getFormula(),
-                          endState.getPathFormula().getFormula());
-                  VariableFinder variableFinder = new VariableFinder(fullName);
-                  fmgr.visitRecursively(pathFormula, variableFinder);
-                  if (variableFinder.variable != null) {
-                    formulaType = fmgr.getFormulaType(variableFinder.variable);
-                    if (formulaType instanceof ArrayFormulaType) {
-                      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) formulaType;
-                      if (arrayType.getIndexType() instanceof BitvectorType
-                          && arrayType.getElementType() instanceof BitvectorType) {
-                        BitvectorFormulaManager bfvm = fmgr.getBitvectorFormulaManager();
-                        BitvectorType indexType = (BitvectorType) arrayType.getIndexType();
-                        BitvectorFormula arrayIndex =
-                            bfvm.makeBitvector(
-                                indexType.getSize(),
-                                (BigInteger) valueAssignment.getArgInterpretation(0));
-                        BitvectorType elementType = (BitvectorType) arrayType.getElementType();
-                        BitvectorFormula element =
-                            bfvm.makeBitvector(elementType.getSize(), (BigInteger) value);
-                        @SuppressWarnings("unchecked")
-                        ArrayFormula<BitvectorFormula, BitvectorFormula> arrayFormula =
-                            (ArrayFormula<BitvectorFormula, BitvectorFormula>)
-                                variableFinder.variable;
-                        BitvectorFormula select =
-                            fmgr.getArrayFormulaManager().select(arrayFormula, arrayIndex);
-                        assignment = bfvm.equal(select, element);
-                      }
-                    }
-                    break;
-                  }
-                }
-              }
+                || (index.isPresent()
+                    && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))) {
+              BooleanFormula assignment =
+                  fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
               input = bfmgr.and(input, assignment);
             }
           }
@@ -891,48 +806,6 @@ class KInductionProver implements AutoCloseable {
     }
 
     return stateViolationAssertionsBuilder.build();
-  }
-
-  private static class VariableFinder implements FormulaVisitor<TraversalProcess> {
-
-    private final String variableName;
-
-    private @Nullable Formula variable = null;
-
-    public VariableFinder(String pVariableName) {
-      variableName = Objects.requireNonNull(pVariableName);
-    }
-
-    @Override
-    public TraversalProcess visitQuantifier(
-        BooleanFormula pArg0, Quantifier pArg1, List<Formula> pArg2, BooleanFormula pArg3) {
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitFunction(
-        Formula pArg0, List<Formula> pArg1, FunctionDeclaration<?> pArg2) {
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitFreeVariable(Formula pArg0, String pArg1) {
-      if (pArg1.equals(variableName)) {
-        variable = pArg0;
-        return TraversalProcess.ABORT;
-      }
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitConstant(Formula pArg0, Object pArg1) {
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitBoundVariable(Formula pArg0, int pArg1) {
-      return TraversalProcess.CONTINUE;
-    }
   }
 
   private static class VariableMapper implements FormulaVisitor<TraversalProcess> {

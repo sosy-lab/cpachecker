@@ -23,54 +23,33 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.common.rationals.Rational;
+import java.util.function.Supplier;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class ModelValue {
 
   private final String variableName;
 
-  private final FormulaType<?> formulaType;
+  private final Supplier<String> textualRepresentation;
 
-  private final Number value;
+  private final String formula;
 
-  public ModelValue(String pVariableName, FormulaType<?> pFormulaType, Number pValue) {
-    variableName = pVariableName;
-    formulaType = pFormulaType;
-    value = pValue;
+  public ModelValue(
+      String pVariableName, String pFormula, Supplier<String> pTextualRepresentation) {
+    variableName = Objects.requireNonNull(pVariableName);
+    formula = Objects.requireNonNull(pFormula);
+    textualRepresentation = Objects.requireNonNull(pTextualRepresentation);
   }
 
   public String getVariableName() {
     return variableName;
   }
 
-  public FormulaType<?> getFormulaType() {
-    return formulaType;
-  }
-
-  public Object getValue() {
-    return value;
-  }
-
   @Override
   public String toString() {
-    return String.format("%s = <%s> %s", variableName, formulaType, value);
+    return textualRepresentation.get();
   }
 
   @Override
@@ -80,75 +59,17 @@ public class ModelValue {
     }
     if (pOther instanceof ModelValue) {
       ModelValue other = (ModelValue) pOther;
-      return variableName.equals(other.variableName)
-          && value.equals(other.value)
-          && formulaType.equals(other.formulaType);
+      return variableName.equals(other.variableName) && formula.equals(other.formula);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(variableName, value, formulaType);
-  }
-
-  public Optional<Formula> getVariable(FormulaManagerView pFMGR) {
-    if (formulaType.isIntegerType()) {
-      IntegerFormulaManagerView ifm = pFMGR.getIntegerFormulaManager();
-      return Optional.of(ifm.makeVariable(variableName));
-    }
-    if (formulaType instanceof BitvectorType) {
-      BitvectorFormulaManager bvm = pFMGR.getBitvectorFormulaManager();
-      return Optional.of(bvm.makeVariable((BitvectorType) formulaType, variableName));
-    }
-    if (formulaType instanceof FloatingPointType) {
-      FloatingPointFormulaManager fpm = pFMGR.getFloatingPointFormulaManager();
-      return Optional.of(fpm.makeVariable(variableName, (FloatingPointType) formulaType));
-    }
-    return Optional.empty();
+    return Objects.hash(variableName, formula);
   }
 
   public BooleanFormula toAssignment(FormulaManagerView pFMGR) {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BitvectorFormulaManager bvm = pFMGR.getBitvectorFormulaManager();
-    FloatingPointFormulaManager fpm = pFMGR.getFloatingPointFormulaManager();
-
-    if (formulaType.isIntegerType()) {
-      IntegerFormulaManagerView ifm = pFMGR.getIntegerFormulaManager();
-      IntegerFormula intVariable = ifm.makeVariable(variableName);
-      IntegerFormula intValue;
-      if (value instanceof BigInteger) {
-        intValue = ifm.makeNumber((BigInteger) value);
-      } else {
-        intValue = ifm.makeNumber(value.longValue());
-      }
-      return ifm.equal(intVariable, intValue);
-    } else if (formulaType instanceof BitvectorType) {
-      BitvectorFormula bvVariable = bvm.makeVariable((BitvectorType) formulaType, variableName);
-      BitvectorFormula bvValue;
-      if (value instanceof BigInteger) {
-        bvValue = bvm.makeBitvector(bvm.getLength(bvVariable), (BigInteger) value);
-      } else {
-        bvValue = bvm.makeBitvector(bvm.getLength(bvVariable), value.longValue());
-      }
-      return bvm.equal(bvVariable, bvValue);
-    } else if (formulaType instanceof FloatingPointType) {
-      FloatingPointFormula fpVariable = fpm.makeVariable(variableName, (FloatingPointType) formulaType);
-      FormulaType.FloatingPointType fpType = (FormulaType.FloatingPointType) pFMGR.getFormulaType(fpVariable);
-      FloatingPointFormula fpValue;
-      if (value instanceof BigDecimal) {
-        fpValue = fpm.makeNumber((BigDecimal) value, fpType);
-      } else if (value instanceof Double) {
-        fpValue = fpm.makeNumber((Double) value, fpType);
-      } else if (value instanceof Float) {
-        fpValue = fpm.makeNumber((Float) value, fpType);
-      } else if (value instanceof Rational) {
-        fpValue = fpm.makeNumber((Rational) value, fpType);
-      } else {
-        fpValue = fpm.makeNumber(value.toString(), fpType);
-      }
-      return fpm.assignment(fpVariable, fpValue);
-    }
-    return bfmgr.makeTrue();
+    return pFMGR.parse(formula);
   }
 }
