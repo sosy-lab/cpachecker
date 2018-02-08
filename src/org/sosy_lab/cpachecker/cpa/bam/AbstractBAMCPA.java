@@ -203,7 +203,8 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     return stats;
   }
 
-  abstract BAMDataManager getData();
+  /** only public for statistics */
+  public abstract BAMDataManager getData();
 
   boolean doPrecisionRefinementForAllStates() {
     return doPrecisionRefinementForAllStates;

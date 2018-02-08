@@ -147,7 +147,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   }
 
   @Override
-  BAMDataManager getData() {
+  public BAMDataManager getData() {
     Preconditions.checkNotNull(data);
     return data;
   }

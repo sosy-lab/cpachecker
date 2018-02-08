@@ -321,6 +321,7 @@ public class CPAchecker {
           } finally {
             stats.cpaCreationTime.stop();
           }
+          stats.setCPA(cpa);
 
           if (cpa instanceof StatisticsProvider) {
             ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
