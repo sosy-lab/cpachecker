@@ -358,7 +358,6 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-
   private void dumpReachedSet(UnmodifiableReachedSet reached) {
     dumpReachedSet(reached, reachedSetFile, false);
     dumpReachedSet(reached, reachedSetGraphDumpPath, true);
@@ -373,7 +372,7 @@ class MainCPAStatistics implements Statistics {
         if (writeDotFormat) {
 
           // Location-map specific dump.
-          dumpLocationMappedReachedSet(reached, cfa, w);
+          dumpLocationMappedReachedSet(reached, w);
         } else {
 
           // Default dump.
@@ -388,10 +387,8 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void dumpLocationMappedReachedSet(
-      final UnmodifiableReachedSet pReachedSet,
-      CFA cfa,
-      Appendable sb) throws IOException {
+  private void dumpLocationMappedReachedSet(final UnmodifiableReachedSet pReachedSet, Appendable sb)
+      throws IOException {
     final ListMultimap<CFANode, AbstractState> locationIndex
         =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
 
