@@ -52,7 +52,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private final LogManager logger;
 
   private UsageContainer container = null;
-  private boolean containerUpdated = false;
 
   public UsageReachedSet(WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
     super(waitlistFactory);
@@ -81,7 +80,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
   public void clear() {
     if (container != null) {
       container.resetUnrefinedUnsafes();
-      containerUpdated = false;
     }
     super.clear();
   }
@@ -107,12 +105,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
       if (container == null) {
         container = new UsageContainer(config, logger);
       }
-      if (!containerUpdated) {
-        //TODO lastState = null
-        UsageState lastState = UsageState.get(getLastState());
-        container.addNewUsagesIfNecessary(lastState.getFunctionContainer());
-        containerUpdated = true;
-      }
+      //TODO lastState = null
+      UsageState lastState = UsageState.get(getLastState());
+      container.initContainerIfNecessary(lastState.getFunctionContainer());
       return container;
 
     } catch (InvalidConfigurationException e) {

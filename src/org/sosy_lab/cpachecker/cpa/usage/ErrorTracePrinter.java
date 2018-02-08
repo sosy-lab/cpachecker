@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -81,7 +80,6 @@ public abstract class ErrorTracePrinter {
 
   private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
-  private UnsafeDetector detector;
 
   private final StatTimer preparationTimer = new StatTimer("Time for preparation");
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
@@ -90,6 +88,7 @@ public abstract class ErrorTracePrinter {
   protected final Configuration config;
   protected UsageContainer container;
   protected final LogManager logger;
+  protected UnsafeDetector detector;
 
   protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
 
@@ -153,8 +152,7 @@ public abstract class ErrorTracePrinter {
     detector = container.getUnsafeDetector();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
-    Iterator<SingleIdentifier> unsafeIterator;
-    unsafeIterator = container.getUnsafeIterator();
+    Iterator<SingleIdentifier> unsafeIterator = container.getUnsafeIterator();
 
     init();
     preparationTimer.stop();
@@ -175,14 +173,13 @@ public abstract class ErrorTracePrinter {
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
       unsafeDetectionTimer.stop();
+
       writingUnsafeTimer.start();
       printUnsafe(id, tmpPair);
       writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {
-      Set<SingleIdentifier> currentUnsafes = container.getAllUnsafes();
-      Set<SingleIdentifier> initialUnsafes = container.getInitialUnsafes();
-      Set<SingleIdentifier> falseUnsafes = Sets.difference(initialUnsafes, currentUnsafes);
+      Set<SingleIdentifier> falseUnsafes = container.getFalseUnsafes();
 
       if (!falseUnsafes.isEmpty()) {
         try (Writer writer = Files.newBufferedWriter(Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {

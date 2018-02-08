@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -162,7 +163,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       assert bamcpa != null;
       bamcpa.clearAllCaches();
       ARGState.clearIdGenerator();
-      ARGState firstState = AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
+      AbstractState firstState = pReached.getFirstState();
       Precision precision = pReached.getPrecision(firstState);
       if (totalARGCleaning) {
         transfer.cleanCaches();

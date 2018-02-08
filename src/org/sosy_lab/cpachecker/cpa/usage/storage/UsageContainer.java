@@ -98,10 +98,10 @@ public class UsageContainer {
     detector = pDetector;
   }
 
-  public void addNewUsagesIfNecessary(FunctionContainer storage) {
+  public void initContainerIfNecessary(FunctionContainer storage) {
     if (unsafeUsages == -1) {
       copyUsages(storage);
-      getUnsafesIfNecessary();
+      calculateUnsafesIfNecessary();
     }
   }
 
@@ -135,7 +135,7 @@ public class UsageContainer {
     uset.add(usage);
   }
 
-  private void getUnsafesIfNecessary() {
+  private void calculateUnsafesIfNecessary() {
     if (unsafeUsages == -1) {
       processedUnsafes.clear();
       unsafeUsages = 0;
@@ -167,16 +167,17 @@ public class UsageContainer {
     processedUnsafes.add(id);
   }
 
-  public Set<SingleIdentifier> getAllUnsafes() {
-    getUnsafesIfNecessary();
+  public Set<SingleIdentifier> getFalseUnsafes() {
+    Set<SingleIdentifier> currentUnsafes = getAllUnsafes();
+    return Sets.difference(initialSet, currentUnsafes);
+  }
+
+  private Set<SingleIdentifier> getAllUnsafes() {
+    calculateUnsafesIfNecessary();
     Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
     result.addAll(refinedIds.keySet());
     result.addAll(failedIds.keySet());
     return result;
-  }
-
-  public Set<SingleIdentifier> getInitialUnsafes() {
-    return initialSet;
   }
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
@@ -192,7 +193,7 @@ public class UsageContainer {
     return getKeySetIterator(unrefinedIds);
   }
 
-  public Iterator<SingleIdentifier> getTrueUnsafeIterator() {
+  private Iterator<SingleIdentifier> getTrueUnsafeIterator() {
     //New set to avoid concurrent modification exception
     return getKeySetIterator(refinedIds);
   }
@@ -203,7 +204,7 @@ public class UsageContainer {
   }
 
   public int getUnsafeSize() {
-    getUnsafesIfNecessary();
+    calculateUnsafesIfNecessary();
     if (printOnlyTrueUnsafes) {
       return refinedIds.size();
     } else {
