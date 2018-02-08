@@ -80,10 +80,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -358,7 +356,7 @@ public class CPAchecker {
         programNeverTerminates = status.isProramNeverTerminating();
 
         stats.resultAnalysisTime.start();
-        Set<Property> violatedProperties = findViolatedProperties(reached);
+        Set<Property> violatedProperties = reached.findViolatedProperties();
         if (!violatedProperties.isEmpty()) {
           violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
 
@@ -515,19 +513,6 @@ public class CPAchecker {
     if (!isSound) {
       logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
-    }
-
-    UsageState state = AbstractStates.extractStateByType(reached.getLastState(), UsageState.class);
-    if (state != null) {
-      state.updateContainerIfNecessary();
-      if (state.getContainer().getTotalUnsafeSize() > 0) {
-        if (state.getContainer().getUnsafeSize() > 0) {
-          return Result.FALSE;
-        } else {
-          //We have unprocessed unsafes
-          return Result.UNKNOWN;
-        }
-      }
     }
 
     return Result.TRUE;

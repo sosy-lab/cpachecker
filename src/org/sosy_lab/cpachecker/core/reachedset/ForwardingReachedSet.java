@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.Collection;
@@ -176,5 +177,15 @@ public class ForwardingReachedSet implements ReachedSet {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  @Override
+  public boolean hasTargetStates() {
+    return delegate.hasTargetStates();
+  }
+
+  @Override
+  public Set<Property> findViolatedProperties() {
+    return delegate.findViolatedProperties();
   }
 }

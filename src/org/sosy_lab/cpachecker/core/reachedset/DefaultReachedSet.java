@@ -24,13 +24,18 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -285,5 +290,22 @@ class DefaultReachedSet implements ReachedSet {
   @Override
   public String toString() {
     return reached.keySet().toString();
+  }
+
+  @Override
+  public boolean hasTargetStates() {
+    return from(unmodifiableReached).anyMatch(IS_TARGET_STATE);
+  }
+
+  @Override
+  public Set<Property> findViolatedProperties() {
+    final Set<Property> result = Sets.newHashSet();
+
+    for (AbstractState e : from(unmodifiableReached).filter(IS_TARGET_STATE)) {
+      Targetable t = (Targetable) e;
+      result.addAll(t.getViolatedProperties());
+    }
+
+    return result;
   }
 }

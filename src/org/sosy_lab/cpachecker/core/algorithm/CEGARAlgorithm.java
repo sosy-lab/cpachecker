@@ -207,7 +207,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
           break;
         }
         // if there is any target state do refinement
-        //if (refinementNecessary(reached, previousLastState)) {
+        if (refinementNecessary(reached, previousLastState)) {
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
@@ -216,7 +216,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
             assert !from(reached).anyMatch(IS_TARGET_STATE) : "Target state should not be present"
                 + " in the reached set after refinement.";
           }
-        //}
+        }
 
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
@@ -241,7 +241,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     if (globalRefinement) {
       // check other states
-      return from(reached).anyMatch(IS_TARGET_STATE);
+      return reached.hasTargetStates();
 
     } else {
       // Check only last state, but only if it is different from the last iteration.

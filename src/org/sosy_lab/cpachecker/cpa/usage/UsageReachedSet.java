@@ -25,12 +25,25 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import java.util.Collections;
+import java.util.Set;
+
 public class UsageReachedSet extends PartitionedReachedSet {
-  //public static Timer addTimer = new Timer();
+
+  public static class RaceProperty implements Property {
+    @Override
+    public String toString() {
+      return "Race condition";
+    }
+  }
+
+  private final static RaceProperty propertyInstance = new RaceProperty();
 
   public UsageReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
@@ -55,5 +68,24 @@ public class UsageReachedSet extends PartitionedReachedSet {
   public void clear() {
     AbstractStates.extractStateByType(getFirstState(), UsageState.class).getContainer().resetUnrefinedUnsafes();
     super.clear();
+  }
+
+
+  @Override
+  public boolean hasTargetStates() {
+    //TODO lastState = null
+    UsageState lastState = UsageState.get(this.getLastState());
+    lastState.updateContainerIfNecessary();
+    UsageContainer container = lastState.getContainer();
+    return container.getTotalUnsafeSize() > 0;
+  }
+
+  @Override
+  public Set<Property> findViolatedProperties() {
+    if (hasTargetStates()) {
+      return Collections.singleton(propertyInstance);
+    } else {
+      return Collections.emptySet();
+    }
   }
 }
