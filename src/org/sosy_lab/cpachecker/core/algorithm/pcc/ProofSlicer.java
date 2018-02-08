@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -446,7 +447,7 @@ public class ProofSlicer {
 
     ReachedSet returnReached;
     try {
-      returnReached = new ReachedSetFactory(Configuration.defaultConfiguration()).create();
+      returnReached = new ReachedSetFactory(Configuration.defaultConfiguration(), LogManager.createNullLogManager()).create();
       // add root
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements

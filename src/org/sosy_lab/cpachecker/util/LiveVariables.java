@@ -567,7 +567,7 @@ public class LiveVariables {
 
       Configuration config =
           Configuration.builder().loadFromResource(LiveVariables.class, configFile).build();
-      ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
+      ReachedSetFactory reachedFactory = new ReachedSetFactory(config, logger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
               .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());

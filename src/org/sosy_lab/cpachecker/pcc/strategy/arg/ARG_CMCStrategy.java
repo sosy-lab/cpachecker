@@ -158,7 +158,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
   private boolean checkAndReadSequentially() {
     try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
       ConfigurableProgramAnalysis cpa;
 
@@ -234,7 +234,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
     final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       final AtomicBoolean checkResult = new AtomicBoolean(true);
       final Semaphore partitionsAvailable = new Semaphore(0);
 

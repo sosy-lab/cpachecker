@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.bam.MultipleARGSubtreeRemover;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
-import org.sosy_lab.cpachecker.cpa.usage.UsageState;
+import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnrefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
@@ -92,13 +92,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   @Override
   public RefinementResult performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    ARGState firstState = AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
-    ARGState lastState = firstState.getChildren().iterator().next();
-    UsageState USlastState = UsageState.get(lastState);
-    USlastState.updateContainerIfNecessary();
-    UsageContainer container = USlastState.getContainer();
-    BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
-    assert bamcpa != null;
+
+    UsageReachedSet uReached = (UsageReachedSet) pReached;
+    UsageContainer container = uReached.getUsageContainer();
 
     logger.log(Level.INFO, ("Perform US refinement: " + i++));
     int originUnsafeSize = container.getUnsafeSize();
@@ -162,8 +158,11 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       lastTrueUnsafes = newTrueUnsafeSize;
     }
     if (newPrecisionFound) {
+      BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
+      assert bamcpa != null;
       bamcpa.clearAllCaches();
       ARGState.clearIdGenerator();
+      ARGState firstState = AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
       Precision precision = pReached.getPrecision(firstState);
       if (totalARGCleaning) {
         transfer.cleanCaches();

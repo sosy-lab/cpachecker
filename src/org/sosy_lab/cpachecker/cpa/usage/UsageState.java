@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer;
 import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
 import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
@@ -59,7 +58,6 @@ public class UsageState extends AbstractSingleWrapperState {
   private static final long serialVersionUID = -898577877284268426L;
   private TemporaryUsageStorage recentUsages;
   private boolean isStorageCloned;
-  private final UsageContainer globalContainer;
   private final FunctionContainer functionContainer;
   private final StateStatistics stats;
 
@@ -70,7 +68,6 @@ public class UsageState extends AbstractSingleWrapperState {
   private UsageState(final AbstractState pWrappedElement
       , final Map<AbstractIdentifier, AbstractIdentifier> pVarBind
       , final TemporaryUsageStorage pRecentUsages
-      , final UsageContainer pContainer
       , final boolean pCloned
       , final FunctionContainer pFuncContainer
       , final StateStatistics pStats
@@ -78,23 +75,21 @@ public class UsageState extends AbstractSingleWrapperState {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
     recentUsages = pRecentUsages;
-    globalContainer = pContainer;
     isStorageCloned = pCloned;
     functionContainer = pFuncContainer;
     stats = pStats;
     isExitState = exit;
   }
 
-  public static UsageState createInitialState(final AbstractState pWrappedElement
-      , final UsageContainer pContainer) {
+  public static UsageState createInitialState(final AbstractState pWrappedElement) {
     FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(pWrappedElement, new HashMap<>(), new TemporaryUsageStorage(),
-        pContainer, true, initialContainer, new StateStatistics(initialContainer.getStatistics()), false);
+        true, initialContainer, new StateStatistics(initialContainer.getStatistics()), false);
   }
 
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
     this(pWrappedElement, new HashMap<>(state.variableBindingRelation), state.recentUsages,
-        state.globalContainer, false, state.functionContainer, state.stats, state.isExitState);
+        false, state.functionContainer, state.stats, state.isExitState);
   }
 
   public boolean containsLinks(final AbstractIdentifier id) {
@@ -131,7 +126,7 @@ public class UsageState extends AbstractSingleWrapperState {
     if (linkedId.isPresent()) {
       AbstractIdentifier pointsFrom = linkedId.get();
       int delta = id.getDereference() - pointsFrom.getDereference();
-      AbstractIdentifier initialId = variableBindingRelation.get(linkedId);
+      AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
       AbstractIdentifier pointsTo =
           initialId.cloneWithDereference(initialId.getDereference() + delta);
       if (this.containsLinks(pointsTo)) {
@@ -237,11 +232,7 @@ public class UsageState extends AbstractSingleWrapperState {
     }
 
     return new UsageState(wrappedState, new HashMap<>(), recentUsages.clone(),
-        this.globalContainer, true, functionContainer.clone(difference), this.stats, this.isExitState);
-  }
-
-  public UsageContainer getContainer() {
-    return globalContainer;
+        true, functionContainer.clone(difference), this.stats, this.isExitState);
   }
 
   public void saveUnsafesInContainerIfNecessary(AbstractState abstractState) {
@@ -256,8 +247,8 @@ public class UsageState extends AbstractSingleWrapperState {
     }
   }
 
-  public void updateContainerIfNecessary() {
-    globalContainer.addNewUsagesIfNecessary(functionContainer);
+  public FunctionContainer getFunctionContainer() {
+    return functionContainer;
   }
 
   public void asExitable() {

@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options
@@ -71,8 +70,6 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final UsageCPAStatistics statistics;
-  //Do not remove container from CPA - we clean all states while refinement
-  private UsageContainer container;
   private UsagePrecision precision;
   private final CFA cfa;
   private final LogManager logger;
@@ -98,7 +95,6 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
     LockCPA LockCPA = (CPAs.retrieveCPA(this, LockCPA.class));
     this.statistics = new UsageCPAStatistics(pConfig, pLogger,
         LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
-    this.container = new UsageContainer(pConfig, pLogger);
     this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)pCpa).getReducer();
@@ -170,7 +166,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition), container);
+    return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
   }
 
   @Override

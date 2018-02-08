@@ -229,7 +229,7 @@ public class CoreComponentsFactory {
       aggregatedReachedSets = pAggregatedReachedSets;
     }
 
-    reachedSetFactory = new ReachedSetFactory(config);
+    reachedSetFactory = new ReachedSetFactory(config, logger);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
 
     if (checkCounterexamplesWithBDDCPARestriction) {

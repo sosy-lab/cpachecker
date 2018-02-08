@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
@@ -33,7 +32,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +44,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -115,19 +114,24 @@ public abstract class ErrorTracePrinter {
   private void createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
-    Function<ARGState, Integer> dummyFunc = ARGState::getStateId;
-    BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(dummyFunc);
     ARGState target = (ARGState)usage.getKeyState();
-    BackwardARGState newTreeTarget = new BackwardARGState(target);
-    try {
-      ARGState root = subgraphComputer.findPath(newTreeTarget, Collections.emptySet());
-      ARGPath path = ARGUtils.getRandomPath(root);
-
-      //path is transformed internally
-      usage.setRefinedPath(path.getInnerEdges());
-    } catch (MissingBlockException | InterruptedException e) {
-      logger.log(Level.SEVERE, "Exception during creating path: " + e.getMessage());
+    ARGPath path;
+    if (transfer != null) {
+      //BAM: we need to update target state considering BAM caches
+      BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(ARGState::getStateId);
+      BackwardARGState newTreeTarget = new BackwardARGState(target);
+      try {
+        ARGState root = subgraphComputer.findPath(newTreeTarget, Collections.emptySet());
+        path = ARGUtils.getRandomPath(root);
+      } catch (MissingBlockException | InterruptedException e) {
+        logger.log(Level.SEVERE, "Exception during creating path: " + e.getMessage());
+        return;
+      }
+    } else {
+      path = ARGUtils.getOnePathTo(target);
     }
+    //path is transformed internally
+    usage.setRefinedPath(path.getInnerEdges());
   }
 
   protected String createUniqueName(SingleIdentifier id) {
@@ -138,18 +142,14 @@ public abstract class ErrorTracePrinter {
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
     preparationTimer.start();
-    ARGState firstState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-    //getLastState() returns not the correct last state
-    Collection<ARGState> children = firstState.getChildren();
-    if (!children.isEmpty()) {
-      //Analysis finished normally
-      ARGState lastState = firstState.getChildren().iterator().next();
-      UsageState USlastState = UsageState.get(lastState);
-      USlastState.updateContainerIfNecessary();
-      container = USlastState.getContainer();
+    ReachedSet reachedSet;
+    if (reached instanceof ForwardingReachedSet) {
+      reachedSet = ((ForwardingReachedSet)reached).getDelegate();
     } else {
-      container = UsageState.get(firstState).getContainer();
+      reachedSet = (ReachedSet) reached;
     }
+    UsageReachedSet uReached = (UsageReachedSet) reachedSet;
+    container = uReached.getUsageContainer();
     detector = container.getUnsafeDetector();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");

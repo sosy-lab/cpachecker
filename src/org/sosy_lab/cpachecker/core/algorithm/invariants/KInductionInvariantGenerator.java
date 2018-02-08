@@ -605,7 +605,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
     Configuration config = configBuilder.build();
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config);
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
     ReachedSet reachedSet = reachedSetFactory.create();
     CPABuilder builder = new CPABuilder(config, pLogger, notifier, reachedSetFactory);
