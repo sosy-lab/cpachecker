@@ -280,26 +280,8 @@ class MainCPAStatistics implements Statistics {
 
     if (result != Result.NOT_YET_STARTED) {
       dumpReachedSet(reached);
-
       printSubStatistics(out, result, reached);
-
-      if (exportCoverage && cfa != null) {
-        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
-
-        out.println();
-        out.println("Code Coverage");
-        out.println("-----------------------------");
-        CoverageReportStdoutSummary.write(infosPerFile, out);
-
-        if (outputCoverageFile != null) {
-          try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-            CoverageReportGcov.write(infosPerFile, gcovOut);
-          } catch (IOException e) {
-            logger.logUserException(
-                Level.WARNING, e, "Could not write coverage information to file");
-          }
-        }
-      }
+      exportCoverage(out, reached);
     }
 
     out.println();
@@ -340,6 +322,26 @@ class MainCPAStatistics implements Statistics {
     out.println();
 
     printMemoryStatistics(out);
+  }
+
+  private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
+    if (exportCoverage && cfa != null) {
+      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
+
+      out.println();
+      out.println("Code Coverage");
+      out.println("-----------------------------");
+      CoverageReportStdoutSummary.write(infosPerFile, out);
+
+      if (outputCoverageFile != null) {
+        try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+          CoverageReportGcov.write(infosPerFile, gcovOut);
+        } catch (IOException e) {
+          logger.logUserException(
+              Level.WARNING, e, "Could not write coverage information to file");
+        }
+      }
+    }
   }
 
 
