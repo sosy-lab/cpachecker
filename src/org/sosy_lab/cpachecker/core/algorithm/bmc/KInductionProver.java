@@ -767,8 +767,7 @@ class KInductionProver implements AutoCloseable {
             if ((!index.isPresent()
                 || (index.isPresent()
                     && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))) {
-              BooleanFormula assignment =
-                  fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
+              BooleanFormula assignment = valueAssignment.getAssignmentAsFormula();
               input = bfmgr.and(input, assignment);
             }
           }

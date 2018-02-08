@@ -461,27 +461,14 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
         Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
         String actualName = pair.getFirst();
         OptionalInt index = pair.getSecond();
-        BooleanFormula assignment = pFmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
-        ModelValue modelValue =
-            new ModelValue(
-                actualName, pFmgr.dumpFormula(assignment).toString(), assignment::toString);
 
         // We consider as inputs
         // a) those that have an SSA index and are contained in our list of input variables and
         // b) those that have no SSA index and are not known as actual variables,
         // such as __ADDRESS_OF:
-        if (index.isPresent() && inputs.get(actualName).contains(index.getAsInt())) {
-          SSAMap ssaForInstantiation =
-              SSAMap.emptySSAMap()
-                  .builder()
-                  .setIndex(actualName, types.get(actualName), index.getAsInt())
-                  .build();
-          inputAssignments =
-              bfmgr.and(
-                  inputAssignments,
-                  pFmgr.instantiate(modelValue.toAssignment(pFmgr), ssaForInstantiation));
-        } else if (!index.isPresent() && !pVariables.containsKey(actualName)) {
-          inputAssignments = bfmgr.and(inputAssignments, modelValue.toAssignment(pFmgr));
+        if ((index.isPresent() && inputs.get(actualName).contains(index.getAsInt()))
+            || (!index.isPresent() && !pVariables.containsKey(actualName))) {
+          inputAssignments = bfmgr.and(inputAssignments, valueAssignment.getAssignmentAsFormula());
         }
       }
     }
