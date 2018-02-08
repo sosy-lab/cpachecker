@@ -583,22 +583,35 @@ class KInductionProver implements AutoCloseable {
       Iterable<AbstractState> pReached, CandidateInvariant pCandidateInvariant, int pK)
       throws CPATransferException, InterruptedException {
     FluentIterable<AbstractState> states = filterIteration(pReached, pK, loopHeads);
-    if (pCandidateInvariant instanceof TargetLocationCandidateInvariant) {
-      states =
-          states.filter(
-              s -> {
-                ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
-                return !argState.isTarget()
-                    && (argState.getChildren().isEmpty()
-                        || from(AbstractStates.extractLocations(s)).anyMatch(loopHeads::contains));
-              });
-      return createFormulaFor(states, bfmgr);
+    BooleanFormula assertion = bfmgr.makeTrue();
+    for (CandidateInvariant component :
+        CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+      final BooleanFormula candidateAssertion;
+
+      if (component instanceof TargetLocationCandidateInvariant) {
+        Iterable<AbstractState> candidateAssertionStates =
+            states.filter(
+                s -> {
+                  ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
+                  return !argState.isTarget()
+                      && (argState.getChildren().isEmpty()
+                          || from(AbstractStates.extractLocations(s))
+                              .anyMatch(loopHeads::contains));
+                });
+        candidateAssertion = createFormulaFor(candidateAssertionStates, bfmgr);
+      } else {
+        Iterable<AbstractState> candidateAssertionStates =
+            states.filter(
+                s -> from(AbstractStates.extractLocations(s)).anyMatch(component::appliesTo));
+        candidateAssertion =
+            bfmgr.and(
+                createFormulaFor(candidateAssertionStates, bfmgr),
+                component.getAssertion(candidateAssertionStates, fmgr, pfmgr));
+      }
+
+      assertion = bfmgr.and(assertion, candidateAssertion);
     }
-    states =
-        states.filter(
-            s -> from(AbstractStates.extractLocations(s)).anyMatch(pCandidateInvariant::appliesTo));
-    return bfmgr.and(
-        createFormulaFor(states, bfmgr), pCandidateInvariant.getAssertion(states, fmgr, pfmgr));
+    return assertion;
   }
 
   private BooleanFormula inductiveLoopHeadInvariantAssertion(
