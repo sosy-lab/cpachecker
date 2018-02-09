@@ -880,6 +880,7 @@ public class SMGTransferRelation
 
     return pNewState;
   }
+
   public SMGAddressValueAndStateList handleSafeExternFuction(CFunctionCallExpression pFunctionCallExpression,
       SMGState pSmgState, CFAEdge pCfaEdge) throws CPATransferException {
     String functionName = pFunctionCallExpression.getFunctionNameExpression().toString();
