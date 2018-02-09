@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
@@ -52,7 +54,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 /**
  * Represents one abstract state of the Usage CPA.
  */
-public class UsageState extends AbstractSingleWrapperState {
+public class UsageState extends AbstractSingleWrapperState implements LatticeAbstractState<UsageState> {
   /* Boilerplate code to avoid serializing this class */
 
   private static final long serialVersionUID = -898577877284268426L;
@@ -181,7 +183,8 @@ public class UsageState extends AbstractSingleWrapperState {
     return str.toString();
   }
 
-  boolean isLessOrEqual(final UsageState other) {
+  @Override
+  public boolean isLessOrEqual(final UsageState other) {
     //If we are here, the wrapped domain return true and the stop depends only on this value
 
     // this element is not less or equal than the other element, if that one contains less elements
@@ -315,5 +318,11 @@ public class UsageState extends AbstractSingleWrapperState {
 
   public static UsageState get(AbstractState state) {
     return AbstractStates.extractStateByType(state, UsageState.class);
+  }
+
+  @Override
+  public UsageState join(UsageState pOther) {
+    Preconditions.checkArgument(false);
+    return null;
   }
 }
