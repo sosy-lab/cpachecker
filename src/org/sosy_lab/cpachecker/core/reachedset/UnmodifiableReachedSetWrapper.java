@@ -28,6 +28,7 @@ import com.google.common.collect.Iterators;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -116,5 +117,15 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  @Override
+  public boolean hasViolatedProperties() {
+    return delegate.hasViolatedProperties();
+  }
+
+  @Override
+  public Collection<Property> getViolatedProperties() {
+    return delegate.getViolatedProperties();
   }
 }

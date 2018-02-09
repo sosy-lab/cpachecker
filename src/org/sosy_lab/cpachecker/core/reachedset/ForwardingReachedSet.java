@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -185,5 +186,15 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
     if (delegate instanceof StatisticsProvider) {
       ((StatisticsProvider) delegate).collectStatistics(statsCollection);
     }
+  }
+
+  @Override
+  public boolean hasViolatedProperties() {
+    return delegate.hasViolatedProperties();
+  }
+
+  @Override
+  public Collection<Property> getViolatedProperties() {
+    return delegate.getViolatedProperties();
   }
 }

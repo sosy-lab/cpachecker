@@ -359,7 +359,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
-          if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+          if (currentReached.hasViolatedProperties() && status.isPrecise()) {
 
             // If the algorithm is not _precise_, verdict "false" actually means "unknown".
             return status;

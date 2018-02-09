@@ -133,7 +133,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           return status;
         }
 
-        if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
+        if (reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;

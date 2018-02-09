@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Verify.verifyNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
@@ -191,7 +189,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-    int initialReachedSetSize = reached.size();
     boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     try {
@@ -214,17 +211,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         if (refinementNecessary(reached, previousLastState)) {
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
-          // assert that reached set is free of target states,
-          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
-          if (refinementSuccessful && initialReachedSetSize == 1) {
-            assert !from(reached).anyMatch(IS_TARGET_STATE) : "Target state should not be present"
-                + " in the reached set after refinement.";
-          }
+          // Note, with special options reached set still contains violated properties
+          // i.e (stopAfterError = true) or race conditions analysis
         }
 
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
-        else if(mRefiner instanceof UnsoundRefiner) {
+        else if (mRefiner instanceof UnsoundRefiner) {
           if (!refinedInPreviousIteration) {
             break;
           }
@@ -245,7 +238,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     if (globalRefinement) {
       // check other states
-      return from(reached).anyMatch(IS_TARGET_STATE);
+      return reached.hasViolatedProperties();
 
     } else {
       // Check only last state, but only if it is different from the last iteration.

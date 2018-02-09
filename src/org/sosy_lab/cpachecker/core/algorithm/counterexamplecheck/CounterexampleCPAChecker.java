@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Predicates;
@@ -199,7 +197,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       // counterexample is feasible if a target state is reachable
-      return from(lReached).anyMatch(IS_TARGET_STATE);
+      return lReached.hasViolatedProperties();
 
     } catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
