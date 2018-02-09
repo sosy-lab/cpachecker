@@ -26,24 +26,32 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {
-Map<String, KeyDef> tagConverter = ImmutableMap.of(
-    "Warning", KeyDef.WARNING,
-    "Note", KeyDef.NOTE);
+
+  Map<ConvertingTags, KeyDef> tagConverter = ImmutableMap.of(
+      SMGConvertingTags.WARNING , KeyDef.WARNING,
+      SMGConvertingTags.NOTE, KeyDef.NOTE);
 
   @Override
-  public TransitionCondition convert(
-      TransitionCondition originalTransition, String pTag, Object pValue) {
-    String value = pValue.toString();
-    if ("Note".equals(pTag)) {
-      String source = originalTransition.getMapping().get(KeyDef.SOURCECODE);
-      value = source != null ? source
-                             : pValue.toString();
-    }
+  public TransitionCondition convert(TransitionCondition originalTransition, ConvertingTags pTag, Object pValue) {
+    if (pTag instanceof SMGConvertingTags) {
+      String value = pValue.toString();
+      //TODO: temporal rewriting note by sourcecode as highlighting.
+      //Replace by precise memory changes based on history
+      if (SMGConvertingTags.NOTE.equals(pTag)) {
+        String source = originalTransition.getMapping().get(KeyDef.SOURCECODE);
+        if (source != null) {
+          value = source;
+        }
+      }
 
-    return originalTransition.putAndCopy(tagConverter.get(pTag), value);
+      return originalTransition.putAndCopy(tagConverter.get(pTag), value);
+    } else {
+      return originalTransition;
+    }
   }
 }

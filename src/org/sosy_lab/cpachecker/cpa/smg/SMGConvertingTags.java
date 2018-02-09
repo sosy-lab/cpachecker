@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,19 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
+package org.sosy_lab.cpachecker.cpa.smg;
 
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAdditionalInfo;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 
-public interface AdditionalInfoConverter {
-
-  /**
-   * Converter from additional info {@link ConfigurableProgramAnalysisWithAdditionalInfo} to
-   * {@link TransitionCondition}
-   * @param originalTransition transition to enrich by additional information
-   * @param pTag additional tag
-   * @param pValue corresponding value
-   * @return extended transition for dumping by {@link ExtendedWitnessWriter}
-   */
-  TransitionCondition convert(TransitionCondition originalTransition, ConvertingTags pTag, Object pValue);
+/**
+ * Intermediate enum for {@link AdditionalInfoConverter} used at {@link SMGCPA}
+ */
+public enum SMGConvertingTags implements ConvertingTags {
+  WARNING,
+  NOTE
 }

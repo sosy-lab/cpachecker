@@ -404,7 +404,6 @@ class WitnessWriter implements EdgeAppender {
   private boolean isFunctionScope = false;
   protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
 
-
   WitnessWriter(
       WitnessOptions pOptions,
       CFA pCfa,
@@ -535,13 +534,26 @@ class WitnessWriter implements EdgeAppender {
 
     if (pFromState.isPresent()) {
       return extractTransitionForStates(
-          pFrom, pTo, pEdge, pFromState.get(), pValueMap, pAdditionalInfo, result, goesToSink,
+          pFrom,
+          pTo,
+          pEdge,
+          pFromState.get(),
+          pValueMap,
+          pAdditionalInfo,
+          result,
+          goesToSink,
           isDefaultCase);
     }
     return Collections.singletonList(result);
   }
 
-  @SuppressWarnings("unused")
+  /**
+   * Check whether edge should absence at witness or not
+   * 
+   * @param pEdge edge to be checked
+   * @param pAdditionalInfo additional info corresponds to edge
+   * @return true is edge considered as absence
+   */
   protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return !isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
   }
@@ -688,7 +700,9 @@ class WitnessWriter implements EdgeAppender {
           allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
-                  pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
+                  pEdge,
+                  allAssignments.build(),
+                  currentEdgeWithAssignments.getComment());
         }
       }
 
@@ -703,7 +717,9 @@ class WitnessWriter implements EdgeAppender {
         if (functionValidAssignments.size() < assignments.size()) {
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
-                  pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
+                  pEdge,
+                  functionValidAssignments,
+                  cfaEdgeWithAssignments.getComment());
           FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
 
           if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
@@ -862,9 +878,14 @@ class WitnessWriter implements EdgeAppender {
     return Collections.singleton(result);
   }
 
-  @SuppressWarnings("unused")
-  protected TransitionCondition addAdditionalInfo(TransitionCondition pCondition,
-                                                  CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+  /**
+   * Overwritten at {@link ExtendedWitnessWriter}
+   * 
+   * @param pCondition current {@link TransitionCondition}
+   * @param pAdditionalInfo exported additional info
+   * @return TransitionCondition with additional info
+   */
+  protected TransitionCondition addAdditionalInfo(TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return pCondition;
   }
 
@@ -1168,15 +1189,23 @@ class WitnessWriter implements EdgeAppender {
     doc.appendTo(pTarget);
   }
 
-  @SuppressWarnings("unused")
-  protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(Optional<CounterexampleInfo>
-                                                             pCounterExample) {
+  /**
+   * Getter for additional information. Overwritten at {@link ExtendedWitnessWriter}
+   * 
+   * @param pCounterExample current {@link CounterexampleInfo}
+   * @return additional information
+   */
+  protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(Optional<CounterexampleInfo> pCounterExample) {
     return ImmutableMap.of();
   }
 
-  @SuppressWarnings("unused")
-  protected Set<AdditionalInfoConverter> getAdditionalInfoConverters(Optional<CounterexampleInfo>
-                                                              pCounterExample) {
+  /**
+   * Getter of {@link AdditionalInfoConverter}. Overwritten at {@link ExtendedWitnessWriter}
+   * 
+   * @param pCounterExample current {@link CounterexampleInfo}
+   * @return set of InfoConverters
+   */
+  protected Set<AdditionalInfoConverter> getAdditionalInfoConverters(Optional<CounterexampleInfo> pCounterExample) {
     return ImmutableSet.of();
   }
 

@@ -73,17 +73,14 @@ public class ExtendedWitnessWriter extends WitnessWriter {
   }
 
   @Override
-  protected TransitionCondition addAdditionalInfo(
-      TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+  protected TransitionCondition addAdditionalInfo(TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     TransitionCondition result = pCondition;
     if (pAdditionalInfo != null) {
-      for (Entry<String, ImmutableSet<Object>> addInfo : pAdditionalInfo.getInfos()) {
-        String tag = addInfo.getKey();
-        Set<Object> values = addInfo.getValue();
-        for (Object value : values) {
-          for (AdditionalInfoConverter converter : additionalInfoConverters) {
-            result = converter.convert(result, tag, value);
-          }
+      for (Entry<ConvertingTags, Object> addInfo : pAdditionalInfo.getInfos()) {
+        ConvertingTags tag = addInfo.getKey();
+        Object value = addInfo.getValue();
+        for (AdditionalInfoConverter converter : additionalInfoConverters) {
+          result = converter.convert(result, tag, value);
         }
       }
     }
@@ -92,8 +89,7 @@ public class ExtendedWitnessWriter extends WitnessWriter {
 
   @Override
   protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    if (pAdditionalInfo != null && pAdditionalInfo.getInfos() != null &&
-        pAdditionalInfo.getInfos().size() > 0) {
+    if (pAdditionalInfo != null && pAdditionalInfo.getInfos() != null && pAdditionalInfo.getInfos().size() > 0) {
       return false;
     }
     return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);

@@ -292,7 +292,7 @@ public class SMGCPA
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = CFAEdgeWithAdditionalInfo.of(rIterator
           .getOutgoingEdge());
       if (description != null && !description.isEmpty()) {
-        edgeWithAdditionalInfo.addInfo("Warning", description);
+        edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
         description = null;
       }
 
@@ -306,7 +306,8 @@ public class SMGCPA
                 toCheck.add(additionalElem);
               }
             }
-            edgeWithAdditionalInfo.addInfo("Note", prevSMGState.getNoteMessageOnElement(elem));
+            edgeWithAdditionalInfo.addInfo(SMGConvertingTags.NOTE, prevSMGState
+                .getNoteMessageOnElement(elem));
 
           } else {
             toCheck.add(elem);

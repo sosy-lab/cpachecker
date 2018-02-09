@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAdditionalInfo;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 
 
 /**
@@ -40,11 +38,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAd
  * in the error path. Converter should be provided by state {@link ConfigurableProgramAnalysisWithAdditionalInfo}
  */
 public class CFAEdgeWithAdditionalInfo {
-  private final Map<String, ImmutableSet<Object>> addinitonalInfo;
+  private final Multimap<ConvertingTags, Object> addinitonalInfo;
   private final CFAEdge edge;
 
-  CFAEdgeWithAdditionalInfo(Map<String, ImmutableSet<Object>> pAddinitonalInfo, CFAEdge pEdge) {
-    addinitonalInfo = new HashMap<>(pAddinitonalInfo);
+  CFAEdgeWithAdditionalInfo(Multimap<ConvertingTags, Object> pAddinitonalInfo, CFAEdge pEdge) {
+    addinitonalInfo = HashMultimap.create(pAddinitonalInfo);
     edge = Objects.requireNonNull(pEdge);
   }
 
@@ -57,11 +55,8 @@ public class CFAEdgeWithAdditionalInfo {
     assert pEdge1.edge.equals(pEdge2.edge);
 
     edge = pEdge1.edge;
-    addinitonalInfo = Stream.concat(pEdge1.addinitonalInfo.entrySet().stream(),
-        pEdge2.addinitonalInfo.entrySet().stream()).collect(Collectors.toMap(
-        entry -> entry.getKey(),
-        entry -> entry.getValue(),
-        (set1, set2) -> ImmutableSet.builder().addAll(set1).addAll(set2).build()));
+    addinitonalInfo = HashMultimap.create(pEdge1.addinitonalInfo);
+    addinitonalInfo.putAll(pEdge2.addinitonalInfo);
   }
 
 
@@ -70,24 +65,18 @@ public class CFAEdgeWithAdditionalInfo {
   }
 
   public static CFAEdgeWithAdditionalInfo of(CFAEdge pEdge) {
-    return new CFAEdgeWithAdditionalInfo(new HashMap<>(), pEdge);
+    return new CFAEdgeWithAdditionalInfo(HashMultimap.create(), pEdge);
   }
 
-  public void addInfo(String tag, Object value) {
-    mergeInfos(tag, ImmutableSet.of(value));
-  }
-
-  public void mergeInfos(String tag, ImmutableSet<Object> addInfos) {
-    addinitonalInfo.merge(tag, addInfos, (v1, v2) -> ImmutableSet.builder().addAll
-        (v1).addAll(v2).build());
-
+  public void addInfo(ConvertingTags tag, Object value) {
+    addinitonalInfo.put(tag, value);
   }
 
   public CFAEdge getCFAEdge() {
     return edge;
   }
 
-  public Set<Entry<String,ImmutableSet<Object>>> getInfos() {
-    return addinitonalInfo.entrySet();
+  public Collection<Entry<ConvertingTags, Object>> getInfos() {
+    return addinitonalInfo.entries();
   }
 }
