@@ -71,8 +71,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     LocationState oldLocationState = tState.getLocationState();
     CallstackState oldCallstackState = tState.getCallstackState();
 
-    boolean resetCallstacksFlag = false;
-
     ThreadStateBuilder builder = tState.getBuilder();
     try {
       threadStatistics.tSetTimer.start();
@@ -86,8 +84,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
           CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
           if (isThreadCreateFunction(functionCall)) {
             builder.handleParentThread((CThreadCreateStatement)functionCall);
-            resetCallstacksFlag = true;
-            callstackTransfer.enableRecursiveContext();
           }
         } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
@@ -118,9 +114,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
         for (AbstractState cState : newCallstackStates) {
           resultStates.add(builder.build((LocationState)lState, (CallstackState)cState));
         }
-      }
-      if (resetCallstacksFlag) {
-        callstackTransfer.disableRecursiveContext();
       }
       return resultStates;
     } finally {

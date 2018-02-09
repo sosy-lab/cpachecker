@@ -116,7 +116,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
     RefinementResult result;
 
-    List<CFAEdge> currentPath = pInput.getInnerEdges();
+    Set<CFAEdge> currentPath = Sets.newHashSet(pInput.getInnerEdges());
+
     if (trueCache.contains(currentPath)) {
       //Somewhen we have already refined this path as true
       result = RefinementResult.createTrue();
