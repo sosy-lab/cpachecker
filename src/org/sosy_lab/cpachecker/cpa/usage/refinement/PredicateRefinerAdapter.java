@@ -156,7 +156,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         if (falseCacheForCurrentIteration.containsKey(edgeSet)) {
           //We refined it for other usage
           //just return the result;
-          //PredicatePrecision previousPreds = falseCacheForCurrentIteration.get(edgeSet);
           result = RefinementResult.createFalse();
         } else {
           /*if (!totalARGCleaning) {
@@ -187,7 +186,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         result.addInfo(PredicateRefinerAdapter.class, getLastAffectedStates());
         result.addPrecision(getLastPrecision());
         falseCacheForCurrentIteration.put(edgeSet, getLastPrecision());
-        //idCached.put(path.getUsageInfo().getId(), edgeSet);
       }
 
     } catch (IllegalStateException e) {
