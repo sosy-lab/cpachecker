@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
@@ -585,13 +584,6 @@ public class BAMTransferRelation implements TransferRelation {
         if (((ARGState)returnState).getChildren().isEmpty()) {
           returnStates.add(returnState);
         }
-      }
-      Set<AbstractState> exitableStates = from(reached)
-          .filter(s -> s instanceof Exitable)
-          .filter(s -> ((Exitable)s).isExitState())
-          .toSet();
-      for (AbstractState returnState : exitableStates) {
-        returnStates.add(returnState);
       }
       if (blockExitStates.isEmpty()) {
         //infinite loop
