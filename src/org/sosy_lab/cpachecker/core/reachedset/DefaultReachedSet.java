@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
@@ -309,13 +308,10 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public Collection<Property> getViolatedProperties() {
-    final Set<Property> result = Sets.newHashSet();
-
-    for (AbstractState e : from(unmodifiableReached).filter(IS_TARGET_STATE)) {
-      Targetable t = (Targetable) e;
-      result.addAll(t.getViolatedProperties());
-    }
-
-    return result;
+    return from(unmodifiableReached)
+        .filter(IS_TARGET_STATE)
+        .filter(Targetable.class)
+        .transformAndConcat(Targetable::getViolatedProperties)
+        .toSet();
   }
 }
