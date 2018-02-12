@@ -83,7 +83,7 @@ public interface Reducer {
    * precisions.
    *
    * <p>This function is used only when {@code cpa.bam.aggressiveCaching} is
-   * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
+   * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
    *
    * <p>A greater value indicates a bigger difference in the precision.
    * If the implementation of this function is not important, return zero. */
