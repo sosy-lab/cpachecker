@@ -176,7 +176,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
         Configuration pConfig)
-        throws InvalidConfigurationException, CPAException {
+        throws InvalidConfigurationException {
       this(() -> pAlgorithm, pCpa, pLogger, pConfig);
     }
 
@@ -185,7 +185,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
         Configuration pConfig)
-        throws InvalidConfigurationException, CPAException {
+        throws InvalidConfigurationException {
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
