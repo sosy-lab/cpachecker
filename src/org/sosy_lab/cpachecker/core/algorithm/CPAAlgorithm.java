@@ -137,8 +137,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Options(prefix="cpa")
-  public static class CPAAlgorithmFactory {
+  @Options(prefix = "cpa")
+  public static class CPAAlgorithmFactory implements AlgorithmFactory {
 
     @Option(
       secure = true,
@@ -174,6 +174,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     }
 
+    @Override
     public CPAAlgorithm newInstance() {
       return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
     }

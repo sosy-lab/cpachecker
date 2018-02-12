@@ -127,4 +127,8 @@ public interface Algorithm {
           && isSound == other.isSound;
     }
   }
+
+  public static interface AlgorithmFactory {
+    public Algorithm newInstance();
+  }
 }
