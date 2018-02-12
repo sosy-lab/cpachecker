@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
@@ -78,7 +77,7 @@ public abstract class ErrorTracePrinter {
       secure = true)
   private boolean printFalseUnsafes = false;
 
-  private final BAMTransferRelation transfer;
+  //private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
 
   private final StatTimer preparationTimer = new StatTimer("Time for preparation");
@@ -91,10 +90,10 @@ public abstract class ErrorTracePrinter {
   protected UnsafeDetector detector;
 
   protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
+  private BAMMultipleCEXSubgraphComputer subgraphComputer;
 
 
-  public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
-    transfer = t;
+  public ErrorTracePrinter(Configuration c, BAMMultipleCEXSubgraphComputer t, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
     logger = l;
     config = c;
     lockTransfer = lT;
@@ -108,6 +107,7 @@ public abstract class ErrorTracePrinter {
           e -> (Files.exists(Paths.get(e.getFileLocation().getFileName())))
           );
     }
+    subgraphComputer = t;
   }
 
   private void createPath(UsageInfo usage) {
@@ -115,9 +115,8 @@ public abstract class ErrorTracePrinter {
 
     ARGState target = (ARGState)usage.getKeyState();
     ARGPath path;
-    if (transfer != null) {
+    if (subgraphComputer != null) {
       //BAM: we need to update target state considering BAM caches
-      BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(ARGState::getStateId);
       BackwardARGState newTreeTarget = new BackwardARGState(target);
       try {
         ARGState root = subgraphComputer.findPath(newTreeTarget, Collections.emptySet());

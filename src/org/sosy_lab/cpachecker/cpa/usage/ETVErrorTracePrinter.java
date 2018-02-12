@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -68,7 +68,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   private Writer globalWriter;
 
-  public ETVErrorTracePrinter(Configuration pC, BAMTransferRelation pT, LogManager pL, LockTransferRelation t) throws InvalidConfigurationException {
+  public ETVErrorTracePrinter(Configuration pC, BAMMultipleCEXSubgraphComputer pT, LogManager pL, LockTransferRelation t) throws InvalidConfigurationException {
     super(pC, pT, pL, t);
   }
 

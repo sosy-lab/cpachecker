@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
@@ -193,7 +194,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     UsageCPA usageCPA = CPAs.retrieveCPA(pCpa, UsageCPA.class);
     if (usageCPA != null) {
-      usageCPA.getStats().setBAMTransfer(transfer);
+      usageCPA.getStats().setBAMTransfer(transfer.createBAMMultipleSubgraphComputer(ARGState::getStateId));
     }
     stats = new BAMCPAStatistics(this, data, config, logger);
     argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);

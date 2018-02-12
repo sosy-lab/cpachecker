@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
@@ -101,7 +101,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     }
   }
 
-  public KleverErrorTracePrinter(Configuration c, BAMTransferRelation pT, LogManager pL, LockTransferRelation lT) throws InvalidConfigurationException {
+  public KleverErrorTracePrinter(Configuration c, BAMMultipleCEXSubgraphComputer pT, LogManager pL, LockTransferRelation lT) throws InvalidConfigurationException {
     super(c, pT, pL, lT);
   }
 
