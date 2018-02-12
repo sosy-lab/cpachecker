@@ -35,6 +35,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheImpl;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheSynchronized;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerImpl;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerSynchronized;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {

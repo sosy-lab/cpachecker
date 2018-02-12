@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.TimedReducer.ReducerStatistics;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.bam")

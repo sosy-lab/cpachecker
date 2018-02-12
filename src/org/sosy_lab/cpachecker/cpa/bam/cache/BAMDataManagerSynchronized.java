@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.cpa.bam.cache;
 
 import java.util.List;
 import javax.annotation.Nullable;
@@ -36,7 +36,7 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
 
   private final BAMDataManager manager;
 
-  BAMDataManagerSynchronized(BAMDataManager pManager) {
+  public BAMDataManagerSynchronized(BAMDataManager pManager) {
     manager = pManager;
   }
 

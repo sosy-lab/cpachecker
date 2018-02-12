@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.cpa.bam.cache;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -96,7 +96,10 @@ public class BAMDataManagerImpl implements BAMDataManager {
    */
   private final Set<CFANode> uncachedBlockEntries = new HashSet<>();
 
-  BAMDataManagerImpl(BAMCache pArgCache, ReachedSetFactory pReachedSetFactory, LogManager pLogger) {
+  public BAMDataManagerImpl(
+      BAMCache pArgCache,
+      ReachedSetFactory pReachedSetFactory,
+      LogManager pLogger) {
     bamCache = pArgCache;
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
