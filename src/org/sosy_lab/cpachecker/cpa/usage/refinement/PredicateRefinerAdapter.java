@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.collect.Sets;
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,6 +59,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
@@ -76,10 +77,10 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   private final Set<Set<CFAEdge>> potentialLoopTraces = new HashSet<>();
   //Statistics
-  private int solverFailures = 0;
-  private int numberOfrepeatedPaths = 0;
-  private int numberOfrefinedPaths = 0;
-  private int numberOfBAMupdates = 0;
+  private StatCounter solverFailures = new StatCounter("Solver failures");
+  private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
+  private StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
+  private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
   public PredicateRefinerAdapter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -131,7 +132,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         if (previousPreds.calculateDifferenceTo(currentPreds) == 0) {
           if (potentialLoopTraces.contains(edgeSet)) {
             //Second time, we obtain it
-            numberOfrepeatedPaths++;
+            numberOfrepeatedPaths.inc();
             logger.log(Level.WARNING, "Path is repeated, BAM is looped");
             pInput.getUsageInfo().setAsLooped();
             result = RefinementResult.createUnknown();
@@ -140,7 +141,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
             result = performPredicateRefinement(pInput);
             logger.log(Level.WARNING, "Path is repeated, hope BAM can handle it itself");
             //BAM can refine with updated predicate refiner, congratulate him.
-            numberOfBAMupdates++;
+            numberOfBAMupdates.inc();
             potentialLoopTraces.add(edgeSet);
           }
         } else {
@@ -174,7 +175,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   private RefinementResult performPredicateRefinement(ExtendedARGPath path) throws CPAException, InterruptedException {
     RefinementResult result;
     try {
-      numberOfrefinedPaths++;
+      numberOfrefinedPaths.inc();
       CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, path);
       Set<CFAEdge> edgeSet = Sets.newHashSet(path.getInnerEdges());
 
@@ -192,7 +193,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       //msat_solver return -1 <=> unknown
       //consider its as true;
       logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
-      solverFailures++;
+      solverFailures.inc();
       result = RefinementResult.createUnknown();
     }
     return result;
@@ -220,19 +221,22 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   }
 
   @Override
-  public void printAdditionalStatistics(PrintStream pOut) {
-    pOut.println("--PredicateRefinerAdapter--");
-    pOut.println("Number of refined paths:          " + numberOfrefinedPaths);
-    pOut.println("Solver failures:                  " + solverFailures);
-    pOut.println("Number of repeated paths:         " + numberOfrepeatedPaths);
-    pOut.println("Number of BAM updates:            " + numberOfBAMupdates);
-    pOut.println("Size of false cache:              " + falseCache.size());
+  public void printAdditionalStatistics(StatisticsWriter pOut) {
+    pOut.beginLevel()
+      .put(numberOfrefinedPaths)
+      .put(numberOfrepeatedPaths)
+      .put(solverFailures)
+      .put(numberOfBAMupdates)
+      .put("Size of false cache", falseCache.size())
+      .endLevel();
+  }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStats) {
     if (refiner instanceof StatisticsProvider) {
-      Collection<Statistics> stats = new HashSet<>();
-      ((StatisticsProvider)refiner).collectStatistics(stats);
-      stats.forEach(s -> s.printStatistics(pOut, null, null));
+      ((StatisticsProvider)refiner).collectStatistics(pStats);
     }
+    super.collectStatistics(pStats);
   }
 
   private List<ARGState> getLastAffectedStates() {
@@ -271,10 +275,15 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
       super.finishRefinementOfPath(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
 
-      lastAddedPrecision = newPrecisionFromPredicates;
-
       lastAffectedStates.clear();
       pAffectedStates.forEach(lastAffectedStates::add);
+    }
+
+    @Override
+    protected PredicatePrecision convertIntoPrecision(PredicatePrecision base) {
+
+      lastAddedPrecision = super.convertIntoPrecision(base);
+      return lastAddedPrecision;
     }
   }
 

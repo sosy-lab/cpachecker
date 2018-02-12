@@ -23,21 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.io.PrintStream;
-
-import org.sosy_lab.common.time.Timer;
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public abstract class GenericSinglePathRefiner extends
     WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>>  {
 
-  Timer totalTimer = new Timer();
-  int numberOfRefinements = 0;
+  private StatTimer totalTimer = new StatTimer("Time for generic refiner");
+  private StatCounter numberOfRefinements = new StatCounter("Number of refinements");
 
   public GenericSinglePathRefiner(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {
     super(pWrapper);
@@ -87,7 +86,7 @@ public abstract class GenericSinglePathRefiner extends
       return RefinementResult.createTrue();
     }
 
-    numberOfRefinements++;
+    numberOfRefinements.inc();;
     RefinementResult result = call(path);
     if (result.isTrue() || result.isUnknown()) {
       path.setAsTrueBy(this);
@@ -99,16 +98,17 @@ public abstract class GenericSinglePathRefiner extends
   }
 
   @Override
-  public final void printStatistics(PrintStream pOut) {
-    pOut.println("--GenericSinglePathRefiner--");
-    pOut.println("Timer for block:           " + totalTimer);
-    pOut.println("Number of calls:           " + numberOfRefinements);
-    printAdditionalStatistics(pOut);
-    wrappedRefiner.printStatistics(pOut);
+  public final void printStatistics(StatisticsWriter pOut) {
+    StatisticsWriter writer = pOut.spacer()
+        .put(totalTimer)
+        .put(numberOfRefinements);
+
+    printAdditionalStatistics(writer);
+    wrappedRefiner.printStatistics(writer);
   }
 
   //ForOverride
-  public void printAdditionalStatistics(PrintStream pOut) {}
+  public void printAdditionalStatistics(StatisticsWriter pOut) {}
 
   protected abstract RefinementResult call(ExtendedARGPath path) throws CPAException, InterruptedException;
 }

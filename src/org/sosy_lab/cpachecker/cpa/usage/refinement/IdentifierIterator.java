@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
-import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -57,6 +56,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 @Options(prefix="cpa.usage")
@@ -196,7 +196,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   }
 
   @Override
-  public void printStatistics(PrintStream pOut) {
+  public void printStatistics(StatisticsWriter pOut) {
     wrappedRefiner.printStatistics(pOut);
   }
 }

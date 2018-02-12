@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.ConfigurableRefinementBlock;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementBlockFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class UsageRefiner implements Refiner, StatisticsProvider {
 
@@ -46,8 +47,8 @@ public class UsageRefiner implements Refiner, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      pOut.println("");
-      startingBlock.printStatistics(pOut);
+      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+      startingBlock.printStatistics(writer);
     }
 
     @Override

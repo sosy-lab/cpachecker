@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.io.PrintStream;
-
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public interface RefinementInterface {
@@ -33,5 +32,5 @@ public interface RefinementInterface {
   void update(Class<? extends RefinementInterface> callerClass, Class<? extends RefinementInterface> dstClass, Object data);
   void start(Class<? extends RefinementInterface> callerClass);
   void finish(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException;
-  void printStatistics(PrintStream pOut);
+  void printStatistics(StatisticsWriter pOut);
 }

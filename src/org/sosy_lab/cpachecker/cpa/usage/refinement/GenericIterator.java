@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinementBlock<I, O> {
-  private Timer totalTimer = new Timer();
-  private int numOfIterations = 0;
+  private StatTimer totalTimer = new StatTimer("Time for generic refiner");
+  private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
   PredicatePrecision completePrecision;
 
@@ -74,12 +74,12 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     } finally {
       sendFinishSignal();
       postponedIterations.clear();
-      totalTimer.stopIfRunning();
+      totalTimer.stop();
     }
   }
 
   private RefinementResult iterate(O iteration) throws CPAException, InterruptedException {
-    numOfIterations++;
+    numOfIterations.inc();
     totalTimer.stop();
     RefinementResult result = wrappedRefiner.performRefinement(iteration);
     totalTimer.start();
@@ -103,14 +103,16 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   abstract protected O getNext(I pInput);
   protected void init(I pInput) {}
   protected void finalize(O output, RefinementResult r) {}
-  protected void printDetailedStatistics(PrintStream pOut) {}
+  protected void printDetailedStatistics(StatisticsWriter pOut) {}
 
   @Override
-  public final void printStatistics(PrintStream pOut) {
-    printDetailedStatistics(pOut);
-    pOut.println("Timer for block:           " + totalTimer);
-    pOut.println("Number of iterations:      " + numOfIterations);
-    wrappedRefiner.printStatistics(pOut);
+  public final void printStatistics(StatisticsWriter pOut) {
+    StatisticsWriter writer = pOut.spacer()
+        .put(totalTimer)
+        .put(numOfIterations);
+
+    printDetailedStatistics(writer);
+    wrappedRefiner.printStatistics(writer);
   }
 
   protected void postpone(O i) {

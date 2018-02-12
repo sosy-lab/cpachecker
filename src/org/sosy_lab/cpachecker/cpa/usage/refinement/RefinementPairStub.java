@@ -25,29 +25,23 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.PrintStream;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public class RefinementPairStub implements ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>{
 
   @Override
   public void update(Class<? extends RefinementInterface> pCallerClass, Class<? extends RefinementInterface> pDstClass,
-      Object pData) {
-  }
+      Object pData) {}
 
   @Override
-  public void start(Class<? extends RefinementInterface> pCallerClass) {
-  }
+  public void start(Class<? extends RefinementInterface> pCallerClass) {}
 
   @Override
-  public void finish(Class<? extends RefinementInterface> pCallerClass) throws CPAException, InterruptedException {
-  }
+  public void finish(Class<? extends RefinementInterface> pCallerClass) throws CPAException, InterruptedException {}
 
   @Override
-  public void printStatistics(PrintStream pOut) {
-
-  }
+  public void printStatistics(StatisticsWriter pOut) {}
 
   @Override
   public RefinementResult performRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
