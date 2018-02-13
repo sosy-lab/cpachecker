@@ -536,6 +536,15 @@ public class TestSuite implements AlgorithmResult {
     return infeasibleGoals.containsKey(goal);
   }
 
+  public boolean isGoalTimedOut(Goal goal) {
+    for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
+      if (entry.getValue().getFirst().equals(goal)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public boolean isGoalCovered(Goal pGoal) {
     if (useTigerAlgorithm_with_pc) {
       if (remainingPresenceConditions.get(pGoal) != null) {

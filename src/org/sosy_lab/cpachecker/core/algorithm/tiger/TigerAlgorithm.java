@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.collect.Lists;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -48,6 +49,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -110,7 +112,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements AlgorithmWithResult {
+public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListener {
 
   enum TimeoutStrategy {
     SKIP_AFTER_TIMEOUT,
@@ -139,6 +141,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
   private int currentTestCaseID;
   private TigerAlgorithmConfiguration tigerConfig;
   private TestGoalUtils testGoalUtils;
+  LinkedList<Goal> pGoalsToCover;
 
   // new
   NamedRegionManager bddCpaNamedRegionManager = null;
@@ -155,6 +158,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     cfa = pCfa;
     cpa = pCpa;
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
+    pShutdownNotifier.register(this);
     // startupConfig.getConfig().inject(this);
     logger = pLogger;
     assert TigerAlgorithm.originalMainFunction != null;
@@ -233,7 +237,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     }
 
     int goalIndex = 1;
-    LinkedList<Goal> pGoalsToCover = new LinkedList<>();
+    pGoalsToCover = new LinkedList<>();
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
       Goal lGoal = testGoalUtils.constructGoal(goalIndex, pair.getFirst(), pair.getSecond());
       logger.log(Level.INFO, lGoal.getName());
@@ -264,6 +268,25 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       throw new CPAException("Invalid configuration!", e1);
     }
 
+    writeTestsuite();
+
+
+
+    if (wasSound) {
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    } else {
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
+  }
+
+  private void writeTestsuite() {
+    String outputFolder = "output/";
+    String testSuiteName = "testsuite.txt";
+    File testSuiteFile = new File(outputFolder + testSuiteName);
+    if (!testSuiteFile.getParentFile().exists()) {
+      testSuiteFile.getParentFile().mkdirs();
+    }
+
     try (Writer writer =
         new BufferedWriter(
             new OutputStreamWriter(new FileOutputStream("output/testsuite.txt"), "utf-8"))) {
@@ -280,12 +303,6 @@ public class TigerAlgorithm implements AlgorithmWithResult {
       writer.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }
-
-    if (wasSound) {
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    } else {
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
   }
 
@@ -480,8 +497,6 @@ public class TigerAlgorithm implements AlgorithmWithResult {
     Algorithm algorithm = buildAlgorithm(presenceConditionToCover, algNotifier, lARTCPA);
     Pair<Boolean, Boolean> analysisWasSound_hasTimedOut;
     do {
-      // TODO Remove later on !!!!!!!!
-      // restrictBdd(bddCpaNamedRegionManager.makeFalse());
 
       analysisWasSound_hasTimedOut = runAlgorithm(algorithm, algNotifier);
 
@@ -573,22 +588,6 @@ public class TigerAlgorithm implements AlgorithmWithResult {
         }
 
       }
-      /*
-       * assert counterexamples.size() == 1;
-       *
-       * for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
-       *
-       * CounterexampleInfo cex = lEntry.getValue();
-       *
-       * if (cex.isSpurious()) { logger.logf(Level.WARNING, "Counterexample is spurious!"); } else {
-       * List<BigInteger> inputValues = new ArrayList<>(0); // calcualte shrinked error path
-       * List<CFAEdge> shrinkedErrorPath = new
-       * ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath()); TestCase testcase = new
-       * TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath, null, null);
-       * testsuite.addTestCase(testcase, pGoal);
-       *
-       * } }
-       */
 
       if (tigerConfig.shouldUseTigerAlgorithm_with_pc()) {
         Region remainingPC =
@@ -663,7 +662,7 @@ public class TigerAlgorithm implements AlgorithmWithResult {
               // transfer.evaluateVectorExpression(partition, expression,
               // org.sosy_lab.cpachecker.cfa.types.c.CSimpleType, node)
 
-              if (name.contains("__SELECTED_FEATURE")) {
+              if (name.contains(tigerConfig.getFeatureVariablePrefix())) {
                 Region predNew = bddCpaNamedRegionManager.createPredicate(name);
                 if (assumeEdge.getTruthAssumption()) {
                   predNew = bddCpaNamedRegionManager.makeNot(predNew);
@@ -1025,5 +1024,18 @@ public class TigerAlgorithm implements AlgorithmWithResult {
             bddCpaNamedRegionManager);
     currentTestCaseID++;
     return result;
+  }
+
+  @Override
+  public void shutdownRequested(String pArg0) {
+    for (Goal goal : pGoalsToCover) {
+      if (!(testsuite.isGoalCovered(goal)
+          || testsuite.isInfeasible(goal)
+          || testsuite.isGoalTimedOut(goal))) {
+        testsuite.addTimedOutGoal(goal.getIndex(), goal, null);
+      }
+    }
+    writeTestsuite();
+
   }
 }
