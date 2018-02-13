@@ -438,8 +438,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           FluentIterable<? extends CandidateInvariant> causes =
               from(CandidateInvariantCombination.getConjunctiveParts(candidate));
           if (causes.anyMatch(Obligation.class::isInstance)) {
-            causes =
-                causes.filter(Obligation.class).filter(obligation -> obligation.getDepth() < 3);
+            causes = causes.filter(Obligation.class);
           }
           if (!causes.isEmpty()) {
             for (SymbolicCandiateInvariant badStateBlockingClause :
