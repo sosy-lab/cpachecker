@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -47,21 +46,17 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
 
   private String mainFunction = "ldv_main";
 
-  Predicate<ARGState> isFirstCall = new Predicate<ARGState>() {
-    @Override
-    public boolean apply(@Nullable ARGState pInput) {
-      CFANode location = AbstractStates.extractLocation(pInput);
+  Predicate<ARGState> isFirstCall = s -> {
+      CFANode location = AbstractStates.extractLocation(s);
       if (location instanceof CFunctionEntryNode) {
-        CallstackState callstack = AbstractStates.extractStateByType(pInput, CallstackState.class);
+        CallstackState callstack = AbstractStates.extractStateByType(s, CallstackState.class);
         if (callstack.getPreviousState() != null &&
             callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
           return true;
         }
       }
       return false;
-    }
-
-  };
+    };
 
   Function<ARGState, String> getFunctionName = s -> AbstractStates.extractLocation(s).getFunctionName();
 
@@ -73,7 +68,7 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
   }
 
   @Override
-  public RefinementResult performRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
     totalTimer.start();
 
     try {
@@ -85,7 +80,7 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
       Boolean b = filter(firstPathCore, secondPathCore);
 
       if (b) {
-        return wrappedRefiner.performRefinement(pInput);
+        return wrappedRefiner.performBlockRefinement(pInput);
       }
       filteredPairs.inc();
       return RefinementResult.createFalse();

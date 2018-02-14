@@ -53,12 +53,8 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
 
   private Set<UsagePoint> toRemove = new HashSet<>();
 
-  public PointIterator(ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>> pWrapper, UsageContainer c) {
+  public PointIterator(ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>> pWrapper) {
     super(pWrapper);
-    if (c != null) {
-      container = c;
-      detector = c.getUnsafeDetector();
-    }
   }
 
   @Override
@@ -72,13 +68,11 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     secondPointIterator = currentUsagePointSet.getPointIterator();
     firstPoint = firstPointIterator.next();
     secondPoint = secondPointIterator.next();
-    //firstPoint = currentUsagePointSet.next(null);
     assert firstPoint != null;
     assert secondPoint == firstPoint;
     Pair<UsageInfoSet, UsageInfoSet> resultingPair = prepareIterationPair(firstPoint, secondPoint);
     //because the points are equal
     postpone(resultingPair);
-    toRemove.clear();
   }
 
   @Override

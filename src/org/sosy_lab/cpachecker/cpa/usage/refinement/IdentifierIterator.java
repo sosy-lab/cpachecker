@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -36,20 +38,24 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MultipleARGSubtreeRemover;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UnrefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -60,7 +66,22 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 @Options(prefix="cpa.usage")
-public class IdentifierIterator extends WrappedConfigurableRefinementBlock<ReachedSet, SingleIdentifier> {
+public class IdentifierIterator extends WrappedConfigurableRefinementBlock<ReachedSet, SingleIdentifier> implements Refiner {
+
+  private class Stats implements Statistics {
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+      IdentifierIterator.this.printStatistics(writer);
+    }
+
+    @Override
+    public String getName() {
+      return "UsageStatisticsRefiner";
+    }
+
+  }
 
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
@@ -78,7 +99,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   int i = 0;
   int lastFalseUnsafeSize = -1;
-  int lastTrueUnsafes = -1;
+  int lastTrueUnsafes = 0;
 
   private final Map<SingleIdentifier, PredicatePrecision> precisionMap = new HashMap<>();
 
@@ -91,8 +112,21 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     transfer = pTransfer;
   }
 
+  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    if (!(pCpa instanceof WrapperCPA)) {
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+    }
+
+    BAMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
+    }
+
+    return new RefinementBlockFactory(pCpa, predicateCpa.getConfiguration()).create();
+  }
+
   @Override
-  public RefinementResult performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
 
     UsageReachedSet uReached = (UsageReachedSet) pReached;
     UsageContainer container = uReached.getUsageContainer();
@@ -114,39 +148,32 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     while (iterator.hasNext()) {
       SingleIdentifier currentId = iterator.next();
 
-      AbstractUsagePointSet pointSet = container.getUsages(currentId);
-      if (pointSet instanceof UnrefinedUsagePointSet) {
-        RefinementResult result = wrappedRefiner.performRefinement(currentId);
-        newPrecisionFound |= result.isFalse();
+      RefinementResult result = wrappedRefiner.performBlockRefinement(currentId);
+      newPrecisionFound |= result.isFalse();
 
-        PredicatePrecision info = result.getPrecision();
+      PredicatePrecision info = result.getPrecision();
 
-        if (info != null && !info.getLocalPredicates().isEmpty()) {
-          PredicatePrecision updatedPrecision;
-          if (precisionMap.containsKey(currentId)) {
-            updatedPrecision = precisionMap.get(currentId).mergeWith(info);
-          } else {
-            updatedPrecision = info;
-          }
-          precisionMap.put(currentId, updatedPrecision);
-          isPrecisionChanged = true;
+      if (info != null && !info.getLocalPredicates().isEmpty()) {
+        PredicatePrecision updatedPrecision;
+        if (precisionMap.containsKey(currentId)) {
+          updatedPrecision = precisionMap.get(currentId).mergeWith(info);
+        } else {
+          updatedPrecision = info;
         }
+        precisionMap.put(currentId, updatedPrecision);
+        isPrecisionChanged = true;
+      }
 
-        if (result.isTrue()) {
-          container.setAsRefined(currentId, result);
-        } else if (result.isFalse() && !isPrecisionChanged) {
-          //We do not add a precision, but consider the unsafe as false
-          //set it as false now, because it will occur again, as precision is not changed
-          //We can not look at precision size here - the result can be false due to heuristics
-          container.setAsFalseUnsafe(currentId);
-        }
+      if (result.isTrue()) {
+        container.setAsRefined(currentId, result);
+      } else if (result.isFalse() && !isPrecisionChanged) {
+        //We do not add a precision, but consider the unsafe as false
+        //set it as false now, because it will occur again, as precision is not changed
+        //We can not look at precision size here - the result can be false due to heuristics
+        container.setAsFalseUnsafe(currentId);
       }
     }
     int newTrueUnsafeSize = container.getProcessedUnsafeSize();
-    if (lastTrueUnsafes == -1) {
-      //It's normal, if in the first iteration the true unsafes are not involved in counter
-      lastTrueUnsafes = newTrueUnsafeSize;
-    }
     counter += (newTrueUnsafeSize - lastTrueUnsafes);
     if (counter >= precisionReset) {
       Precision p = pReached.getPrecision(pReached.getFirstState());
@@ -198,5 +225,16 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   @Override
   public void printStatistics(StatisticsWriter pOut) {
     wrappedRefiner.printStatistics(pOut);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(new Stats());
+    super.collectStatistics(statsCollection);
+  }
+
+  @Override
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    return performBlockRefinement(pReached).isTrue();
   }
 }

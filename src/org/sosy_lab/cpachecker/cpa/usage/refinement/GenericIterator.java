@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinementBlock<I, O> {
-  private StatTimer totalTimer = new StatTimer("Time for generic refiner");
+  private StatTimer totalTimer = new StatTimer("Time for generic iterator");
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
   PredicatePrecision completePrecision;
@@ -46,7 +46,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   }
 
   @Override
-  public final RefinementResult performRefinement(I pInput) throws CPAException, InterruptedException {
+  public final RefinementResult performBlockRefinement(I pInput) throws CPAException, InterruptedException {
 
     O iteration;
 
@@ -81,7 +81,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   private RefinementResult iterate(O iteration) throws CPAException, InterruptedException {
     numOfIterations.inc();
     totalTimer.stop();
-    RefinementResult result = wrappedRefiner.performRefinement(iteration);
+    RefinementResult result = wrappedRefiner.performBlockRefinement(iteration);
     totalTimer.start();
 
     if (result.isTrue()) {

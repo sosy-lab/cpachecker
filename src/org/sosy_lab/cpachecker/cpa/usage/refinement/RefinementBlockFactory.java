@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
@@ -96,7 +96,7 @@ public class RefinementBlockFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public ConfigurableRefinementBlock<ReachedSet> create() throws InvalidConfigurationException {
+  public Refiner create() throws InvalidConfigurationException {
     BAMCPA bam = CPAs.retrieveCPA(cpa, BAMCPA.class);
     BAMTransferRelation bamTransfer = bam.getTransferRelation();
     UsageCPA usCPA = CPAs.retrieveCPA(cpa, UsageCPA.class);
@@ -118,8 +118,7 @@ public class RefinementBlockFactory {
             break;
 
           case PointIterator:
-            currentBlock = new PointIterator((ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock,
-                null);
+            currentBlock = new PointIterator((ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock);
             currentBlockType = currentInnerBlockType.SingleIdentifier;
             break;
 
@@ -167,7 +166,8 @@ public class RefinementBlockFactory {
       }
     }
     if (currentBlockType == currentInnerBlockType.ReachedSet) {
-      return (ConfigurableRefinementBlock<ReachedSet>) currentBlock;
+      assert currentBlock instanceof Refiner;
+      return (Refiner) currentBlock;
     } else {
       throw new InvalidConfigurationException("The first block is not take a reached set as parameter");
     }

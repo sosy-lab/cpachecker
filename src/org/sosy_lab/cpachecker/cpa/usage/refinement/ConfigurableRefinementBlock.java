@@ -28,5 +28,5 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface ConfigurableRefinementBlock<I> extends RefinementInterface {
 
-  RefinementResult performRefinement(I input) throws CPAException, InterruptedException ;
+  RefinementResult performBlockRefinement(I input) throws CPAException, InterruptedException ;
 }

@@ -37,13 +37,14 @@ public abstract class GenericSinglePathRefiner extends
 
   private StatTimer totalTimer = new StatTimer("Time for generic refiner");
   private StatCounter numberOfRefinements = new StatCounter("Number of refinements");
+  private StatCounter numberOfRepeatedPath = new StatCounter("Number of repeated paths");
 
   public GenericSinglePathRefiner(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {
     super(pWrapper);
   }
 
   @Override
-  public final RefinementResult performRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public final RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
     totalTimer.start();
 
     try {
@@ -65,11 +66,9 @@ public abstract class GenericSinglePathRefiner extends
       if (precision != null) {
         completePrecision = completePrecision.mergeWith(precision);
       }
-      if (result.isFalse()) {
-        result.addPrecision(completePrecision);
-        return result;
+      if (!result.isFalse()) {
+        result = wrappedRefiner.performBlockRefinement(pInput);
       }
-      result = wrappedRefiner.performRefinement(pInput);
       result.addPrecision(completePrecision);
       return result;
     } finally {
@@ -83,10 +82,11 @@ public abstract class GenericSinglePathRefiner extends
     if (path.isRefinedAsReachableBy(this)) {
       //Means that is is reachable, but other refiners declined it.
       //Now the pair changes. Do not refine it again.
+      numberOfRepeatedPath.inc();
       return RefinementResult.createTrue();
     }
 
-    numberOfRefinements.inc();;
+    numberOfRefinements.inc();
     RefinementResult result = call(path);
     if (result.isTrue() || result.isUnknown()) {
       path.setAsTrueBy(this);
@@ -101,7 +101,8 @@ public abstract class GenericSinglePathRefiner extends
   public final void printStatistics(StatisticsWriter pOut) {
     StatisticsWriter writer = pOut.spacer()
         .put(totalTimer)
-        .put(numberOfRefinements);
+        .put(numberOfRefinements)
+        .put(numberOfRepeatedPath);
 
     printAdditionalStatistics(writer);
     wrappedRefiner.printStatistics(writer);

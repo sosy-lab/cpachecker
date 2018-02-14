@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class UsagePoint implements Comparable<UsagePoint> {
@@ -21,7 +21,7 @@ public class UsagePoint implements Comparable<UsagePoint> {
     //This usage is used to distinct usage points with empty lock sets with write access from each other
     public final UsageInfo keyUsage;
 
-    private UsagePointWithEmptyLockSet(List<UsageTreeNode> nodes, Access pAccess, UsageInfo pInfo) {
+    private UsagePointWithEmptyLockSet(List<CompatibleNode> nodes, Access pAccess, UsageInfo pInfo) {
       super(nodes, pAccess);
       keyUsage = Objects.requireNonNull(pInfo);
     }
@@ -84,10 +84,10 @@ public class UsagePoint implements Comparable<UsagePoint> {
   }
 
   public final Access access;
-  private final List<UsageTreeNode> compatibleNodes;
+  private final List<CompatibleNode> compatibleNodes;
   private final Set<UsagePoint> coveredUsages;
 
-  private UsagePoint(List<UsageTreeNode> nodes, Access pAccess) {
+  private UsagePoint(List<CompatibleNode> nodes, Access pAccess) {
     access = pAccess;
     coveredUsages = new TreeSet<>();
     compatibleNodes = nodes;
@@ -97,11 +97,11 @@ public class UsagePoint implements Comparable<UsagePoint> {
 
     Access accessType = info.getAccess();
 
-    FluentIterable<UsageTreeNode> nodes =
+    FluentIterable<CompatibleNode> nodes =
         from(info.getAllCompatibleStates())
         .transform(CompatibleState::getTreeNode);
 
-    if (nodes.allMatch(UsageTreeNode::hasEmptyLockSet)) {
+    if (nodes.allMatch(CompatibleNode::hasEmptyLockSet)) {
       return new UsagePointWithEmptyLockSet(nodes.toList(), accessType, info);
     } else {
       return new UsagePoint(nodes.toList(), accessType);
@@ -160,8 +160,8 @@ public class UsagePoint implements Comparable<UsagePoint> {
     }
     Preconditions.checkArgument(compatibleNodes.size() == o.compatibleNodes.size());
     for (int i = 0; i < compatibleNodes.size(); i++) {
-      UsageTreeNode currentNode = compatibleNodes.get(i);
-      UsageTreeNode otherNode = o.compatibleNodes.get(i);
+      CompatibleNode currentNode = compatibleNodes.get(i);
+      CompatibleNode otherNode = o.compatibleNodes.get(i);
       result = currentNode.compareTo(otherNode);
       if (result != 0) {
         return result;
@@ -196,8 +196,8 @@ public class UsagePoint implements Comparable<UsagePoint> {
     return access + ":" + compatibleNodes;
   }
 
-  public UsageTreeNode get(Class<? extends UsageTreeNode> pClass) {
-    for (UsageTreeNode node : compatibleNodes) {
+  public CompatibleNode get(Class<? extends CompatibleNode> pClass) {
+    for (CompatibleNode node : compatibleNodes) {
       if (node.getClass() == pClass) {
         return node;
       }

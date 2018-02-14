@@ -44,7 +44,7 @@ public class RefinementPairStub implements ConfigurableRefinementBlock<Pair<Exte
   public void printStatistics(StatisticsWriter pOut) {}
 
   @Override
-  public RefinementResult performRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
 
     return RefinementResult.createTrue(pInput.getFirst(), pInput.getSecond());
   }
