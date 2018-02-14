@@ -39,27 +39,23 @@ import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 
 public class LockState extends AbstractLockState {
 
-  public static class LockTreeNode extends TreeSet<LockIdentifier> implements UsageTreeNode{
+  public static class LockTreeNode extends TreeSet<LockIdentifier> implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;
 
     public LockTreeNode(Set<LockIdentifier> locks) {
       super(locks);
     }
+
     @Override
     public boolean isCompatibleWith(CompatibleState pState) {
       Preconditions.checkArgument(pState instanceof LockTreeNode);
       return Sets.intersection(this, (LockTreeNode)pState).isEmpty();
-    }
-
-    @Override
-    public UsageTreeNode getTreeNode() {
-      return this;
     }
 
     @Override
@@ -82,7 +78,7 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public boolean cover(UsageTreeNode pNode) {
+    public boolean cover(CompatibleNode pNode) {
       Preconditions.checkArgument(pNode instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pNode;
       return o.containsAll(this);
@@ -399,7 +395,7 @@ public class LockState extends AbstractLockState {
   }
 
   @Override
-  public UsageTreeNode getTreeNode() {
+  public CompatibleNode getTreeNode() {
     return new LockTreeNode(locks.keySet());
   }
 

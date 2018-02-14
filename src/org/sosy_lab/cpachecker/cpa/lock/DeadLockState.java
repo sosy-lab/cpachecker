@@ -34,33 +34,23 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 
 public class DeadLockState extends AbstractLockState {
 
-  public static class DeadLockTreeNode extends LinkedList<LockIdentifier> implements UsageTreeNode{
+  public static class DeadLockTreeNode extends LinkedList<LockIdentifier> implements CompatibleNode{
 
     private static final long serialVersionUID = 5757759799394605077L;
 
     public DeadLockTreeNode(List<LockIdentifier> locks) {
       super(locks);
     }
+
     @Override
     public boolean isCompatibleWith(CompatibleState pState) {
       Preconditions.checkArgument(pState instanceof DeadLockTreeNode);
-
       return true;
-    }
-
-    @Override
-    public CompatibleState prepareToStore() {
-      return this;
-    }
-
-    @Override
-    public UsageTreeNode getTreeNode() {
-      return this;
     }
 
     @Override
@@ -83,7 +73,7 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public boolean cover(UsageTreeNode pNode) {
+    public boolean cover(CompatibleNode pNode) {
       Preconditions.checkArgument(pNode instanceof DeadLockTreeNode);
       return this.compareTo(pNode) == 0;
     }
@@ -351,7 +341,7 @@ public class DeadLockState extends AbstractLockState {
   }
 
   @Override
-  public UsageTreeNode getTreeNode() {
+  public CompatibleNode getTreeNode() {
     return new DeadLockTreeNode(lockList);
   }
 

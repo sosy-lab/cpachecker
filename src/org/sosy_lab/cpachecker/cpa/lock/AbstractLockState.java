@@ -32,8 +32,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier.LockType;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 
 public abstract class AbstractLockState implements LatticeAbstractState<AbstractLockState>, CompatibleState {
 
@@ -84,12 +84,7 @@ public abstract class AbstractLockState implements LatticeAbstractState<Abstract
   }
 
   @Override
-  public CompatibleState prepareToStore() {
-    return this;
-  }
-
-  @Override
-  public abstract UsageTreeNode getTreeNode();
+  public abstract CompatibleNode getTreeNode();
 
   @Override
   public AbstractLockState join(AbstractLockState pOther) {

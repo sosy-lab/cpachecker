@@ -44,15 +44,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 
 public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractStateWithLocation, Partitionable,
-    AbstractWrapperState, UsageTreeNode {
+    AbstractWrapperState, CompatibleNode {
 
   public static class ThreadStateBuilder {
     private List<ThreadLabel> tSet;
@@ -249,9 +248,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
     Preconditions.checkArgument(state instanceof ThreadState);
     ThreadState other = (ThreadState) state;
     for (ThreadLabel label : threadSet) {
-      if (from(other.threadSet)
-            .anyMatch(l -> label.isCompatibleWith(l))) {
-        return true;
+      for (ThreadLabel otherLabel : other.threadSet) {
+        if (label.isCompatibleWith(otherLabel)) {
+          return true;
+        }
       }
     }
     return false;
@@ -259,7 +259,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public ThreadState prepareToStore() {
-    return new StoredThreadState(this);
+    return new ThreadState(null, null, this.threadSet, null);
   }
 
   public ThreadStateBuilder getBuilder() {
@@ -273,28 +273,14 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public String toString() {
-    return getCurrentThreadName();
-  }
-
-  public static class StoredThreadState extends ThreadState {
-    StoredThreadState(ThreadState origin) {
-      super(null, null, origin.threadSet, null);
-    }
+    return location.toString() + "\n"
+            + callstack.toString() + "\n"
+            + getCurrentThreadName();
   }
 
   @Override
-  public UsageTreeNode getTreeNode() {
-    return this;
-  }
-
-  @Override
-  public boolean cover(UsageTreeNode pNode) {
-    return this.threadSet.containsAll(((ThreadState)pNode).threadSet);
-  }
-
-  @Override
-  public boolean hasEmptyLockSet() {
-    return true;
+  public boolean cover(CompatibleNode pNode) {
+    return ((ThreadState)pNode).isLessOrEqual(this);
   }
 
   @Override
@@ -304,7 +290,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
   }
 
   @Override
-  public boolean isLessOrEqual(ThreadState pOther) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(ThreadState pOther) {
     return Objects.equals(removedSet, pOther.removedSet)
         && pOther.threadSet.containsAll(threadSet);
   }
