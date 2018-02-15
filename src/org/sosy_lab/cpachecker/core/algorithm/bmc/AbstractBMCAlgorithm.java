@@ -439,22 +439,22 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
         if (candidate instanceof Obligation) {
           Obligation obligation = (Obligation) candidate;
-          List<SymbolicCandiateInvariant> strenghtenings = obligation.getStrengthenings();
-          for (SymbolicCandiateInvariant strengthening : strenghtenings) {
+          List<SymbolicCandiateInvariant> weakenings = obligation.getWeakenings();
+          for (SymbolicCandiateInvariant weakening : weakenings) {
             inductionResult =
                 kInductionProver.check(
-                    Iterables.concat(confirmedCandidates, Collections.singleton(strengthening)),
+                    Iterables.concat(confirmedCandidates, Collections.singleton(weakening)),
                     k,
-                    strengthening,
+                    weakening,
                     checkedKeys,
                     InvariantStrengthenings.noStrengthening(),
                     lifting);
             if (inductionResult.isSuccessful()) {
               Iterables.addAll(
                   confirmedCandidates,
-                  CandidateInvariantCombination.getConjunctiveParts(strengthening));
+                  CandidateInvariantCombination.getConjunctiveParts(weakening));
               candidateGenerator.confirmCandidates(
-                  CandidateInvariantCombination.getConjunctiveParts(strengthening));
+                  CandidateInvariantCombination.getConjunctiveParts(weakening));
               break;
             }
           }
@@ -920,7 +920,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     private final SymbolicCandiateInvariant blockingClause;
 
-    private final List<SymbolicCandiateInvariant> strengthenings;
+    private final List<SymbolicCandiateInvariant> weakenings;
 
     private int hashCode = 0;
 
@@ -936,7 +936,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         causingObligation = null;
       }
       blockingClause = Objects.requireNonNull(pBlockingClause);
-      strengthenings = ImmutableList.copyOf(pStrengthening);
+      weakenings = ImmutableList.copyOf(pStrengthening);
     }
 
     public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
@@ -967,8 +967,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       return blockingClause;
     }
 
-    public List<SymbolicCandiateInvariant> getStrengthenings() {
-      return strengthenings;
+    public List<SymbolicCandiateInvariant> getWeakenings() {
+      return weakenings;
     }
 
     public Obligation refineWith(
@@ -989,11 +989,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               .filter(not(Predicates.in(reducedLiftedCti)))
               .toList();
       BooleanFormula strengthened = bfmgr.and(reducedLiftedCti);
-      List<SymbolicCandiateInvariant> strengthenedInvariants =
+      List<SymbolicCandiateInvariant> weakenedInvariants =
           new ArrayList<>(remainingLiterals.size());
       for (BooleanFormula remainingLiteral : remainingLiterals) {
         strengthened = bfmgr.and(strengthened, remainingLiteral);
-        strengthenedInvariants.add(
+        weakenedInvariants.add(
             SymbolicCandiateInvariant.makeSymbolicInvariant(
                 blockingClause.getApplicableLocations(),
                 blockingClause.getStateFilter(),
@@ -1003,9 +1003,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
       if (causingObligation == null) {
         return new Obligation(
-            causingCandidateInvariant, pRefinedBlockingClause, strengthenedInvariants);
+            causingCandidateInvariant, pRefinedBlockingClause, weakenedInvariants);
       }
-      return new Obligation(causingObligation, pRefinedBlockingClause, strengthenedInvariants);
+      return new Obligation(causingObligation, pRefinedBlockingClause, weakenedInvariants);
     }
 
     @Override
@@ -1014,9 +1014,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         return hashCode;
       }
       if (causingObligation != null) {
-        return hashCode = Objects.hash(causingObligation, blockingClause, strengthenings);
+        return hashCode = Objects.hash(causingObligation, blockingClause, weakenings);
       }
-      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause, strengthenings);
+      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause, weakenings);
     }
 
     @Override
@@ -1030,11 +1030,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           return other.causingObligation == null
               && causingCandidateInvariant.equals(other.causingCandidateInvariant)
               && blockingClause.equals(other.blockingClause)
-              && strengthenings.equals(other.strengthenings);
+              && weakenings.equals(other.weakenings);
         }
         return causingObligation.equals(other.causingObligation)
             && blockingClause.equals(other.blockingClause)
-            && strengthenings.equals(other.strengthenings);
+            && weakenings.equals(other.weakenings);
       }
       return false;
     }
