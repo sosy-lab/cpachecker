@@ -33,6 +33,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,6 +97,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -434,7 +436,31 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         }
       } else {
         sound = false;
-        if (extractCtiBlockingClauses) {
+
+        if (candidate instanceof Obligation) {
+          Obligation obligation = (Obligation) candidate;
+          List<SymbolicCandiateInvariant> strenghtenings = obligation.getStrengthenings();
+          for (SymbolicCandiateInvariant strengthening : strenghtenings) {
+            inductionResult =
+                kInductionProver.check(
+                    Iterables.concat(confirmedCandidates, Collections.singleton(strengthening)),
+                    k,
+                    strengthening,
+                    checkedKeys,
+                    InvariantStrengthenings.noStrengthening(),
+                    lifting);
+            if (inductionResult.isSuccessful()) {
+              Iterables.addAll(
+                  confirmedCandidates,
+                  CandidateInvariantCombination.getConjunctiveParts(strengthening));
+              candidateGenerator.confirmCandidates(
+                  CandidateInvariantCombination.getConjunctiveParts(strengthening));
+              break;
+            }
+          }
+        }
+
+        if (!inductionResult.isSuccessful() && extractCtiBlockingClauses) {
           FluentIterable<? extends CandidateInvariant> causes =
               from(CandidateInvariantCombination.getConjunctiveParts(candidate));
           if (causes.anyMatch(Obligation.class::isInstance)) {
@@ -616,7 +642,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       if (refinedClause != obligation.getBlockingClause()) {
         obligationIterator.remove();
         if (refinedClause != null) {
-          newObligations.add(obligation.refineWith(refinedClause));
+          newObligations.add(obligation.refineWith(fmgr, refinedClause));
         } else {
           if (obligation.getDepth() == 0
               && obligation.getRootCause() instanceof TargetLocationCandidateInvariant) {
@@ -894,9 +920,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     private final SymbolicCandiateInvariant blockingClause;
 
+    private final List<SymbolicCandiateInvariant> strengthenings;
+
     private int hashCode = 0;
 
-    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+    private Obligation(
+        CandidateInvariant pCause,
+        SymbolicCandiateInvariant pBlockingClause,
+        List<SymbolicCandiateInvariant> pStrengthening) {
       if (pCause instanceof Obligation) {
         causingObligation = (Obligation) pCause;
         causingCandidateInvariant = causingObligation.causingCandidateInvariant;
@@ -905,6 +936,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         causingObligation = null;
       }
       blockingClause = Objects.requireNonNull(pBlockingClause);
+      strengthenings = ImmutableList.copyOf(pStrengthening);
+    }
+
+    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+      this(pCause, pBlockingClause, Collections.emptyList());
     }
 
     public int getDepth() {
@@ -931,11 +967,45 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       return blockingClause;
     }
 
-    public Obligation refineWith(SymbolicCandiateInvariant pRefinedBlockingClause) {
-      if (causingObligation == null) {
-        return new Obligation(causingCandidateInvariant, pRefinedBlockingClause);
+    public List<SymbolicCandiateInvariant> getStrengthenings() {
+      return strengthenings;
+    }
+
+    public Obligation refineWith(
+        FormulaManagerView pFmgr, SymbolicCandiateInvariant pRefinedBlockingClause)
+        throws InterruptedException {
+      if (pRefinedBlockingClause == blockingClause) {
+        return this;
       }
-      return new Obligation(causingObligation, pRefinedBlockingClause);
+
+      BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+      Set<BooleanFormula> reducedLiftedCti =
+          from(SymbolicCandiateInvariant.getConjunctionOperands(
+                  pFmgr, bfmgr.not(pRefinedBlockingClause.getPlainFormula(pFmgr)), true))
+              .toSet();
+      List<BooleanFormula> remainingLiterals =
+          from(SymbolicCandiateInvariant.getConjunctionOperands(
+                  pFmgr, bfmgr.not(blockingClause.getPlainFormula(pFmgr)), true))
+              .filter(not(Predicates.in(reducedLiftedCti)))
+              .toList();
+      BooleanFormula strengthened = bfmgr.and(reducedLiftedCti);
+      List<SymbolicCandiateInvariant> strengthenedInvariants =
+          new ArrayList<>(remainingLiterals.size());
+      for (BooleanFormula remainingLiteral : remainingLiterals) {
+        strengthened = bfmgr.and(strengthened, remainingLiteral);
+        strengthenedInvariants.add(
+            SymbolicCandiateInvariant.makeSymbolicInvariant(
+                blockingClause.getApplicableLocations(),
+                blockingClause.getStateFilter(),
+                bfmgr.not(strengthened),
+                pFmgr));
+      }
+
+      if (causingObligation == null) {
+        return new Obligation(
+            causingCandidateInvariant, pRefinedBlockingClause, strengthenedInvariants);
+      }
+      return new Obligation(causingObligation, pRefinedBlockingClause, strengthenedInvariants);
     }
 
     @Override
@@ -944,9 +1014,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         return hashCode;
       }
       if (causingObligation != null) {
-        return hashCode = Objects.hash(causingObligation, blockingClause);
+        return hashCode = Objects.hash(causingObligation, blockingClause, strengthenings);
       }
-      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause);
+      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause, strengthenings);
     }
 
     @Override
@@ -959,10 +1029,12 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         if (causingObligation == null) {
           return other.causingObligation == null
               && causingCandidateInvariant.equals(other.causingCandidateInvariant)
-              && blockingClause.equals(other.blockingClause);
+              && blockingClause.equals(other.blockingClause)
+              && strengthenings.equals(other.strengthenings);
         }
         return causingObligation.equals(other.causingObligation)
-            && blockingClause.equals(other.blockingClause);
+            && blockingClause.equals(other.blockingClause)
+            && strengthenings.equals(other.strengthenings);
       }
       return false;
     }
