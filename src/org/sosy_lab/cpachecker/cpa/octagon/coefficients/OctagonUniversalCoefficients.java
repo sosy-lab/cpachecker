@@ -39,7 +39,7 @@ public final class OctagonUniversalCoefficients extends AOctagonCoefficients {
   }
 
   @Override
-  public OctagonUniversalCoefficients expandToSize(int pSize, OctagonState oct) {
+  public OctagonUniversalCoefficients expandToSize(int pSize, OctagonState pOct) {
     return this;
   }
 

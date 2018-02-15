@@ -470,7 +470,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Nullable
-  private Configuration createSingleConfig(Path singleConfigFileName, LogManager logger) {
+  private Configuration createSingleConfig(Path singleConfigFileName, LogManager pLogger) {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
@@ -483,7 +483,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
-      logger.logUserException(
+      pLogger.logUserException(
           Level.WARNING,
           e,
           "Skipping one analysis because the configuration file "

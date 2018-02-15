@@ -129,7 +129,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
             }
 
             @Override
-            public TraversalProcess visitConstant(Formula pF, Object pValue) {
+            public TraversalProcess visitConstant(Formula pFormula, Object pValue) {
               return TraversalProcess.CONTINUE;
             }
           });

@@ -1317,13 +1317,13 @@ public class FormulaManagerView {
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
@@ -1405,13 +1405,13 @@ public class FormulaManagerView {
     final AtomicBoolean containsITE = new AtomicBoolean(false);
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.ITE) {
@@ -1440,21 +1440,21 @@ public class FormulaManagerView {
 
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
-      public TraversalProcess visitConstant(Formula f, Object value) {
+      public TraversalProcess visitConstant(Formula pF, Object value) {
         if (value instanceof Number) {
-          allLiterals.add(f);
+          allLiterals.add(pF);
         }
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF

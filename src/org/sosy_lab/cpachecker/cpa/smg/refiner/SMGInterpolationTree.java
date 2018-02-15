@@ -30,17 +30,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
-
-import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -55,6 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SMGInterpolationTree {
 
@@ -376,13 +374,13 @@ public class SMGInterpolationTree {
     /**
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
-    private boolean isValidInterpolationRoot(ARGState root) {
-      return !stateHasFalseInterpolant(root);
+    private boolean isValidInterpolationRoot(ARGState pRoot) {
+      return !stateHasFalseInterpolant(pRoot);
     }
 
     @Override
-    public SMGInterpolant getInitialInterpolantForRoot(ARGState root) {
-      SMGInterpolant initialInterpolant = interpolants.get(root);
+    public SMGInterpolant getInitialInterpolantForRoot(ARGState pRoot) {
+      SMGInterpolant initialInterpolant = interpolants.get(pRoot);
 
       if (initialInterpolant == null) {
         initialInterpolant = interpolantManager.createInitialInterpolant();
@@ -440,7 +438,7 @@ public class SMGInterpolationTree {
     }
 
     @Override
-    public SMGInterpolant getInitialInterpolantForRoot(ARGState root) {
+    public SMGInterpolant getInitialInterpolantForRoot(ARGState pRoot) {
       return interpolantManager.createInitialInterpolant();
     }
 

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import jpl.Term;
+
 public class Constraint {
 
   private ArrayList<Term> cns = null;
@@ -71,8 +72,8 @@ public class Constraint {
     vars.put(var,t);
   }
 
-  public void addVars(HashMap<String,Term> vars) {
-    this.vars.putAll(vars);
+  public void addVars(HashMap<String, Term> pVars) {
+    this.vars.putAll(pVars);
   }
 
   public void removeVar(String var) {

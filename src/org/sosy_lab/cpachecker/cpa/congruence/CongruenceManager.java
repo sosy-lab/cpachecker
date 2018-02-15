@@ -116,21 +116,23 @@ public class CongruenceManager implements
   @Override
   public PrecisionAdjustmentResult performAbstraction(
       ABEIntermediateState<CongruenceState> pIntermediateState,
-      TemplatePrecision precision,
+      TemplatePrecision pPrecision,
       UnmodifiableReachedSet states,
       AbstractState fullState)
       throws CPATransferException, InterruptedException {
-    return PrecisionAdjustmentResult.create(performAbstraction(
-        pIntermediateState.getNode(),
-        pIntermediateState.getPathFormula(),
-        pIntermediateState.getBackpointerState().instantiate(),
-        precision,
-        pIntermediateState.getPathFormula().getPointerTargetSet(),
-        pIntermediateState.getPathFormula().getSsa(),
-        pIntermediateState,
-        states,
-        fullState
-    ), precision, Action.CONTINUE);
+    return PrecisionAdjustmentResult.create(
+        performAbstraction(
+            pIntermediateState.getNode(),
+            pIntermediateState.getPathFormula(),
+            pIntermediateState.getBackpointerState().instantiate(),
+            pPrecision,
+            pIntermediateState.getPathFormula().getPointerTargetSet(),
+            pIntermediateState.getPathFormula().getSsa(),
+            pIntermediateState,
+            states,
+            fullState),
+        pPrecision,
+        Action.CONTINUE);
   }
 
   public CongruenceState performAbstraction(

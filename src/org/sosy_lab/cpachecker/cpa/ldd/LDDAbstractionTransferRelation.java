@@ -661,13 +661,13 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
    * Converts the given collection of variables into a collection of pairs of variable indices
    * and their coefficients, all of which are treated as 1.
    *
-   * @param variables the collection of variable names.
+   * @param pVariables the collection of variable names.
    * @return a collection of pairs of variable indices and their coefficients,
    * all of which are treated as 1.
    */
-  private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> variables) {
+  private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> pVariables) {
     Collection<Pair<Integer, Integer>> indexCoeffs = new ArrayList<>();
-    for (String variable : variables) {
+    for (String variable : pVariables) {
       indexCoeffs.add(Pair.of(this.variables.get(variable), 1));
     }
     return indexCoeffs;

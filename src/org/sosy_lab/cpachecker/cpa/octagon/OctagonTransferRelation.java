@@ -597,7 +597,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
    * This method handles all binary assumptions without literals (p.e. a < b)
     */
   private Set<OctagonState> handleBinaryAssumptionWithoutLiteral(CBinaryExpression binExp, boolean truthAssumption,
-      CExpression left, CExpression right, OctagonState state)
+      CExpression left, CExpression right, OctagonState pState)
       throws CPATransferException {
     CBinaryExpression.BinaryOperator op = binExp.getOperator();
     MemoryLocation leftVarName = null;
@@ -606,11 +606,11 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     // we cannot handle pointers, so just ignore them
     // TODO make program unsafe?
     if (!isHandleableVariable(left) || !isHandleableVariable(right)) {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     }
 
     Set<OctagonState> states = new HashSet<>();
-    states.add(state);
+    states.add(pState);
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
@@ -618,7 +618,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
       // create a temp var for the left side of the expression
     } else {
-      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
+      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(pState, functionName);
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
@@ -630,7 +630,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
         // we cannot do any comparison with an unknown value, so just quit here
         if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-          return Collections.singleton(state);
+          return Collections.singleton(pState);
         }
 
         OctagonState tmp = pairs.getSecond().declareVariable(tempLeft, getCorrespondingOctStateType(left.getExpressionType()));
@@ -662,7 +662,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
           // we cannot do any comparison with an unknown value, so just quit here
           if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-            return Collections.singleton(state);
+            return Collections.singleton(pState);
           }
 
           OctagonState tmp = pairs.getSecond().declareVariable(tempRight, getCorrespondingOctStateType(right.getExpressionType()));
@@ -680,7 +680,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case GREATER_EQUAL:
       case LESS_EQUAL:
        if (truthAssumption) {
-         return Collections.singleton(state);
+         return Collections.singleton(pState);
        } else {
          return Collections.emptySet();
        }
@@ -690,7 +690,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         if (truthAssumption) {
           return Collections.emptySet();
         } else {
-          return Collections.singleton(state);
+          return Collections.singleton(pState);
         }
       default:
       }
