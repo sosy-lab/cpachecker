@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,34 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.defaults;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
+/**
+ * Class represents Precision as a set, in which it is possible to add elements and subtract them.
+ */
+public interface AdjustablePrecision extends Precision {
 
-public class SingletonPrecision implements AdjustablePrecision {
+  /** Add other Precision to current and return a new Precision. */
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision);
 
-  private final static SingletonPrecision mInstance = new SingletonPrecision();
-
-  public static SingletonPrecision getInstance() {
-    return mInstance;
-  }
-
-  private SingletonPrecision() {
-
-  }
-
-  @Override
-  public String toString() {
-    return "no precision";
-  }
-
-  @Override
-  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
-    return this;
-  }
-
-  @Override
-  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
-    return this;
-  }
+  /** Subtract other Precision from current and a return new Precision. */
+  public AdjustablePrecision subtract(AdjustablePrecision otherPrecision);
 }
