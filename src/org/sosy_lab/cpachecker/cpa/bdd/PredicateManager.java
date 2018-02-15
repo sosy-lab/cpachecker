@@ -44,8 +44,12 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
-/** This class guarantees a fixed order of variables in the BDD,
- * that should be good for the operations in the BitvectorManager. */
+/**
+ * This class guarantees a fixed order of variables in the BDD, that should be good for the
+ * operations in the BitvectorManager.
+ *
+ * <p>This class is thread-safe, iff the used (Named-)RegionManager is thread-safe.
+ */
 @Options(prefix = "cpa.bdd")
 public class PredicateManager {
 
