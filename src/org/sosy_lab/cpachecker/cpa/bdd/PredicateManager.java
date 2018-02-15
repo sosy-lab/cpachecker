@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -62,12 +64,12 @@ public class PredicateManager {
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
   private final ImmutableMap<Partition, String> varsToTmpVar;
 
-  /** Contains the varNames of all really tracked vars.
-   * This set may differ from the union of all partitions,
-   * because not every variable, that appears in the sourcecode,
-   * is analyzed or even reachable.
-   * This map contains the name of the variable and its bitsize in the BDD.*/
-  private final Map<String, Integer> trackedVars = new HashMap<>();
+  /**
+   * Contains the varNames of all really tracked vars. This set may differ from the union of all
+   * partitions, because not every variable, that appears in the sourcecode, is analyzed or even
+   * reachable. This map contains the name of the variable and its bitsize in the BDD.
+   */
+  private PersistentMap<String, Integer> trackedVars = PathCopyingPersistentTreeMap.of();
 
   private final NamedRegionManager rmgr;
 
@@ -202,7 +204,7 @@ public class PredicateManager {
   Region[] createPredicateWithoutPrecisionCheck(final String varName, final int size) {
     Integer oldSize = trackedVars.get(varName);
     if (oldSize == null || oldSize < size) {
-      trackedVars.put(varName, size);
+      trackedVars = trackedVars.putAndCopy(varName, size);
     }
     final Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) {
