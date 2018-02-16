@@ -477,10 +477,12 @@ public interface PointerTargetSetBuilder {
      * cause problems when adding an inner composite field along with the corresponding containing
      * field e.g.:
      *
-     * <p>{@code pouter->inner.f = /*...* /;} Here {@code inner.f} is not added because inner is not
-     * yet tracked and {@code outer.inner} is not added because no fields in structure
-     * <tt>inner</tt> are tracked. The issue is solved by grouping the requested fields into chunks
-     * by their nesting and avoid optimizations when adding fields of the same chunk.
+     * <p>{@code pouter->inner.f = /*...* /;}
+     *
+     * <p>Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner}
+     * is not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved
+     * by grouping the requested fields into chunks by their nesting and avoid optimizations when
+     * adding fields of the same chunk.
      *
      * @param pFields The fields that should be tracked.
      */
