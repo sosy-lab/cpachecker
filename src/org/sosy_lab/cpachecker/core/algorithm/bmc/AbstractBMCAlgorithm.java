@@ -407,8 +407,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         pCtiBlockingClauses.remove(candidate);
       }
 
-      boolean extractCtiBlockingClauses =
-          usePropertyDirection && !(candidate instanceof Obligation);
+      boolean extractCtiBlockingClauses = usePropertyDirection;
 
       Lifting lifting =
           extractCtiBlockingClauses
