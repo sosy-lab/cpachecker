@@ -470,29 +470,31 @@ public interface PointerTargetSetBuilder {
     /**
      * Used to start tracking for fields that were used in some expression or an assignment LHS.
      *
-     * Each field is added for tracking only if it's present in some currently allocated object;
-     * an inner structure/union field is added only if the field corresponding to the inner composite
-     * itself is already tracked; also, a field corresponding to an inner composite is added only if
-     * any fields of that composite are already tracked. The latter two optimizations cause problems
-     * when adding an inner composite field along with the corresponding containing field e.g.:
+     * <p>Each field is added for tracking only if it's present in some currently allocated object;
+     * an inner structure/union field is added only if the field corresponding to the inner
+     * composite itself is already tracked; also, a field corresponding to an inner composite is
+     * added only if any fields of that composite are already tracked. The latter two optimizations
+     * cause problems when adding an inner composite field along with the corresponding containing
+     * field e.g.:
      *
-     * <p>{@code pouter->inner.f = /*...* /;}</p>
+     * <p>{@code pouter->inner.f = /*...* /;} Here {@code inner.f} is not added because inner is not
+     * yet tracked and {@code outer.inner} is not added because no fields in structure
+     * <tt>inner</tt> are tracked. The issue is solved by grouping the requested fields into chunks
+     * by their nesting and avoid optimizations when adding fields of the same chunk.
      *
-     * Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner} is
-     * not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved by
-     * grouping the requested fields into chunks by their nesting and avoid optimizations when adding
-     * fields of the same chunk.
-     *
-     * @param fields The fields that should be tracked.
+     * @param pFields The fields that should be tracked.
      */
     @Override
-    public void addEssentialFields(final List<Pair<CCompositeType, String>> fields) {
+    public void addEssentialFields(final List<Pair<CCompositeType, String>> pFields) {
       final List<Triple<CCompositeType, String, CType>> typedFields =
-        FluentIterable.from(fields)
-                      .filter(isNewFieldPredicate)
-                      .transform(typeFieldFunction)
-                      .transform(t -> Triple.of(t.getFirst(), t.getSecond(), typeHandler.simplifyType(t.getThird())))
-                      .toSortedList(simpleTypedFieldsFirstComparator);
+          FluentIterable.from(pFields)
+              .filter(isNewFieldPredicate)
+              .transform(typeFieldFunction)
+              .transform(
+                  t ->
+                      Triple.of(
+                          t.getFirst(), t.getSecond(), typeHandler.simplifyType(t.getThird())))
+              .toSortedList(simpleTypedFieldsFirstComparator);
       if (typedFields.isEmpty()) {
         return;
       }

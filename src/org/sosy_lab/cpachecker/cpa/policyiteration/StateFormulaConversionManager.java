@@ -162,20 +162,16 @@ public class StateFormulaConversionManager {
 
   /**
    * @param attachExtraInvariant Whether the extra invariant should be attached.
-   * @return Starting {@code PathFormula} associated with {@code abstractState}.
-   * Does not include the constraints.
+   * @return Starting {@code PathFormula} associated with {@code abstractState}. Does not include
+   *     the constraints.
    */
   PathFormula getPathFormula(
-      PolicyAbstractedState abstractState,
-      FormulaManagerView fmgr,
-      boolean attachExtraInvariant
-  ) {
+      PolicyAbstractedState abstractState, FormulaManagerView pFmgr, boolean attachExtraInvariant) {
     BooleanFormula extraPredicate;
     if (attachExtraInvariant) {
-      extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
-          abstractState.getSSA());
+      extraPredicate = pFmgr.instantiate(abstractState.getExtraInvariant(), abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
+      extraPredicate = pFmgr.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);

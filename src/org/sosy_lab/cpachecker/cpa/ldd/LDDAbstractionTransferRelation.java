@@ -619,15 +619,17 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Creates an LDDRegion for an assignment transformed to the given integer linear term and constant-
+   * Creates an LDDRegion for an assignment transformed to the given integer linear term and
+   * constant-
    *
-   * @param variables the integer linear term containing all the variable coefficients of the assignment expression.
+   * @param pVariables the integer linear term containing all the variable coefficients of the
+   *     assignment expression.
    * @param constant the constant part of the assignment expression.
    * @return the LDDRegion created for the assignment.
    */
-  private LDDRegion toConstantAssignmentRegion(Collection<String> variables, int constant) {
-    return this.regionManager.makeConstantAssignment(toIndexCoefficients(variables), this.variables.size(),
-        constant);
+  private LDDRegion toConstantAssignmentRegion(Collection<String> pVariables, int constant) {
+    return this.regionManager.makeConstantAssignment(
+        toIndexCoefficients(pVariables), this.variables.size(), constant);
   }
 
   /**

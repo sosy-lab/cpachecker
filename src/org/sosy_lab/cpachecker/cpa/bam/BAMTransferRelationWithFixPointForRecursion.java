@@ -31,7 +31,6 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
@@ -205,7 +204,6 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   /** returns a covering level or Null, if no such level is found. */
   private Triple<AbstractState, Precision, Block> getCoveringLevel(
-      final Deque<Triple<AbstractState, Precision, Block>> stack,
       final Triple<AbstractState, Precision, Block> currentLevel)
       throws CPAException, InterruptedException {
 
@@ -326,8 +324,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       throws CPAException, InterruptedException {
 
     final Collection<AbstractState> expandedFunctionReturnStates;
-    final Triple<AbstractState, Precision, Block> coveringLevel =
-        getCoveringLevel(stack, stack.peek());
+    final Triple<AbstractState, Precision, Block> coveringLevel = getCoveringLevel(stack.peek());
     if (coveringLevel != null) {
       // if level is twice in stack, we have endless recursion.
       // with current knowledge we would never abort unrolling the recursion.

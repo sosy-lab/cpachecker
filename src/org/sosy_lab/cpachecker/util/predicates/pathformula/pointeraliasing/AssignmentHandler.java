@@ -1141,12 +1141,12 @@ class AssignmentHandler {
    * Updates the SSA map for memory UFs.
    *
    * @param regions A set of regions that should be added to the SSA map.
-   * @param ssa The current SSA map.
+   * @param pSsa The current SSA map.
    */
-  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder ssa) {
+  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder pSsa) {
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
-      conv.makeFreshIndex(ufName, region.getType(), ssa);
+      conv.makeFreshIndex(ufName, region.getType(), pSsa);
     }
   }
 }

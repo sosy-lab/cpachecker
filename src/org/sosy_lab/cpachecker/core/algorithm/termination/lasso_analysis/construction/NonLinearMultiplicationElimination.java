@@ -123,7 +123,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
           new DefaultFormulaVisitor<TraversalProcess>() {
 
             @Override
-            protected TraversalProcess visitDefault(Formula pF) {
+            protected TraversalProcess visitDefault(Formula pFormula) {
               constant.set(false);
               return TraversalProcess.ABORT;
             }

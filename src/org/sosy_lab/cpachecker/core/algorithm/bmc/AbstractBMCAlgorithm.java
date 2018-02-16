@@ -519,7 +519,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       logger.log(
           Level.INFO,
           "Terminating because none of the following CPAs' precision can be adjusted any further ",
-          Joiner.on(", ").join(conditionCPAs.transform(cpa -> cpa.getClass().getSimpleName())));
+          Joiner.on(", ")
+              .join(
+                  conditionCPAs.transform(
+                      conditionCpa -> conditionCpa.getClass().getSimpleName())));
       return false;
     }
     return !Iterables.isEmpty(conditionCPAs);

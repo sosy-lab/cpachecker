@@ -184,9 +184,9 @@ public class CPAsTest {
     }
   }
 
-  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> cpaClass)
+  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> pCpaClass)
       throws InvalidConfigurationException, CPAException {
-    if (cpaClass.equals(TerminationCPA.class)) {
+    if (pCpaClass.equals(TerminationCPA.class)) {
       return Optional.of(
           LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance());
 

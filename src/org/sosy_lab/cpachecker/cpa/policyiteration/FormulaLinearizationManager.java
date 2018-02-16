@@ -3,7 +3,10 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -18,11 +21,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
@@ -209,23 +207,23 @@ public class FormulaLinearizationManager {
   private Multimap<String, Pair<Formula, List<Formula>>> findUFs(Formula f) {
     final Multimap<String, Pair<Formula, List<Formula>>> UFs = HashMultimap.create();
 
-    fmgr.visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
-      @Override
-      protected TraversalProcess visitDefault(Formula f) {
-        return TraversalProcess.CONTINUE;
-      }
+    fmgr.visitRecursively(
+        f,
+        new DefaultFormulaVisitor<TraversalProcess>() {
+          @Override
+          protected TraversalProcess visitDefault(Formula pFormula) {
+            return TraversalProcess.CONTINUE;
+          }
 
-      @Override
-      public TraversalProcess visitFunction(Formula f,
-          List<Formula> args,
-          FunctionDeclaration<?> decl) {
-        if (decl.getKind() == FunctionDeclarationKind.UF) {
-          UFs.put(decl.getName(), Pair.of(f, args));
-
-        }
-        return TraversalProcess.CONTINUE;
-      }
-    });
+          @Override
+          public TraversalProcess visitFunction(
+              Formula pFormula, List<Formula> args, FunctionDeclaration<?> decl) {
+            if (decl.getKind() == FunctionDeclarationKind.UF) {
+              UFs.put(decl.getName(), Pair.of(pFormula, args));
+            }
+            return TraversalProcess.CONTINUE;
+          }
+        });
 
     return UFs;
   }

@@ -139,7 +139,7 @@ public class ControlAutomatonCPA
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, pLogger, inputFile, pCFA);
+      this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
@@ -154,8 +154,7 @@ public class ControlAutomatonCPA
     }
   }
 
-  private Automaton constructAutomataFromFile(
-      Configuration pConfig, LogManager logger, Path pFile, CFA cfa)
+  private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
       throws InvalidConfigurationException {
 
     Scope scope = cfa.getLanguage() == Language.C

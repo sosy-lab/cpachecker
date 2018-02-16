@@ -720,21 +720,23 @@ public class SMGTransferRelation
     return newStates;
   }
 
-  private List<SMGState> handleAssignment(SMGState state, CFAEdge cfaEdge, CExpression lValue,
-      CRightHandSide rValue) throws CPATransferException {
+  private List<SMGState> handleAssignment(
+      SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
+      throws CPATransferException {
 
     List<SMGState> result = new ArrayList<>(4);
-    LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, state);
+    LValueAssignmentVisitor visitor =
+        expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, pState);
     List<SMGAddressAndState> addressOfFieldAndStates = lValue.accept(visitor);
 
     for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates) {
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
-      state = addressOfFieldAndState.getSmgState();
+      pState = addressOfFieldAndState.getSmgState();
 
       CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        SMGState resultState = new SMGState(state);
+        SMGState resultState = new SMGState(pState);
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
             readValueToBeAssiged(resultState, cfaEdge, rValue).asSMGStateList();
@@ -745,8 +747,13 @@ public class SMGTransferRelation
         result.addAll(newStates);
       } else {
         List<SMGState> newStates =
-            handleAssignmentToField(state, cfaEdge, addressOfField.getObject(),
-                addressOfField.getOffset().getAsLong(), fieldType, rValue);
+            handleAssignmentToField(
+                pState,
+                cfaEdge,
+                addressOfField.getObject(),
+                addressOfField.getOffset().getAsLong(),
+                fieldType,
+                rValue);
         result.addAll(newStates);
       }
     }
@@ -979,18 +986,23 @@ public class SMGTransferRelation
     return pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
   }
 
-  private List<SMGState> handleAssignmentToField(SMGState state, CFAEdge cfaEdge,
-      SMGObject memoryOfField, long fieldOffset, CType pLFieldType, CRightHandSide rValue)
+  private List<SMGState> handleAssignmentToField(
+      SMGState pState,
+      CFAEdge cfaEdge,
+      SMGObject memoryOfField,
+      long fieldOffset,
+      CType pLFieldType,
+      CRightHandSide rValue)
       throws CPATransferException {
 
-    SMGState newState = new SMGState(state);
+    SMGState newState = new SMGState(pState);
     List<SMGState> newStates = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
 
     // If Assignment contained malloc, handle possible fail with
     // alternate State (don't create state if not enabled)
     if (possibleMallocFail && options.isEnableMallocFailure()) {
       possibleMallocFail = false;
-      SMGState otherState = new SMGState(state);
+      SMGState otherState = new SMGState(pState);
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
       SMGState mallocFailState =
           writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
