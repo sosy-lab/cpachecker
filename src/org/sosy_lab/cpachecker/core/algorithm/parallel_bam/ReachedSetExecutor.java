@@ -420,6 +420,8 @@ class ReachedSetExecutor {
 
     final CFANode entryLocation = AbstractStates.extractLocation(pBsme.getState());
     if (hasRecursion(entryLocation)) {
+      // cleanup, re-add state for further exploration
+      rs.reAddToWaitlist(pBsme.getState());
       // we directly abort when finding recursion, instead of asking {@link CallstackCPA}
       throw new UnsupportedCodeException("recursion", entryLocation.getLeavingEdge(0));
     }
@@ -427,6 +429,8 @@ class ReachedSetExecutor {
     if (shutdownNotifier.shouldShutdown() || terminateAnalysis.get()) {
       // if an error was found somewhere, we do not longer schedule new sub-analyses
       logger.logf(level, "%s :: exiting on demand", this);
+      // cleanup, re-add state for further exploration
+      rs.reAddToWaitlist(pBsme.getState());
       return;
     }
 
