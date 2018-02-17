@@ -477,11 +477,7 @@ class ReachedSetExecutor {
 
   private void scheduleSubAnalysis(
       MissingBlockAbstractionState pBsme, Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
-    // remove current state from waitlist to avoid exploration until all sub-blocks are done.
-    // The state was removed for exploration,
-    // but re-added by CPA-algorithm when throwing the exception
     assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
-    rs.removeOnlyFromWaitlist(pBsme.getState());
 
     // register dependencies to wait for results and to get results, asynchronous
     ReachedSetExecutor subRse = p.getFirst();
