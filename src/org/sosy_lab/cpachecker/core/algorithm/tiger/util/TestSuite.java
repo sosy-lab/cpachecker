@@ -350,16 +350,15 @@ public class TestSuite implements AlgorithmResult {
   // public List<Goal> getTestGoalsCoveredByTestCase(TestCase testcase) {
   // return mapping.get(testcase);
   // }
-
   private String simplePresenceCondition(Region presenceCondition) {
     if (presenceCondition == null) {
       return "";
     }
-    return bddCpaNamedRegionManager.dumpRegion(presenceCondition)
-    .toString()
-        .replace(tigerConfig.getFeatureVariablePrefix(), "")
-        .replace(" & TRUE", "");
-
+    String pc = bddCpaNamedRegionManager.dumpRegion(presenceCondition).toString().replace(" & TRUE", "");
+    if(tigerConfig.shouldRemoveFeatureVariablePrefix()) {
+      pc = pc.replace(tigerConfig.getFeatureVariablePrefix(), "");
+    }
+    return pc;
   }
 
   private void assembleTestSuiteData() {
@@ -373,7 +372,12 @@ public class TestSuite implements AlgorithmResult {
       TestCaseData testCaseData = new TestCaseData();
       testCaseData.setId(testCase.getId());
       if(testCase.getPresenceCondition() != null) {
-        testCaseData.setPresenceCondition(simplePresenceCondition(testCase.getPresenceCondition()));
+        String pc = testCase.dumpPresenceCondition();
+        if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
+          pc = pc.replace(tigerConfig.getFeatureVariablePrefix(), "");
+        }
+
+        testCaseData.setPresenceCondition(pc);
       }
 
       Map<String, String> inputs = Maps.newLinkedHashMap();

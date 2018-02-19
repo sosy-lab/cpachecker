@@ -75,7 +75,8 @@ public class TestCase {
     if (bddCpaNamedRegionManager == null || presenceCondition == null) {
       return "";
     }
-    return bddCpaNamedRegionManager.dumpRegion(presenceCondition).toString();
+    String pc = bddCpaNamedRegionManager.dumpRegion(presenceCondition).toString();
+    return pc.replaceAll("@[0-9]+", "").replace(" & TRUE", "");
   }
 
   public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,
@@ -318,4 +319,5 @@ public class TestCase {
     return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode()
         + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
   }
+
 }

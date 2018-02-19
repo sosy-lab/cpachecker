@@ -156,6 +156,12 @@ public class TigerAlgorithmConfiguration {
     description = "Prefix of the feature variables")
   private String featureVariablePrefix = "__SELECTED_FEATURE_";
 
+  @Option(
+    secure = true,
+    name = "removeFeaturePrefix",
+    description = "removes the feature prefix from presence conditions in the testsuite")
+  private boolean removeFeaturePrefix = true;
+
   public String getFeatureVariablePrefix() {
     return featureVariablePrefix;
   }
@@ -220,6 +226,10 @@ public class TigerAlgorithmConfiguration {
   public void increaseCpuTimelimitPerGoal(int pTimeoutIncrement) {
     cpuTimelimitPerGoal += pTimeoutIncrement;
 
+  }
+
+  public boolean shouldRemoveFeatureVariablePrefix() {
+    return removeFeaturePrefix;
   }
 
 }
