@@ -479,6 +479,11 @@ bmc.invariantGenerationStrategy = REACHED_SET
 # k-induction (ki-ki(-ai)).
 bmc.invariantGeneratorConfig = no default value
 
+# Controls how long the invariant generator is allowed to run before the
+# k-induction procedure starts.
+bmc.invariantGeneratorHeadStartStrategy = NONE
+  enum:     [NONE, AWAIT_TERMINATION, WAIT_UNTIL_EXPENSIVE_ADJUSTMENT]
+
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 

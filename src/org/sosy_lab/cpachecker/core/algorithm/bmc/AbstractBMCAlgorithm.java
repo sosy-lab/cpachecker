@@ -52,7 +52,9 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -72,6 +74,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustmentEventSubscriber;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -87,6 +90,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -107,8 +111,9 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="bmc")
-abstract class AbstractBMCAlgorithm implements StatisticsProvider {
+@Options(prefix = "bmc")
+abstract class AbstractBMCAlgorithm
+    implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
   static final Predicate<AbstractState> IS_STOP_STATE =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
@@ -136,6 +141,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(
     secure = true,
     description =
+        "Controls how long the invariant generator is allowed to run before the k-induction procedure starts."
+  )
+  private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
+      InvariantGeneratorHeadStartFactories.NONE;
+
+  @Option(
+    secure = true,
+    description =
         "k-induction configuration to be used as an invariant generator for k-induction (ki-ki(-ai))."
   )
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
@@ -158,6 +171,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
+  private final InvariantGeneratorHeadStart invariantGeneratorHeadStart;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
@@ -179,6 +193,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
+
+  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+      new CopyOnWriteArrayList<>();
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -225,6 +242,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
+      invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
@@ -278,6 +296,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             pSpecification,
             pAggregatedReachedSets,
             targetLocationProvider);
+    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
+      conditionAdjustmentEventSubscribers.add(
+          (ConditionAdjustmentEventSubscriber) invariantGenerator);
+    }
+    invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
@@ -321,6 +344,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS);
         @SuppressWarnings("resource")
             KInductionProver kInductionProver = createInductionProver()) {
+      invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
         shutdownNotifier.shutdownIfNecessary();
@@ -958,6 +982,20 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     };
   }
 
+  @Override
+  public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+    for (ConditionAdjustmentEventSubscriber caes : conditionAdjustmentEventSubscribers) {
+      caes.adjustmentSuccessful(pCpa);
+    }
+  }
+
+  @Override
+  public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+    for (ConditionAdjustmentEventSubscriber caes : conditionAdjustmentEventSubscribers) {
+      caes.adjustmentRefused(pCpa);
+    }
+  }
+
   private static class Obligation implements CandidateInvariant, Comparable<Obligation> {
 
     private final CandidateInvariant causingCandidateInvariant;
@@ -1143,5 +1181,108 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       }
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
+  }
+
+  private static interface InvariantGeneratorHeadStart {
+
+    void waitForInvariantGenerator() throws InterruptedException;
+  }
+
+  private static enum InvariantGeneratorHeadStartFactories {
+
+    NONE {
+
+      @Override
+      public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
+        return new InvariantGeneratorHeadStart() {
+
+          @Override
+          public void waitForInvariantGenerator() throws InterruptedException {
+            // Return immediately
+          }
+        };
+      }
+    },
+
+    AWAIT_TERMINATION {
+
+      @Override
+      public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
+        CountDownLatch latch = new CountDownLatch(1);
+        pBmcAlgorithm.conditionAdjustmentEventSubscribers.add(
+            new ConditionAdjustmentEventSubscriber() {
+
+              @Override
+              public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+                // Ignore
+              }
+
+              @Override
+              public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+                latch.countDown();
+              }
+            });
+        return new HeadStartWithLatch(pBmcAlgorithm, latch);
+      }
+    },
+
+    WAIT_UNTIL_EXPENSIVE_ADJUSTMENT {
+
+      @Override
+      InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
+        CountDownLatch latch = new CountDownLatch(1);
+        pBmcAlgorithm.conditionAdjustmentEventSubscribers.add(
+            new ConditionAdjustmentEventSubscriber() {
+
+              @Override
+              public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+                FluentIterable<InvariantsCPA> cpas =
+                    CPAs.asIterable(pCpa).filter(InvariantsCPA.class);
+                if (cpas.isEmpty()) {
+                  latch.countDown();
+                } else {
+                  for (InvariantsCPA cpa : cpas) {
+                    if (cpa.isLikelyLongRunning()) {
+                      latch.countDown();
+                      break;
+                    }
+                  }
+                }
+              }
+
+              @Override
+              public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+                latch.countDown();
+              }
+            });
+        return new HeadStartWithLatch(pBmcAlgorithm, latch);
+      }
+    };
+
+    private static final class HeadStartWithLatch implements InvariantGeneratorHeadStart {
+
+      private final CountDownLatch latch;
+
+      private final ShutdownRequestListener shutdownListener =
+          new ShutdownRequestListener() {
+
+            @Override
+            public void shutdownRequested(String pReason) {
+              latch.countDown();
+            }
+          };
+
+      public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
+        latch = Objects.requireNonNull(pLatch);
+        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+      }
+
+      @Override
+      public void waitForInvariantGenerator() throws InterruptedException {
+        latch.await();
+      }
+    }
+
+    abstract InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm);
   }
 }
