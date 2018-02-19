@@ -36,6 +36,8 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,6 +59,8 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -128,6 +132,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   @Option(secure=true, description="Strategy for generating auxiliary invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
+
+  @Option(
+    secure = true,
+    description =
+        "k-induction configuration to be used as an invariant generator for k-induction (ki-ki(-ai))."
+  )
+  @FileOption(value = Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path invariantGeneratorConfig = null;
 
   @Option(secure=true, description="Propagates the interrupts of the invariant generator.")
   private boolean propagateInvGenInterrupts = false;
@@ -241,8 +253,24 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (pIsInvariantGenerator && addInvariantsByInduction) {
       invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
     }
-    invariantGenerator = invariantGenerationStrategy.createInvariantGenerator(
-            pConfig,
+    Configuration invGenConfig = pConfig;
+    if (invariantGeneratorConfig != null) {
+      try {
+        invGenConfig =
+            Configuration.builder()
+                .copyFrom(invGenConfig)
+                .loadFromFile(invariantGeneratorConfig)
+                .build();
+      } catch (IOException e) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "Cannot load configuration from file %s", invariantGeneratorConfig),
+            e);
+      }
+    }
+    invariantGenerator =
+        invariantGenerationStrategy.createInvariantGenerator(
+            invGenConfig,
             pLogger,
             pReachedSetFactory,
             invariantGeneratorShutdownManager,

@@ -459,6 +459,10 @@ bmc.induction = false
 bmc.invariantGenerationStrategy = REACHED_SET
   enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
 
+# k-induction configuration to be used as an invariant generator for
+# k-induction (ki-ki(-ai)).
+bmc.invariantGeneratorConfig = no default value
+
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
