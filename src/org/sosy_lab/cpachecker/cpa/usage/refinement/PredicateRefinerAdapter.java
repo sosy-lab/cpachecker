@@ -275,16 +275,12 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
       super.finishRefinementOfPath(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
 
+      lastAddedPrecision = newPrecisionFromPredicates;
+
       lastAffectedStates.clear();
       pAffectedStates.forEach(lastAffectedStates::add);
     }
 
-    @Override
-    protected PredicatePrecision convertIntoPrecision(PredicatePrecision base) {
-
-      lastAddedPrecision = super.convertIntoPrecision(base);
-      return lastAddedPrecision;
-    }
   }
 
 }
