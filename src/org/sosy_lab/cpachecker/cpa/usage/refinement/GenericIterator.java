@@ -80,9 +80,9 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
 
   private RefinementResult iterate(O iteration) throws CPAException, InterruptedException {
     numOfIterations.inc();
-    totalTimer.stop();
+    //totalTimer.stop();
     RefinementResult result = wrappedRefiner.performBlockRefinement(iteration);
-    totalTimer.start();
+    //totalTimer.start();
 
     if (result.isTrue()) {
       //Finish iteration, the race is found

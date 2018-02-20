@@ -599,7 +599,7 @@ public class BAMTransferRelation implements TransferRelation {
 
   public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(Function<ARGState, Integer> idExtractor) {
     final BAMMultipleCEXSubgraphComputer cexSubgraphComputer = new BAMMultipleCEXSubgraphComputer(bamCPA,
-        reducedToExpand, idExtractor);
+        multiReducedToExpand, idExtractor);
 
         return cexSubgraphComputer;
   }
