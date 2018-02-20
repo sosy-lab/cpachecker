@@ -107,4 +107,8 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
     return Objects.hash(fmgr, relevantPredicates);
   }
 
+  @Override
+  public void clear() {
+    relevantPredicates.clear();
+  }
 }

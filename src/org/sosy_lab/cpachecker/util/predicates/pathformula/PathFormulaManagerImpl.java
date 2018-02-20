@@ -520,6 +520,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public void clearCaches() {
+  }
+
+  @Override
   public Formula expressionToFormula(PathFormula pFormula,
       CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {

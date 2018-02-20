@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.BranchBasedWeightedWaitlist;
@@ -42,12 +43,13 @@ import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
+import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
 
   private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED
+    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
   }
 
   @Option(secure=true, name="traversal.order",
@@ -127,12 +129,13 @@ public class ReachedSetFactory {
       + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  private Configuration config;
+  private final Configuration config;
+  private final LogManager logger;
 
-  public ReachedSetFactory(Configuration pConfig) throws InvalidConfigurationException {
+  public ReachedSetFactory(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
-
-    this.config = pConfig;
+    config = pConfig;
+    logger = pLogger;
   }
 
   public ReachedSet create() {
@@ -190,6 +193,9 @@ public class ReachedSetFactory {
 
     case LOCATIONMAPPED:
       return new LocationMappedReachedSet(waitlistFactory);
+
+    case USAGE:
+      return new UsageReachedSet(waitlistFactory, config, logger);
 
     case NORMAL:
     default:

@@ -54,12 +54,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * This is an extension of {@link PredicateAbstractionRefinementStrategy} that takes care of
  * updating the BAM state.
  */
-class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
+public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
   private final BAMPredicateCPA predicateCpa;
   private boolean secondRepeatedCEX = false;
 
-  BAMPredicateAbstractionRefinementStrategy(
+  protected BAMPredicateAbstractionRefinementStrategy(
       final Configuration config,
       final LogManager logger,
       final BAMPredicateCPA predicateCpa,

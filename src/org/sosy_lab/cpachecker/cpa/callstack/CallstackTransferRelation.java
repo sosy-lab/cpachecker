@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -360,6 +361,10 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   protected boolean shouldGoByFunctionSummaryStatement(CallstackState element, CFunctionSummaryStatementEdge sumEdge) {
     String functionName = sumEdge.getFunctionName();
     FunctionCallEdge callEdge = findOutgoingCallEdge(sumEdge.getPredecessor());
+    if (sumEdge.getFunctionCall() instanceof CThreadCreateStatement) {
+      //Thread operations should be handled twice, so, go by the summary edge
+      return true;
+    }
     assert functionName.equals(callEdge.getSuccessor().getFunctionName());
     return hasRecursion(element, functionName) && skipRecursiveFunctionCall(element, callEdge);
   }

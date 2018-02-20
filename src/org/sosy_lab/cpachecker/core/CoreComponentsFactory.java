@@ -257,7 +257,7 @@ public class CoreComponentsFactory {
       aggregatedReachedSets = pAggregatedReachedSets;
     }
 
-    reachedSetFactory = new ReachedSetFactory(config);
+    reachedSetFactory = new ReachedSetFactory(config, logger);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
 
     if (checkCounterexamplesWithBDDCPARestriction) {
@@ -320,7 +320,7 @@ public class CoreComponentsFactory {
     } else if (asConditionalVerifier) {
       logger.log(Level.INFO, "Using Conditional Verifier");
       algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
-    }else if (useRestartingAlgorithm) {
+    } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
 

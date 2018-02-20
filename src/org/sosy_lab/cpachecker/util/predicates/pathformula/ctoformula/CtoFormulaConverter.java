@@ -1110,6 +1110,11 @@ public class CtoFormulaConverter {
           ssa, pts, constraints, errorConditions);
     }
 
+    case CallToReturnEdge:
+      CFunctionSummaryEdge ce = (CFunctionSummaryEdge)edge;
+      return makeExitFunction(ce, function,
+          ssa, pts, constraints, errorConditions);
+
     default:
       throw new UnrecognizedCFAEdgeException(edge);
     }

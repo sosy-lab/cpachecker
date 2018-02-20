@@ -98,7 +98,7 @@ public class KInductionInvariantChecker {
           "Could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    ReachedSetFactory reached = new ReachedSetFactory(pConfig);
+    ReachedSetFactory reached = new ReachedSetFactory(pConfig, pLogger);
 
     invGen =
         KInductionInvariantGenerator.create(

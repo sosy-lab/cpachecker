@@ -38,4 +38,11 @@ import java.util.Collection;
 public interface RelevantPredicatesComputer {
   public Collection<AbstractionPredicate> getRelevantPredicates(
       Block context, Collection<AbstractionPredicate> predicates);
+
+  /**
+   * Clear all internal caches.
+   * Some launches are so huge, that may lead to memory limit,
+   * so, in some case it ise useful to reset outdated (and, maybe, necessary) information
+   */
+  public void clear();
 }

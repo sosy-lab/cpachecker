@@ -55,7 +55,7 @@ public class BAMSubgraphComputer {
 
   private final BlockPartitioning partitioning;
   private final Reducer reducer;
-  private final BAMDataManager data;
+  protected final BAMDataManager data;
   private final LogManager logger;
   private final boolean useCopyOnWriteRefinement;
 
@@ -207,7 +207,7 @@ public class BAMSubgraphComputer {
    *                     newExpandedTarget has only children, that are all part of the Pseudo-ARG
    *                     (these children are copies of states from reachedSets of other blocks)
    */
-  private void computeCounterexampleSubgraphForBlock(
+  protected void computeCounterexampleSubgraphForBlock(
           final BackwardARGState newExpandedRoot,
           final Set<BackwardARGState> newExpandedTargets)
       throws MissingBlockException, InterruptedException {
@@ -301,7 +301,7 @@ public class BAMSubgraphComputer {
    *
    * TODO we could replace the BackwardARGState completely by a normal ARGState,
    * we just keep it for debugging. */
-  static class BackwardARGState extends ARGState {
+  public static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
 
@@ -320,7 +320,7 @@ public class BAMSubgraphComputer {
   }
 
   /** A class to signal a deleted block for re-computation. */
-  static class MissingBlockException extends CPAException {
+  public static class MissingBlockException extends CPAException {
 
     private static final long serialVersionUID = 123L;
 

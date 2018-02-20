@@ -337,7 +337,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   }
 
   @Override
-  protected final void finishRefinementOfPath(
+  protected void finishRefinementOfPath(
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
@@ -481,7 +481,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     return basePrecision;
   }
 
-  private PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
+  protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
     PredicatePrecision newPrecision;
     switch (predicateSharing) {
     case GLOBAL:

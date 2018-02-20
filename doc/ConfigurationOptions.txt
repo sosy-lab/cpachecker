@@ -262,7 +262,7 @@ analysis.programNames = []
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
@@ -1355,10 +1355,36 @@ cpa.invariants.usePointerAliasStrengthening = true
 # variables being live.
 cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 
+# functions, which allocate new free memory
+cpa.local.allocateFunctionPattern = Sets.newHashSet()
+cpa.local.allocatefunctions = no default value
+
+# functions, which do not change sharedness of parameters
+cpa.local.conservativefunctions = no default value
+
+# variables, which are always local
+cpa.local.localvariables = Collections.emptySet()
+
 # With this option enabled, unction calls that occur in the CFA are followed.
 # By disabling this option one can traverse a function without following
 # function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
+
+# reduce recursive locks to a single access
+cpa.lock.aggressiveReduction = false
+
+# What are we searching for: race or deadlock
+cpa.lock.analysisMode = RACE
+  enum:     [RACE, DEADLOCK]
+
+#  annotated functions, which are known to works right
+cpa.lock.annotate = no default value
+
+# contains all lock names
+cpa.lock.lockinfo = no default value
+
+# reduce unused locks
+cpa.lock.reduceUselessLocks = false
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
@@ -2391,6 +2417,82 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
+# functions, which stops analysis
+cpa.usage.abortfunctions = no default value
+
+# functions, which are used to bind variables (like list elements are binded
+# to list variable)
+cpa.usage.binderFunctions = no default value
+
+# path to write results
+cpa.usage.falseUnsafesOutput = "FalseUnsafes"
+
+# if a file do not exist, do not include the corresponding edge
+cpa.usage.filterMissedFiles = true
+
+# The functions, which cannot be executed in parallel with themselves
+cpa.usage.notSelfParallelFunctions = new HashSet<>()
+
+# path to write results
+cpa.usage.output = "unsafe_rawdata"
+
+# all variables should be printed to the one file or to the different
+cpa.usage.outputType = KLEVER
+  enum:     [ETV, KLEVER, KLEVER_OLD]
+
+# The way how to identify two paths as equal
+cpa.usage.pathEquality = CFANodeId
+  enum:     [ARGStateId, CFANodeId]
+
+# The value of marked unsafes, after which the precision should be cleaned
+cpa.usage.precisionReset = Integer.MAX_VALUE
+
+# print all unsafe cases in report
+cpa.usage.printFalseUnsafes = false
+
+# output only true unsafes
+cpa.usage.printOnlyTrueUnsafes = false
+
+# The order of refinement blocks
+cpa.usage.refinementChain = no default value
+
+# use single file for output or dump every error trace to its own file
+cpa.usage.singleFileOutput = false
+
+# The functions, which are executed in one thread
+cpa.usage.singleThreadFunctions = new HashSet<>()
+
+# functions, which we don't analize
+cpa.usage.skippedfunctions = no default value
+
+# variables, which will be filtered by function location
+cpa.usage.skippedvariables.byFunction = no default value
+
+# variables, which will be filtered by function prefix
+cpa.usage.skippedvariables.byFunctionPrefix = no default value
+
+# variables, which will be filtered by its name
+cpa.usage.skippedvariables.byName = no default value
+
+# variables, which will be filtered by its name prefix
+cpa.usage.skippedvariables.byNamePrefix = no default value
+
+# variables, which will be filtered by its type
+cpa.usage.skippedvariables.byType = no default value
+
+# clean all ARG or try to reuse some parts of it (memory consuming)
+cpa.usage.totalARGCleaning = false
+
+# ignore unsafes only with empty callstacks
+cpa.usage.unsafedetector.ignoreEmptyLockset = false
+
+# A name of interrupt lock for checking deadlock free
+cpa.usage.unsafedetector.intLock = no default value
+
+# defines what is unsafe
+cpa.usage.unsafedetector.unsafeMode = RACE
+  enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
+
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
@@ -2935,6 +3037,10 @@ pdr.maxLiteralsToDropDuringGeneralization = 5
 # Maximum number of accepted spurious transitions within a proof-obligation
 # trace before a consecution abstraction failure triggers a refinement.
 pdr.spuriousTransitionCountThreshold = 0
+
+# A path to a precision output
+# A path to precision
+precision.path = "localsave"
 
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope

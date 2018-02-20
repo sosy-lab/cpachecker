@@ -25,13 +25,18 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -61,6 +66,8 @@ import org.sosy_lab.cpachecker.util.Triple;
 
 public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAException> {
 
+  final Multimap<AbstractState, AbstractState> reducedToExpand = LinkedListMultimap.create();
+
   protected final Deque<Triple<AbstractState, Precision, Block>> stack = new ArrayDeque<>();
 
   private final CPAAlgorithmFactory algorithmFactory;
@@ -68,6 +75,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   // Callstack-CPA is used for additional recursion handling
   private final CallstackTransferRelation callstackTransfer;
+
+  private final BAMCPA bamcpa;
 
   //Stats
   int maxRecursiveDepth = 0;
@@ -83,6 +92,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     bamPccManager = new BAMPCCManager(
         wrappedChecker, pConfig, partitioning, wrappedReducer, bamCpa, data);
+    bamcpa = bamCpa;
   }
 
   @Override
@@ -319,6 +329,11 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     assert reached != null;
+    /* We cannot put reducedInitialState, because it is new.
+     * We should get the first state of reached set - this is one, whish was put there at the first time
+     */
+    reducedToExpand.put(reached.getFirstState(), initialState);
+
     registerInitalAndExitStates(initialState, statesForFurtherAnalysis, reached);
 
     ARGState rootOfBlock = null;
@@ -397,6 +412,11 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     return returnStates;
   }
 
+  public void cleanCaches() {
+    data.clear();
+    reducedToExpand.clear();
+  }
+
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement, List<AbstractState> pOtherElements,
@@ -409,5 +429,22 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } else {
       return out;
     }
+  }
+
+  public Multimap<AbstractState, AbstractState> getMapFromReducedToExpand() {
+    return reducedToExpand;
+  }
+
+  public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(
+      Function<ARGState, Integer> pIdExtractor) {
+
+    Map<AbstractState, AbstractState> reducedMap = new HashMap<>();
+    for (AbstractState keyState : reducedToExpand.keySet()) {
+      Collection<AbstractState> values = reducedToExpand.get(keyState);
+      if (!values.isEmpty()) {
+        reducedMap.put(keyState, values.iterator().next());
+      }
+    }
+    return new BAMMultipleCEXSubgraphComputer(bamcpa, reducedMap, pIdExtractor);
   }
 }

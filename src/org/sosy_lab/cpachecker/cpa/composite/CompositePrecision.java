@@ -134,24 +134,33 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
   private AdjustablePrecision adjustPrecisionWith(
       AdjustablePrecision pOtherPrecision,
       BiFunction<AdjustablePrecision, AdjustablePrecision, AdjustablePrecision> adjustFunction) {
-    Preconditions.checkArgument(pOtherPrecision instanceof CompositePrecision);
-    CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
 
     for (int i = 0; i < this.precisions.size(); i++) {
       Precision currentPrecision = this.get(i);
-      Precision adjustedPrecision = precisionToAdjust.get(i);
+      Precision adjustedPrecision;
+
+      if (pOtherPrecision instanceof CompositePrecision) {
+        CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+        adjustedPrecision = precisionToAdjust.get(i);
+      } else if (pOtherPrecision.getClass() == currentPrecision.getClass()) {
+        adjustedPrecision = pOtherPrecision;
+      } else {
+        newPrecisions.add(currentPrecision);
+        continue;
+      }
 
       Preconditions.checkArgument(
-          currentPrecision instanceof AdjustablePrecision,
-          "Precision " + currentPrecision + "does not support adjusting precision");
+              currentPrecision instanceof AdjustablePrecision,
+              "Precision " + currentPrecision + "does not support adjusting precision");
       Preconditions.checkArgument(
-          adjustedPrecision instanceof AdjustablePrecision,
-          "Precision " + adjustedPrecision + "does not support adjusting precision");
+              adjustedPrecision instanceof AdjustablePrecision,
+              "Precision " + adjustedPrecision + "does not support adjusting precision");
 
       Precision newPrecision =
-          adjustFunction.apply(
-              (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
+              adjustFunction.apply(
+                      (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
       newPrecisions.add(newPrecision);
     }
     return new CompositePrecision(newPrecisions.build());
