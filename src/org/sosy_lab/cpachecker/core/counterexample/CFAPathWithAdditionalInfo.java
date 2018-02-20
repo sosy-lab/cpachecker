@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * This class represents a path of cfaEdges, that contain the additional Information to be
- * exported to extended witness {@link ExtendedWitnessWriter}.
+ * This class represents a path of cfaEdges, that contain the additional Information to be exported
+ * to extended witness {@link ExtendedWitnessWriter}.
  */
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
   private final ImmutableList<CFAEdgeWithAdditionalInfo> pathInfo;
@@ -92,7 +92,6 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     } else {
       return result.get();
     }
-
   }
 
   private void addConverter(AdditionalInfoConverter pAdditionalInfoConverter) {
@@ -135,7 +134,8 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     int multiEdgeOffset = 0;
 
     while (pathIterator.hasNext()) {
-      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = pathInfo.get(pathIterator.getIndex() + multiEdgeOffset);
+      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
+          pathInfo.get(pathIterator.getIndex() + multiEdgeOffset);
       CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
 
       if (!edgeWithAdditionalInfo.getCFAEdge().equals(argPathEdge)) {

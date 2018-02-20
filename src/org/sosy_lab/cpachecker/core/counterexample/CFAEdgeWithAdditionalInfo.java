@@ -32,10 +32,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 
-
 /**
  * Contains additional info for a given statement, which is represented as cfa edge {@link CFAEdge},
- * in the error path. Converter should be provided by state {@link ConfigurableProgramAnalysisWithAdditionalInfo}
+ * in the error path. Converter should be provided by state {@link
+ * ConfigurableProgramAnalysisWithAdditionalInfo}
  */
 public class CFAEdgeWithAdditionalInfo {
   private final Multimap<ConvertingTags, Object> addinitonalInfo;
@@ -46,19 +46,15 @@ public class CFAEdgeWithAdditionalInfo {
     edge = Objects.requireNonNull(pEdge);
   }
 
-  /**
-   * Constructor used when merging two edges.
-   */
+  /** Constructor used when merging two edges. */
   public CFAEdgeWithAdditionalInfo(
-      CFAEdgeWithAdditionalInfo pEdge1,
-      CFAEdgeWithAdditionalInfo pEdge2) {
+      CFAEdgeWithAdditionalInfo pEdge1, CFAEdgeWithAdditionalInfo pEdge2) {
     assert pEdge1.edge.equals(pEdge2.edge);
 
     edge = pEdge1.edge;
     addinitonalInfo = HashMultimap.create(pEdge1.addinitonalInfo);
     addinitonalInfo.putAll(pEdge2.addinitonalInfo);
   }
-
 
   CFAEdgeWithAdditionalInfo mergeEdge(CFAEdgeWithAdditionalInfo pEdge) {
     return new CFAEdgeWithAdditionalInfo(this, pEdge);

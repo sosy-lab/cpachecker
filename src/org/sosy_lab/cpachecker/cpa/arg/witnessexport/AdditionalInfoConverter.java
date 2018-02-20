@@ -28,12 +28,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAd
 public interface AdditionalInfoConverter {
 
   /**
-   * Converter from additional info {@link ConfigurableProgramAnalysisWithAdditionalInfo} to
-   * {@link TransitionCondition}
+   * Converter from additional info {@link ConfigurableProgramAnalysisWithAdditionalInfo} to {@link
+   * TransitionCondition}
+   *
    * @param originalTransition transition to enrich by additional information
    * @param pTag additional tag
    * @param pValue corresponding value
    * @return extended transition for dumping by {@link ExtendedWitnessWriter}
    */
-  TransitionCondition convert(TransitionCondition originalTransition, ConvertingTags pTag, Object pValue);
+  TransitionCondition convert(
+      TransitionCondition originalTransition, ConvertingTags pTag, Object pValue);
 }

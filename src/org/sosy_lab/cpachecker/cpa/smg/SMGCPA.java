@@ -75,8 +75,8 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 @Options(prefix = "cpa.smg")
 public class SMGCPA
     implements ConfigurableProgramAnalysis,
-               ConfigurableProgramAnalysisWithConcreteCex,
-               ConfigurableProgramAnalysisWithAdditionalInfo,
+        ConfigurableProgramAnalysisWithConcreteCex,
+        ConfigurableProgramAnalysisWithAdditionalInfo,
         StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -274,7 +274,7 @@ public class SMGCPA
 
   @Override
   public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
-    //inject additional info for extended witness
+    // inject additional info for extended witness
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
     Set<Object> invalidChain = new HashSet<>();
@@ -289,8 +289,8 @@ public class SMGCPA
       rIterator.advance();
       ARGState argState = rIterator.getAbstractState();
       SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
-      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo = CFAEdgeWithAdditionalInfo.of(rIterator
-          .getOutgoingEdge());
+      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
+          CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
       if (description != null && !description.isEmpty()) {
         edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
         description = null;
@@ -302,12 +302,13 @@ public class SMGCPA
           if (!smgState.containsInvalidElement(elem)) {
             visitedElems.add(elem);
             for (Object additionalElem : prevSMGState.getCurrentChain()) {
-              if (!visitedElems.contains(additionalElem) && !invalidChain.contains(additionalElem)) {
+              if (!visitedElems.contains(additionalElem)
+                  && !invalidChain.contains(additionalElem)) {
                 toCheck.add(additionalElem);
               }
             }
-            edgeWithAdditionalInfo.addInfo(SMGConvertingTags.NOTE, prevSMGState
-                .getNoteMessageOnElement(elem));
+            edgeWithAdditionalInfo.addInfo(
+                SMGConvertingTags.NOTE, prevSMGState.getNoteMessageOnElement(elem));
 
           } else {
             toCheck.add(elem);
@@ -320,5 +321,4 @@ public class SMGCPA
     }
     return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
   }
-
 }

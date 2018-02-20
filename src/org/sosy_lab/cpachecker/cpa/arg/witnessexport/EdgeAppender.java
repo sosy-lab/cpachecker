@@ -47,5 +47,4 @@ interface EdgeAppender {
       Optional<Collection<ARGState>> pFromState,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       CFAEdgeWithAdditionalInfo pAdditionalInfo);
-
 }

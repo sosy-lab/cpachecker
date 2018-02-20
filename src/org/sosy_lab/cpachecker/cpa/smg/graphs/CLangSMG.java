@@ -112,18 +112,18 @@ public class CLangSMG extends SMG {
       return isHeapObject(smgObject) || isGlobal(smgObject) || isStackObject(smgObject);
     } else if (elem instanceof SMGEdgeHasValue) {
       SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter
-          .objectFilter(edgeHasValue.getObject())
-          .filterAtOffset(edgeHasValue.getOffset())
-          .filterHavingValue(edgeHasValue.getValue());
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
+              .filterAtOffset(edgeHasValue.getOffset())
+              .filterHavingValue(edgeHasValue.getValue());
       Set<SMGEdgeHasValue> edges = getHVEdges(filter);
       return !edges.isEmpty();
     } else if (elem instanceof SMGEdgePointsTo) {
       SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
-      SMGEdgePointsToFilter filter = SMGEdgePointsToFilter
-          .targetObjectFilter(edgePointsTo.getObject())
-          .filterAtTargetOffset(edgePointsTo.getOffset())
-          .filterHavingValue(edgePointsTo.getValue());
+      SMGEdgePointsToFilter filter =
+          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
+              .filterAtTargetOffset(edgePointsTo.getOffset())
+              .filterHavingValue(edgePointsTo.getValue());
       Set<SMGEdgePointsTo> edges = getPtEdges(filter);
       return !edges.isEmpty();
     } else if (elem instanceof Integer) {
@@ -386,7 +386,7 @@ public class CLangSMG extends SMG {
     for (SMGObject stray_object : stray_objects) {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
-          //TODO: report stray_object as error
+          // TODO: report stray_object as error
           addInvalidElement(stray_object);
           setMemoryLeak();
         }
@@ -511,8 +511,7 @@ public class CLangSMG extends SMG {
     String regionLabel = pObject.getLabel();
 
     for (CLangStackFrame frame : stack_objects) {
-      if ((frame.containsVariable(regionLabel)
-          && frame.getVariable(regionLabel) == pObject)
+      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)
           || pObject == frame.getReturnObject()) {
 
         return true;
@@ -570,11 +569,10 @@ public class CLangSMG extends SMG {
   /**
    * Constant.
    *
-   * Checks whether given object is global.
+   * <p>Checks whether given object is global.
    *
    * @param object SMGObject to be checked.
    * @return True, if the given object is referenced in the set of global objects, false otherwise.
-   *
    */
   public boolean isGlobal(SMGObject object) {
     return global_objects.containsValue(object);

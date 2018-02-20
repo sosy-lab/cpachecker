@@ -32,16 +32,18 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {
 
-  Map<ConvertingTags, KeyDef> tagConverter = ImmutableMap.of(
-      SMGConvertingTags.WARNING , KeyDef.WARNING,
-      SMGConvertingTags.NOTE, KeyDef.NOTE);
+  Map<ConvertingTags, KeyDef> tagConverter =
+      ImmutableMap.of(
+          SMGConvertingTags.WARNING, KeyDef.WARNING,
+          SMGConvertingTags.NOTE, KeyDef.NOTE);
 
   @Override
-  public TransitionCondition convert(TransitionCondition originalTransition, ConvertingTags pTag, Object pValue) {
+  public TransitionCondition convert(
+      TransitionCondition originalTransition, ConvertingTags pTag, Object pValue) {
     if (pTag instanceof SMGConvertingTags) {
       String value = pValue.toString();
-      //TODO: temporal rewriting note by sourcecode as highlighting.
-      //Replace by precise memory changes based on history
+      // TODO: temporal rewriting note by sourcecode as highlighting.
+      // Replace by precise memory changes based on history
       if (SMGConvertingTags.NOTE.equals(pTag)) {
         String source = originalTransition.getMapping().get(KeyDef.SOURCECODE);
         if (source != null) {

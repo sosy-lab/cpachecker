@@ -29,18 +29,17 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
 
 /**
- * Provides interface for CPA with additional info to be written to extended witness
- * {@link ExtendedWitnessWriter}
+ * Provides interface for CPA with additional info to be written to extended witness {@link
+ * ExtendedWitnessWriter}
  */
 public interface ConfigurableProgramAnalysisWithAdditionalInfo {
 
-  /**
-   * Converter for additional witness tags supported by analysis
-   */
+  /** Converter for additional witness tags supported by analysis */
   AdditionalInfoConverter exportAdditionalInfoConverter();
 
   /**
    * Create additional info based on current error path
+   *
    * @param pPath base path to be enriched
    * @return result path with additional info
    */

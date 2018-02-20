@@ -39,10 +39,8 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 
 public class ExtendedWitnessExporter extends WitnessExporter {
   public ExtendedWitnessExporter(
-      Configuration pConfig,
-      LogManager pLogger,
-      Specification pSpecification,
-      CFA pCFA) throws InvalidConfigurationException {
+      Configuration pConfig, LogManager pLogger, Specification pSpecification, CFA pCFA)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pSpecification, pCFA);
   }
 

@@ -23,9 +23,5 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
-/**
- * Intermediate interface for extendable enums used at {@link AdditionalInfoConverter}
- */
-public interface ConvertingTags {
-
-}
+/** Intermediate interface for extendable enums used at {@link AdditionalInfoConverter} */
+public interface ConvertingTags {}

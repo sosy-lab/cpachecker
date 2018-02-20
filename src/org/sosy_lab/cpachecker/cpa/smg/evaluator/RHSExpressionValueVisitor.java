@@ -86,14 +86,19 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
     } else {
       switch (smgRightHandSideEvaluator.options.getHandleUnknownFunctions()) {
         case STRICT:
-          throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+          throw new CPATransferException(
+              "Unknown function '"
+                  + functionName
+                  + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case ASSUME_SAFE:
           return SMGValueAndStateList.of(getInitialSmgState());
         case ASSUME_EXTERNAL_ALLOCATED:
-          return smgRightHandSideEvaluator.smgTransferRelation.handleSafeExternFuction
-              (pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+          return smgRightHandSideEvaluator.smgTransferRelation.handleSafeExternFuction(
+              pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
         default:
-          throw new AssertionError("Unhandled enum value in switch: " + smgRightHandSideEvaluator.options.getHandleUnknownFunctions());
+          throw new AssertionError(
+              "Unhandled enum value in switch: "
+                  + smgRightHandSideEvaluator.options.getHandleUnknownFunctions());
       }
     }
 

@@ -118,8 +118,13 @@ enum GraphBuilder {
                   Iterables.isEmpty(assumptions)
                       ? Optional.empty()
                       : Optional.of(Collections.singleton(s));
-              pEdgeAppender.appendNewEdge(prevStateId, pseudoStateId, innerEdge, absentStates,
-                  pValueMap, CFAEdgeWithAdditionalInfo.of(innerEdge));
+              pEdgeAppender.appendNewEdge(
+                  prevStateId,
+                  pseudoStateId,
+                  innerEdge,
+                  absentStates,
+                  pValueMap,
+                  CFAEdgeWithAdditionalInfo.of(innerEdge));
               prevStateId = pseudoStateId;
             }
 
@@ -134,7 +139,11 @@ enum GraphBuilder {
           if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(
-                prevStateId, childStateId, edgeToNextState, state, pValueMap,
+                prevStateId,
+                childStateId,
+                edgeToNextState,
+                state,
+                pValueMap,
                 pAdditionalInfo.get(s));
             // For branchings, it is important to have both branches explicitly in the witness
             if (edgeToNextState instanceof AssumeEdge) {
@@ -322,8 +331,8 @@ enum GraphBuilder {
     String sourceId = pEdge.getPredecessor().toString();
     String targetId = pEdge.getSuccessor().toString();
     if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
-      pEdgeAppender.appendNewEdge(sourceId, targetId, pEdge, pStates, pValueMap,
-          CFAEdgeWithAdditionalInfo.of(pEdge));
+      pEdgeAppender.appendNewEdge(
+          sourceId, targetId, pEdge, pStates, pValueMap, CFAEdgeWithAdditionalInfo.of(pEdge));
       return true;
     }
     return false;
@@ -341,5 +350,4 @@ enum GraphBuilder {
       GraphMlBuilder pDocument,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
       EdgeAppender pEdgeAppender);
-
 }

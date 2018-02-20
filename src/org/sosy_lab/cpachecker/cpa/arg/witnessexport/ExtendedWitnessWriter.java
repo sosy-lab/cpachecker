@@ -51,12 +51,20 @@ public class ExtendedWitnessWriter extends WitnessWriter {
       @Nullable String pDefaultSourceFileName,
       WitnessType pGraphType,
       InvariantProvider pInvariantProvider) {
-    super(pOptions, pCfa, pMetaData, pFactory, pSimplifier, pDefaultSourceFileName, pGraphType,
+    super(
+        pOptions,
+        pCfa,
+        pMetaData,
+        pFactory,
+        pSimplifier,
+        pDefaultSourceFileName,
+        pGraphType,
         pInvariantProvider);
   }
 
   @Override
-  protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(Optional<CounterexampleInfo> pCounterExample) {
+  protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(
+      Optional<CounterexampleInfo> pCounterExample) {
     if (pCounterExample.isPresent()) {
       return pCounterExample.get().getAdditionalInfoMapping();
     }
@@ -64,8 +72,8 @@ public class ExtendedWitnessWriter extends WitnessWriter {
   }
 
   @Override
-  public Set<AdditionalInfoConverter> getAdditionalInfoConverters(Optional<CounterexampleInfo>
-                                                                 pCounterExample) {
+  public Set<AdditionalInfoConverter> getAdditionalInfoConverters(
+      Optional<CounterexampleInfo> pCounterExample) {
     if (pCounterExample.isPresent()) {
       return pCounterExample.get().getAdditionalInfoConverters();
     }
@@ -73,7 +81,8 @@ public class ExtendedWitnessWriter extends WitnessWriter {
   }
 
   @Override
-  protected TransitionCondition addAdditionalInfo(TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+  protected TransitionCondition addAdditionalInfo(
+      TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     TransitionCondition result = pCondition;
     if (pAdditionalInfo != null) {
       for (Entry<ConvertingTags, Object> addInfo : pAdditionalInfo.getInfos()) {
@@ -89,7 +98,9 @@ public class ExtendedWitnessWriter extends WitnessWriter {
 
   @Override
   protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    if (pAdditionalInfo != null && pAdditionalInfo.getInfos() != null && pAdditionalInfo.getInfos().size() > 0) {
+    if (pAdditionalInfo != null
+        && pAdditionalInfo.getInfos() != null
+        && pAdditionalInfo.getInfos().size() > 0) {
       return false;
     }
     return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);

@@ -58,8 +58,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -130,10 +130,14 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
-  @Option(secure = true, name = "extendedWitnessFile",
-          description = "Extended witness with specific analysis information file")
+  @Option(
+    secure = true,
+    name = "extendedWitnessFile",
+    description = "Extended witness with specific analysis information file"
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate extendedWitnessFile = PathTemplate.ofFormatString("extendedWitness.%d.graphml");
+  private PathTemplate extendedWitnessFile =
+      PathTemplate.ofFormatString("extendedWitness.%d.graphml");
 
   @Option(secure = true, name = "exportHarness", description = "export test harness")
   private boolean exportHarness = false;
