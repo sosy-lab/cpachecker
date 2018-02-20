@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphIterator;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementBlockFactory.PathEquation;
@@ -54,6 +56,8 @@ public class PathPairIterator extends
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   private final BAMTransferRelation transfer;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
+  private BAMSubgraphIterator subgraphIterator;
+  private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
 
   //Statistics
   private StatTimer computingPath = new StatTimer("Time for path computing");
@@ -90,6 +94,7 @@ public class PathPairIterator extends
         throw new InvalidConfigurationException("Unexpexted type " + type);
 
     }
+    targetToPathIterator = Maps.newHashMap();
   }
 
   @Override
@@ -197,6 +202,7 @@ public class PathPairIterator extends
       //Refinement iteration finishes
       refinedStates.clear();
     } else if (callerClass.equals(PointIterator.class)) {
+      targetToPathIterator.clear();
       currentIterators.clear();
       computedPathsForUsage.clear();
     }
@@ -244,7 +250,15 @@ public class PathPairIterator extends
 
     computingPath.start();
     //try to compute more paths
-    currentPath = subgraphComputer.getNextPathFrom((ARGState)info.getKeyState(), refinedStates);
+    BAMSubgraphIterator pathIterator;
+    if (targetToPathIterator.containsKey(info)) {
+      pathIterator = targetToPathIterator.get(info);
+    } else {
+      ARGState target = (ARGState)info.getKeyState();
+      pathIterator = subgraphComputer.iterator(target);
+      targetToPathIterator.put(info, pathIterator);
+    }
+    currentPath = pathIterator.getNextPath(refinedStates);
     computingPath.stop();
 
     if (currentPath == null) {

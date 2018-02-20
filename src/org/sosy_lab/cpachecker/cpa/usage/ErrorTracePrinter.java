@@ -31,7 +31,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -50,8 +49,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
@@ -117,16 +114,13 @@ public abstract class ErrorTracePrinter {
     ARGPath path;
     if (subgraphComputer != null) {
       //BAM: we need to update target state considering BAM caches
-      BackwardARGState newTreeTarget = new BackwardARGState(target);
-      try {
-        ARGState root = subgraphComputer.findPath(newTreeTarget, Collections.emptySet());
-        path = ARGUtils.getRandomPath(root);
-      } catch (MissingBlockException | InterruptedException e) {
-        logger.log(Level.SEVERE, "Exception during creating path: " + e.getMessage());
-        return;
-      }
+      path = subgraphComputer.computePath(target);
     } else {
       path = ARGUtils.getOnePathTo(target);
+    }
+    if (path == null) {
+      logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
+      return;
     }
     //path is transformed internally
     usage.setRefinedPath(path.getInnerEdges());
