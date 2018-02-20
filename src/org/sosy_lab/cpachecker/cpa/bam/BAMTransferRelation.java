@@ -34,9 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -437,14 +435,6 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(
       Function<ARGState, Integer> pIdExtractor) {
-
-    Map<AbstractState, AbstractState> reducedMap = new HashMap<>();
-    for (AbstractState keyState : reducedToExpand.keySet()) {
-      Collection<AbstractState> values = reducedToExpand.get(keyState);
-      if (!values.isEmpty()) {
-        reducedMap.put(keyState, values.iterator().next());
-      }
-    }
-    return new BAMMultipleCEXSubgraphComputer(bamcpa, reducedMap, pIdExtractor);
+    return new BAMMultipleCEXSubgraphComputer(bamcpa, reducedToExpand, pIdExtractor);
   }
 }
