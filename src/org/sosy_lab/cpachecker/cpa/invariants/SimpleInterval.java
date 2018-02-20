@@ -29,7 +29,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigInteger;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 /**
@@ -119,7 +118,7 @@ public class SimpleInterval {
       return pOther;
     }
     // The lower bound of this interval is a candidate for the new lower bound
-    BigInteger lowerBound = this.lowerBound;
+    BigInteger newLowerBound = this.lowerBound;
     // If the other interval has a finite lower bound, it is a candidate as well
     if (pOther.hasLowerBound()) {
       BigInteger otherLowerBound = pOther.getLowerBound();
@@ -129,14 +128,14 @@ public class SimpleInterval {
        *  lower bound, otherwise the new lower bound is the maximum of
        *  both lower bounds.
        */
-      if (lowerBound == null) {
-        lowerBound = otherLowerBound;
+      if (newLowerBound == null) {
+        newLowerBound = otherLowerBound;
       } else {
-        lowerBound = lowerBound.max(otherLowerBound);
+        newLowerBound = newLowerBound.max(otherLowerBound);
       }
     }
     // The upper bound of this interval is a candidate for the new lower bound
-    BigInteger upperBound = this.upperBound;
+    BigInteger newUpperBound = this.upperBound;
     // If the other interval has a finite upper bound, it is a candidate as well
     if (pOther.hasUpperBound()) {
       BigInteger otherUpperBound = pOther.getUpperBound();
@@ -146,13 +145,13 @@ public class SimpleInterval {
        *  upper bound, otherwise the new upper bound is the minimum of
        *  both upper bounds.
        */
-      if (upperBound == null) {
-        upperBound = otherUpperBound;
+      if (newUpperBound == null) {
+        newUpperBound = otherUpperBound;
       } else {
-        upperBound = upperBound.min(otherUpperBound);
+        newUpperBound = newUpperBound.min(otherUpperBound);
       }
     }
-    return new SimpleInterval(lowerBound, upperBound);
+    return new SimpleInterval(newLowerBound, newUpperBound);
   }
 
   /**

@@ -31,6 +31,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.BlockConfiguration;
+import org.sosy_lab.cpachecker.core.waitlist.BlockWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.BranchBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
@@ -119,6 +121,14 @@ public class ReachedSetFactory {
       description = "perform a weighted random selection based on the branching depth")
   boolean useWeightedBranchOrder = false;
 
+  @Option(
+    secure = true,
+    name = "traversal.useBlocks",
+    description =
+        "use blocks and set resource limits for its traversal, blocks are handled in DFS order"
+  )
+  boolean useBlocks = false;
+
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -131,11 +141,17 @@ public class ReachedSetFactory {
 
   private final Configuration config;
   private final LogManager logger;
+  private BlockConfiguration blockConfig;
 
-  public ReachedSetFactory(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     config = pConfig;
     logger = pLogger;
+
+    if (useBlocks) {
+      blockConfig = new BlockConfiguration(pConfig);
+    }
   }
 
   public ReachedSet create() {
@@ -182,6 +198,9 @@ public class ReachedSetFactory {
     }
     if (useNumberOfThreads) {
       waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useBlocks) {
+      waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
 
     switch (reachedSet) {

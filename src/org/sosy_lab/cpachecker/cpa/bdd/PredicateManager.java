@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,8 +44,12 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
-/** This class guarantees a fixed order of variables in the BDD,
- * that should be good for the operations in the BitvectorManager. */
+/**
+ * This class guarantees a fixed order of variables in the BDD, that should be good for the
+ * operations in the BitvectorManager.
+ *
+ * <p>This class is thread-safe, iff the used (Named-)RegionManager is thread-safe.
+ */
 @Options(prefix = "cpa.bdd")
 public class PredicateManager {
 
@@ -62,12 +68,13 @@ public class PredicateManager {
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
   private final ImmutableMap<Partition, String> varsToTmpVar;
 
-  /** Contains the varNames of all really tracked vars.
-   * This set may differ from the union of all partitions,
-   * because not every variable, that appears in the sourcecode,
-   * is analyzed or even reachable.
-   * This map contains the name of the variable and its bitsize in the BDD.*/
-  private final Map<String, Integer> trackedVars = new HashMap<>();
+  /**
+   * Contains the varNames of all really tracked vars. This set may differ from the union of all
+   * partitions, because not every variable, that appears in the sourcecode, is analyzed or even
+   * reachable. This map contains the name of the variable and its bitsize in the BDD.
+   */
+  private final CopyOnWriteSortedMap<String, Integer> trackedVars =
+      CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<String, Integer>of());
 
   private final NamedRegionManager rmgr;
 

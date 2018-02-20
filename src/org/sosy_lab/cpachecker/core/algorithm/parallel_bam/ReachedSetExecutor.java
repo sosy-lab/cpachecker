@@ -409,7 +409,10 @@ class ReachedSetExecutor {
    */
   private void handleMissingBlock(MissingBlockAbstractionState pBsme)
       throws UnsupportedCodeException {
-    logger.logf(level, "%s :: missing block, bsme=%s", this, id(pBsme.getState()));
+    final AbstractState parentState = pBsme.getState();
+    assert rs.contains(parentState) : "parent reachedset must contain entry state";
+
+    logger.logf(level, "%s :: missing block, bsme=%s", this, id(parentState));
 
     rs.remove(pBsme);
 
@@ -418,8 +421,10 @@ class ReachedSetExecutor {
       throw new AssertionError("after finding a missing block, we should not get new states");
     }
 
-    final CFANode entryLocation = AbstractStates.extractLocation(pBsme.getState());
+    final CFANode entryLocation = AbstractStates.extractLocation(parentState);
     if (hasRecursion(entryLocation)) {
+      // cleanup, re-add state for further exploration
+      rs.reAddToWaitlist(parentState);
       // we directly abort when finding recursion, instead of asking {@link CallstackCPA}
       throw new UnsupportedCodeException("recursion", entryLocation.getLeavingEdge(0));
     }
@@ -427,6 +432,8 @@ class ReachedSetExecutor {
     if (shutdownNotifier.shouldShutdown() || terminateAnalysis.get()) {
       // if an error was found somewhere, we do not longer schedule new sub-analyses
       logger.logf(level, "%s :: exiting on demand", this);
+      // cleanup, re-add state for further exploration
+      rs.reAddToWaitlist(parentState);
       return;
     }
 
@@ -441,8 +448,7 @@ class ReachedSetExecutor {
         // Restarting the procedure once should be sufficient,
         // such that the analysis tries a normal cache-access again.
         // --> nothing to do
-        logger.logf(
-            level, "%s :: interleaved with another thread, bsme=%s", this, id(pBsme.getState()));
+        logger.logf(level, "%s :: interleaved with another thread, bsme=%s", this, id(parentState));
 
       } else {
         scheduleSubAnalysis(pBsme, p);
@@ -473,12 +479,6 @@ class ReachedSetExecutor {
 
   private void scheduleSubAnalysis(
       MissingBlockAbstractionState pBsme, Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
-    // remove current state from waitlist to avoid exploration until all sub-blocks are done.
-    // The state was removed for exploration,
-    // but re-added by CPA-algorithm when throwing the exception
-    assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
-    rs.removeOnlyFromWaitlist(pBsme.getState());
-
     // register dependencies to wait for results and to get results, asynchronous
     ReachedSetExecutor subRse = p.getFirst();
     addDependencies(pBsme, subRse);

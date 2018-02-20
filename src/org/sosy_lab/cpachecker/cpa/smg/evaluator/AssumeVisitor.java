@@ -67,17 +67,17 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       CExpression leftSideExpression = pExp.getOperand1();
       CExpression rightSideExpression = pExp.getOperand2();
 
-      CFAEdge cfaEdge = getCfaEdge();
+      CFAEdge edge = getCfaEdge();
 
       SMGValueAndStateList leftSideValAndStates = smgExpressionEvaluator.evaluateExpressionValue(getInitialSmgState(),
-          cfaEdge, leftSideExpression);
+          edge, leftSideExpression);
 
       for (SMGValueAndState leftSideValAndState : leftSideValAndStates.getValueAndStateList()) {
         SMGSymbolicValue leftSideVal = leftSideValAndState.getObject();
         SMGState newState = leftSideValAndState.getSmgState();
 
         SMGValueAndStateList rightSideValAndStates = smgExpressionEvaluator.evaluateExpressionValue(
-            newState, cfaEdge, rightSideExpression);
+            newState, edge, rightSideExpression);
 
         for (SMGValueAndState rightSideValAndState : rightSideValAndStates.getValueAndStateList()) {
           SMGSymbolicValue rightSideVal = rightSideValAndState.getObject();
@@ -91,10 +91,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               SMGSymbolicValue resultValue = resultValueAndState.getObject();
 
               //TODO: separate modifiable and unmodifiable visitor
-              int leftSideTypeSize = smgExpressionEvaluator.getBitSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
-              int rightSideTypeSize = smgExpressionEvaluator.getBitSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
+              int leftSideTypeSize = smgExpressionEvaluator.getBitSizeof(edge, leftSideExpression.getExpressionType(), newState);
+              int rightSideTypeSize = smgExpressionEvaluator.getBitSizeof(edge, rightSideExpression.getExpressionType(), newState);
               newState.addPredicateRelation(leftSideVal, leftSideTypeSize,
-                  rightSideVal, rightSideTypeSize, binaryOperator, cfaEdge);
+                  rightSideVal, rightSideTypeSize, binaryOperator, edge);
               result.add(SMGValueAndState.of(newState, resultValue));
             }
         }

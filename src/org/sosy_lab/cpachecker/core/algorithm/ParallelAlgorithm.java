@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -119,6 +120,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
+
+  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+      new CopyOnWriteArrayList<>();
 
   public ParallelAlgorithm(
       Configuration config,
@@ -316,7 +320,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return () -> {
       final Algorithm algorithm;
       final ConfigurableProgramAnalysis cpa;
-      singleAnalysisOverallLimit.start();
 
       cpa = coreComponents.createCPA(cfa, specification);
 
@@ -325,6 +328,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      }
+
+      singleAnalysisOverallLimit.start();
 
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider) cpa).collectStatistics(subStats);
@@ -430,7 +438,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               CPAs.asIterable(cpa).filter(ReachedSetAdjustingCPA.class)) {
             if (innerCpa.adjustPrecision()) {
               singleLogger.log(Level.INFO, "Adjusting precision for CPA", innerCpa);
+
               stopAnalysis = false;
+            }
+          }
+          for (ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber :
+              conditionAdjustmentEventSubscribers) {
+            if (stopAnalysis) {
+              conditionAdjustmentEventSubscriber.adjustmentRefused(cpa);
+            } else {
+              conditionAdjustmentEventSubscriber.adjustmentSuccessful(cpa);
             }
           }
 
@@ -470,7 +487,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Nullable
-  private Configuration createSingleConfig(Path singleConfigFileName, LogManager logger) {
+  private Configuration createSingleConfig(Path singleConfigFileName, LogManager pLogger) {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
@@ -483,7 +500,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
-      logger.logUserException(
+      pLogger.logUserException(
           Level.WARNING,
           e,
           "Skipping one analysis because the configuration file "
@@ -688,5 +705,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     void unregister(ReachedSetUpdateListener pReachedSetUpdateListener);
 
+  }
+
+  public static interface ConditionAdjustmentEventSubscriber {
+
+    void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
+
+    void adjustmentRefused(ConfigurableProgramAnalysis pCpa);
   }
 }

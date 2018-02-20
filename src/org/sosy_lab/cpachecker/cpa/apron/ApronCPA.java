@@ -278,9 +278,9 @@ public final class ApronCPA
     return idToCfaNode.values().iterator().next();
   }
 
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
     Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
-    for (CFANode n : cfa.getAllNodes()) {
+    for (CFANode n : pCfa.getAllNodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;

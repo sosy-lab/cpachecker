@@ -1073,23 +1073,29 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     @Override
     public Set<Texpr0Node> visit(CFunctionCallExpression e) throws CPATransferException {
       if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        String functionName = ((CIdExpression)e.getFunctionNameExpression()).getName();
-        if (functionName.equals("__VERIFIER_nondet_int")) {
+        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+          case "__VERIFIER_nondet_int":
+            {
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           Scalar inf = Scalar.create();
           inf.setInfty(-1);
           Interval interval = new Interval(inf, sup);
           return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
-        } else if (functionName.equals("__VERIFIER_nondet_uint")) {
+            }
+          case "__VERIFIER_nondet_uint":
+            {
           Interval interval = new Interval();
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           interval.setSup(sup);
           return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
-        } else if (functionName.equals("__VERIFIER_nondet_bool")) {
+            }
+          case "__VERIFIER_nondet_bool":
+            {
           Interval interval = new Interval(0, 1);
           return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
+            }
         }
       }
       return Collections.emptySet();

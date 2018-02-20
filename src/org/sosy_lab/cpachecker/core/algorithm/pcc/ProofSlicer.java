@@ -453,7 +453,10 @@ public class ProofSlicer {
 
     ReachedSet returnReached;
     try {
-      returnReached = new ReachedSetFactory(Configuration.defaultConfiguration(), LogManager.createNullLogManager()).create();
+      returnReached =
+          new ReachedSetFactory(
+                  Configuration.defaultConfiguration(), LogManager.createNullLogManager())
+              .create();
       // add root
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements

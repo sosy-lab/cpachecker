@@ -216,12 +216,12 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     }
 
     /**
-     * Increase containerOffset by properOffset, set properOffset and containerType.
-     * Useful for field access visitors.
+     * Increase containerOffset by properOffset, set properOffset and containerType. Useful for
+     * field access visitors.
      */
-    void shift(final CType containerType, final long properOffset) {
-      shift(containerType);
-      this.properOffset = properOffset;
+    void shift(final CType pContainerType, final long pProperOffset) {
+      shift(pContainerType);
+      this.properOffset = pProperOffset;
     }
 
     /**

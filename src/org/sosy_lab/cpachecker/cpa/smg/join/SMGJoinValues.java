@@ -860,12 +860,12 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private CType getType(SMGObject pTarget, long pNf, SMG inputSMG1) {
+  private CType getType(SMGObject pTarget, long pNf, SMG pInputSMG1) {
     Set<SMGEdgeHasValue> oldNfEdge =
-        inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
+        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
     if (oldNfEdge.isEmpty()) {
-      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getSizeofPtrInBits(), pNf, pTarget, 0)
+      return new SMGEdgeHasValue(pInputSMG1.getMachineModel().getSizeofPtrInBits(), pNf, pTarget, 0)
           .getType();
     } else {
       return Iterables.getOnlyElement(oldNfEdge).getType();

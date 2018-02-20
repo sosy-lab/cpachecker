@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustmentEventSubscriber;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
@@ -113,10 +114,9 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Generate invariants using k-induction.
- */
-public class KInductionInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
+/** Generate invariants using k-induction. */
+public class KInductionInvariantGenerator extends AbstractInvariantGenerator
+    implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
   @Options(prefix="invariantGeneration.kInduction")
   private static class KInductionInvariantGeneratorOptions {
@@ -712,5 +712,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     return assumeEdges;
+  }
+
+  @Override
+  public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+    algorithm.adjustmentSuccessful(pCpa);
+  }
+
+  @Override
+  public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+    algorithm.adjustmentRefused(pCpa);
   }
 }

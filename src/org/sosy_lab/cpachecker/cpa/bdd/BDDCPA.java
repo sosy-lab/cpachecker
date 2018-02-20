@@ -254,7 +254,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return new BDDReducer(predmgr);
+    return new BDDReducer();
   }
 
   public Configuration getConfiguration() {

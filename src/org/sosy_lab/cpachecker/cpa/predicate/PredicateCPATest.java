@@ -29,7 +29,10 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.reflect.Invokable;
-
+import java.lang.reflect.Field;
+import java.net.URLClassLoader;
+import java.util.Vector;
+import java.util.regex.Pattern;
 import org.junit.Test;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -42,11 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.lang.reflect.Field;
-import java.net.URLClassLoader;
-import java.util.Vector;
-import java.util.regex.Pattern;
 
 public class PredicateCPATest {
 
