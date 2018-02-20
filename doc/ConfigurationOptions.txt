@@ -1879,6 +1879,21 @@ cpa.predicate.predmap.file = "predmap.txt"
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2]
 
+# Specify whether to overapproximate quantified formula, if one or more
+# quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)
+cpa.predicate.pseudoExistQE.overapprox = true
+
+# Which solver tactic to use for Quantifier Elimination(Only used if
+# useRealQuantifierElimination=true)
+cpa.predicate.pseudoExistQE.solverQeTactic = LIGHT
+  enum:     [NONE, LIGHT, FULL]
+
+# Use Destructive Equality Resolution as simplification method
+cpa.predicate.pseudoExistQE.useDER = true
+
+# Use Unconnected Parameter Drop as simplification method
+cpa.predicate.pseudoExistQE.useUPD = true
+
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
