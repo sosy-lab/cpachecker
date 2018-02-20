@@ -88,15 +88,24 @@ public class CFACheck {
     return true;
   }
 
-  private static String debugFormat(CFANode node) {
-    // try to get some information about location from node
-    FileLocation location = FileLocation.DUMMY;
-    if (node.getNumEnteringEdges() > 0) {
-      location = node.getEnteringEdge(0).getFileLocation();
-    } else if (node.getNumLeavingEdges() > 0) {
-      location = node.getLeavingEdge(0).getFileLocation();
-    }
-    return node.getFunctionName() + ":" + node + " (" + location + ")";
+  /**
+   * This method returns a lazy object where {@link Object#toString} can be called.
+   * In most cases we do not need to build the String, thus we can avoid some overhead here.
+   */
+  private static Object debugFormat(CFANode node) {
+    return new Object() {
+      @Override
+      public String toString() {
+        // try to get some information about location from node
+        FileLocation location = FileLocation.DUMMY;
+        if (node.getNumEnteringEdges() > 0) {
+          location = node.getEnteringEdge(0).getFileLocation();
+        } else if (node.getNumLeavingEdges() > 0) {
+          location = node.getLeavingEdge(0).getFileLocation();
+        }
+        return node.getFunctionName() + ":" + node + " (" + location + ")";
+      }
+    };
   }
 
   /**

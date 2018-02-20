@@ -54,9 +54,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -90,12 +90,6 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    */
   private int previousErrorPathID = -1;
 
-  /**
-   * the flag to determine whether or not to check for repeated refinements
-   */
-  @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
-  private boolean checkForRepeatedRefinements = true;
-
   @Option(secure=true, description="Timelimit for the backup feasibility check with the apron analysis."
       + "(use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
@@ -106,11 +100,6 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
-
-  /**
-   * the identifier which is used to identify repeated refinements
-   */
-  private int previousRefinementId = 0;
 
   /** if this variable is toggled, only octagon refinements will be done as
    * value analysis refinements will make no sense any more because they are too
@@ -202,16 +191,11 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
 
     Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-    refinementRoot                              = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
+    refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment);
 
     // no increment - value-analysis refinement was not successful
     if (increment.isEmpty()) {
       return false;
-    }
-
-    // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-    if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
-      refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
     refinedApronPrecision  = apronPrecision.withIncrement(increment);
@@ -248,21 +232,6 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
 
     return true;
-  }
-
-  /**
-   * The not-so-fancy heuristic to determine if two subsequent refinements are similar
-   *
-   * @param increment the precision increment
-   * @param refinementRoot the current refinement root
-   * @return true, if the current refinement is found to be similar to the previous one, else false
-   */
-  private boolean isRepeatedRefinement(Multimap<CFANode, MemoryLocation> increment, Pair<ARGState, CFAEdge> refinementRoot) {
-    int currentRefinementId = refinementRoot.getSecond().getSuccessor().getNodeNumber();
-    boolean result          = (previousRefinementId == currentRefinementId);
-    previousRefinementId    = currentRefinementId;
-
-    return result;
   }
 
   /**

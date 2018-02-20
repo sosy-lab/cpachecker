@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -198,7 +198,7 @@ public class MultiAspectVerification {
   /**
    * Adds Adjustable precision to the current checked specification.
    */
-  public void addPrecision(AdjustablePrecision addedPrecision) {
+  public void addPrecision(AdjustableInternalPrecision addedPrecision) {
     if (currentSpecificationKey == null)
     {
       // No current specification.
@@ -290,9 +290,10 @@ public class MultiAspectVerification {
       for (AbstractState state : statesForCleaning)
       {
         Precision currentPrecision = reachedSet.getPrecision(state);
-        if (currentPrecision instanceof AdjustablePrecision)
+          if (currentPrecision instanceof AdjustableInternalPrecision)
         {
-          AdjustablePrecision currentAdjustablePrecision = (AdjustablePrecision) currentPrecision;
+            AdjustableInternalPrecision currentAdjustablePrecision =
+                (AdjustableInternalPrecision) currentPrecision;
           currentAdjustablePrecision.clear();
         }
 
@@ -305,23 +306,25 @@ public class MultiAspectVerification {
       }
       break;
     case BY_SPECIFICATION:
-      Collection<Class<? extends AdjustablePrecision>> precisionTypes =
+        Collection<Class<? extends AdjustableInternalPrecision>> precisionTypes =
         ruleSpecifications.get(specificationKey).getPrecisionTypes();
       if (precisionTypes == null || precisionTypes.isEmpty()) {
         // No precision to clean.
         return false;
       }
 
-      for (Class<? extends AdjustablePrecision> precisionType : precisionTypes) {
-        AdjustablePrecision precisionForCleaning = getPrecision(specificationKey, precisionType);
+        for (Class<? extends AdjustableInternalPrecision> precisionType : precisionTypes) {
+          AdjustableInternalPrecision precisionForCleaning =
+              getPrecision(specificationKey, precisionType);
 
         for (AbstractState state : statesForCleaning)
         {
           Precision currentPrecision = reachedSet.getPrecision(state);
-          if (currentPrecision instanceof AdjustablePrecision)
+            if (currentPrecision instanceof AdjustableInternalPrecision)
           {
-            AdjustablePrecision currentAdjustablePrecision = (AdjustablePrecision) currentPrecision;
-            isTimeout = currentAdjustablePrecision.subtract(precisionForCleaning);
+              AdjustableInternalPrecision currentAdjustablePrecision =
+                  (AdjustableInternalPrecision) currentPrecision;
+              isTimeout = currentAdjustablePrecision.subtractInternal(precisionForCleaning);
           }
 
           // Check PCTL.
@@ -418,8 +421,9 @@ public class MultiAspectVerification {
   /**
    * Get Precision of selected class.
    */
-  public AdjustablePrecision getPrecision(SpecificationKey specificationKey,
-      Class<? extends AdjustablePrecision> pPrecisionType) {
+  public AdjustableInternalPrecision getPrecision(
+      SpecificationKey specificationKey,
+      Class<? extends AdjustableInternalPrecision> pPrecisionType) {
     if (specificationKey == null)
     {
       return null;

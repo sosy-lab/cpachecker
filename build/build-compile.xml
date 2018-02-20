@@ -24,6 +24,12 @@
         <copy todir="${class.dir}">
           <fileset dir="${source.dir}">
             <exclude name="**/*.java" />
+            <exclude name="**/*.cup" />
+            <exclude name="**/*.jflex" />
+            <exclude name="**/*.nested" />
+            <exclude name="**/*.xml" />
+            <exclude name="**/*.dia" />
+            <exclude name="**/*.pdf" />
           </fileset>
         </copy>
         <javac debug="true"
@@ -40,6 +46,7 @@
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-fallthrough"/>
             <compilerarg value="-Xep:ReferenceEquality:OFF"/>
+            <compilerarg value="-XepDisableWarningsInGeneratedCode"/>
             <compilerarg value="-Werror"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerclasspath refid="errorprone"/>

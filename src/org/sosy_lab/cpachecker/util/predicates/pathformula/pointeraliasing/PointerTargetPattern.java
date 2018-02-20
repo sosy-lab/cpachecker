@@ -39,8 +39,8 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   private PointerTargetPattern(
       @Nullable String pBase,
       @Nullable CType pContainerType,
-      @Nullable Integer pProperOffset,
-      @Nullable Integer pContainerOffset) {
+      @Nullable Long pProperOffset,
+      @Nullable Long pContainerOffset) {
     base = pBase;
     containerType = pContainerType;
     properOffset = pProperOffset;
@@ -60,10 +60,10 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    * @param base the base name specified
    */
   static PointerTargetPattern forBase(String base) {
-    return new PointerTargetPattern(base, null, 0, 0);
+    return new PointerTargetPattern(base, null, 0L, 0L);
   }
 
-  static Predicate<PointerTarget> forRange(String base, int startOffset, int size) {
+  static Predicate<PointerTarget> forRange(String base, long startOffset, int size) {
     return new RangePointerTargetPattern(base, startOffset, size);
   }
 
@@ -126,18 +126,18 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   private final @Nullable String base;
   private final @Nullable CType containerType;
-  private final @Nullable Integer properOffset;
-  private final @Nullable Integer containerOffset;
+  private final @Nullable Long properOffset;
+  private final @Nullable Long containerOffset;
 
   private static final long serialVersionUID = -2918663736813010025L;
 
   private static class RangePointerTargetPattern implements Predicate<PointerTarget> {
 
     private final String base;
-    private final int startOffset;
-    private final int endOffset;
+    private final long startOffset;
+    private final long endOffset;
 
-    private RangePointerTargetPattern(final String pBase, final int pStartOffset, final int pSize) {
+    private RangePointerTargetPattern(final String pBase, final long pStartOffset, final int pSize) {
       base = pBase;
       startOffset = pStartOffset;
       endOffset = pStartOffset + pSize;
@@ -145,7 +145,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
     @Override
     public boolean apply(final PointerTarget target) {
-      final int offset = target.containerOffset + target.properOffset;
+      final long offset = target.containerOffset + target.properOffset;
       if (offset < startOffset || offset >= endOffset) {
         return false;
       }
@@ -160,8 +160,8 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
     private @Nullable String base = null;
     private @Nullable CType containerType = null;
-    private @Nullable Integer properOffset = null;
-    private @Nullable Integer containerOffset = null;
+    private @Nullable Long properOffset = null;
+    private @Nullable Long containerOffset = null;
 
     private PointerTargetPatternBuilder() {}
 
@@ -172,8 +172,8 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     static PointerTargetPatternBuilder forBase(String pBase) {
       PointerTargetPatternBuilder result = new PointerTargetPatternBuilder();
       result.base = pBase;
-      result.properOffset = 0;
-      result.containerOffset = 0;
+      result.properOffset = 0L;
+      result.containerOffset = 0L;
       return result;
     }
 
@@ -181,17 +181,17 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       return new PointerTargetPattern(base, containerType, properOffset, containerOffset);
     }
 
-    void setProperOffset(final int properOffset) {
+    void setProperOffset(final long properOffset) {
       this.properOffset = properOffset;
     }
 
     @Nullable
-    Integer getProperOffset() {
+    Long getProperOffset() {
       return properOffset;
     }
 
     @Nullable
-    Integer getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
+    Long getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
       if (containerType != null && containerOffset != null && properOffset != null) {
         return typeHandler.getBitSizeof(containerType) - properOffset;
       } else {
@@ -216,12 +216,12 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     }
 
     /**
-     * Increase containerOffset by properOffset, set properOffset and containerType.
-     * Useful for field access visitors.
+     * Increase containerOffset by properOffset, set properOffset and containerType. Useful for
+     * field access visitors.
      */
-    void shift(final CType containerType, final int properOffset) {
-      shift(containerType);
-      this.properOffset = properOffset;
+    void shift(final CType pContainerType, final long pProperOffset) {
+      shift(pContainerType);
+      this.properOffset = pProperOffset;
     }
 
     /**

@@ -42,10 +42,10 @@
   </tasks>
 
   <rundefinition name="combinations">
-    <option name="-sv-comp13--combinations"/>
+    <option name="-svcomp13--combinations"/>
   </rundefinition>
 
   <rundefinition name="valueItp-pred">
-    <option name="-sv-comp13--valueItp-pred"/>
+    <option name="-svcomp13--valueItp-pred"/>
   </rundefinition>
 </benchmark>

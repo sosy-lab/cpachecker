@@ -40,14 +40,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
-
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import javax.annotation.Nullable;
 
 /**
@@ -58,6 +57,9 @@ public class PredicateCPARefinerFactory {
 
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
+
+  @Option(secure = true, name="graphblockformulastrategy", description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
+  private boolean graphBlockFormulaStrategy = false;
 
   @Option(
     secure = true,
@@ -78,12 +80,7 @@ public class PredicateCPARefinerFactory {
   @SuppressWarnings("options")
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    predicateCpa = CPAs.retrieveCPA(checkNotNull(pCpa), PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(
-          PredicateCPARefiner.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    predicateCpa = CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
   }
 
@@ -160,7 +157,13 @@ public class PredicateCPARefinerFactory {
       }
       bfs = blockFormulaStrategy;
     } else {
-      bfs = sliceBlockFormulas ? new BlockFormulaSlicer(pfmgr) : new BlockFormulaStrategy();
+      if (sliceBlockFormulas) {
+        bfs = new BlockFormulaSlicer(pfmgr);
+      } else if (graphBlockFormulaStrategy) {
+        bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
+      } else {
+        bfs = new BlockFormulaStrategy();
+      }
     }
 
     ARGBasedRefiner refiner =

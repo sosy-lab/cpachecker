@@ -24,33 +24,11 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.PrintStream;
-import java.util.Map;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-@Options
-class CoverageReportStdoutSummary implements CoverageWriter {
+public class CoverageReportStdoutSummary {
 
-  @Option(secure=true,
-      name="coverage.stdout",
-      description="print coverage summary to stdout")
-  private boolean enabled = true;
-
-  public CoverageReportStdoutSummary(Configuration pConfig) throws InvalidConfigurationException {
-    pConfig.inject(this);
-  }
-
-  @Override
-  public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
-
-    if (!enabled) {
-      return;
-    }
-
+  public static void write(CoverageData pCoverage, PrintStream pStdOut) {
     long numTotalConditions = 0;
     long numTotalFunctions = 0;
     long numTotalLines = 0;
@@ -59,24 +37,16 @@ class CoverageReportStdoutSummary implements CoverageWriter {
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
-    for (FileCoverageInformation info: pCoverage.values()) {
-      numTotalFunctions =+ info.allFunctions.size();
-      numVisitedFunctions =+ info.visitedFunctions.size();
+    for (FileCoverageInformation info : pCoverage.getInfosPerFile().values()) {
+      numTotalFunctions += info.allFunctions.size();
+      numVisitedFunctions += info.visitedFunctions.entrySet().size();
 
-      numTotalConditions =+ info.allAssumes.size();
-      numVisitedConditions =+ info.visitedAssumes.size();
+      numTotalConditions += info.allAssumes.size();
+      numVisitedConditions += info.visitedAssumes.size();
 
-      numTotalLines =+ info.allLines.size();
-
-      for (Integer line : info.allLines) {
-        if (info.getVisitedLine(line) > 0) {
-          numVisitedLines += 1;
-        }
-      }
+      numTotalLines += info.allLines.size();
+      numVisitedLines += info.visitedLines.entrySet().size();
     }
-
-    pStdOut.println("Code Coverage");
-    pStdOut.println("-----------------------------");
 
     if (numTotalFunctions > 0) {
       final double functionCoverage = numVisitedFunctions / (double) numTotalFunctions;
@@ -96,9 +66,6 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
     }
-
-    pStdOut.println();
-
   }
 
 }

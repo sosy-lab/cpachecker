@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -34,20 +38,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Strongest post-operator using {@link ValueAnalysisTransferRelation}.
@@ -62,7 +62,14 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    transfer = new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
+    transfer =
+        new ValueAnalysisTransferRelation(
+            pLogger,
+            pCfa,
+            new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
+            new SymbolicValueAssigner(pConfig),
+            new ConstraintsStrengthenOperator(pConfig),
+            null);
   }
 
   @Override

@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;

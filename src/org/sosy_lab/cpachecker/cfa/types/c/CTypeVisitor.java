@@ -34,4 +34,5 @@ public interface CTypeVisitor<R, X extends Exception> {
   R visit(CSimpleType pSimpleType) throws X;
   R visit(CTypedefType pTypedefType) throws X;
   R visit(CVoidType pVoidType) throws X;
+  R visit(CBitFieldType pCBitFieldType) throws X;
 }

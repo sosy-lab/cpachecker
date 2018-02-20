@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -74,7 +73,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -143,6 +141,12 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="include type information for variables, such as x >= MIN_INT && x <= MAX_INT")
     private boolean includeTypeInformation = true;
+
+    @Option(secure=true, description="enables the over-approximation of unsupported features instead of failing fast; this is imprecise")
+    private boolean allowOverapproximationOfUnsupportedFeatures = true;
+
+    @Option(secure=true, description="use pointer-alias information in strengthening, if available.")
+    private boolean usePointerAliasStrengthening = true;
   }
 
   /**
@@ -262,17 +266,16 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new InvariantsTransferRelation(compoundIntervalManagerFactory, machineModel);
+    return new InvariantsTransferRelation(
+        compoundIntervalManagerFactory,
+        machineModel,
+        options.allowOverapproximationOfUnsupportedFeatures,
+        options.usePointerAliasStrengthening);
   }
 
   @Override
   public StopOperator getStopOperator() {
     return new StopSepOperator(getAbstractDomain());
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
@@ -377,26 +380,21 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     initialPrecisionMap.put(pNode, precision);
 
+    // Create the configured initial state
+    InvariantsState state =
+        new InvariantsState(
+            variableSelection,
+            compoundIntervalManagerFactory,
+            machineModel,
+            abstractionState,
+            options.includeTypeInformation);
+
     BooleanFormula<CompoundInterval> invariant = invariants.get(pNode);
     if (invariant != null) {
-      InvariantsState state = new InvariantsState(
-          variableSelection,
-          compoundIntervalManagerFactory,
-          machineModel,
-          abstractionState,
-          false,
-          options.includeTypeInformation);
       state = state.assume(invariant);
     }
 
-    // Create the configured initial state
-    return new InvariantsState(
-        variableSelection,
-        compoundIntervalManagerFactory,
-        machineModel,
-        abstractionState,
-        false,
-        options.includeTypeInformation);
+    return state;
   }
 
   @Override

@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.io.Serializable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
+import java.io.Serializable;
 
 public enum SIGN implements Serializable{
   // ALL = 111, PLUS = 100, MINUS = 010, ...
   EMPTY(0), PLUS(1), MINUS(2), ZERO(4), PLUSMINUS(3), PLUS0(5), MINUS0(6), ALL(7);
 
-  private int numVal;
+  private final int numVal;
 
   private static final ImmutableMap<Integer, SIGN> VALUE_MAP;
 

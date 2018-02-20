@@ -70,6 +70,9 @@ public class WeightedGraph implements Iterable<WeightedNode> {
         WeightedEdge edge = new WeightedEdge(start, end, weight);
         addEdge(edge);
       }
+      if(nodes[actualNode] == null) {
+        nodes[actualNode] = start;
+      }
     }
   }
 

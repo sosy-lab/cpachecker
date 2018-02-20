@@ -23,17 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import com.google.common.collect.FluentIterable;
-
+import com.google.common.base.Functions;
+import com.google.common.collect.Ordering;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
@@ -41,10 +45,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
-
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * {@link PathExtractor} that sorts paths by their length or interpolant quality.
@@ -85,32 +85,28 @@ public class SortingPathExtractor extends PathExtractor {
    */
   @Override
   public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
+    Map<ARGState, Integer> targetsWithScores = new LinkedHashMap<>();
+    for (ARGState target : super.getTargetStates(pReached)) {
+      targetsWithScores.put(target, getScore(target));
+    }
+    // sort keys by their values
+    return Ordering.natural()
+        .onResultOf(Functions.forMap(targetsWithScores))
+        .immutableSortedCopy(targetsWithScores.keySet());
+  }
 
-    // sort the list, to either favor shorter paths or better interpolants
-    Comparator<ARGState> comparator = new Comparator<ARGState>() {
-      @Override
-      public int compare(ARGState target1, ARGState target2) {
-        try {
-          ARGPath path1 = ARGUtils.getOnePathTo(target1);
-          ARGPath path2 = ARGUtils.getOnePathTo(target2);
-
-          if(itpSortedTargets) {
-            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasiblePrefixes(path1);
-            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasiblePrefixes(path2);
-
-            int score1 = prefixSelector.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_MIN);
-            int score2 = prefixSelector.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_MIN);
-
-            return Integer.compare(score1, score2);
-          } else {
-            return Integer.compare(path1.size(), path2.size());
-          }
-        } catch (CPAException | InterruptedException e) {
-          throw new AssertionError(e);
-        }
+  private int getScore(ARGState target) {
+    ARGPath path = ARGUtils.getOnePathTo(target);
+    if (itpSortedTargets) {
+      List<InfeasiblePrefix> prefixes;
+      try {
+        prefixes = prefixProvider.extractInfeasiblePrefixes(path);
+      } catch (CPAException | InterruptedException e) {
+        throw new AssertionError(e);
       }
-    };
-
-    return FluentIterable.from(super.getTargetStates(pReached)).toSortedList(comparator);
+      return prefixSelector.obtainScoreForPrefixes(prefixes, PrefixPreference.DOMAIN_MIN);
+    } else {
+      return path.size();
+    }
   }
 }

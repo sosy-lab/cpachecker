@@ -1,7 +1,13 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.ImmutableMap;
-
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -9,14 +15,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
@@ -62,6 +60,9 @@ public final class PolicyAbstractedState extends PolicyState
 
   private transient int hashCache = 0;
 
+  private final static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final int stateId;
+
   private PolicyAbstractedState(
       CFANode node,
       Map<Template, PolicyBound> pUpperBounds,
@@ -81,6 +82,11 @@ public final class PolicyAbstractedState extends PolicyState
     locationID = pLocationID;
     manager = pManager;
     sibling = pSibling;
+    stateId = idGenerator.getFreshId();
+  }
+
+  int getStateId() {
+    return stateId;
   }
 
   public Optional<PolicyAbstractedState> getSibling() {

@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collector;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.util.Collection;
-import java.util.Set;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -68,6 +68,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  public Collector<BooleanFormula, ?, BooleanFormula> toConjunction() {
+    return manager.toConjunction();
+  }
+
+  @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
     return manager.or(pBits1, pBits2);
   }
@@ -80,6 +85,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula or(BooleanFormula... bits) {
     return manager.or(bits);
+  }
+
+  @Override
+  public Collector<BooleanFormula, ?, BooleanFormula> toDisjunction() {
+    return manager.toDisjunction();
   }
 
   @Override

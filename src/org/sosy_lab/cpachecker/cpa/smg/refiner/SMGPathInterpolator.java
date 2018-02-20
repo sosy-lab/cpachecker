@@ -23,24 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
@@ -48,16 +44,6 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 public class SMGPathInterpolator {
 
@@ -80,8 +66,7 @@ public class SMGPathInterpolator {
   private final SMGFeasibilityChecker checker;
 
   private final LogManager logger;
-  private final PathTemplate exportPath;
-  private final SMGExportLevel exportWhen;
+  private final SMGPathInterpolationExporter exporter;
 
   public SMGPathInterpolator(ShutdownNotifier pShutdownNotifier,
       SMGInterpolantManager pInterpolantManager,
@@ -91,9 +76,8 @@ public class SMGPathInterpolator {
     interpolantManager = pInterpolantManager;
     interpolator = pInterpolator;
     logger = pLogger;
-    exportPath = pExportPath;
-    exportWhen = pExportWhen;
     checker = pChecker;
+    exporter = new SMGPathInterpolationExporter(pLogger, pExportPath, pExportWhen);
   }
 
   public Map<ARGState, SMGInterpolant> performInterpolation(ARGPath pErrorPath,
@@ -111,138 +95,12 @@ public class SMGPathInterpolator {
 
     propagateFalseInterpolant(pErrorPath, pErrorPath, interpolants);
 
-    if(exportWhen == SMGExportLevel.EVERY) {
-      exportInterpolation(pErrorPath, interpolants, interpolationId);
-    }
+    exporter.exportInterpolation(pErrorPath, interpolants, interpolationId);
 
     logger.log(Level.ALL,
         "Finish generating Interpolants for path with interpolation id ", interpolationId);
 
     return interpolants;
-  }
-
-  private void exportInterpolation(ARGPath pErrorPath, Map<ARGState, SMGInterpolant> pInterpolants,
-      int pInterpolationId) {
-
-    if (exportPath == null) {
-      return;
-    }
-
-    exportCFAPath(pErrorPath.getInnerEdges(), pInterpolationId);
-
-    ARGState firstState = pErrorPath.getFirstState();
-
-    if (pInterpolants.containsKey(firstState)) {
-      SMGInterpolant firstInterpolant = pInterpolants.get(firstState);
-      exportFirstInterpolant(firstInterpolant, pInterpolationId);
-    }
-
-    PathIterator pathIterator = pErrorPath.pathIterator();
-
-    int pathIndex = 2;
-
-    while (pathIterator.advanceIfPossible()) {
-      ARGState currentARGState = pathIterator.getAbstractState();
-
-      if (!pInterpolants.containsKey(currentARGState)) {
-        pathIndex = pathIndex + 1;
-        continue;
-      }
-
-      SMGInterpolant currentInterpolant = pInterpolants.get(currentARGState);
-      CFANode currentLocation = pathIterator.getLocation();
-      CFAEdge currentIncomingEdge = pathIterator.getIncomingEdge();
-      exportInterpolant(currentInterpolant, currentLocation, currentIncomingEdge, pInterpolationId,
-          pathIndex);
-      pathIndex = pathIndex + 1;
-    }
-  }
-
-  private void exportInterpolant(SMGInterpolant pCurrentInterpolant, CFANode pCurrentLocation,
-      CFAEdge pIncomingEdge, int pInterpolationId, int pPathIndex) {
-
-    if (pIncomingEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
-      return;
-    }
-
-    if (pIncomingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-      CDeclarationEdge cDclEdge = (CDeclarationEdge) pIncomingEdge;
-      CDeclaration cDcl = cDclEdge.getDeclaration();
-      if (cDcl instanceof CFunctionDeclaration ||
-          cDcl instanceof CTypeDeclaration) {
-        return;
-      }
-    }
-
-    if (pCurrentInterpolant.isFalse()) {
-      return;
-    }
-
-    List<SMGState> states = pCurrentInterpolant.reconstructStates();
-
-    int counter = 1;
-    for (SMGState state : states) {
-      String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + counter + ".dot";
-      Path path = exportPath.getPath(pInterpolationId, fileName);
-      String location = pIncomingEdge.toString() + " on N" + pCurrentLocation.getNodeNumber();
-      SMGUtils.dumpSMGPlot(logger, state, location, path);
-      counter = counter + 1;
-    }
-  }
-
-  private void exportFirstInterpolant(SMGInterpolant pFirstInterpolant, int pInterpolationId) {
-
-    if (pFirstInterpolant.isFalse()) {
-      return;
-    }
-
-    List<SMGState> states = pFirstInterpolant.reconstructStates();
-
-    int counter = 1;
-    for (SMGState state : states) {
-      String fileName = "smgInterpolant-1-smg-" + counter + ".dot";
-      Path path = exportPath.getPath(pInterpolationId, fileName);
-      String name = "First interpolant";
-      SMGUtils.dumpSMGPlot(logger, state, name, path);
-      counter = counter + 1;
-    }
-  }
-
-  private void exportCFAPath(List<CFAEdge> pFullPath, int pInterpolationId) {
-
-    if(exportPath == null) {
-      return;
-    }
-
-    StringBuilder interpolationPath = new StringBuilder();
-
-    for (CFAEdge edge : pFullPath) {
-
-      if(edge.getEdgeType() == CFAEdgeType.BlankEdge) {
-        continue;
-      }
-
-      if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-        CDeclarationEdge cDclEdge = (CDeclarationEdge) edge;
-        CDeclaration cDcl = cDclEdge.getDeclaration();
-        if (cDcl instanceof CFunctionDeclaration ||
-            cDcl instanceof CTypeDeclaration) {
-          continue;
-        }
-      }
-
-      interpolationPath.append(edge.toString());
-      interpolationPath.append("\n");
-    }
-
-    Path path = exportPath.getPath(pInterpolationId, "interpolationPath.txt");
-
-    try {
-      MoreFiles.writeFile(path, Charset.defaultCharset(), interpolationPath.toString());
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e,
-          "Failed to write interpolation path to path " + path.toString());
-    }
   }
 
   /**

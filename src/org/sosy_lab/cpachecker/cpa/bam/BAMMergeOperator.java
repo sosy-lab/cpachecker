@@ -32,15 +32,12 @@ public class BAMMergeOperator implements MergeOperator {
 
   private final MergeOperator wrappedMergeOp;
   private final BAMPCCManager bamPccManager;
-  private final BAMTransferRelation bamTransferRelation;
 
   public BAMMergeOperator(
       MergeOperator pWrappedMerge,
-      BAMPCCManager pBAMPCCManager,
-      BAMTransferRelation pBamTransferRelation) {
+      BAMPCCManager pBAMPCCManager) {
     wrappedMergeOp = pWrappedMerge;
     bamPccManager = pBAMPCCManager;
-    bamTransferRelation = pBamTransferRelation;
   }
 
   @Override
@@ -54,9 +51,7 @@ public class BAMMergeOperator implements MergeOperator {
         pPrecision
     );
     if (bamPccManager.isPCCEnabled()) {
-      return bamPccManager.attachAdditionalInfoToCallNode(
-          out, bamTransferRelation.getCurrentBlock()
-      );
+      return bamPccManager.attachAdditionalInfoToCallNode(out);
     }
     return out;
   }

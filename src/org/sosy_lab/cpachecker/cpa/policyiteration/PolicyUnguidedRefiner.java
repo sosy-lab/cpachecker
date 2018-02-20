@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.Iterables;
-
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -12,11 +12,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-
-import java.util.logging.Level;
 
 /**
  * Unguided precision refiner: increase the number of generated templates
@@ -31,17 +29,18 @@ public class PolicyUnguidedRefiner implements Refiner {
   private int unrollingRefinementThreshold = 2;
 
   private final PolicyCPA policyCPA;
-  private final LoopstackCPA loopstackCPA;
+  private final LoopBoundCPA loopBoundCPA;
   private final LogManager logger;
 
   private int refinementsPerformed = 0;
 
-  public PolicyUnguidedRefiner(PolicyCPA pPolicyCPA, LoopstackCPA pLoopstackCPA,
-      LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException{
+  public PolicyUnguidedRefiner(
+      PolicyCPA pPolicyCPA, LoopBoundCPA pLoopstackCPA, LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
     policyCPA = pPolicyCPA;
-    loopstackCPA = pLoopstackCPA;
+    loopBoundCPA = pLoopstackCPA;
     logger = pLogger;
   }
 
@@ -50,16 +49,12 @@ public class PolicyUnguidedRefiner implements Refiner {
       final ConfigurableProgramAnalysis pCpa
   ) throws InvalidConfigurationException {
 
-    PolicyCPA policyCPA = CPAs.retrieveCPA(pCpa, PolicyCPA.class);
-    LoopstackCPA loopstackCPA = CPAs.retrieveCPA(pCpa, LoopstackCPA.class);
-    if (policyCPA == null) {
-      throw new InvalidConfigurationException(
-          PolicyUnguidedRefiner.class.getSimpleName() + " needs a PolicyCPA"
-      );
-    }
+    PolicyCPA policyCPA =
+        CPAs.retrieveCPAOrFail(pCpa, PolicyCPA.class, PolicyUnguidedRefiner.class);
+    LoopBoundCPA loopBoundCPA = CPAs.retrieveCPA(pCpa, LoopBoundCPA.class);
 
-    return new PolicyUnguidedRefiner(policyCPA, loopstackCPA, policyCPA.getLogger(),
-        policyCPA.getConfig());
+    return new PolicyUnguidedRefiner(
+        policyCPA, loopBoundCPA, policyCPA.getLogger(), policyCPA.getConfig());
   }
 
   @Override
@@ -68,9 +63,10 @@ public class PolicyUnguidedRefiner implements Refiner {
     boolean out = policyCPA.adjustPrecision();
     if (out) {
 
-      if (unrollingRefinementThreshold != -1 &&
-          refinementsPerformed == unrollingRefinementThreshold && loopstackCPA != null) {
-        loopstackCPA.incLoopIterationsBeforeAbstraction();
+      if (unrollingRefinementThreshold != -1
+          && refinementsPerformed == unrollingRefinementThreshold
+          && loopBoundCPA != null) {
+        loopBoundCPA.incrementLoopIterationsBeforeAbstraction();
         logger.log(Level.INFO, "LPI Refinement: increasing unrolling bound.");
       }
 
@@ -85,7 +81,7 @@ public class PolicyUnguidedRefiner implements Refiner {
     }
   }
 
-  private void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) throws InterruptedException {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -214,8 +216,8 @@ public class SSAMap implements Serializable {
     return EMPTY_SSA_MAP;
   }
 
-  public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.freshValueProvider, this.varsHashCode, this.varTypes, defaultValue);
+  public SSAMap withDefault(final int pDefaultValue) {
+    return new SSAMap(this.vars, this.freshValueProvider, this.varsHashCode, this.varTypes, pDefaultValue);
   }
 
   /**
@@ -233,8 +235,10 @@ public class SSAMap implements Serializable {
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
 
+    checkArgument(s1.defaultValue == s2.defaultValue);
     PersistentSortedMap<String, Integer> vars;
     FreshValueProvider freshValueProvider;
+    int defaultIndex;
     if (s1.vars == s2.vars && s1.freshValueProvider == s2.freshValueProvider) {
       // both are absolutely identical
       return s1;
@@ -248,6 +252,7 @@ public class SSAMap implements Serializable {
               PersistentSortedMaps.getMaximumMergeConflictHandler(),
               collectDifferences);
       freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
+      defaultIndex = s1.defaultValue;
     }
 
     PersistentSortedMap<String, CType> varTypes =
@@ -258,7 +263,7 @@ public class SSAMap implements Serializable {
             TYPE_CONFLICT_CHECKER,
             MapsDifference.ignoreMapsDifference());
 
-    return new SSAMap(vars, freshValueProvider, 0, varTypes);
+    return new SSAMap(vars, freshValueProvider, 0, varTypes, defaultIndex);
   }
 
   private final PersistentSortedMap<String, Integer> vars;

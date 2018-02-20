@@ -65,7 +65,7 @@ public class CPABuilder {
   private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
   @Option(secure=true, name=CPA_OPTION_NAME,
-      description="CPA to use (see doc/Configuration.txt for more documentation on this)")
+      description="CPA to use (see doc/Configuration.md for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   private final Configuration config;
@@ -138,8 +138,8 @@ public class CPABuilder {
     Preconditions.checkNotNull(optionValue);
 
     // parse option (may be of syntax "classname alias"
-    String[] optionParts = optionValue.trim().split("\\s+");
-    String cpaName = optionParts[0];
+    List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue.trim());
+    String cpaName = optionParts.get(0);
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaName);
 
     if (!usedAliases.add(cpaAlias)) {
@@ -188,7 +188,10 @@ public class CPABuilder {
       // This is the top-level CompositeCPA that is the default,
       // but without any children. This means that the user did not specify any
       // meaningful configuration.
-      throw new InvalidConfigurationException("Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' (for example, '-valueAnalysis' or '-predicateAnalysis'). See README.txt for more details.");
+      throw new InvalidConfigurationException(
+          "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
+              + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
+              + "See README.md for more details.");
     }
 
     // finally call createInstance
@@ -205,28 +208,31 @@ public class CPABuilder {
     return cpa;
   }
 
-  private String getCPAAlias(String optionValue, String optionName,
-      String[] optionParts, String cpaName) throws InvalidConfigurationException {
+  private String getCPAAlias(
+      String optionValue, String optionName, List<String> optionParts, String pCpaName)
+      throws InvalidConfigurationException {
 
-    if (optionParts.length == 1) {
+    if (optionParts.size() == 1) {
       // no user-specified alias, use last part of class name
-      int dotIndex = cpaName.lastIndexOf('.');
-      return (dotIndex >= 0 ? cpaName.substring(dotIndex+1) : cpaName);
+      int dotIndex = pCpaName.lastIndexOf('.');
+      return (dotIndex >= 0 ? pCpaName.substring(dotIndex + 1) : pCpaName);
 
-    } else if (optionParts.length == 2) {
-      return optionParts[1];
+    } else if (optionParts.size() == 2) {
+      return optionParts.get(1);
 
     } else {
       throw new InvalidConfigurationException("Option " + optionName + " contains invalid CPA specification \"" + optionValue + "\"!");
     }
   }
 
-  private Class<?> getCPAClass(String optionName, String cpaName) throws InvalidConfigurationException {
+  private Class<?> getCPAClass(String optionName, String pCpaName)
+      throws InvalidConfigurationException {
     Class<?> cpaClass;
     try {
-      cpaClass = Classes.forName(cpaName, CPA_CLASS_PREFIX);
+      cpaClass = Classes.forName(pCpaName, CPA_CLASS_PREFIX);
     } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName, e);
+      throw new InvalidConfigurationException(
+          "Option " + optionName + " is set to unknown CPA " + pCpaName, e);
     }
 
     if (!ConfigurableProgramAnalysis.class.isAssignableFrom(cpaClass)) {
@@ -239,7 +245,7 @@ public class CPABuilder {
     return cpaClass;
   }
 
-  private CPAFactory getFactoryInstance(String cpaName, Class<?> cpaClass) throws CPAException {
+  private CPAFactory getFactoryInstance(String pCpaName, Class<?> cpaClass) throws CPAException {
 
     // get factory method
     Method factoryMethod;
@@ -271,7 +277,7 @@ public class CPABuilder {
       Throwable cause = e.getCause();
       Throwables.propagateIfPossible(cause, CPAException.class);
 
-      throw new UnexpectedCheckedException("instantiation of CPA " + cpaName, cause);
+      throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
     if ((factoryObj == null) || !(factoryObj instanceof CPAFactory)) {
@@ -282,7 +288,7 @@ public class CPABuilder {
   }
 
   private boolean createAndSetChildrenCPAs(
-      String cpaName,
+      String pCpaName,
       String cpaAlias,
       CPAFactory factory,
       Set<String> usedAliases,
@@ -325,7 +331,8 @@ public class CPABuilder {
       try {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
+        throw new InvalidConfigurationException(
+            pCpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
       }
       logger.log(Level.FINER, "CPA " + cpaAlias + " got child " + childCpaName);
       return true;
@@ -353,7 +360,9 @@ public class CPABuilder {
       try {
         factory.setChildren(childrenCpas.build());
       } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!", e);
+        throw new InvalidConfigurationException(
+            pCpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!",
+            e);
       }
       logger.log(Level.FINER, "CPA " + cpaAlias + " got children " + childrenCpaNames);
       return true;

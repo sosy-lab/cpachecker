@@ -30,7 +30,28 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.java_smt.SolverContextFactory.Solvers.SMTINTERPOL;
 
 import com.google.common.collect.ImmutableList;
-
+import de.uni_freiburg.informatik.ultimate.lassoranker.AnalysisType;
+import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LassoRankerPreferences;
+import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationAnalysisSettings;
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgumentSynthesizer;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAnalysisSettings;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.AffineTemplate;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.NestedTemplate;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.RankingTemplate;
+import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
+import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -56,30 +77,6 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.logging.Level;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.AnalysisType;
-import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LassoRankerPreferences;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
-import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationAnalysisSettings;
-import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
-import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgumentSynthesizer;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAnalysisSettings;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.AffineTemplate;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.NestedTemplate;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.RankingTemplate;
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 
 @Options(prefix = "termination.lassoAnalysis")
 public class LassoAnalysisImpl implements LassoAnalysis {
@@ -204,7 +201,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private final LassoRankerToolchainStorage toolchainStorage;
 
-  private final Collection<RankingTemplate> rankingTemplates;
+  private final ImmutableList<RankingTemplate> rankingTemplates;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -223,9 +220,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
         SolverContextFactory.createSolverContext(pConfig, logger, shutdownNotifier, SMTINTERPOL);
     AbstractFormulaManager<Term, ?, ?, ?> formulaManager =
         (AbstractFormulaManager<Term, ?, ?, ?>) solverContext.getFormulaManager();
-    Configuration solverConfig = Configuration.defaultConfiguration();
     FormulaManagerView formulaManagerView =
-        new FormulaManagerView(formulaManager, solverConfig, pLogger);
+        new FormulaManagerView(formulaManager, pConfig, pLogger);
     PathFormulaManager pathFormulaManager =
         new PathFormulaManagerImpl(
             formulaManagerView,
@@ -276,7 +272,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     rankingTemplates = createTemplates(maxTemplateFunctions);
   }
 
-  private static Collection<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
+  private static ImmutableList<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
     ImmutableList.Builder<RankingTemplate> rankingTemplates = ImmutableList.builder();
 
     rankingTemplates.add(new AffineTemplate());

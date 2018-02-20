@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 
@@ -38,8 +37,8 @@ public final class CPointerType implements CType, Serializable {
   public static final CPointerType POINTER_TO_CONST_CHAR = new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
 
   private final CType type;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   public CPointerType(final boolean pConst, final boolean pVolatile,
       final CType pType) {
@@ -83,18 +82,24 @@ public final class CPointerType implements CType, Serializable {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     // ugly hack but it works:
-    // We need to insert the "*" between the type and the name (e.g. "int *var").
-    String decl;
+    // We need to insert the "*" and qualifiers between the type and the name (e.g. "int *var").
+    StringBuilder inner = new StringBuilder("*");
+    if (isConst()) {
+      inner.append(" const");
+    }
+    if (isVolatile()) {
+      inner.append(" volatile");
+    }
+    if (inner.length() > 1) {
+      inner.append(' ');
+    }
+    inner.append(pDeclarator);
 
     if (type instanceof CArrayType) {
-      decl = type.toASTString("(*" + pDeclarator + ")");
+      return type.toASTString("(" + inner.toString() + ")");
     } else {
-      decl = type.toASTString("*" + pDeclarator);
+      return type.toASTString(inner.toString());
     }
-
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + decl;
   }
 
   @Override
@@ -141,22 +146,5 @@ public final class CPointerType implements CType, Serializable {
   @Override
   public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CPointerType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
-  }
-
-  @Override
-  public boolean isBitField() {
-    return false;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return 0;
-  }
-
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    // Bit field size not supported
-    assert false;
-    return this;
   }
 }

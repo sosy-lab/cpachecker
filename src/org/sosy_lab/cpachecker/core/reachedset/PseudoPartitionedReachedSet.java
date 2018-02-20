@@ -25,20 +25,20 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
-
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 /**
  * Special implementation of the partitioned reached set {@link PartitionedReachedSet}.
@@ -50,7 +50,7 @@ import java.util.Set;
  * is called (which is usually done by the CPAAlgorithm to get the candidates
  * for merging and coverage checks), it will return a subset of the set of all
  * reached states. This subset contains exactly those states,
- * that might be 'lessOrEqual' than the given state.
+ * where the given state might be 'lessOrEqual'.
  *
  * This type of reached-set might work best in combination with an analysis
  * that uses the operators merge_sep and stop_sep.
@@ -58,12 +58,14 @@ import java.util.Set;
 public class PseudoPartitionedReachedSet extends DefaultReachedSet {
 
   /**
-   * the main storage:
-   * row/first key: the partition key, same as in {@link PartitionedReachedSet},
+   * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
+   *
+   * Since a partition key may be null, but HashBasedTable does not support null keys,
+   * we use Optionals.
    */
-  private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>> partitionedReached =
-      HashBasedTable.create();
+  private final Table<Optional<Object>, Comparable<?>, SetMultimap<Object, AbstractState>>
+      partitionedReached = HashBasedTable.create(1, 1);
 
   public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
@@ -73,7 +75,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   public void add(AbstractState pState, Precision pPrecision) {
     super.add(pState, pPrecision);
 
-    Object key = getPartitionKey(pState);
+    Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
     SetMultimap<Object, AbstractState> states = partitionedReached.get(key, pseudoKey);
@@ -89,10 +91,11 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   public void remove(AbstractState pState) {
     super.remove(pState);
 
-    Object key = getPartitionKey(pState);
+    Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
-    SetMultimap<Object, AbstractState> states = partitionedReached.get(key, pseudoKey);
+    SetMultimap<Object, AbstractState> states =
+        partitionedReached.get(key, pseudoKey);
     if (states != null) {
       states.remove(pseudoHash, pState);
       if (states.isEmpty()) {
@@ -111,7 +114,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
   public Set<AbstractState> getReached(AbstractState pState) {
-    Object key = getPartitionKey(pState);
+    Optional<Object> key = getPartitionKey(pState);
     Comparable pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
     Map<Comparable<?>, SetMultimap<Object, AbstractState>> partition = partitionedReached.row(key);
@@ -121,40 +124,44 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
       return Collections.emptySet();
     }
 
-    Set<AbstractState> states = new LinkedHashSet<>();
+    Set<AbstractState> states;
 
     // here happens the trick, if the comparable is "equal" (matching pseudoKey):
     // if the state is also "equal", we use the state, otherwise state is definitely not "lessOrEqual".
-    // TODO this trick might contradict the specification of this method -> view of changing data?
     if (partition.containsKey(pseudoKey)) {
-      states.addAll(partition.get(pseudoKey).get(pseudoHash));
+      states = partition.get(pseudoKey).get(pseudoHash);
+    } else {
+      states = ImmutableSet.of();
     }
 
-    // add all states with a smaller pseudo-key, they might be "lessOrEqual".
+    // add all states with a smaller pseudo-key, we might be "lessOrEqual" than those.
     for (Entry<Comparable<?>, SetMultimap<Object, AbstractState>> entry : partition.entrySet()) {
-      if (pseudoKey.compareTo(entry.getKey()) < 0) {
-        states.addAll(entry.getValue().values());
+      if (pseudoKey.compareTo(entry.getKey()) > 0) { // pseudoKey is "greaterThan"
+        SetMultimap<Object, AbstractState> m = entry.getValue();
+        for (Object mKey : m.keySet()) {
+          states = Sets.union(states, m.get(mKey));
+        }
       }
     }
 
     return Collections.unmodifiableSet(states);
   }
 
-  private Comparable<?> getPseudoPartitionKey(AbstractState pState) {
+  private static Comparable<?> getPseudoPartitionKey(AbstractState pState) {
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoPartitionKey();
   }
 
-  private Object getPseudoHashCode(AbstractState pState) {
+  private static Object getPseudoHashCode(AbstractState pState) {
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoHashCode();
   }
 
-  private Object getPartitionKey(AbstractState pState) {
+  private static Optional<Object> getPartitionKey(AbstractState pState) {
     assert pState instanceof Partitionable
         : "Partitionable states necessary for PartitionedReachedSet";
-    return ((Partitionable) pState).getPartitionKey();
+    return Optional.ofNullable(((Partitionable) pState).getPartitionKey());
   }
 }

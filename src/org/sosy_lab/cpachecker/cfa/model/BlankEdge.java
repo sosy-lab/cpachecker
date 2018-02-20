@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class BlankEdge extends AbstractCFAEdge {
 
-  private final String description;
+  private static final long serialVersionUID = 6394933292868202442L;
 
-  public static final String REPLACEMENT_LABEL = "REPLACEMENT-NOOP";
+  private final String description;
 
   public BlankEdge(String pRawStatement, FileLocation pFileLocation,  CFANode pPredecessor,
       CFANode pSuccessor, String pDescription) {
@@ -52,13 +52,5 @@ public class BlankEdge extends AbstractCFAEdge {
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.BlankEdge;
-  }
-
-  public static BlankEdge buildNoopEdge(final CFANode pPredecessor, final CFANode pSuccessor) {
-    return new BlankEdge("",
-        FileLocation.DUMMY,
-        pPredecessor,
-        pSuccessor,
-        REPLACEMENT_LABEL);
   }
 }

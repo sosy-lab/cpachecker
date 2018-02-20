@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -77,6 +78,12 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeExc
   @Override
   public Boolean visit(CPointerExpression e) {
     return true;
+  }
+
+  @Override
+  public Boolean visit(CUnaryExpression e) throws RuntimeException {
+    // Inside casts an arbitrary expression may appear on the LHS
+    return e.getOperand().accept(this);
   }
 
   @Override

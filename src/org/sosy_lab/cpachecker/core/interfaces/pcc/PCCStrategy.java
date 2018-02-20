@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,9 +38,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.io.IOException;
-import java.util.Collection;
 
 /**
  * Interface for classes implementing proof carrying code approaches. Theses classes can be used by ProofGenerator and
@@ -100,10 +101,11 @@ public interface PCCStrategy {
         Configuration config,
         LogManager logger,
         ShutdownNotifier shutdownNotifier,
-        CFA cfa,
-        Specification specification,
-        ProofChecker proofChecker,
-        PropertyCheckerCPA propertyChecker)
+        Path pProofFile,
+        @Nullable CFA cfa,
+        @Nullable Specification specification,
+        @Nullable ProofChecker proofChecker,
+        @Nullable PropertyCheckerCPA propertyChecker)
         throws InvalidConfigurationException;
   }
 }

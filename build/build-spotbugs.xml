@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="spotbugs" basedir=".">
+
+    <!-- Targets for running SpotBugs. -->
+
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+    <property name="spotbugs.output" value="xml:withMessages"/>
+
+    <path id="spotbugs.classpath">
+        <fileset dir="${ivy.lib.dir}/spotbugs" includes="*.jar"/>
+    </path>
+
+    <target name="run-spotbugs" depends="jar">
+        <delete file="SpotBugs.html"/>
+        <taskdef resource="edu/umd/cs/findbugs/anttask/tasks.properties" classpathref="spotbugs.classpath"/>
+        <spotbugs
+                output="${spotbugs.output}"
+                outputFile="SpotBugs.xml"
+                excludeFilter="build/SpotBugs.exclude.xml"
+                warningsProperty="spotbugs.warnings">
+            <auxClasspath refid="classpath" />
+            <sourcePath path="${source.dir}" />
+            <class location="${jar.file}" />
+            <classpath refid="spotbugs.classpath" />
+        </spotbugs>
+    </target>
+
+    <target name="spotbugs-report" if="spotbugs.warnings">
+        <echo>SpotBugs found warnings, generating report.</echo>
+        <xslt in="SpotBugs.xml" out="SpotBugs.html">
+            <style><javaresource classpathref="spotbugs.classpath" name="fancy.xsl"/></style>
+        </xslt>
+    </target>
+
+    <target name="spotbugs" depends="run-spotbugs, spotbugs-report" description="Run SpotBugs and generate report."/>
+
+    <target name="run-spotbugs-diff" depends="jar">
+        <delete file="SpotBugs.diff.html"/>
+        <taskdef resource="edu/umd/cs/findbugs/anttask/tasks.properties" classpathref="spotbugs.classpath"/>
+        <spotbugs
+                output="${spotbugs.output}"
+                outputFile="SpotBugs.diff.xml"
+                excludeFilter="build/SpotBugs.exclude.xml"
+                warningsProperty="spotbugs.newwarnings"
+                baselineBugs="SpotBugs.known.xml">
+            <auxClasspath refid="classpath" />
+            <sourcePath path="${source.dir}" />
+            <class location="${jar.file}" />
+            <classpath refid="spotbugs.classpath" />
+        </spotbugs>
+    </target>
+
+    <target name="spotbugs-diff-report" if="spotbugs.newwarnings">
+        <echo>SpotBugs found new warnings, generating report.</echo>
+        <xslt in="SpotBugs.diff.xml" out="SpotBugs.diff.html">
+            <style><javaresource classpathref="spotbugs.classpath" name="fancy.xsl"/></style>
+        </xslt>
+    </target>
+
+    <target name="spotbugs-diff" depends="run-spotbugs-diff, spotbugs-diff-report" description="Run SpotBugs and generate report with newly found warnings."/>
+
+    <target name="spotbugs-full" depends="spotbugs, spotbugs-diff" description="Run SpotBugs and generate full report and report with newly found warnings."/>
+</project>

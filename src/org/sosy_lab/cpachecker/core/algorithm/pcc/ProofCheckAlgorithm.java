@@ -23,12 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -46,6 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
+@Options(prefix = "pcc")
 public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -69,10 +76,15 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private final CPAStatistics stats = new CPAStatistics();
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private PCCStrategy checkingStrategy;
+  protected final PCCStrategy checkingStrategy;
 
+  @Option(secure=true,
+      name = "proof",
+      description = "file in which proof representation needed for proof checking is stored")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  protected Path proofFile = Paths.get("arg.obj");
 
   public ProofCheckAlgorithm(
       ConfigurableProgramAnalysis cpa,
@@ -81,21 +93,26 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Specification specification)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
+    pConfig.inject(this, ProofCheckAlgorithm.class);
 
+    if (!proofFile.toFile().exists()) {
+      throw new InvalidConfigurationException(
+        "Cannot find proof file. File " + proofFile.toString() + " does not exists.");
+    }
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
-            pConfig, logger, pShutdownNotifier, cpa, pCfa, specification);
+            pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
 
     this.logger = logger;
 
     logger.log(Level.INFO, "Start reading proof.");
+    stats.totalTimer.start();
+    stats.readTimer.start();
     try {
-      stats.totalTimer.start();
-      stats.readTimer.start();
       checkingStrategy.readProof();
-    } catch (Throwable e) {
-      throw new RuntimeException("Failed reading proof.", e);
+    } catch (ClassNotFoundException | InvalidConfigurationException | IOException e) {
+      throw new CPAException("Failed reading proof", e);
     } finally {
       stats.readTimer.stop();
       stats.totalTimer.stop();
@@ -112,11 +129,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       CFA pCfa,
       Specification specification)
       throws InvalidConfigurationException, InterruptedException {
-    pConfig.inject(this);
+
+    pConfig.inject(this, ProofCheckAlgorithm.class);
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
-            pConfig, logger, pShutdownNotifier, cpa, pCfa, specification);
+            pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
     this.logger = logger;
 
     if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(

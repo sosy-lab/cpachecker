@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -36,18 +40,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Set;
 
 public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -55,15 +58,16 @@ public class SMGJoinTest {
   static private final CFunctionDeclaration functionDeclaration2 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.<CParameterDeclaration>of());
   static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
 
-  SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
-      null, 4, false, false);
+  private SMGState dummyState;
 
   private CLangSMG smg1;
   private CLangSMG smg2;
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp() {
+  public void setUp() throws InvalidConfigurationException {
+    dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32,
+        new SMGOptions(Configuration.defaultConfiguration()));
     smg1 = new CLangSMG(MachineModel.LINUX64);
     smg2 = new CLangSMG(MachineModel.LINUX64);
   }
@@ -111,7 +115,7 @@ public class SMGJoinTest {
   }
 
   //Testing condition: adds an identical value to both SMGs
-  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, int pOffset,
+  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, long pOffset,
       int pValue, int pSizeInBits) {
 
     if(!smg1.getValues().contains(pValue)) {
@@ -130,7 +134,7 @@ public class SMGJoinTest {
   }
 
   //Testing condition: adds a pointer to both SMGs
-  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, int pOffset,
+  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, long pOffset,
       int pValue) {
 
     if(!smg1.getValues().contains(pValue)) {
@@ -150,8 +154,8 @@ public class SMGJoinTest {
 
   //Testing condition: adds a pointer to both SMGs
   private void addPointerValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var,
-      int pOffset, int pValue, int pSize,
-      Pair<? extends SMGObject, ? extends SMGObject> target, int pTargetOffset) {
+      long pOffset, int pValue, int pSize,
+      Pair<? extends SMGObject, ? extends SMGObject> target, long pTargetOffset) {
 
     addValueToBoth(var, pOffset, pValue, pSize);
     addPointerToBoth(target, pTargetOffset, pValue);
@@ -201,9 +205,9 @@ public class SMGJoinTest {
   }
 
   private void assertObjectCounts(CLangSMG pSMG, int pGlobals, int pHeap, int pFrames) {
-    Assert.assertEquals(pSMG.getGlobalObjects().size(), pGlobals);
-    Assert.assertEquals(pSMG.getHeapObjects().size(), pHeap);
-    Assert.assertEquals(pSMG.getStackFrames().size(), pFrames);
+    assertThat(pSMG.getGlobalObjects()).hasSize(pGlobals);
+    assertThat(pSMG.getHeapObjects()).hasSize(pHeap);
+    assertThat(pSMG.getStackFrames()).hasSize(pFrames);
   }
 
   @Test
@@ -212,10 +216,10 @@ public class SMGJoinTest {
     addGlobalWithoutValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
-    Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     CLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(resultSMG.getGlobalObjects().containsKey(varName));
+    assertThat(resultSMG.getGlobalObjects()).containsKey(varName);
     assertObjectCounts(resultSMG, 1, 1, 0);
   }
 
@@ -228,10 +232,10 @@ public class SMGJoinTest {
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
-    Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     CLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(resultSMG.getStackFrames().getFirst().containsVariable(varName));
+    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
   }
 
@@ -241,17 +245,17 @@ public class SMGJoinTest {
     addGlobalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     Assert.assertTrue(join.isDefined());
-    Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     CLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(resultSMG.getGlobalObjects().containsKey(varName));
+    assertThat(resultSMG.getGlobalObjects()).containsKey(varName);
     assertObjectCounts(resultSMG, 1, 1, 0);
 
     SMGObject global = resultSMG.getGlobalObjects().get(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
     SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
-    Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
+    assertThat(resultSMG.getValues()).contains(Integer.valueOf(edge.getValue()));
   }
 
   @Test
@@ -262,17 +266,17 @@ public class SMGJoinTest {
     addLocalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     Assert.assertTrue(join.isDefined());
-    Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     CLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(resultSMG.getStackFrames().getFirst().containsVariable(varName));
+    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
 
-    SMGObject global = resultSMG.getStackFrames().getFirst().getVariable(varName);
+    SMGObject global = Iterables.get(resultSMG.getStackFrames(), 0).getVariable(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
     SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
-    Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
+    assertThat(resultSMG.getValues()).contains(Integer.valueOf(edge.getValue()));
   }
 
   @Test
@@ -318,7 +322,7 @@ public class SMGJoinTest {
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
-    Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
 
   private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {

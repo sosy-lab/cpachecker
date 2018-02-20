@@ -23,86 +23,81 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.Iterator;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+public class SMGPointsToMap implements SMGPointsToEdges {
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+  private final PersistentMap<Integer, SMGEdgePointsTo> map;
 
-public class SMGPointsToMap extends HashMap<Integer, SMGEdgePointsTo> implements SMGPointsToEdges {
+  public SMGPointsToMap() {
+    map = PathCopyingPersistentTreeMap.of();
+  }
 
-  private static final long serialVersionUID = 3838999122926869288L;
-
-  @Override
-  public SMGPointsToEdges copy() {
-    SMGPointsToMap copy = new SMGPointsToMap();
-    copy.putAll(this);
-    return copy;
+  private SMGPointsToMap(PersistentMap<Integer, SMGEdgePointsTo> pMap) {
+    map = pMap;
   }
 
   @Override
-  public void add(SMGEdgePointsTo pEdge) {
-    put(pEdge.getValue(), pEdge);
+  public SMGPointsToMap addAndCopy(SMGEdgePointsTo pEdge) {
+    return new SMGPointsToMap(map.putAndCopy(pEdge.getValue(), pEdge));
   }
 
   @Override
-  public void remove(SMGEdgePointsTo pEdge) {
-    remove(pEdge.getValue());
+  public SMGPointsToMap removeAndCopy(SMGEdgePointsTo pEdge) {
+    return removeEdgeWithValueAndCopy(pEdge.getValue());
   }
 
   @Override
-  public void removeAllEdgesOfObject(SMGObject pObj) {
-    Set<SMGEdgePointsTo> toRemove = filter(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-
-    for (SMGEdgePointsTo edge : toRemove) {
-      remove(edge.getValue());
+  public SMGPointsToMap removeAllEdgesOfObjectAndCopy(SMGObject pObj) {
+    PersistentMap<Integer, SMGEdgePointsTo> tmp = map;
+    for (SMGEdgePointsTo edge : SMGEdgePointsToFilter.targetObjectFilter(pObj).filter(this)) {
+      tmp = tmp.removeAndCopy(edge.getValue());
     }
+    return new SMGPointsToMap(tmp);
   }
 
   @Override
-  public void removeEdgeWithValue(int pValue) {
-    remove(pValue);
-  }
-
-  @Override
-  public Map<Integer, SMGEdgePointsTo> asMap() {
-    return ImmutableMap.copyOf(this);
+  public SMGPointsToMap removeEdgeWithValueAndCopy(int pValue) {
+    return new SMGPointsToMap(map.removeAndCopy(pValue));
   }
 
   @Override
   public boolean containsEdgeWithValue(Integer pValue) {
-    return containsKey(pValue);
+    return map.containsKey(pValue);
   }
 
   @Override
   public SMGEdgePointsTo getEdgeWithValue(Integer pValue) {
-    return get(pValue);
+    return map.get(pValue);
   }
 
   @Override
-  public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter) {
-
-    if (pFilter.isFilteringAtValue()) {
-      int value = pFilter.filtersHavingValue();
-
-      if (containsKey(value)) {
-        return ImmutableSet.of(get(value));
-      } else {
-        return ImmutableSet.of();
-      }
-
-    }
-
-    return pFilter.filterSet(asSet());
+  public int size() {
+    return map.size();
   }
 
   @Override
-  public Set<SMGEdgePointsTo> asSet() {
-    return ImmutableSet.copyOf(values());
+  public boolean equals(Object o) {
+    return o instanceof SMGPointsToMap && map.equals(((SMGPointsToMap)o).map);
+  }
+
+  @Override
+  public int hashCode() {
+    return map.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return map.toString();
+  }
+
+  @Override
+  public Iterator<SMGEdgePointsTo> iterator() {
+    return map.values().iterator();
   }
 }

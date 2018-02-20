@@ -30,7 +30,16 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.Sets;
-
+import com.google.common.graph.Traverser;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,21 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
+public class ARGState extends AbstractSingleWrapperState
+    implements Comparable<ARGState>, Graphable, Splitable{
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -146,21 +142,21 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     final AbstractStateWithLocations childLocs =
         extractStateByType(pChild, AbstractStateWithLocations.class);
 
-    // first try to get a normal edge
-    // consider only the actual analysis direction
-    Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
-    for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-      if (ingoingEdgesOfChild.contains(edge)) {
-        return edge;
+    if (currentLocs != null && childLocs != null) {
+      // first try to get a normal edge
+      // consider only the actual analysis direction
+      Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
+      for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
+        if (ingoingEdgesOfChild.contains(edge)) { return edge; }
       }
-    }
 
-    // then try to get a special edge, just to have some edge.
-    for (CFANode currentLoc : currentLocs.getLocationNodes()) {
-      for (CFANode childLoc : childLocs.getLocationNodes()) {
-        if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
-          return currentLoc.getLeavingSummaryEdge();
+      // then try to get a special edge, just to have some edge.
+      for (CFANode currentLoc : currentLocs.getLocationNodes()) {
+        for (CFANode childLoc : childLocs.getLocationNodes()) {
+          if (currentLoc.getLeavingSummaryEdge() != null
+              && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
+            return currentLoc.getLeavingSummaryEdge();
+          }
         }
       }
     }
@@ -198,15 +194,17 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       CFANode currentLoc = AbstractStates.extractLocation(this);
       CFANode childLoc = AbstractStates.extractLocation(pChild);
 
-      while (!currentLoc.equals(childLoc)) {
-        // we didn't find a proper connection to the child so we return an empty list
-        if (currentLoc.getNumLeavingEdges() != 1) {
-          return Collections.emptyList();
-        }
+      if (currentLoc != null && childLoc != null) {
+        while (!currentLoc.equals(childLoc)) {
+          // we didn't find a proper connection to the child so we return an empty list
+          if (currentLoc.getNumLeavingEdges() != 1) {
+            return Collections.emptyList();
+          }
 
-        final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
-        allEdges.add(leavingEdge);
-        currentLoc = leavingEdge.getSuccessor();
+          final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+          allEdges.add(leavingEdge);
+          currentLoc = leavingEdge.getSuccessor();
+        }
       }
       return allEdges;
     } else {
@@ -216,19 +214,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> workList = new ArrayDeque<>();
-
-    workList.add(this);
-
-    while (!workList.isEmpty()) {
-      ARGState currentElement = workList.removeFirst();
-      if (result.add(currentElement)) {
-        // currentElement was not in result
-        workList.addAll(currentElement.children);
-      }
-    }
-    return result;
+    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
   }
 
   // coverage
@@ -302,16 +288,17 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   // was-expanded marker so we can identify open leafs
 
-  boolean wasExpanded() {
+  public boolean wasExpanded() {
     return wasExpanded;
   }
 
-  void markExpanded() {
+  public void markExpanded() {
     wasExpanded = true;
   }
 
   void deleteChild(ARGState child) {
     assert (children.contains(child));
+    assert (child.parents.contains(this));
     children.remove(child);
     child.parents.remove(this);
   }
@@ -327,7 +314,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     checkArgument(!pCounterexample.isSpurious());
     // With BAM, the targetState and the last state of the path
     // may actually be not identical.
-    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
+    checkArgument(pCounterexample.getTargetState().isTarget());
     counterexample = pCounterexample;
   }
 
@@ -509,6 +496,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
+    assert !(this==replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : children) {
@@ -542,5 +530,58 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
+  }
+
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.cpa.arg.Splitable#forkWithReplacements(java.util.List)
+   */
+  @Override
+  public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
+    AbstractState wrappedState = this.getWrappedState();
+    AbstractState newWrappedState = null;
+    for (AbstractState state : pReplacementStates) {
+      if (state.getClass().isInstance(wrappedState)) {
+        newWrappedState = state;
+        break;
+      }
+    }
+    if (newWrappedState == null) {
+      if (wrappedState instanceof Splitable) {
+        newWrappedState = ((Splitable)wrappedState).forkWithReplacements(pReplacementStates);
+      } else {
+        newWrappedState = wrappedState;
+      }
+    }
+
+    ARGState newState = new ARGState(newWrappedState,null);
+    newState.makeTwinOf(this);
+
+    return newState;
+  }
+
+  public void makeTwinOf(ARGState pTemplateState) {
+
+    checkState(this.stateId != pTemplateState.stateId);
+    checkState(pTemplateState.destroyed != true);
+    checkState(pTemplateState.counterexample == null);
+
+    this.wasExpanded = pTemplateState.wasExpanded;
+    this.mayCover = pTemplateState.mayCover;
+    this.hasCoveredParent = pTemplateState.hasCoveredParent;
+
+  }
+
+  public void removeParent(ARGState pOtherParent) {
+    checkNotNull(pOtherParent);
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    // Manually enforce set semantics.
+    if (parents.contains(pOtherParent)) {
+      assert pOtherParent.children.contains(this);
+      parents.remove(pOtherParent);
+      pOtherParent.children.remove(this);
+    } else {
+      assert !pOtherParent.children.contains(this) : "Problem detected!";
+    }
   }
 }

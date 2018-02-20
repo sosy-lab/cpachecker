@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-
 import java.util.List;
 
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
  * Exception raised when the refinement procedure fails, or was

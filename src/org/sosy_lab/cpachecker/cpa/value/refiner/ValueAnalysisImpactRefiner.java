@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -44,10 +43,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantM
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
@@ -79,8 +79,10 @@ public class ValueAnalysisImpactRefiner
   public static ValueAnalysisImpactRefiner create(final ConfigurableProgramAnalysis pCpa)
     throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    final ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisImpactRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisImpactRefiner.class);
 
     valueAnalysisCpa.injectRefinablePrecision();
 
@@ -97,7 +99,8 @@ public class ValueAnalysisImpactRefiner
         new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
 
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
-        new ValueAnalysisPrefixProvider(logger, cfa, config);
+        new ValueAnalysisPrefixProvider(
+            logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
     return new ValueAnalysisImpactRefiner(argCpa,
                                     checker,
@@ -256,10 +259,8 @@ public class ValueAnalysisImpactRefiner
     }
 
     if (coverageRoot != null) {
-      for (ARGState children : coverageRoot.getSubgraph()) {
-        if (!children.isCovered()) {
-          children.setCovered(coverageRoot);
-        }
+      for (ARGState children : ARGUtils.getNonCoveredStatesInSubgraph(coverageRoot)) {
+        children.setCovered(coverageRoot);
       }
     }
   }
@@ -276,7 +277,7 @@ public class ValueAnalysisImpactRefiner
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
 
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       if(pReached.asReachedSet().contains(descendant)) {
         uniquePrecisions.add(extractValuePrecision(pReached, descendant));
       }
@@ -300,16 +301,6 @@ public class ValueAnalysisImpactRefiner
     return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
         .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
         .get(0);
-  }
-
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for(ARGState state : pRoot.getSubgraph()) {
-      if(!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
   }
 
   @Override

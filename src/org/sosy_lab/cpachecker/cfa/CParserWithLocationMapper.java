@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -33,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import org.eclipse.cdt.core.parser.IToken;
 import org.eclipse.cdt.core.parser.OffsetLimitReachedException;
 import org.eclipse.cdt.internal.core.parser.scanner.ILexerLog;
 import org.eclipse.cdt.internal.core.parser.scanner.Lexer;
@@ -43,7 +45,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -98,7 +100,7 @@ public class CParserWithLocationMapper implements CParser {
 
   private String tokenizeSourcefile(String pFilename,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
-    String code = MoreFiles.toString(Paths.get(pFilename), Charset.defaultCharset());
+    String code = MoreFiles.asCharSource(Paths.get(pFilename), Charset.defaultCharset()).read();
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
@@ -119,17 +121,17 @@ public class CParserWithLocationMapper implements CParser {
       int includeStartedWithAbsoluteLine = 1;
 
       Token token;
-      while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
+      while ((token = lx.nextToken()).getType() != IToken.tEND_OF_INPUT) {
         if (token.getType() == Lexer.tNEWLINE) {
           absoluteLineNumber += 1;
           relativeLineNumber += 1;
         }
 
-        if (token.getType() == Token.tPOUND) { // match #
+        if (token.getType() == IToken.tPOUND) { // match #
           // Read the complete line containing the directive...
           ArrayList<Token> directiveTokens = Lists.newArrayList();
           token = lx.nextToken();
-          while (token.getType() != Lexer.tNEWLINE && token.getType() != Token.tEND_OF_INPUT) {
+          while (token.getType() != Lexer.tNEWLINE && token.getType() != IToken.tEND_OF_INPUT) {
             directiveTokens.add(token);
             token = lx.nextToken();
           }
@@ -189,8 +191,7 @@ public class CParserWithLocationMapper implements CParser {
 
     String code = tokenizeCode ? tokenizedCode.toString() : pCode;
     if (tokenizeCode && dumpTokenizedProgramToFile != null) {
-      try (Writer out =
-          MoreFiles.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
+      try (Writer out = IO.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
         out.append(code);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write tokenized program to file");

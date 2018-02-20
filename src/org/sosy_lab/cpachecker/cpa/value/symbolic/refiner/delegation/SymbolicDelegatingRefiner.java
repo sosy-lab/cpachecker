@@ -89,23 +89,12 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);
-
-    if (argCpa == null) {
-      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
-    }
-
-    if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
-          + " needs a ValueAnalysisCPA");
-    }
-
-    if (constraintsCpa == null) {
-      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
-          + " needs a ConstraintsCPA");
-    }
+    final ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SymbolicValueAnalysisRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
+    final ConstraintsCPA constraintsCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, SymbolicValueAnalysisRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
 
@@ -134,7 +123,8 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator symbolicEdgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -184,7 +174,8 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final PathInterpolator<SymbolicInterpolant> explicitPathInterpolator =
         new GenericPathInterpolator<>(

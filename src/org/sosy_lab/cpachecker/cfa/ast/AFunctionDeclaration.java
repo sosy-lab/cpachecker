@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
-
-import com.google.common.collect.ImmutableList;
 
 
 public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
+  private static final long serialVersionUID = -4385134795747669972L;
   private final List<AParameterDeclaration> parameters;
 
   public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName,

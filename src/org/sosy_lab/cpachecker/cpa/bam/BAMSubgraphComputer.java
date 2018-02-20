@@ -23,13 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -43,7 +47,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class BAMSubgraphComputer {
 
@@ -51,12 +57,14 @@ public class BAMSubgraphComputer {
   private final Reducer reducer;
   private final BAMDataManager data;
   private final LogManager logger;
+  private final boolean useCopyOnWriteRefinement;
 
-  BAMSubgraphComputer(BAMCPA bamCpa) {
+  BAMSubgraphComputer(AbstractBAMCPA bamCpa) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
     this.logger = bamCpa.getLogger();
+    useCopyOnWriteRefinement = bamCpa.useCopyOnWriteRefinement();
   }
 
   /**
@@ -82,20 +90,25 @@ public class BAMSubgraphComputer {
    *         because one real state can be used multiple times in one path.
    * @throws MissingBlockException for re-computing some blocks
    */
-  BackwardARGState computeCounterexampleSubgraph(
+  Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(
       final ARGState target, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
-    return computeCounterexampleSubgraph(Collections.singleton(target), pMainReachedSet);
+    Pair<BackwardARGState, Collection<BackwardARGState>> p =
+        computeCounterexampleSubgraph(Collections.singleton(target), pMainReachedSet);
+    return Pair.of(p.getFirst(), Iterables.getOnlyElement(p.getSecond()));
   }
 
-  BackwardARGState computeCounterexampleSubgraph(
+  Pair<BackwardARGState, Collection<BackwardARGState>> computeCounterexampleSubgraph(
       final Collection<ARGState> targets, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
-    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet,
-        Collections2.transform(targets, BackwardARGState::new));
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets)
+      : "target states should be contained in reached-set. The following states are not contained: "
+        + Iterables.filter(targets, s -> !pMainReachedSet.asReachedSet().contains(s));
+    assert !targets.isEmpty() : "cannot compute subgraph without target states";
+    Collection<BackwardARGState> newTargets = from(targets).transform(BackwardARGState::new).toList();
+    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, newTargets);
     assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
-    return root;
+    return Pair.of(root, newTargets);
   }
 
   /**
@@ -151,7 +164,9 @@ public class BAMSubgraphComputer {
         try {
           computeCounterexampleSubgraphForBlock(newCurrentState, childrenInSubgraph);
         } catch (MissingBlockException e) {
-          ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
+          assert !useCopyOnWriteRefinement
+              : "CopyOnWrite-refinement should never cause missing blocks: " + e;
+          ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
           throw new MissingBlockException();
         }
 
@@ -159,7 +174,9 @@ public class BAMSubgraphComputer {
         // children are a normal successors -> create an connection from parent to children
         for (final BackwardARGState newChild : childrenInSubgraph) {
           assert !currentState.getEdgesToChild(newChild.getARGState()).isEmpty()
-              : "unexpected ARG state: parent has no edge to child.";
+              : String.format(
+                  "unexpected ARG state: parent has no edge to child: %s -/-> %s",
+                  currentState, newChild.getARGState());
           newChild.addParent(newCurrentState);
         }
       }
@@ -170,7 +187,8 @@ public class BAMSubgraphComputer {
         root = newCurrentState;
       }
     }
-    assert root != null;
+    assert root != null : "no root state found in reachedset with initial state "
+        + reachedSet.asReachedSet().getFirstState();
     return root;
   }
 
@@ -195,10 +213,18 @@ public class BAMSubgraphComputer {
       throws MissingBlockException, InterruptedException {
 
     ARGState expandedRoot = (ARGState) newExpandedRoot.getWrappedState();
-    final ReachedSet reachedSet = data.getReachedSetForInitialState(expandedRoot);
+    final Multimap<ReachedSet, BackwardARGState> reachedSets = LinkedHashMultimap.create();
+
     final Map<BackwardARGState, BackwardARGState> newExpandedToNewInnerTargets = new HashMap<>();
 
     for (BackwardARGState newExpandedTarget : newExpandedTargets) {
+
+      if (!data.hasExpandedState(newExpandedTarget.getARGState())) {
+        logger.log(Level.FINE,
+            "Target state refers to a missing ARGState, i.e., the cached subtree was deleted. Updating it.");
+        throw new MissingBlockException();
+      }
+
       final ARGState reducedTarget =
           (ARGState) data.getReducedStateForExpandedState(newExpandedTarget.getARGState());
 
@@ -209,37 +235,52 @@ public class BAMSubgraphComputer {
         throw new MissingBlockException();
       }
 
-      assert reachedSet.contains(reducedTarget) : "reduced state '" + reducedTarget
-      + "' is not part of reachedset with root '" + reachedSet.getFirstState() + "'";
+      final ReachedSet reachedSet = data.getReachedSetForInitialState(expandedRoot, reducedTarget);
+      assert reachedSet.contains(reducedTarget)
+          : String.format(
+              "reduced state '%s' is not part of reachedset with root '%s' from expanded root '%s'",
+              reducedTarget, reachedSet.getFirstState(), expandedRoot);
 
       // we found the reached-set, corresponding to the root and precision.
       // now try to find a path from the target towards the root of the reached-set.
-      newExpandedToNewInnerTargets.put(newExpandedTarget, new BackwardARGState(reducedTarget));
+      BackwardARGState newBackwardTarget = new BackwardARGState(reducedTarget);
+      newExpandedToNewInnerTargets.put(newExpandedTarget, newBackwardTarget);
+      reachedSets.put(reachedSet, newBackwardTarget);
     }
 
-    final BackwardARGState newInnerRoot;
-    try {
-      newInnerRoot = computeCounterexampleSubgraph(new ARGReachedSet(reachedSet), newExpandedToNewInnerTargets.values());
-    } catch (MissingBlockException e) {
-      //enforce recomputation to update cached subtree
-      logger.log(Level.FINE,
-              "Target state refers to a destroyed ARGState, i.e., the cached subtree will be removed.");
+    for (Entry<ReachedSet, Collection<BackwardARGState>> entry : reachedSets.asMap().entrySet()) {
+      final ReachedSet reachedSet = entry.getKey();
+      final BackwardARGState newInnerRoot;
+      try {
+        newInnerRoot =
+            computeCounterexampleSubgraph(
+                new ARGReachedSet(reachedSet), newExpandedToNewInnerTargets.values());
+      } catch (MissingBlockException e) {
+        // enforce recomputation to update cached subtree
+        logger.log(
+            Level.FINE,
+            "Target state refers to a destroyed ARGState, i.e., the cached subtree will be removed.");
 
-      // TODO why do we use precision of reachedSet from 'abstractStateToReachedSet' here and not the reduced precision?
-      final CFANode rootNode = extractLocation(expandedRoot);
-      final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
-      final AbstractState reducedRootState = reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-      data.bamCache.removeReturnEntry(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
-      throw new MissingBlockException();
-    }
+        // TODO why do we use precision of reachedSet from 'abstractStateToReachedSet' here and not
+        // the reduced precision?
+        final CFANode rootNode = extractLocation(expandedRoot);
+        final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
+        final AbstractState reducedRootState =
+            reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
+        data.getCache()
+            .remove(
+                reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+        throw new MissingBlockException();
+      }
 
-    // reconnect ARG: replace the root of the inner block
-    // with the existing state from the outer block with the current state,
-    // then delete this node.
-    for (ARGState innerChild : newInnerRoot.getChildren()) {
-      innerChild.addParent(newExpandedRoot);
+      // reconnect ARG: replace the root of the inner block
+      // with the existing state from the outer block with the current state,
+      // then delete this node.
+      for (ARGState innerChild : newInnerRoot.getChildren()) {
+        innerChild.addParent(newExpandedRoot);
+      }
+      newInnerRoot.removeFromARG();
     }
-    newInnerRoot.removeFromARG();
 
     // reconnect ARG: replace the target of the inner block
     // with the existing state from the outer block with the current state,

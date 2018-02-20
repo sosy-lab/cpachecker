@@ -28,7 +28,7 @@ import com.google.common.base.Functions;
 import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -98,7 +98,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
             oldPrecision,
             pElements,
             Functions.compose(
-                ARGState.getUnwrapFunction(),
+                AbstractSingleWrapperState.getUnwrapFunction(),
                 projection),
             fullState
         );

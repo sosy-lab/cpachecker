@@ -26,12 +26,21 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -47,19 +56,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 
 public class SymbolEncoding {
@@ -103,7 +101,7 @@ public class SymbolEncoding {
     put(symbol, new Type<FormulaType<?>>(getBitvectorTypeWithSize(length)));
   }
 
-  public void put(String symbol, FormulaType<?> pReturnType, List<FormulaType<?>> pArgs) {
+  public void put(String symbol, FormulaType<?> pReturnType, ImmutableList<FormulaType<?>> pArgs) {
     put(symbol, new Type<>(pReturnType, pArgs));
   }
 
@@ -133,7 +131,9 @@ public class SymbolEncoding {
       return encodedSymbols.get(symbol);
     }
 
-    symbol = symbol.split("@")[0]; // sometimes we need to clean up SSA-indices
+    symbol =
+        FormulaManagerView.parseName(symbol)
+            .getFirst(); // sometimes we need to clean up SSA-indices
     for (CSimpleDeclaration decl : decls) {
       if (symbol.equals(decl.getQualifiedName())) {
         CType cType = decl.getType().getCanonicalType();
@@ -151,7 +151,7 @@ public class SymbolEncoding {
       fType = FormulaType.RationalType;
     } else {
       int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
-      fType = BitvectorType.getBitvectorTypeWithSize(length);
+      fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {
@@ -196,7 +196,7 @@ public class SymbolEncoding {
    * that can be read again. */
   public void dump(Path symbolEncodingFile) throws IOException {
     if (symbolEncodingFile != null) {
-      MoreFiles.writeFile(
+      IO.writeFile(
           symbolEncodingFile,
           Charset.defaultCharset(),
           new Appender() {
@@ -220,16 +220,16 @@ public class SymbolEncoding {
 
     private boolean signed = true; // default case: signed identifiers
     private final T returnType;
-    private final List<T> parameterTypes;
+    private final ImmutableList<T> parameterTypes;
 
-    public Type(T pReturnType, List<T> pParameterTypes) {
+    public Type(T pReturnType, ImmutableList<T> pParameterTypes) {
       this.returnType = pReturnType;
       this.parameterTypes = pParameterTypes;
     }
 
     public Type(T pReturnType) {
       this.returnType = pReturnType;
-      this.parameterTypes = Collections.<T>emptyList();
+      this.parameterTypes = ImmutableList.of();
     }
 
     public T getReturnType() { return returnType; }
@@ -264,8 +264,6 @@ public class SymbolEncoding {
     public int hashCode() {
       return returnType.hashCode() + 17 * parameterTypes.hashCode();
     }
-
-    public final static Type<Integer> BOOL = new Type<>(-1);
   }
 
   public static class UnknownFormulaSymbolException extends CPAException {

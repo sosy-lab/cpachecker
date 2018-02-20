@@ -29,8 +29,6 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -47,9 +45,8 @@ public final class CEnumType implements CComplexType {
   private final ImmutableList<CEnumerator> enumerators;
   private final String name;
   private final String origName;
-  private boolean isConst;
-  private boolean isVolatile;
-  private Integer bitFieldSize;
+  private final boolean isConst;
+  private final boolean isVolatile;
   private int hashCache = 0;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
@@ -120,7 +117,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 
-    return lASTString.toString() + (isBitField() ? " : " + getBitFieldSize() : "");
+    return lASTString.toString();
   }
 
   @Override
@@ -130,43 +127,20 @@ public final class CEnumType implements CComplexType {
            "enum " + name;
   }
 
-  @Override
-  public CEnumType withBitFieldSize(int pBitFieldSize) {
-    if (isBitField() && bitFieldSize == pBitFieldSize) {
-      return this;
-    }
-    CEnumType result = new CEnumType(isConst, isVolatile, enumerators, name, origName);
-    result.bitFieldSize = pBitFieldSize;
-    result.hashCache = 0;
-    return result;
-  }
-
-  @Override
-  public boolean isBitField() {
-    return bitFieldSize != null;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return bitFieldSize == null ? 0 : bitFieldSize;
-  }
-
-  @SuppressFBWarnings(
-    value = "SE_NO_SUITABLE_CONSTRUCTOR",
-    justification = "handled by serialization proxy"
-  )
   public static final class CEnumerator extends AbstractSimpleDeclaration
-      implements CSimpleDeclaration, Serializable {
+      implements CSimpleDeclaration {
 
     private static final long serialVersionUID = -2526725372840523651L;
 
     private final @Nullable Long  value;
-    private CEnumType             enumType;
+    private @Nullable CEnumType enumType;
     private final String         qualifiedName;
 
-    public CEnumerator(final FileLocation pFileLocation,
-                          final String pName, final String pQualifiedName,
-        final Long pValue) {
+    public CEnumerator(
+        final FileLocation pFileLocation,
+        final String pName,
+        final String pQualifiedName,
+        final @Nullable Long pValue) {
       super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
 
       checkNotNull(pName);
@@ -254,32 +228,6 @@ public final class CEnumType implements CComplexType {
     public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
       return pV.visit(this);
     }
-
-    private Object writeReplace() {
-      return new SerializationProxy(this);
-    }
-
-    private static final class SerializationProxy implements Serializable {
-
-      private static final long serialVersionUID = 3895126689420077689L;
-      private final FileLocation fileLocation;
-      private final @Nullable Long value;
-      private final CEnumType enumType;
-      private final String qualifiedName;
-
-      private SerializationProxy(CEnumerator enumerator) {
-        fileLocation = enumerator.getFileLocation();
-        value = enumerator.value;
-        enumType = enumerator.enumType;
-        qualifiedName = enumerator.qualifiedName;
-      }
-
-      private Object readResolve() {
-        CEnumerator result = new CEnumerator(fileLocation, qualifiedName, qualifiedName, value);
-        result.setEnum(enumType);
-        return result;
-      }
-    }
   }
 
   @Override
@@ -295,7 +243,6 @@ public final class CEnumType implements CComplexType {
       result = prime * result + Objects.hashCode(isConst);
       result = prime * result + Objects.hashCode(isVolatile);
       result = prime * result + Objects.hashCode(name);
-      result = prime * result + Objects.hashCode(bitFieldSize);
       hashCache = result;
     }
     return hashCache;
@@ -320,8 +267,7 @@ public final class CEnumType implements CComplexType {
 
     return isConst == other.isConst && isVolatile == other.isVolatile
            && Objects.equals(name, other.name)
-           && Objects.equals(enumerators, other.enumerators)
-           && Objects.equals(bitFieldSize, other.bitFieldSize);
+           && Objects.equals(enumerators, other.enumerators);
   }
 
   @Override
@@ -339,8 +285,7 @@ public final class CEnumType implements CComplexType {
     return isConst == other.isConst
            && isVolatile == other.isVolatile
            && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(enumerators, other.enumerators)
-           && Objects.equals(bitFieldSize, other.bitFieldSize);
+           && Objects.equals(enumerators, other.enumerators);
   }
 
   @Override
@@ -350,13 +295,10 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile) && !isBitField()) {
+    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
       return this;
     }
-    CEnumType result = new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
-    if (isBitField()) {
-      result = result.withBitFieldSize(bitFieldSize);
-    }
-    return result;
+    return new CEnumType(
+        isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
   }
 }

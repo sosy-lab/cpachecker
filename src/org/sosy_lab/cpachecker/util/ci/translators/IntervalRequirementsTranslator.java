@@ -23,18 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import com.google.common.base.Preconditions;
 
 public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
 
@@ -44,16 +41,16 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
 
   @Override
   protected List<String> getVarsInRequirements(final IntervalAnalysisState pRequirement) {
-    return new ArrayList<>(pRequirement.getIntervalMapView().keySet());
+    return new ArrayList<>(pRequirement.getIntervalMap().keySet());
   }
 
   @Override
   protected List<String> getListOfIndependentRequirements(final IntervalAnalysisState pRequirement,
       final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
-    for (String var : pRequirement.getIntervalMapView().keySet()) {
+    for (String var : pRequirement.getIntervalMap().keySet()) {
       if (pRequiredVars == null || pRequiredVars.contains(var)) {
-        list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getIntervalMapView().get(var)));
+        list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getInterval(var)));
       }
     }
     return list;

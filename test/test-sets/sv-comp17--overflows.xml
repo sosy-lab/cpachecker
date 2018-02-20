@@ -6,21 +6,21 @@
   <resultfiles>**.graphml</resultfiles>
 
   <tasks name="Overflows-BitVectors">
-    <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="Systems_BusyBox_Overflows">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_Overflows.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <includesfile>../programs/benchmarks/Systems_BusyBox_NoOverflows.set</includesfile>
+    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="Overflows-Other">
-    <includesfile>../programs/benchmarks/Overflows-Other.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
+    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
   </tasks>
 
   <rundefinition name="sv-comp17">
-    <option name="-sv-comp17"/>
+    <option name="-svcomp17"/>
   </rundefinition>
 </benchmark>

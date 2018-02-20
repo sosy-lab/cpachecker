@@ -43,13 +43,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,17 +59,18 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -93,12 +95,21 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
 
+  @Option(
+    secure = true,
+    description = "compress the produced assumption automaton using GZIP compression."
+  )
+  private boolean compressAutomaton = false;
+
   @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
   @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
+
+  @Option(secure=true, description="If it is enabled, check if a state that should lead to false state indeed has successors.")
+  private boolean removeNonExploredWithoutSuccessors = false;
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -112,6 +123,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // statistics
   private int automatonStates = 0;
 
+  private final ConfigurableProgramAnalysis cpa;
+
   public AssumptionCollectorAlgorithm(Algorithm algo,
                                       ConfigurableProgramAnalysis pCpa,
                                       Configuration config,
@@ -121,10 +134,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.logger = logger;
     this.innerAlgorithm = algo;
     AssumptionStorageCPA cpa =
-        ((WrapperCPA) pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
-    if (cpa == null) {
-      throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
-    }
+        CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
     if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException(
           "ARGCPA needed for for export of assumption automaton in AssumptionCollectionAlgorithm");
@@ -132,6 +142,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    this.cpa=pCpa;
   }
 
   @Override
@@ -250,7 +261,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
-    Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
+    Set<AbstractState> falseAssumptionStates = getFalseAssumptionStates(reached);
 
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
@@ -290,6 +301,34 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
             automatonBranchingThreshold, automatonIgnoreAssumptions);
   }
+
+  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+    Set<AbstractState> falseAssumptionStates;
+    if (removeNonExploredWithoutSuccessors) {
+      falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
+      for (AbstractState state : pReached.getWaitlist()) {
+        try {
+          if (cpa.getTransferRelation().getAbstractSuccessors(state, pReached.getPrecision(state))
+              .size() > 0) {
+            falseAssumptionStates.add(state);
+            if(state instanceof ARGState) {
+              ARGState argState = (ARGState) state;
+              while(!argState.getChildren().isEmpty()) {
+                argState.getChildren().iterator().next().removeFromARG();
+              }
+            }
+          }
+        } catch (CPATransferException | UnsupportedOperationException | InterruptedException e) {
+          falseAssumptionStates.add(state);
+        }
+      }
+      return falseAssumptionStates;
+    } else {
+      falseAssumptionStates = Sets.newHashSet(pReached.getWaitlist());
+    }
+    return falseAssumptionStates;
+  }
+
 
   /**
    * Create a String containing the assumption automaton.
@@ -511,19 +550,34 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (exportAssumptions) {
         if (assumptionsFile != null) {
           try {
-            MoreFiles.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
+            IO.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
         }
 
         if (assumptionAutomatonFile != null) {
-          try (Writer w =
-              MoreFiles.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
-           produceAssumptionAutomaton(w, pReached);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+
+          if (!compressAutomaton) {
+            try (Writer w = IO.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
+              produceAssumptionAutomaton(w, pReached);
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            }
+          } else {
+            assumptionAutomatonFile =
+                assumptionAutomatonFile.resolveSibling(
+                    assumptionAutomatonFile.getFileName() + ".gz");
+            try {
+              IO.writeGZIPFile(
+                  assumptionAutomatonFile,
+                  Charset.defaultCharset(),
+                  (Appender) appendable -> produceAssumptionAutomaton(appendable, pReached));
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            }
           }
+
           put(out, "Number of states in automaton", automatonStates);
         }
       }

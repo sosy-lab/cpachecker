@@ -30,13 +30,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
@@ -47,17 +47,7 @@ public abstract class BddRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis cpa)
       throws InvalidConfigurationException {
-    if (!(cpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(BddRefiner.class.getSimpleName() + " could not find the BDDCPA");
-    }
-
-    WrapperCPA wrapperCpa = ((WrapperCPA)cpa);
-
-    BDDCPA bddCpa = wrapperCpa.retrieveWrappedCpa(BDDCPA.class);
-    if (bddCpa == null) {
-      throw new InvalidConfigurationException(BddRefiner.class.getSimpleName() + " needs a BDDCPA");
-    }
-
+    BDDCPA bddCpa = CPAs.retrieveCPAOrFail(cpa, BDDCPA.class, BddRefiner.class);
     Configuration config = bddCpa.getConfiguration();
     LogManager logger = bddCpa.getLogger();
     CFA cfa = bddCpa.getCFA();
@@ -75,7 +65,7 @@ public abstract class BddRefiner implements Refiner {
         new ValueAnalysisPathInterpolator(
             feasibilityChecker,
             strongestPostOperator,
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new ValueAnalysisPrefixProvider(logger, cfa, config, shutdownNotifier),
             config,
             logger,
             shutdownNotifier,

@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -49,9 +50,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -75,7 +76,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
-  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
+  @Option(secure=true, description="which prefix of an actual counterexample trace should be used"
+      + " for interpolation", toUppercase = true)
   private List<PrefixPreference> prefixPreference = ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
@@ -100,6 +102,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final FeasibilityChecker<S> checker;
   private final GenericPrefixProvider<S> prefixProvider;
   private final InterpolantManager<S, I> interpolantManager;
+  private final PrefixSelector selector;
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, I> pEdgeInterpolator,
@@ -122,6 +125,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     interpolantManager = pInterpolantManager;
 
     prefixProvider = pPrefixProvider;
+    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
   }
 
   @Override
@@ -170,7 +174,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
       prefixSelectionTime.start();
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
       pErrorPath = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
       logger.logf(Level.FINER, "Sliced prefix selected:\n %s", pErrorPath);
       prefixSelectionTime.stop();
@@ -183,6 +186,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPath,
       final I pInterpolant
   ) throws CPAException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
 
     prefixExtractionTime.start();
     List<InfeasiblePrefix> prefixes =
@@ -289,7 +293,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           startNode = originalEdge.getPredecessor();
           endNode = originalEdge.getSuccessor();
         }
-        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(startNode, endNode));
+        abstractEdges.set(
+            iterator.getIndex(),
+            new BlankEdge(
+                originalEdge == null ? "" : originalEdge.getRawStatement(),
+                originalEdge == null ? FileLocation.DUMMY : originalEdge.getFileLocation(),
+                startNode,
+                endNode,
+                "sliced edge"));
       }
 
       if (originalEdge != null) {

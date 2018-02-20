@@ -30,7 +30,17 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -64,36 +74,23 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
-import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-
 public class ValueAnalysisConcreteErrorPathAllocator {
 
-  private static final MemoryName MEMORY_NAME = (pExp, pAddress) -> "Value_Analysis_Heap";
+  private static final String MEMORY_NAME = "Value_Analysis_Heap";
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   public ValueAnalysisConcreteErrorPathAllocator(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
+    this.assumptionToEdgeAllocator =
+        AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -177,7 +174,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
                     ImmutableMap.<LeftHandSide, Object>of(),
                     allocateAddresses(valueState, variableAddresses),
                     variableAddresses,
-                    MEMORY_NAME)));
+                    exp -> MEMORY_NAME)));
       }
     }
 
@@ -216,7 +213,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
         ImmutableMap.<LeftHandSide, Object>of(),
         allocateAddresses(pValueState, variableAddresses),
         variableAddresses,
-        MEMORY_NAME);
+        exp -> MEMORY_NAME);
   }
 
   private boolean allValuesForLeftHandSideKnown(
@@ -407,14 +404,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     Map<Address, Object> values = createHeapValues(pValueState, pVariableAddressMap);
 
-    // memory name of value analysis does not need to know expression or address
-    Memory heap = new Memory(MEMORY_NAME.getMemoryName(null, null), values);
-
-    Map<String, Memory> result = new HashMap<>();
-
-    result.put(heap.getName(), heap);
-
-    return result;
+    return ImmutableMap.of(MEMORY_NAME, new Memory(MEMORY_NAME, values));
   }
 
   private static Map<Address, Object> createHeapValues(ValueAnalysisState pValueState,

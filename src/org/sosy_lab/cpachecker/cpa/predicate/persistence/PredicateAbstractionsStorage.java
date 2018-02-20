@@ -26,25 +26,14 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -55,8 +44,16 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class PredicateAbstractionsStorage {
 
@@ -116,7 +113,7 @@ public class PredicateAbstractionsStorage {
 
     if (pFile != null) {
       try {
-        MoreFiles.checkReadableFile(pFile);
+        IO.checkReadableFile(pFile);
         parseAbstractionTree();
       } catch (IOException e) {
         throw new PredicateParsingFailedException(e, "Init", 0);
@@ -238,7 +235,7 @@ public class PredicateAbstractionsStorage {
 
     LogManagerWithoutDuplicates logger2 = new LogManagerWithoutDuplicates(logger);
     StringBuilder out = new StringBuilder();
-    for (String line : str.split("\n")) {
+    for (String line : Splitter.on('\n').split(str)) {
       line = FormulaParser.convertFormula(checkNotNull(converter), line, logger2);
       if (line != null) {
         out.append(line).append("\n");

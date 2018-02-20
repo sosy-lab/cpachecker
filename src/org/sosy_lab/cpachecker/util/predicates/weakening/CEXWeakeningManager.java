@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,24 +40,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
 
 /**
  * Perform weakening using counter-examples to induction.
@@ -92,7 +89,7 @@ public class CEXWeakeningManager {
   private final Solver solver;
   private final InductiveWeakeningManager.InductiveWeakeningStatistics
       statistics;
-  private final Random r = new Random();
+  private final Random r = new Random(0);
   private final ShutdownNotifier shutdownNotifier;
 
   public CEXWeakeningManager(
@@ -110,19 +107,19 @@ public class CEXWeakeningManager {
   /**
    * Apply a weakening based on counterexamples derived from solver models.
    *
-   * @param selectionInfo Mapping from selectors to literals which they annotate.
+   * @param selectors The selectors.
    *
    * @return A subset of selectors after abstracting which the query becomes inductive.
    */
   public Set<BooleanFormula> performWeakening(
-      final Map<BooleanFormula, BooleanFormula> selectionInfo,
+      final Set<BooleanFormula> selectors,
       BooleanFormula fromState,
       PathFormula transition,
       BooleanFormula toState) throws SolverException, InterruptedException {
 
     final Set<BooleanFormula> toAbstract = new HashSet<>();
     List<BooleanFormula> selectorConstraints = new ArrayList<>();
-    for (BooleanFormula selector : selectionInfo.keySet()) {
+    for (BooleanFormula selector : selectors) {
       selectorConstraints.add(bfmgr.not(selector));
     }
     BooleanFormula query = bfmgr.and(
@@ -140,14 +137,14 @@ public class CEXWeakeningManager {
           toAbstract.addAll(getSelectorsToAbstract(
               ImmutableSet.copyOf(toAbstract),
               m,
-              selectionInfo,
+              selectors,
               toState,
               0
           ));
         }
 
         selectorConstraints.clear();
-        for (BooleanFormula selector : selectionInfo.keySet()) {
+        for (BooleanFormula selector : selectors) {
           if (toAbstract.contains(selector)) {
             selectorConstraints.add(selector);
           } else {
@@ -163,7 +160,7 @@ public class CEXWeakeningManager {
   private List<BooleanFormula> getSelectorsToAbstract(
       final ImmutableSet<BooleanFormula> toAbstract,
       final Model m,
-      final Map<BooleanFormula, BooleanFormula> selectionInfo,
+      final Set<BooleanFormula> selectors,
       final BooleanFormula primed,
       final int depth
   ) {
@@ -227,7 +224,7 @@ public class CEXWeakeningManager {
 
       private Optional<BooleanFormula> findSelector(List<BooleanFormula> orOperands) {
         for (BooleanFormula operand : orOperands) {
-          if (selectionInfo.containsKey(operand)) {
+          if (selectors.contains(operand)) {
             return Optional.of(operand);
           }
         }
@@ -262,7 +259,7 @@ public class CEXWeakeningManager {
         // Doing recursion while doing recursion :P
         // Use NullLogManager to avoid log pollution.
         return getSelectorsToAbstract(
-            toAbstract, m, selectionInfo, f, depth + 1);
+            toAbstract, m, selectors, f, depth + 1);
       }
 
     });

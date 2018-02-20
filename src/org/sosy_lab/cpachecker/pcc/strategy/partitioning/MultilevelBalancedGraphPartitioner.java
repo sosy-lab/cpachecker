@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -108,14 +108,14 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       return wGraph.getNodesSeperatelyPartitioned(pNumPartitions);
     }
 
-    //There is more than one partition, and at least one partition contains more than 1 node
+    // There is more than one partition, and at least one partition contains more than 1 node
 
-    Stack<WeightedGraph> levels = new Stack<>();
-    Stack<Map<Integer, Integer>> matchings = new Stack<>();
+    Deque<WeightedGraph> levels = new ArrayDeque<>();
+    Deque<Map<Integer, Integer>> matchings = new ArrayDeque<>();
 
     int maxLoad = wGraph.getNumNodes() / pNumPartitions + 1;
-    //The graph size until graph should be contracted
-    int minGraphSize = (int) Math.min(((double) maxLoad) / 15 + 1, 15) * pNumPartitions;
+    // The graph size until graph should be contracted
+    int minGraphSize = (int) (Math.min(((double) maxLoad) / 15 + 1, 15) * pNumPartitions);
     logger.log(Level.FINE,
         String.format("[Multilevel] Coarsen graph down to at least %d nodes",
             minGraphSize));

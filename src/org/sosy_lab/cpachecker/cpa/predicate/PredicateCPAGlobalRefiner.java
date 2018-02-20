@@ -37,7 +37,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -211,7 +210,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       InterpolatingProverEnvironment<T> itpProver)
       throws InterruptedException, SolverException, CPAException {
     List<T> itpStack = new ArrayList<>();
-    LinkedList<ARGState> currentPath = new LinkedList<>();
+    Deque<ARGState> currentPath = new ArrayDeque<>();
     currentPath.add(current);
     Optional<ARGState> errorState =
         step(currentPath, itpStack, successors, predecessors, pReached, targets, itpProver);
@@ -243,7 +242,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
    * @return The feasible error location or absent
    */
   private <T> Optional<ARGState> step(
-      final LinkedList<ARGState> currentPath,
+      final Deque<ARGState> currentPath,
       final List<T> itpStack,
       final SetMultimap<ARGState, ARGState> successors,
       final Map<ARGState, ARGState> predecessors,
@@ -301,7 +300,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       } finally {
         itpStack.remove(itpStack.size() - 1);
         itpProver.pop();
-        currentPath.remove(currentPath.size() - 1);
+        currentPath.removeLast();
       }
     }
     return Optional.empty();

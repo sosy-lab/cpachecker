@@ -20,8 +20,13 @@ according to the style guide.
 For git users: You need to stage your changes first (with `git add`),
 then run `ant format-diff` and then stage the changes again.
 This allows you to view exactly what the reformatter changed after running it.
-Please do not use the Eclipse code formatter,
-it destroys a lot of meaningful manual formatting.
+
+IMPORTANT for Eclipse users:
+The automatic code formatter is enabled in our project whenever you save a file,
+so no need to run it manually.
+However, you must [install the google-java-format plugin](Developing.md#develop-cpachecker-from-within-eclipse)!
+Otherwise Eclipse will produce ugly code formatting.
+
 
 Additional rules and hints:
 
@@ -62,6 +67,7 @@ Design:
   Do not add setters unless really required!
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained
+  In fields and private context, null is acceptable if there is no nicer solution.
 - Avoid boolean parameters. They carry no semantics
   and make it hard to understand for the reader what effect they have
   (cf. http://martinfowler.com/bliki/FlagArgument.html)
@@ -128,6 +134,9 @@ Coding:
   Use a solution that returns an immutable collection instead,
   or one that is guaranteed to return a mutable one if you need it.
   We have utility methods for this in MoreCollectors and Collections3.
+- For Function, Predicate, and Optional,
+  use the JDK types instead of the Guava types where possible.
+  For Optional fields in serializable classes, make them @Nullable instead.
 - Do not over-use functional idioms!
   When an imperative version of the code is shorter and easier to read,
   it should be preferred.

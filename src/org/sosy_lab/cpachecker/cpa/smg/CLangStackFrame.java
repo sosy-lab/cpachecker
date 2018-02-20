@@ -23,24 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 /**
- * Represents a C language stack frame
+ * Represents a C language stack frame.
+ *
+ * <p>This is an immutable class.
  */
-final public class CLangStackFrame {
+public final class CLangStackFrame {
   static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
   /**
@@ -48,16 +54,23 @@ final public class CLangStackFrame {
    */
   private final CFunctionDeclaration stack_function;
 
-  /**
-   * A mapping from variable names to a set of SMG objects, representing
-   * local variables.
-   */
-  final HashMap <String, SMGRegion> stack_variables = new HashMap<>();
+  /** A mapping from variable names to a set of SMG objects, representing local variables. */
+  private final PersistentMap<String, SMGRegion> stack_variables;
 
   /**
-   * An object to store function return value
+   * An object to store function return value.
+   * The Object is Null if function has Void-type.
    */
-  final SMGRegion returnValueObject;
+  @Nullable private final SMGRegion returnValueObject;
+
+  private CLangStackFrame(
+      CFunctionDeclaration pDeclaration,
+      PersistentMap<String, SMGRegion> pVariables,
+      SMGRegion pReturnValueObject) {
+    stack_variables = pVariables;
+    stack_function = pDeclaration;
+    returnValueObject = pReturnValueObject;
+  }
 
   /**
    * Constructor. Creates an empty frame.
@@ -67,13 +80,14 @@ final public class CLangStackFrame {
    * TODO: [PARAMETERS] Create objects for function parameters
    */
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
+    stack_variables = PathCopyingPersistentTreeMap.of();
     stack_function = pDeclaration;
     CType returnType = pDeclaration.getType().getReturnType().getCanonicalType();
     if (returnType instanceof CVoidType) {
       // use a plain int as return type for void functions
       returnValueObject = null;
     } else {
-      int return_value_size = pMachineModel.getBitSizeof(returnType);
+      int return_value_size = pMachineModel.getSizeofInBits(returnType);
       returnValueObject = new SMGRegion(return_value_size, CLangStackFrame.RETVAL_LABEL);
     }
   }
@@ -85,7 +99,7 @@ final public class CLangStackFrame {
    */
   public CLangStackFrame(CLangStackFrame pFrame) {
     stack_function = pFrame.stack_function;
-    stack_variables.putAll(pFrame.stack_variables);
+    stack_variables = pFrame.stack_variables;
     returnValueObject = pFrame.returnValueObject;
   }
 
@@ -93,21 +107,19 @@ final public class CLangStackFrame {
   /**
    * Adds a SMG object pObj to a stack frame, representing variable pVariableName
    *
-   * Throws {@link IllegalArgumentException} when some object is already
-   * present with the name pVariableName
+   * <p>Throws {@link IllegalArgumentException} when some object is already present with the name
+   * pVariableName
    *
    * @param pVariableName A name of the variable
    * @param pObject An object to put into the stack frame
    */
-  public void addStackVariable(String pVariableName, SMGRegion pObject) {
-    if (stack_variables.containsKey(pVariableName)) {
-      throw new IllegalArgumentException("Stack frame for function '" +
-                                       stack_function.toASTString() +
-                                       "' already contains a variable '" +
-                                       pVariableName + "'");
-    }
+  public CLangStackFrame addStackVariable(String pVariableName, SMGRegion pObject) {
+    Preconditions.checkArgument(!stack_variables.containsKey(pVariableName),
+        "Stack frame for function '%s' already contains a variable '%s'",
+        stack_function.toASTString(), pVariableName);
 
-    stack_variables.put(pVariableName, pObject);
+    return new CLangStackFrame(
+        stack_function, stack_variables.putAndCopy(pVariableName, pObject), returnValueObject);
   }
 
   /* ********************************************* */
@@ -119,19 +131,16 @@ final public class CLangStackFrame {
    */
   @Override
   public String toString() {
-    StringBuilder to_return = new StringBuilder("<");
-    for (SMGRegion region : stack_variables.values()) {
-      to_return.append(" ").append(region);
-    }
-    to_return.append(" >");
-    return to_return.toString();
+    return "<" + Joiner.on(" ").join(stack_variables.values()) + ">";
   }
 
-  public void removeVariable(String pName) {
+  public CLangStackFrame removeVariable(String pName) {
     if (RETVAL_LABEL.equals(pName)) {
       // Do nothing for the moment
+      return this;
     } else {
-      stack_variables.remove(pName);
+      return new CLangStackFrame(
+          stack_function, stack_variables.removeAndCopy(pName), returnValueObject);
     }
   }
 
@@ -150,13 +159,11 @@ final public class CLangStackFrame {
     }
 
     SMGRegion to_return = stack_variables.get(pName);
-
     if (to_return == null) {
-      throw new NoSuchElementException("No variable with name '" +
-                                       pName + "' in stack frame for function '" +
-                                       stack_function.toASTString() + "'");
+      throw new NoSuchElementException(String.format(
+          "No variable with name '%s' in stack frame for function '%s'",
+          pName, stack_function.toASTString()));
     }
-
     return to_return;
   }
 
@@ -183,20 +190,19 @@ final public class CLangStackFrame {
    * @return a mapping from variables name to SMGObjects
    */
   public Map<String, SMGRegion> getVariables() {
-    return Collections.unmodifiableMap(stack_variables);
+    return stack_variables;
   }
 
   /**
    * @return a set of all objects: return value object, variables, parameters
    */
   public Set<SMGObject> getAllObjects() {
-    HashSet<SMGObject> retset = new HashSet<>();
+    Builder<SMGObject> retset = ImmutableSet.builder();
     retset.addAll(stack_variables.values());
     if (returnValueObject != null) {
       retset.add(returnValueObject);
     }
-
-    return Collections.unmodifiableSet(retset);
+    return retset.build();
   }
 
   /**
@@ -213,7 +219,22 @@ final public class CLangStackFrame {
     return stack_variables.containsKey(var);
   }
 
-  public void clearStackVariables() {
-    stack_variables.clear();
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof CLangStackFrame)) {
+      return false;
+    }
+    CLangStackFrame other = (CLangStackFrame)o;
+    return Objects.equals(stack_variables, other.stack_variables)
+        && Objects.equals(stack_function, other.stack_function)
+        && Objects.equals(returnValueObject, other.returnValueObject);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(stack_variables, stack_function, returnValueObject);
   }
 }

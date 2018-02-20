@@ -233,13 +233,13 @@ def getToolDataForCloud(benchmark):
 
     workingDir = benchmark.working_directory()
     if not os.path.isdir(workingDir):
-        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
+        sys.exit("Missing working directory '{0}', cannot run tool.".format(workingDir))
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
     for file in toolpaths:
         if not os.path.exists(file):
-            sys.exit("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
+            sys.exit("Missing file '{0}', cannot run benchmark within cloud.".format(os.path.normpath(file)))
 
     return (workingDir, toolpaths)
 
@@ -303,8 +303,8 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     try:
         with open(filePath, 'rt') as file:
             # Parse first part of information about hosts until first blank line
+            line = file.readline().strip()
             while True:
-                line = file.readline().strip()
                 if not line:
                     break
                 name = line.split("=")[-1].strip()
@@ -313,7 +313,16 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
                 cpuName = file.readline().split("=")[-1].strip()
                 frequency = file.readline().split("=")[-1].strip()
                 cores = file.readline().split("=")[-1].strip()
-                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+                turboBoostSupported = False
+                turboBoostEnabled = False
+                line = file.readline().strip()
+                if line.startswith('turboboost-supported='):
+                    turboBoostSupported = line.split("=")[1].lower() == 'true'
+                    line = file.readline().strip()
+                if line.startswith('turboboost-enabled='):
+                    turboBoostEnabled = line.split("=")[1].lower() == 'true'
+                    line = file.readline().strip()
+                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name, None, {}, turboBoostEnabled if turboBoostSupported else None)
 
             # Ignore second part of information about runs
             # (we read the run-to-host mapping from the .data file for each run).
@@ -350,6 +359,8 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 values['exitcode'] = int(value)
             elif (key == "host" or key == "terminationreason" or
+                  key.startswith("blkio-") or
+                  key.startswith("cpuenergy") or
                   key.startswith("energy-") or key.startswith("cputime-cpu")):
                 values[key] = value
             elif key not in IGNORED_VALUES:

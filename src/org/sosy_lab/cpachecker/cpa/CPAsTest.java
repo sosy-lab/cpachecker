@@ -69,10 +69,12 @@ import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
+import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -99,11 +101,13 @@ public class CPAsTest {
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
+    cpas.remove(BAMCPAWithBreakOnMissingBlock.class);
     cpas.remove(CacheCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
     cpas.remove(SingleSuccessorCompactorCPA.class);
+    cpas.remove(PowerSetCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
@@ -170,7 +174,7 @@ public class CPAsTest {
               .setLogger(logManager)
               .setConfiguration(config)
               .setShutdownNotifier(shutdownNotifier)
-              .set(new ReachedSetFactory(config), ReachedSetFactory.class)
+              .set(new ReachedSetFactory(config, logManager), ReachedSetFactory.class)
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
@@ -180,9 +184,9 @@ public class CPAsTest {
     }
   }
 
-  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> cpaClass)
+  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> pCpaClass)
       throws InvalidConfigurationException, CPAException {
-    if (cpaClass.equals(TerminationCPA.class)) {
+    if (pCpaClass.equals(TerminationCPA.class)) {
       return Optional.of(
           LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance());
 
@@ -208,7 +212,7 @@ public class CPAsTest {
     }
     assertThat(joined).named("result of join").isNotNull();
     assert_()
-        .withFailureMessage("Join of same elements is unsound")
+        .withMessage("Join of same elements is unsound")
         .that(isLessOrEqual(initial, joined))
         .isTrue();
   }
@@ -220,7 +224,7 @@ public class CPAsTest {
     AbstractState merged = cpa.getMergeOperator().merge(initial, initial, initialPrec);
     assertThat(merged).named("result of merge").isNotNull();
     assert_()
-        .withFailureMessage("Merging same elements was unsound")
+        .withMessage("Merging same elements was unsound")
         .that(isLessOrEqual(initial, merged))
         .isTrue();
   }
@@ -242,7 +246,7 @@ public class CPAsTest {
     Precision initialPrec = cpa.getInitialPrecision(main, partition);
     Set<AbstractState> reached = ImmutableSet.of(initial);
     assert_()
-        .withFailureMessage("Did not stop on same element")
+        .withMessage("Did not stop on same element")
         .that(cpa.getStopOperator().stop(initial, reached, initialPrec))
         .isTrue();
   }

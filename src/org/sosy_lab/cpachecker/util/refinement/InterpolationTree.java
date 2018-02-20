@@ -34,14 +34,14 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -224,7 +224,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    *
    * @param file file the file to write to
    */
-  public void exportToDot(PathTemplate file, int refinementCounter) {
+  public void exportToDot(PathTemplate file, long refinementCounter) {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
@@ -249,7 +249,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     result.append("}");
 
     try {
-      MoreFiles.writeFile(
+      IO.writeFile(
           file.getPath(refinementCounter, interpolationCounter), Charset.defaultCharset(), result);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write interpolation tree to file");
@@ -328,11 +328,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * to the root, it collects the highest state that has a non-trivial interpolant associated.
    * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
    *
-   * @param strategy whether to perform lazy abstraction or not
+   * @param pStrategy whether to perform lazy abstraction or not
    * @return the set of refinement roots
    */
-  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy strategy) {
-    if (strategy == GenericRefiner.RestartStrategy.ROOT) {
+  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
+    if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
       return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
     }
@@ -353,7 +353,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
       if (stateHasNonTrivialInterpolant(currentState)) {
         refinementRoots.add(currentState);
 
-        if (strategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
+        if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
           assert commonRoot != null: "common root not yet set";
           return new HashSet<>(Collections.singleton(commonRoot));
         }
@@ -541,13 +541,13 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     /**
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
-    private boolean isValidInterpolationRoot(ARGState root) {
-      return !stateHasFalseInterpolant(root);
+    private boolean isValidInterpolationRoot(ARGState pRoot) {
+      return !stateHasFalseInterpolant(pRoot);
     }
 
     @Override
-    public I getInitialInterpolantForRoot(ARGState root) {
-      I initialInterpolant = interpolants.get(root);
+    public I getInitialInterpolantForRoot(ARGState pRoot) {
+      I initialInterpolant = interpolants.get(pRoot);
 
       if (initialInterpolant == null) {
         initialInterpolant = interpolantManager.createInitialInterpolant();
@@ -605,7 +605,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     }
 
     @Override
-    public I getInitialInterpolantForRoot(ARGState root) {
+    public I getInitialInterpolantForRoot(ARGState pRoot) {
       return interpolantManager.createInitialInterpolant();
     }
 

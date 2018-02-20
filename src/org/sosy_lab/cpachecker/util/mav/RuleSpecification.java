@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.mav;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
 
 /**
  * Utility class for representation of specification.
@@ -44,7 +44,7 @@ public class RuleSpecification {
    * All precisions, that will be used, must implement AdjustablePrecision
    * (for adding/subtracting).
    */
-  private Map<Class<? extends AdjustablePrecision>, AdjustablePrecision> precisions;
+  private Map<Class<? extends AdjustableInternalPrecision>, AdjustableInternalPrecision> precisions;
 
   /**
    * Possible verdicts for each specification:
@@ -68,11 +68,11 @@ public class RuleSpecification {
     precisions = new HashMap<>();
   }
 
-  public void addPrecision(AdjustablePrecision otherPrecision) {
-    Class <? extends AdjustablePrecision> type = otherPrecision.getClass();
+  public void addPrecision(AdjustableInternalPrecision otherPrecision) {
+    Class<? extends AdjustableInternalPrecision> type = otherPrecision.getClass();
     if (precisions.containsKey(type))
     {
-      precisions.put(type, precisions.get(type).add(otherPrecision));
+      precisions.put(type, precisions.get(type).addInternal(otherPrecision));
     }
     else
     {
@@ -80,11 +80,12 @@ public class RuleSpecification {
     }
   }
 
-  public AdjustablePrecision getPrecision(Class<? extends AdjustablePrecision> pPrecisionType) {
+  public AdjustableInternalPrecision
+      getPrecision(Class<? extends AdjustableInternalPrecision> pPrecisionType) {
     return precisions.get(pPrecisionType);
   }
 
-  public Set<Class<? extends AdjustablePrecision>> getPrecisionTypes() {
+  public Set<Class<? extends AdjustableInternalPrecision>> getPrecisionTypes() {
     return precisions.keySet();
   }
 

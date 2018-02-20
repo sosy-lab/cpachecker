@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.chc;
 
 import com.google.common.collect.Lists;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,7 +33,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
+import jpl.Compound;
+import jpl.JPL;
+import jpl.Query;
+import jpl.Term;
+import jpl.Util;
+import jpl.Variable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -44,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -61,13 +64,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import jpl.Compound;
-import jpl.JPL;
-import jpl.Query;
-import jpl.Term;
-import jpl.Util;
-import jpl.Variable;
 
 public class ConstraintManager {
 
@@ -86,7 +82,7 @@ public class ConstraintManager {
     return init;
   }
 
-  public static Constraint simplify(ArrayList<Term> cn, HashMap<String,Term> vars) {
+  public static Constraint simplify(ArrayList<Term> cn, Map<String, Term> vars) {
 
     // Constraint to be solved
     Term constraint = Util.termArrayToList(cn.toArray(new Term[0]));
@@ -99,7 +95,7 @@ public class ConstraintManager {
     logger.log(Level.FINEST, "\n * solve (w.r.t. " + varList.toString() + ")");
 
     @SuppressWarnings("unchecked")
-    Hashtable<String,Term> sol = q.oneSolution();
+    Hashtable<String, Term> sol = q.oneSolution();
 
     return ConstraintManager.normalize("S", sol);
   }
@@ -155,7 +151,7 @@ public class ConstraintManager {
      * Remove all non primed variables which occur in
      * the set of primed variables
      */
-    HashMap<String,Term> newVars = ConstraintManager.selectVariables(
+    Map<String,Term> newVars = ConstraintManager.selectVariables(
         cn1.getVars(), cn2.getVars());
 
     Constraint andConstraint = ConstraintManager.simplify(andCn, newVars);
@@ -165,10 +161,10 @@ public class ConstraintManager {
     return andConstraint;
   }
 
-  private static HashMap<String,Term> selectVariables(
-    HashMap<String,Term> vars,  HashMap<String,Term> pVars) {
+  private static Map<String, Term> selectVariables(
+      Map<String, Term> vars, Map<String, Term> pVars) {
 
-    HashMap<String,Term> newVars = new HashMap<>(pVars);
+    Map<String,Term> newVars = new HashMap<>(pVars);
 
     for (Map.Entry<String, Term> me : vars.entrySet()) {
       if (! pVars.containsKey(me.getKey())) {
@@ -192,8 +188,7 @@ public class ConstraintManager {
       return nres.setFalse();
     }
 
-
-    Hashtable<String,Term> varSolMap = new Hashtable<>(varMap);
+    Map<String, Term> varSolMap = new HashMap<>(varMap);
 
     varSolMap.remove(sol);
 
@@ -233,7 +228,17 @@ public class ConstraintManager {
       }
     } else {
       // negated atomic constraint
-      CBinaryExpression negbe = getNegatedRelOperator(c);
+      CBinaryExpression negbe = null;
+      if (c.getOperator().isLogicalOperator()) {
+        negbe =
+            new CBinaryExpression(
+                c.getFileLocation(),
+                c.getExpressionType(),
+                c.getCalculationType(),
+                c.getOperand1(),
+                c.getOperand2(),
+                c.getOperator().getOppositLogicalOperator());
+      }
       acList = expressionToCLP(negbe);
       for (Pair<Term,ArrayList<Term>> p : acList) {
         cns.add(new Constraint(p.getFirst(), p.getSecond()));
@@ -482,63 +487,6 @@ public class ConstraintManager {
           return null;
       }
   }
-
-  private static CBinaryExpression getNegatedRelOperator(CBinaryExpression be) {
-
-    switch (be.getOperator()) {
-      case EQUALS:
-        return new CBinaryExpression(
-            be.getFileLocation(),
-            be.getExpressionType(),
-            be.getCalculationType(),
-            be.getOperand1(),
-            be.getOperand2(),
-            BinaryOperator.NOT_EQUALS );
-      case NOT_EQUALS:
-        return new CBinaryExpression(
-            be.getFileLocation(),
-            be.getExpressionType(),
-            be.getCalculationType(),
-            be.getOperand1(),
-            be.getOperand2(),
-            BinaryOperator.EQUALS );
-      case LESS_THAN:
-        return new CBinaryExpression(
-            be.getFileLocation(),
-            be.getExpressionType(),
-            be.getCalculationType(),
-            be.getOperand1(),
-            be.getOperand2(),
-            BinaryOperator.GREATER_EQUAL );
-      case LESS_EQUAL:
-        return new CBinaryExpression(
-            be.getFileLocation(),
-            be.getExpressionType(),
-            be.getCalculationType(),
-            be.getOperand1(),
-            be.getOperand2(),
-            BinaryOperator.GREATER_THAN );
-      case GREATER_THAN:
-        return new CBinaryExpression(
-            be.getFileLocation(),
-            be.getExpressionType(),
-            be.getCalculationType(),
-            be.getOperand1(),
-            be.getOperand2(),
-            BinaryOperator.LESS_EQUAL );
-      case GREATER_EQUAL:
-        return new CBinaryExpression(
-            be.getFileLocation(),
-            be.getExpressionType(),
-            be.getCalculationType(),
-            be.getOperand1(),
-            be.getOperand2(),
-            BinaryOperator.LESS_THAN );
-      default: // not a relational operator
-        return null;
-    }
-  }
-
 
   private static Collection<Pair<Term,ArrayList<Term>>> expressionToCLP(AExpression ce) {
 

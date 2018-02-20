@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctagonCoefficients;
@@ -47,9 +48,6 @@ import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 
 
 /**
@@ -92,7 +90,7 @@ public class OctagonState implements AbstractState {
      */
     MXMY(5);
 
-    private int num;
+    private final int num;
 
     BinaryConstraints(int i) {
       num = i;
@@ -295,10 +293,11 @@ public class OctagonState implements AbstractState {
       return this;
     }
 
-    return new OctagonState(octagonManager.forget(octagon, varIdx),
-                        HashBiMap.create(variableToIndexMap),
-                        new HashMap<>(variableToTypeMap),
-                        logger);
+    return new OctagonState(
+        octagonManager.forget(octagon, varIdx),
+        HashBiMap.create(variableToIndexMap),
+        new HashMap<>(variableToTypeMap),
+        logger);
   }
 
   /**
@@ -326,10 +325,12 @@ public class OctagonState implements AbstractState {
 
   public OctagonState declareVariable(MemoryLocation pTempVarName, Type type) {
     assert !variableToIndexMap.containsKey(pTempVarName);
-    OctagonState newState = new OctagonState(octagonManager.addDimensionAndEmbed(octagon, 1),
-                                     HashBiMap.create(variableToIndexMap),
-                                     new HashMap<>(variableToTypeMap),
-                                     logger);
+    OctagonState newState =
+        new OctagonState(
+            octagonManager.addDimensionAndEmbed(octagon, 1),
+            HashBiMap.create(variableToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            logger);
     newState.variableToIndexMap.put(pTempVarName, sizeOfVariables());
     newState.variableToTypeMap.put(pTempVarName, type);
     return newState;
@@ -366,10 +367,12 @@ public class OctagonState implements AbstractState {
       return this;
     }
 
-    OctagonState newState = new OctagonState(octagonManager.assingVar(octagon, varIdx, arr),
-                                     HashBiMap.create(variableToIndexMap),
-                                     new HashMap<>(variableToTypeMap),
-                                     logger);
+    OctagonState newState =
+        new OctagonState(
+            octagonManager.assingVar(octagon, varIdx, arr),
+            HashBiMap.create(variableToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            logger);
     octagonManager.num_clear_n(arr, oct.size());
     return newState;
   }
@@ -392,10 +395,12 @@ public class OctagonState implements AbstractState {
       return this;
     }
 
-    OctagonState newState = new OctagonState(octagonManager.intervAssingVar(octagon, varIdx, arr),
-                                     HashBiMap.create(variableToIndexMap),
-                                     new HashMap<>(variableToTypeMap),
-                                     logger);
+    OctagonState newState =
+        new OctagonState(
+            octagonManager.intervAssingVar(octagon, varIdx, arr),
+            HashBiMap.create(variableToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            logger);
     octagonManager.num_clear_n(arr, oct.size());
     return newState;
   }
@@ -414,10 +419,12 @@ public class OctagonState implements AbstractState {
       octagonManager.num_set_int(arr, 3, constantValue.getValue().longValue());
     }
 
-    OctagonState newState = new OctagonState(octagonManager.addBinConstraint(octagon, 1, arr),
-                                     HashBiMap.create(variableToIndexMap),
-                                     new HashMap<>(variableToTypeMap),
-                                     logger);
+    OctagonState newState =
+        new OctagonState(
+            octagonManager.addBinConstraint(octagon, 1, arr),
+            HashBiMap.create(variableToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            logger);
     octagonManager.num_clear_n(arr, 4);
     return newState;
   }
@@ -695,10 +702,11 @@ public class OctagonState implements AbstractState {
   }
 
   public OctagonState intersect(OctagonState other) {
-    return new OctagonState(octagonManager.intersection(octagon, other.octagon),
-                        HashBiMap.create(variableToIndexMap),
-                        new HashMap<>(variableToTypeMap),
-                        logger);
+    return new OctagonState(
+        octagonManager.intersection(octagon, other.octagon),
+        HashBiMap.create(variableToIndexMap),
+        new HashMap<>(variableToTypeMap),
+        logger);
   }
 
   public OctagonState removeTempVars(String functionName, String varPrefix) {
@@ -734,10 +742,12 @@ public class OctagonState implements AbstractState {
       return this;
     }
 
-    OctagonState newState = new OctagonState(octagonManager.removeDimension(octagon, keysToRemove.size()),
-                                     HashBiMap.create(variableToIndexMap),
-                                     new HashMap<>(variableToTypeMap),
-                                     logger);
+    OctagonState newState =
+        new OctagonState(
+            octagonManager.removeDimension(octagon, keysToRemove.size()),
+            HashBiMap.create(variableToIndexMap),
+            new HashMap<>(variableToTypeMap),
+            logger);
     newState.variableToIndexMap.keySet().removeAll(keysToRemove);
     newState.variableToTypeMap.keySet().removeAll(keysToRemove);
 

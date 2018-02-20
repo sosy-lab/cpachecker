@@ -47,6 +47,7 @@ import com.google.common.base.Preconditions;
  */
 public class SingleLoopHead extends CFANode {
 
+  private static final long serialVersionUID = 4424025633736206810L;
   /**
    * The program counter value assignment edges leading to the loop head.
    */

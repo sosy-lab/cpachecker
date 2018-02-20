@@ -35,7 +35,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -56,10 +56,8 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -74,8 +72,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
  */
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA
-    implements ConfigurableProgramAnalysis,
-        StatisticsProvider,
+    implements StatisticsProvider,
         ConfigurableProgramAnalysisWithBAM,
         ProofCheckerCPA {
 
@@ -110,14 +107,22 @@ public class ControlAutomatonCPA
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")
   private boolean mergeOnTop  = false;
 
+  @Option(
+    secure = true,
+    name = "prec.topOnFinalSelfLoopingState",
+    description =
+        "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP."
+  )
+  private boolean topOnFinalSelfLoopingState = false;
+
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  private final AutomatonTransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
-  private final Statistics stats = new AutomatonStatistics(this);
+  final AutomatonStatistics stats = new AutomatonStatistics(this);
+  private final CFA cfa;
+  private final LogManager logger;
 
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
@@ -125,9 +130,8 @@ public class ControlAutomatonCPA
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger, pCFA.getMachineModel());
-    this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
-
+    cfa = pCFA;
+    logger = pLogger;
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
 
@@ -135,15 +139,14 @@ public class ControlAutomatonCPA
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, pLogger, inputFile, pCFA);
+      this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
       try (Writer w =
-          MoreFiles.openOutputFile(
-              exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
+          IO.openOutputFile(exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -151,8 +154,7 @@ public class ControlAutomatonCPA
     }
   }
 
-  private Automaton constructAutomataFromFile(
-      Configuration pConfig, LogManager logger, Path pFile, CFA cfa)
+  private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
       throws InvalidConfigurationException {
 
     Scope scope = cfa.getLanguage() == Language.C
@@ -172,29 +174,13 @@ public class ControlAutomatonCPA
     return lst.get(0);
   }
 
-  private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
-      throws InvalidConfigurationException {
-
-    final PrecisionAdjustment lPrecisionAdjustment;
-
-    if (breakOnTargetState > 0) {
-      final int pFoundTargetLimit = breakOnTargetState;
-      final int pExtraIterationsLimit = extraIterationsLimit;
-      lPrecisionAdjustment = new BreakOnTargetsPrecisionAdjustment(pFoundTargetLimit, pExtraIterationsLimit);
-
-    } else {
-      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    }
-
-    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, lPrecisionAdjustment);
-  }
-
   public Automaton getAutomaton() {
     return this.automaton;
   }
 
   public void disable() {
-    transferRelation.disable();
+    getTransferRelation().disable();
+    // transferRelation.disable();
   }
 
   public void disable(String violatedPropertyDescription) {
@@ -220,11 +206,6 @@ public class ControlAutomatonCPA
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
   public MergeOperator getMergeOperator() {
     if (mergeOnTop) {
       return new AutomatonTopMergeOperator(automatonDomain, topState);
@@ -235,7 +216,17 @@ public class ControlAutomatonCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    final PrecisionAdjustment lPrecisionAdjustment;
+
+    if (breakOnTargetState > 0) {
+      lPrecisionAdjustment =
+          new BreakOnTargetsPrecisionAdjustment(breakOnTargetState, extraIterationsLimit);
+    } else {
+      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
+    return new ControlAutomatonPrecisionAdjustment(
+        topState, lPrecisionAdjustment, topOnFinalSelfLoopingState);
   }
 
   @Override
@@ -245,7 +236,7 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return transferRelation ;
+    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
   }
 
   public AutomatonState getBottomState() {

@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class APointerExpression extends AbstractLeftHandSide {
 
+  private static final long serialVersionUID = -1287666395056820570L;
   private final AExpression operand;
 
   public APointerExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand) {

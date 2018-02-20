@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -106,6 +105,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
@@ -115,7 +115,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-
 
 /**
  * This Visitor implements an evaluation strategy
@@ -230,6 +229,10 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
+    if (lVal instanceof FunctionValue || rVal instanceof FunctionValue) {
+      return calculateExpressionWithFunctionValue(binaryOperator, rVal, lVal);
+    }
+
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
       return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
     }
@@ -300,6 +303,29 @@ public abstract class AbstractExpressionValueVisitor
 
     return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
         expressionType, calculationType);
+  }
+
+  public static Value calculateExpressionWithFunctionValue(BinaryOperator binaryOperator, Value val1, Value val2) {
+    if (val1 instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
+    } else if (val2 instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val2, val1);
+    } else {
+      return new Value.UnknownValue();
+    }
+  }
+
+  private static NumericValue calculateOperationWithFunctionValue(BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
+    switch (binaryOperator) {
+    case EQUALS:
+      return new NumericValue(val1.equals(val2) ? 1 : 0);
+
+    case NOT_EQUALS:
+      return new NumericValue(val1.equals(val2) ? 0 : 1);
+
+    default:
+      throw new AssertionError("Operation " + binaryOperator + " is not supported for function values");
+    }
   }
 
   private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
@@ -667,10 +693,10 @@ public abstract class AbstractExpressionValueVisitor
 
     // We only handle builtin functions
     if (functionNameExp instanceof CIdExpression) {
-      String functionName = ((CIdExpression) functionNameExp).getName();
+      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
 
-      if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-        CType functionType = BuiltinFunctions.getFunctionType(functionName);
+      if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
+        CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
 
         if (isUnspecifiedType(functionType)) {
           // unsupported formula
@@ -686,7 +712,7 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
 
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
@@ -704,43 +730,43 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(absoluteValue);
           }
 
-        } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
-            || BuiltinFloatFunctions.matchesInfinity(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
+            || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
 
           assert parameterValues.isEmpty();
-          if (BuiltinFloatFunctions.matchesHugeValFloat(functionName)
-              || BuiltinFloatFunctions.matchesInfinityFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesHugeValFloat(calledFunctionName)
+              || BuiltinFloatFunctions.matchesInfinityFloat(calledFunctionName)) {
 
             return new NumericValue(Float.POSITIVE_INFINITY);
 
           } else {
-            assert BuiltinFloatFunctions.matchesInfinityDouble(functionName)
-                || BuiltinFloatFunctions.matchesInfinityLongDouble(functionName)
-                || BuiltinFloatFunctions.matchesHugeValDouble(functionName)
-                || BuiltinFloatFunctions.matchesHugeValLongDouble(functionName)
-                : " Unhandled builtin function for infinity: " + functionName;
+            assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesHugeValDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
+                : " Unhandled builtin function for infinity: " + calledFunctionName;
 
             return new NumericValue(Double.POSITIVE_INFINITY);
           }
 
-        } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
           assert parameterValues.isEmpty() || parameterValues.size() == 1;
 
-          if (BuiltinFloatFunctions.matchesNaNFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesNaNFloat(calledFunctionName)) {
             return new NumericValue(Float.NaN);
           } else {
-            assert BuiltinFloatFunctions.matchesNaNDouble(functionName)
-                || BuiltinFloatFunctions.matchesNaNLongDouble(functionName)
-                : "Unhandled builtin function for NaN: " + functionName;
+            assert BuiltinFloatFunctions.matchesNaNDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
+                : "Unhandled builtin function for NaN: " + calledFunctionName;
 
             return new NumericValue(Double.NaN);
           }
-        } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT:
                 return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
@@ -751,12 +777,12 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT:
                 return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
@@ -767,12 +793,12 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT:
                 return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(0) : new NumericValue(1);
@@ -783,7 +809,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
 
@@ -801,7 +827,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
 
@@ -819,9 +845,9 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesRound(functionName)
-            || BuiltinFloatFunctions.matchesLround(functionName)
-            || BuiltinFloatFunctions.matchesLlround(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)
+            || BuiltinFloatFunctions.matchesLround(calledFunctionName)
+            || BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
@@ -847,7 +873,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
@@ -880,7 +906,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value operand1 = parameterValues.get(0);
             Value operand2 = parameterValues.get(1);
@@ -892,13 +918,13 @@ public abstract class AbstractExpressionValueVisitor
               Number op1 = operand1.asNumericValue().getNumber();
               Number op2 = operand2.asNumericValue().getNumber();
 
-              Value result = fdim(op1, op2, functionName);
+              Value result = fdim(op1, op2, calledFunctionName);
               if (!Value.UnknownValue.getInstance().equals(result)) {
                 return result;
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value operand1 = parameterValues.get(0);
             Value operand2 = parameterValues.get(1);
@@ -913,7 +939,7 @@ public abstract class AbstractExpressionValueVisitor
               return fmax(op1, op2);
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value operand1 = parameterValues.get(0);
             Value operand2 = parameterValues.get(1);
@@ -928,7 +954,7 @@ public abstract class AbstractExpressionValueVisitor
               return fmin(op1, op2);
             }
           }
-        } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
 
@@ -941,7 +967,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value target = parameterValues.get(0);
             Value source = parameterValues.get(1);
@@ -960,13 +986,13 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
 
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT: {
                 float v = numericValue.floatValue();
@@ -1005,13 +1031,13 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
                 case FLOAT:
                   {
@@ -1030,14 +1056,14 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value numer = parameterValues.get(0);
             Value denom = parameterValues.get(1);
             if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
               NumericValue numerValue = numer.asNumericValue();
               NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName).getType()) {
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType()) {
                 case FLOAT:
                   {
                     float num = numerValue.floatValue();
@@ -1064,14 +1090,14 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value numer = parameterValues.get(0);
             Value denom = parameterValues.get(1);
             if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
               NumericValue numerValue = numer.asNumericValue();
               NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName).getType()) {
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType()) {
                 case FLOAT:
                   {
                     float num = numerValue.floatValue();
@@ -1108,7 +1134,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1116,7 +1142,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 > num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1124,7 +1150,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 >= num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1132,7 +1158,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 < num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1140,7 +1166,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 <= num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1148,7 +1174,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1645,7 +1671,8 @@ public abstract class AbstractExpressionValueVisitor
       // int or long, so we have to cast if the actual type is int.
       case SHIFT_LEFT:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) << rVal;
+          final int intResult = ((int) lVal) << rVal;
+          numResult = intResult;
         } else {
           numResult = lVal << rVal;
         }
@@ -1653,7 +1680,8 @@ public abstract class AbstractExpressionValueVisitor
 
       case SHIFT_RIGHT_SIGNED:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) >> rVal;
+          final int intResult = ((int) lVal) >> rVal;
+          numResult = intResult;
         } else {
           numResult = lVal >> rVal;
         }
@@ -1661,7 +1689,8 @@ public abstract class AbstractExpressionValueVisitor
 
       case SHIFT_RIGHT_UNSIGNED:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) >>> rVal;
+          final int intResult = ((int) lVal) >>> rVal;
+          numResult = intResult;
         } else {
           numResult = lVal >>> rVal;
         }
@@ -2034,15 +2063,13 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JArrayCreationExpression pJArrayCreationExpression) {
-    List<JExpression> arraySizeExpressions = new ArrayList<>(pJArrayCreationExpression.getLength());
     Value lastArrayValue;
     Value currentArrayValue = null;
     int currentDimension = 0;
     long concreteArraySize;
     final JType elementType = pJArrayCreationExpression.getExpressionType().getElementType();
 
-    Collections.reverse(arraySizeExpressions);
-    for (JExpression sizeExpression : arraySizeExpressions) {
+    for (JExpression sizeExpression : Lists.reverse(pJArrayCreationExpression.getLength())) {
       currentDimension++;
       lastArrayValue = currentArrayValue;
       Value sizeValue = sizeExpression.accept(this);
@@ -2089,7 +2116,7 @@ public abstract class AbstractExpressionValueVisitor
     final List<JExpression> initializerExpressions = pJArrayInitializer.getInitializerExpressions();
 
     // this list stores the values in the array's slots, in occurring order
-    List<Value> slotValues = new LinkedList<>();
+    List<Value> slotValues = new ArrayList<>();
 
     for (JExpression currentExpression : initializerExpressions) {
       slotValues.add(currentExpression.accept(this));
@@ -2138,10 +2165,6 @@ public abstract class AbstractExpressionValueVisitor
 
   public String getFunctionName() {
     return functionName;
-  }
-
-  public long getSizeof(CType pType) {
-    return machineModel.getSizeof(pType);
   }
 
   protected MachineModel getMachineModel() {
@@ -2254,7 +2277,7 @@ public abstract class AbstractExpressionValueVisitor
             }
           } else {
             // unsigned value must be put in interval [0, maxValue-1]
-            if (longValue < 0) {
+            if (result < 0) {
               // value is negative, so adding maxValue makes it positive
               result += maxValue;
             }

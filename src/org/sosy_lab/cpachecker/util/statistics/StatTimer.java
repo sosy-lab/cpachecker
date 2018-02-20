@@ -61,4 +61,7 @@ public class StatTimer extends AbstractStatValue {
     return timer.getSumTime();
   }
 
+  public TimeSpan getMaxTime() {
+    return timer.getMaxTime();
+  }
 }

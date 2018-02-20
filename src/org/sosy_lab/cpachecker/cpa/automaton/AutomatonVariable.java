@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.Serializable;
 
 
-/** Represents a local variable of the automaton.
- * So far only integer variables are supported.
- */
-class AutomatonVariable implements Cloneable, Serializable {
+/** Represents a local variable of the automaton. So far only integer variables are supported. */
+public class AutomatonVariable implements Cloneable, Serializable {
   private static final long serialVersionUID = -6765794863680244559L;
   private int value;
   private String name;

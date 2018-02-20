@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
@@ -9,7 +10,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
@@ -61,21 +74,6 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 /**
  * Main logic in a single class.
@@ -323,7 +321,7 @@ public class PolicyIterationManager {
     if (((isTarget) || shouldAbstract)
         && isUnreachable(iState, extraInvariant, isTarget)) {
 
-      logger.log(Level.INFO, "Returning bottom state");
+      logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();
     }
 
@@ -401,7 +399,7 @@ public class PolicyIterationManager {
 
     if (isUnreachable(iState, strengthening, false)) {
 
-      logger.log(Level.INFO, "Returning bottom state");
+      logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();
     }
 
@@ -469,7 +467,7 @@ public class PolicyIterationManager {
       Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
         constraints = vdfmgr.valueDeterminationFormulaCheap(
-            newState, latestSibling, merged, updated.keySet());
+            newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           logger.log(Level.INFO, "Switching to more expensive value "
@@ -481,7 +479,7 @@ public class PolicyIterationManager {
 
         // Hopeful value determination failed, run the more expensive version.
         constraints = vdfmgr.valueDeterminationFormula(
-            newState, latestSibling, merged, updated.keySet());
+            newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException("Value determination problem is "
@@ -629,7 +627,9 @@ public class PolicyIterationManager {
     statistics.valueDeterminationTimer.start();
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
-      valDetConstraints.constraints.forEach(c -> optEnvironment.addConstraint(c));
+      for (BooleanFormula c : valDetConstraints.constraints) {
+        optEnvironment.addConstraint(c);
+      }
 
       for (Entry<Template, PolicyBound> entry : updated.entrySet()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -1046,8 +1046,7 @@ public class PolicyIterationManager {
     }
 
     // One unbounded => all unbounded (sign is taken into account).
-    if (policyBounds.stream().filter(policyBound -> policyBound == null)
-        .iterator().hasNext()) {
+    if (policyBounds.contains(null)) {
       return Pair.of(UNBOUNDED, null);
     }
 
@@ -1100,9 +1099,10 @@ public class PolicyIterationManager {
     final Set<String> closure = relatedClosure(
         Sets.union(input, supportingLemmas), vars);
 
-    return input.stream().filter(
-        l -> !Sets.intersection(extractFunctionNames(l), closure).isEmpty()
-    ).collect(Collectors.toSet());
+    return input
+        .stream()
+        .filter(l -> !Sets.intersection(extractFunctionNames(l), closure).isEmpty())
+        .collect(toImmutableSet());
   }
 
   /**
@@ -1218,8 +1218,8 @@ public class PolicyIterationManager {
       case ALL:
         return true;
       case LOOPHEAD:
-        LoopstackState loopState = AbstractStates.extractStateByType(totalState,
-            LoopstackState.class);
+        LoopBoundState loopState =
+            AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
         return (cfa.getAllLoopHeads().get().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));

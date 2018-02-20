@@ -39,10 +39,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -64,7 +62,6 @@ import org.sosy_lab.java_smt.api.Formula;
 public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
-  private final LogManager logger;
 
   private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
@@ -72,9 +69,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private final Map<UnmodifiableReachedSet, ReachedSetBasedFormulaSupplier>
       singleInvariantSuppliers = new HashMap<>();
 
-  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated, LogManager pLogger) {
+  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
     aggregatedReached = pAggregated;
-    logger = pLogger;
     updateInvariants(); // at initialization we want to update the invariants the first time
   }
 
@@ -84,7 +80,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       Optional<CallstackStateEqualsWrapper> pCallstackInfo,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      @Nullable PathFormula pContext) {
+      @Nullable PathFormula pContext)
+      throws InterruptedException {
     return lastInvariantSupplier.getInvariantFor(pNode, pCallstackInfo, pFmgr, pPfmgr, pContext);
   }
 
@@ -103,8 +100,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
       lastUsedReachedSets = tmp;
       lastInvariantSupplier =
-          new AggregatedInvariantSupplier(
-              ImmutableSet.copyOf(singleInvariantSuppliers.values()), logger);
+          new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
     }
   }
 
@@ -133,18 +129,20 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
         if (!ssa.containsVariable(varName)) {
           if (varName.startsWith("*(") && varName.endsWith(")")) {
-            varName = varName.substring(2, varName.length() - 1);
-            if (!ssa.containsVariable(varName)) {
-              throw new IllegalArgumentException();
+            String unwrappedVarName = varName.substring(2, varName.length() - 1);
+            if (!ssa.containsVariable(unwrappedVarName)) {
+              // Variable needs to be eliminated later
+              return atom;
             }
 
-            CType type = ((CPointerType) ssa.getType(varName)).getType();
-            atom = fmgr.uninstantiate(pfgmr.makeFormulaForVariable(context, varName, type, true));
+            CType type = ((CPointerType) ssa.getType(unwrappedVarName)).getType();
+            atom =
+                fmgr.uninstantiate(
+                    pfgmr.makeFormulaForVariable(context, unwrappedVarName, type, true));
             return atom;
           }
-
-          throw new IllegalArgumentException(
-              "Variable " + varName + " could not be found in SSAMap");
+          // Variable needs to be eliminated later
+          return atom;
         }
 
         // nothing special, just return the variable as is
@@ -179,13 +177,10 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     private final Collection<ReachedSetBasedFormulaSupplier> invariantSuppliers;
     private final Map<InvariantsCacheKey, List<BooleanFormula>> cache = new HashMap<>();
-    private final LogManager logger;
 
     private AggregatedInvariantSupplier(
-        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers,
-        LogManager pLogger) {
+        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers) {
       invariantSuppliers = checkNotNull(pInvariantSuppliers);
-      logger = pLogger;
     }
 
     @Override
@@ -194,7 +189,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
         Optional<CallstackStateEqualsWrapper> callstackInformation,
         FormulaManagerView pFmgr,
         PathFormulaManager pPfmgr,
-        PathFormula pContext) {
+        PathFormula pContext)
+        throws InterruptedException {
       InvariantsCacheKey key = new InvariantsCacheKey(pNode, callstackInformation, pFmgr, pPfmgr);
 
       List<BooleanFormula> invariants;
@@ -210,25 +206,23 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
       final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
 
-      // add pointer target information if possible/necessary
       if (pContext != null) {
-        invariants =
-            Lists.transform(
-                invariants,
-                i -> {
-                  try {
-                    return pFmgr.transformRecursively(
-                        i, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
-                  } catch (IllegalArgumentException e) {
-                    logger.logUserException(
-                        Level.INFO,
-                        e,
-                        "Ignoring invariant for location "
-                            + pNode
-                            + " which could not be wrapped properly.");
-                    return bfmgr.makeTrue();
-                  }
-                });
+        List<BooleanFormula> adjustedInvariants = Lists.newArrayListWithCapacity(invariants.size());
+        Set<String> variables = pContext.getSsa().allVariables();
+        for (BooleanFormula invariant : invariants) {
+          // Handle pointer aliasing
+          BooleanFormula inv =
+              pFmgr.transformRecursively(
+                  invariant, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
+          // Drop information about unknown variables
+          if (!variables.containsAll(pFmgr.extractVariableNames(inv))) {
+            inv =
+                pFmgr.filterLiterals(
+                    inv, bf -> variables.containsAll(pFmgr.extractVariableNames(bf)));
+          }
+          adjustedInvariants.add(inv);
+        }
+        invariants = adjustedInvariants;
       }
 
       return verifyNotNull(bfmgr.and(invariants));

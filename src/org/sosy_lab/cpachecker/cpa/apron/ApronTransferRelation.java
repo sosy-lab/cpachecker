@@ -35,11 +35,16 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -102,15 +107,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
   /**
@@ -122,8 +118,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
    * set of functions that may not appear in the source code
    * the value of the map entry is the explanation for the user
    */
-  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of();
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private final LogManager logger;
   private final boolean splitDisequalities;
@@ -527,9 +522,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
    * @param truthAssumption indicates if we are in the then or the else branch of an assumption
    * @return an OctState or null
    */
-  private Set<ApronState> handleLiteralBooleanExpression(long value, boolean truthAssumption, ApronState state) {
+  private Set<ApronState> handleLiteralBooleanExpression(
+      long value, boolean truthAssumption, ApronState pState) {
     if ((value != 0) == truthAssumption) {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     } else {
       return Collections.emptySet();
     }
@@ -810,7 +806,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     throw new UnrecognizedCCodeException("unknown statement", cfaEdge, statement);
   }
 
-  private MemoryLocation buildVarName(CLeftHandSide left, String functionName) {
+  private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
     String variableName = null;
     if (left instanceof CArraySubscriptExpression) {
       variableName = ((CArraySubscriptExpression) left).getArrayExpression().toASTString();
@@ -823,7 +819,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(functionName, variableName);
+      return MemoryLocation.valueOf(pFunctionName, variableName);
     } else {
       return MemoryLocation.valueOf(variableName);
     }
@@ -1077,23 +1073,29 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     @Override
     public Set<Texpr0Node> visit(CFunctionCallExpression e) throws CPATransferException {
       if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        String functionName = ((CIdExpression)e.getFunctionNameExpression()).getName();
-        if (functionName.equals("__VERIFIER_nondet_int")) {
+        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+          case "__VERIFIER_nondet_int":
+            {
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           Scalar inf = Scalar.create();
           inf.setInfty(-1);
           Interval interval = new Interval(inf, sup);
           return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
-        } else if (functionName.equals("__VERIFIER_nondet_uint")) {
+            }
+          case "__VERIFIER_nondet_uint":
+            {
           Interval interval = new Interval();
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           interval.setSup(sup);
           return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
-        } else if (functionName.equals("__VERIFIER_nondet_bool")) {
+            }
+          case "__VERIFIER_nondet_bool":
+            {
           Interval interval = new Interval(0, 1);
           return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
+            }
         }
       }
       return Collections.emptySet();

@@ -26,18 +26,17 @@ package org.sosy_lab.cpachecker.util.states;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 
 /**
 * This class describes a location in the memory.
@@ -58,7 +57,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     offset = pOffset;
   }
 
-  private MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
+  protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pIdentifier);
 
     int separatorIndex = pIdentifier.indexOf("::");
@@ -92,15 +91,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   @Override
   public int hashCode() {
-
-    int hc = 17;
-    int hashMultiplier = 59;
-
-    hc = hc * hashMultiplier + Objects.hashCode(functionName);
-    hc = hc * hashMultiplier + identifier.hashCode();
-    hc = hc * hashMultiplier + Objects.hashCode(offset);
-
-    return hc;
+    return Objects.hash(functionName, identifier, offset);
   }
 
   public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
@@ -121,26 +112,28 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   public static MemoryLocation valueOf(String pVariableName) {
 
-    String[] nameParts    = pVariableName.split("::");
-    String[] offsetParts  = pVariableName.split("/");
+    List<String> nameParts = Splitter.on("::").splitToList(pVariableName);
+    List<String> offsetParts = Splitter.on('/').splitToList(pVariableName);
 
-    boolean isScoped  = nameParts.length == 2;
-    boolean hasOffset = offsetParts.length == 2;
+    boolean isScoped = nameParts.size() == 2;
+    boolean hasOffset = offsetParts.size() == 2;
 
-    @Nullable Long offset =
-        hasOffset ? Long.parseLong(offsetParts[1]) : null;
+    @Nullable Long offset = hasOffset ? Long.parseLong(offsetParts.get(1)) : null;
 
     if (isScoped) {
+      String functionName = nameParts.get(0);
+      String varName = nameParts.get(1);
       if (hasOffset) {
-        nameParts[1] = nameParts[1].replace("/" + offset, "");
+        varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(nameParts[0], nameParts[1], offset);
+      return new MemoryLocation(functionName, varName, offset);
 
     } else {
+      String varName = nameParts.get(0);
       if (hasOffset) {
-        nameParts[0] = nameParts[0].replace("/" + offset, "");
+        varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
+      return new MemoryLocation(varName.replace("/" + offset, ""), offset);
     }
   }
 
@@ -206,30 +199,10 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   @Override
   public int compareTo(MemoryLocation other) {
-
-    int result = 0;
-
-    if (isOnFunctionStack()) {
-      if (other.isOnFunctionStack()) {
-        result = functionName.compareTo(other.functionName);
-      } else {
-        result = 1;
-      }
-    } else {
-      if (other.isOnFunctionStack()) {
-        result = -1;
-      } else {
-        result = 0;
-      }
-    }
-
-    if (result != 0) {
-      return result;
-    }
-
     return ComparisonChain.start()
+        .compare(functionName, other.functionName, Ordering.natural().nullsFirst())
         .compare(identifier, other.identifier)
-        .compare(offset, other.offset, Ordering.<Long>natural().nullsFirst())
+        .compare(offset, other.offset, Ordering.natural().nullsFirst())
         .result();
   }
 }

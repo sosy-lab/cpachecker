@@ -218,12 +218,12 @@ class JavaBDDRegionManager implements RegionManager {
   public void printStatistics(PrintStream out) {
     try {
       BDDFactory.GCStats stats = factory.getGCStats();
-      int cacheSize = readCacheSize();
+      int currentCacheSize = readCacheSize();
 
       writingStatisticsTo(out)
           .put("Number of BDD nodes", factory.getNodeNum())
           .put("Size of BDD node table", factory.getNodeTableSize())
-          .putIf(cacheSize >= 0, "Size of BDD cache", cacheSize)
+          .putIf(currentCacheSize >= 0, "Size of BDD cache", currentCacheSize)
           .put(cleanupQueueSize)
           .put(cleanupTimer)
           .put(
@@ -277,7 +277,7 @@ class JavaBDDRegionManager implements RegionManager {
 
   private BDD createNewVar() {
     if (nextvar >= varcount) {
-      varcount *= 1.5;
+      varcount = (int) (varcount * 1.5);
       factory.setVarNum(varcount);
     }
     BDD ret = factory.ithVar(nextvar++);

@@ -26,18 +26,17 @@ package org.sosy_lab.cpachecker.cpa.octagon.values;
 import java.util.Arrays;
 import java.util.Collections;
 
-@SuppressWarnings("rawtypes")
 public class OctagonInterval {
 
   /**
    * the lower bound of the OctInterval
    */
-  private final OctagonNumericValue low;
+  private final OctagonNumericValue<?> low;
 
   /**
    * the upper bound of the OctInterval
    */
-  private final OctagonNumericValue high;
+  private final OctagonNumericValue<?> high;
 
   /**
    * an OctInterval representing an impossible OctInterval
@@ -84,14 +83,14 @@ public class OctagonInterval {
     isSane();
   }
 
-  public OctagonInterval(OctagonNumericValue low, OctagonNumericValue high) {
+  public OctagonInterval(OctagonNumericValue<?> low, OctagonNumericValue<?> high) {
     this.low  = low;
     this.high = high;
 
     isSane();
   }
 
-  public OctagonInterval(OctagonNumericValue pValue) {
+  public OctagonInterval(OctagonNumericValue<?> pValue) {
     this.low = pValue;
     this.high = pValue;
   }
@@ -120,7 +119,7 @@ public class OctagonInterval {
    *
    * @return the lower bound
    */
-  public OctagonNumericValue getLow() {
+  public OctagonNumericValue<?> getLow() {
     return low;
   }
 
@@ -129,7 +128,7 @@ public class OctagonInterval {
    *
    * @return the upper bound
    */
-  public OctagonNumericValue getHigh() {
+  public OctagonNumericValue<?> getHigh() {
     return high;
   }
 
@@ -418,9 +417,8 @@ public class OctagonInterval {
    * @param other OctInterval to multiply this OctInterval with
    * @return new OctInterval that represents the result of the multiplication of the two OctIntervals
    */
-  @SuppressWarnings("unchecked")
   public OctagonInterval times(OctagonInterval other) {
-    OctagonNumericValue[] values = {
+    OctagonNumericValue<?>[] values = {
                       scalarTimes(low, other.low),
                       scalarTimes(low, other.high),
                       scalarTimes(high, other.low),
@@ -436,13 +434,12 @@ public class OctagonInterval {
    * @param other OctInterval to divide this OctInterval by
    * @return new OctInterval that represents the result of the division of the two OctIntervals
    */
-  @SuppressWarnings("unchecked")
   public OctagonInterval divide(OctagonInterval other) {
     // other OctInterval contains "0", return unbound OctInterval
     if (other.contains(FALSE)) {
       return createUnboundOctInterval();
     } else {
-      OctagonNumericValue[] values = {
+      OctagonNumericValue<?>[] values = {
                         low.div(other.low),
                         low.div(other.high),
                         high.div(other.low),
@@ -522,8 +519,9 @@ public class OctagonInterval {
    * @param y the second scalar operand
    * @return the sum of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
-  private static OctagonNumericValue scalarPlus(OctagonNumericValue x, OctagonNumericValue y) {
-    OctagonNumericValue result = x.add(y);
+  private static OctagonNumericValue<?> scalarPlus(
+      OctagonNumericValue<?> x, OctagonNumericValue<?> y) {
+    OctagonNumericValue<?> result = x.add(y);
 
     // TODO overflows
 
@@ -537,7 +535,8 @@ public class OctagonInterval {
    * @param y the second scalar operand
    * @return the product of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
-  private static OctagonNumericValue scalarTimes(OctagonNumericValue x, OctagonNumericValue y) {
+  private static OctagonNumericValue<?> scalarTimes(
+      OctagonNumericValue<?> x, OctagonNumericValue<?> y) {
     if (x.equals(OctagonIntValue.ONE)) {
       return y;
     } else if (y.equals(OctagonIntValue.ONE)) {

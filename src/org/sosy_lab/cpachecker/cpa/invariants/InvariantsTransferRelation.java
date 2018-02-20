@@ -23,12 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -75,26 +83,19 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   // Set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  private static final Map<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -106,11 +107,19 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private final EdgeAnalyzer edgeAnalyzer;
 
-  public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel) {
+  private final boolean allowOverapproximationOfUnsupportedFeatures;
+
+  private final boolean usePointerAliasStrengthening;
+
+  public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel,
+      boolean pAllowOverapproximationOfUnsupportedFeatures,
+      boolean pUsePointerAliasStrengthening) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.machineModel = pMachineModel;
     this.edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    this.allowOverapproximationOfUnsupportedFeatures = pAllowOverapproximationOfUnsupportedFeatures;
+    this.usePointerAliasStrengthening = pUsePointerAliasStrengthening;
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
@@ -160,6 +169,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (overflowDetected.get()) {
       state = state.overflowDetected();
+    }
+
+    if (!allowOverapproximationOfUnsupportedFeatures && state.overapproximatesUnsupportedFeature()) {
+      throw new UnsupportedCCodeException("Over-approximation of unsupported features is switched off", pEdge);
     }
 
     return Collections.singleton(state);
@@ -539,8 +552,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
+    if (usePointerAliasStrengthening) {
+      return pointerAliasStrengthening(pElement, pOtherElements, pCfaEdge, state);
+    }
+    return Collections.singleton(pElement);
+  }
+
+  private Collection<? extends AbstractState> pointerAliasStrengthening(AbstractState pElement,
+      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, InvariantsState state)
+      throws UnrecognizedCCodeException {
     CFAEdge edge = pCfaEdge;
-    CLeftHandSide leftHandSide = getLeftHandSide(edge);
+    ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression
         || (leftHandSide instanceof CFieldReference
             && ((CFieldReference) leftHandSide).isPointerDereference())) {
@@ -550,7 +572,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       InvariantsState result = state;
       for (PointerState pointerState : pointerStates) {
-        LocationSet locationSet = PointerTransferRelation.asLocations(leftHandSide, pointerState);
+        LocationSet locationSet =
+            PointerTransferRelation.asLocations((CExpression) leftHandSide, pointerState);
         if (locationSet.isTop()) {
           return Collections.singleton(state.clear());
         }
@@ -611,24 +634,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return false;
-  }
-
-  private static CLeftHandSide getLeftHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CStatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge) pEdge;
-      if (statementEdge.getStatement() instanceof CAssignment) {
-        CAssignment assignment = (CAssignment)statementEdge.getStatement();
-        return assignment.getLeftHandSide();
-      }
-    } else if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
-      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) functionCall;
-        return assignment.getLeftHandSide();
-      }
-    }
-    return null;
   }
 
   private static boolean hasMoreThanNElements(Iterable<?> pIterable, int pN) {

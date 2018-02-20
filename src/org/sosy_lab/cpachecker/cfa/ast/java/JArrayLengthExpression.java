@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  */
 public abstract class JArrayLengthExpression extends AbstractExpression implements JExpression, JAstNode, JRightHandSide {
 
+  private static final long serialVersionUID = 7278006181009822118L;
+
   private JArrayLengthExpression(FileLocation pFileLocation) {
     super(pFileLocation, JSimpleType.getInt());
   }
@@ -68,6 +70,7 @@ public abstract class JArrayLengthExpression extends AbstractExpression implemen
   }
 
   private static class JSubArrayLengthExpression extends JArrayLengthExpression {
+    private static final long serialVersionUID = 7488687702133599086L;
     private final JArraySubscriptExpression qualifier;
 
     public JSubArrayLengthExpression(FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
@@ -89,6 +92,7 @@ public abstract class JArrayLengthExpression extends AbstractExpression implemen
 
   private static class JTopArrayLengthExpression extends JArrayLengthExpression {
 
+    private static final long serialVersionUID = -2662310110400103416L;
     private final JIdExpression qualifier;
 
     private JTopArrayLengthExpression(FileLocation pFileLocation, JIdExpression pQualifier) {

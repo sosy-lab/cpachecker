@@ -29,6 +29,7 @@ import java.util.Objects;
 
 public abstract class AInitializerExpression extends AbstractInitializer {
 
+  private static final long serialVersionUID = 1634403757452835794L;
   private final AExpression expression;
 
   public AInitializerExpression(FileLocation pFileLocation, final AExpression pExpression) {

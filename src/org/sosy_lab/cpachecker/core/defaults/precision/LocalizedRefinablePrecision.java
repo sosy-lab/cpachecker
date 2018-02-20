@@ -29,15 +29,13 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
   /**
@@ -114,12 +112,12 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
     return join((VariableTrackingPrecision) otherPrecision);
   }
 
   @Override
-  public boolean subtract(AdjustablePrecision otherPrecision) {
+  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision) {
     assert otherPrecision.getClass().equals(this.getClass());
     Multimap<CFANode, MemoryLocation> newPrecision = TreeMultimap.create();
     Multimap<CFANode, MemoryLocation> removeable = TreeMultimap.create(

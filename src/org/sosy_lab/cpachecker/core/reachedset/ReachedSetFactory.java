@@ -23,14 +23,21 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.BlockConfiguration;
+import org.sosy_lab.cpachecker.core.waitlist.BlockWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.BranchBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.DepthBasedWeightedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.LoopIterationSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -38,8 +45,6 @@ import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
-
-import javax.annotation.Nullable;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -56,6 +61,20 @@ public class ReachedSetFactory {
       description = "handle states with a deeper callstack first"
       + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useLoopIterationCount",
+    description = "handle states with more loop iterations first."
+  )
+  boolean useLoopIterationCount = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useReverseLoopIterationCount",
+    description = "handle states with fewer loop iterations first."
+  )
+  boolean useReverseLoopIterationCount = false;
 
   @Option(secure=true, name="traversal.useLoopstack",
     description= "handle states with a deeper loopstack first.")
@@ -93,6 +112,22 @@ public class ReachedSetFactory {
       description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
   boolean useNumberOfThreads = false;
 
+  @Option(secure=true, name = "traversal.weightedDepth",
+      description = "perform a weighted random selection based on the depth in the ARG")
+  boolean useWeightedDepthOrder = false;
+
+  @Option(secure=true, name = "traversal.weightedBranches",
+      description = "perform a weighted random selection based on the branching depth")
+  boolean useWeightedBranchOrder = false;
+
+  @Option(
+    secure = true,
+    name = "traversal.useBlocks",
+    description =
+        "use blocks and set resource limits for its traversal, blocks are handled in DFS order"
+  )
+  boolean useBlocks = false;
+
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -103,12 +138,32 @@ public class ReachedSetFactory {
       + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  private Configuration config;
+  private BlockConfiguration blockConfig;
+  private LogManager logger;
+
+  public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    this.config = pConfig;
+    this.logger = pLogger;
+
+    if (useBlocks) {
+      blockConfig = new BlockConfiguration(pConfig);
+    }
   }
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
+
+    if (useWeightedDepthOrder) {
+      waitlistFactory = DepthBasedWeightedWaitlist.factory(waitlistFactory, config);
+    }
+
+    if (useWeightedBranchOrder) {
+      waitlistFactory = BranchBasedWeightedWaitlist.factory(waitlistFactory, config);
+    }
 
     if (useAutomatonInformation) {
       waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);
@@ -119,6 +174,12 @@ public class ReachedSetFactory {
     }
     if (usePostorder) {
       waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useLoopIterationCount) {
+      waitlistFactory = LoopIterationSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useReverseLoopIterationCount) {
+      waitlistFactory = LoopIterationSortedWaitlist.reversedFactory(waitlistFactory);
     }
     if (useLoopstack) {
       waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);
@@ -137,6 +198,9 @@ public class ReachedSetFactory {
     }
     if (useNumberOfThreads) {
       waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useBlocks) {
+      waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
 
     switch (reachedSet) {

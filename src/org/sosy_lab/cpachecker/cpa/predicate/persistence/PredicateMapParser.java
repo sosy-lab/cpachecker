@@ -25,18 +25,29 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -51,20 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.Prec
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
 
 /**
  * This is a parser for files which contain initial predicates for the analysis.
@@ -137,7 +134,7 @@ public class PredicateMapParser {
   public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
 
-    MoreFiles.checkReadableFile(file);
+    IO.checkReadableFile(file);
 
     try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
       return parsePredicates(reader, file.getFileName().toString());
@@ -160,7 +157,7 @@ public class PredicateMapParser {
     final Converter converter = Converter.getConverter(encodePredicates, cfa, logger);
     if (encodePredicates != PrecisionConverter.DISABLE) {
       final StringBuilder str = new StringBuilder();
-      for (String line : commonDefinitions.split("\n")) {
+      for (String line : Splitter.on('\n').split(commonDefinitions)) {
         final String converted = convertFormula(converter, line);
         if (converted != null) {
           str.append(converted).append("\n");

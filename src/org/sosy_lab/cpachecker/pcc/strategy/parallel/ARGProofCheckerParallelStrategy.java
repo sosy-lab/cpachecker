@@ -26,7 +26,22 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -48,20 +63,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Stack;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ThreadFactory;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 /**
  * Uses ProofChecker interface to check an ARG (certificate) in parallel.
  * Methods used for checking especially those implemented by ProofChecker used in checking must be
@@ -76,9 +77,9 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private PropertyChecker propChecker;
 
   public ARGProofCheckerParallelStrategy(
-      Configuration pConfig, LogManager pLogger, @Nullable ProofChecker pChecker)
+      Configuration pConfig, LogManager pLogger, Path pProofFile, @Nullable ProofChecker pChecker)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+    super(pConfig, pLogger, pProofFile);
     checker = pChecker;
     propChecker = new NoTargetStateChecker();
     if (pChecker instanceof PropertyCheckerCPA) {
@@ -206,8 +207,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private List<ARGState> getARGElements(ARGState pRoot) {
-    HashSet<ARGState> seen = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Set<ARGState> seen = new HashSet<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pRoot);
     toVisit.add(pRoot);
     ARGState current;
@@ -267,7 +268,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private static boolean isCoveringCycleFree(ARGState pState) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     seen.add(pState);
     while (pState.isCovered()) {
       pState = pState.getCoveringState();
@@ -307,12 +308,12 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private ARGState[] orderBAMBlockStartStates(ARGState pMainRoot) {
-    HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
-    Stack<BAMARGBlockStartState> blocksToVisit = new Stack<>();
+    Map<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
+    Deque<BAMARGBlockStartState> blocksToVisit = new ArrayDeque<>();
     int nextIndex = 0;
 
-    HashSet<ARGState> seen = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Set<ARGState> seen = new HashSet<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pMainRoot);
     toVisit.add(pMainRoot);
     ARGState current;
@@ -349,12 +350,14 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     return topologySort(map);
   }
 
-  private void traverseARG(BAMARGBlockStartState pRoot,
-      HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
-      Stack<BAMARGBlockStartState> pBlocksToVisit, int pNextIndex) {
+  private void traverseARG(
+      BAMARGBlockStartState pRoot,
+      Map<BAMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
+      Deque<BAMARGBlockStartState> pBlocksToVisit,
+      int pNextIndex) {
 
-    HashSet<ARGState> seen = new HashSet<>();
-    Stack<ARGState> toVisit = new Stack<>();
+    Set<ARGState> seen = new HashSet<>();
+    Deque<ARGState> toVisit = new ArrayDeque<>();
     seen.add(pRoot.getAnalyzedBlock());
     toVisit.add(pRoot.getAnalyzedBlock());
     ARGState current;
@@ -389,8 +392,9 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     }
   }
 
-  // returns array which is one entry greater than pMap so at last position top most ARG can be added
-  private ARGState[] topologySort(HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
+  // returns array which is one entry greater than pMap so at last position top most ARG can be
+  // added
+  private ARGState[] topologySort(Map<BAMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
     int nextPos = 0, size = 0;

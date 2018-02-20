@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Perform weakening based on the syntactic information.
@@ -50,8 +49,7 @@ public class SyntacticWeakeningManager {
    * and the formula should be unsatisfiable.
    *
    *
-   * @param selectionInfo selection variable -> corresponding lemma
-   *                      (instantiated with unprimed SSA).
+   * @param selectionInfo selection variable -> corresponding (uninstantiated) lemma
    * @param transition Transition with respect to which the weakening must be inductive.
    *
    * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
@@ -68,12 +66,11 @@ public class SyntacticWeakeningManager {
       BooleanFormula selector = e.getKey();
       BooleanFormula lemma = e.getValue();
 
-      BooleanFormula uninstantiated = fmgr.uninstantiate(lemma);
-      BooleanFormula instantiatedFrom = fmgr.instantiate(uninstantiated, pFromSSA);
+      BooleanFormula instantiatedFrom = fmgr.instantiate(lemma, pFromSSA);
       BooleanFormula instantiatedTo =
-          fmgr.instantiate(uninstantiated, transition.getSsa());
+          fmgr.instantiate(lemma, transition.getSsa());
 
-      if (!pFromStateLemmas.contains(uninstantiated) ||
+      if (!pFromStateLemmas.contains(lemma) ||
             !instantiatedFrom.equals(instantiatedTo)) {
         out.add(selector);
       }

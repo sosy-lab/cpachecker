@@ -57,21 +57,17 @@ public class CPAcheckerResult {
 
   private @Nullable Statistics proofGeneratorStats = null;
 
-  private final boolean programNeverTerminates;
-
   CPAcheckerResult(
       Result result,
       String violatedPropertyDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
-      @Nullable Statistics stats,
-      boolean programNeverTerminates) {
+      @Nullable Statistics stats) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.cfa = cfa;
     this.stats = stats;
-    this.programNeverTerminates = programNeverTerminates;
   }
 
   /**
@@ -109,16 +105,13 @@ public class CPAcheckerResult {
     }
     if (proofGeneratorStats != null) {
       proofGeneratorStats.printStatistics(target, result, reached);
+      proofGeneratorStats.writeOutputFiles(result, reached);
     }
   }
 
   public void printResult(PrintStream out) {
     if (result == Result.NOT_YET_STARTED) {
       return;
-    }
-
-    if (programNeverTerminates) {
-      out.println("The program will never terminate.");
     }
 
     out.println("Verification result: " + getResultString());

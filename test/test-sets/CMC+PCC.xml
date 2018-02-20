@@ -1,0 +1,1048 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-disable-java-assertions"/>
+  <option name="-setprop">statistics.memory=true</option>
+  <option name="-heap">10000M</option>
+  <option name="-stack">512000k</option>
+  <option name="-setprop">specification=config/specification/sv-comp-reachability.spc</option>
+
+<rundefinition name="Verification">
+		
+    <tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+<tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+	
+<tasks>
+	<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+ <tasks>
+	<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+    
+<tasks>
+	  <option name="-combinations-value10+apron-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+   
+      <tasks>
+	  <option name="-combinations-valueCegar60+apronCegar-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+</rundefinition>
+
+<rundefinition name="Verification Memory">
+		
+    <tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+<tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+	
+<tasks>
+	<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+ <tasks>
+	<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
+	<option name="-setprop">pcc.proofgen.doPCC=false</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+    
+<tasks>
+	  <option name="-combinations-value10+apron-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+   
+      <tasks>
+	  <option name="-combinations-valueCegar60+apronCegar-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+</rundefinition>
+
+<rundefinition name="Proof Generation">
+
+<!-- ARG -->		
+    <tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${sourcefile_name}_arg.proof</option>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+<tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+	
+<tasks>
+	<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+
+</tasks>
+
+ <tasks>
+	<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+    
+<tasks>
+	  <option name="-combinations-value10+apron-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${sourcefile_name}_arg.proof</option>
+      <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+   
+      <tasks>
+	  <option name="-combinations-valueCegar60+apronCegar-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+	  <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${sourcefile_name}_arg.proof</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+
+<!-- Reached set proof -->
+    <tasks>
+		<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${sourcefile_name}_reached.proof</option>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+	
+    <tasks>
+		<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+    
+      <tasks>
+	  <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>  
+	  <option name="-combinations-value10+apron-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${sourcefile_name}_reached.proof</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+	  
+      <tasks>
+		  <option name="-combinations-valueCegar60+apronCegar-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+<!-- partial reached set proof -->
+ 
+     <tasks>
+		<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.partial.certificateType=ARG</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${sourcefile_name}_partial.proof</option>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+	
+    <tasks>
+		<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">pcc.partial.certificateType=ARG</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">pcc.partial.certificateType=ARG</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.partial.certificateType=ARG</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+<option name="-combinations-value10+apron-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+	  <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>  
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+
+      <tasks>
+		  <option name="-combinations-valueCegar60+apronCegar-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+	  <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option> 
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+<!-- CMC args proof -->
+	
+    <tasks>
+		<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${sourcefile_name}_cmcarg.proof</option>
+	<option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${sourcefile_name}_cmcarg.proof</option>
+    <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${sourcefile_name}_cmcarg.proof</option>
+    <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-value10+pred-cmc"/>
+	<option name="-setprop">pcc.proofgen.doPCC=true</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${sourcefile_name}_cmcarg.proof</option>
+    <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
+    <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+	<option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+		<option name="-combinations-value10+apron-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${sourcefile_name}_cmcarg.proof</option>
+      <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+	  
+      <tasks>
+		  <option name="-combinations-valueCegar60+apronCegar-cmc"/>
+	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${sourcefile_name}_cmcarg.proof</option>
+      <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option> 
+    <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+</rundefinition>
+
+<rundefinition name="Complete proof check">
+<!-- ARG Proof -->
+ 
+     <tasks>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+    <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+    <option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+    <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+    <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+ <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+    <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+      <tasks>
+	<option name="-valueApronAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+    <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+
+      <tasks>
+    <option name="-valueApronAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${sourcefile_name}_arg.proof</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+    <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+<!-- Reached set proof -->
+
+    <tasks>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+    <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+ <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+	
+    <tasks>
+	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+   
+      <tasks>
+    <option name="-valueApronAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+
+      <tasks>
+	<option name="-valueApronAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${sourcefile_name}_reached.proof</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+<!-- partial reached set proof -->
+ 
+    <tasks>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+ <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-valueAnalysis-predicateAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-valueApronAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+    <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option> 
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option> 
+		  <!-- only possible in combination-->
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+
+      <tasks>
+    <option name="-valueApronAnalysis-proofcheck"/>
+	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${sourcefile_name}_partial.proof</option>
+    <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+    <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+     <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+<!-- CMC args proof -->
+
+     <tasks>
+	<option name="-combinations-value+pred-cmc-proofcheck"/>
+	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${sourcefile_name}_cmcarg.proof</option>	
+	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${sourcefile_name}_cmcarg.proof</option>
+    <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
+	<option name="-combinations-value+pred-cmc-proofcheck"/>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-combinations-value+pred-cmc-proofcheck"/>
+	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+	<option name="-setprop">solver.solver=MATHSAT5</option>
+	<option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+	<option name="-setprop">pcc.proof=output/ValuePredicateCMC_${sourcefile_name}_cmcarg.proof</option>
+	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
+ <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-combinations-value+pred-cmc-proofcheck"/>
+	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+	<option name="-setprop">solver.solver=MATHSAT5</option>
+	<option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${sourcefile_name}_cmcarg.proof</option>
+    <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
+<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
+<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/CMC+PCC/bonus.c</include>
+</tasks>
+
+    <tasks>
+	<option name="-combinations-value+apron-cmc-proofcheck"/>
+	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${sourcefile_name}_cmcarg.proof</option>
+    <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+      </tasks>
+
+      <tasks>
+    <option name="-combinations-value+apron-cmc-proofcheck"/>
+    <option name="-skipRecursion"/>
+	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
+	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${sourcefile_name}_cmcarg.proof</option>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
+<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
+<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
+<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+      </tasks>
+
+</rundefinition>
+
+  <columns>
+    <column title="total">Total time for CPAchecker</column>
+    <column title="Analysis time">Time for Analysis</column>
+    <column title="Verif time">Time for program analyis</column>
+    <column title="Total val time">Total time for proof check algorithm</column>
+    <column title="Proof read">Time for reading in proof (not complete time in interleaved modes)</column>
+    <column title="Algorithms">Number of algorithms used</column>
+    <column title="Combination time">Time to combine ARGs</column>
+    <column title="Proof gen time">Time for proof writing</column>
+    <column title="Proof size">Proof file size (bytes)</column>
+    <column title="Proof states">Number of proof elements</column>
+    <column title="Reached size">Size of reached set</column>
+    <column title="Heap Mem">Used heap memory</column>
+    <column title="Non-Heap Mem">Used non-heap memory</column>
+  </columns>
+</benchmark>

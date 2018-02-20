@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
-
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
  * Exception raised when the refinement procedure fails, or was
@@ -40,6 +38,7 @@ public class RefinementFailedException extends CPAException {
   public static enum Reason {
     InterpolationFailed("Interpolation failed"),
     InvariantRefinementFailed("Could not find invariant"),
+    StaticRefinementFailed("Static refinement failed"),
     RepeatedCounterexample("Counterexample could not be ruled out and was found again"),
     RepeatedPathPrefix("Error path prefix could not be ruled out and was used again"),
     TooMuchUnrolling("Too much unrolling"),

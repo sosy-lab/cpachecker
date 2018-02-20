@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,14 +34,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -55,16 +53,14 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import java.util.Collection;
-
 /**
  * CPA used to capture the assumptions that ought to be dumped.
  *
- * Note that once the CPA algorithm has finished running, a call
- * to dumpInvariants() is needed to process the reachable states
- * and produce the actual invariants.
+ * <p>Note that once the CPA algorithm has finished running, a call to dumpInvariants() is needed to
+ * process the reachable states and produce the actual invariants.
  */
-public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class AssumptionStorageCPA
+    implements ConfigurableProgramAnalysis, ProofChecker, AutoCloseable {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AssumptionStorageCPA.class);
@@ -72,12 +68,14 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
 
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
-  private final TransferRelation transferRelation;
+  private final AssumptionStorageTransferRelation transferRelation;
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
+  private final Solver solver;
+
   private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
-    Solver solver = Solver.create(config, logger, pShutdownNotifier);
+    solver = Solver.create(config, logger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
@@ -109,11 +107,6 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
-  }
-
-  @Override
   public StopOperator getStopOperator() {
     return stopOperator;
   }
@@ -124,8 +117,8 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new AssumptionStoragePrecisionAdjustment(transferRelation);
   }
 
   @Override
@@ -139,5 +132,10 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     // always assume is covered, only write and read states that have true assumptions, stop formulae
     return true;
+  }
+
+  @Override
+  public void close() {
+    solver.close();
   }
 }

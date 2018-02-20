@@ -23,14 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.equalTo;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Preconditions;
-
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,25 +41,19 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.Set;
-
-public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
+public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
 
   private final AssumeEdge edge;
 
-  private final Set<CFANode> locations;
-
-  public EdgeFormulaNegation(Set<CFANode> pLocations, AssumeEdge pEdge) {
-    super(pLocations);
+  public EdgeFormulaNegation(CFANode pLocation, AssumeEdge pEdge) {
+    super(pLocation);
     Preconditions.checkNotNull(pEdge);
-    this.locations = checkNotNull(pLocations);
     this.edge = pEdge;
   }
 
   private AssumeEdge getNegatedAssumeEdge() {
-    CFANode predecessor = edge.getPredecessor();
-    return getOnlyElement(CFAUtils.leavingEdges(predecessor).filter(AssumeEdge.class).filter(not(equalTo(edge))));
+    return CFAUtils.getComplimentaryAssumeEdge(edge);
   }
 
   @Override
@@ -100,7 +89,7 @@ public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
 
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
-    if (locations.contains(edge.getPredecessor())) {
+    if (appliesTo(edge.getPredecessor())) {
       Iterable<AbstractState> infeasibleStates = from(AbstractStates.filterLocation(pReachedSet, edge.getSuccessor())).toList();
       pReachedSet.removeAll(infeasibleStates);
       for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {

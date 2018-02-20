@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -40,7 +41,8 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
    */
-  public ValueAnalysisPrefixProvider(LogManager pLogger, CFA pCfa, Configuration config)
+  public ValueAnalysisPrefixProvider(
+      LogManager pLogger, CFA pCfa, Configuration config, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     super(
@@ -49,6 +51,7 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
         pLogger,
         pCfa,
         config,
-        ValueAnalysisCPA.class);
+        ValueAnalysisCPA.class,
+        pShutdownNotifier);
   }
 }

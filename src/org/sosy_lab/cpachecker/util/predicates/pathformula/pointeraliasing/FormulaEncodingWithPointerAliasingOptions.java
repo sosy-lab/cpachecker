@@ -57,27 +57,29 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
                         "of the allocation is figured out.")
   private boolean deferUntypedAllocations = true;
 
-  @Option(secure=true, description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
-                        "regardless of whether they were ever really used in code.")
-  private int maxPreFilledAllocationSize = 0;
-
   @Option(secure=true, description = "The default size in bytes for memory allocations when the value cannot be determined.")
   private int defaultAllocationSize = 4;
 
   @Option(
     secure = true,
     description =
-        "Use the theory of arrays for heap-memory encoding. "
-            + "This requires an SMT solver that is capable of the theory of arrays."
+        "Use SMT arrays for encoding heap memory instead of uninterpreted function."
+            + " This is more precise but may lead to interpolation failures."
   )
-  private boolean useArraysForHeap = false;
+  private boolean useArraysForHeap = true;
 
-  @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
+  @Option(secure = true, description = "The length for arrays we assume for variably-sized arrays.")
   private int defaultArrayLength = 20;
 
-  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored). Use -1 to disable the limit.")
-  @IntegerOption(min=-1)
-  private int maxArrayLength = 20;
+  @Option(
+    secure = true,
+    description =
+        "The maximum length up to which bulk assignments (e.g., initialization) for arrays will be handled."
+            + " With option useArraysForHeap=false, elements beyond this bound will be ignored completely."
+            + " Use -1 to disable the limit."
+  )
+  @IntegerOption(min = -1)
+  private int maxArrayLength = -1;
 
   @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
@@ -91,6 +93,14 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
                       + "to it")
   private boolean handleStringLiteralInitializers = false;
 
+  @Option(
+    secure = true,
+    description =
+        "When then builtin strlen is called, approximate it up to length set by this option."
+            + "If the string passed to strlen is longer, the return value will be overapproximated via nondet."
+  )
+  private int maxPreciseStrlenSize = 3;
+
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
@@ -99,6 +109,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
       + "BnB regions are based not only on type, but also on structure field names. "
       + "If the field is not accessed by an address then it is placed into a separate region.")
   private boolean useMemoryRegions = false;
+
+  @Option(
+      secure = true,
+      description = "Use an optimisation for constraint generation")
+  private boolean useConstraintOptimization = true;
 
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
@@ -162,10 +177,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return deferUntypedAllocations;
   }
 
-  int maxPreFilledAllocationSize() {
-    return maxPreFilledAllocationSize;
-  }
-
   int defaultAllocationSize() {
     return defaultAllocationSize;
   }
@@ -194,11 +205,19 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return handleStringLiteralInitializers;
   }
 
+  int maxPreciseStrlenSize() {
+    return maxPreciseStrlenSize;
+  }
+
   boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
   }
 
   public boolean useMemoryRegions() {
     return useMemoryRegions;
+  }
+
+  public boolean useConstraintOptimization() {
+    return useConstraintOptimization;
   }
 }

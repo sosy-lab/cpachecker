@@ -26,13 +26,14 @@ package org.sosy_lab.cpachecker.util.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -45,10 +46,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -68,9 +69,9 @@ public class PathExtractor implements Statistics {
   /**
    * keep log of feasible targets that were already found
    */
-  protected final Set<ARGState> feasibleTargets = new HashSet<>();
+  private final Set<ARGState> feasibleTargets = new LinkedHashSet<>();
 
-  protected final LogManager logger;
+  private final LogManager logger;
 
   // For statistics
   private int targetCounter = 0;
@@ -97,35 +98,27 @@ public class PathExtractor implements Statistics {
         .filter(Predicates.not(Predicates.in(feasibleTargets))).toList();
 
     // set of targets may only be empty, if all of them were found feasible previously
-    if(targets.isEmpty()) {
-      assert feasibleTargets.containsAll(extractTargetStatesFromArg(pReached).toSet());
-
+    if (targets.isEmpty()) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample,
           ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
     }
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
-
     targetCounter = targetCounter + targets.size();
-
     return targets;
   }
 
   /**
    * This method extracts the last state from the ARG, which has to be a target state.
    */
-  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
+  private FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
     if (globalRefinement) {
       return from(pReached.asReachedSet())
           .transform(AbstractStates.toState(ARGState.class))
           .filter(AbstractStates.IS_TARGET_STATE);
-    }
-
-    else {
+    } else {
       ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
-
       assert (lastState.isTarget()) : "Last state is not a target state";
-
       return from(Collections.singleton(lastState));
     }
   }
@@ -138,13 +131,7 @@ public class PathExtractor implements Statistics {
    * @return the list of paths to the target states
    */
   public List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
-    List<ARGPath> errorPaths = new ArrayList<>(targetStates.size());
-
-    for (ARGState target : targetStates) {
-      errorPaths.add(ARGUtils.getOnePathTo(target));
-    }
-
-    return errorPaths;
+    return Lists.newArrayList(Collections2.transform(targetStates, ARGUtils::getOnePathTo));
   }
 
   public void addFeasibleTarget(ARGState pLastState) {

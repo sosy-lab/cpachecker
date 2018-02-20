@@ -48,6 +48,7 @@ public class GlobalInfo {
   private AbstractionManager absManager;
   private ApronManager apronManager;
   private LogManager apronLogger;
+  private LogManager logger;
 
   private GlobalInfo() {
 
@@ -68,6 +69,13 @@ public class GlobalInfo {
     return Optional.ofNullable(cfaInfo);
   }
 
+  public void storeLogManager(LogManager pLogger) {
+    logger = Preconditions.checkNotNull(pLogger);
+  }
+
+  public LogManager getLogManager() {
+    return Preconditions.checkNotNull(logger, "LogManager should be set before");
+  }
 
   public synchronized Optional<ConfigurableProgramAnalysis> getCPA() {
     return Optional.ofNullable(cpa);
@@ -88,14 +96,12 @@ public class GlobalInfo {
           apronManager = apron.getManager();
           apronLogger = apron.getLogger();
         } else if (c instanceof AssumptionStorageCPA) {
+          // override the existing manager
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         } else if (c instanceof PredicateCPA) {
           Preconditions.checkState(absManager == null);
           absManager = ((PredicateCPA) c).getAbstractionManager();
           predicateFormulaManagerView = ((PredicateCPA) c).getSolver().getFormulaManager();
-        } else if (c instanceof AssumptionStorageCPA) {
-          Preconditions.checkState(assumptionFormulaManagerView == null);
-          assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         }
       }
     }

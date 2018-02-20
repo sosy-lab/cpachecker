@@ -32,8 +32,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -205,7 +205,7 @@ public interface CParser extends Parser {
 
     public static CParser getParser(
         LogManager logger, ParserOptions options, MachineModel machine) {
-      return EclipseParsers.getCParser(logger, (EclipseCParserOptions) options, machine);
+      return Parsers.getCParser(logger, (EclipseCParserOptions) options, machine);
     }
   }
 }

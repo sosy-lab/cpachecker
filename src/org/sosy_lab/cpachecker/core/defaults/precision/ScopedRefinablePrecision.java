@@ -29,12 +29,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -42,6 +36,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
   /**
@@ -73,12 +71,12 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
     return join((VariableTrackingPrecision) otherPrecision);
   }
 
   @Override
-  public boolean subtract(AdjustablePrecision otherPrecision) {
+  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision) {
     assert otherPrecision.getClass().equals(this.getClass());
     Collection<MemoryLocation> newPrecision = new ArrayList<>();
     Collection<MemoryLocation> removeable = ((ScopedRefinablePrecision)

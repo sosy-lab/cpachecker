@@ -28,6 +28,7 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -38,7 +39,28 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
-
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Queue;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -47,8 +69,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -82,7 +104,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -90,31 +111,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of this class are used to apply single loop transformation to
@@ -140,10 +136,8 @@ public class CFASingleLoopTransformation {
    */
   private final LogManager logger;
 
-  /**
-   * The shutdown notifier used.
-   */
-  private final ShutdownNotifier shutdownNotifier;
+  /** The shutdown notifier used. */
+  private final @Nullable ShutdownNotifier shutdownNotifier;
 
   @Option(secure=true,
       description="Single loop transformation builds a decision tree based on" +
@@ -169,10 +163,11 @@ public class CFASingleLoopTransformation {
    *
    * @param pLogger the log manager to be used.
    * @param pConfig the configuration used.
-   *
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  private CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  private CFASingleLoopTransformation(
+      LogManager pLogger, Configuration pConfig, @Nullable ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     pConfig.inject(this);
@@ -277,8 +272,7 @@ public class CFASingleLoopTransformation {
     fixSummaryEdges(start, newSuccessorsToPCImmutable,  globalNewToOld);
 
     // Build the CFA from the syntactically reachable nodes
-    return buildCFA(start, loopHead, pInputCFA.getMachineModel(),
-        pInputCFA.getLanguage());
+    return buildCFA(start, loopHead, pInputCFA);
   }
 
   /**
@@ -720,21 +714,18 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Builds a CFA by collecting the nodes syntactically reachable from the
-   * start node. Any nodes belonging to functions with unreachable entry nodes
-   * are also omitted.
+   * Builds a CFA by collecting the nodes syntactically reachable from the start node. Any nodes
+   * belonging to functions with unreachable entry nodes are also omitted.
    *
    * @param pStartNode the start node.
    * @param pLoopHead the single loop head.
-   * @param pMachineModel the machine model.
-   * @param pLanguage the programming language.
-   *
+   * @param pOriginalCfa the original CFA before the transformation.
    * @return the CFA represented by the nodes reachable from the start node.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
+   * @throws InterruptedException if a shutdown has been requested by the registered shutdown
+   *     notifier.
    */
-  private MutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
-      MachineModel pMachineModel, Language pLanguage) throws InterruptedException {
+  private MutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, CFA pOriginalCfa)
+      throws InterruptedException {
 
     SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
@@ -745,7 +736,14 @@ public class CFASingleLoopTransformation {
     pLoopHead.setReversePostorderId(-1);
 
     // Instantiate the transformed graph in a preliminary form
-    MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
+    MutableCFA cfa =
+        new MutableCFA(
+            pOriginalCfa.getMachineModel(),
+            functions,
+            allNodes,
+            pStartNode,
+            pOriginalCfa.getFileNames(),
+            pOriginalCfa.getLanguage());
 
     // Get information about the loop structure
     cfa.setLoopStructure(LoopStructure.getLoopStructureForSingleLoop(pLoopHead));
@@ -778,7 +776,7 @@ public class CFASingleLoopTransformation {
             FileLocation.DUMMY,
             artificialFunctionDeclaration,
             artificialFunctionExitNode,
-            Optional.empty());
+            Optional.absent());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
@@ -1320,7 +1318,15 @@ public class CFASingleLoopTransformation {
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      return new CAssumeEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
+        return new CAssumeEdge(
+            rawStatement,
+            fileLocation,
+            pNewPredecessor,
+            pNewSuccessor,
+            assumeEdge.getExpression(),
+            assumeEdge.getTruthAssumption(),
+            assumeEdge.isSwapped(),
+            assumeEdge.isArtificialIntermediate());
     case BlankEdge:
       return new BlankEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, pEdge.getDescription());
     case DeclarationEdge:
@@ -1340,7 +1346,7 @@ public class CFASingleLoopTransformation {
               pNewToOldMapping);
       addToNodes(functionSummaryEdge);
       Optional<CFunctionCall> cFunctionCall = functionCallEdge.getRawAST();
-      return new CFunctionCallEdge(rawStatement, fileLocation, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orElse(null), functionSummaryEdge);
+      return new CFunctionCallEdge(rawStatement, fileLocation, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
     }
     case FunctionReturnEdge:
       if (!(pNewPredecessor instanceof FunctionExitNode)) {
@@ -1366,7 +1372,7 @@ public class CFASingleLoopTransformation {
       }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
       Optional<CReturnStatement> cReturnStatement = returnStatementEdge.getRawAST();
-      return new CReturnStatementEdge(rawStatement, cReturnStatement.orElse(null), fileLocation, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+      return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), fileLocation, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       if (statementEdge instanceof CFunctionSummaryStatementEdge) {

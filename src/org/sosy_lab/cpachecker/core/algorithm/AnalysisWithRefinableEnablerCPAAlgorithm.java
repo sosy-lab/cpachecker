@@ -24,13 +24,19 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,9 +66,9 @@ import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeCPAEnabledAnalysisOperator;
@@ -94,17 +100,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="enabledanalysis")
 public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
@@ -137,8 +134,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     PREDICATE(PredicateAbstractState.class, PredicateCPA.class),
     VALUE(ValueAnalysisState.class, ValueAnalysisCPA.class);
 
-    private Class<? extends AbstractState> stateClass;
-    private Class<? extends ConfigurableProgramAnalysis> cpaClass;
+    private final Class<? extends AbstractState> stateClass;
+    private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
     private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
         Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {
@@ -206,7 +203,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!allowLazyRefinement) {
       restartFromScratchAfterRefinement(pReachedSet);
     } else {
-      if(from(pReachedSet).anyMatch(IS_TARGET_STATE)) {
+      if (pReachedSet.hasViolatedProperties()) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null);
       }
     }
@@ -563,8 +560,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     // check if global precision changed
     if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates())) { return false; }
     // get CFA nodes and function names on failure path
-    HashSet<String> funNames = new HashSet<>();
-    HashSet<CFANode> nodesOnPath = new HashSet<>();
+    Set<String> funNames = new HashSet<>();
+    Set<CFANode> nodesOnPath = new HashSet<>();
 
     for (CFAEdge edge : pathToFailure.getInnerEdges()) {
       CFANode current = edge.getSuccessor();
@@ -608,7 +605,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       BooleanFormula fLess = bfmgr.and(list);
 
       list.clear();
-      for (AbstractionPredicate abs : lessPrecise) {
+      for (AbstractionPredicate abs : morePrecise) {
         list.add(abs.getSymbolicAtom());
       }
       BooleanFormula fMore = bfmgr.and(list);
@@ -616,7 +613,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       fMore = bfmgr.and(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      return solver.isUnsat(fMore);
+      return !solver.isUnsat(fMore);
     }
 
     return lessPrecise == null && morePrecise != null;

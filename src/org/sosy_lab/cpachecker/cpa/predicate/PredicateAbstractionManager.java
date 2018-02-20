@@ -53,12 +53,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
@@ -84,9 +85,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate")
@@ -186,7 +187,8 @@ public class PredicateAbstractionManager {
 
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
 
-  private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  private final Map<Pair<BooleanFormula, ImmutableSet<BooleanFormula>>, AbstractionFormula>
+      abstractionCache;
 
   // Cache for satisfiability queries: if formula is contained, it is unsat
   private final Set<BooleanFormula> unsatisfiabilityCache;
@@ -304,14 +306,14 @@ public class PredicateAbstractionManager {
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
-    final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
+    BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null
         && !abstractionReuseDisabledBecauseOfAmbiguity) {
       AbstractionFormula reused =
-          reuseAbstractionIfPossible(abstractionFormula, pathFormula, f, location);
+          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
       if (reused != null) {
         return reused;
       }
@@ -331,12 +333,23 @@ public class PredicateAbstractionManager {
     // Each step of our abstraction computation may be able to handle some predicates,
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
-        getRelevantPredicates(pPredicates, f, instantiator);
+        getRelevantPredicates(pPredicates, primaryFormula, instantiator);
+
+    if (fmgr.useBitwiseAxioms()) {
+      for (AbstractionPredicate predicate : remainingPredicates) {
+        primaryFormula = pfmgr.addBitwiseAxiomsIfNeeded(primaryFormula, predicate.getSymbolicAtom());
+      }
+    }
+
+    final BooleanFormula f = primaryFormula;
 
     // caching
-    Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
+    Pair<BooleanFormula, ImmutableSet<BooleanFormula>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(f, ImmutableSet.copyOf(remainingPredicates));
+      ImmutableSet<BooleanFormula> instantiatedPreds =
+          Collections3.transformedImmutableSetCopy(
+              remainingPredicates, pred -> instantiator.apply(pred.getSymbolicAtom()));
+      absKey = Pair.of(f, instantiatedPreds);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -479,16 +492,7 @@ public class PredicateAbstractionManager {
   private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
     BooleanFormula symbFormula = pathFormula.getFormula();
 
-    if (fmgr.useBitwiseAxioms()) {
-      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bfmgr.isTrue(bitwiseAxioms)) {
-        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-
-    return symbFormula;
+    return pfmgr.addBitwiseAxiomsIfNeeded(symbFormula, symbFormula);
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -618,6 +622,7 @@ public class PredicateAbstractionManager {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
+    @SuppressWarnings("JdkObsolete")
     Collection<AbstractionPredicate> relevantPredicates = new LinkedList<>();
 
     for (AbstractionPredicate predicate : pPredicates) {
@@ -1049,7 +1054,7 @@ public class PredicateAbstractionManager {
 
     dumpFile =
         fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-    try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(dumpFile, Charset.defaultCharset())) {
       Joiner.on('\n').appendTo(w, predicates);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");

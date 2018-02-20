@@ -36,7 +36,20 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
+import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
+import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,8 +61,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -69,29 +82,13 @@ import org.sosy_lab.java_smt.utils.SolverUtils;
 import org.sosy_lab.java_smt.utils.UfElimination;
 import org.sosy_lab.java_smt.utils.UfElimination.Result;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.logging.Level;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
-
 /**
  * Creates {@link Lasso}s from {@link CounterexampleInfo}.
  */
 @Options(prefix = "termination.lassoBuilder")
 public class LassoBuilder {
 
-  protected final static Set<String> META_VARIABLES_PREFIX =
+  protected static final ImmutableSet<String> META_VARIABLES_PREFIX =
       ImmutableSet.of("__VERIFIER_nondet_", "__ADDRESS_OF_");
 
   final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
@@ -156,7 +153,7 @@ public class LassoBuilder {
     StemAndLoop stemAndLoop = createStemAndLoop(pCounterexampleInfo);
     shutdownNotifier.shutdownIfNecessary();
 
-    Map<String, CVariableDeclaration> relevantVariables =
+    ImmutableMap<String, CVariableDeclaration> relevantVariables =
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
     return createLassos(stemAndLoop, relevantVariables);
   }
@@ -224,7 +221,7 @@ public class LassoBuilder {
   }
 
   private Collection<Lasso> createLassos(
-      StemAndLoop pStemAndLoop, Map<String, CVariableDeclaration> pRelevantVariables)
+      StemAndLoop pStemAndLoop, ImmutableMap<String, CVariableDeclaration> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
     Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(fmgr));
     Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
@@ -310,7 +307,8 @@ public class LassoBuilder {
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
     BooleanFormula dnf = transformRecursively(dnfTransformation, equalEliminated);
-    Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(dnf, true);
+    ImmutableSet<BooleanFormula> clauses =
+        ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
 
     return new Dnf(clauses, ufEliminationResult);
   }
@@ -323,22 +321,26 @@ public class LassoBuilder {
   }
 
   private InOutVariables extractRankVars(
-      Dnf pDnf, SSAMap inSsa, SSAMap outSsa, Map<String, CVariableDeclaration> pRelevantVariables) {
-    Map<Formula, Formula> subsitution = pDnf.getUfEliminationResult().getSubstitution();
+      Dnf pDnf,
+      SSAMap inSsa,
+      SSAMap outSsa,
+      ImmutableMap<String, CVariableDeclaration> pRelevantVariables) {
+    ImmutableMap<Formula, Formula> subsitution =
+        ImmutableMap.copyOf(pDnf.getUfEliminationResult().getSubstitution());
     InOutVariablesCollector veriablesCollector =
         new InOutVariablesCollector(
             fmgrView, inSsa, outSsa, pRelevantVariables.keySet(), subsitution);
     fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), veriablesCollector);
 
-    Map<RankVar, Term> inRankVars =
+    ImmutableMap<RankVar, Term> inRankVars =
         createRankVars(veriablesCollector.getInVariables(), pRelevantVariables, subsitution);
-    Map<RankVar, Term> outRankVars =
+    ImmutableMap<RankVar, Term> outRankVars =
         createRankVars(veriablesCollector.getOutVariables(), pRelevantVariables, subsitution);
 
     return new InOutVariables(inRankVars, outRankVars);
   }
 
-  private Map<RankVar, Term> createRankVars(
+  private ImmutableMap<RankVar, Term> createRankVars(
       Set<Formula> variables,
       Map<String, CVariableDeclaration> pRelevantVariables,
       Map<Formula, Formula> substitution) {
@@ -351,7 +353,11 @@ public class LassoBuilder {
 
       if (pRelevantVariables.get(variableName) != null) {
         rankVars.put(
-            new RankVar(variableName, pRelevantVariables.get(variableName).isGlobal(), term), term);
+            new RankVar(
+                variableName,
+                pRelevantVariables.get(variableName).isGlobal(),
+                fmgr.extractInfo(uninstantiatedVariable)),
+            term);
 
       } else if (substitution.containsValue(variable)) {
         Formula originalFormula =
@@ -376,19 +382,20 @@ public class LassoBuilder {
 
   private static class InOutVariables {
 
-    private final Map<RankVar, Term> inVars;
-    private final Map<RankVar, Term> outVars;
+    private final ImmutableMap<RankVar, Term> inVars;
+    private final ImmutableMap<RankVar, Term> outVars;
 
-    public InOutVariables(Map<RankVar, Term> pInVars, Map<RankVar, Term> pOutVars) {
+    public InOutVariables(
+        ImmutableMap<RankVar, Term> pInVars, ImmutableMap<RankVar, Term> pOutVars) {
       inVars = checkNotNull(pInVars);
       outVars = checkNotNull(pOutVars);
     }
 
-    public Map<IProgramVar, Term> getInVars() {
+    public ImmutableMap<IProgramVar, Term> getInVars() {
       return ImmutableMap.copyOf(inVars);
     }
 
-    public Map<IProgramVar, Term> getOutVars() {
+    public ImmutableMap<IProgramVar, Term> getOutVars() {
       return ImmutableMap.copyOf(outVars);
     }
   }
@@ -432,15 +439,15 @@ public class LassoBuilder {
 
   private static class Dnf {
 
-    private Collection<BooleanFormula> clauses;
-    private Result ufEliminationResult;
+    private final ImmutableSet<BooleanFormula> clauses;
+    private final Result ufEliminationResult;
 
-    Dnf(Collection<BooleanFormula> pClauses, Result p) {
+    Dnf(ImmutableSet<BooleanFormula> pClauses, Result p) {
       clauses = checkNotNull(pClauses);
       ufEliminationResult = checkNotNull(p);
     }
 
-    public Collection<BooleanFormula> getClauses() {
+    public ImmutableSet<BooleanFormula> getClauses() {
       return clauses;
     }
 

@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
                                                           implements CStatement, CAssignment, CFunctionCall {
 
+  private static final long serialVersionUID = 8744203402170708743L;
+
   public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
                                              CLeftHandSide pLeftHandSide,
                                              CFunctionCallExpression pRightHandSide) {

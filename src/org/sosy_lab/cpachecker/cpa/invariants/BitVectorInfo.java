@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -114,6 +114,14 @@ public class BitVectorInfo implements TypeInfo {
     final int size;
     final boolean signed;
     if (type instanceof CType) {
+      boolean isBitField = false;
+      int bitFieldSize = 0;
+      if (type instanceof CBitFieldType) {
+        isBitField = true;
+        CBitFieldType bitFieldType = (CBitFieldType) type;
+        type = bitFieldType.getType();
+        bitFieldSize = bitFieldType.getBitFieldSize();
+      }
       if (type instanceof CSimpleType) {
         CBasicType basicType = ((CSimpleType) type).getType();
         if (basicType == CBasicType.FLOAT) {
@@ -124,12 +132,12 @@ public class BitVectorInfo implements TypeInfo {
         }
       }
       CType cType = (CType) type;
-      if (cType.isBitField()) {
-        size = cType.getBitFieldSize();
+      if (isBitField) {
+        size = bitFieldSize;
       } else {
         int sizeInChars = 0;
         if (!cType.isIncomplete()) {
-          sizeInChars = cType.accept(new BaseSizeofVisitor(pMachineModel));
+          sizeInChars = pMachineModel.getSizeof(cType);
         }
         if (sizeInChars == 0) {
           sizeInChars = pMachineModel.getSizeofPtr();
@@ -222,6 +230,10 @@ public class BitVectorInfo implements TypeInfo {
       }
     }
     return false;
+  }
+
+  public BitVectorInfo extend(int pExtension) {
+    return new BitVectorInfo(size + pExtension, signed);
   }
 
 }

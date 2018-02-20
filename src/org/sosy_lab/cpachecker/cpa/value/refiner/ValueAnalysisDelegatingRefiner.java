@@ -29,13 +29,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateBasedPrefixProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefinerWithRefinementSelection;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 
@@ -48,19 +48,10 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
-    if (!(cpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
-    }
-
-    ValueAnalysisCPA valueCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
-    if (valueCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
-    }
-
-    PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
-    }
+    ValueAnalysisCPA valueCpa =
+        CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, ValueAnalysisDelegatingRefiner.class);
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ValueAnalysisDelegatingRefiner.class);
 
     Configuration config      = valueCpa.getConfiguration();
     LogManager logger         = valueCpa.getLogger();
@@ -71,10 +62,14 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
             config,
             new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
             ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new ValueAnalysisPrefixProvider(logger, cfa, config, valueCpa.getShutdownNotifier()),
             PredicateRefiner.create0(cpa),
             new PredicateBasedPrefixProvider(
-                config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager(), predicateCpa.getShutdownNotifier())),
+                config,
+                logger,
+                predicateCpa.getSolver(),
+                predicateCpa.getPathFormulaManager(),
+                predicateCpa.getShutdownNotifier())),
         cpa);
   }
 }

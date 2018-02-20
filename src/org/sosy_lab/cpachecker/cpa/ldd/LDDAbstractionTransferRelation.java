@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -51,14 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
 
 public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
@@ -620,15 +619,17 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Creates an LDDRegion for an assignment transformed to the given integer linear term and constant-
+   * Creates an LDDRegion for an assignment transformed to the given integer linear term and
+   * constant-
    *
-   * @param variables the integer linear term containing all the variable coefficients of the assignment expression.
+   * @param pVariables the integer linear term containing all the variable coefficients of the
+   *     assignment expression.
    * @param constant the constant part of the assignment expression.
    * @return the LDDRegion created for the assignment.
    */
-  private LDDRegion toConstantAssignmentRegion(Collection<String> variables, int constant) {
-    return this.regionManager.makeConstantAssignment(toIndexCoefficients(variables), this.variables.size(),
-        constant);
+  private LDDRegion toConstantAssignmentRegion(Collection<String> pVariables, int constant) {
+    return this.regionManager.makeConstantAssignment(
+        toIndexCoefficients(pVariables), this.variables.size(), constant);
   }
 
   /**
@@ -651,7 +652,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
    * @return a collection of variable indices and their corresponding integer coefficients.
    */
   private Collection<Pair<Integer, Integer>> toIndexCoefficients(Map<String, Integer> pCoeffs) {
-    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> indexCoeffs = new ArrayList<>();
     for (Map.Entry<String, Integer> coeff : pCoeffs.entrySet()) {
       indexCoeffs.add(Pair.of(this.variables.get(coeff.getKey()), coeff.getValue()));
     }
@@ -662,13 +663,13 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
    * Converts the given collection of variables into a collection of pairs of variable indices
    * and their coefficients, all of which are treated as 1.
    *
-   * @param variables the collection of variable names.
+   * @param pVariables the collection of variable names.
    * @return a collection of pairs of variable indices and their coefficients,
    * all of which are treated as 1.
    */
-  private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> variables) {
-    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<>();
-    for (String variable : variables) {
+  private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> pVariables) {
+    Collection<Pair<Integer, Integer>> indexCoeffs = new ArrayList<>();
+    for (String variable : pVariables) {
       indexCoeffs.add(Pair.of(this.variables.get(variable), 1));
     }
     return indexCoeffs;

@@ -23,11 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -42,18 +50,18 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -65,18 +73,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
 
 @Options(prefix = "cpa.smg.refinement")
 public class SMGRefiner implements Refiner {
@@ -94,11 +90,6 @@ public class SMGRefiner implements Refiner {
   private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
 
   private final ShutdownNotifier shutdownNotifier;
-
-  /**
-   * keep log of previous refinements to identify repeated one
-   */
-  private final Set<Integer> previousRefinementIds = new HashSet<>();
 
   private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
@@ -138,19 +129,18 @@ public class SMGRefiner implements Refiner {
     smgCpa.setTransferRelationToRefinment(exportRefinmentSMGs);
 
     SMGStrongestPostOperator strongestPostOpForCEX =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pConfig, pCfa, predicateManager, blockOperator);
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
 
-    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction());
+    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
 
-    interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger,
-        pCfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
+    interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger, pCfa, smgCpa.getOptions());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pConfig, pCfa,
-            predicateManager, blockOperator);
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pCfa,
+            predicateManager, blockOperator, smgCpa.getOptions());
 
     SMGFeasibilityChecker checkerForInterpolation =
         new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
@@ -162,7 +152,8 @@ public class SMGRefiner implements Refiner {
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
-            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), checkerForInterpolation);
+            edgeInterpolator, logger, exportInterpolantSMGs,
+            smgCpa.getOptions().getExportSMGLevel(), checkerForInterpolation);
 
     shutdownNotifier = pShutdownNotifier;
   }
@@ -170,8 +161,8 @@ public class SMGRefiner implements Refiner {
   public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    SMGCPA smgCpa = retrieveCPA(pCpa, SMGCPA.class);
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGRefiner.class);
+    SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGRefiner.class);
     Set<ControlAutomatonCPA> automatonCpas =
         CPAs.asIterable(pCpa).filter(ControlAutomatonCPA.class).toSet();
 
@@ -222,21 +213,13 @@ public class SMGRefiner implements Refiner {
   }
 
   private int obtainErrorPathId(ARGPath path) {
-
-    Predicate<? super AutomatonState> automatonStateIsTarget = (AutomatonState state) -> {
-      return state.isTarget() ? true : false;
-    };
-
-    Function<AutomatonState, String> toNameFunction = (AutomatonState state) -> {
-      return state.getOwningAutomatonName();
-    };
-
     Set<String> automatonNames =
-        AbstractStates.asIterable(path.getLastState()).filter(AutomatonState.class)
-            .filter(automatonStateIsTarget).transform(toNameFunction).toSet();
-
+        AbstractStates.asIterable(path.getLastState())
+            .filter(AutomatonState.class)
+            .filter(AutomatonState::isTarget)
+            .transform(AutomatonState::getOwningAutomatonName)
+            .toSet();
     int id = path.toString().hashCode() + automatonNames.hashCode();
-
     return id;
   }
 
@@ -374,12 +357,6 @@ public class SMGRefiner implements Refiner {
 
     for (ARGState root : refinementRoots) {
       shutdownNotifier.shutdownIfNecessary();
-
-      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
-          pInterpolationTree.extractPrecisionIncrement(root).values())) {
-        root = relocateRepeatedRefinementRoot(root);
-      }
-
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeSMGPrecisionsForSubgraph(root, pReached)
@@ -390,68 +367,10 @@ public class SMGRefiner implements Refiner {
 
     for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
       shutdownNotifier.shutdownIfNecessary();
-      List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
-
-      precisionTypes.add(new Predicate<Precision>() {
-
-        @Override
-        public boolean apply(Precision pPrecision) {
-          return pPrecision instanceof SMGPrecision;
-        }
-      });
-
+      List<Predicate<? super Precision>> precisionTypes =
+          Lists.newArrayList(Predicates.instanceOf(SMGPrecision.class));
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
-  }
-
-  /**
-   * A simple heuristic to detect similar repeated refinements.
-   */
-  private boolean isSimilarRepeatedRefinement(Collection<SMGPrecisionIncrement> currentIncrement) {
-
-    boolean isSimilar = false;
-    int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
-
-    previousRefinementIds.add(currentRefinementId);
-
-    return isSimilar;
-  }
-
-  /**
-   * This method chooses a new refinement root, in a bottom-up fashion along the error path.
-   * It either picks the next state on the path sharing the same CFA location, or the (only)
-   * child of the ARG root, what ever comes first.
-   *
-   * @param currentRoot the current refinement root
-   * @return the relocated refinement root
-   */
-  private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
-    int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
-
-    ARGPath path = ARGUtils.getOnePathTo(currentRoot);
-    for (ARGState currentState : path.asStatesList().reverse()) {
-      // skip identity, because a new root has to be found
-      if (currentState == currentRoot) {
-        continue;
-      }
-
-      if (currentRootNumber == AbstractStates.extractLocation(currentState).getNodeNumber()) {
-        return currentState;
-      }
-    }
-
-    return Iterables.getOnlyElement(path.getFirstState().getChildren());
-  }
-
-  /** retrieve the wrapped CPA or throw an exception. */
-  private static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
-      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls)
-          throws InvalidConfigurationException {
-    final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
-    if (extractedCPA == null) {
-      throw new InvalidConfigurationException(retrieveCls.getSimpleName() + " cannot be retrieved.");
-    }
-    return extractedCPA;
   }
 
   private SMGPrecision mergeSMGPrecisionsForSubgraph(
@@ -460,7 +379,7 @@ public class SMGRefiner implements Refiner {
   ) {
     // get all unique precisions from the subtree
     Set<SMGPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(SMGCEGARUtils.extractSMGPrecision(pReached, descendant));
     }
 
@@ -471,16 +390,6 @@ public class SMGRefiner implements Refiner {
     }
 
     return mergedPrecision;
-  }
-
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for (ARGState state : pRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
   }
 
   private boolean isErrorPathFeasible(ARGPath pErrorPath)

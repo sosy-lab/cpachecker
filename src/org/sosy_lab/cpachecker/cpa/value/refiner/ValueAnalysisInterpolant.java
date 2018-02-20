@@ -25,7 +25,14 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.base.Verify.verify;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -33,43 +40,30 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 /**
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
  * from memory locations to values, representing a variable assignment.
  */
 public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState> {
-  /**
-   * the variable assignment of the interpolant
-   */
-  private @Nullable final Map<MemoryLocation, Value> assignment;
-  private @Nullable final Map<MemoryLocation, Type> assignmentTypes;
+  /** the variable assignment of the interpolant */
+  private @Nullable PersistentMap<MemoryLocation, Value> assignment;
+
+  private @Nullable PersistentMap<MemoryLocation, Type> assignmentTypes;
 
   /**
    * the interpolant representing "true"
    */
   public static final ValueAnalysisInterpolant TRUE  = new ValueAnalysisInterpolant();
 
-  /**
-   * the interpolant representing "false"
-   */
-  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null,(Map<MemoryLocation, Type>)null);
+  /** the interpolant representing "false" */
+  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null, null);
 
   /**
    * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
    */
   private ValueAnalysisInterpolant() {
-    assignment = new HashMap<>();
-    assignmentTypes = new HashMap<>();
+    assignment = PathCopyingPersistentTreeMap.of();
+    assignmentTypes = PathCopyingPersistentTreeMap.of();
   }
 
   /**
@@ -77,7 +71,9 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    *
    * @param pAssignment the variable assignment to be represented by the interpolant
    */
-  public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment, Map<MemoryLocation, Type> pAssignmentToType) {
+  public ValueAnalysisInterpolant(
+      PersistentMap<MemoryLocation, Value> pAssignment,
+      PersistentMap<MemoryLocation, Type> pAssignmentToType) {
     assignment = pAssignment;
     assignmentTypes = pAssignmentToType;
   }
@@ -118,27 +114,25 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
       return ValueAnalysisInterpolant.FALSE;
     }
 
-    Map<MemoryLocation, Value> newAssignment = new HashMap<>(assignment);
-
     // add other itp mapping - one by one for now, to check for correctness
     // newAssignment.putAll(other.assignment);
+    PersistentMap<MemoryLocation, Value> newAssignment = assignment;
+    PersistentMap<MemoryLocation, Type> newAssignmentTypes = assignmentTypes;
     for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
       if (newAssignment.containsKey(entry.getKey())) {
         assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
       }
+      newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
 
-      newAssignment.put(entry.getKey(), entry.getValue());
-    }
-
-    Map<MemoryLocation, Type> newAssignmentTypes = new HashMap<>();
-    for (MemoryLocation loc : newAssignment.keySet()) {
-      if (assignmentTypes.containsKey(loc)) {
-        newAssignmentTypes.put(loc, assignmentTypes.get(loc));
-      } else {
-        newAssignmentTypes.put(loc, other.assignmentTypes.get(loc));
+      if (newAssignmentTypes.containsKey(entry.getKey())) {
+        assert (assignmentTypes
+                .get(entry.getKey())
+                .equals(other.assignmentTypes.get(entry.getKey())))
+            : "interpolants mismatch in " + entry.getKey();
       }
+      newAssignmentTypes =
+          newAssignmentTypes.putAndCopy(entry.getKey(), other.assignmentTypes.get(entry.getKey()));
     }
-
 
     return new ValueAnalysisInterpolant(newAssignment, newAssignmentTypes);
   }
@@ -208,10 +202,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
 
     } else {
-      return new ValueAnalysisState(
-          Optional.empty(),
-          PathCopyingPersistentTreeMap.copyOf(assignment),
-          PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
+      return new ValueAnalysisState(Optional.empty(), assignment, assignmentTypes);
     }
   }
 
@@ -270,17 +261,14 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
       return this;
     }
 
-    ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment), new HashMap<>(assignmentTypes));
-
-    for (Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
-      MemoryLocation current = it.next();
-
+    PersistentMap<MemoryLocation, Value> weakenedAssignments = assignment;
+    for (MemoryLocation current : assignment.keySet()) {
       if (!toRetain.contains(current.getAsSimpleString())) {
-        it.remove();
+        weakenedAssignments = weakenedAssignments.removeAndCopy(current);
       }
     }
 
-    return weakenedItp;
+    return new ValueAnalysisInterpolant(weakenedAssignments, assignmentTypes);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

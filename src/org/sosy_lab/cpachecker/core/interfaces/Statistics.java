@@ -67,4 +67,15 @@ public interface Statistics {
      * @return A String with a human-readable name or null.
      */
     public @Nullable String getName();
+
+  /**
+   * Write result files related to this group of statistics.
+   *
+   * <p>Note that this method may be called in parallel with the statistics of other components, so
+   * it should not modify any externally visible state, e.g., in abstract states.
+   *
+   * @param pResult the result of the analysis
+   * @param pReached the final reached set
+   */
+  default void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {}
 }

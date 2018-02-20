@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,9 +37,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
@@ -55,9 +56,6 @@ import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value.refinement")
 public class ValueAnalysisPathInterpolator
@@ -219,15 +217,12 @@ public class ValueAnalysisPathInterpolator
    *
    * @param errorPath the error path from where to determine the refinement root
    * @param increment the current precision increment
-   * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
   public Pair<ARGState, CFAEdge> determineRefinementRoot(
-      ARGPath errorPath,
-      Multimap<CFANode, MemoryLocation> increment,
-      boolean isRepeatedRefinement
-  ) throws RefinementFailedException {
+      ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment)
+      throws RefinementFailedException {
 
     if (interpolationOffset == -1) {
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);

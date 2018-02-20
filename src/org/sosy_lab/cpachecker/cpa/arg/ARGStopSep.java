@@ -23,40 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix="cpa.arg")
 public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
-  @Option(secure=true, description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
-  private boolean keepCoveredStatesInReached = false;
-
-  @Option(secure=true,
-  description="inform ARG CPA if it is run in a CPA enabled analysis because then it must"
-    + "behave differntly during merge.")
-  private boolean inCPAEnabledAnalysis = false;
-
+  private final boolean keepCoveredStatesInReached;
+  private final boolean inCPAEnabledAnalysis;
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
-  public ARGStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  public ARGStopSep(
+      StopOperator pWrappedStop,
+      LogManager pLogger,
+      boolean pInCPAEnabledAnalysis,
+      boolean pKeepCoveredStatesInReached) {
     wrappedStop = pWrappedStop;
     logger = pLogger;
+    keepCoveredStatesInReached = pKeepCoveredStatesInReached;
+    inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
   }
 
   @Override
@@ -109,11 +102,25 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
     // Now do the usual coverage checks
 
+    // Check if the argElement has only one parent and remember it for later:
+    ARGState parent = null;
+    if (argElement.getParents().size() == 1) {
+      parent = Iterables.get(argElement.getParents(), 0);
+    }
+
     for (AbstractState reachedState : pReached) {
       ARGState argReachedState = (ARGState)reachedState;
       if (stop(argElement, argReachedState, pPrecision)) {
-        // if this option is true, we always return false here on purpose
-        return !keepCoveredStatesInReached;
+        if (parent != null && argReachedState.getParents().contains(parent)) {
+          // if the covering state has the same parent as the covered state
+          // and if the covered state has no other parents,
+          // it should always be safe to remove the covered state:
+          argElement.removeFromARG();
+          return true;
+        } else {
+          // if this option is true, we always return false here on purpose
+          return !keepCoveredStatesInReached;
+        }
       }
     }
     return false;
@@ -146,16 +153,6 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       pElement.setCovered(pReachedState);
     }
     return stop;
-  }
-
-  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException, InterruptedException {
-    ARGState argElement = (ARGState)pElement;
-    ARGState otherArtElement = (ARGState)pOtherElement;
-
-    AbstractState wrappedState = argElement.getWrappedState();
-    AbstractState wrappedOtherElement = otherArtElement.getWrappedState();
-
-    return wrappedProofChecker.isCoveredBy(wrappedState, wrappedOtherElement);
   }
 
   @Override

@@ -23,29 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import com.google.common.collect.ImmutableSet;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-import java.util.Set;
-
+/** An immutable collection of has-value-edges. */
 public interface SMGHasValueEdges {
 
-  public SMGHasValueEdges copy();
 
-  public void removeAllEdgesOfObject(SMGObject pObj);
+  // Modifying methods
 
-  public void addEdge(SMGEdgeHasValue pEdge);
+  public SMGHasValueEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
 
-  public void removeEdge(SMGEdgeHasValue pEdge);
+  public SMGHasValueEdges addEdgeAndCopy(SMGEdgeHasValue pEdge);
 
-  public void clear();
+  public SMGHasValueEdges removeEdgeAndCopy(SMGEdgeHasValue pEdge);
 
-  public void replaceHvEdges(Set<SMGEdgeHasValue> pNewHV);
 
-  public Set<SMGEdgeHasValue> getHvEdges();
+  // Querying methods
 
-  public Set<SMGEdgeHasValue> filter(SMGEdgeHasValueFilter pFilter);
+  public ImmutableSet<SMGEdgeHasValue> getHvEdges();
 
-  public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
+  public @Nullable ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
 }

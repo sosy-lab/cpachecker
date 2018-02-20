@@ -29,21 +29,34 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -52,12 +65,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -172,11 +188,11 @@ public class CProgramScope implements Scope {
 
   private final Set<String> variableNames;
 
-  private final Map<String, CSimpleDeclaration> uniqueSimpleDeclarations;
+  private final Multimap<String, CSimpleDeclaration> simpleDeclarations;
 
   private final Multimap<String, CFunctionDeclaration> functionDeclarations;
 
-  private final Map<String, CSimpleDeclaration> qualifiedDeclarations;
+  private final Multimap<String, CSimpleDeclaration> qualifiedDeclarations;
 
   private final Map<String, CType> qualifiedTypeDefs;
 
@@ -185,20 +201,26 @@ public class CProgramScope implements Scope {
 
   private final Map<String, CSimpleDeclaration> retValDeclarations;
 
+  private final Multimap<CAstNode, FileLocation> uses;
+
   private final String functionName;
+
+  private final Predicate<FileLocation> locationDescriptor;
 
   /**
    * Returns an empty program scope.
    */
   private CProgramScope() {
     variableNames = Collections.emptySet();
-    qualifiedDeclarations = Collections.emptyMap();
-    uniqueSimpleDeclarations = Collections.emptyMap();
+    qualifiedDeclarations = ImmutableListMultimap.of();
+    simpleDeclarations = ImmutableListMultimap.of();
     functionDeclarations = ImmutableListMultimap.of();
     qualifiedTypes = Collections.emptyMap();
     qualifiedTypeDefs = Collections.emptyMap();
     retValDeclarations = Collections.emptyMap();
+    uses = ImmutableMultimap.of();
     functionName = null;
+    locationDescriptor = Predicates.alwaysTrue();
   }
 
   /**
@@ -206,16 +228,19 @@ public class CProgramScope implements Scope {
    *
    * @param pScope the old scope.
    * @param pFunctionName the new function name.
+   * @param pLocationDescriptor the new location descriptor.
    */
-  private CProgramScope(CProgramScope pScope, String pFunctionName) {
+  private CProgramScope(CProgramScope pScope, String pFunctionName, Predicate<FileLocation> pLocationDescriptor) {
     variableNames = pScope.variableNames;
-    uniqueSimpleDeclarations = pScope.uniqueSimpleDeclarations;
+    simpleDeclarations = pScope.simpleDeclarations;
     functionDeclarations = pScope.functionDeclarations;
     qualifiedDeclarations = pScope.qualifiedDeclarations;
     qualifiedTypes = pScope.qualifiedTypes;
     qualifiedTypeDefs = pScope.qualifiedTypeDefs;
     retValDeclarations = pScope.retValDeclarations;
+    uses = pScope.uses;
     functionName = pFunctionName;
+    locationDescriptor = pLocationDescriptor;
   }
 
   /**
@@ -230,9 +255,10 @@ public class CProgramScope implements Scope {
    */
   public CProgramScope(CFA pCFA, LogManager pLogger) {
 
-    assert pCFA.getLanguage() == Language.C;
+    assert pCFA.getLanguage() == Language.C || pCFA.getLanguage() == Language.LLVM;
 
     functionName = null;
+    locationDescriptor = Predicates.alwaysTrue();
 
     /* Get all nodes, get all edges from nodes, get all declarations from edges,
      * assign every declaration its name.
@@ -241,7 +267,7 @@ public class CProgramScope implements Scope {
 
     FluentIterable<CSimpleDeclaration> allDcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS);
 
-    FluentIterable<CSimpleDeclaration> dcls = allDcls.filter(HAS_NAME);
+    FluentIterable<CSimpleDeclaration> dcls = allDcls.filter(d -> HAS_NAME.test(d));
 
     FluentIterable<CFunctionDeclaration> functionDcls = dcls.filter(CFunctionDeclaration.class);
     FluentIterable<CSimpleDeclaration> nonFunctionDcls = dcls.filter(not(instanceOf(CFunctionDeclaration.class)));
@@ -271,9 +297,11 @@ public class CProgramScope implements Scope {
 
     variableNames = nonFunctionDcls.transform(GET_NAME).toSet();
 
-    qualifiedDeclarations = extractQualifiedDeclarations(nonFunctionDcls, pLogger);
+    qualifiedDeclarations = extractQualifiedDeclarations(nonFunctionDcls);
 
-    uniqueSimpleDeclarations = extractUniqueSimpleDeclarations(qualifiedDeclarations);
+    uses = extractVarUseLocations(nodes);
+
+    simpleDeclarations = extractSimpleDeclarations(qualifiedDeclarations);
   }
 
   public static CProgramScope empty() {
@@ -293,20 +321,38 @@ public class CProgramScope implements Scope {
   @Override
   public CSimpleDeclaration lookupVariable(String pName) {
 
-    CSimpleDeclaration result;
-
+    List<Supplier<Iterable<CSimpleDeclaration>>> lookups = new ArrayList<>(isGlobalScope() ? 2 : 3);
     if (!isGlobalScope()) {
-      result = qualifiedDeclarations.get(createScopedNameOf(pName));
-      if (result != null) {
-        return result;
+      lookups.add(() -> qualifiedDeclarations.get(createScopedNameOf(pName)));
+    }
+    lookups.add(() -> qualifiedDeclarations.get(pName));
+    lookups.add(() -> simpleDeclarations.get(pName));
+
+    Set<CSimpleDeclaration> results = Collections.emptySet();
+
+    Iterable<Supplier<Iterable<CSimpleDeclaration>>> filteredAndUnfiltered =
+        Iterables.concat(
+            Iterables.transform(lookups, s -> (() -> FluentIterable.from(s.get()).filter(d -> getLocationFilter().test(d)))),
+            lookups);
+
+    Iterator<Supplier<Iterable<CSimpleDeclaration>>> lookupSupplierIterator = filteredAndUnfiltered.iterator();
+    while (results.size() != 1 && lookupSupplierIterator.hasNext()) {
+      results = FluentIterable.from(lookupSupplierIterator.next().get()).toSet();
+    }
+
+    CSimpleDeclaration result = null;
+    Iterator<CSimpleDeclaration> resultIt = results.iterator();
+    if (resultIt.hasNext()) {
+      result = resultIt.next();
+      if (resultIt.hasNext()) {
+        result = null;
       }
     }
-    result = qualifiedDeclarations.get(pName);
-    if (result != null) {
-      return result;
-    }
+    return result;
+  }
 
-    return uniqueSimpleDeclarations.get(pName);
+  private Predicate<CSimpleDeclaration> getLocationFilter() {
+    return r -> uses.get(r).stream().anyMatch(locationDescriptor);
   }
 
   @Override
@@ -383,7 +429,7 @@ public class CProgramScope implements Scope {
   @Override
   public String createScopedNameOf(String pName) {
     if (!isGlobalScope()) {
-      createScopedNameOf(getCurrentFunctionName(), pName);
+      return createScopedNameOf(getCurrentFunctionName(), pName);
     }
     return pName;
   }
@@ -417,10 +463,19 @@ public class CProgramScope implements Scope {
   /**
    * Create a CProgramScope that tries to simulate a function scope.
    *
-   * @param pFunctionName the
+   * @param pFunctionName the name of the function.
    */
-  public CProgramScope createFunctionScope(String pFunctionName) {
-    return new CProgramScope(this, pFunctionName);
+  public CProgramScope withFunctionScope(String pFunctionName) {
+    return new CProgramScope(this, pFunctionName, locationDescriptor);
+  }
+
+  /**
+   * Create a CProgramScope with the given location descriptor.
+   *
+   * @param pLocationDescriptor the new location descriptor.
+   */
+  public CProgramScope withLocationDescriptor(java.util.function.Predicate<FileLocation> pLocationDescriptor) {
+    return new CProgramScope(this, functionName, pLocationDescriptor);
   }
 
   public String getCurrentFunctionName() {
@@ -484,41 +539,28 @@ public class CProgramScope implements Scope {
     return true;
   }
 
-  private static Map<String, CSimpleDeclaration> extractQualifiedDeclarations(
-      FluentIterable<CSimpleDeclaration> pNonFunctionDcls, LogManager pLogger) {
-    Multimap<String, CSimpleDeclaration> qualifiedDeclarationsMultiMap = pNonFunctionDcls.index(GET_ORIGINAL_QUALIFIED_NAME);
-
-    Map<String, CSimpleDeclaration> qualifiedDeclarations = Maps.newHashMap();
-    for (Map.Entry<String, Collection<CSimpleDeclaration>> declarationsEntry : qualifiedDeclarationsMultiMap.asMap().entrySet()) {
-      String qualifiedName = declarationsEntry.getKey();
-      Collection<CSimpleDeclaration> declarations = declarationsEntry.getValue();
-      Set<CSimpleDeclaration> duplicateFreeDeclarations = from(declarations).transform(pArg0 -> {
-        if (pArg0 instanceof CVariableDeclaration) {
-          CVariableDeclaration original = (CVariableDeclaration) pArg0;
-          if (original.getInitializer() == null) {
-            return pArg0;
-          }
-          return new CVariableDeclaration(
-              original.getFileLocation(),
-              original.isGlobal(),
-              original.getCStorageClass(),
-              original.getType(),
-              original.getName(),
-              original.getOrigName(),
-              original.getQualifiedName(),
-              null);
+  private static Multimap<String, CSimpleDeclaration> extractQualifiedDeclarations(
+      FluentIterable<CSimpleDeclaration> pNonFunctionDcls) {
+    Multimap<String, CSimpleDeclaration> qualifiedDeclarationsMultiMap = pNonFunctionDcls
+        .index(GET_ORIGINAL_QUALIFIED_NAME);
+    return Multimaps.transformValues(qualifiedDeclarationsMultiMap, v -> {
+      if (v instanceof CVariableDeclaration) {
+        CVariableDeclaration original = (CVariableDeclaration) v;
+        if (original.getInitializer() == null) {
+          return v;
         }
-        return pArg0;
-      }).toSet();
-      if (!duplicateFreeDeclarations.isEmpty()) {
-        if (duplicateFreeDeclarations.size() == 1) {
-          qualifiedDeclarations.put(qualifiedName, declarations.iterator().next());
-        } else {
-          pLogger.log(Level.FINEST, "Ignoring declaration for", qualifiedName, " for creation of program-wide scope because it is not unique.");
-        }
+        return new CVariableDeclaration(
+            original.getFileLocation(),
+            original.isGlobal(),
+            original.getCStorageClass(),
+            original.getType(),
+            original.getName(),
+            original.getOrigName(),
+            original.getQualifiedName(),
+            null);
       }
-    }
-    return Collections.unmodifiableMap(qualifiedDeclarations);
+      return v;
+    });
   }
 
   private static Map<String, CComplexType> extractTypes(FluentIterable<? extends CSimpleDeclaration> pDcls, LogManager pLogger) {
@@ -567,13 +609,64 @@ public class CProgramScope implements Scope {
     return Collections.unmodifiableMap(uniqueTypeDefs);
   }
 
-  private static Map<String, CSimpleDeclaration> extractUniqueSimpleDeclarations(
-      Map<String, CSimpleDeclaration> pQualifiedDeclarations) {
-    return Maps.transformEntries(
-        Maps.filterEntries(
-            from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(),
-            entry -> entry.getValue().size() == 1),
-        (key, values) -> Iterables.getOnlyElement(values));
+  private static Multimap<String, CSimpleDeclaration> extractSimpleDeclarations(
+      Multimap<String, CSimpleDeclaration> pQualifiedDeclarations) {
+    return Multimaps.index(pQualifiedDeclarations.values(), GET_NAME);
+  }
+
+  private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+      ADeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof AFunctionDeclaration) {
+        return Iterables.concat(
+            CFAUtils.getAstNodesFromCfaEdge(pEdge),
+            ((AFunctionDeclaration) declaration).getParameters());
+      }
+    }
+    return CFAUtils.getAstNodesFromCfaEdge(pEdge);
+  }
+
+  private static Multimap<CAstNode, FileLocation> extractVarUseLocations(Collection<CFANode> pNodes) {
+    FluentIterable<CAstNode> varUses = FluentIterable
+        .from(pNodes)
+        .transformAndConcat(CFAUtils::leavingEdges)
+        .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
+        .filter(CAstNode.class)
+        .filter((astNode -> astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration))
+        .filter(astNode -> {
+          if (astNode instanceof CIdExpression) {
+            return ((CIdExpression) astNode).getDeclaration() != null;
+          }
+          return true;
+        });
+
+    return varUses
+      .stream()
+      .collect(ImmutableSetMultimap.toImmutableSetMultimap(
+        astNode -> {
+          if (astNode instanceof CSimpleDeclaration) {
+            CSimpleDeclaration decl = (CSimpleDeclaration) astNode;
+            if (decl instanceof CVariableDeclaration) {
+              CVariableDeclaration original = (CVariableDeclaration) decl;
+              if (original.getInitializer() != null) {
+                return new CVariableDeclaration(
+                    original.getFileLocation(),
+                    original.isGlobal(),
+                    original.getCStorageClass(),
+                    original.getType(),
+                    original.getName(),
+                    original.getOrigName(),
+                    original.getQualifiedName(),
+                    null);
+              }
+            }
+            return decl;
+          }
+          CIdExpression idExpression = (CIdExpression) astNode;
+          return idExpression.getDeclaration();
+        },
+        astNode -> astNode.getFileLocation()));
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {
@@ -642,15 +735,14 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visitDefault(CType pT) {
+    public @Nullable Void visitDefault(CType pT) {
       collectedTypes.add(pT);
       return null;
     }
 
     @Override
-    public Void visit(CArrayType pArrayType) {
-      if (!collectedTypes.contains(pArrayType)) {
-        collectedTypes.add(pArrayType);
+    public @Nullable Void visit(CArrayType pArrayType) {
+      if (collectedTypes.add(pArrayType)) {
         pArrayType.getType().accept(this);
         if (pArrayType.getLength() != null) {
           pArrayType.getLength().getExpressionType().accept(this);
@@ -660,9 +752,8 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CCompositeType pCompositeType) {
-      if (!collectedTypes.contains(pCompositeType)) {
-        collectedTypes.add(pCompositeType);
+    public @Nullable Void visit(CCompositeType pCompositeType) {
+      if (collectedTypes.add(pCompositeType)) {
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
           member.getType().accept(this);
         }
@@ -671,9 +762,8 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CElaboratedType pElaboratedType) {
-      if (!collectedTypes.contains(pElaboratedType)) {
-        collectedTypes.add(pElaboratedType);
+    public @Nullable Void visit(CElaboratedType pElaboratedType) {
+      if (collectedTypes.add(pElaboratedType)) {
         if (pElaboratedType.getRealType() != null) {
           pElaboratedType.getRealType().accept(this);
         }
@@ -682,9 +772,8 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CFunctionType pFunctionType) {
-      if (!collectedTypes.contains(pFunctionType)) {
-        collectedTypes.add(pFunctionType);
+    public @Nullable Void visit(CFunctionType pFunctionType) {
+      if (collectedTypes.add(pFunctionType)) {
         for (CType parameterType : pFunctionType.getParameters()) {
           parameterType.accept(this);
         }
@@ -693,19 +782,25 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CPointerType pPointerType) {
-      if (!collectedTypes.contains(pPointerType)) {
-        collectedTypes.add(pPointerType);
+    public @Nullable Void visit(CPointerType pPointerType) {
+      if (collectedTypes.add(pPointerType)) {
         pPointerType.getType().accept(this);
       }
       return null;
     }
 
     @Override
-    public Void visit(CTypedefType pTypedefType) {
-      if (!collectedTypes.contains(pTypedefType)) {
-        collectedTypes.add(pTypedefType);
+    public @Nullable Void visit(CTypedefType pTypedefType) {
+      if (collectedTypes.add(pTypedefType)) {
         pTypedefType.getRealType().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      if (collectedTypes.add(pCBitFieldType)) {
+        pCBitFieldType.getType().accept(this);
       }
       return null;
     }
@@ -747,11 +842,11 @@ public class CProgramScope implements Scope {
       return false;
     }
     String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
-    String[] parts = qualifiedName.split("::");
-    if (parts.length < 2) {
+    List<String> parts = Splitter.on("::").splitToList(qualifiedName);
+    if (parts.size() < 2) {
       return false;
     }
-    return parts[1].equals(ARTIFICIAL_RETVAL_NAME + parts[0] + "__");
+    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.get(0) + "__");
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {

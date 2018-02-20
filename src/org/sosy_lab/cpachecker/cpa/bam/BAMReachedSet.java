@@ -27,42 +27,36 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BAMCPA bamCpa;
+  private final AbstractBAMCPA bamCpa;
   private final ARGPath path;
-  private final ARGState rootOfSubgraph;
-  private final Timer removeCachedSubtreeTimer;
+  private final StatTimer removeCachedSubtreeTimer;
 
-  public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
-      ARGState pRootOfSubgraph,
-      Timer pRemoveCachedSubtreeTimer) {
+  public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+      StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.path = pPath;
-    this.rootOfSubgraph = pRootOfSubgraph;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
-    assert rootOfSubgraph.getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
-    assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
+    assert path.getFirstState().getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
   }
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new BAMReachedSetView(rootOfSubgraph, path.getLastState(),
+    return new BAMReachedSetView(path.getFirstState(), path.getLastState(),
         s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
     // TODO do we really need the target-precision for refinements and not the actual one?
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void removeSubtree(
       ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
@@ -77,8 +71,13 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-    assert rootOfSubgraph.getSubgraph().contains(element);
-    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    assert path.getFirstState().getSubgraph().contains(element);
+    final ARGSubtreeRemover argSubtreeRemover;
+    if (bamCpa.useCopyOnWriteRefinement()) {
+      argSubtreeRemover = new ARGCopyOnWriteSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    } else {
+      argSubtreeRemover = new ARGInPlaceSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    }
     argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
 
     // post-processing, cleanup data-structures.
@@ -93,8 +92,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   @Override
-  public void removeSubtree(ARGState pE) {
-    throw new UnsupportedOperationException();
+  public void removeSubtree(ARGState state) throws InterruptedException {
+    removeSubtree(state, ImmutableList.of(), ImmutableList.of());
   }
 
   @Override

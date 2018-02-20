@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigDecimal;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
@@ -35,13 +36,12 @@ import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.UFManager;
-
-import java.math.BigDecimal;
 
 class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         extends BaseManagerView
@@ -129,6 +129,35 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
           pTargetType, type);
       return functionManager.callUF(castFunction, ImmutableList.of(pNumber));
     }
+  }
+
+  @Override
+  public FloatingPointFormula fromIeeeBitvector(
+      BitvectorFormula pNumber, FloatingPointType pTargetType) {
+    return createConversionUF(pNumber, pTargetType, this, functionManager);
+  }
+
+  @Override
+  public BitvectorFormula toIeeeBitvector(FloatingPointFormula pNumber) {
+    FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
+    BitvectorType targetType = FormulaType.getBitvectorTypeWithSize(type.getTotalSize());
+    return createConversionUF(pNumber, targetType, this, functionManager);
+  }
+
+  static <T extends Formula> T createConversionUF(
+      Formula pNumber,
+      FormulaType<T> pToType,
+      BaseManagerView mgr,
+      UFManager functionManager) {
+    FormulaType<?> fromType = mgr.getFormulaType(pNumber);
+
+    FunctionDeclaration<?> conversionFunction =
+        functionManager.declareUF(
+            "__interpret_" + fromType + "_as_" + pToType + "__",
+            mgr.unwrapType(pToType),
+            mgr.unwrapType(fromType));
+    return mgr.wrap(
+        pToType, functionManager.callUF(conversionFunction, mgr.unwrap(pNumber)));
   }
 
   @Override
@@ -313,5 +342,14 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointFormula makeNaN(FloatingPointType pType) {
     return wrap(pType, nanVariable);
+  }
+
+  @Override
+  public FloatingPointFormula round(
+      FloatingPointFormula pNumber, FloatingPointRoundingMode pRoundingMode) {
+    FormulaType<T> type = numericFormulaManager.getFormulaType();
+    FunctionDeclaration<T> roundFunction =
+        functionManager.declareUF("__round_" + pRoundingMode, type, type);
+    return wrap(getFormulaType(pNumber), functionManager.callUF(roundFunction, unwrap(pNumber)));
   }
 }

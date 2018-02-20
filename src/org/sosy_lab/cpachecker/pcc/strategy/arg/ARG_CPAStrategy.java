@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,14 +46,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 @Options(prefix="pcc.arg")
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
@@ -63,9 +61,10 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
+      final Path pProofFile,
       final @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(), pShutdownNotifier);
+    super(pConfig, pLogger, pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(), pShutdownNotifier, pProofFile);
     pConfig.inject(this);
     if (pCpa == null) {
       stop = null;
@@ -82,7 +81,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   @Override
   protected void initChecking(final ARGState pRoot) {
     if (!singleCheck) {
-      visitedStates = new LinkedList<>();
+      visitedStates = new ArrayList<>();
     }
 
   }
@@ -115,7 +114,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
     if (!singleCheck) {
       visitedStates.add(pState);
     } else {
-      super.checkForStatePropertyAndOtherStateActions(pState);
+      return super.checkForStatePropertyAndOtherStateActions(pState);
     }
     return true;
   }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -35,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -87,12 +87,12 @@ public class PolicyInterpolationRefiner implements Refiner {
   public static PolicyInterpolationRefiner create(
       ConfigurableProgramAnalysis pConfigurableProgramAnalysis
   ) throws InvalidConfigurationException {
-    PolicyCPA policyCPA = CPAs.retrieveCPA(pConfigurableProgramAnalysis,
-        PolicyCPA.class);
-    Preconditions.checkNotNull(policyCPA);
-    ARGCPA argCPA = CPAs.retrieveCPA(pConfigurableProgramAnalysis,
-        ARGCPA.class);
-    Preconditions.checkNotNull(argCPA);
+    PolicyCPA policyCPA =
+        CPAs.retrieveCPAOrFail(
+            pConfigurableProgramAnalysis, PolicyCPA.class, PolicyInterpolationRefiner.class);
+    ARGCPA argCPA =
+        CPAs.retrieveCPAOrFail(
+            pConfigurableProgramAnalysis, ARGCPA.class, PolicyInterpolationRefiner.class);
 
     Configuration config = policyCPA.getConfig();
     LogManager logger = policyCPA.getLogger();
@@ -253,11 +253,14 @@ public class PolicyInterpolationRefiner implements Refiner {
    * @return All instantiated variables mentioned in templates associated with {@code pState}.
    */
   private Set<String> getRelevantInstantiatedVars(PolicyAbstractedState pState) {
-    Set<String> usedVars = pState.getAbstraction().keySet().stream()
+    return pState
+        .getAbstraction()
+        .keySet()
+        .stream()
         .flatMap(t -> t.getLinearExpression().getMap().keySet().stream())
         .map(id -> id.getDeclaration().getQualifiedName())
-        .collect(Collectors.toSet());
-    return fmgr.instantiate(usedVars, pState.getSSA());
+        .map(var -> FormulaManagerView.instantiateVariableName(var, pState.getSSA()))
+        .collect(toImmutableSet());
   }
 
 
@@ -321,7 +324,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     return cache;
   }
 
-  private void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) throws InterruptedException {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

@@ -1,10 +1,21 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Table;
-
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -18,15 +29,6 @@ import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
 
 @Options(prefix="cpa.lpi")
 public class ValueDeterminationManager {
@@ -84,11 +86,10 @@ public class ValueDeterminationManager {
    */
   ValueDeterminationConstraints valueDeterminationFormulaCheap(
       PolicyAbstractedState newState,
-      PolicyAbstractedState siblingState,
       PolicyAbstractedState stateWithUpdates,
       Set<Template> updated
   ) {
-    return valueDeterminationFormula(newState, siblingState, stateWithUpdates, updated, false);
+    return valueDeterminationFormula(newState, stateWithUpdates, updated, false);
   }
 
   /**
@@ -96,11 +97,10 @@ public class ValueDeterminationManager {
    */
   ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState newState,
-      PolicyAbstractedState siblingState,
       PolicyAbstractedState stateWithUpdates,
       Set<Template> updated
   ) {
-    return valueDeterminationFormula(newState, siblingState, stateWithUpdates, updated, true);
+    return valueDeterminationFormula(newState, stateWithUpdates, updated, true);
   }
 
   /**
@@ -119,14 +119,13 @@ public class ValueDeterminationManager {
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState newState,
-      PolicyAbstractedState siblingState,
       PolicyAbstractedState mergedState,
       Set<Template> updated,
       boolean useUniquePrefix
   ) {
     Set<BooleanFormula> outConstraints = new HashSet<>();
 
-    Map<Integer, PolicyAbstractedState> stronglyConnectedComponent = findScc(newState, siblingState);
+    Map<Integer, PolicyAbstractedState> stronglyConnectedComponent = findScc2(newState);
 
     Table<Template, Integer, Formula> outVars = HashBasedTable.create();
 
@@ -196,25 +195,93 @@ public class ValueDeterminationManager {
   }
 
   /**
-   * Add to map everything in the strongly connected between {@code sibling}
-   * and {@code newState}.
+   * Find an SCC of dependencies.
    */
-  private Map<Integer, PolicyAbstractedState> findScc(
-      PolicyAbstractedState newState,
-      PolicyAbstractedState sibling
+  private Map<Integer, PolicyAbstractedState> findScc2(
+      PolicyAbstractedState newState
   ) {
-    Map<Integer, PolicyAbstractedState> map = new HashMap<>();
-    PolicyAbstractedState s = newState;
-    while (s != sibling) {
-      s = s.getGeneratingState().get().getBackpointerState();
 
-      // If we have multiple matches, only take the latest one.
-      if (!map.containsKey(s.getLocationID())) {
-        map.put(s.getLocationID(), s);
+    int startLocId = newState.getLocationID();
+
+    // Generate the graph.
+    // NB: all locations in "stateMap" are forward-reachable by following the dependencies
+    // of {@code startLocId}.
+    Map<Integer, PolicyAbstractedState> stateMap = new HashMap<>();
+    SetMultimap<Integer, Integer> backwDepsEdges = HashMultimap.create();
+    populateGraph(newState, stateMap, backwDepsEdges);
+
+    // Now intersect the key set of stateMap with a set of locations
+    // backwards reachable from {@code startLocId} to get the SCC.
+    Set<Integer> backwardsReachable = backwardsDfs(startLocId, backwDepsEdges);
+    return Maps.filterKeys(stateMap, locId -> backwardsReachable.contains(locId));
+  }
+
+  /**
+   * Perform DFS on a given adjacency list and a starting point.
+   * @return set of reachable locations.
+   */
+  private Set<Integer> backwardsDfs(
+    int startLocId,
+    Multimap<Integer, Integer> backwEdges
+  ) {
+    LinkedHashSet<Integer> queue = new LinkedHashSet<>();
+    queue.add(startLocId);
+    Set<Integer> out = new HashSet<>();
+    while (!queue.isEmpty()) {
+      Iterator<Integer> it = queue.iterator();
+      int locId = it.next();
+      it.remove();
+      out.add(locId);
+      for (int b : backwEdges.get(locId)) {
+        if (!out.contains(b)) {
+          queue.add(b);
+        }
       }
     }
-    return map;
+    return out;
   }
+
+  /**
+   * Construct a graph representation for dependencies.
+   * Store the latest instance per each location ID.
+   *
+   * @param newState state to start the exploration from.
+   * @param stateMap write-into param, mapping from location IDs to corresponding states.
+   * @param backwDepsEdges backwards edges specifying backwards dependencies,
+   *                  transpose of the information given by backpointers
+   *                  contained in the abstraction map.
+   *                  Adjacency list graph representation.
+   */
+  private void populateGraph(
+      PolicyAbstractedState newState,
+      Map<Integer, PolicyAbstractedState> stateMap,
+      SetMultimap<Integer, Integer> backwDepsEdges
+  ) {
+    LinkedHashSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
+    queue.add(newState);
+    while (!queue.isEmpty()) {
+      Iterator<PolicyAbstractedState> it = queue.iterator();
+      PolicyAbstractedState toProcess = it.next();
+
+      // Drop the state from the queue.
+      it.remove();
+
+      int locId = toProcess.getLocationID();
+      PolicyAbstractedState prev = stateMap.get(locId);
+      if (prev == null || prev.getStateId() < toProcess.getStateId()) {
+        stateMap.put(locId, toProcess);
+        toProcess.getAbstraction().values().stream()
+            .filter(b -> !b.getDependencies().isEmpty())
+            .forEach(b -> {
+              PolicyAbstractedState pred = b.getPredecessor();
+              queue.add(pred);
+              backwDepsEdges.put(pred.getLocationID(), locId);
+            });
+      }
+    }
+  }
+
+
   /**
    * Process and add constraints from a single policy.
    *

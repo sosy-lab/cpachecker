@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
@@ -84,7 +82,7 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
 
   private List<Set<Integer>> computePermutation(final List<Integer> pPermutationIndices, final int pNumPartitions) {
 
-    List<Integer> orderedNodes = new LinkedList<>();
+    List<Integer> orderedNodes = new ArrayList<>();
     for (int j = pPermutationIndices.size() - 1; j >= 0; j--) {
       orderedNodes.add(pPermutationIndices.get(j), j);
     }

@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
 
 
+  private static final long serialVersionUID = 8359800949073538182L;
   private final AExpression arrayExpression;
   private final AExpression subscriptExpression;
 

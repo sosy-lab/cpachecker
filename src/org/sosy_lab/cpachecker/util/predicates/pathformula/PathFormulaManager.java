@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,17 +34,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public interface PathFormulaManager {
 
@@ -49,10 +49,10 @@ public interface PathFormulaManager {
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
 
   /**
-   * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link BooleanFormulaManager#or(BooleanFormula, BooleanFormula)},
-   * it also merges the SSA maps and creates the necessary adjustments to the
-   * formulas if the two SSA maps contain different values for the same variables.
+   * Creates a new path formula representing an OR of the two arguments. Differently from {@link
+   * BooleanFormulaManager#or(BooleanFormula, BooleanFormula)}, it also merges the SSA maps and
+   * creates the necessary adjustments to the formulas if the two SSA maps contain different values
+   * for the same variables.
    *
    * @param pF1 a PathFormula
    * @param pF2 a PathFormula
@@ -69,7 +69,16 @@ public interface PathFormulaManager {
 
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
+  /**
+   * Create a copy of a PathFormula but with the given SSAMap. Note that this is almost always the
+   * wrong method to call: if you need to use a specific SSAMap, you probably also need to use a
+   * specific PointerTargetSet! So better call {@link #makeNewPathFormula(PathFormula, SSAMap,
+   * PointerTargetSet)}.
+   */
+  @Deprecated
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
@@ -101,6 +110,21 @@ public interface PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
+      throws CPATransferException, InterruptedException;
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
+   *
+   * This method may be called with an empty set, in which case it does nothing
+   * and returns the formula "true".
+   *
+   * @param elementsOnPath The ARG states that should be considered.
+   * @param parentFormulasOnPath TODO.
+   * @return A formula containing a predicate for each branching.
+   */
+  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException;
 
   /**
@@ -146,4 +170,16 @@ public interface PathFormulaManager {
    * Prints some information about the PathFormulaManager.
    */
   public void printStatistics(PrintStream out);
+
+  public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
+
+  /**
+   * Builds a weakest precondition for the given edge and the postcondition
+   *
+   * @param pEdge Edge containing the statement for the precondition to be built
+   * @param pPostcond Postcondition
+   * @return Created precondition
+   */
+  public BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException;
 }

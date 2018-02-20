@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
@@ -50,12 +48,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -216,19 +213,17 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   private VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+      ARGState pRefinementRoot, UnmodifiableReachedSet pReached) {
 
     VariableTrackingPrecision rootPrecision =
         Precisions.extractPrecisionByType(
-            reached.getPrecision(refinementRoot), VariableTrackingPrecision.class);
+            pReached.getPrecision(pRefinementRoot), VariableTrackingPrecision.class);
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        // covered states are not in reached set
-        precisions.add(reached.getPrecision(state));
-      }
+    for (ARGState state : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+      // covered states are not in reached set
+      precisions.add(pReached.getPrecision(state));
     }
 
     for (Precision prec : precisions) {
@@ -262,7 +257,8 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     // now create new precision
     precisionUpdate.start();
     PredicatePrecision basePrecision =
-        findAllPredicatesFromSubgraph(refinementRoot, unmodifiableReached);
+        PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph(
+            refinementRoot, unmodifiableReached);
 
     logger.log(Level.ALL, "Old predicate map is", basePrecision);
     logger.log(Level.ALL, "New predicates are", newPredicates);
@@ -277,19 +273,6 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     precisionUpdate.stop();
 
     return newPrecision;
-  }
-
-  /**
-   * Collect all precisions in the subgraph below refinementRoot and merge
-   * their predicates.
-   * @return a new precision with all these predicates.
-   */
-  private PredicatePrecision findAllPredicatesFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached) {
-    return PredicatePrecision.unionOf(
-        from(refinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
   }
 
   /**
@@ -337,6 +320,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       ARGState infeasiblePartOfART,
       List<ARGState> changedElements,
       ARGReachedSet pReached,
+      List<ARGState> abstractionStatesTrace,
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     // only thing to do here is adding the false predicate for unreacheable states
@@ -367,11 +351,5 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
         }
       }
     }
-  }
-
-  @Override
-  public Statistics getStatistics() {
-    // TODO Auto-generated method stub
-    return null;
   }
 }

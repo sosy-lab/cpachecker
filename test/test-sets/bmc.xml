@@ -40,11 +40,11 @@
   <option name="-bmc"/>
 
   <rundefinition name="k1">
-    <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
   </rundefinition>
 
   <rundefinition name="k10">
-    <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
   </rundefinition>
 
   <columns>

@@ -46,22 +46,20 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -70,12 +68,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.apron")
 public final class ApronCPA
-    implements ConfigurableProgramAnalysis, ProofCheckerCPA, StatisticsProvider {
+    implements ProofCheckerCPA, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
@@ -105,7 +104,6 @@ public final class ApronCPA
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
   private final Precision precision;
   private final Configuration config;
@@ -134,7 +132,6 @@ public final class ApronCPA
     this.abstractDomain = apronDomain;
     this.mergeOperator = apronMergeOp;
     this.stopOperator = apronStopOp;
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
@@ -144,7 +141,7 @@ public final class ApronCPA
       tempPrecision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       if (initialPrecisionFile != null) {
-        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
+        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile());
       }
       // static full precision is default
     } else {
@@ -175,11 +172,6 @@ public final class ApronCPA
   @Override
   public StopOperator getStopOperator() {
     return stopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
   }
 
   @Override
@@ -241,15 +233,14 @@ public final class ApronCPA
   private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
-    try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
       getLogger().logUserException(Level.WARNING, e, "Could not write apron-analysis precision to file");
     }
   }
 
-
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile() {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;
@@ -287,13 +278,38 @@ public final class ApronCPA
     return idToCfaNode.values().iterator().next();
   }
 
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
     Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
-    for (CFANode n : cfa.getAllNodes()) {
+    for (CFANode n : pCfa.getAllNodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;
   }
 
-
+  @Override
+  public boolean areAbstractSuccessors(
+      AbstractState pState, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
+    try {
+      Collection<? extends AbstractState> computedSuccessors =
+          getTransferRelation()
+              .getAbstractSuccessorsForEdge(pState, precision, pCfaEdge);
+      boolean found;
+      for (AbstractState comp : computedSuccessors) {
+        found = false;
+        for (AbstractState e : pSuccessors) {
+          if (isCoveredBy(comp, e)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return false;
+        }
+      }
+    } catch (CPAException e) {
+      throw new CPATransferException("Cannot compare abstract successors", e);
+    }
+    return true;
+  }
 }

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.ImmutableSortedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -33,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class Block {
 
   private final ImmutableSet<ReferencedVariable> referencedVariables;
+  private ImmutableSet<String> variables; // lazy initialization
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
@@ -44,9 +47,9 @@ public class Block {
       Iterable<CFANode> allNodes) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
-    callNodes = ImmutableSet.copyOf(pCallNodes);
-    returnNodes = ImmutableSet.copyOf(pReturnNodes);
-    nodes = ImmutableSet.copyOf(allNodes);
+    callNodes = ImmutableSortedSet.copyOf(pCallNodes);
+    returnNodes = ImmutableSortedSet.copyOf(pReturnNodes);
+    nodes = ImmutableSortedSet.copyOf(allNodes);
   }
 
   public Set<CFANode> getCallNodes() {
@@ -58,8 +61,23 @@ public class Block {
     return callNodes.iterator().next();
   }
 
+  /** returns a collection of variables used in the block.
+   * For soundness this must be a superset of the actually used variables. */
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
+  }
+
+  /** returns a collection of variables used in the block.
+   * For soundness this must be a superset of the actually used variables. */
+  public Set<String> getVariables() {
+    if (variables == null) {
+      Builder<String> builder = ImmutableSet.builder();
+      for (ReferencedVariable referencedVar : getReferencedVariables()) {
+        builder.add(referencedVar.getName());
+      }
+      variables = builder.build();
+    }
+    return variables;
   }
 
   public Set<CFANode> getNodes() {

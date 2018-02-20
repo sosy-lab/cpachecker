@@ -23,22 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ComparisonChain;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
+public class SMGMemoryPath {
 
   private final String variableName;
   private final String functionName;
   private final Integer locationOnStack;
   private final boolean globalStart;
-  private final List<Integer> pathOffsets;
+  private final List<Long> pathOffsets;
 
-  private SMGMemoryPath(String pVariableName, String pFunctionName, Integer pPathOffset,
+  private SMGMemoryPath(String pVariableName, String pFunctionName, Long pPathOffset,
       Integer pLocationOnStack) {
     globalStart = false;
     variableName = pVariableName;
@@ -47,7 +45,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     locationOnStack = pLocationOnStack;
   }
 
-  private SMGMemoryPath(String pVariableName, Integer pPathOffset) {
+  private SMGMemoryPath(String pVariableName, Long pPathOffset) {
     globalStart = true;
     variableName = pVariableName;
     functionName = null;
@@ -55,13 +53,13 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     pathOffsets = ImmutableList.of(pPathOffset);
   }
 
-  public SMGMemoryPath(SMGMemoryPath pParent, Integer pOffset) {
+  public SMGMemoryPath(SMGMemoryPath pParent, Long pOffset) {
     globalStart = pParent.globalStart;
     variableName = pParent.variableName;
     functionName = pParent.functionName;
     locationOnStack = pParent.locationOnStack;
 
-    List<Integer> offsets = new ArrayList<>(pParent.getPathOffset());
+    List<Long> offsets = new ArrayList<>(pParent.getPathOffset());
     offsets.add(pOffset);
     pathOffsets = ImmutableList.copyOf(offsets);
   }
@@ -78,7 +76,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     return variableName;
   }
 
-  public List<Integer> getPathOffset() {
+  public List<Long> getPathOffset() {
     return pathOffsets;
   }
 
@@ -98,7 +96,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
     result.append(variableName);
 
-    for (Integer offset : pathOffsets) {
+    for (Long offset : pathOffsets) {
       result.append("->");
       result.append(offset);
     }
@@ -108,14 +106,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((functionName == null) ? 0 : functionName.hashCode());
-    result = prime * result + (globalStart ? 1231 : 1237);
-    result = prime * result + ((pathOffsets == null) ? 0 : pathOffsets.hashCode());
-    result = prime * result + ((variableName == null) ? 0 : variableName.hashCode());
-    result = prime * result + ((locationOnStack == null) ? 0 : locationOnStack.hashCode());
-    return result;
+    return Objects.hashCode(globalStart, locationOnStack, functionName, pathOffsets, variableName);
   }
 
   @Override
@@ -123,113 +114,27 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof SMGMemoryPath)) {
       return false;
     }
     SMGMemoryPath other = (SMGMemoryPath) obj;
-    if (locationOnStack == null) {
-      if (other.locationOnStack != null) {
-        return false;
-      }
-    } else if (!locationOnStack.equals(other.locationOnStack)) {
-      return false;
-    }
-    if (functionName == null) {
-      if (other.functionName != null) {
-        return false;
-      }
-    } else if (!functionName.equals(other.functionName)) {
-      return false;
-    }
-    if (globalStart != other.globalStart) {
-      return false;
-    }
-    if (pathOffsets == null) {
-      if (other.pathOffsets != null) {
-        return false;
-      }
-    } else if (!pathOffsets.equals(other.pathOffsets)) {
-      return false;
-    }
-    if (variableName == null) {
-      if (other.variableName != null) {
-        return false;
-      }
-    } else if (!variableName.equals(other.variableName)) {
-      return false;
-    }
-    return true;
+    return globalStart == other.globalStart
+        && Objects.equal(locationOnStack, other.locationOnStack)
+        && Objects.equal(functionName, other.functionName)
+        && Objects.equal(pathOffsets, other.pathOffsets)
+        && Objects.equal(variableName, other.variableName);
   }
 
   public static SMGMemoryPath valueOf(String pVariableName, String pFunctionName,
-      Integer pPathOffset, Integer pLocationOnStack) {
+                                      Long pPathOffset, Integer pLocationOnStack) {
     return new SMGMemoryPath(pVariableName, pFunctionName, pPathOffset, pLocationOnStack);
   }
 
-  public static SMGMemoryPath valueOf(String pVariableName,
-      Integer pPathOffset) {
+  public static SMGMemoryPath valueOf(String pVariableName, Long pPathOffset) {
     return new SMGMemoryPath(pVariableName, pPathOffset);
   }
 
-  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Integer pOffset) {
+  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Long pOffset) {
     return new SMGMemoryPath(pParent, pOffset);
-  }
-
-  @Override
-  public int compareTo(SMGMemoryPath other) {
-    int result = 0;
-
-    if (startsWithGlobalVariable()) {
-      if (other.startsWithGlobalVariable()) {
-        result = 0;
-      } else {
-        result = 1;
-      }
-    } else {
-      if (other.startsWithGlobalVariable()) {
-        result = -1;
-      } else {
-        result = ComparisonChain.start().compare(functionName, other.functionName).result();
-      }
-    }
-
-    if (result != 0) {
-      return result;
-    }
-
-    result = ComparisonChain.start()
-        .compare(variableName, other.variableName)
-        .compare(locationOnStack, other.locationOnStack, Ordering.<Integer> natural().nullsFirst())
-        .result();
-
-    if (result != 0) {
-      return result;
-    }
-
-    for (int i = 0; i < pathOffsets.size() && i < other.pathOffsets.size(); i++) {
-      int offset = pathOffsets.get(i);
-      int otherOffset = other.pathOffsets.get(i);
-
-      result = ComparisonChain.start()
-          .compare(offset, otherOffset, Ordering.<Integer> natural().nullsFirst())
-          .result();
-
-      if (result != 0) {
-        return result;
-      }
-    }
-
-    if (pathOffsets.size() < other.pathOffsets.size()) {
-      return -1;
-    }
-
-    if (pathOffsets.size() > other.pathOffsets.size()) {
-      return 1;
-    }
-
-    return result;
   }
 }

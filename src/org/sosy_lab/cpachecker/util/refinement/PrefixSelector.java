@@ -23,58 +23,40 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class PrefixSelector {
 
+  private final ScorerFactory factory;
   private final Optional<VariableClassification> classification;
-  private final Optional<LoopStructure> loopStructure;
 
   public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
-
-    List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
-
-    return Ordering.compound(comparators).min(pInfeasiblePrefixes);
+    return Ordering.compound(createComparators(pPrefixPreference)).min(pInfeasiblePrefixes);
   }
 
   public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
 
-    int minScore = Integer.MAX_VALUE;
+    int defaultScore = Integer.MAX_VALUE;
 
     if (!classification.isPresent()) {
-      return minScore;
+      return defaultScore;
     }
 
-    Scorer scorer = new ScorerFactory(classification, loopStructure).createScorer(pPreference);
-
-    for (InfeasiblePrefix prefix : pPrefixes) {
-      minScore = Math.min(minScore, scorer.computeScore(prefix));
-    }
-
-    return minScore;
+    Scorer scorer = factory.createScorer(pPreference);
+    return pPrefixes.stream().mapToInt(p -> scorer.computeScore(p)).min().orElse(defaultScore);
   }
 
   private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
-
-    ScorerFactory factory = new ScorerFactory(classification, loopStructure);
-
-    List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
-    for(PrefixPreference preference : pPrefixPreference) {
-      comparators.add(factory.createScorer(preference).getComparator());
-    }
-
-    return comparators;
+    return Lists.transform(pPrefixPreference, p -> factory.createScorer(p).getComparator());
   }
 
   public static final List<PrefixPreference> NO_SELECTION =
@@ -122,6 +104,10 @@ public class PrefixSelector {
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
+    // We instantiate this only once, because it is pseudo-random (i.e., deterministic),
+    // and if we instantiate it every time, we get the same sequence of random numbers.
+    private final Scorer randomScorer = new RandomScorer();
+
     public ScorerFactory(final Optional<VariableClassification> pClassification,
         final Optional<LoopStructure> pLoopStructure) {
       classification = pClassification;
@@ -159,7 +145,7 @@ public class PrefixSelector {
         case ASSUMPTIONS_MAX:
           return new AssumptionScorer(classification).invert();
         case RANDOM:
-          return new RandomScorer();
+          return randomScorer;
 
         // illegal arguments
         case NONE:
@@ -169,24 +155,30 @@ public class PrefixSelector {
     }
   }
 
-  private abstract static class Scorer {
+  private static interface Scorer {
 
-    protected int sign = 1;
+    int computeScore(final InfeasiblePrefix pPrefix);
 
-    public abstract int computeScore(final InfeasiblePrefix pPrefix);
-
-    public Scorer invert() {
-      sign = sign * (-1);
-
-      return this;
+    default Comparator<InfeasiblePrefix> getComparator() {
+      return Comparator.comparingInt(this::computeScore);
     }
 
-    public Comparator<InfeasiblePrefix> getComparator() {
-      return Comparator.comparingInt(this::computeScore);
+    default Scorer invert() {
+      Scorer delegate = this;
+      return new Scorer() {
+        @Override
+        public int computeScore(InfeasiblePrefix pPrefix) {
+          int score = delegate.computeScore(pPrefix);
+          if (score == Integer.MIN_VALUE) {
+            return Integer.MAX_VALUE;
+          }
+          return -score;
+        }
+      };
     }
   }
 
-  private static class DomainScorer extends Scorer {
+  private static class DomainScorer implements Scorer {
 
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
@@ -199,11 +191,11 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return sign * classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      return classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
     }
   }
 
-  private static class LoopScorer extends Scorer {
+  private static class LoopScorer implements Scorer {
 
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
@@ -222,35 +214,35 @@ public class PrefixSelector {
         score = 0;
       }
 
-      return sign * score;
+      return score;
     }
   }
 
-  private static class WidthScorer extends Scorer {
+  private static class WidthScorer implements Scorer {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return sign * pPrefix.getNonTrivialLength();
+      return pPrefix.getNonTrivialLength();
     }
   }
 
-  private static class DepthScorer extends Scorer {
+  private static class DepthScorer implements Scorer {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return sign * pPrefix.getDepthOfPivotState();
+      return pPrefix.getDepthOfPivotState();
     }
   }
 
-  private static class LengthScorer extends Scorer {
+  private static class LengthScorer implements Scorer {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return sign * pPrefix.getPath().size();
+      return pPrefix.getPath().size();
     }
   }
 
-  private static class AssignmentScorer extends Scorer {
+  private static class AssignmentScorer implements Scorer {
 
     private final Optional<VariableClassification> classification;
 
@@ -265,11 +257,11 @@ public class PrefixSelector {
         count = count + classification.get().getAssignedVariables().count(variable);
       }
 
-      return sign * count;
+      return count;
     }
   }
 
-  private static class AssumptionScorer extends Scorer {
+  private static class AssumptionScorer implements Scorer {
 
     private final Optional<VariableClassification> classification;
 
@@ -284,21 +276,23 @@ public class PrefixSelector {
         count = count + classification.get().getAssumedVariables().count(variable);
       }
 
-      return sign * count;
+      return count;
     }
   }
 
-  private static class RandomScorer extends Scorer {
+  private static class RandomScorer implements Scorer {
+
+    private final Random random = new Random();
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return new Random().nextInt(1000);
+      return random.nextInt(1000);
     }
   }
 
   public PrefixSelector(Optional<VariableClassification> pClassification,
                              Optional<LoopStructure> pLoopStructure) {
+    factory = new ScorerFactory(pClassification, pLoopStructure);
     classification  = pClassification;
-    loopStructure   = pLoopStructure;
   }
 }

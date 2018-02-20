@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdge;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import com.google.common.collect.Queues;
+import java.util.Deque;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
@@ -62,7 +61,7 @@ final class SMGConsistencyVerifier {
 
     // Find a null value in values
     for (Integer value: pSmg.getValues()) {
-      if (pSmg.getObjectPointedBy(value) == pSmg.getNullObject()) {
+      if (pSmg.getObjectPointedBy(value) == SMGNullObject.INSTANCE) {
         null_value = value;
         break;
       }
@@ -75,19 +74,19 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that NULL value returned by getNullValue() points to NULL object
-    if (pSmg.getObjectPointedBy(pSmg.getNullValue()) != pSmg.getNullObject()) {
+    if (pSmg.getObjectPointedBy(SMG.NULL_ADDRESS) != SMGNullObject.INSTANCE) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value not pointing to null object");
       return false;
     }
 
     // Verify that the value found in values is the one returned by getNullValue()
-    if (pSmg.getNullValue() != null_value) {
+    if (SMG.NULL_ADDRESS != null_value) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value in values set not returned by getNullValue()");
       return false;
     }
 
     // Verify that NULL object has no value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pSmg.getNullObject());
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
 
     if (! pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
@@ -95,13 +94,13 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that the NULL object is invalid
-    if (pSmg.isObjectValid(pSmg.getNullObject())) {
+    if (pSmg.isObjectValid(SMGNullObject.INSTANCE)) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object is not invalid");
       return false;
     }
 
     // Verify that the size of the NULL object is zero
-    if (pSmg.getNullObject().getSize() != 0) {
+    if (SMGNullObject.INSTANCE.getSize() != 0) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object does not have zero size");
       return false;
     }
@@ -183,13 +182,11 @@ final class SMGConsistencyVerifier {
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
-    List<SMGEdge> to_verify = new ArrayList<>();
-    to_verify.addAll(pEdges);
+  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Iterable<? extends SMGEdge> pEdges) {
+    Deque<SMGEdge> to_verify = Queues.newArrayDeque(pEdges);
 
-    while (to_verify.size() > 0) {
-      SMGEdge edge = to_verify.get(0);
-      to_verify.remove(0);
+    while (!to_verify.isEmpty()) {
+      SMGEdge edge = to_verify.pop();
 
       // Verify that the object assigned to the edge exists in the SMG
       if (!pSmg.getObjects().contains(edge.getObject())) {
@@ -273,7 +270,7 @@ final class SMGConsistencyVerifier {
         pLogger,
         "Has Value edge consistency");
     toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges().asSet()),
+        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
         pLogger,
         "Points To edge consistency");
     toReturn = toReturn && verifySMGProperty(

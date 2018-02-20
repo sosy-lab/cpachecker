@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
     implements JLiteralExpression {
 
+  private static final long serialVersionUID = -8344145326316408368L;
+
   public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
     super(pFileLocation, JSimpleType.getFloat(), pValue);
   }

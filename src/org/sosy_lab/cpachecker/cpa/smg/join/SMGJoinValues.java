@@ -25,33 +25,31 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
@@ -485,7 +483,7 @@ final class SMGJoinValues {
       if(destSmgSourceObject.isAbstract()) {
 
         /*Pick arbitrary offset of edges to see if you should increase the level.*/
-        int arbitraryOffset = edges.iterator().next().getOffset();
+        long arbitraryOffset = edges.iterator().next().getOffset();
 
         switch (destSmgSourceObject.getKind()) {
           case DLL:
@@ -692,11 +690,11 @@ final class SMGJoinValues {
     SMGNodeMapping mapping1 = pMapping1;
     SMGNodeMapping mapping2 = pMapping2;
 
-    int nf;
+    long nf;
     int length;
-    int hfo;
-    int nfo;
-    int pfo;
+    long hfo;
+    long nfo;
+    long pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
@@ -862,12 +860,12 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private CType getType(SMGObject pTarget, int pNf, SMG inputSMG1) {
+  private CType getType(SMGObject pTarget, long pNf, SMG pInputSMG1) {
     Set<SMGEdgeHasValue> oldNfEdge =
-        inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
+        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
     if (oldNfEdge.isEmpty()) {
-      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getBitSizeofPtr(), pNf, pTarget, 0)
+      return new SMGEdgeHasValue(pInputSMG1.getMachineModel().getSizeofPtrInBits(), pNf, pTarget, 0)
           .getType();
     } else {
       return Iterables.getOnlyElement(oldNfEdge).getType();
@@ -884,11 +882,11 @@ final class SMGJoinValues {
     SMGNodeMapping mapping1 = pMapping1;
     SMGNodeMapping mapping2 = pMapping2;
 
-    int nf;
+    long nf;
     int length;
-    int hfo;
-    int nfo;
-    int pfo;
+    long hfo;
+    long nfo;
+    long pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
@@ -1058,8 +1056,8 @@ final class SMGJoinValues {
     int listLevel = pList.getLevel() + pLevelDiff;
 
     SMGObject listCopy;
-    int nfo = -1;
-    int pfo = -1;
+    long nfo = -1;
+    long pfo = -1;
 
     if (pMapping.containsKey(pList)) {
       listCopy = pMapping.get(pList);
@@ -1069,7 +1067,7 @@ final class SMGJoinValues {
         case DLL:
           nfo = ((SMGDoublyLinkedList) pList).getNfo();
           pfo = ((SMGDoublyLinkedList) pList).getPfo();
-          int hfo = ((SMGDoublyLinkedList) pList).getHfo();
+          long hfo = ((SMGDoublyLinkedList) pList).getHfo();
           listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo,
               0, listLevel);
           break;

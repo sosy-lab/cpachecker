@@ -25,8 +25,12 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,11 +48,6 @@ import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.Template.Kind;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * BAM reduction for LPI.
@@ -87,17 +86,15 @@ class PolicyReducer implements Reducer {
     PolicyAbstractedState aState = pState.asAbstracted();
     Set<String> blockVars = getBlockVariables(context);
 
-    Map<Template, PolicyBound> newAbstraction = aState.getAbstraction().entrySet().stream()
-
-        // Remove templates containing non-referenced variables.
-        .filter(e -> blockVars.containsAll(e.getKey().getUsedVars().collect(Collectors.toSet())))
-
-        // Remove templates setting specific upper bound which would enforce an equality:
-        // we are performing explicit weakenings in order to generate more generic summarise.
-        .filter(
-            e -> !isUpperBoundOnEquality(e.getKey(), e.getValue(), aState.getAbstraction())
-        )
-        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+    Map<Template, PolicyBound> newAbstraction =
+        Maps.filterEntries(
+            Maps.filterKeys(
+                aState.getAbstraction(),
+                // Remove templates containing non-referenced variables.
+                key -> blockVars.containsAll(key.getUsedVars())),
+            // Remove templates setting specific upper bound which would enforce an equality:
+            // we are performing explicit weakenings in order to generate more generic summarise.
+            e -> !isUpperBoundOnEquality(e.getKey(), e.getValue(), aState.getAbstraction()));
 
     return PolicyAbstractedState.of(
         newAbstraction,
@@ -241,9 +238,10 @@ class PolicyReducer implements Reducer {
             // TODO: filter the set of dependent templates, at least
             pParent.getAbstraction().keySet()
         );
-      } else if (template.getUsedVars().allMatch(
-          v -> !(summarySSA.getIndex(v) > STARTING_SSA_IDX)
-      )) {
+      } else if (template
+          .getUsedVars()
+          .stream()
+          .allMatch(v -> !(summarySSA.getIndex(v) > STARTING_SSA_IDX))) {
 
         // Otherwise, use the bound from the parent state.
         insertedBound = pParent.getBound(template).get();
@@ -277,11 +275,8 @@ class PolicyReducer implements Reducer {
     PolicyState pState = (PolicyState) stateKey;
 
     // Discard all the meta-information attached to the bounds.
-    return pState.asAbstracted().getAbstraction().entrySet().stream()
-        .collect(Collectors.toMap(
-            e -> e.getKey(),
-            e -> e.getValue().getBound()
-        ));
+    return ImmutableMap.copyOf(
+        Maps.transformValues(pState.asAbstracted().getAbstraction(), PolicyBound::getBound));
   }
 
   /**
@@ -307,7 +302,7 @@ class PolicyReducer implements Reducer {
   }
 
   private Set<String> getBlockVariables(Block pBlock) {
-    return pBlock.getReferencedVariables().stream()
-        .map(ReferencedVariable::getName).collect(Collectors.toSet());
+    return Collections3.transformedImmutableSetCopy(
+        pBlock.getReferencedVariables(), ReferencedVariable::getName);
   }
 }

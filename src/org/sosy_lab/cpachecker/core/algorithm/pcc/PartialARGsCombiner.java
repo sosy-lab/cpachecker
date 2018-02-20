@@ -133,7 +133,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           return status;
         }
 
-        if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
+        if (reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;
@@ -192,7 +192,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<AbstractState> initialStates = initStates.getSecond();
 
     try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config).create());
+      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
       return false;
@@ -269,10 +269,17 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge,
       HistoryForwardingReachedSet pForwaredReachedSet) {
     // check if analysis stopped exploration due e.g. time limit
+    boolean inReached = false;
     for(ReachedSet reached :pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
       if(reached.getWaitlist().contains(pPredecessor)) {
         return false;
       }
+      if (reached.contains(pPredecessor)) {
+        inReached = true;
+      }
+    }
+    if (!inReached) {
+      return false;
     }
   // check if analysis stopped exploration due to true state in automaton --> concrete successors may exist
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {

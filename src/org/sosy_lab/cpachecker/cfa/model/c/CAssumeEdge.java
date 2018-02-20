@@ -23,20 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-import java.util.Optional;
-
 public class CAssumeEdge extends AssumeEdge {
+
+  private static final long serialVersionUID = -3330760789129113642L;
 
   public CAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    this(
+        pRawStatement,
+        pFileLocation,
+        pPredecessor,
+        pSuccessor,
+        pExpression,
+        pTruthAssumption,
+        false,
+        false);
+  }
+
+  public CAssumeEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CExpression pExpression,
+      boolean pTruthAssumption,
+      boolean pSwapped,
+      boolean pArtificial) {
+
+    super(
+        pRawStatement,
+        pFileLocation,
+        pPredecessor,
+        pSuccessor,
+        pExpression,
+        pTruthAssumption,
+        pSwapped,
+        pArtificial);
   }
 
   @Override

@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import java.util.Stack;
-
+import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
 public interface EdgeVisitor {
 
-  public void visit(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack);
-
+  public void visit(ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack);
 }

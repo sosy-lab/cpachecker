@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -37,13 +34,8 @@ public class SMGCEGARUtils {
 
   public static SMGPrecision extractSMGPrecision(final ARGReachedSet pReached,
       ARGState state) {
-    FluentIterable<Precision> precisions = Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(state));
-
-    precisions = precisions.filter((Precision prec) -> {
-      return prec instanceof SMGPrecision;
-    });
-
-    return (SMGPrecision) Iterables.getOnlyElement(precisions);
+    return Iterables.getOnlyElement(
+        Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
+            .filter(SMGPrecision.class));
   }
 }

@@ -25,6 +25,10 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
+import java.util.Map;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,13 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.Map;
-import java.util.Objects;
 
-import javax.annotation.Nullable;
-
-
-public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInvariant
+public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
 
   private final ExpressionTree<AExpression> expressionTree;
@@ -105,7 +104,8 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     if (expressionTree.equals(ExpressionTrees.getFalse())) {
-      Iterable<AbstractState> infeasibleStates = AbstractStates.filterLocations(pReachedSet, getLocations()).toList();
+      Iterable<AbstractState> infeasibleStates =
+          FluentIterable.from(AbstractStates.filterLocation(pReachedSet, getLocation())).toList();
       pReachedSet.removeAll(infeasibleStates);
       for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
         s.removeFromARG();
@@ -183,10 +183,6 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
       return false;
     }
 
-  }
-
-  public CFANode getLocation() {
-    return location;
   }
 
 }

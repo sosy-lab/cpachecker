@@ -27,9 +27,13 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -37,17 +41,9 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 
 @Options(prefix="parser")
 public class CPreprocessor {
@@ -89,7 +85,7 @@ public class CPreprocessor {
       final Path dumpFile = dumpDirectory.resolve(file).normalize();
       if (dumpFile.startsWith(dumpDirectory)) {
         try {
-          MoreFiles.writeFile(dumpFile, Charset.defaultCharset(), result);
+          IO.writeFile(dumpFile, Charset.defaultCharset(), result);
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Cannot write result of preprocessing to file");
         }
@@ -141,7 +137,7 @@ public class CPreprocessor {
   private static class CPreprocessorExecutor extends ProcessExecutor<IOException> {
 
     private static final int MAX_ERROR_OUTPUT_SHOWN = 10;
-    private static final Map<String, String> ENV_VARS = ImmutableMap.of("LANG", "C");
+    private static final ImmutableMap<String, String> ENV_VARS = ImmutableMap.of("LANG", "C");
 
     @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
         justification = "Written only by one thread")
@@ -166,6 +162,7 @@ public class CPreprocessor {
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
     protected void handleOutput(String pLine) throws IOException {
       if (buffer == null) {
         buffer = new StringBuffer();

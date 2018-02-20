@@ -57,11 +57,11 @@ public class MergeIgnoringCallstack implements MergeOperator{
   private Map<String, Set<DefinitionPoint>> unionMaps(Map<String, Set<DefinitionPoint>> map1,
       Map<String, Set<DefinitionPoint>> map2) {
     Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
-    HashSet<String> vars = new HashSet<>();
+    Set<String> vars = new HashSet<>();
     vars.addAll(map1.keySet());
     vars.addAll(map2.keySet());
 
-    HashSet<DefinitionPoint> unionResult;
+    Set<DefinitionPoint> unionResult;
     boolean changed = false;
     if (map1 == map2) {
       return map2;

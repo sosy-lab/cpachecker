@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -118,4 +119,14 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public boolean isEmpty();
 
   public int size();
+
+  /**
+   * Violation of some properties is determined by reached set itself, not by a single state. The
+   * example is race condition: it is required to have a couple of special states
+   *
+   * @return Is any property violated
+   */
+  public boolean hasViolatedProperties();
+
+  public Collection<Property> getViolatedProperties();
 }

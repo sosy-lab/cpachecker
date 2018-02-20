@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,11 +68,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Class collecting and containing information about all loops in a CFA.
  */
-public final class LoopStructure {
+public final class LoopStructure implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /**
    * Class representing one loop in a CFA.
@@ -109,7 +113,10 @@ public final class LoopStructure {
    * In such cases, both loops are considered only one loop
    * (which is legal according to the definition above).
    */
-  public static class Loop {
+  public static class Loop implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     // Technically not immutable, but all modifying methods are private
     // and never called after the LoopStructure information has been collected.
 
@@ -137,6 +144,7 @@ public final class LoopStructure {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;
+        return;
       }
 
       Set<CFAEdge> incomingEdges = new HashSet<>();
@@ -530,30 +538,50 @@ public final class LoopStructure {
    */
   private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 
-    // if there are no backwards directed edges, there are no loops, so we do
-    // not need to search for them
+    // Two optimizations:
+    // - if there are no backwards directed edges, there are no loops,
+    //   so we do not need to search for them
+    // - linear chains of nodes at the function start cannot be part of a loop, so we remove them
+    // The latter can be a huge improvement for the main function, which may have thousands of nodes
+    // in such an initial chain (global declarations).
+    List<CFANode> initialChain = new ArrayList<>();
     {
       CFANode functionExitNode = nodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
-        CFANode functionEntryNode = ((FunctionExitNode)functionExitNode).getEntryNode();
+        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+        while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
+          initialChain.add(startNode);
+          startNode = startNode.getLeavingEdge(0).getSuccessor();
+        }
 
-        if (!hasBackWardsEdges(functionEntryNode)) {
+        // Workaround: remove last state of initial chain such that it will be used by the algorithm
+        // Otherwise, the algorithm still works correctly, but it will often find a different set
+        // of loop head nodes that does not contain what most users would consider
+        // the most important loop head node of a function.
+        if (!initialChain.isEmpty()) {
+          initialChain.remove(initialChain.size()-1);
+        }
+
+        if (!hasBackWardsEdges(startNode)) {
           return ImmutableList.of();
         }
       }
     }
 
-    nodes = new TreeSet<>(nodes); // copy nodes because we change it
+    nodes = new TreeSet<>(nodes); // copy nodes because we change it, it is our working set
+    nodes.removeAll(initialChain);
 
     // We need to store some information per pair of CFANodes.
     // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
     // inefficient. Instead we use some arrays.
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
+    // (Note that all removed nodes from initialChain
+    // are guaranteed to have higher reverse post-order ids than the remaining nodes.)
     // It's important to not use the node number because it has large gaps.
     final Function<CFANode, Integer> arrayIndexForNode = CFANode::getReversePostorderId;
     // this is the size of the arrays
-    int size = nodes.size();
+    final int size = nodes.size();
 
     // all nodes of the graph
     // forall i : arrayIndexForNode.apply(nodes[i]) == i

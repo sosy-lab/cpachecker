@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -70,12 +71,18 @@ public class SymbolicValueAnalysisRefiner
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
+  @Option(secure = true, description = "if this option is set to false, constraints are never kept")
+  private boolean trackConstraints = true;
+
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    final ConstraintsCPA constraintsCpa = retrieveCPA(pCpa, ConstraintsCPA.class);
+    final ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SymbolicValueAnalysisRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
+    final ConstraintsCPA constraintsCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, SymbolicValueAnalysisRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
 
@@ -105,7 +112,8 @@ public class SymbolicValueAnalysisRefiner
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -156,14 +164,12 @@ public class SymbolicValueAnalysisRefiner
       throws InterruptedException {
     final Collection<ARGState> roots = pInterpolants.obtainRefinementRoots(restartStrategy);
 
-    ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();
-
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
       ConstraintsPrecision.Increment constrPrecInc =
           getConstraintsIncrement(r, pInterpolants);
 
-      precUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
+      ARGTreePrecisionUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
   }
 
@@ -174,24 +180,26 @@ public class SymbolicValueAnalysisRefiner
     ConstraintsPrecision.Increment.Builder increment =
         ConstraintsPrecision.Increment.builder();
 
-    Deque<ARGState> todo =
-        new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
+    if (trackConstraints) {
+      Deque<ARGState> todo =
+          new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
 
-    while (!todo.isEmpty()) {
-      final ARGState currentState = todo.removeFirst();
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
 
-      if (!currentState.isTarget()) {
-        SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
+        if (!currentState.isTarget()) {
+          SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
 
-        if (itp != null && !itp.isTrivial()) {
-          for (Constraint c : itp.getConstraints()) {
-            increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
+          if (itp != null && !itp.isTrivial()) {
+            for (Constraint c : itp.getConstraints()) {
+              increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
+            }
           }
         }
-      }
 
-      Collection<ARGState> successors = pTree.getSuccessors(currentState);
-      todo.addAll(successors);
+        Collection<ARGState> successors = pTree.getSuccessors(currentState);
+        todo.addAll(successors);
+      }
     }
 
     return increment.build();

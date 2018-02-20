@@ -38,28 +38,29 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public interface InvariantSupplier {
 
   /**
-   * Return an invariant that holds at a given node.
-   * This method should be relatively cheap and do not block
-   * (i.e., do not start an expensive invariant generation procedure).
+   * Return an invariant that holds at a given node. This method should be relatively cheap and do
+   * not block (i.e., do not start an expensive invariant generation procedure).
    *
-   * Invariants returned by this supplier can be assumed to be correct in the given {@code pContext}
-   * e.g. respect the {@linkplain PointerTargetSet} and the {@link SSAMap}.
+   * <p>Invariants returned by this supplier can be assumed to be correct in the given {@code
+   * pContext} e.g. respect the {@linkplain PointerTargetSet} and the {@link SSAMap}.
    *
    * @param node The CFANode.
    * @param callstackInformation Optional callstack information, to filter invariants by callstack.
-   *                             Obtained from {@link CallstackStateEqualsWrapper}.
-   *                             Ignored if absent.
+   *     Obtained from {@link CallstackStateEqualsWrapper}. Ignored if absent.
    * @param fmgr The formula manager which should be used for creating the invariant formula.
-   * @param pfmgr The {@link PathFormulaManager} which should be used for creating the invariant formula.
+   * @param pfmgr The {@link PathFormulaManager} which should be used for creating the invariant
+   *     formula.
    * @param pContext the context of the formula.
    * @return An invariant boolean formula without SSA indices.
+   * @throws InterruptedException if retrieving the invariant is interrupted.
    */
   BooleanFormula getInvariantFor(
       CFANode node,
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       FormulaManagerView fmgr,
       PathFormulaManager pfmgr,
-      @Nullable PathFormula pContext);
+      @Nullable PathFormula pContext)
+      throws InterruptedException;
 
   static enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;

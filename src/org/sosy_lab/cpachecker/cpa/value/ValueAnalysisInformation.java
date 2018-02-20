@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.util.Collections;
-import java.util.Map;
-
+import com.google.common.base.Objects;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -37,27 +37,26 @@ public class ValueAnalysisInformation {
 
   public static final ValueAnalysisInformation EMPTY = new ValueAnalysisInformation();
 
-  private final Map<MemoryLocation, Value> assignments;
-  private final Map<MemoryLocation, Type> locationTypes;
+  private final PersistentMap<MemoryLocation, Value> assignments;
+  private final PersistentMap<MemoryLocation, Type> locationTypes;
 
   protected ValueAnalysisInformation(
-      final Map<MemoryLocation, Value> pAssignments,
-      final Map<MemoryLocation, Type> pLocationTypes
-  ) {
+      final PersistentMap<MemoryLocation, Value> pAssignments,
+      final PersistentMap<MemoryLocation, Type> pLocationTypes) {
     assignments = pAssignments;
     locationTypes = pLocationTypes;
   }
 
   private ValueAnalysisInformation() {
-    assignments = Collections.emptyMap();
-    locationTypes = Collections.emptyMap();
+    assignments = PathCopyingPersistentTreeMap.of();
+    locationTypes = PathCopyingPersistentTreeMap.of();
   }
 
-  public Map<MemoryLocation, Value> getAssignments() {
+  public PersistentMap<MemoryLocation, Value> getAssignments() {
     return assignments;
   }
 
-  public Map<MemoryLocation, Type> getLocationTypes() {
+  public PersistentMap<MemoryLocation, Type> getLocationTypes() {
     return locationTypes;
   }
 
@@ -71,23 +70,12 @@ public class ValueAnalysisInformation {
     }
 
     ValueAnalysisInformation that = (ValueAnalysisInformation) o;
-
-    if (!assignments.equals(that.assignments)) {
-      return false;
-    }
-
-    if (!locationTypes.equals(that.locationTypes)) {
-      return false;
-    }
-
-    return true;
+    return assignments.equals(that.assignments) && locationTypes.equals(that.locationTypes);
   }
 
   @Override
   public int hashCode() {
-    int result = assignments.hashCode();
-    result = 31 * result + locationTypes.hashCode();
-    return result;
+    return Objects.hashCode(assignments, locationTypes);
   }
 
   @Override

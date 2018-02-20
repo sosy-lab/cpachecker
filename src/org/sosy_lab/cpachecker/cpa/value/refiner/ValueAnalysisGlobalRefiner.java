@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.util.List;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,13 +33,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -57,8 +57,10 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    final ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisGlobalRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisGlobalRefiner.class);
 
     valueAnalysisCpa.injectRefinablePrecision();
 
@@ -72,12 +74,13 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    return new ValueAnalysisGlobalRefiner(argCpa,
+    return new ValueAnalysisGlobalRefiner(
+        argCpa,
         checker,
         strongestPostOp,
-        new ValueAnalysisPrefixProvider(logger, cfa, config),
-        new PrefixSelector(cfa.getVarClassification(),
-                           cfa.getLoopStructure()),
+        new ValueAnalysisPrefixProvider(
+            logger, cfa, config, valueAnalysisCpa.getShutdownNotifier()),
+        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
         config,
         logger,
         valueAnalysisCpa.getShutdownNotifier(),

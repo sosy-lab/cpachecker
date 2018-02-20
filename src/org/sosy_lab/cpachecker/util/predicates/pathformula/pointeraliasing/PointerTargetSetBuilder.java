@@ -27,7 +27,7 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import static org.sosy_lab.common.collect.MoreCollectors.toPersistentLinkedList;
+import static org.sosy_lab.common.collect.PersistentLinkedList.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Function;
@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -54,14 +55,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface PointerTargetSetBuilder {
 
-  BooleanFormula prepareBase(String name, CType type);
+  void prepareBase(String name, CType type, @Nullable Formula size, Constraints constraints);
 
   void shareBase(String name, CType type);
 
@@ -69,7 +72,7 @@ public interface PointerTargetSetBuilder {
    * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
    * (if its a structure/union) or all its elements (if its an array).
    */
-  BooleanFormula addBase(String name, CType type);
+  void addBase(String name, CType type, @Nullable Formula size, Constraints constraints);
 
   boolean tracksField(CCompositeType compositeType, String fieldName);
 
@@ -78,7 +81,7 @@ public interface PointerTargetSetBuilder {
   void addEssentialFields(final List<Pair<CCompositeType, String>> fields);
 
   void addTemporaryDeferredAllocation(
-      boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
+      boolean isZeroed, Optional<CIntegerLiteralExpression> size, Formula sizeExp, String base);
 
   void addDeferredAllocationPointer(String newPointer, String originalPointer);
 
@@ -108,6 +111,8 @@ public interface PointerTargetSetBuilder {
 
   Iterable<PointerTarget> getNonMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern);
 
+  int getFreshAllocationId();
+
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
    */
@@ -133,10 +138,11 @@ public interface PointerTargetSetBuilder {
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<String, CType> bases;
-    private String lastBase;
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+    private PersistentList<Formula> highestAllocatedAddresses;
+    private int allocationCount;
 
     // Used in addEssentialFields()
     private final Predicate<Pair<CCompositeType, String>> isNewFieldPredicate =
@@ -189,10 +195,11 @@ public interface PointerTargetSetBuilder {
         final FormulaEncodingWithPointerAliasingOptions pOptions,
         final MemoryRegionManager pRegionMgr) {
       bases = pointerTargetSet.getBases();
-      lastBase = pointerTargetSet.getLastBase();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       targets = pointerTargetSet.getTargets();
+      highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
+      allocationCount = pointerTargetSet.getAllocationCount();
       formulaManager = pFormulaManager;
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
@@ -218,22 +225,22 @@ public interface PointerTargetSetBuilder {
      *
      * @param name The name of the variable.
      * @param type The type of the variable.
-     * @return A boolean formula representing the base.
+     * @param sizeExp An expression for the size in bytes of the new base.
      */
     @Override
-    public BooleanFormula prepareBase(final String name, CType type) {
+    public void prepareBase(
+        final String name, CType type, final @Nullable Formula sizeExp, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeTrue();
+        return;
       }
-      bases = bases.putAndCopy(name, type); // To get proper inequalities
-      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
+
       // If type is incomplete, we can use a dummy size here because it is only used for the fake base.
       int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size)); // To prevent adding spurious targets when merging
-      lastBase = name;
-      return nextInequality;
+
+      makeNextBaseAddressInequality(name, type, sizeExp, constraints);
     }
 
     /**
@@ -267,28 +274,99 @@ public interface PointerTargetSetBuilder {
      *
      * @param name The name of the base
      * @param type The type of the base
-     * @return A formula representing the base
+     * @param size An expression for the size in bytes of the new base.
      */
     @Override
-    public BooleanFormula addBase(final String name, CType type) {
+    public void addBase(
+        final String name, CType type, final @Nullable Formula size, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeTrue();
+        return;
       }
 
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
-      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
-      lastBase = name;
+      makeNextBaseAddressInequality(name, type, size, constraints);
+    }
+
+    /**
+     * Create the constraints for inequality between existing bases and a new base
+     * (to prevent overlapping), and store the new base as highest allocated address
+     * for when the next base is created.
+     *
+     * @param newBase The name of the next base.
+     * @param type The type of the next base.
+     * @param allocationSize An expression for the size in bytes of the new base.
+     * @param constraints Where the constraints about addresses will be added to.
+     */
+    private void makeNextBaseAddressInequality(
+        final String newBase,
+        final CType type,
+        final @Nullable Formula allocationSize,
+        final Constraints constraints) {
+
       if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
         // Avoid adding constraints about function addresses,
         // otherwise we might track facts about function pointers for code like "if (p == &f)".
-        return formulaManager.getBooleanFormulaManager().makeTrue();
-      } else {
-        return nextInequality;
+        return;
       }
+
+      final FormulaType<?> pointerType = typeHandler.getPointerType();
+      final Formula newBaseFormula =
+          formulaManager.makeVariableWithoutSSAIndex(
+              pointerType, PointerTargetSet.getBaseName(newBase));
+
+      // Create constraints for the new base address and store them
+      if (highestAllocatedAddresses.isEmpty()) {
+        constraints.addConstraint(makeGreaterZero(newBaseFormula));
+      } else {
+        for (Formula oldBaseFormula : highestAllocatedAddresses) {
+          constraints.addConstraint(
+              formulaManager.makeGreaterThan(newBaseFormula, oldBaseFormula, true));
+        }
+      }
+
+      final int typeSize =
+          type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
+      final Formula typeSizeF =
+          formulaManager.makeNumber(pointerType, typeSize * typeHandler.getBitsPerByte());
+      final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
+
+      // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
+      // We have two ways to compute the size: sizeof(type) and the allocationSize (e.g., the
+      // argument to malloc).
+      // We need both here: Only the allocation size is correct for allocations with dynamic size,
+      // and only the size of the type takes into account the default array length that we assume
+      // elsewhere and we must thus ensure here, too.
+      // Furthermore, in case of linear approximation we need a constraint that the size is
+      // positive, and using the type size takes care of this automatically.
+      // In cases where the precise size is known and correct, we need only one of the constraints.
+      // We use the one with typeSize instead of allocationSize, because the latter would add one
+      // multiplication to the formula.
+      // We also need to ensure that the highest allocated address (both variants) is greater than
+      // zero to prevent overflows with bitvector arithmetic.
+
+      constraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+      highestAllocatedAddresses = PersistentLinkedList.of(newBasePlusTypeSize);
+
+      if (allocationSize != null
+          && !allocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
+        final Formula allocationSizeF =
+            formulaManager.makeMultiply(
+                allocationSize,
+                formulaManager.makeNumber(pointerType, typeHandler.getBitsPerByte()));
+        Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, allocationSizeF);
+        constraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+
+        highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
+      }
+    }
+
+    private BooleanFormula makeGreaterZero(Formula f) {
+      return formulaManager.makeGreaterThan(
+          f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
     }
 
     /**
@@ -315,8 +393,8 @@ public interface PointerTargetSetBuilder {
      */
     private void addTargets(final String base,
                             final CType cType,
-                            final int properOffset,
-                            final int containerOffset,
+                            final long properOffset,
+                            final long containerOffset,
                             final String composite,
                             final String memberName) {
       checkIsSimplified(cType);
@@ -338,13 +416,13 @@ public interface PointerTargetSetBuilder {
         final String type = CTypeUtils.typeToString(compositeType);
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
+          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
           if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
             addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
-            MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration.getType(), memberDeclaration.getName());
+            MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets = ptsMgr.addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
         }
@@ -392,29 +470,33 @@ public interface PointerTargetSetBuilder {
     /**
      * Used to start tracking for fields that were used in some expression or an assignment LHS.
      *
-     * Each field is added for tracking only if it's present in some currently allocated object;
-     * an inner structure/union field is added only if the field corresponding to the inner composite
-     * itself is already tracked; also, a field corresponding to an inner composite is added only if
-     * any fields of that composite are already tracked. The latter two optimizations cause problems
-     * when adding an inner composite field along with the corresponding containing field e.g.:
+     * <p>Each field is added for tracking only if it's present in some currently allocated object;
+     * an inner structure/union field is added only if the field corresponding to the inner
+     * composite itself is already tracked; also, a field corresponding to an inner composite is
+     * added only if any fields of that composite are already tracked. The latter two optimizations
+     * cause problems when adding an inner composite field along with the corresponding containing
+     * field e.g.:
      *
-     * <p>{@code pouter->inner.f = /*...* /;}</p>
+     * <p>{@code pouter->inner.f = /*...* /;}
      *
-     * Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner} is
-     * not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved by
-     * grouping the requested fields into chunks by their nesting and avoid optimizations when adding
-     * fields of the same chunk.
+     * <p>Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner}
+     * is not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved
+     * by grouping the requested fields into chunks by their nesting and avoid optimizations when
+     * adding fields of the same chunk.
      *
-     * @param fields The fields that should be tracked.
+     * @param pFields The fields that should be tracked.
      */
     @Override
-    public void addEssentialFields(final List<Pair<CCompositeType, String>> fields) {
+    public void addEssentialFields(final List<Pair<CCompositeType, String>> pFields) {
       final List<Triple<CCompositeType, String, CType>> typedFields =
-        FluentIterable.from(fields)
-                      .filter(isNewFieldPredicate)
-                      .transform(typeFieldFunction)
-                      .transform(t -> Triple.of(t.getFirst(), t.getSecond(), typeHandler.simplifyType(t.getThird())))
-                      .toSortedList(simpleTypedFieldsFirstComparator);
+          FluentIterable.from(pFields)
+              .filter(isNewFieldPredicate)
+              .transform(typeFieldFunction)
+              .transform(
+                  t ->
+                      Triple.of(
+                          t.getFirst(), t.getSecond(), typeHandler.simplifyType(t.getThird())))
+              .toSortedList(simpleTypedFieldsFirstComparator);
       if (typedFields.isEmpty()) {
         return;
       }
@@ -454,38 +536,25 @@ public interface PointerTargetSetBuilder {
     /**
      * Adds a new pointer(variable/field)-object mapping to the set of tracked pending objects with yet unknown type
      * to be allocated.
-     *
-     * @param pointer The name of the pointer variable or field.
-     * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with kzalloc).
-     * @param size The size of the allocated memory (usually specified as allocation function argument).
-     * @param base The name of the corresponding base.
-     */
-    private void addDeferredAllocation(
-        final String pointer,
-        final boolean isZeroed,
-        final Optional<CIntegerLiteralExpression> size,
-        final String base) {
-      final Pair<String, DeferredAllocation> p =
-          Pair.of(pointer, new DeferredAllocation(base, size, isZeroed));
-      if (!deferredAllocations.contains(p)) {
-        deferredAllocations = deferredAllocations.with(p);
-      }
-    }
-
-    /**
-     * Adds a new pointer(variable/field)-object mapping to the set of tracked pending objects with yet unknown type
-     * to be allocated.
      * This version is specifically for temporary variables used
      * in between allocation in the RHS and (possibly) revealing the type from the LHS.
      *
-     * @param isZeroed A flag indicating if the allocation was zeroing (e.g. kzalloc)
-     * @param size The size of the allocated memory.
-     * @param base The name of the base variable.
+     * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with kzalloc).
+     * @param size The size of the allocated memory (usually specified as allocation function argument).
+     * @param sizeExp A formula representing the size of the allocation.
+     * @param base The name of the corresponding base.
      */
     @Override
     public void addTemporaryDeferredAllocation(
-        final boolean isZeroed, final Optional<CIntegerLiteralExpression> size, final String base) {
-      addDeferredAllocation(base, isZeroed, size, base);
+        final boolean isZeroed,
+        final Optional<CIntegerLiteralExpression> size,
+        final Formula sizeExp,
+        final String base) {
+      final Pair<String, DeferredAllocation> p =
+          Pair.of(base, new DeferredAllocation(base, size, sizeExp, isZeroed));
+      if (!deferredAllocations.contains(p)) {
+        deferredAllocations = deferredAllocations.with(p);
+      }
     }
 
     /**
@@ -710,13 +779,20 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public PointerTargetSet build() {
-      PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields,
-          deferredAllocations, targets);
+      PointerTargetSet result =
+          new PointerTargetSet(
+              bases, fields, deferredAllocations, targets, highestAllocatedAddresses, allocationCount);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
         return result;
       }
+    }
+
+    /** Returns a fresh ID that can be used as identifier for a heap allocation. */
+    @Override
+    public int getFreshAllocationId() {
+      return allocationCount = Math.incrementExact(allocationCount);
     }
   }
 
@@ -730,7 +806,8 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public BooleanFormula prepareBase(String pName, CType pType) {
+    public void prepareBase(
+        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
@@ -740,7 +817,8 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public BooleanFormula addBase(String pName, CType pType) {
+    public void addBase(
+        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
@@ -761,7 +839,10 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, String pBase) {
+        boolean pIsZeroed,
+        Optional<CIntegerLiteralExpression> pSize,
+        Formula pSizeExp,
+        String pBase) {
       throw new UnsupportedOperationException();
     }
 
@@ -829,6 +910,11 @@ public interface PointerTargetSetBuilder {
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
         MemoryRegion region, Predicate<PointerTarget> pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getFreshAllocationId() {
       throw new UnsupportedOperationException();
     }
 

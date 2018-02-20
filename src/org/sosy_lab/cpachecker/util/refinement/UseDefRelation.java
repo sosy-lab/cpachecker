@@ -30,7 +30,14 @@ import static com.google.common.collect.Collections2.filter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -62,20 +69,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class UseDefRelation {
 
@@ -127,7 +125,7 @@ public class UseDefRelation {
   public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
-    Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
+    Collection<ASimpleDeclaration> unresolvedUsesOnPath = new HashSet<>();
 
     PathIterator it = path.reverseFullPathIterator();
 
@@ -141,9 +139,9 @@ public class UseDefRelation {
       }
       CFAEdge currentEdge = it.getOutgoingEdge();
 
-      unresolvedUses.removeAll(getDef(currentState, currentEdge));
-      unresolvedUses.addAll(getUses(currentState, currentEdge));
-      expandedUses.put(currentState, new HashSet<>(unresolvedUses));
+      unresolvedUsesOnPath.removeAll(getDef(currentState, currentEdge));
+      unresolvedUsesOnPath.addAll(getUses(currentState, currentEdge));
+      expandedUses.put(currentState, new HashSet<>(unresolvedUsesOnPath));
     }
 
     return expandedUses;

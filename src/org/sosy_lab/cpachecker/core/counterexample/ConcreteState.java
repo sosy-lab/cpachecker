@@ -23,21 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class is used to represent the partial concrete memory of a C program at a statement
@@ -110,7 +107,7 @@ public final class ConcreteState {
     variableAddressMap = ImmutableMap.of();
     allocatedMemory = ImmutableMap.of();
     variables = ImmutableMap.of();
-    memoryNameAllocator = (pExp, pAddress) -> "";
+    memoryNameAllocator = (pExp) -> "";
 
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
   }
@@ -125,7 +122,7 @@ public final class ConcreteState {
    */
   public Object getValueFromMemory(CRightHandSide exp, Address address) {
 
-    String memoryName = memoryNameAllocator.getMemoryName(exp, address);
+    String memoryName = memoryNameAllocator.getMemoryName(exp);
 
     if (!allocatedMemory.containsKey(memoryName)) {
       return null;
@@ -190,7 +187,7 @@ public final class ConcreteState {
    * @param variable check the concrete address of this variable.
    * @return true, if the given variable has a concrete address, false otherwise.
    */
-  public boolean hasAddressOfVaribable(LeftHandSide variable) {
+  public boolean hasAddressOfVariable(LeftHandSide variable) {
     return variableAddressMap.containsKey(variable);
   }
 

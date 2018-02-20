@@ -23,16 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -44,15 +47,14 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * Refinement strategy similar based on the general idea of McMillan's Impact
- * algorithm: do not create a precision and remove parts from ARG,
- * but instead directly strengthen the states in the ARG using interpolants.
- * There are different ways on how to use the interpolants,
- * these are documented in the description of {@link ImpactUtility}.
+ * Refinement strategy similar based on the general idea of McMillan's Impact algorithm: do not
+ * create a precision and remove parts from ARG, but instead directly strengthen the states in the
+ * ARG using interpolants. There are different ways on how to use the interpolants, these are
+ * documented in the description of {@link ImpactUtility}.
  *
- * This class can be used both with and without BDDs.
+ * <p>This class can be used both with and without BDDs.
  */
-class ImpactRefinementStrategy extends RefinementStrategy {
+class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -73,7 +75,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
 
-      basicRefinementStatistics.printStatistics(out, pResult, pReached);
+      ImpactRefinementStrategy.this.printStatistics(out);
     }
   }
 
@@ -134,7 +136,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   @Override
   protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
       List<ARGState> changedElements, ARGReachedSet pReached,
-      boolean pRepeatedCounterexample)
+      List<ARGState> abstractionStatesTrace, boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     checkState(lastAbstraction != null);
     lastAbstraction = null;
@@ -162,7 +164,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public Statistics getStatistics() {
-    return stats;
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }

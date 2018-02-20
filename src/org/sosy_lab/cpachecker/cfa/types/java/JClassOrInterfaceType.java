@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import static com.google.common.base.Preconditions.*;
-
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 /**
  * Description of a Java class or interface.
@@ -56,7 +54,7 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   private final String name;
   private final String simpleName;
 
-  private final JClassOrInterfaceType enclosingType;
+  private final @Nullable JClassOrInterfaceType enclosingType;
   private final Set<JClassOrInterfaceType> nestedTypes = new HashSet<>();
 
   /**
@@ -206,46 +204,39 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   }
 
   /**
-   * Returns a <code>List</code> containing a <code>JClassOrInterfaceType</code>
-   * for each super type (interface or class) of the described class in random order.
+   * Returns a <code>List</code> containing a <code>JClassOrInterfaceType</code> for each super type
+   * (interface or class) of the described class in random order.
    *
-   * <p>This includes direct and indirect super types.</p>
+   * <p>This includes direct and indirect super types.
    *
-   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code>
-   * for each super type of the described class
+   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each super type
+   *     of the described class
    */
-  public List<JClassOrInterfaceType> getAllSuperTypesOfType() {
-    List<JClassOrInterfaceType> result = new LinkedList<>();
-
+  public Set<? extends JClassOrInterfaceType> getAllSuperTypesOfType() {
     if (this instanceof JClassType) {
-      result.addAll(((JClassType) this).getAllSuperTypesOfClass());
+      return ((JClassType) this).getAllSuperTypesOfClass();
     } else if (this instanceof JInterfaceType) {
-      result.addAll(((JInterfaceType) this).getAllSuperInterfaces());
-      return result;
+      return ((JInterfaceType) this).getAllSuperInterfaces();
     }
-    return result;
+    return ImmutableSet.of();
   }
 
   /**
    * Returns a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each sub type
    * that extends the described class or interface.
    *
-   * <p>This includes direct and indirect sub types.</p>
+   * <p>This includes direct and indirect sub types.
    *
    * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each sub type
-   * that extends the described class
+   *     that extends the described class
    */
-  public List<JClassOrInterfaceType> getAllSubTypesOfType() {
-
-    List<JClassOrInterfaceType> result = new LinkedList<>();
-
+  public Set<? extends JClassOrInterfaceType> getAllSubTypesOfType() {
     if (this instanceof JClassType) {
-      result.addAll(((JClassType) this).getAllSubTypesOfClass());
+      return ((JClassType) this).getAllSubTypesOfClass();
     } else if (this instanceof JInterfaceType) {
-      result.addAll(((JInterfaceType) this).getAllSuperInterfaces());
-      return result;
+      return ((JInterfaceType) this).getAllSuperInterfaces();
     }
-    return result;
+    return ImmutableSet.of();
   }
 
   /**

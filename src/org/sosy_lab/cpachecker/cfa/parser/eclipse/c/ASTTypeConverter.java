@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
@@ -41,6 +42,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.ICompositeType;
 import org.eclipse.cdt.core.dom.ast.IEnumeration;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -201,7 +204,7 @@ class ASTTypeConverter {
       }
 
       // TODO varargs
-      return new CFunctionType(false, false, convert(ft.getReturnType()), newParameters, false);
+      return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
 
     } else if (t instanceof ICArrayType) {
       return conv((ICArrayType)t);
@@ -395,9 +398,15 @@ class ASTTypeConverter {
       }
       return CVoidType.create(dd.isConst(), dd.isVolatile());
     case IASTSimpleDeclSpecifier.t_typeof:
-      // TODO This might loose some information of dd or dd.getDeclTypeExpression()
-      // (the latter should be of type IASTTypeIdExpression)
-      CType ctype = convert(dd.getDeclTypeExpression().getExpressionType());
+      CType ctype;
+      if (dd.getDeclTypeExpression() instanceof IASTTypeIdExpression) {
+        IASTTypeIdExpression typeId = (IASTTypeIdExpression)dd.getDeclTypeExpression();
+        verify(typeId.getOperator() == IASTTypeIdExpression.op_typeof,
+            "Unepxected type-id expression %s for typeof operator", typeId);
+        ctype = converter.convert(typeId.getTypeId());
+      } else {
+        ctype = convert(dd.getDeclTypeExpression().getExpressionType());
+      }
 
       // readd the information about isVolatile and isConst if they got lost in
       // the previous conversion
@@ -438,7 +447,14 @@ class ASTTypeConverter {
     }
 
     if (type == null) {
-      return convert((IType) binding);
+      type = convert((IType) binding);
+    }
+
+    if (d.isConst()) {
+      type = CTypes.withConst(type);
+    }
+    if (d.isVolatile()) {
+      type = CTypes.withVolatile(type);
     }
 
     return type;
@@ -515,6 +531,6 @@ class ASTTypeConverter {
 
   /** returns a bitfield type */
   CType convertBitFieldType(final int bitFieldSize, final CType pType) {
-    return pType.withBitFieldSize(bitFieldSize);
+    return new CBitFieldType(pType, bitFieldSize);
   }
 }

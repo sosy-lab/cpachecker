@@ -83,7 +83,7 @@ public interface Reducer {
    * precisions.
    *
    * <p>This function is used only when {@code cpa.bam.aggressiveCaching} is
-   * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
+   * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
    *
    * <p>A greater value indicates a bigger difference in the precision.
    * If the implementation of this function is not important, return zero. */
@@ -131,4 +131,13 @@ public interface Reducer {
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation);
+
+  /**
+   * See option bam.useDynamicAdjustment
+   *
+   * @param pState an abstract state which might be used in cache
+   */
+  default boolean canBeUsedInCache(AbstractState pState) {
+    return true;
   }
+}

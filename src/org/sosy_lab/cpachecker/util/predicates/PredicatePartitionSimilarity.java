@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -39,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * represents a predicate.
  */
 public class PredicatePartitionSimilarity extends PredicatePartition {
-  private HashMap<Integer, HashMap<Integer, Integer>> similarityRelation;
+  private Map<Integer, Map<Integer, Integer>> similarityRelation;
 
   public PredicatePartitionSimilarity(FormulaManagerView fmgr, Solver solver, LogManager logger) {
     super(fmgr, solver, logger);
@@ -58,7 +57,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
     updatePredicateSimilarities(newPred);
 
     // calculate the predicate that is most similar to the new one
-    HashMap<Integer, Integer> similarities = similarityRelation.get(newPred.getVariableNumber());
+    Map<Integer, Integer> similarities = similarityRelation.get(newPred.getVariableNumber());
     Map.Entry<Integer, Integer> entryWithMaxSimilarity = null;
     for (Map.Entry<Integer, Integer> entry : similarities.entrySet()) {
       if (entryWithMaxSimilarity == null || entry.getValue().compareTo(entryWithMaxSimilarity.getValue()) > 0) {
@@ -102,7 +101,9 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
     return this;
   }
 
-  public HashMap<Integer, HashMap<Integer, Integer>> getSimilarityRelation() { return similarityRelation; }
+  public Map<Integer, Map<Integer, Integer>> getSimilarityRelation() {
+    return similarityRelation;
+  }
 
   /**
    * Calculates the similarity of the new predicate and old predicates in the partition and updates the similarity
@@ -112,7 +113,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
    */
   private void updatePredicateSimilarities(AbstractionPredicate newPredicate) {
     int varIDNewPredicate = newPredicate.getVariableNumber();
-    HashMap<Integer, Integer> similarities = new HashMap<>();
+    Map<Integer, Integer> similarities = new HashMap<>();
     Set<String> varsInNewPred = fmgr.extractVariableNames(newPredicate.getSymbolicAtom());
 
     // calculate for each of the old predicates the number of variables the old and the new predicate have in common
@@ -122,7 +123,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
       // the similarity is equal to the number of variables the predicates have in common
       varsInPrevPred.retainAll(varsInNewPred);
       Integer similarity = varsInPrevPred.size();
-      HashMap<Integer, Integer> similaritiesPrevPred = similarityRelation.get(index);
+      Map<Integer, Integer> similaritiesPrevPred = similarityRelation.get(index);
       similaritiesPrevPred.put(varIDNewPredicate, similarity);
       similarities.put(index, similarity);
     }

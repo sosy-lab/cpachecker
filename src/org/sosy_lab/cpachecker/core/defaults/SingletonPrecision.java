@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
-public class SingletonPrecision implements Precision {
+public class SingletonPrecision implements AdjustablePrecision {
 
   private final static SingletonPrecision mInstance = new SingletonPrecision();
 
@@ -40,5 +40,15 @@ public class SingletonPrecision implements Precision {
   @Override
   public String toString() {
     return "no precision";
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
+    return this;
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
+    return this;
   }
 }

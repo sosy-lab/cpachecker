@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Objects;
+
 public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
 
   private final SMGUseFieldVertice source;
   private final SMGUseFieldVertice target;
 
   public SMGUseFieldEdge(SMGUseFieldVertice pSource, SMGUseFieldVertice pTarget) {
-    super();
     source = pSource;
     target = pTarget;
   }
@@ -46,11 +47,7 @@ public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((source == null) ? 0 : source.hashCode());
-    result = prime * result + ((target == null) ? 0 : target.hashCode());
-    return result;
+    return Objects.hashCode(source, target);
   }
 
   @Override
@@ -58,28 +55,11 @@ public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof SMGUseFieldEdge)) {
       return false;
     }
     SMGUseFieldEdge other = (SMGUseFieldEdge) obj;
-    if (source == null) {
-      if (other.source != null) {
-        return false;
-      }
-    } else if (!source.equals(other.source)) {
-      return false;
-    }
-    if (target == null) {
-      if (other.target != null) {
-        return false;
-      }
-    } else if (!target.equals(other.target)) {
-      return false;
-    }
-    return true;
+    return Objects.equal(source, other.source) && Objects.equal(target, other.target);
   }
 
   @Override

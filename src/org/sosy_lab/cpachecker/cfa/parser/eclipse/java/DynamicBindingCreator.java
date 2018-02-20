@@ -27,10 +27,10 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.SortedSetMultimap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,14 +143,14 @@ class DynamicBindingCreator {
 
     for (Map.Entry<String, List<MethodDefinition>> entry :  subMethodsOfMethod.entrySet()) {
       methodTypeBindingsOfMethod.put(entry.getKey(),
-                                     new LinkedList<>(entry.getValue()));
+                                     new ArrayList<>(entry.getValue()));
     }
 
     Map<String, List<MethodDefinition>> workMap = new HashMap<>();
 
     for (Map.Entry<String, List<MethodDefinition>> entry : subMethodsOfMethod.entrySet()) {
       workMap.put(entry.getKey(),
-                  new LinkedList<>(entry.getValue()));
+                  new ArrayList<>(entry.getValue()));
     }
 
 
@@ -382,10 +382,7 @@ class DynamicBindingCreator {
 
 
     if (onlyFunction == null) {
-
-      List<JClassOrInterfaceType> superTypes = runTimeBinding.getAllSuperTypesOfType();
-
-      for (JClassOrInterfaceType superType : superTypes) {
+      for (JClassOrInterfaceType superType : runTimeBinding.getAllSuperTypesOfType()) {
         if (map.containsKey(superType)) {
           onlyFunction = map.get(superType);
           break;
@@ -594,12 +591,13 @@ class DynamicBindingCreator {
     // That way, even if the method is not overridden, it is tracked
     // with an empty list
     if (!subMethodsOfMethod.containsKey(functionName)) {
-      subMethodsOfMethod.put(functionName, new LinkedList<>());
+      subMethodsOfMethod.put(functionName, new ArrayList<>());
     }
 
     final MethodDefinition toBeRegistered = getMethodDefinition(declaration, entryNode);
     final JClassOrInterfaceType declaringClassType = declaration.getDeclaringClass();
-    final List<JClassOrInterfaceType> declaringClassesSuperTypes = declaringClassType.getAllSuperTypesOfType();
+    final Set<? extends JClassOrInterfaceType> declaringClassesSuperTypes =
+        declaringClassType.getAllSuperTypesOfType();
 
     registerForSuperClass(declaringClassesSuperTypes, toBeRegistered, declaration);
   }
@@ -609,7 +607,8 @@ class DynamicBindingCreator {
   // and register that the method toBeRegistered overrides
   // this function
   private void registerForSuperClass(
-      List<JClassOrInterfaceType> pSuperClasses, MethodDefinition pToBeRegistered,
+      Set<? extends JClassOrInterfaceType> pSuperClasses,
+      MethodDefinition pToBeRegistered,
       JMethodDeclaration pBindingToBeRegistered) {
 
     final TypeHierarchy typeHierarchy = cfaBuilder.getScope().getTypeHierarchy();
@@ -682,8 +681,8 @@ class DynamicBindingCreator {
 
    // If Method not yet parsed, it needs to be added
    if (!subMethodsOfMethod.containsKey(overridenMethodName)) {
-      subMethodsOfMethod.put(overridenMethodName, new LinkedList<>());
-   }
+      subMethodsOfMethod.put(overridenMethodName, new ArrayList<>());
+    }
      subMethodsOfMethod.get(overridenMethodName).add(pToBeRegistered);
   }
 

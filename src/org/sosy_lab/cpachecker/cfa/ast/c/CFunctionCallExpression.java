@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -33,6 +32,8 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
 
 
 
+
+  private static final long serialVersionUID = -3958452761163446674L;
 
   public CFunctionCallExpression(final FileLocation pFileLocation,
                                     final CType pType,

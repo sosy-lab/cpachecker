@@ -1,9 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,18 +30,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Class responsible for converting states to formulas.
@@ -164,20 +162,16 @@ public class StateFormulaConversionManager {
 
   /**
    * @param attachExtraInvariant Whether the extra invariant should be attached.
-   * @return Starting {@code PathFormula} associated with {@code abstractState}.
-   * Does not include the constraints.
+   * @return Starting {@code PathFormula} associated with {@code abstractState}. Does not include
+   *     the constraints.
    */
   PathFormula getPathFormula(
-      PolicyAbstractedState abstractState,
-      FormulaManagerView fmgr,
-      boolean attachExtraInvariant
-  ) {
+      PolicyAbstractedState abstractState, FormulaManagerView pFmgr, boolean attachExtraInvariant) {
     BooleanFormula extraPredicate;
     if (attachExtraInvariant) {
-      extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
-          abstractState.getSSA());
+      extraPredicate = pFmgr.instantiate(abstractState.getExtraInvariant(), abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
+      extraPredicate = pFmgr.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);
@@ -193,19 +187,11 @@ public class StateFormulaConversionManager {
         .emptyPointerTargetSet(), 0
     );
 
-    Map<Template, BooleanFormula> templatesToConstraints = pAbstraction
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            entry -> entry.getKey(),
-            entry -> templateToConstraint(
-                entry.getKey(),
-                entry.getValue(),
-                pfmgr,
-                fmgr,
-                inputPath
-            )
-        ));
+    Map<Template, BooleanFormula> templatesToConstraints =
+        ImmutableMap.copyOf(
+            Maps.transformEntries(
+                pAbstraction,
+                (key, value) -> templateToConstraint(key, value, pfmgr, fmgr, inputPath)));
     List<Template> templates = new ArrayList<>(pAbstraction.keySet());
     Set<Template> nonRedundant = new HashSet<>(templates);
     for (Template t : templates) {
@@ -216,7 +202,7 @@ public class StateFormulaConversionManager {
 
       // if others imply the constraint, remove it.
       BooleanFormula othersConstraint =
-          bfmgr.and(Collections2.transform(others, tb -> templatesToConstraints.get(tb)));
+          bfmgr.and(Collections2.transform(others, templatesToConstraints::get));
 
       try {
         if (solver.implies(othersConstraint, constraint)) {

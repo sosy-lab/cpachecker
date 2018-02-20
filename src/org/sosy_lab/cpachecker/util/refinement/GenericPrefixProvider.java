@@ -23,11 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.Optional;
 import com.google.common.collect.FluentIterable;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -37,22 +44,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.logging.Level;
 
 /**
  * PrefixProvider that extracts all infeasible prefixes for a path, starting with an initial empty
@@ -66,6 +66,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   private final VariableTrackingPrecision precision;
   private final CFA cfa;
   private final S initialState;
+  private final ShutdownNotifier shutdownNotifier;
 
   /**
    * This method acts as the constructor of the class.
@@ -79,14 +80,16 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
       final LogManager pLogger,
       final CFA pCfa,
       final Configuration config,
-      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine
-  ) throws InvalidConfigurationException {
+      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
+      final ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     logger = pLogger;
     cfa    = pCfa;
 
     strongestPost = pStrongestPost;
     initialState = pEmptyState;
     precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), pCpaToRefine);
+    shutdownNotifier = pShutdownNotifier;
   }
 
   /**
@@ -126,6 +129,8 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
+        shutdownNotifier.shutdownIfNecessary();
+
         final CFAEdge outgoingEdge = iterator.getOutgoingEdge();
         final ARGState currentState = iterator.getAbstractState();
 
@@ -165,9 +170,15 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
           // continue with feasible prefix
           if (iterator.hasNext()) {
-            feasiblePrefixBuilder.add(currentState,
-                                      BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
-                                                              outgoingEdge.getSuccessor()));
+            checkState(outgoingEdge != null);
+            feasiblePrefixBuilder.add(
+                currentState,
+                new BlankEdge(
+                    outgoingEdge.getRawStatement(),
+                    outgoingEdge.getFileLocation(),
+                    outgoingEdge.getPredecessor(),
+                    outgoingEdge.getSuccessor(),
+                    "sliced infeasible condition"));
           }
 
           successor = Optional.of(next);

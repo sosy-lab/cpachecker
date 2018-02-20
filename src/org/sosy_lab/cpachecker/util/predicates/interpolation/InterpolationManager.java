@@ -33,7 +33,21 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,17 +59,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation.SeqInterpolationStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
@@ -65,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
@@ -72,24 +86,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-
 
 @Options(prefix="cpa.predicate.refinement")
 public final class InterpolationManager {
@@ -154,7 +150,17 @@ public final class InterpolationManager {
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
   private static enum InterpolationStrategy {
     SEQ, SEQ_CPACHECKER,
-    TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER}
+    TREE,
+    TREE_WELLSCOPED,
+    TREE_NESTED,
+    TREE_CPACHECKER,
+  }
+
+  @Option(secure = true, description = "In case we apply sequential interpolation, "
+      + "forward and backward directions return valid interpolants. "
+      + "We can either choose one of the directions, fallback to the other "
+      + "if one does not succeed, or even combine the interpolants.")
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -215,39 +221,40 @@ public final class InterpolationManager {
   }
 
   /**
-   * Counterexample analysis.
-   * This method is just an helper to delegate the actual work
-   * This is used to detect timeouts for interpolation
+   * Counterexample analysis. This method is just an helper to delegate the actual work This is used
+   * to detect timeouts for interpolation
    *
    * @param pFormulas the formulas for the path
-   * @param pAbstractionStates the abstraction states between the formulas and the last state of the path.
-   *                           The first state (root) of the path is missing, because it is always TRUE.
-   *                           (can be empty, if well-scoped interpolation is disabled or not required)
-   * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
+   * @param pAbstractionStates the abstraction states between the formulas and the last state of the
+   *     path. The first state (root) of the path is missing, because it is always TRUE. (can be
+   *     empty, if well-scoped interpolation is disabled or not required)
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final List<BooleanFormula> pFormulas,
-      final List<AbstractState> pAbstractionStates,
-      final Set<ARGState> elementsOnPath,
-      final boolean computeInterpolants) throws CPAException, InterruptedException {
+      final BlockFormulas pFormulas,
+      final List<AbstractState> pAbstractionStates)
+      throws CPAException, InterruptedException {
+    assert pAbstractionStates.isEmpty() || pFormulas.getSize() == pAbstractionStates.size();
 
-    assert pAbstractionStates.isEmpty() || pFormulas.size() == pAbstractionStates.size();
+    return callWithTimelimit(
+        () -> buildCounterexampleTrace0(pFormulas, pAbstractionStates));
+  }
+
+  private CounterexampleTraceInfo callWithTimelimit(Callable<CounterexampleTraceInfo> callable)
+      throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit.isEmpty()) {
-      return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
+      try {
+        return callable.call();
+      } catch (Exception e) {
+        Throwables.propagateIfPossible(e, CPAException.class, InterruptedException.class);
+        throw new UnexpectedCheckedException("refinement", e);
+      }
     }
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
-      @Override
-      public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
-      }
-    };
-
-    Future<CounterexampleTraceInfo> future = executor.submit(tc);
+    Future<CounterexampleTraceInfo> future = executor.submit(callable);
 
     try {
       // here we get the result of the post computation but there is a time limit
@@ -267,50 +274,19 @@ public final class InterpolationManager {
   }
 
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final List<BooleanFormula> pFormulas,
-      final List<AbstractState> pAbstractionStates,
-      final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, pAbstractionStates, elementsOnPath, true);
-  }
-
-  public CounterexampleTraceInfo buildCounterexampleTrace(
-          final List<BooleanFormula> pFormulas) throws CPAException, InterruptedException {
+          final BlockFormulas pFormulas) throws CPAException, InterruptedException {
     return buildCounterexampleTrace(
-            pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet(), true);
+        pFormulas, Collections.<AbstractState>emptyList());
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
-      final List<BooleanFormula> pFormulas,
-      final List<AbstractState> pAbstractionStates,
-      final Set<ARGState> elementsOnPath,
-      final boolean computeInterpolants) throws CPAException, InterruptedException {
+      final BlockFormulas pFormulas,
+      final List<AbstractState> pAbstractionStates)
+      throws CPAException, InterruptedException {
 
-    logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
     try {
-
-      // Final adjustments to the list of formulas
-      List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
-
-      if (fmgr.useBitwiseAxioms()) {
-        addBitwiseAxioms(f);
-      }
-
-      f = Collections.unmodifiableList(f);
-      logger.log(Level.ALL, "Counterexample trace formulas:", f);
-
-      // now f is the DAG formula which is satisfiable iff there is a
-      // concrete counterexample
-
-
-      // Check if refinement problem is not too big
-      if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
-        if (size > maxRefinementSize) {
-          logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
-          throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
-        }
-      }
+      final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
 
       final Interpolator<?> currentInterpolator;
       if (reuseInterpolationEnvironment) {
@@ -321,7 +297,8 @@ public final class InterpolationManager {
 
       try {
         try {
-          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
+          return currentInterpolator.buildCounterexampleTrace(
+              f, pAbstractionStates);
         } finally {
           if (!reuseInterpolationEnvironment) {
             currentInterpolator.close();
@@ -332,12 +309,76 @@ public final class InterpolationManager {
             Level.FINEST,
             itpException,
             "Interpolation failed, attempting to solve without interpolation");
-        return fallbackWithoutInterpolation(elementsOnPath, f, itpException);
+        return fallbackWithoutInterpolation(f, itpException);
       }
 
     } finally {
       cexAnalysisTimer.stop();
     }
+  }
+
+  /**
+   * Counterexample analysis without interpolation. Use this method if you want to check a
+   * counterexample for feasibility and in case of a feasible counterexample want the proper path
+   * information, but in case of an infeasible counterexample you do not need interpolants.
+   *
+   * @param pFormulas the formulas for the path
+   */
+  public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
+      final BlockFormulas pFormulas)
+      throws CPAException, InterruptedException {
+
+    return callWithTimelimit(
+        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas));
+  }
+
+  private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
+      final BlockFormulas pFormulas)
+      throws CPAException, InterruptedException {
+
+    cexAnalysisTimer.start();
+    try {
+      final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
+
+      try {
+        return solveCounterexample(f);
+      } catch (SolverException e) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
+      }
+
+    } finally {
+      cexAnalysisTimer.stop();
+    }
+  }
+
+  /** Prepare the list of formulas for a counterexample for the solving/interpolation step. */
+  private BlockFormulas prepareCounterexampleFormulas(final BlockFormulas pFormulas)
+      throws RefinementFailedException {
+    logger.log(Level.FINEST, "Building counterexample trace");
+
+    // Final adjustments to the list of formulas
+    List<BooleanFormula> f = new ArrayList<>(pFormulas.getFormulas()); // copy because we will change the list
+
+    if (fmgr.useBitwiseAxioms()) {
+      addBitwiseAxioms(f);
+    }
+
+    f = Collections.unmodifiableList(f);
+    logger.log(Level.ALL, "Counterexample trace formulas:", f);
+
+    // now f is the DAG formula which is satisfiable iff there is a
+    // concrete counterexample
+
+    // Check if refinement problem is not too big
+    if (maxRefinementSize > 0) {
+      int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
+      if (size > maxRefinementSize) {
+        logger.log(
+            Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
+        throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
+      }
+    }
+    return new BlockFormulas(f, pFormulas.getBranchingFormula());
   }
 
   /**
@@ -349,29 +390,43 @@ public final class InterpolationManager {
    * we at least return an empty model.
    */
   private CounterexampleTraceInfo fallbackWithoutInterpolation(
-      final Set<ARGState> elementsOnPath, List<BooleanFormula> f, SolverException itpException)
-      throws InterruptedException, CPATransferException, RefinementFailedException {
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      for (BooleanFormula block : f) {
-        prover.push(block);
-      }
-      if (!prover.isUnsat()) {
-        try {
-          return getErrorPath(f, prover, elementsOnPath);
-        } catch (SolverException modelException) {
-          logger.log(
-              Level.WARNING,
-              "Solver could not produce model, variable assignment of error path can not be dumped.");
-          logger.logDebugException(modelException);
-          return CounterexampleTraceInfo.feasible(
-              f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
-        }
+      BlockFormulas f, SolverException itpException)
+      throws InterruptedException, RefinementFailedException {
+    try {
+      CounterexampleTraceInfo counterexample = solveCounterexample(f);
+      if (!counterexample.isSpurious()) {
+        return counterexample;
       }
     } catch (SolverException solvingException) {
       // in case of exception throw original one below but do not forget e2
       itpException.addSuppressed(solvingException);
     }
     throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+  }
+
+  /** Analyze a counterexample for feasibility without computing interpolants. */
+  private CounterexampleTraceInfo solveCounterexample(
+      BlockFormulas f)
+      throws SolverException, InterruptedException {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      for (BooleanFormula block : f.getFormulas()) {
+        prover.push(block);
+      }
+      if (!prover.isUnsat()) {
+        try {
+          return getErrorPath(f, prover);
+        } catch (SolverException modelException) {
+          logger.log(
+              Level.WARNING,
+              "Solver could not produce model, variable assignment of error path can not be dumped.");
+          logger.logDebugException(modelException);
+          return CounterexampleTraceInfo.feasible(
+              f.getFormulas(), ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+        }
+      } else {
+        return CounterexampleTraceInfo.infeasibleNoItp();
+      }
+    }
   }
 
   /**
@@ -560,7 +615,7 @@ public final class InterpolationManager {
     final  ITPStrategy<T> itpStrategy;
     switch (strategy) {
       case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr, sequentialStrategy);
         break;
       case SEQ:
         itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
@@ -596,21 +651,22 @@ public final class InterpolationManager {
    * Get information about the error path from the solver after the formulas
    * have been proved to be satisfiable.
    *
-   * @param f The list of formulas on the path.
+   * @param formulas The list of formulas on the path.
    * @param pProver The solver.
-   * @param elementsOnPath The ARGElements of the paths represented by f.
    * @return Information about the error path, including a satisfying assignment.
    */
-  private CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
-      BasicProverEnvironment<?> pProver, Set<ARGState> elementsOnPath)
-      throws CPATransferException, SolverException, InterruptedException {
+  private CounterexampleTraceInfo getErrorPath(BlockFormulas formulas,
+      BasicProverEnvironment<?> pProver)
+      throws SolverException, InterruptedException {
 
     // get the branchingFormula
     // this formula contains predicates for all branches we took
     // this way we can figure out which branches make a feasible path
-    BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
+    BooleanFormula branchingFormula = formulas.getBranchingFormula();
 
-    if (bfmgr.isTrue(branchingFormula)) {
+    List<BooleanFormula> f = formulas.getFormulas();
+
+    if (!formulas.hasBranchingFormula() || bfmgr.isTrue(branchingFormula)) {
       return CounterexampleTraceInfo.feasible(
           f, pProver.getModelAssignments(), ImmutableMap.<Integer, Boolean>of());
     }
@@ -689,16 +745,14 @@ public final class InterpolationManager {
 
     /**
      * Counterexample analysis and predicate discovery.
-     * @param f the formulas for the path
-     * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
+     *
+     * @param formulas the formulas for the path
      * @return counterexample info with predicated information
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
-        List<BooleanFormula> f,
-        List<AbstractState> pAbstractionStates,
-        Set<ARGState> elementsOnPath,
-        boolean computeInterpolants)
-        throws SolverException, CPATransferException, InterruptedException {
+        BlockFormulas formulas,
+        List<AbstractState> pAbstractionStates)
+        throws SolverException, InterruptedException {
 
       // Check feasibility of counterexample
       shutdownNotifier.shutdownIfNecessary();
@@ -706,6 +760,15 @@ public final class InterpolationManager {
       satCheckTimer.start();
 
       boolean spurious;
+
+      if (pAbstractionStates.isEmpty()) {
+        pAbstractionStates = new ArrayList<>(Collections.<AbstractState>nCopies(formulas.getSize(), null));
+      } else {
+        assert formulas.hasBranchingFormula();
+        //should be constructed in PredicateCPA refiner or in BAM predicate refiner strategy
+        //impact algorithm, predicate forced covering pass empty pAbstractionStates
+      }
+      assert pAbstractionStates.size() == formulas.getSize() : "each pathFormula must end with an abstract State";
 
       /* we use two lists, that contain identical formulas
        * with different additional information and (maybe) in different order:
@@ -719,34 +782,31 @@ public final class InterpolationManager {
        *      Depending on different directions, different interpolants
        *      might be computed from the solver's proof for unsatisfiability.
        */
-      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds;
-      List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas;
 
-      if (pAbstractionStates.isEmpty()) {
-        pAbstractionStates = new ArrayList<>(Collections.<AbstractState>nCopies(f.size(), null));
-      }
-      assert pAbstractionStates.size() == f.size() : "each pathFormula must end with an abstract State";
+      // initialize all interpolation group ids with "null"
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
+          new ArrayList<>(Collections.<Triple<BooleanFormula, AbstractState, T>>nCopies(formulas.getSize(), null));
 
       try {
 
         if (getUsefulBlocks) {
-          f = Collections.unmodifiableList(getUsefulBlocks(f));
+          formulas =
+              new BlockFormulas(
+                  getUsefulBlocks(formulas.getFormulas()), formulas.getBranchingFormula());
         }
 
         if (dumpInterpolationProblems) {
-          dumpInterpolationProblem(f);
+          dumpInterpolationProblem(formulas.getFormulas());
         }
 
         // re-order formulas if needed
-        orderedFormulas = orderFormulas(f, pAbstractionStates);
-        assert orderedFormulas.size() == f.size();
-
-        // initialize all interpolation group ids with "null"
-        formulasWithStatesAndGroupdIds = new ArrayList<>(Collections.<Triple<BooleanFormula, AbstractState, T>>nCopies(f.size(), null));
+        final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+            orderFormulas(formulas.getFormulas(), pAbstractionStates);
+        assert orderedFormulas.size() == formulas.getSize();
 
         // ask solver for satisfiability
         spurious = checkInfeasabilityOfTrace(orderedFormulas, formulasWithStatesAndGroupdIds);
-        assert formulasWithStatesAndGroupdIds.size() == f.size();
+        assert formulasWithStatesAndGroupdIds.size() == formulas.getSize();
         assert !formulasWithStatesAndGroupdIds.contains(null); // has to be filled completely
 
       } finally {
@@ -760,23 +820,20 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        if (computeInterpolants) {
-          final List<BooleanFormula> interpolants = getInterpolants(this, formulasWithStatesAndGroupdIds);
-          if (logger.wouldBeLogged(Level.ALL)) {
-            int i = 1;
-            for (BooleanFormula itp : interpolants) {
-              logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-            }
+        final List<BooleanFormula> interpolants =
+            getInterpolants(this, formulasWithStatesAndGroupdIds);
+        if (logger.wouldBeLogged(Level.ALL)) {
+          int i = 1;
+          for (BooleanFormula itp : interpolants) {
+            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
           }
-
-          info = CounterexampleTraceInfo.infeasible(interpolants);
-        } else {
-          info = CounterexampleTraceInfo.infeasibleNoItp();
         }
+
+        info = CounterexampleTraceInfo.infeasible(interpolants);
 
       } else {
         // this is a real bug
-        info = getErrorPath(f, itpProver, elementsOnPath);
+        info = getErrorPath(formulas, itpProver);
       }
 
       logger.log(Level.ALL, "Counterexample information:", info);

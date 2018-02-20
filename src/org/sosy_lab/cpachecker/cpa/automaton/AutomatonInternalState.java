@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 
@@ -38,29 +37,40 @@ public class AutomatonInternalState {
   private final int stateId = idGenerator.getFreshId();
 
   /** State representing BOTTOM */
-  static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
+  static final AutomatonInternalState BOTTOM =
+      new AutomatonInternalState("_predefinedState_BOTTOM", Collections.emptyList());
 
   /** Error State */
-  static final AutomatonInternalState ERROR = new AutomatonInternalState(
-      "_predefinedState_ERROR",
-      Collections.singletonList(new AutomatonTransition(
-                                    AutomatonBoolExpr.TRUE,
-                                    Collections.<AutomatonBoolExpr>emptyList(),
-                                    null,
-                                    Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM, new StringExpression(""))),
-      true, false);
+  static final AutomatonInternalState ERROR =
+      new AutomatonInternalState(
+          "_predefinedState_ERROR",
+          Collections.singletonList(
+              new AutomatonTransition(
+                  AutomatonBoolExpr.TRUE,
+                  Collections.emptyList(),
+                  null,
+                  Collections.emptyList(),
+                  BOTTOM,
+                  new StringExpression(""))),
+          true,
+          false,
+          false);
 
   /** Break state, used to halt the analysis without being a target state */
-  static final AutomatonInternalState BREAK = new AutomatonInternalState(
-      "_predefinedState_BREAK",
-      Collections.singletonList(new AutomatonTransition(
-                                    AutomatonBoolExpr.TRUE,
-                                    Collections.<AutomatonBoolExpr>emptyList(),
-                                    null,
-                                    Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM, null)),
-      false, false);
+  static final AutomatonInternalState BREAK =
+      new AutomatonInternalState(
+          "_predefinedState_BREAK",
+          Collections.singletonList(
+              new AutomatonTransition(
+                  AutomatonBoolExpr.TRUE,
+                  Collections.emptyList(),
+                  null,
+                  Collections.emptyList(),
+                  BOTTOM,
+                  null)),
+          false,
+          false,
+          false);
 
   /** Name of this State.  */
   private final String name;
@@ -74,19 +84,39 @@ public class AutomatonInternalState {
    */
   private final boolean mAllTransitions;
 
-  public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pIsTarget, boolean pAllTransitions) {
+  private final boolean isCycleStart;
+
+  public AutomatonInternalState(
+      String pName,
+      List<AutomatonTransition> pTransitions,
+      boolean pIsTarget,
+      boolean pAllTransitions,
+      boolean pIsCycleStart) {
     this.name = pName;
     this.transitions = pTransitions;
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
+    this.isCycleStart = pIsCycleStart;
+  }
+
+  public AutomatonInternalState(
+      String pName,
+      List<AutomatonTransition> pTransitions,
+      boolean pIsTarget,
+      boolean pAllTransitions) {
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false);
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false, false);
+    this(pName, pTransitions, false, false, false);
   }
 
   public boolean isNonDetState() {
     return mAllTransitions;
+  }
+
+  public boolean isNontrivialCycleStart() {
+    return isCycleStart;
   }
 
   /** Lets all outgoing transitions of this state resolve their "sink" states.
