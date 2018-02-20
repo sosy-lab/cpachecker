@@ -28,18 +28,19 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 /**
  * Class represents Precision as a set, in which it is possible to add elements and subtract them.
  */
-public interface AdjustablePrecision extends Precision{
+public interface AdjustableInternalPrecision extends Precision {
+  // TODO: merge with AdjustablePrecision
 
   /**
    * Add other Precision to current and return new Precision.
    */
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision);
+  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision);
 
   /**
    * Subtract other Precision from current.
    * Returns true, if this operation has exhausted Precision Clearing Time Limit (PCTL).
    */
-  public boolean subtract(AdjustablePrecision otherPrecision);
+  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision);
 
   /**
    * Clear current Precision.
