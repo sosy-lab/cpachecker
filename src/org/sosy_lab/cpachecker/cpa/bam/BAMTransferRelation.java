@@ -678,10 +678,6 @@ public class BAMTransferRelation implements TransferRelation {
     return multipleARGRemover;
   }
 
-  public Multimap<AbstractState, AbstractState> getMapFromReducedToExpand() {
-    return multiReducedToExpand;
-  }
-
   private boolean updateExitState(AbstractState state) {
     UsageState usageState = UsageState.get(state);
     if (usageState != null) {
