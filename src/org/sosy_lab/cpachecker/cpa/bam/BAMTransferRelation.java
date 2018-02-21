@@ -429,10 +429,6 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
   }
 
-  public Multimap<AbstractState, AbstractState> getMapFromReducedToExpand() {
-    return reducedToExpand;
-  }
-
   public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(
       Function<ARGState, Integer> pIdExtractor) {
     return new BAMMultipleCEXSubgraphComputer(bamcpa, reducedToExpand, pIdExtractor);

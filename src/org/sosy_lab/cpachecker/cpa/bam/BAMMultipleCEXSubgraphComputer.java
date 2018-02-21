@@ -84,12 +84,6 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     elementsMap.put(target, newTreeTarget);
     ARGState currentState = target;
 
-    //Find path to nearest abstraction state
-    PredicateAbstractState pState = AbstractStates.extractStateByType(currentState, PredicateAbstractState.class);
-    if (pState != null) {
-      assert (pState.isAbstractionState());
-    }
-
     openElements.addAll(target.getParents());
     while (!openElements.isEmpty()) {
       currentState = openElements.pollLast();
