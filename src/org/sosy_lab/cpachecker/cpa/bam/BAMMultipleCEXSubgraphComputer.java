@@ -27,11 +27,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
   private final Multimap<AbstractState, AbstractState> reducedToExpanded;
-  private Set<LinkedList<Integer>> remainingStates = new HashSet<>();
+  private Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
 
   BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA,
@@ -77,7 +77,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     //Deep clone to be patient about modification
     remainingStates.clear();
     for (List<Integer> newList : pProcessedStates) {
-      remainingStates.add(new LinkedList<>(newList));
+      remainingStates.add(new ArrayDeque<>(newList));
     }
 
     ARGState target = newTreeTarget.getARGState();
@@ -184,7 +184,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
   private boolean checkRepeatitionOfState(ARGState currentElement) {
     int currentId = getStateId.apply(currentElement);
-    for (LinkedList<Integer> rest : remainingStates) {
+    for (ArrayDeque<Integer> rest : remainingStates) {
       if (rest.getLast() == currentId) {
         rest.removeLast();
         if (rest.isEmpty()) {

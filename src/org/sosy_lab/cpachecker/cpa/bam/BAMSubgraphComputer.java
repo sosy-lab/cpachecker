@@ -301,7 +301,7 @@ public class BAMSubgraphComputer {
    *
    * TODO we could replace the BackwardARGState completely by a normal ARGState,
    * we just keep it for debugging. */
-  public static class BackwardARGState extends ARGState {
+  static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
 
@@ -325,7 +325,7 @@ public class BAMSubgraphComputer {
   }
 
   /** A class to signal a deleted block for re-computation. */
-  public static class MissingBlockException extends CPAException {
+  static class MissingBlockException extends CPAException {
 
     private static final long serialVersionUID = 123L;
 
