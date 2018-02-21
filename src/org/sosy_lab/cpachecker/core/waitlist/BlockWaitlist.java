@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -299,10 +300,11 @@ public class BlockWaitlist implements Waitlist {
 
   /**
    * get block for state e
+   *
    * @param e the state for which we need a block
    * @return block for state e
    */
-  private Block getBlockForState(AbstractState e) {
+  private @Nullable Block getBlockForState(AbstractState e) {
     BKey key = getBlockKey(e);
     assert key!=null;
 
