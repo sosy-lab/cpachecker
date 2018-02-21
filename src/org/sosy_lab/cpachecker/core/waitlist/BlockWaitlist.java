@@ -88,10 +88,10 @@ public class BlockWaitlist implements Waitlist {
      */
     boolean checkResources() {
       if(isEntryBlock) {
-        //check entry limit
-        return countResources > limits.entryResourceLimit;
+        // check entry limit
+        return countResources > limits.getEntryResourceLimit();
       } else {
-        return countResources > limits.blockResourceLimit;
+        return countResources > limits.getBlockResourceLimit();
       }
     }
 
@@ -211,10 +211,10 @@ public class BlockWaitlist implements Waitlist {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
     config = pConfig;
     logger = pLogger;
-    int len = config.blockFunctionPatterns.size();
+    int len = config.getBlockFunctionPatterns().size();
     int i=0;
     ldvPattern = new Pattern[len];
-    for(String p : config.blockFunctionPatterns) {
+    for (String p : config.getBlockFunctionPatterns()) {
       ldvPattern[i] = Pattern.compile(p.replaceAll("%", ".*"));
       i++;
     }
@@ -231,7 +231,7 @@ public class BlockWaitlist implements Waitlist {
     if(activeBlocksMap.containsKey(key)) {
       b = activeBlocksMap.get(key);
     } else {
-      if(config.blockSaveResources && savedBlocksMap.containsKey(key)) {
+      if (config.shouldSaveBlockResources() && savedBlocksMap.containsKey(key)) {
         //restore saved resources
         b = savedBlocksMap.remove(key);
       } else {
@@ -383,7 +383,7 @@ public class BlockWaitlist implements Waitlist {
     Entry<BKey, Block> e = activeBlocksMap.lastEntry();
     while(e!=null && e.getValue().isEmpty()) {
       activeBlocksMap.pollLastEntry();
-      if(config.blockSaveResources && e.getValue().countResources!=0) {
+      if (config.shouldSaveBlockResources() && e.getValue().countResources != 0) {
         logger.log(Level.INFO, "Save block=" + e.getKey() + ", resources=" + e.getValue().countResources);
         savedBlocksMap.put(e.getKey(),e.getValue());
       }

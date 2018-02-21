@@ -29,26 +29,38 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-@Options(prefix="analysis")
+@Options(prefix = "analysis.traversal")
 public class BlockConfiguration {
 
-  @Option(secure=true, name = "traversal.blockResourceLimit",
-      description = "resource limit for the block")
-  int blockResourceLimit = 1000;
+  @Option(secure = true, description = "resource limit for the block")
+  private int blockResourceLimit = 1000;
 
-  @Option(secure=true, name = "traversal.entryResourceLimit",
-      description = "resource limit for the entry block")
-  int entryResourceLimit = 100000;
+  @Option(secure = true, description = "resource limit for the entry block")
+  private int entryResourceLimit = 100000;
 
-  @Option(secure=true, name = "traversal.blockSaveResources",
-      description = "save resources for the block if it is empty")
-  boolean blockSaveResources = true;
+  @Option(secure = true, description = "save resources for the block if it is empty")
+  private boolean blockSaveResources = true;
 
-  @Option(secure=true, name="traversal.blockFunctionPatterns", description = "Patterns for detecting block starts (ldv_ like functions)")
-  ImmutableSet<String> blockFunctionPatterns = ImmutableSet.of("ldv_%_instance_%");
+  @Option(secure = true, description = "Patterns for detecting block starts (ldv_ like functions)")
+  private ImmutableSet<String> blockFunctionPatterns = ImmutableSet.of("ldv_%_instance_%");
 
   public BlockConfiguration(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
+  int getBlockResourceLimit() {
+    return blockResourceLimit;
+  }
+
+  int getEntryResourceLimit() {
+    return entryResourceLimit;
+  }
+
+  boolean shouldSaveBlockResources() {
+    return blockSaveResources;
+  }
+
+  ImmutableSet<String> getBlockFunctionPatterns() {
+    return blockFunctionPatterns;
+  }
 }
