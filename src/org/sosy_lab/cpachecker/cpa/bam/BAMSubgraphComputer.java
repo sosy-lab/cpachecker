@@ -275,6 +275,11 @@ public class BAMSubgraphComputer {
     }
 
     @Override
+    public BackwardARGState clone() {
+      return new BackwardARGState(getARGState());
+    }
+
+    @Override
     public String toString() {
       return "BackwardARGState {{" + super.toString() + "}}";
     }
