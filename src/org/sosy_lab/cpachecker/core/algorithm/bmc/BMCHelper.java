@@ -37,9 +37,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -160,11 +162,31 @@ public final class BMCHelper {
 
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
+   *
+   * @throws InterruptedException if the shutdown notifier signals a shutdown request.
    */
-  public static BooleanFormula createFormulaFor(Iterable<AbstractState> states, BooleanFormulaManager pBFMGR) {
+  public static BooleanFormula createFormulaFor(
+      Iterable<AbstractState> states, BooleanFormulaManager pBFMGR) throws InterruptedException {
+    return createFormulaFor(states, pBFMGR, Optional.empty());
+  }
+
+  /**
+   * Create a disjunctive formula of all the path formulas in the supplied iterable.
+   *
+   * @throws InterruptedException if the shutdown notifier signals a shutdown request.
+   */
+  public static BooleanFormula createFormulaFor(
+      Iterable<AbstractState> states,
+      BooleanFormulaManager pBFMGR,
+      Optional<ShutdownNotifier> pShutdownNotifier)
+      throws InterruptedException {
     BooleanFormula f = pBFMGR.makeFalse();
 
-    for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
+    for (PredicateAbstractState e :
+        AbstractStates.projectToType(states, PredicateAbstractState.class)) {
+      if (pShutdownNotifier.isPresent()) {
+        pShutdownNotifier.get().shutdownIfNecessary();
+      }
       // Conjuncting block formula of last abstraction and current path formula
       // works regardless of state is an abstraction state or not.
       BooleanFormula pathFormula =
@@ -178,18 +200,20 @@ public final class BMCHelper {
   }
 
   /**
-   * Unrolls the given reached set using the algorithm provided to this
-   * instance of the bounded model checking algorithm.
+   * Unrolls the given reached set using the algorithm provided to this instance of the bounded
+   * model checking algorithm.
    *
    * @param pReachedSet the reached set to unroll.
-   *
    * @return {@code true} if the unrolling was sound, {@code false} otherwise.
-   *
-   * @throws CPAException if an exception occurred during unrolling the reached
-   * set.
+   * @throws CPAException if an exception occurred during unrolling the reached set.
    * @throws InterruptedException if the unrolling is interrupted.
    */
-  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
+  public static AlgorithmStatus unroll(
+      LogManager pLogger,
+      ReachedSet pReachedSet,
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCPA)
+      throws CPAException, InterruptedException {
     return unroll(pLogger, pReachedSet, (rs) -> {}, pAlgorithm, pCPA);
   }
 

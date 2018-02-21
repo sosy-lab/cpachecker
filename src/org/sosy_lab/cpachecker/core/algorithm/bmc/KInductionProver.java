@@ -249,10 +249,12 @@ class KInductionProver implements AutoCloseable {
         AbstractStates.extractLocations(AbstractStates.filterLocations(pAssertionStates, loopHeads))
             .toSet();
     return pContext -> {
+      shutdownNotifier.shutdownIfNecessary();
       if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
         BooleanFormula lhi = bfmgr.makeFalse();
         for (CFANode loopHead : stopLoopHeads) {
           lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pContext));
+          shutdownNotifier.shutdownIfNecessary();
         }
         loopHeadInvariants = lhi;
       }
@@ -416,7 +418,8 @@ class KInductionProver implements AutoCloseable {
     shutdownNotifier.shutdownIfNecessary();
 
     // Assert that *some* successor is reached
-    BooleanFormula successorExistsAssertion = createFormulaFor(filterEndStates(reached), bfmgr);
+    BooleanFormula successorExistsAssertion =
+        createFormulaFor(filterEndStates(reached), bfmgr, Optional.of(shutdownNotifier));
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
@@ -804,11 +807,13 @@ class KInductionProver implements AutoCloseable {
 
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);
-      BooleanFormula stateFormula = BMCHelper.createFormulaFor(stateAsSet, bfmgr);
+      BooleanFormula stateFormula =
+          BMCHelper.createFormulaFor(stateAsSet, bfmgr, Optional.of(shutdownNotifier));
       BooleanFormula invariantFormula = bfmgr.makeTrue();
       for (CandidateInvariant component :
           CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
         if (!Iterables.isEmpty(component.filterApplicable(stateAsSet))) {
+          shutdownNotifier.shutdownIfNecessary();
           invariantFormula =
               bfmgr.and(
                   invariantFormula, BMCHelper.assertAt(stateAsSet, component, fmgr, pfmgr, true));
