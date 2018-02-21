@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphIterator;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementBlockFactory.PathEquation;
@@ -54,6 +56,7 @@ public class PathPairIterator extends
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   private final BAMTransferRelation transfer;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
+  private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
 
   //Statistics
   private StatTimer computingPath = new StatTimer("Time for path computing");
@@ -90,6 +93,7 @@ public class PathPairIterator extends
         throw new InvalidConfigurationException("Unexpexted type " + type);
 
     }
+    targetToPathIterator = Maps.newHashMap();
   }
 
   @Override
@@ -98,6 +102,7 @@ public class PathPairIterator extends
     // subgraph computer need partitioning, which is not built at creation.
     // Thus, we move the creation of subgraphcomputer here
     subgraphComputer = transfer.createBAMMultipleSubgraphComputer(idExtractor);
+    targetToPathIterator.clear();
   }
 
   @Override
@@ -229,7 +234,6 @@ public class PathPairIterator extends
 
   private ExtendedARGPath getNextPath(UsageInfo info) {
     ARGPath currentPath;
-
     //Start from already computed set (it is partially refined)
     Iterator<ExtendedARGPath> iterator = currentIterators.get(info);
     if (iterator == null && computedPathsForUsage.containsKey(info)) {
@@ -244,7 +248,15 @@ public class PathPairIterator extends
 
     computingPath.start();
     //try to compute more paths
-    currentPath = subgraphComputer.getNextPathFrom((ARGState)info.getKeyState(), refinedStates);
+    BAMSubgraphIterator pathIterator;
+    if (targetToPathIterator.containsKey(info)) {
+      pathIterator = targetToPathIterator.get(info);
+    } else {
+      ARGState target = (ARGState)info.getKeyState();
+      pathIterator = subgraphComputer.iterator(target);
+      targetToPathIterator.put(info, pathIterator);
+    }
+    currentPath = pathIterator.nextPath(refinedStates);
     computingPath.stop();
 
     if (currentPath == null) {
