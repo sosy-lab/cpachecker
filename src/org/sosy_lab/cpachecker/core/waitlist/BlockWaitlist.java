@@ -138,8 +138,8 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private static class BKey implements Comparable<BKey> {
-    String name;
-    int callStackDepth;
+    private final String name;
+    private final int callStackDepth;
 
     BKey(String pName, int pDepth) {
       name = pName;
@@ -164,7 +164,7 @@ public class BlockWaitlist implements Waitlist {
       final int prime = 31;
       int result = 1;
       result = prime * result + callStackDepth;
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      result = prime * result + name.hashCode();
       return result;
     }
 
@@ -183,11 +183,7 @@ public class BlockWaitlist implements Waitlist {
       if (callStackDepth != other.callStackDepth) {
         return false;
       }
-      if (name == null) {
-        if (other.name != null) {
-          return false;
-        }
-      } else if (!name.equals(other.name)) {
+      if (!name.equals(other.name)) {
         return false;
       }
       return true;
