@@ -50,7 +50,8 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
   @Override
   public BooleanFormula getAssertion(
-      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
+      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
+      throws InterruptedException {
     Iterable<AbstractState> targetStates = filterApplicable(pReachedSet);
     return pFMGR.getBooleanFormulaManager().not(
         BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));
