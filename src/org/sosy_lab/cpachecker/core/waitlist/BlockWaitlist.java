@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -142,17 +145,17 @@ public class BlockWaitlist implements Waitlist {
     private final int callStackDepth;
 
     BKey(String pName, int pDepth) {
-      name = pName;
+      name = checkNotNull(pName);
       callStackDepth = pDepth;
     }
 
     @Override
     public int compareTo(BKey k2) {
-      if(callStackDepth!=k2.callStackDepth) {
-        return Integer.compare(callStackDepth, k2.callStackDepth);
+      return ComparisonChain.start()
+          .compare(callStackDepth, k2.callStackDepth)
+          .compare(name, k2.name)
+          .result();
       }
-      return name.compareTo(k2.name);
-    }
 
     @Override
     public String toString() {
@@ -180,13 +183,7 @@ public class BlockWaitlist implements Waitlist {
         return false;
       }
       BKey other = (BKey) obj;
-      if (callStackDepth != other.callStackDepth) {
-        return false;
-      }
-      if (!name.equals(other.name)) {
-        return false;
-      }
-      return true;
+      return (callStackDepth == other.callStackDepth) && name.equals(other.name);
     }
   }
 
