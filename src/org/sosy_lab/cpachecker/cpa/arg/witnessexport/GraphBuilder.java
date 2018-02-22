@@ -73,7 +73,6 @@ enum GraphBuilder {
         Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
-        Set<AdditionalInfoConverter> pAdditionalInfoConverters,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
@@ -189,7 +188,6 @@ enum GraphBuilder {
         final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
-        Set<AdditionalInfoConverter> pAdditionalInfoConverters,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
@@ -254,7 +252,6 @@ enum GraphBuilder {
         final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
-        Set<AdditionalInfoConverter> pAdditionalInfoConverters,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
@@ -346,7 +343,6 @@ enum GraphBuilder {
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
-      Set<AdditionalInfoConverter> pAdditionalInfoConverters,
       GraphMlBuilder pDocument,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
       EdgeAppender pEdgeAppender);

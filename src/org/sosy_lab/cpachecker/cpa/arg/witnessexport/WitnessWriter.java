@@ -1159,7 +1159,6 @@ class WitnessWriter implements EdgeAppender {
         isRelevantEdge,
         valueMap,
         additionalInfo,
-        additionalInfoConverters,
         doc,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
