@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -507,6 +508,14 @@ public class AutomatonGraphmlCommon {
 
   }
 
+  public static boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo
+      pAdditionalInfo) {
+    if (pAdditionalInfo != null && !pAdditionalInfo.getInfos().isEmpty()) {
+      return false;
+    }
+    return handleAsEpsilonEdge(pEdge);
+  }
+
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
     if (handleAsEpsilonEdge0(edge)) {
       if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
@@ -636,10 +645,25 @@ public class AutomatonGraphmlCommon {
     return architecture;
   }
 
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
+      return Collections.emptySet();
+    }
+    return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
+  }
+
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
       return Collections.emptySet();
     }
+    return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
+  }
+
+  public static Set<FileLocation> getFileLocationsFromCfaEdge0(CFAEdge pEdge, FunctionEntryNode
+    pMainEntry) {
+
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
@@ -714,13 +738,15 @@ public class AutomatonGraphmlCommon {
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
   }
 
-  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
     return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
   }
 
-  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
     return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
   }
 

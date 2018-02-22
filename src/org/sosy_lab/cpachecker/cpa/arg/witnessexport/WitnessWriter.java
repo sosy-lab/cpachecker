@@ -530,7 +530,8 @@ class WitnessWriter implements EdgeAppender {
             pEdge,
             goesToSink,
             isDefaultCase,
-            Optional.empty());
+            Optional.empty(),
+            pAdditionalInfo);
 
     if (pFromState.isPresent()) {
       return extractTransitionForStates(
@@ -562,7 +563,8 @@ class WitnessWriter implements EdgeAppender {
       CFAEdge pEdge,
       boolean pGoesToSink,
       boolean pIsDefaultCase,
-      Optional<String> pAlternativeFunctionEntry) {
+      Optional<String> pAlternativeFunctionEntry,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     TransitionCondition result = TransitionCondition.empty();
 
     if (entersLoop(pEdge, false).isPresent()) {
@@ -622,8 +624,10 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
-    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa.getMainFunction());
-    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa.getMainFunction());
+    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa
+        .getMainFunction(), pAdditionalInfo);
+    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa
+        .getMainFunction(), pAdditionalInfo);
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
       if (!min.getFileName().equals(defaultSourcefileName)) {
@@ -868,7 +872,7 @@ class WitnessWriter implements EdgeAppender {
     if (witnessOptions.exportThreadId() && pFromStates.size() == 1) {
       ARGState state = pFromStates.iterator().next();
       result = exportThreadId(result, pEdge, state);
-      return exportThreadManagement(result, pEdge, state, pGoesToSink, pIsDefaultCase);
+      return exportThreadManagement(result, pEdge, state, pGoesToSink, pIsDefaultCase, pAdditionalInfo);
     }
 
     return Collections.singleton(result);
@@ -913,7 +917,8 @@ class WitnessWriter implements EdgeAppender {
       final CFAEdge pEdge,
       ARGState pState,
       boolean pGoesToSink,
-      boolean pIsDefaultCase) {
+      boolean pIsDefaultCase,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
 
@@ -968,7 +973,7 @@ class WitnessWriter implements EdgeAppender {
     // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
       TransitionCondition extraTransition =
-          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName);
+          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName, pAdditionalInfo);
       if (spawnedThreadId.isPresent()) {
         extraTransition =
             extraTransition.putAndCopy(

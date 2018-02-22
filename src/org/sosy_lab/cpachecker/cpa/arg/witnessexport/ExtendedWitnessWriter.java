@@ -98,11 +98,6 @@ public class ExtendedWitnessWriter extends WitnessWriter {
 
   @Override
   protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    if (pAdditionalInfo != null
-        && pAdditionalInfo.getInfos() != null
-        && pAdditionalInfo.getInfos().size() > 0) {
-      return false;
-    }
-    return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
+    return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge, pAdditionalInfo);
   }
 }
