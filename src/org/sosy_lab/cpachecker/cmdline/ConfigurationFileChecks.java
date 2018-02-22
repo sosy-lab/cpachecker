@@ -260,7 +260,10 @@ public class ConfigurationFileChecks {
       checkOption(config, "analysis.machineModel");
 
       if (!configFile.toString().contains("svcomp")) {
-        checkOption(config, "cpa.predicate.memoryAllocationsAlwaysSucceed");
+
+        if (!configFile.toString().contains("lockator")) {
+          checkOption(config, "cpa.predicate.memoryAllocationsAlwaysSucceed");
+        }
 
         // Should not be changed for SV-COMP configs, but was in 2016 and 2017
         checkOption(config, "cpa.smg.arrayAllocationFunctions");
