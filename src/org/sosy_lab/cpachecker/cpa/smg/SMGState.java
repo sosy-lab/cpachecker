@@ -1934,12 +1934,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   public SMGState setUnknownDereference() {
     // TODO: accurate define SMG change on unknown dereference with predicate knowledge
-    // (if isTrackPredicatesEnabled())
-    // doesn't stop analysis on unknown dereference
+    if (options.isHandleUnknownDereferenceAsSafe() && isTrackPredicatesEnabled()) {
+      // doesn't stop analysis on unknown dereference
+      return this;
+    }
 
     // TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
-    return new SMGState(this, Property.INVALID_WRITE);
+    SMGState smgState = new SMGState(this, Property.INVALID_WRITE);
+    smgState.setErrorDescription("Unknown dereference");
+    return smgState;
   }
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {

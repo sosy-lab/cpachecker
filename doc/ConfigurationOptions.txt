@@ -2216,6 +2216,10 @@ cpa.smg.handleExternVariableAsExternalAllocation = false
 # is reported as memleak even if it is reachable from local variables in main
 cpa.smg.handleNonFreedMemoryInMainAsMemLeak = true
 
+# Handle unknown dereference as safe and check error based on error
+# predicate, depends on trackPredicates
+cpa.smg.handleUnknownDereferenceAsSafe = false
+
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
