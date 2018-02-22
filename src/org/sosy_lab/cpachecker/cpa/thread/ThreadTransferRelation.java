@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
@@ -55,8 +54,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   private final CallstackTransferRelation callstackTransfer;
   private final ThreadCPAStatistics threadStatistics;
 
-  public ThreadTransferRelation(TransferRelation l,
-      TransferRelation c, Configuration pConfiguration) {
+  public ThreadTransferRelation(TransferRelation l, TransferRelation c) {
     locationTransfer = l;
     callstackTransfer = (CallstackTransferRelation) c;
     threadStatistics = new ThreadCPAStatistics();

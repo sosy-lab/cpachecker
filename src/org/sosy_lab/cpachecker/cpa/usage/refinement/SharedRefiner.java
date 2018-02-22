@@ -102,7 +102,7 @@ public class SharedRefiner extends GenericSinglePathRefiner {
   }
 
   @Override
-  public void printAdditionalStatistics(StatisticsWriter pOut) {
+  protected void printAdditionalStatistics(StatisticsWriter pOut) {
     pOut.beginLevel()
       .put(counter)
       .put(numOfFalseResults);

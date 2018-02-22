@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -66,47 +66,49 @@ public class BinderFunctionInfo {
   public final Pair<LinkerInfo, LinkerInfo> linkInfo;
 
   @SuppressWarnings("deprecation")
-  BinderFunctionInfo(String nm, Configuration pConfig, LogManager l) {
+  BinderFunctionInfo(String nm, Configuration pConfig, LogManager pLogger) {
     name = nm;
     try {
       parameters = Integer.parseInt(pConfig.getProperty(name + ".parameters"));
       String line = pConfig.getProperty(name + ".pInfo");
       Preconditions.checkNotNull(line);
-      String[] options = line.split(", *");
-      String[] pOption;
-      List<ParameterInfo> tmpInfo = new LinkedList<>();
+      List<String> options = Splitter.on(", *").splitToList(line);
+      List<String> pOption;
+      ImmutableList.Builder<ParameterInfo> tmpInfo = ImmutableList.builder();
+
       for (String option : options) {
-        pOption = option.split(":");
+        pOption = Splitter.on(":").splitToList(option);
         int dereference;
-        if (pOption.length == 1) {
+        if (pOption.size() == 1) {
           dereference = 0;
         } else {
-          dereference = Integer.parseInt(pOption[1]);
+          dereference = Integer.parseInt(pOption.get(1));
         }
-        tmpInfo.add(new ParameterInfo(Access.valueOf(pOption[0]), dereference));
+        tmpInfo.add(new ParameterInfo(Access.valueOf(pOption.get(0)), dereference));
       }
+
       line = pConfig.getProperty(name + ".linkInfo");
       if (line != null) {
-        options = line.split(", *");
-        assert options.length == 2;
+        options = Splitter.on(", *").splitToList(line);
+        assert options.size() == 2;
         LinkerInfo[] lInfo = new LinkerInfo[2];
         for (int i = 0; i < 2; i++) {
-          pOption = options[i].split(":");
+          pOption = Splitter.on(":").splitToList(options.get(i));
           int dereference;
-          if (pOption.length == 1) {
+          if (pOption.size() == 1) {
             dereference = 0;
           } else {
-            dereference = Integer.parseInt(pOption[1]);
+            dereference = Integer.parseInt(pOption.get(1));
           }
-          lInfo[i] = new LinkerInfo(Integer.parseInt(pOption[0]), dereference);
+          lInfo[i] = new LinkerInfo(Integer.parseInt(pOption.get(0)), dereference);
         }
         linkInfo = Pair.of(lInfo[0], lInfo[1]);
       } else {
         linkInfo = null;
       }
-      pInfo = ImmutableList.copyOf(tmpInfo);
+      pInfo = tmpInfo.build();
     } catch (NumberFormatException e) {
-      l.log(Level.WARNING, "No information about parameters in " + name + " function");
+      pLogger.log(Level.WARNING, "No information about parameters in " + name + " function");
       throw e;
     }
   }

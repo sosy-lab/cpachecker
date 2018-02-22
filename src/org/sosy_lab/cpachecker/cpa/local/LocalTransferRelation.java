@@ -27,8 +27,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -313,7 +313,7 @@ public class LocalTransferRelation
       String callerFunction,
       String calledFunction) {
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> result = new LinkedList<>();
+    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> result = new ArrayList<>();
     CExpression currentArgument;
     int dereference;
     for (int i = 0; i < arguments.size(); i++) {

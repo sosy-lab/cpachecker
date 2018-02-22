@@ -27,8 +27,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -39,8 +39,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class DeadLockState extends AbstractLockState {
 
-  public static class DeadLockTreeNode extends LinkedList<LockIdentifier>
-      implements CompatibleNode {
+  public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;
 

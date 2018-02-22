@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.errorprone.annotations.ForOverride;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -33,13 +34,23 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public abstract class WrappedConfigurableRefinementBlock<I, O> implements ConfigurableRefinementBlock<I>, StatisticsProvider {
   protected ConfigurableRefinementBlock<O> wrappedRefiner;
 
-  protected void handleStartSignal(Class<? extends RefinementInterface> callerClass) {}
+  @ForOverride
+  protected void handleStartSignal(
+      @SuppressWarnings("unused") Class<? extends RefinementInterface> callerClass) {}
 
-  protected void handleFinishSignal(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException {}
+  @ForOverride
+  protected void handleFinishSignal(
+      @SuppressWarnings("unused") Class<? extends RefinementInterface> callerClass) {}
 
-  protected void handleUpdateSignal(Class<? extends RefinementInterface> callerClass, Object data) {}
+  @ForOverride
+  protected void handleUpdateSignal(
+      @SuppressWarnings("unused") Class<? extends RefinementInterface> callerClass,
+      @SuppressWarnings("unused") Object data) {}
 
-  protected void handleSignal(Class<? extends RefinementInterface> callerClass, Object data) {}
+  @ForOverride
+  protected void handleSignal(
+      @SuppressWarnings("unused") Class<? extends RefinementInterface> callerClass,
+      @SuppressWarnings("unused") Object data) {}
 
   protected void sendStartSignal() {
     wrappedRefiner.start(getClass());

@@ -35,7 +35,7 @@ public interface CompatibleState extends Comparable<CompatibleState> {
 
   public CompatibleNode getTreeNode();
 
-  public default boolean isRelevantFor(SingleIdentifier id) {
+  public default boolean isRelevantFor(@SuppressWarnings("unused") SingleIdentifier id) {
     return true;
   }
 }

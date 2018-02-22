@@ -46,7 +46,7 @@ public class ThreadCPAStatistics extends AbstractStatistics {
   public final StatCounter threadCreates = new StatCounter("Number of thread creates");
   public final StatCounter threadJoins = new StatCounter("Number of thread joins");
   public final StatInt maxNumberOfThreads = new StatInt(StatKind.COUNT, "Max number of threads");
-  public final Set<String> createdThreads = new HashSet<String>();
+  public final Set<String> createdThreads = new HashSet<>();
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {

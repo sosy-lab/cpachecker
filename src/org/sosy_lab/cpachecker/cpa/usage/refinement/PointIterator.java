@@ -155,6 +155,5 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   }
 
   @Override
-  protected void printDetailedStatistics(StatisticsWriter pOut) {
-  }
+  protected void printDetailedStatistics(StatisticsWriter pOut) {}
 }

@@ -29,9 +29,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -234,7 +234,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
             .getFunctionNameExpression()
             .toASTString();
     if (annotatedFunctions.containsKey(fName)) {
-      List<AbstractLockEffect> result = new LinkedList<>();
+      List<AbstractLockEffect> result = new ArrayList<>();
 
       AnnotationInfo currentAnnotation = annotatedFunctions.get(fName);
       if (currentAnnotation.restoreLocks.size() == 0
@@ -285,7 +285,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     LockEffect effect = locksWithEffect.getFirst();
     LockIdUnprepared uId = locksWithEffect.getSecond();
 
-    List<AbstractLockEffect> result = new LinkedList<>();
+    List<AbstractLockEffect> result = new ArrayList<>();
 
     if (effect == SetLockEffect.getInstance()) {
       CExpression expression = function.getParameterExpressions().get(0);
@@ -353,7 +353,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private List<AbstractLockEffect> handleFunctionCall(CFunctionCallEdge callEdge) {
-    List<AbstractLockEffect> result = new LinkedList<>();
+    List<AbstractLockEffect> result = new ArrayList<>();
     if (annotatedFunctions.containsKey(callEdge.getSuccessor().getFunctionName())) {
       AbstractLockEffect saveState = SaveStateLockEffect.getInstance();
       result.add(saveState);

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.ForOverride;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -108,8 +109,8 @@ public abstract class GenericSinglePathRefiner extends
     wrappedRefiner.printStatistics(writer);
   }
 
-  //ForOverride
-  public void printAdditionalStatistics(StatisticsWriter pOut) {}
+  @ForOverride
+  protected void printAdditionalStatistics(@SuppressWarnings("unused") StatisticsWriter pOut) {}
 
   protected abstract RefinementResult call(ExtendedARGPath path) throws CPAException, InterruptedException;
 }

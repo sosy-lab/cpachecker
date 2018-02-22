@@ -72,7 +72,6 @@ public class RefinementBlockFactory {
     ReachedSet;
   }
 
-  private final static String CLASS_PREFIX = "org.sosy_lab.cpachecker.cpa.usage.refinement";
   Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   final ConfigurableProgramAnalysis cpa;
   Configuration config;

@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,7 +53,7 @@ public class FunctionContainer extends AbstractUsageStorage {
   private final Set<FunctionContainer> joinedWith;
 
   public static FunctionContainer createInitialContainer() {
-    return new FunctionContainer(new StorageStatistics(), new LinkedList<>() );
+    return new FunctionContainer(new StorageStatistics(), new ArrayList<>());
   }
 
   private FunctionContainer(StorageStatistics pStats, List<LockEffect> pEffects) {
@@ -64,8 +64,8 @@ public class FunctionContainer extends AbstractUsageStorage {
     joinedWith = new IdentityHashSet<>();
   }
 
-  public FunctionContainer clone(List<LockEffect> effects) {
-    return new FunctionContainer(this.stats, effects);
+  public FunctionContainer clone(List<LockEffect> pEffects) {
+    return new FunctionContainer(this.stats, pEffects);
   }
 
   @Override

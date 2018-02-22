@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.errorprone.annotations.ForOverride;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -94,7 +95,8 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
 
   protected abstract P getPathCore(ExtendedARGPath path);
 
-  protected void printAdditionalStatistics(StatisticsWriter pOut) {}
+  @ForOverride
+  protected void printAdditionalStatistics(@SuppressWarnings("unused") StatisticsWriter pOut) {}
 
   @Override
   public final void printStatistics(StatisticsWriter pOut) {

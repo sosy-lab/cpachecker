@@ -187,7 +187,7 @@ public class PathPairIterator extends
   }
 
   @Override
-  public void printDetailedStatistics(StatisticsWriter pOut) {
+  protected void printDetailedStatistics(StatisticsWriter pOut) {
     pOut.spacer()
       .put(computingPath)
       .put(additionTimerCheck)
@@ -197,7 +197,7 @@ public class PathPairIterator extends
   }
 
   @Override
-  public void handleFinishSignal(Class<? extends RefinementInterface> callerClass) {
+  protected void handleFinishSignal(Class<? extends RefinementInterface> callerClass) {
     if (callerClass.equals(IdentifierIterator.class)) {
       //Refinement iteration finishes
       refinedStates.clear();

@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 class UsagePrecisionAdjustment implements PrecisionAdjustment {
@@ -59,7 +59,9 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     UnmodifiableReachedSet elements =
         new UnmodifiableReachedSetView(
-            pElements, ARGState.getUnwrapFunction(), Functions.<Precision>identity());
+            pElements,
+            AbstractSingleWrapperState.getUnwrapFunction(),
+            Functions.<Precision>identity());
 
     AbstractState oldElement = element.getWrappedState();
 
@@ -70,7 +72,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldWrappedPrecision,
             elements,
-            Functions.compose(ARGState.getUnwrapFunction(), stateProjection),
+            Functions.compose(AbstractSingleWrapperState.getUnwrapFunction(), stateProjection),
             fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.lock;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
 import java.util.Map;
 
 public class AnnotationInfo {
@@ -41,21 +40,9 @@ public class AnnotationInfo {
       Map<String, String> reset,
       Map<String, String> capture) {
     funcName = name;
-    freeLocks =
-        (free == null
-            ? ImmutableMap.copyOf(new HashMap<String, String>())
-            : ImmutableMap.copyOf(free));
-    restoreLocks =
-        (restore == null
-            ? ImmutableMap.copyOf(new HashMap<String, String>())
-            : ImmutableMap.copyOf(restore));
-    resetLocks =
-        (reset == null
-            ? ImmutableMap.copyOf(new HashMap<String, String>())
-            : ImmutableMap.copyOf(reset));
-    captureLocks =
-        (capture == null
-            ? ImmutableMap.copyOf(new HashMap<String, String>())
-            : ImmutableMap.copyOf(capture));
+    freeLocks = ImmutableMap.copyOf(free);
+    restoreLocks = ImmutableMap.copyOf(restore);
+    resetLocks = ImmutableMap.copyOf(reset);
+    captureLocks = ImmutableMap.copyOf(capture);
   }
 }

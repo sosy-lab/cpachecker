@@ -27,9 +27,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -357,7 +357,7 @@ public class LockState extends AbstractLockState {
     // Return the effect, which shows, what should we do to transform from this state to the other
     LockState other = (LockState) pOther;
 
-    List<LockEffect> result = new LinkedList<>();
+    List<LockEffect> result = new ArrayList<>();
     Set<LockIdentifier> processedLocks = new TreeSet<>();
 
     for (LockIdentifier lockId : locks.keySet()) {

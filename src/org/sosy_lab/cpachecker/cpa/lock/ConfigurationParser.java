@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.cpa.lock;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,7 +68,7 @@ public class ConfigurationParser {
     Map<String, Integer> tmpInfo = new HashMap<>();
     Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects = new HashMap<>();
     Map<String, LockIdentifier> variableEffects = new HashMap<>();
-    Set<String> variables;
+    List<String> variables;
     String tmpString;
 
     for (String lockName : lockinfo) {
@@ -78,10 +79,10 @@ public class ConfigurationParser {
 
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
-        variables = new HashSet<>(Arrays.asList(tmpString.split(", *")));
+        variables = Splitter.on(", *").splitToList(tmpString);
         variables.forEach(k -> variableEffects.put(k, LockIdentifier.of(lockName)));
       } else {
-        variables = new HashSet<>();
+        variables = new ArrayList<>();
       }
 
       tmpString = config.getProperty(lockName + ".setlevel");
@@ -101,7 +102,7 @@ public class ConfigurationParser {
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {
 
-      return from(Arrays.asList(tmpString.split(", *")))
+      return from(Splitter.on(", *").splitToList(tmpString))
           .toMap(
               f ->
                   Pair.of(
@@ -128,7 +129,6 @@ public class ConfigurationParser {
     Map<String, String> restoreLocks;
     Map<String, String> resetLocks;
     Map<String, String> captureLocks;
-    AnnotationInfo tmpAnnotationInfo;
     Map<String, AnnotationInfo> annotatedfunctions = new HashMap<>();
 
     if (annotated != null) {
@@ -137,18 +137,8 @@ public class ConfigurationParser {
         restoreLocks = createAnnotationMap(fName, "restore");
         resetLocks = createAnnotationMap(fName, "reset");
         captureLocks = createAnnotationMap(fName, "lock");
-        if (restoreLocks == null
-            && freeLocks == null
-            && resetLocks == null
-            && captureLocks == null) {
-          // we don't specify the annotation. Restore all locks.
-          tmpAnnotationInfo =
-              new AnnotationInfo(fName, null, new HashMap<String, String>(), null, null);
-        } else {
-          tmpAnnotationInfo =
-              new AnnotationInfo(fName, freeLocks, restoreLocks, resetLocks, captureLocks);
-        }
-        annotatedfunctions.put(fName, tmpAnnotationInfo);
+        annotatedfunctions.put(
+            fName, new AnnotationInfo(fName, freeLocks, restoreLocks, resetLocks, captureLocks));
       }
     }
     return ImmutableMap.copyOf(annotatedfunctions);
@@ -156,17 +146,17 @@ public class ConfigurationParser {
 
   @SuppressWarnings("deprecation")
   private Map<String, String> createAnnotationMap(String function, String target) {
-    Map<String, String> result = null;
+    Map<String, String> result = Maps.newHashMap();
 
     String property = config.getProperty("annotate." + function + "." + target);
     if (property != null) {
-      Set<String> lockNames = new HashSet<>(Arrays.asList(property.split(", *")));
+      List<String> lockNames = Splitter.on(", *").splitToList(property);
       result = new HashMap<>();
       for (String fullName : lockNames) {
         if (fullName.matches(".*\\(.*")) {
-          String[] stringArray = fullName.split("\\(");
-          assert stringArray.length == 2;
-          result.put(stringArray[0], stringArray[1]);
+          List<String> stringArray = Splitter.on("\\(").splitToList(fullName);
+          assert stringArray.size() == 2;
+          result.put(stringArray.get(0), stringArray.get(1));
         } else {
           result.put(fullName, "");
         }

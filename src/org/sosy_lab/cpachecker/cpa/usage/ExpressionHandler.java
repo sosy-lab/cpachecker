@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Preconditions;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -49,7 +49,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
   private String fName;
 
   public ExpressionHandler(Access mode, String functionName) {
-    result = new LinkedList<>();
+    result = new ArrayList<>();
     accessMode = mode;
     fName = functionName;
   }

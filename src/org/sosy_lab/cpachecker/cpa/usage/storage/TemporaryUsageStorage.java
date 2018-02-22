@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -39,13 +39,13 @@ public class TemporaryUsageStorage extends AbstractUsageStorage {
 
   private TemporaryUsageStorage(TemporaryUsageStorage previous) {
     super(previous);
-    //Copy states without ARG to set it later
-    withoutARGState = new LinkedList<>(previous.withoutARGState);
+    // Copy states without ARG to set it later
+    withoutARGState = new ArrayList<>(previous.withoutARGState);
     previousStorage = previous;
   }
 
   public TemporaryUsageStorage() {
-    withoutARGState = new LinkedList<>();
+    withoutARGState = new ArrayList<>();
     previousStorage = null;
   }
 
