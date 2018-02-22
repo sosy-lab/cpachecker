@@ -72,7 +72,8 @@ public class BinderFunctionInfo {
       parameters = Integer.parseInt(pConfig.getProperty(name + ".parameters"));
       String line = pConfig.getProperty(name + ".pInfo");
       Preconditions.checkNotNull(line);
-      List<String> options = Splitter.on(", *").splitToList(line);
+      line = line.replaceAll("\\s", "");
+      List<String> options = Splitter.on(",").splitToList(line);
       List<String> pOption;
       ImmutableList.Builder<ParameterInfo> tmpInfo = ImmutableList.builder();
 
@@ -89,7 +90,8 @@ public class BinderFunctionInfo {
 
       line = pConfig.getProperty(name + ".linkInfo");
       if (line != null) {
-        options = Splitter.on(", *").splitToList(line);
+        line = line.replaceAll("\\s", "");
+        options = Splitter.on(",").splitToList(line);
         assert options.size() == 2;
         LinkerInfo[] lInfo = new LinkerInfo[2];
         for (int i = 0; i < 2; i++) {

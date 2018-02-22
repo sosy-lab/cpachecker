@@ -80,7 +80,8 @@ public class ConfigurationParser {
 
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
-        variables = Splitter.on(", *").splitToList(tmpString);
+        tmpString = tmpString.replaceAll("\\s", "");
+        variables = Splitter.on(",").splitToList(tmpString);
         variables.forEach(k -> variableEffects.put(k, LockIdentifier.of(lockName)));
       } else {
         variables = new ArrayList<>();
@@ -103,7 +104,8 @@ public class ConfigurationParser {
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {
 
-      return from(Splitter.on(", *").splitToList(tmpString))
+      tmpString = tmpString.replaceAll("\\s", "");
+      return from(Splitter.on(",").splitToList(tmpString))
           .toMap(
               f ->
                   Pair.of(
@@ -151,7 +153,8 @@ public class ConfigurationParser {
 
     String property = config.getProperty("annotate." + function + "." + target);
     if (property != null) {
-      List<String> lockNames = Splitter.on(", *").splitToList(property);
+      property = property.replaceAll("\\s", "");
+      List<String> lockNames = Splitter.on(",").splitToList(property);
       result = new HashMap<>();
       for (String fullName : lockNames) {
         if (fullName.matches(".*\\(.*")) {
