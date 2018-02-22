@@ -284,8 +284,18 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public ThreadState join(ThreadState pOther) {
-    Preconditions.checkArgument(false, "Join of Thread states is not supported");
-    return null;
+    // Should not work, implemented only for passing tests
+    if (isLessOrEqual(pOther)) {
+      return pOther;
+    } else if (pOther.isLessOrEqual(this)) {
+      return this;
+    } else {
+      ArrayList<ThreadLabel> newThreadSet = new ArrayList<>(threadSet);
+      newThreadSet.removeAll(pOther.threadSet);
+      ArrayList<ThreadLabel> newRemovedSet = new ArrayList<>(removedSet);
+      newRemovedSet.removeAll(pOther.removedSet);
+      return new ThreadState(location, callstack, newThreadSet, newRemovedSet);
+    }
   }
 
   @Override

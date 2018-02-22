@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +50,7 @@ public class ConfigurationParser {
   private Configuration config;
 
   @Option(name = "lockinfo", description = "contains all lock names", secure = true)
-  private Set<String> lockinfo;
+  private Set<String> lockinfo = Sets.newHashSet();
 
   @Option(
     name = "annotate",
