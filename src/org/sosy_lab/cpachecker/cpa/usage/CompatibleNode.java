@@ -26,7 +26,13 @@ package org.sosy_lab.cpachecker.cpa.usage;
 public interface CompatibleNode extends CompatibleState {
 
   public boolean cover(CompatibleNode node);
-  default public boolean hasEmptyLockSet() { return true; }
+
+  public default boolean hasEmptyLockSet() {
+    return true;
+  }
+
   @Override
-  default public CompatibleNode getTreeNode() {return this; }
+  public default CompatibleNode getTreeNode() {
+    return this;
+  }
 }

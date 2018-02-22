@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-
 public class LockIdentifier implements Comparable<LockIdentifier> {
   public static enum LockType {
     MUTEX,
@@ -109,13 +108,11 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     LockIdentifier other = (LockIdentifier) obj;
-    return Objects.equals(name, other.name)
-        && Objects.equals(type, other.type);
+    return Objects.equals(name, other.name) && Objects.equals(type, other.type);
   }
 
   @Override

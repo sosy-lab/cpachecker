@@ -47,5 +47,4 @@ public class LockIdUnprepared {
       return LockIdentifier.of(lockName, params.get(p - 1).toASTString());
     }
   }
-
 }

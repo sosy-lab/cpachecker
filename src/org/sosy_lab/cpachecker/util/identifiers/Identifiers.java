@@ -32,7 +32,7 @@ public class Identifiers {
 
   public static Collection<AbstractIdentifier> getDereferencedIdentifiers(AbstractIdentifier id) {
     Set<AbstractIdentifier> result = new HashSet<>();
-    //Add itself
+    // Add itself
     for (int d = id.getDereference(); d >= 0; d--) {
       result.add(id.cloneWithDereference(d));
     }
@@ -47,7 +47,7 @@ public class Identifiers {
       }
     } else if (dereference == -1) {
       info += "&";
-    } else if (dereference < -1){
+    } else if (dereference < -1) {
       info = "Error in string representation, dereference < -1";
     }
     return info;
@@ -57,7 +57,8 @@ public class Identifiers {
     return createIdentifier(expression, 0, function);
   }
 
-  public static AbstractIdentifier createIdentifier(CExpression expression, int dereference, String function) {
+  public static AbstractIdentifier createIdentifier(
+      CExpression expression, int dereference, String function) {
     IdentifierCreator idCreator = new IdentifierCreator(function);
     return idCreator.createIdentifier(expression, dereference);
   }

@@ -43,18 +43,18 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.ResetLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
 import org.sosy_lab.cpachecker.util.Pair;
 
-@Options(prefix="cpa.lock")
+@Options(prefix = "cpa.lock")
 public class ConfigurationParser {
   private Configuration config;
 
-  @Option(name="lockinfo",
-      description="contains all lock names",
-      secure = true)
+  @Option(name = "lockinfo", description = "contains all lock names", secure = true)
   private Set<String> lockinfo;
 
-  @Option(name="annotate",
-      description=" annotated functions, which are known to works right",
-      secure = true)
+  @Option(
+    name = "annotate",
+    description = " annotated functions, which are known to works right",
+    secure = true
+  )
   private Set<String> annotated;
 
   ConfigurationParser(Configuration pConfig) throws InvalidConfigurationException {
@@ -70,7 +70,6 @@ public class ConfigurationParser {
     Set<String> variables;
     String tmpString;
 
-
     for (String lockName : lockinfo) {
       int num = getValue(lockName + ".maxDepth", 10);
       functionEffects.putAll(createMap(lockName, "lock", AcquireLockEffect.getInstance()));
@@ -80,15 +79,15 @@ public class ConfigurationParser {
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
         variables = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-        variables.forEach(
-            k -> variableEffects.put(k, LockIdentifier.of(lockName)));
+        variables.forEach(k -> variableEffects.put(k, LockIdentifier.of(lockName)));
       } else {
         variables = new HashSet<>();
       }
 
       tmpString = config.getProperty(lockName + ".setlevel");
       if (tmpString != null && !tmpString.isEmpty()) {
-        functionEffects.put(tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdUnprepared(lockName, 0)));
+        functionEffects.put(
+            tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdUnprepared(lockName, 0)));
       }
       tmpInfo.put(lockName, num);
     }
@@ -96,16 +95,19 @@ public class ConfigurationParser {
   }
 
   @SuppressWarnings("deprecation")
-  private Map<String, Pair<LockEffect, LockIdUnprepared>> createMap(String lockName, String target, LockEffect effect) {
+  private Map<String, Pair<LockEffect, LockIdUnprepared>> createMap(
+      String lockName, String target, LockEffect effect) {
 
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {
 
       return from(Arrays.asList(tmpString.split(", *")))
-            .toMap(f ->
-                Pair.of(effect,
-                    new LockIdUnprepared(lockName, getValue(lockName + "." + f + ".parameters", 0))
-                ));
+          .toMap(
+              f ->
+                  Pair.of(
+                      effect,
+                      new LockIdUnprepared(
+                          lockName, getValue(lockName + "." + f + ".parameters", 0))));
     }
     return Maps.newHashMap();
   }
@@ -135,11 +137,16 @@ public class ConfigurationParser {
         restoreLocks = createAnnotationMap(fName, "restore");
         resetLocks = createAnnotationMap(fName, "reset");
         captureLocks = createAnnotationMap(fName, "lock");
-        if (restoreLocks == null && freeLocks == null && resetLocks == null && captureLocks == null) {
-          //we don't specify the annotation. Restore all locks.
-          tmpAnnotationInfo = new AnnotationInfo(fName, null, new HashMap<String, String>(), null, null);
+        if (restoreLocks == null
+            && freeLocks == null
+            && resetLocks == null
+            && captureLocks == null) {
+          // we don't specify the annotation. Restore all locks.
+          tmpAnnotationInfo =
+              new AnnotationInfo(fName, null, new HashMap<String, String>(), null, null);
         } else {
-          tmpAnnotationInfo = new AnnotationInfo(fName, freeLocks, restoreLocks, resetLocks, captureLocks);
+          tmpAnnotationInfo =
+              new AnnotationInfo(fName, freeLocks, restoreLocks, resetLocks, captureLocks);
         }
         annotatedfunctions.put(fName, tmpAnnotationInfo);
       }

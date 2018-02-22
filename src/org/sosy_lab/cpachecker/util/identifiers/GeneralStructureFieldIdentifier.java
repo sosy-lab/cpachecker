@@ -26,18 +26,19 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-
-public class GeneralStructureFieldIdentifier extends StructureFieldIdentifier implements GeneralIdentifier {
+public class GeneralStructureFieldIdentifier extends StructureFieldIdentifier
+    implements GeneralIdentifier {
 
   public GeneralStructureFieldIdentifier(String pNm, int pDereference) {
     super(pNm, /*"",*/ null, pDereference, null);
   }
 
-  public GeneralStructureFieldIdentifier(String pNm, /*String fType,*/ CType type, int pDereference, AbstractIdentifier own) {
+  public GeneralStructureFieldIdentifier(
+      String pNm, /*String fType,*/ CType type, int pDereference, AbstractIdentifier own) {
     super(pNm, /*fType,*/ type, pDereference, own);
-    assert ( type != null): "Creating GeneralStructureFieldIdentifier with null field" ;
+    assert (type != null) : "Creating GeneralStructureFieldIdentifier with null field";
   }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -52,13 +53,11 @@ public class GeneralStructureFieldIdentifier extends StructureFieldIdentifier im
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SingleIdentifier other = (SingleIdentifier) obj;
-    return dereference == other.dereference
-        && Objects.equals(name, other.name);
+    return dereference == other.dereference && Objects.equals(name, other.name);
   }
 
   @Override
@@ -68,6 +67,6 @@ public class GeneralStructureFieldIdentifier extends StructureFieldIdentifier im
 
   @Override
   public GeneralStructureFieldIdentifier cloneWithDereference(int deref) {
-    return new GeneralStructureFieldIdentifier(name,/* fieldType,*/ type, deref, owner);
+    return new GeneralStructureFieldIdentifier(name, /* fieldType,*/ type, deref, owner);
   }
 }

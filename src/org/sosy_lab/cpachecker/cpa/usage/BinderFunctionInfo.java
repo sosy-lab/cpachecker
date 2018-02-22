@@ -33,9 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
 
-/**
- * Information about special functions like sdlFirst() and sdlNext();
- */
+/** Information about special functions like sdlFirst() and sdlNext(); */
 public class BinderFunctionInfo {
 
   public static class ParameterInfo {

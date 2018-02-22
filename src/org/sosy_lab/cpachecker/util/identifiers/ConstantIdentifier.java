@@ -78,13 +78,11 @@ public class ConstantIdentifier implements AbstractIdentifier {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     ConstantIdentifier other = (ConstantIdentifier) obj;
-    return dereference == other.dereference
-        && Objects.equals(name, other.name);
+    return dereference == other.dereference && Objects.equals(name, other.name);
   }
 
   @Override
@@ -106,7 +104,7 @@ public class ConstantIdentifier implements AbstractIdentifier {
     if (pO instanceof ReturnIdentifier) {
       return 1;
     } else if (pO instanceof ConstantIdentifier) {
-      return this.name.compareTo(((ConstantIdentifier)pO).name);
+      return this.name.compareTo(((ConstantIdentifier) pO).name);
     } else {
       return -1;
     }

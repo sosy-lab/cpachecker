@@ -27,7 +27,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
-
 public abstract class SingleIdentifier implements AbstractIdentifier {
 
   protected String name;
@@ -78,8 +77,7 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SingleIdentifier other = (SingleIdentifier) obj;
@@ -104,7 +102,7 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
-    if (! (pO instanceof SingleIdentifier)) {
+    if (!(pO instanceof SingleIdentifier)) {
       return 1;
     } else {
       SingleIdentifier other = (SingleIdentifier) pO;

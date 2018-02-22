@@ -36,26 +36,21 @@ import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
-@Options(prefix="cpa.usage.skippedvariables")
+@Options(prefix = "cpa.usage.skippedvariables")
 public class VariableSkipper {
-  @Option(description = "variables, which will be filtered by its name",
-      secure = true)
+  @Option(description = "variables, which will be filtered by its name", secure = true)
   private Set<String> byName = null;
 
-  @Option(description = "variables, which will be filtered by its name prefix",
-      secure = true)
+  @Option(description = "variables, which will be filtered by its name prefix", secure = true)
   private Set<String> byNamePrefix = null;
 
-  @Option(description = "variables, which will be filtered by its type",
-      secure = true)
+  @Option(description = "variables, which will be filtered by its type", secure = true)
   private Set<String> byType = null;
 
-  @Option(description = "variables, which will be filtered by function location",
-      secure = true)
+  @Option(description = "variables, which will be filtered by function location", secure = true)
   private Set<String> byFunction = null;
 
-  @Option(description = "variables, which will be filtered by function prefix",
-      secure = true)
+  @Option(description = "variables, which will be filtered by function prefix", secure = true)
   private Set<String> byFunctionPrefix = null;
 
   public VariableSkipper(Configuration pConfig) throws InvalidConfigurationException {
@@ -71,23 +66,21 @@ public class VariableSkipper {
       } else if (singleId instanceof StructureIdentifier) {
         AbstractIdentifier owner = singleId;
         while (owner instanceof StructureIdentifier) {
-          owner = ((StructureIdentifier)owner).getOwner();
-          if (owner instanceof SingleIdentifier && checkId((SingleIdentifier)owner)) {
+          owner = ((StructureIdentifier) owner).getOwner();
+          if (owner instanceof SingleIdentifier && checkId((SingleIdentifier) owner)) {
             return true;
           }
         }
       }
     }
 
-    //Check special functions like INIT_LIST_HEAD, in which we should skip all usages
+    // Check special functions like INIT_LIST_HEAD, in which we should skip all usages
     String functionName = usage.getLine().getNode().getFunctionName();
     if (byFunction != null && byFunction.contains(functionName)) {
       return true;
     }
 
-    if (byFunctionPrefix != null &&
-        from(byFunctionPrefix)
-          .anyMatch(functionName::startsWith)) {
+    if (byFunctionPrefix != null && from(byFunctionPrefix).anyMatch(functionName::startsWith)) {
       return true;
     }
 
@@ -100,15 +93,13 @@ public class VariableSkipper {
     if (byName != null && byName.contains(varName)) {
       return true;
     }
-    if (byNamePrefix != null &&
-        from(byNamePrefix)
-          .anyMatch(varName::startsWith)) {
+    if (byNamePrefix != null && from(byNamePrefix).anyMatch(varName::startsWith)) {
       return true;
     }
     if (byType != null) {
       CType idType = singleId.getType();
       if (idType instanceof CArrayType) {
-        idType = ((CArrayType)idType).getType();
+        idType = ((CArrayType) idType).getType();
       }
       String typeString = idType.toString();
       typeString = typeString.replaceAll("\\(", "");

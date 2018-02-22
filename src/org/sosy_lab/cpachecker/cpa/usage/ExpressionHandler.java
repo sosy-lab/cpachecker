@@ -64,7 +64,8 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
 
   @Override
   public Void visit(CBinaryExpression expression) {
-    Preconditions.checkArgument(accessMode == Access.READ, "Writing to BinaryExpression: " + expression.toASTString());
+    Preconditions.checkArgument(
+        accessMode == Access.READ, "Writing to BinaryExpression: " + expression.toASTString());
     expression.getOperand1().accept(this);
     expression.getOperand2().accept(this);
     return null;
@@ -98,7 +99,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
       addExpression(expression);
       return null;
     }
-    //In all other unary operation we only read the operand
+    // In all other unary operation we only read the operand
     accessMode = Access.READ;
     expression.getOperand().accept(this);
     return null;
@@ -106,7 +107,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
 
   @Override
   public Void visit(CPointerExpression pPointerExpression) {
-    //write: *s =
+    // write: *s =
     addExpression(pPointerExpression);
     accessMode = Access.READ;
     pPointerExpression.getOperand().accept(this);
@@ -133,4 +134,3 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
     return null;
   }
 }
-

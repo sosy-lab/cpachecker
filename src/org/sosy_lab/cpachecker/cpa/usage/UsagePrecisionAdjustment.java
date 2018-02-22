@@ -46,28 +46,32 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement,
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pElement,
       Precision oldPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> stateProjection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof UsageState);
-    UsageState element = (UsageState)pElement;
+    UsageState element = (UsageState) pElement;
 
-    UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
+    UnmodifiableReachedSet elements =
+        new UnmodifiableReachedSetView(
+            pElements, ARGState.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractState oldElement = element.getWrappedState();
 
-    Precision oldWrappedPrecision = ((UsagePrecision)oldPrecision).getWrappedPrecision();
+    Precision oldWrappedPrecision = ((UsagePrecision) oldPrecision).getWrappedPrecision();
 
     Optional<PrecisionAdjustmentResult> optionalUnwrappedResult =
-        wrappedPrecAdjustment.prec(oldElement, oldWrappedPrecision, elements,
-        Functions.compose(
-          ARGState.getUnwrapFunction(),
-          stateProjection),
-        fullState);
+        wrappedPrecAdjustment.prec(
+            oldElement,
+            oldWrappedPrecision,
+            elements,
+            Functions.compose(ARGState.getUnwrapFunction(), stateProjection),
+            fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {
       return Optional.empty();
@@ -86,6 +90,8 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     UsageState resultElement = element.clone(newElement);
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultElement, ((UsagePrecision)oldPrecision).clone(newPrecision), action));
+    return Optional.of(
+        PrecisionAdjustmentResult.create(
+            resultElement, ((UsagePrecision) oldPrecision).clone(newPrecision), action));
   }
 }

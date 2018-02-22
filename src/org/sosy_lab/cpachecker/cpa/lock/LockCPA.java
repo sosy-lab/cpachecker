@@ -42,8 +42,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-@Options(prefix="cpa.lock")
-public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+@Options(prefix = "cpa.lock")
+public class LockCPA extends AbstractCPA
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static enum LockAnalysisMode {
     RACE,
@@ -54,15 +55,21 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
     return AutomaticCPAFactory.forType(LockCPA.class);
   }
 
-  @Option(name="analysisMode",
-      description="What are we searching for: race or deadlock",
-      secure = true)
+  @Option(
+    name = "analysisMode",
+    description = "What are we searching for: race or deadlock",
+    secure = true
+  )
   private LockAnalysisMode analysisMode = LockAnalysisMode.RACE;
 
   private final Reducer reducer;
 
-  private LockCPA (Configuration config, LogManager logger) throws InvalidConfigurationException {
-    super("sep", "sep", DelegateAbstractDomain.<AbstractLockState>getInstance(), new LockTransferRelation(config, logger));
+  private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    super(
+        "sep",
+        "sep",
+        DelegateAbstractDomain.<AbstractLockState>getInstance(),
+        new LockTransferRelation(config, logger));
     config.inject(this);
     switch (analysisMode) {
       case RACE:
@@ -88,7 +95,7 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
         return new DeadLockState();
 
       default:
-        //The analysis should fail at CPA creation
+        // The analysis should fail at CPA creation
         return null;
     }
   }

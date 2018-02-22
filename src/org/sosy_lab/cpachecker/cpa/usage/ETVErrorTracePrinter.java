@@ -55,28 +55,37 @@ import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureFieldIdentifier;
 
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage")
 public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
-  @Option(name="output", description="path to write results",
-      secure = true)
+  @Option(name = "output", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputStatFileName = Paths.get("unsafe_rawdata");
 
-  @Option(description="use single file for output or dump every error trace to its own file",
-      secure = true)
+  @Option(
+    description = "use single file for output or dump every error trace to its own file",
+    secure = true
+  )
   private boolean singleFileOutput = false;
 
   private Writer globalWriter;
 
-  public ETVErrorTracePrinter(Configuration pC, BAMMultipleCEXSubgraphComputer pT, CFA pCfa, LogManager pL, LockTransferRelation t) throws InvalidConfigurationException {
+  public ETVErrorTracePrinter(
+      Configuration pC,
+      BAMMultipleCEXSubgraphComputer pT,
+      CFA pCfa,
+      LogManager pL,
+      LockTransferRelation t)
+      throws InvalidConfigurationException {
     super(pC, pT, pCfa, pL, t);
   }
 
   @Override
   protected void init() {
     try {
-      globalWriter = Files.newBufferedWriter(Paths.get(outputStatFileName.toString()), Charset.defaultCharset());
+      globalWriter =
+          Files.newBufferedWriter(
+              Paths.get(outputStatFileName.toString()), Charset.defaultCharset());
       logger.log(Level.FINE, "Print statistics about unsafe cases");
       printCountStatistics(globalWriter, container.getUnsafeIterator());
     } catch (IOException e) {
@@ -109,17 +118,19 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       } else if (id instanceof GlobalVariableIdentifier) {
         writer.append("#\n");
       } else if (id instanceof LocalVariableIdentifier) {
-        writer.append("##" + ((LocalVariableIdentifier)id).getFunction() + "\n");
+        writer.append("##" + ((LocalVariableIdentifier) id).getFunction() + "\n");
       } else {
         logger.log(Level.WARNING, "What is it? " + id.toString());
       }
       writer.append(id.getDereference() + "\n");
       writer.append(id.getType().toASTString(id.getName()) + "\n");
-      //if (isTrueUnsafe) {
+      // if (isTrueUnsafe) {
       //  writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0" + "\n");
-      //}
-      //writer.append("Line 0:     N0 -{/*Number of usage points:" + uinfo.getNumberOfTopUsagePoints() + "*/}-> N0" + "\n");
-      //writer.append("Line 0:     N0 -{/*Number of usages      :" + uinfo.size() + "*/}-> N0" + "\n");
+      // }
+      // writer.append("Line 0:     N0 -{/*Number of usage points:" +
+      // uinfo.getNumberOfTopUsagePoints() + "*/}-> N0" + "\n");
+      // writer.append("Line 0:     N0 -{/*Number of usages      :" + uinfo.size() + "*/}-> N0" +
+      // "\n");
       writer.append("Line 0:     N0 -{/*Two examples:*/}-> N0" + "\n");
 
       createVisualization(id, pPair.getFirst(), writer);
@@ -132,7 +143,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     }
   }
 
-  private void createVisualization(final SingleIdentifier id, final UsageInfo usage, final Writer writer) throws IOException {
+  private void createVisualization(
+      final SingleIdentifier id, final UsageInfo usage, final Writer writer) throws IOException {
     AbstractLockState Locks = usage.getLockState();
 
     writer.append("Line 0:     N0 -{/*_____________________*/}-> N0\n");
@@ -164,8 +176,10 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       } else if (edge instanceof CReturnStatementEdge && !iterator.hasNext()) {
         assert callstackDepth > 0;
         callstackDepth--;
-      } else if (edge instanceof BlankEdge && edge.getDescription().contains("return") && !iterator.hasNext()) {
-        //Evil hack, but this is how etv works
+      } else if (edge instanceof BlankEdge
+          && edge.getDescription().contains("return")
+          && !iterator.hasNext()) {
+        // Evil hack, but this is how etv works
         assert callstackDepth > 0;
         callstackDepth--;
       }
@@ -173,7 +187,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
-      } else if (edge.getLineNumber() == usage.getLine().getLine() && edge.toString().contains(id.getName())) {
+      } else if (edge.getLineNumber() == usage.getLine().getLine()
+          && edge.toString().contains(id.getName())) {
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       }
       writer.write(edge.toString() + "\n");
@@ -184,7 +199,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     writer.write("\n");
   }
 
-  private void printCountStatistics(final Writer writer, final Iterator<SingleIdentifier> idIterator) throws IOException {
+  private void printCountStatistics(
+      final Writer writer, final Iterator<SingleIdentifier> idIterator) throws IOException {
     int global = 0, local = 0, fields = 0;
     int globalPointer = 0, localPointer = 0, fieldPointer = 0;
     SingleIdentifier id;
@@ -197,15 +213,13 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         } else {
           globalPointer++;
         }
-      }
-      else if (id instanceof LocalVariableIdentifier) {
+      } else if (id instanceof LocalVariableIdentifier) {
         if (id.getDereference() == 0) {
           local++;
         } else {
           localPointer++;
         }
-      }
-      else if (id instanceof StructureFieldIdentifier) {
+      } else if (id instanceof StructureFieldIdentifier) {
         if (id.getDereference() == 0) {
           fields++;
         } else {
@@ -217,7 +231,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     writer.append(globalPointer + "\n");
     writer.append(local + "\n");
     writer.append(localPointer + "\n");
-    //writer.println("--Structures:           " + structures);
+    // writer.println("--Structures:           " + structures);
     writer.append(fields + "\n");
     writer.append(fieldPointer + "\n");
     writer.append(global + globalPointer + local + localPointer + fields + fieldPointer + "\n");

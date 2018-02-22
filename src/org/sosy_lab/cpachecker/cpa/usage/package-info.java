@@ -21,7 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * This CPA tracks accesses to variables and determines potential race conditions
- */
+/** This CPA tracks accesses to variables and determines potential race conditions */
 package org.sosy_lab.cpachecker.cpa.usage;

@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * This CPA allows to analyze synchronization primitives,
- * basically, it implements a well known algorithm Lockset.
+ * This CPA allows to analyze synchronization primitives, basically, it implements a well known
+ * algorithm Lockset.
  */
 package org.sosy_lab.cpachecker.cpa.lock;

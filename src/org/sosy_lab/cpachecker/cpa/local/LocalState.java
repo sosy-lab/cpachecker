@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-
 public class LocalState implements LatticeAbstractState<LocalState> {
 
   public static enum DataType {
@@ -52,25 +51,26 @@ public class LocalState implements LatticeAbstractState<LocalState> {
       return name().toLowerCase();
     }
 
-    public final static BiFunction<DataType, DataType, DataType> max = (d1, d2) ->
-      {
-        if (d1 == GLOBAL || d2 == GLOBAL) {
-          return GLOBAL;
-        } else if (d1 == null || d2 == null) {
-          return null;
-        } else {
-          return LOCAL;
-        }
-      };
+    public static final BiFunction<DataType, DataType, DataType> max =
+        (d1, d2) -> {
+          if (d1 == GLOBAL || d2 == GLOBAL) {
+            return GLOBAL;
+          } else if (d1 == null || d2 == null) {
+            return null;
+          } else {
+            return LOCAL;
+          }
+        };
   }
-  //map from variable id to its type
+  // map from variable id to its type
   private final LocalState previousState;
   private final Map<AbstractIdentifier, DataType> DataInfo;
   private final ImmutableSet<String> alwaysLocalData;
 
-  private LocalState(Map<AbstractIdentifier, DataType> oldMap, LocalState state, ImmutableSet<String> localData) {
+  private LocalState(
+      Map<AbstractIdentifier, DataType> oldMap, LocalState state, ImmutableSet<String> localData) {
     DataInfo = new HashMap<>(oldMap);
-    //Strange, but 'new TreeMap<>(oldMap)' lost some values: "id -> null" appears
+    // Strange, but 'new TreeMap<>(oldMap)' lost some values: "id -> null" appears
     previousState = state;
     alwaysLocalData = localData;
   }
@@ -110,7 +110,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
 
   private boolean checkIsAlwaysLocal(AbstractIdentifier name) {
     if (name instanceof SingleIdentifier) {
-      if (alwaysLocalData.contains(((SingleIdentifier)name).getName())) {
+      if (alwaysLocalData.contains(((SingleIdentifier) name).getName())) {
         return true;
       }
     }
@@ -119,7 +119,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
 
   private void putIntoDataInfo(AbstractIdentifier name, DataType type) {
     if (checkIsAlwaysLocal(name)) {
-      //We put it down to be able to dump it into log
+      // We put it down to be able to dump it into log
       DataInfo.put(name, DataType.LOCAL);
       return;
     }
@@ -153,21 +153,18 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     return checkStatusOfComposedIds(name, this::isLocal);
   }
 
-  private boolean checkStatusOfComposedIds(AbstractIdentifier name,
-      Predicate<? super AbstractIdentifier> pred) {
-    return from(name.getComposedIdentifiers())
-        .anyMatch(pred);
+  private boolean checkStatusOfComposedIds(
+      AbstractIdentifier name, Predicate<? super AbstractIdentifier> pred) {
+    return from(name.getComposedIdentifiers()).anyMatch(pred);
   }
 
   public void set(AbstractIdentifier name, DataType type) {
-    if (name.isGlobal() ||
-        !name.isDereferenced() ||
-        name instanceof ConstantIdentifier) {
-      //Don't save obvious information
+    if (name.isGlobal() || !name.isDereferenced() || name instanceof ConstantIdentifier) {
+      // Don't save obvious information
       return;
     }
 
-    //Do not care about old value of the target id
+    // Do not care about old value of the target id
     if (checkSharednessOfComposedIds(name)) {
       putIntoDataInfo(name, DataType.GLOBAL);
       return;
@@ -178,7 +175,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   public DataType getType(AbstractIdentifier pName) {
     DataType directResult = getDataInfo(pName);
     if (checkSharednessOfComposedIds(pName)) {
-      //putIntoDataInfo(pName, DataType.GLOBAL);
+      // putIntoDataInfo(pName, DataType.GLOBAL);
       return DataType.GLOBAL;
     }
     if (directResult == null && checkLocalityOfComposedIds(pName)) {
@@ -189,21 +186,23 @@ public class LocalState implements LatticeAbstractState<LocalState> {
 
   @Override
   public LocalState join(LocalState pState2) {
-    //by definition of Merge operator we should return state2, not this!
+    // by definition of Merge operator we should return state2, not this!
     if (this.equals(pState2)) {
       return pState2;
     }
     LocalState joinedPreviousState = null;
     if (this.previousState != null && pState2.previousState == null) {
-      //One of them was already reduced and one not yet
+      // One of them was already reduced and one not yet
       return pState2;
     } else if (this.previousState == null && pState2.previousState != null) {
       return this;
-    } else if (this.previousState != null && pState2.previousState != null
+    } else if (this.previousState != null
+        && pState2.previousState != null
         && !this.previousState.equals(pState2.previousState)) {
-      //it can be, when we join states, called from different functions
+      // it can be, when we join states, called from different functions
       joinedPreviousState = this.previousState.join(pState2.previousState);
-    } else if (this.previousState != null && pState2.previousState != null
+    } else if (this.previousState != null
+        && pState2.previousState != null
         && this.previousState.equals(pState2.previousState)) {
       joinedPreviousState = this.previousState;
     }
@@ -211,17 +210,20 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     LocalState joinState = this.clone(joinedPreviousState);
 
     Sets.union(this.DataInfo.keySet(), pState2.DataInfo.keySet())
-      .forEach(id -> joinState.putIntoDataInfo(id, DataType.max.apply(DataInfo.get(id), pState2.DataInfo.get(id))));
+        .forEach(
+            id ->
+                joinState.putIntoDataInfo(
+                    id, DataType.max.apply(DataInfo.get(id), pState2.DataInfo.get(id))));
 
     return joinState;
   }
 
   @Override
   public boolean isLessOrEqual(LocalState pState2) {
-    //LOCAL < NULL < GLOBAL
+    // LOCAL < NULL < GLOBAL
     if (from(this.DataInfo.keySet())
-      .filter(Predicates.not(this::isLocal))
-      .anyMatch(i -> !pState2.DataInfo.containsKey(i) || pState2.isLocal(i))) {
+        .filter(Predicates.not(this::isLocal))
+        .anyMatch(i -> !pState2.DataInfo.containsKey(i) || pState2.isLocal(i))) {
       return false;
     }
 
@@ -248,8 +250,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     LocalState other = (LocalState) obj;
@@ -258,9 +259,9 @@ public class LocalState implements LatticeAbstractState<LocalState> {
 
   public String toLog() {
     return from(DataInfo.keySet())
-      .filter(SingleIdentifier.class)
-      .transform(id -> id.toLog() + ";" + getDataInfo(id))
-      .join(Joiner.on("\n"));
+        .filter(SingleIdentifier.class)
+        .transform(id -> id.toLog() + ";" + getDataInfo(id))
+        .join(Joiner.on("\n"));
   }
 
   @Override

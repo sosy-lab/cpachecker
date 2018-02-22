@@ -39,7 +39,8 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class DeadLockState extends AbstractLockState {
 
-  public static class DeadLockTreeNode extends LinkedList<LockIdentifier> implements CompatibleNode{
+  public static class DeadLockTreeNode extends LinkedList<LockIdentifier>
+      implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;
 
@@ -82,7 +83,6 @@ public class DeadLockState extends AbstractLockState {
     public boolean hasEmptyLockSet() {
       return isEmpty();
     }
-
   }
 
   public class DeadLockStateBuilder extends AbstractLockStateBuilder {
@@ -135,7 +135,7 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void set(LockIdentifier lockId, int num) {
-      //num can be equal 0, this means, that in origin file it is 0 and we should delete locks
+      // num can be equal 0, this means, that in origin file it is 0 and we should delete locks
       assert false : "not supported";
     }
 
@@ -146,7 +146,7 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void restoreAll() {
-      mutableLocks = ((DeadLockState)mutableToRestore).locks;
+      mutableLocks = ((DeadLockState) mutableToRestore).locks;
     }
 
     @Override
@@ -196,7 +196,7 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public void expandLocks(LockState pRootState,  Set<LockIdentifier> usedLocks) {
+    public void expandLocks(LockState pRootState, Set<LockIdentifier> usedLocks) {
       assert false : "not supported";
     }
 
@@ -218,23 +218,24 @@ public class DeadLockState extends AbstractLockState {
 
   private final SortedMap<LockIdentifier, Integer> locks;
   private final List<LockIdentifier> lockList;
-  //if we need restore state, we save it here
-  //Used for function annotations like annotate.function_name.restore
+  // if we need restore state, we save it here
+  // Used for function annotations like annotate.function_name.restore
   public DeadLockState() {
     super();
     locks = Maps.newTreeMap();
     lockList = Lists.newLinkedList();
   }
 
-  protected DeadLockState(SortedMap<LockIdentifier, Integer> map, List<LockIdentifier> gLocks, DeadLockState state) {
+  protected DeadLockState(
+      SortedMap<LockIdentifier, Integer> map, List<LockIdentifier> gLocks, DeadLockState state) {
     super(state);
     this.locks = Maps.newTreeMap(map);
-    this.lockList  = Lists.newLinkedList(gLocks);
+    this.lockList = Lists.newLinkedList(gLocks);
   }
 
   @Override
   public SortedMap<LockIdentifier, Integer> getHashCodeForState() {
-    //Special hash for BAM, in other cases use iterator
+    // Special hash for BAM, in other cases use iterator
     return locks;
   }
 
@@ -242,11 +243,7 @@ public class DeadLockState extends AbstractLockState {
   public String toString() {
     if (locks.size() > 0) {
       StringBuilder sb = new StringBuilder();
-      return Joiner.on("], ")
-             .withKeyValueSeparator("[")
-             .appendTo(sb, locks)
-             .append("]")
-             .toString();
+      return Joiner.on("], ").withKeyValueSeparator("[").appendTo(sb, locks).append("]").toString();
     } else {
       return "Without locks";
     }
@@ -271,19 +268,19 @@ public class DeadLockState extends AbstractLockState {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     DeadLockState other = (DeadLockState) obj;
-    return Objects.equals(toRestore, other.toRestore) &&
-           Objects.equals(locks, other.locks) &&
-           Objects.equals(lockList, other.lockList);
+    return Objects.equals(toRestore, other.toRestore)
+        && Objects.equals(locks, other.locks)
+        && Objects.equals(lockList, other.lockList);
   }
 
   /**
-   * This method find the difference between two states in some metric.
-   * It is useful for comparators. lock1.diff(lock2) <=> lock1 - lock2.
+   * This method find the difference between two states in some metric. It is useful for
+   * comparators. lock1.diff(lock2) <=> lock1 - lock2.
+   *
    * @param pOther The other LockStatisticsState
    * @return Difference between two states
    */
@@ -292,7 +289,7 @@ public class DeadLockState extends AbstractLockState {
     DeadLockState other = (DeadLockState) pOther;
     int result = 0;
 
-    result = other.getSize() - this.getSize(); //decreasing queue
+    result = other.getSize() - this.getSize(); // decreasing queue
 
     if (result != 0) {
       return result;
@@ -300,7 +297,7 @@ public class DeadLockState extends AbstractLockState {
 
     Iterator<LockIdentifier> iterator1 = locks.keySet().iterator();
     Iterator<LockIdentifier> iterator2 = other.locks.keySet().iterator();
-    //Sizes are equal
+    // Sizes are equal
     while (iterator1.hasNext()) {
       LockIdentifier lockId1 = iterator1.next();
       LockIdentifier lockId2 = iterator2.next();
@@ -328,12 +325,11 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public List<LockEffect> getDifference(AbstractLockState other) {
-    //Return the effect, which shows, what should we do to transform from this state to the other
+    // Return the effect, which shows, what should we do to transform from this state to the other
 
-    assert false :"not supported";
+    assert false : "not supported";
     return null;
   }
-
 
   @Override
   public CompatibleState prepareToStore() {

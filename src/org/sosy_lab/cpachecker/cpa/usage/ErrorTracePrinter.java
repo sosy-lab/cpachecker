@@ -59,23 +59,24 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage")
 public abstract class ErrorTracePrinter {
 
-  @Option(name="falseUnsafesOutput", description="path to write results",
-      secure = true)
+  @Option(name = "falseUnsafesOutput", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
 
-  @Option(name="filterMissedFiles", description="if a file do not exist, do not include the corresponding edge",
-      secure = true)
+  @Option(
+    name = "filterMissedFiles",
+    description = "if a file do not exist, do not include the corresponding edge",
+    secure = true
+  )
   private boolean filterMissedFiles = true;
 
-  @Option(description="print all unsafe cases in report",
-      secure = true)
+  @Option(description = "print all unsafe cases in report", secure = true)
   private boolean printFalseUnsafes = false;
 
-  //private final BAMTransferRelation transfer;
+  // private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
 
   private final StatTimer preparationTimer = new StatTimer("Time for preparation");
@@ -91,8 +92,13 @@ public abstract class ErrorTracePrinter {
   protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
 
-
-  public ErrorTracePrinter(Configuration c, BAMMultipleCEXSubgraphComputer t, CFA pCfa, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
+  public ErrorTracePrinter(
+      Configuration c,
+      BAMMultipleCEXSubgraphComputer t,
+      CFA pCfa,
+      LogManager l,
+      LockTransferRelation lT)
+      throws InvalidConfigurationException {
     logger = l;
     config = c;
     lockTransfer = lT;
@@ -101,10 +107,10 @@ public abstract class ErrorTracePrinter {
         e -> (e.getFileLocation() != null && !e.getFileLocation().getFileName().equals("<none>"));
 
     if (filterMissedFiles) {
-      FILTER_EMPTY_FILE_LOCATIONS = Predicates.and(
-          FILTER_EMPTY_FILE_LOCATIONS,
-          e -> (Files.exists(Paths.get(e.getFileLocation().getFileName())))
-          );
+      FILTER_EMPTY_FILE_LOCATIONS =
+          Predicates.and(
+              FILTER_EMPTY_FILE_LOCATIONS,
+              e -> (Files.exists(Paths.get(e.getFileLocation().getFileName()))));
     }
     subgraphComputer = t;
     cfa = pCfa;
@@ -113,10 +119,10 @@ public abstract class ErrorTracePrinter {
   private void createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
-    ARGState target = (ARGState)usage.getKeyState();
+    ARGState target = (ARGState) usage.getKeyState();
     ARGPath path;
     if (subgraphComputer != null) {
-      //BAM: we need to update target state considering BAM caches
+      // BAM: we need to update target state considering BAM caches
       path = subgraphComputer.computePath(target);
     } else {
       path = ARGUtils.getOnePathTo(target);
@@ -125,21 +131,19 @@ public abstract class ErrorTracePrinter {
       logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
       return;
     }
-    //path is transformed internally
+    // path is transformed internally
     usage.setRefinedPath(path.getInnerEdges());
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType()
-        .toASTString(id.getName())
-        .replace(" ", "_");
+    return id.getType().toASTString(id.getName()).replace(" ", "_");
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
     preparationTimer.start();
     ReachedSet reachedSet;
     if (reached instanceof ForwardingReachedSet) {
-      reachedSet = ((ForwardingReachedSet)reached).getDelegate();
+      reachedSet = ((ForwardingReachedSet) reached).getDelegate();
     } else {
       reachedSet = (ReachedSet) reached;
     }
@@ -162,8 +166,8 @@ public abstract class ErrorTracePrinter {
 
       unsafeDetectionTimer.start();
       if (!detector.isUnsafe(uinfo)) {
-        //In case of interruption during refinement,
-        //We may get a situation, when a path is removed, but the verdict is not updated
+        // In case of interruption during refinement,
+        // We may get a situation, when a path is removed, but the verdict is not updated
         unsafeDetectionTimer.stop();
         continue;
       }
@@ -178,7 +182,9 @@ public abstract class ErrorTracePrinter {
       Set<SingleIdentifier> falseUnsafes = container.getFalseUnsafes();
 
       if (!falseUnsafes.isEmpty()) {
-        try (Writer writer = Files.newBufferedWriter(Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
+        try (Writer writer =
+            Files.newBufferedWriter(
+                Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
           logger.log(Level.FINE, "Print statistics about false unsafes");
 
           for (SingleIdentifier id : falseUnsafes) {
@@ -194,10 +200,7 @@ public abstract class ErrorTracePrinter {
 
   public void printStatistics(StatisticsWriter out) {
 
-    out.spacer()
-       .put(preparationTimer)
-       .put(unsafeDetectionTimer)
-       .put(writingUnsafeTimer);
+    out.spacer().put(preparationTimer).put(unsafeDetectionTimer).put(writingUnsafeTimer);
 
     container.printUsagesStatistics(out);
   }
@@ -216,6 +219,8 @@ public abstract class ErrorTracePrinter {
   }
 
   protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);
+
   protected void init() {}
+
   protected void finish() {}
 }

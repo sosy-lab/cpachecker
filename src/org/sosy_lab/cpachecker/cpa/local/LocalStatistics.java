@@ -47,16 +47,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-@Options(prefix="precision")
+@Options(prefix = "precision")
 public class LocalStatistics implements Statistics {
-  @Option(description = "A path to a precision output", name="path",
-      secure = true)
+  @Option(description = "A path to a precision output", name = "path", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFileName = Paths.get("localsave");
 
   private final LogManager logger;
 
-  public LocalStatistics(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public LocalStatistics(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     logger = pLogger;
     pConfig.inject(this);
     /*String fName = pConfig.getProperty("precision.path");
@@ -68,14 +68,15 @@ public class LocalStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     if (pReached.size() <= 2) {
-      //evil hack: means we are called from general statistics collector
-      //wait until BAM provides its handmade reached set
+      // evil hack: means we are called from general statistics collector
+      // wait until BAM provides its handmade reached set
       return;
     }
     try {
       Map<CFANode, LocalState> reachedStatistics = new TreeMap<>();
-      //Path p = Paths.get(outputFileName);
-      try (Writer writer = Files.newBufferedWriter(Paths.get(outputFileName.toString()), Charset.defaultCharset())) {
+      // Path p = Paths.get(outputFileName);
+      try (Writer writer =
+          Files.newBufferedWriter(Paths.get(outputFileName.toString()), Charset.defaultCharset())) {
         logger.log(Level.FINE, "Write precision to " + outputFileName);
         for (AbstractState state : pReached.asCollection()) {
           CFANode node = AbstractStates.extractLocation(state);
@@ -92,8 +93,10 @@ public class LocalStatistics implements Statistics {
           writer.append(reachedStatistics.get(node).toLog() + "\n");
         }
       }
-    } catch(FileNotFoundException e) {
-      logger.log(Level.SEVERE, "Cannot open file " + outputFileName + " for output result of shared analysis");
+    } catch (FileNotFoundException e) {
+      logger.log(
+          Level.SEVERE,
+          "Cannot open file " + outputFileName + " for output result of shared analysis");
       return;
     } catch (IOException e) {
       logger.log(Level.SEVERE, e.getMessage());
@@ -105,5 +108,4 @@ public class LocalStatistics implements Statistics {
   public String getName() {
     return "LocalCPA";
   }
-
 }

@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-
-public class GeneralLocalVariableIdentifier extends LocalVariableIdentifier implements GeneralIdentifier {
+public class GeneralLocalVariableIdentifier extends LocalVariableIdentifier
+    implements GeneralIdentifier {
 
   public GeneralLocalVariableIdentifier(String pNm, int pDereference) {
     super(pNm, null, "", pDereference);
@@ -52,13 +51,11 @@ public class GeneralLocalVariableIdentifier extends LocalVariableIdentifier impl
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SingleIdentifier other = (SingleIdentifier) obj;
-    return dereference == other.dereference
-        && Objects.equals(name, other.name);
+    return dereference == other.dereference && Objects.equals(name, other.name);
   }
 
   @Override

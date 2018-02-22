@@ -41,7 +41,8 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
   private HashMap<CFANode, Map<GeneralIdentifier, DataType>> localStatistics;
   private final Precision wrappedPrecision;
 
-  private UsagePrecision(Precision pWrappedPrecision, HashMap<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
+  private UsagePrecision(
+      Precision pWrappedPrecision, HashMap<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
     localStatistics = Maps.newHashMap(pMap);
     wrappedPrecision = pWrappedPrecision;
   }
@@ -55,7 +56,8 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
       localStatistics.put(node, info);
       return true;
     } else {
-      //strange situation, we should know about it, because we consider, that nodes in file are unique
+      // strange situation, we should know about it, because we consider, that nodes in file are
+      // unique
       return false;
     }
   }
@@ -88,8 +90,7 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     UsagePrecision other = (UsagePrecision) obj;
@@ -131,7 +132,8 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
   }
 
   @Override
-  public Precision replaceWrappedPrecision(Precision pNewPrecision, Predicate<? super Precision> pReplaceType) {
+  public Precision replaceWrappedPrecision(
+      Precision pNewPrecision, Predicate<? super Precision> pReplaceType) {
     if (pReplaceType.apply(this)) {
       return pNewPrecision;
     } else if (pReplaceType.apply(wrappedPrecision)) {
@@ -139,7 +141,10 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
       result.localStatistics = this.localStatistics;
       return result;
     } else if (wrappedPrecision instanceof WrapperPrecision) {
-      UsagePrecision result = new UsagePrecision(((WrapperPrecision) wrappedPrecision).replaceWrappedPrecision(pNewPrecision, pReplaceType));
+      UsagePrecision result =
+          new UsagePrecision(
+              ((WrapperPrecision) wrappedPrecision)
+                  .replaceWrappedPrecision(pNewPrecision, pReplaceType));
       result.localStatistics = this.localStatistics;
       return result;
 
@@ -163,21 +168,23 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
     return adjust(pOtherPrecision, (a, b) -> a.subtract(b));
   }
 
-  private AdjustablePrecision adjust(AdjustablePrecision pOtherPrecision, BiFunction<AdjustablePrecision, AdjustablePrecision, AdjustablePrecision> adjustFunction) {
+  private AdjustablePrecision adjust(
+      AdjustablePrecision pOtherPrecision,
+      BiFunction<AdjustablePrecision, AdjustablePrecision, AdjustablePrecision> adjustFunction) {
 
     AdjustablePrecision thisWrappedPrecision = (AdjustablePrecision) this.wrappedPrecision;
     AdjustablePrecision wrappedOtherPrecision;
     if (pOtherPrecision instanceof UsagePrecision) {
       UsagePrecision otherPrecision = (UsagePrecision) pOtherPrecision;
       wrappedOtherPrecision = (AdjustablePrecision) otherPrecision.wrappedPrecision;
-      //The precision is not modified
+      // The precision is not modified
       assert (this.localStatistics.equals(otherPrecision.localStatistics));
     } else {
       wrappedOtherPrecision = pOtherPrecision;
     }
-    AdjustablePrecision newWrappedPrecision = adjustFunction.apply(thisWrappedPrecision, wrappedOtherPrecision);
+    AdjustablePrecision newWrappedPrecision =
+        adjustFunction.apply(thisWrappedPrecision, wrappedOtherPrecision);
 
     return new UsagePrecision(newWrappedPrecision, localStatistics);
-
   }
 }

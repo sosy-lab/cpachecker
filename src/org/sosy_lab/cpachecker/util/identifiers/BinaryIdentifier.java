@@ -28,8 +28,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 
-
-
 public class BinaryIdentifier implements AbstractIdentifier {
   protected final AbstractIdentifier id1;
   protected final AbstractIdentifier id2;
@@ -50,13 +48,13 @@ public class BinaryIdentifier implements AbstractIdentifier {
     result = prime * result + Objects.hashCode(id2);
     return result;
   }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     BinaryIdentifier other = (BinaryIdentifier) obj;
@@ -102,14 +100,12 @@ public class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public boolean isPointer() {
-    return (dereference != 0 ||
-        id1.isPointer() || id2.isPointer());
+    return (dereference != 0 || id1.isPointer() || id2.isPointer());
   }
 
   @Override
   public boolean isDereferenced() {
-    return (dereference != 0 ||
-        id1.isDereferenced() || id2.isDereferenced());
+    return (dereference != 0 || id1.isDereferenced() || id2.isDereferenced());
   }
 
   @Override
@@ -117,8 +113,8 @@ public class BinaryIdentifier implements AbstractIdentifier {
     if (pO instanceof SingleIdentifier) {
       return -1;
     } else if (pO instanceof BinaryIdentifier) {
-      int result = this.id1.compareTo(((BinaryIdentifier)pO).id1);
-      return (result != 0 ? result : this.id2.compareTo(((BinaryIdentifier)pO).id2));
+      int result = this.id1.compareTo(((BinaryIdentifier) pO).id1);
+      return (result != 0 ? result : this.id2.compareTo(((BinaryIdentifier) pO).id2));
     } else {
       return 1;
     }
@@ -126,7 +122,7 @@ public class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
-    //Is important to get from *(a + i) -> *a
+    // Is important to get from *(a + i) -> *a
     int deref = id1.getDereference();
     AbstractIdentifier tmp1 = id1.clone();
     AbstractIdentifier tmp2 = id2.clone();

@@ -51,10 +51,9 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-/**
- * Represents one abstract state of the Usage CPA.
- */
-public class UsageState extends AbstractSingleWrapperState implements LatticeAbstractState<UsageState> {
+/** Represents one abstract state of the Usage CPA. */
+public class UsageState extends AbstractSingleWrapperState
+    implements LatticeAbstractState<UsageState> {
   /* Boilerplate code to avoid serializing this class */
 
   private static final long serialVersionUID = -898577877284268426L;
@@ -67,13 +66,14 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
 
   private final Map<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
 
-  private UsageState(final AbstractState pWrappedElement
-      , final Map<AbstractIdentifier, AbstractIdentifier> pVarBind
-      , final TemporaryUsageStorage pRecentUsages
-      , final boolean pCloned
-      , final FunctionContainer pFuncContainer
-      , final StateStatistics pStats
-      , boolean exit) {
+  private UsageState(
+      final AbstractState pWrappedElement,
+      final Map<AbstractIdentifier, AbstractIdentifier> pVarBind,
+      final TemporaryUsageStorage pRecentUsages,
+      final boolean pCloned,
+      final FunctionContainer pFuncContainer,
+      final StateStatistics pStats,
+      boolean exit) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
     recentUsages = pRecentUsages;
@@ -85,22 +85,34 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
 
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
     FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
-    return new UsageState(pWrappedElement, new HashMap<>(), new TemporaryUsageStorage(),
-        true, initialContainer, new StateStatistics(initialContainer.getStatistics()), false);
+    return new UsageState(
+        pWrappedElement,
+        new HashMap<>(),
+        new TemporaryUsageStorage(),
+        true,
+        initialContainer,
+        new StateStatistics(initialContainer.getStatistics()),
+        false);
   }
 
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
-    this(pWrappedElement, new HashMap<>(state.variableBindingRelation), state.recentUsages,
-        false, state.functionContainer, state.stats, state.isExitState);
+    this(
+        pWrappedElement,
+        new HashMap<>(state.variableBindingRelation),
+        state.recentUsages,
+        false,
+        state.functionContainer,
+        state.stats,
+        state.isExitState);
   }
 
   public boolean containsLinks(final AbstractIdentifier id) {
     /* Special contains!
-    *  if we have *b, map also contains **b, ***b and so on.
-    *  So, if we get **b, having (*b, c), we give *c
-    */
+     *  if we have *b, map also contains **b, ***b and so on.
+     *  So, if we get **b, having (*b, c), we give *c
+     */
     return from(Identifiers.getDereferencedIdentifiers(id))
-           .anyMatch(variableBindingRelation::containsKey);
+        .anyMatch(variableBindingRelation::containsKey);
   }
 
   public void put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
@@ -123,7 +135,7 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
      */
     Optional<AbstractIdentifier> linkedId =
         from(Identifiers.getDereferencedIdentifiers(id))
-          .firstMatch(variableBindingRelation::containsKey);
+            .firstMatch(variableBindingRelation::containsKey);
 
     if (linkedId.isPresent()) {
       AbstractIdentifier pointsFrom = linkedId.get();
@@ -163,8 +175,7 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     UsageState other = (UsageState) obj;
@@ -185,7 +196,7 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
 
   @Override
   public boolean isLessOrEqual(final UsageState other) {
-    //If we are here, the wrapped domain return true and the stop depends only on this value
+    // If we are here, the wrapped domain return true and the stop depends only on this value
 
     // this element is not less or equal than the other element, if that one contains less elements
     if (this.variableBindingRelation.size() > other.variableBindingRelation.size()) {
@@ -193,9 +204,10 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
     }
 
     // also, this element is not less or equal than the other element,
-    // if any one constant's value of the other element differs from the constant's value in this element
+    // if any one constant's value of the other element differs from the constant's value in this
+    // element
     if (from(variableBindingRelation.keySet())
-         .anyMatch(Predicates.not(other.variableBindingRelation::containsKey))) {
+        .anyMatch(Predicates.not(other.variableBindingRelation::containsKey))) {
       return false;
     }
 
@@ -209,7 +221,7 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
   }
 
   public void addUsage(final SingleIdentifier id, final UsageInfo usage) {
-    //Clone it
+    // Clone it
     if (!isStorageCloned) {
       recentUsages = recentUsages.clone();
       isStorageCloned = true;
@@ -228,19 +240,26 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
     LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
     List<LockEffect> difference;
     if (rootLockState == null && reducedLockState == null) {
-      //No LockCPA
+      // No LockCPA
       difference = Collections.emptyList();
     } else {
       difference = reducedLockState.getDifference(rootLockState);
     }
 
-    return new UsageState(wrappedState, new HashMap<>(), recentUsages.clone(),
-        true, functionContainer.clone(difference), this.stats, this.isExitState);
+    return new UsageState(
+        wrappedState,
+        new HashMap<>(),
+        recentUsages.clone(),
+        true,
+        functionContainer.clone(difference),
+        this.stats,
+        this.isExitState);
   }
 
   public void saveUnsafesInContainerIfNecessary(AbstractState abstractState) {
     ARGState argState = AbstractStates.extractStateByType(abstractState, ARGState.class);
-    PredicateAbstractState state = AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
+    PredicateAbstractState state =
+        AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
     if (state == null || (!state.getAbstractionFormula().isFalse() && state.isAbstractionState())) {
       recentUsages.setKeyState(argState);
       stats.addRecentUsagesTimer.start();
@@ -255,7 +274,7 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
   }
 
   public void asExitable() {
-    //return new UsageExitableState(this);
+    // return new UsageExitableState(this);
     isExitState = true;
   }
 
@@ -307,10 +326,7 @@ public class UsageState extends AbstractSingleWrapperState implements LatticeAbs
     }
 
     public void printStatistics(StatisticsWriter out) {
-      out.spacer()
-         .put(expandTimer)
-         .put(joinTimer)
-         .put(addRecentUsagesTimer);
+      out.spacer().put(expandTimer).put(joinTimer).put(addRecentUsagesTimer);
 
       storageStats.printStatistics(out);
     }

@@ -43,38 +43,42 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-@Options(prefix="cpa.local")
-public class LocalCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
-    private Statistics statistics;
-    private final Reducer reducer;
+@Options(prefix = "cpa.local")
+public class LocalCPA extends AbstractCPA
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+  private Statistics statistics;
+  private final Reducer reducer;
 
-    @Option(name="localvariables", description = "variables, which are always local",
-        secure = true)
-    private Set<String> localVariables = Collections.emptySet();
+  @Option(name = "localvariables", description = "variables, which are always local", secure = true)
+  private Set<String> localVariables = Collections.emptySet();
 
-    public static CPAFactory factory() {
-      return AutomaticCPAFactory.forType(LocalCPA.class);
-    }
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(LocalCPA.class);
+  }
 
-    private LocalCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-      super("join", "sep", DelegateAbstractDomain.<LocalState>getInstance(), new LocalTransferRelation(pConfig));
-      pConfig.inject(this);
-      statistics = new LocalStatistics(pConfig, pLogger);
-      reducer = new LocalReducer();
-    }
+  private LocalCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+    super(
+        "join",
+        "sep",
+        DelegateAbstractDomain.<LocalState>getInstance(),
+        new LocalTransferRelation(pConfig));
+    pConfig.inject(this);
+    statistics = new LocalStatistics(pConfig, pLogger);
+    reducer = new LocalReducer();
+  }
 
-    @Override
-    public AbstractState getInitialState(CFANode pNode, StateSpacePartition p) {
-      return LocalState.createInitialLocalState(localVariables);
-    }
+  @Override
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition p) {
+    return LocalState.createInitialLocalState(localVariables);
+  }
 
-    @Override
-    public Reducer getReducer() {
-      return reducer;
-    }
+  @Override
+  public Reducer getReducer() {
+    return reducer;
+  }
 
-    @Override
-    public void collectStatistics(Collection<Statistics> pStatsCollection) {
-      pStatsCollection.add(statistics);
-    }
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
 }

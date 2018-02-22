@@ -61,7 +61,8 @@ import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options
-public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+public class UsageCPA extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -78,13 +79,13 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
     return AutomaticCPAFactory.forType(UsageCPA.class);
   }
 
-  @Option(description="A path to precision", name="precision.path",
-      secure = true)
+  @Option(description = "A path to precision", name = "precision.path", secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private Path outputFileName = Paths.get("localsave");
 
-  private UsageCPA(ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger,
-      Configuration pConfig) throws InvalidConfigurationException {
+  private UsageCPA(
+      ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
     this.cfa = pCfa;
@@ -93,11 +94,15 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
 
     LockCPA LockCPA = (CPAs.retrieveCPA(this, LockCPA.class));
-    this.statistics = new UsageCPAStatistics(pConfig, pLogger, pCfa,
-        LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
+    this.statistics =
+        new UsageCPAStatistics(
+            pConfig,
+            pLogger,
+            pCfa,
+            LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
     this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)pCpa).getReducer();
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
       if (wrappedReducer != null) {
         reducer = new UsageReducer(wrappedReducer);
       } else {
@@ -107,9 +112,14 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
       reducer = null;
     }
     logger = pLogger;
-    this.transferRelation = new UsageTransferRelation(pCpa.getTransferRelation(), pConfig, pLogger, statistics
-        , (CallstackTransferRelation) (CPAs.retrieveCPA(this, CallstackCPA.class)).getTransferRelation());
-
+    this.transferRelation =
+        new UsageTransferRelation(
+            pCpa.getTransferRelation(),
+            pConfig,
+            pLogger,
+            statistics,
+            (CallstackTransferRelation)
+                (CPAs.retrieveCPA(this, CallstackCPA.class)).getTransferRelation());
   }
 
   @Override
@@ -138,7 +148,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
+      throws InterruptedException {
     precision = new UsagePrecision(this.getWrappedCpa().getInitialPrecision(pNode, p));
     PresisionParser parser = new PresisionParser(outputFileName.toString(), cfa, logger);
     parser.parse(precision);
@@ -165,7 +176,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
   }
 

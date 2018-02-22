@@ -85,22 +85,22 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     private final StatTimer transferTimer = new StatTimer("Time for transfer");
     private final StatInt lockEffects = new StatInt(StatKind.SUM, "Number of effects");
     private final StatInt locksInState = new StatInt(StatKind.AVG, "Number of locks in state");
-    private final StatInt locksInStateWithLocks = new StatInt(StatKind.AVG, "Number of locks in state with locks");
+    private final StatInt locksInStateWithLocks =
+        new StatInt(StatKind.AVG, "Number of locks in state with locks");
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter.writingStatisticsTo(pOut)
-        .put(transferTimer)
-        .put(lockEffects)
-        .put(locksInState)
-        .put(locksInStateWithLocks);
+          .put(transferTimer)
+          .put(lockEffects)
+          .put(locksInState)
+          .put(locksInStateWithLocks);
     }
 
     @Override
     public @Nullable String getName() {
       return "LockCPA";
     }
-
   }
 
   private final Map<String, AnnotationInfo> annotatedFunctions;
@@ -109,7 +109,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private final LockStatistics stats;
 
-  public LockTransferRelation(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public LockTransferRelation(Configuration config, LogManager logger)
+      throws InvalidConfigurationException {
     this.logger = logger;
 
     ConfigurationParser parser = new ConfigurationParser(config);
@@ -122,14 +123,15 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<AbstractLockState> getAbstractSuccessorsForEdge(AbstractState element, Precision pPrecision
-      , CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  public Collection<AbstractLockState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
+      throws UnrecognizedCCodeException {
 
-    AbstractLockState lockStatisticsElement     = (AbstractLockState)element;
+    AbstractLockState lockStatisticsElement = (AbstractLockState) element;
 
     stats.transferTimer.start();
 
-    //First, determine operations with locks
+    // First, determine operations with locks
     List<AbstractLockEffect> toProcess = determineOperations(cfaEdge);
     stats.lockEffects.setNextValue(toProcess.size());
     final AbstractLockStateBuilder builder = lockStatisticsElement.builder();
@@ -152,35 +154,33 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public Set<LockIdentifier> getAffectedLocks(CFAEdge cfaEdge) {
-      return getLockEffects(cfaEdge)
-            .transform(LockEffect::getAffectedLock).toSet();
+    return getLockEffects(cfaEdge).transform(LockEffect::getAffectedLock).toSet();
   }
 
   private FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
     try {
-      return from(determineOperations(cfaEdge))
-            .filter(LockEffect.class);
+      return from(determineOperations(cfaEdge)).filter(LockEffect.class);
     } catch (UnrecognizedCCodeException e) {
       logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
       return FluentIterable.of();
     }
   }
 
-  private List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge)
+      throws UnrecognizedCCodeException {
 
     switch (cfaEdge.getEdgeType()) {
-
       case FunctionCallEdge:
-        return handleFunctionCall((CFunctionCallEdge)cfaEdge);
+        return handleFunctionCall((CFunctionCallEdge) cfaEdge);
 
       case FunctionReturnEdge:
-        return handleFunctionReturnEdge((CFunctionReturnEdge)cfaEdge);
+        return handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge);
 
       case StatementEdge:
-        CStatement statement = ((CStatementEdge)cfaEdge).getStatement();
+        CStatement statement = ((CStatementEdge) cfaEdge).getStatement();
         return handleStatement(statement);
       case AssumeEdge:
-        return handleAssumption((CAssumeEdge)cfaEdge);
+        return handleAssumption((CAssumeEdge) cfaEdge);
 
       case BlankEdge:
       case ReturnStatementEdge:
@@ -200,13 +200,14 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     if (assumption instanceof CBinaryExpression) {
       CBinaryExpression binExpression = (CBinaryExpression) assumption;
       if (binExpression.getOperand1() instanceof CIdExpression) {
-        String varName = ((CIdExpression)((CBinaryExpression) assumption).getOperand1()).getName();
+        String varName = ((CIdExpression) ((CBinaryExpression) assumption).getOperand1()).getName();
         if (lockDescription.variableEffectDescription.containsKey(varName)) {
           CExpression val = binExpression.getOperand2();
           if (val instanceof CIntegerLiteralExpression) {
             LockIdentifier id = lockDescription.variableEffectDescription.get(varName);
-            int level = ((CIntegerLiteralExpression)val).getValue().intValue();
-            AbstractLockEffect e = CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
+            int level = ((CIntegerLiteralExpression) val).getValue().intValue();
+            AbstractLockEffect e =
+                CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
             return Collections.singletonList(e);
           }
         }
@@ -215,16 +216,23 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     return Collections.emptyList();
   }
 
-  private ImmutableList<? extends AbstractLockEffect> convertAnnotationToLockEffect(Map<String, String> map, LockEffect e) {
+  private ImmutableList<? extends AbstractLockEffect> convertAnnotationToLockEffect(
+      Map<String, String> map, LockEffect e) {
     return from(map.keySet())
-           .transform(l -> LockIdentifier.of(l, map.get(l)))
-           .transform(e::cloneWithTarget)
-           .toList();
+        .transform(l -> LockIdentifier.of(l, map.get(l)))
+        .transform(e::cloneWithTarget)
+        .toList();
   }
 
   private List<AbstractLockEffect> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge) {
-    //CFANode tmpNode = cfaEdge.getSummaryEdge().getPredecessor();
-    String fName = cfaEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getFunctionNameExpression().toASTString();
+    // CFANode tmpNode = cfaEdge.getSummaryEdge().getPredecessor();
+    String fName =
+        cfaEdge
+            .getSummaryEdge()
+            .getExpression()
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString();
     if (annotatedFunctions.containsKey(fName)) {
       List<AbstractLockEffect> result = new LinkedList<>();
 
@@ -233,23 +241,32 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
           && currentAnnotation.freeLocks.size() == 0
           && currentAnnotation.resetLocks.size() == 0
           && currentAnnotation.captureLocks.size() == 0) {
-        //Not specified annotations are considered to be totally restoring
+        // Not specified annotations are considered to be totally restoring
         AbstractLockEffect restoreAll = RestoreAllLockEffect.getInstance();
         return Collections.singletonList(restoreAll);
       } else {
         if (currentAnnotation.restoreLocks.size() > 0) {
-          result.addAll(convertAnnotationToLockEffect(currentAnnotation.restoreLocks, RestoreLockEffect.getInstance()));
+          result.addAll(
+              convertAnnotationToLockEffect(
+                  currentAnnotation.restoreLocks, RestoreLockEffect.getInstance()));
         }
         if (currentAnnotation.freeLocks.size() > 0) {
-          result.addAll(convertAnnotationToLockEffect(currentAnnotation.freeLocks, ReleaseLockEffect.getInstance()));
+          result.addAll(
+              convertAnnotationToLockEffect(
+                  currentAnnotation.freeLocks, ReleaseLockEffect.getInstance()));
         }
         if (currentAnnotation.resetLocks.size() > 0) {
-          result.addAll(convertAnnotationToLockEffect(currentAnnotation.resetLocks, ResetLockEffect.getInstance()));
+          result.addAll(
+              convertAnnotationToLockEffect(
+                  currentAnnotation.resetLocks, ResetLockEffect.getInstance()));
         }
         if (currentAnnotation.captureLocks.size() > 0) {
           for (String lockName : currentAnnotation.captureLocks.keySet()) {
-            LockIdentifier tagerId = LockIdentifier.of(lockName, currentAnnotation.captureLocks.get(lockName));
-            result.add(AcquireLockEffect.createEffectForId(tagerId, lockDescription.maxLevel.get(lockName)));
+            LockIdentifier tagerId =
+                LockIdentifier.of(lockName, currentAnnotation.captureLocks.get(lockName));
+            result.add(
+                AcquireLockEffect.createEffectForId(
+                    tagerId, lockDescription.maxLevel.get(lockName)));
           }
         }
         return result;
@@ -263,7 +280,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     if (!lockDescription.functionEffectDescription.containsKey(functionName)) {
       return Collections.emptyList();
     }
-    Pair<LockEffect, LockIdUnprepared> locksWithEffect = lockDescription.functionEffectDescription.get(functionName);
+    Pair<LockEffect, LockIdUnprepared> locksWithEffect =
+        lockDescription.functionEffectDescription.get(functionName);
     LockEffect effect = locksWithEffect.getFirst();
     LockIdUnprepared uId = locksWithEffect.getSecond();
 
@@ -271,16 +289,16 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     if (effect == SetLockEffect.getInstance()) {
       CExpression expression = function.getParameterExpressions().get(0);
-      //Replace it by parametrical one
+      // Replace it by parametrical one
       if (expression instanceof CIntegerLiteralExpression) {
-        int newValue = ((CIntegerLiteralExpression)expression).getValue().intValue();
+        int newValue = ((CIntegerLiteralExpression) expression).getValue().intValue();
         int max = lockDescription.maxLevel.get(uId.getName());
         if (max < newValue) {
           newValue = max;
         }
         effect = SetLockEffect.createEffectForId(newValue, uId.apply(null));
       } else {
-        //We can not process not integers
+        // We can not process not integers
         return result;
       }
     }
@@ -301,7 +319,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       /*
        * level = intLock();
        */
-      CRightHandSide op2 = ((CAssignment)statement).getRightHandSide();
+      CRightHandSide op2 = ((CAssignment) statement).getRightHandSide();
 
       if (op2 instanceof CFunctionCallExpression) {
         CFunctionCallExpression function = (CFunctionCallExpression) op2;
@@ -316,7 +334,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         if (lockDescription.variableEffectDescription.containsKey(varName)) {
           if (rightSide instanceof CIntegerLiteralExpression) {
             LockIdentifier id = lockDescription.variableEffectDescription.get(varName);
-            int level = ((CIntegerLiteralExpression)rightSide).getValue().intValue();
+            int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
             AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
             return Collections.singletonList(e);
           }
@@ -330,7 +348,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       CFunctionCallStatement funcStatement = (CFunctionCallStatement) statement;
       return handleFunctionCallExpression(funcStatement.getFunctionCallExpression());
     }
-    //No lock-relating operations
+    // No lock-relating operations
     return Collections.emptyList();
   }
 
@@ -340,19 +358,21 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       AbstractLockEffect saveState = SaveStateLockEffect.getInstance();
       result.add(saveState);
     }
-    result.addAll(handleFunctionCallExpression(callEdge.getSummaryEdge().getExpression().getFunctionCallExpression()));
+    result.addAll(
+        handleFunctionCallExpression(
+            callEdge.getSummaryEdge().getExpression().getFunctionCallExpression()));
     return result;
   }
 
   /**
-   * Used in UsageStatisticsCPAStatistics
-   * In true case the current line should be highlighted in the final report
+   * Used in UsageStatisticsCPAStatistics In true case the current line should be highlighted in the
+   * final report
+   *
    * @param pEdge edge to check
    * @return the verdict
    */
   public String doesChangeTheState(CFAEdge pEdge) {
-    return Joiner.on(",")
-           .join(getLockEffects(pEdge));
+    return Joiner.on(",").join(getLockEffects(pEdge));
   }
 
   public Statistics getStatistics() {

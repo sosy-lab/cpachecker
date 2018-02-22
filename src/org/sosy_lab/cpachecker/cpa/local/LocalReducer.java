@@ -30,21 +30,21 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-
 public class LocalReducer implements Reducer {
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
+  public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     LocalState localState = (LocalState) pExpandedState;
     LocalState reducedState = localState.reduce();
     return reducedState;
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    LocalState newState = (LocalState)pReducedState;
-    return newState.expand((LocalState)pRootState);
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
+    LocalState newState = (LocalState) pReducedState;
+    return newState.expand((LocalState) pRootState);
   }
 
   @Override
@@ -53,8 +53,8 @@ public class LocalReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
-      Precision pReducedPrecision) {
+  public Precision getVariableExpandedPrecision(
+      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     return pRootPrecision;
   }
 
@@ -64,7 +64,7 @@ public class LocalReducer implements Reducer {
   }
 
   public Object getHashCodeForState(AbstractState pStateKey) {
-    LocalState state = (LocalState)pStateKey;
+    LocalState state = (LocalState) pStateKey;
     return state.hashCode();
   }
 
@@ -74,9 +74,11 @@ public class LocalReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
-      AbstractState pExpandedState, FunctionExitNode pExitLocation) {
+  public AbstractState rebuildStateAfterFunctionCall(
+      AbstractState pRootState,
+      AbstractState pEntryState,
+      AbstractState pExpandedState,
+      FunctionExitNode pExitLocation) {
     return pExpandedState;
   }
-
 }

@@ -21,7 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * This CPA allows to analyze shared data flow
- */
+/** This CPA allows to analyze shared data flow */
 package org.sosy_lab.cpachecker.cpa.local;

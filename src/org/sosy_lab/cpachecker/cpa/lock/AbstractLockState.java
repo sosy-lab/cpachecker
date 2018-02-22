@@ -35,11 +35,12 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
-public abstract class AbstractLockState implements LatticeAbstractState<AbstractLockState>, CompatibleState {
+public abstract class AbstractLockState
+    implements LatticeAbstractState<AbstractLockState>, CompatibleState {
 
   protected final AbstractLockState toRestore;
-  //if we need restore state, we save it here
-  //Used for function annotations like annotate.function_name.restore
+  // if we need restore state, we save it here
+  // Used for function annotations like annotate.function_name.restore
   public AbstractLockState() {
     toRestore = null;
   }
@@ -52,7 +53,7 @@ public abstract class AbstractLockState implements LatticeAbstractState<Abstract
     return getLocks().size();
   }
 
-  //Special hash for BAM, in other cases use iterator
+  // Special hash for BAM, in other cases use iterator
   public abstract Object getHashCodeForState();
 
   public int getCounter(String lockName, String varName) {
@@ -77,10 +78,9 @@ public abstract class AbstractLockState implements LatticeAbstractState<Abstract
 
   @Override
   public boolean isLessOrEqual(AbstractLockState other) {
-    //State is less, if it has the same locks as the other and may be some more
+    // State is less, if it has the same locks as the other and may be some more
 
-    return from(other.getLocks())
-            .allMatch(this.getLocks()::contains);
+    return from(other.getLocks()).allMatch(this.getLocks()::contains);
   }
 
   @Override

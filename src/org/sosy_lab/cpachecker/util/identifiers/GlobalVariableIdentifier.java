@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-
 public class GlobalVariableIdentifier extends VariableIdentifier {
 
   public GlobalVariableIdentifier(String nm, CType t, int dereference) {

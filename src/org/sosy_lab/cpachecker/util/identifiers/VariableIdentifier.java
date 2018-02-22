@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
 public abstract class VariableIdentifier extends SingleIdentifier {
 
   public VariableIdentifier(String nm, CType tp, int dereference) {

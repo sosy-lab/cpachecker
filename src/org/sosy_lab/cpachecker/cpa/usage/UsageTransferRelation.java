@@ -31,7 +31,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,22 +79,23 @@ import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage")
 public class UsageTransferRelation implements TransferRelation {
 
   private final TransferRelation wrappedTransfer;
   private final UsageCPAStatistics statistics;
 
-  @Option(description = "functions, which we don't analize",
-      secure = true)
+  @Option(description = "functions, which we don't analize", secure = true)
   private Set<String> skippedfunctions = null;
 
-  @Option(description = "functions, which are used to bind variables (like list elements are binded to list variable)",
-      secure = true)
+  @Option(
+    description =
+        "functions, which are used to bind variables (like list elements are binded to list variable)",
+    secure = true
+  )
   private Set<String> binderFunctions = null;
 
-  @Option(name="abortfunctions", description="functions, which stops analysis",
-      secure = true)
+  @Option(name = "abortfunctions", description = "functions, which stops analysis", secure = true)
   private Set<String> abortfunctions;
 
   private final CallstackTransferRelation callstackTransfer;
@@ -107,9 +107,13 @@ public class UsageTransferRelation implements TransferRelation {
   private UsageState newState;
   private UsagePrecision precision;
 
-  public UsageTransferRelation(TransferRelation pWrappedTransfer,
-      Configuration config, LogManager pLogger, UsageCPAStatistics s,
-      CallstackTransferRelation transfer) throws InvalidConfigurationException {
+  public UsageTransferRelation(
+      TransferRelation pWrappedTransfer,
+      Configuration config,
+      LogManager pLogger,
+      UsageCPAStatistics s,
+      CallstackTransferRelation transfer)
+      throws InvalidConfigurationException {
     config.inject(this);
     wrappedTransfer = pWrappedTransfer;
     callstackTransfer = transfer;
@@ -118,10 +122,12 @@ public class UsageTransferRelation implements TransferRelation {
     logger = pLogger;
     if (binderFunctions != null) {
       binderFunctionInfo =
-          from(binderFunctions)
-          .toMap(name -> new BinderFunctionInfo(name, config, logger));
-      //BindedFunctions should not be analysed
-      skippedfunctions = skippedfunctions == null ? binderFunctions : Sets.union(skippedfunctions, binderFunctions);
+          from(binderFunctions).toMap(name -> new BinderFunctionInfo(name, config, logger));
+      // BindedFunctions should not be analysed
+      skippedfunctions =
+          skippedfunctions == null
+              ? binderFunctions
+              : Sets.union(skippedfunctions, binderFunctions);
     }
 
     varSkipper = new VariableSkipper(config);
@@ -146,8 +152,9 @@ public class UsageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
 
     statistics.transferRelationTimer.start();
     Collection<AbstractState> result = new ArrayList<>();
@@ -163,20 +170,22 @@ public class UsageTransferRelation implements TransferRelation {
     if (shouldBeSkipped(pCfaEdge)) {
       callstackTransfer.enableRecursiveContext();
       needToReset = true;
-      currentEdge = ((FunctionCallEdge)pCfaEdge).getSummaryEdge();
-      Preconditions.checkNotNull(currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+      currentEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
+      Preconditions.checkNotNull(
+          currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
       logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
     }
 
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.clone();
-    precision = (UsagePrecision)pPrecision;
+    precision = (UsagePrecision) pPrecision;
     handleEdge(pCfaEdge);
 
-    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessorsForEdge(oldWrappedState,
-        precision.getWrappedPrecision(), currentEdge);
+    Collection<? extends AbstractState> newWrappedStates =
+        wrappedTransfer.getAbstractSuccessorsForEdge(
+            oldWrappedState, precision.getWrappedPrecision(), currentEdge);
 
-    //Do not know why, but replacing the loop into lambda greatly decreases the speed
+    // Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
       UsageState resultState = newState.clone(newWrappedState);
       if (resultState != null) {
@@ -193,7 +202,7 @@ public class UsageTransferRelation implements TransferRelation {
 
   private boolean shouldBeSkipped(CFAEdge pCfaEdge) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      String functionName = ((FunctionCallEdge)pCfaEdge).getSuccessor().getFunctionName();
+      String functionName = ((FunctionCallEdge) pCfaEdge).getSuccessor().getFunctionName();
       if (skippedfunctions != null && skippedfunctions.contains(functionName)) {
         return true;
       }
@@ -203,37 +212,41 @@ public class UsageTransferRelation implements TransferRelation {
 
   private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
 
-    switch(pCfaEdge.getEdgeType()) {
+    switch (pCfaEdge.getEdgeType()) {
+      case DeclarationEdge:
+        {
+          CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
+          handleDeclaration(declEdge);
+          break;
+        }
 
-      case DeclarationEdge: {
-        CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-        handleDeclaration(declEdge);
-        break;
-      }
+        // if edge is a statement edge, e.g. a = b + c
+      case StatementEdge:
+        {
+          CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+          handleStatement(statementEdge.getStatement());
+          break;
+        }
 
-      // if edge is a statement edge, e.g. a = b + c
-      case StatementEdge: {
-        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-        handleStatement(statementEdge.getStatement());
-        break;
-      }
+      case AssumeEdge:
+        {
+          visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
+          break;
+        }
 
-      case AssumeEdge: {
-        visitStatement(((CAssumeEdge)pCfaEdge).getExpression(), Access.READ);
-        break;
-      }
-
-      case FunctionCallEdge: {
-        handleFunctionCall((CFunctionCallEdge)pCfaEdge);
-        break;
-      }
+      case FunctionCallEdge:
+        {
+          handleFunctionCall((CFunctionCallEdge) pCfaEdge);
+          break;
+        }
 
       case FunctionReturnEdge:
       case ReturnStatementEdge:
       case BlankEdge:
-      case CallToReturnEdge: {
-        break;
-      }
+      case CallToReturnEdge:
+        {
+          break;
+        }
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
@@ -247,15 +260,17 @@ public class UsageTransferRelation implements TransferRelation {
       /*
        * a = f(b)
        */
-      CFunctionCallExpression right = ((CFunctionCallAssignmentStatement)statement).getRightHandSide();
-      CExpression variable = ((CFunctionCallAssignmentStatement)statement).getLeftHandSide();
+      CFunctionCallExpression right =
+          ((CFunctionCallAssignmentStatement) statement).getRightHandSide();
+      CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
 
       visitStatement(variable, Access.WRITE);
       // expression - only name of function
       handleFunctionCallExpression(variable, right);
 
     } else if (statement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(null, ((CFunctionCallStatement)statement).getFunctionCallExpression());
+      handleFunctionCallExpression(
+          null, ((CFunctionCallStatement) statement).getFunctionCallExpression());
 
     } else {
       throw new HandleCodeException("No function found");
@@ -268,7 +283,7 @@ public class UsageTransferRelation implements TransferRelation {
       // not a variable declaration
       return;
     }
-    CVariableDeclaration decl = (CVariableDeclaration)declEdge.getDeclaration();
+    CVariableDeclaration decl = (CVariableDeclaration) declEdge.getDeclaration();
 
     if (decl.isGlobal()) {
       return;
@@ -277,13 +292,14 @@ public class UsageTransferRelation implements TransferRelation {
     CInitializer init = decl.getInitializer();
 
     if (init == null) {
-      //no assignment
+      // no assignment
       return;
     }
 
     if (init instanceof CInitializerExpression) {
-      CExpression initExpression = ((CInitializerExpression)init).getExpression();
-      //Use EdgeType assignment for initializer expression to avoid mistakes related to expressions "int CPACHECKER_TMP_0 = global;"
+      CExpression initExpression = ((CInitializerExpression) init).getExpression();
+      // Use EdgeType assignment for initializer expression to avoid mistakes related to expressions
+      // "int CPACHECKER_TMP_0 = global;"
       visitStatement(initExpression, Access.READ);
 
       // We do not add usage for currently declared variable
@@ -291,7 +307,8 @@ public class UsageTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCallExpression(final CExpression left, final CFunctionCallExpression fcExpression) {
+  private void handleFunctionCallExpression(
+      final CExpression left, final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
     if (binderFunctions != null && binderFunctions.contains(functionCallName)) {
@@ -305,10 +322,16 @@ public class UsageTransferRelation implements TransferRelation {
       AbstractIdentifier id;
 
       for (int i = 0; i < params.size(); i++) {
-        id = Identifiers.createIdentifier(params.get(i), currentInfo.pInfo.get(i).dereference, getCurrentFunction());
+        id =
+            Identifiers.createIdentifier(
+                params.get(i), currentInfo.pInfo.get(i).dereference, getCurrentFunction());
         id = newState.getLinksIfNecessary(id);
-        UsageInfo usage = UsageInfo.createUsageInfo(currentInfo.pInfo.get(i).access,
-            fcExpression.getFileLocation().getStartingLineNumber(), newState, id);
+        UsageInfo usage =
+            UsageInfo.createUsageInfo(
+                currentInfo.pInfo.get(i).access,
+                fcExpression.getFileLocation().getStartingLineNumber(),
+                newState,
+                id);
         addUsageIfNeccessary(usage);
       }
 
@@ -323,49 +346,53 @@ public class UsageTransferRelation implements TransferRelation {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment)pStatement;
+      CAssignment assignment = (CAssignment) pStatement;
       CExpression left = assignment.getLeftHandSide();
       CRightHandSide right = assignment.getRightHandSide();
 
       visitStatement(left, Access.WRITE);
 
       if (right instanceof CExpression) {
-        visitStatement((CExpression)right, Access.READ);
+        visitStatement((CExpression) right, Access.READ);
 
       } else if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(left, (CFunctionCallExpression)right);
+        handleFunctionCallExpression(left, (CFunctionCallExpression) right);
 
       } else {
-        throw new HandleCodeException("Unrecognised type of right side of assignment: " + assignment.toASTString());
+        throw new HandleCodeException(
+            "Unrecognised type of right side of assignment: " + assignment.toASTString());
       }
 
     } else if (pStatement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(null, ((CFunctionCallStatement)pStatement).getFunctionCallExpression());
+      handleFunctionCallExpression(
+          null, ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
 
     } else if (pStatement instanceof CExpressionStatement) {
-      visitStatement(((CExpressionStatement)pStatement).getExpression(), Access.WRITE);
+      visitStatement(((CExpressionStatement) pStatement).getExpression(), Access.WRITE);
 
     } else {
       throw new HandleCodeException("Unrecognized statement: " + pStatement.toASTString());
     }
   }
 
-  private void linkVariables(final CExpression left, final List<CExpression> params
-      , final Pair<LinkerInfo, LinkerInfo> linkInfo) {
+  private void linkVariables(
+      final CExpression left,
+      final List<CExpression> params,
+      final Pair<LinkerInfo, LinkerInfo> linkInfo) {
     AbstractIdentifier leftId, rightId;
 
     if (linkInfo != null) {
-      //Sometimes these functions are used not only for linkings.
-      //For example, sdlGetFirst also deletes element.
-      //So, if we can't link (no left side), we skip it
+      // Sometimes these functions are used not only for linkings.
+      // For example, sdlGetFirst also deletes element.
+      // So, if we can't link (no left side), we skip it
       leftId = getLinkedIdentifier(linkInfo.getFirst(), left, params);
       rightId = getLinkedIdentifier(linkInfo.getSecond(), left, params);
       linkId(leftId, rightId);
     }
   }
 
-  private AbstractIdentifier getLinkedIdentifier(final LinkerInfo info, final CExpression left
-      , final List<CExpression> params) {
+  private AbstractIdentifier getLinkedIdentifier(
+      final LinkerInfo info, final CExpression left, final List<CExpression> params) {
     CExpression expr;
     if (info.num == 0 && left != null) {
       expr = left;
@@ -398,14 +425,16 @@ public class UsageTransferRelation implements TransferRelation {
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
       id = newState.getLinksIfNecessary(id);
-      UsageInfo usage = UsageInfo.createUsageInfo(pair.getSecond(), expression.getFileLocation().getStartingLineNumber(), newState, id);
+      UsageInfo usage =
+          UsageInfo.createUsageInfo(
+              pair.getSecond(), expression.getFileLocation().getStartingLineNumber(), newState, id);
       addUsageIfNeccessary(usage);
     }
   }
 
   private void addUsageIfNeccessary(UsageInfo usage) {
 
-    //Precise information, using results of shared analysis
+    // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
       return;
     }
@@ -418,18 +447,20 @@ public class UsageTransferRelation implements TransferRelation {
     if (localInfo != null) {
       GeneralIdentifier gId = singleId.getGeneralId();
       if (localInfo.get(gId) == DataType.LOCAL) {
-        logger.log(Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
+        logger.log(
+            Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
         return;
       } else {
         FluentIterable<GeneralIdentifier> composedIds =
             from(singleId.getComposedIdentifiers())
-            .filter(SingleIdentifier.class)
-            .transform(SingleIdentifier::getGeneralId);
+                .filter(SingleIdentifier.class)
+                .transform(SingleIdentifier::getGeneralId);
 
         boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
         boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
         if (isLocal && !isGlobal) {
-          logger.log(Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
+          logger.log(
+              Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
           return;
         }
       }
@@ -440,15 +471,17 @@ public class UsageTransferRelation implements TransferRelation {
     }
 
     if (singleId instanceof LocalVariableIdentifier && singleId.getDereference() <= 0) {
-      //we don't save in statistics ordinary local variables
+      // we don't save in statistics ordinary local variables
       return;
     }
-    if (singleId instanceof StructureIdentifier && !singleId.isGlobal() && !singleId.isDereferenced()) {
-      //skips such cases, as 'a.b'
+    if (singleId instanceof StructureIdentifier
+        && !singleId.isGlobal()
+        && !singleId.isDereferenced()) {
+      // skips such cases, as 'a.b'
       return;
     }
     if (singleId instanceof StructureIdentifier) {
-      singleId = ((StructureIdentifier)singleId).toStructureFieldIdentifier();
+      singleId = ((StructureIdentifier) singleId).toStructureFieldIdentifier();
     }
 
     logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");

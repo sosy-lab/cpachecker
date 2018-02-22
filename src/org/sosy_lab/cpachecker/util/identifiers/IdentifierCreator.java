@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
 
-
 public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentifier, NoException> {
   protected int dereference;
   protected String function;
@@ -51,13 +50,14 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     function = func;
   }
 
-  public static AbstractIdentifier createIdentifier(CSimpleDeclaration decl, String function, int dereference) {
+  public static AbstractIdentifier createIdentifier(
+      CSimpleDeclaration decl, String function, int dereference) {
     Preconditions.checkNotNull(decl);
     String name = decl.getName();
     CType type = decl.getType();
 
     if (decl instanceof CDeclaration) {
-      if (((CDeclaration)decl).isGlobal()) {
+      if (((CDeclaration) decl).isGlobal()) {
         return new GlobalVariableIdentifier(name, type, dereference);
       } else {
         return new LocalVariableIdentifier(name, type, function, dereference);
@@ -67,7 +67,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     } else if (decl instanceof CEnumerator) {
       return new ConstantIdentifier(name, dereference);
     } else {
-      //Composite type
+      // Composite type
       return null;
     }
   }
@@ -110,8 +110,9 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     dereference = (expression.isPointerDereference() ? 1 : 0);
     AbstractIdentifier ownerId = owner.accept(this);
     dereference = oldDeref;
-    StructureIdentifier fullId = new StructureIdentifier(expression.getFieldName(), expression.getExpressionType()
-        , dereference, ownerId);
+    StructureIdentifier fullId =
+        new StructureIdentifier(
+            expression.getFieldName(), expression.getExpressionType(), dereference, ownerId);
     return fullId;
   }
 
@@ -120,9 +121,10 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     CSimpleDeclaration decl = expression.getDeclaration();
 
     if (decl == null) {
-      //In our cil-file it means, that we have function pointer
-      //This data can't be shared (we wouldn't write)
-      return new LocalVariableIdentifier(expression.getName(), expression.getExpressionType(), function, dereference);
+      // In our cil-file it means, that we have function pointer
+      // This data can't be shared (we wouldn't write)
+      return new LocalVariableIdentifier(
+          expression.getName(), expression.getExpressionType(), function, dereference);
     } else {
       return createIdentifier(decl, function, dereference);
     }
@@ -135,7 +137,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     }
     AbstractIdentifier result = expression.getOperand().accept(this);
     if (result instanceof BinaryIdentifier) {
-      return getMainPart((BinaryIdentifier)result);
+      return getMainPart((BinaryIdentifier) result);
     }
     return result;
   }
@@ -145,7 +147,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     ++dereference;
     AbstractIdentifier result = pPointerExpression.getOperand().accept(this);
     if (result instanceof BinaryIdentifier) {
-      return getMainPart((BinaryIdentifier)result);
+      return getMainPart((BinaryIdentifier) result);
     }
     return result;
   }
@@ -168,9 +170,11 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
         main = s1;
       } else if (s1.isPointer() && !s2.isPointer()) {
         main = s2;
-      } else if (s1.getType().getClass() == CSimpleType.class && s2.getType().getClass() != CSimpleType.class) {
+      } else if (s1.getType().getClass() == CSimpleType.class
+          && s2.getType().getClass() != CSimpleType.class) {
         main = s2;
-      } else if (s2.getType().getClass() == CSimpleType.class && s1.getType().getClass() != CSimpleType.class) {
+      } else if (s2.getType().getClass() == CSimpleType.class
+          && s1.getType().getClass() != CSimpleType.class) {
         main = s1;
       }
     }

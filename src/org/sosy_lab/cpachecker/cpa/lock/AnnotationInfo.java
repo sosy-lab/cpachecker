@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
-
 
 public class AnnotationInfo {
   public final String funcName;
@@ -36,13 +34,28 @@ public class AnnotationInfo {
   public final ImmutableMap<String, String> resetLocks;
   public final ImmutableMap<String, String> captureLocks;
 
-  public AnnotationInfo(String name, Map<String, String> free, Map<String, String> restore, Map<String, String> reset
-      , Map<String, String> capture) {
+  public AnnotationInfo(
+      String name,
+      Map<String, String> free,
+      Map<String, String> restore,
+      Map<String, String> reset,
+      Map<String, String> capture) {
     funcName = name;
-    freeLocks = (free == null ? ImmutableMap.copyOf(new HashMap<String, String>()) : ImmutableMap.copyOf(free));
-    restoreLocks = (restore == null ? ImmutableMap.copyOf(new HashMap<String, String>()) : ImmutableMap.copyOf(restore));
-    resetLocks = (reset == null ? ImmutableMap.copyOf(new HashMap<String, String>()) : ImmutableMap.copyOf(reset));
-    captureLocks = (capture == null ? ImmutableMap.copyOf(new HashMap<String, String>()) : ImmutableMap.copyOf(capture));
+    freeLocks =
+        (free == null
+            ? ImmutableMap.copyOf(new HashMap<String, String>())
+            : ImmutableMap.copyOf(free));
+    restoreLocks =
+        (restore == null
+            ? ImmutableMap.copyOf(new HashMap<String, String>())
+            : ImmutableMap.copyOf(restore));
+    resetLocks =
+        (reset == null
+            ? ImmutableMap.copyOf(new HashMap<String, String>())
+            : ImmutableMap.copyOf(reset));
+    captureLocks =
+        (capture == null
+            ? ImmutableMap.copyOf(new HashMap<String, String>())
+            : ImmutableMap.copyOf(capture));
   }
-
 }
