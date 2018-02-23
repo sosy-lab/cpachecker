@@ -64,6 +64,7 @@ public abstract class ConditionFolder {
     FOLD_EXCEPT_LOOPS,
     LOOP_ALWAYS,
     LOOP_BOUND,
+    LOOP_BOUND_SAME_CONTEXT,
     LOOP_SAME_CONTEXT
   }
 
@@ -190,6 +191,8 @@ public abstract class ConditionFolder {
         return new LoopAlwaysFolder(pCfa);
       case LOOP_BOUND:
         return new BoundUnrollingLoopFolder(pCfa, pConfig);
+      case LOOP_BOUND_SAME_CONTEXT:
+        return new BoundUnrollingContextLoopFolder(pCfa, pConfig);
       case LOOP_SAME_CONTEXT:
         return new ContextLoopFolder(pCfa);
       default:
@@ -613,6 +616,98 @@ public abstract class ConditionFolder {
       }
 
       return newLoopBoundID;
+    }
+
+    @Override
+    protected boolean shouldFold(CFANode pLoc) {
+      return loopHeads.contains(pLoc);
+    }
+  }
+
+  @Options(prefix = "residualprogram")
+  private static class BoundUnrollingContextLoopFolder extends StructureFolder<String> {
+
+    private final LoopInfo loopInfo;
+
+    @Option(
+      secure = true,
+      description = "How often may a loop be unrolled before it must be folded",
+      name = "unrollBound"
+    )
+    @IntegerOption(min = 2)
+    private int maxUnrolls = 2;
+
+    private BoundUnrollingContextLoopFolder(final CFA pCfa, final Configuration pConfig)
+        throws InvalidConfigurationException {
+      super(pCfa);
+      pConfig.inject(this);
+      loopInfo = new LoopInfo(pCfa);
+    }
+
+    @Override
+    protected String getRootFoldId(final ARGState pRoot) {
+      CFANode rootLoc = AbstractStates.extractLocation(pRoot);
+      if (shouldFold(rootLoc)) {
+        return "|L" + rootLoc.getNodeNumber() + ":1L";
+      }
+      return "";
+    }
+
+    @Override
+    protected String adaptID(CFAEdge pEdge, String pFoldID, ARGState pChild) {
+      String newLoopBoundContextID = pFoldID;
+      int prevLoopIt = 0;
+      int indexCol;
+
+      // leave loop
+      if (loopInfo.leaveLoop(pEdge) && newLoopBoundContextID.contains("|")) {
+        newLoopBoundContextID =
+            newLoopBoundContextID.substring(0, newLoopBoundContextID.lastIndexOf("|"));
+      }
+
+      // next loop iteration
+      if (loopInfo.startNewLoopIteation(pEdge) && newLoopBoundContextID.contains("|")) {
+        indexCol = newLoopBoundContextID.lastIndexOf(":");
+        prevLoopIt =
+            Integer.parseInt(
+                newLoopBoundContextID.substring(
+                    indexCol + 1, newLoopBoundContextID.indexOf("L", indexCol)));
+        newLoopBoundContextID =
+            newLoopBoundContextID.substring(0, newLoopBoundContextID.lastIndexOf("|"));
+      }
+
+      if (pEdge instanceof FunctionReturnEdge && newLoopBoundContextID.contains("/")) {
+        newLoopBoundContextID =
+            newLoopBoundContextID.substring(0, newLoopBoundContextID.lastIndexOf("/"));
+      }
+      if (pEdge instanceof FunctionCallEdge) {
+        newLoopBoundContextID =
+            newLoopBoundContextID
+                + "/"
+                + "N"
+                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
+                + "N";
+      }
+
+      // enter loop or start next iteration
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
+        newLoopBoundContextID +=
+            "|L"
+                + pEdge.getSuccessor().getNodeNumber()
+                + ":"
+                + Math.min(prevLoopIt + 1, maxUnrolls)
+                + "L";
+      }
+
+      if (pEdge instanceof AssumeEdge) {
+        if (((AssumeEdge) pEdge).getTruthAssumption()) {
+          newLoopBoundContextID += "1";
+        } else {
+          newLoopBoundContextID += "0";
+        }
+      }
+
+      return newLoopBoundContextID;
     }
 
     @Override
