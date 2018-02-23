@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
@@ -109,8 +108,6 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     config.inject(this);
     cpa = pCpa;
     UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
-    BAMCPA bamcpa = CPAs.retrieveCPA(pCpa, BAMCPA.class);
-    uCpa.getStats().setBAMTransfer(bamcpa.getTransferRelation());
     logger = uCpa.getLogger();
     transfer = pTransfer;
   }

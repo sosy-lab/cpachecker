@@ -25,24 +25,22 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
-
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 
 public class BAMSubgraphIterator {
 
   private final ARGState targetState;
   private final BAMMultipleCEXSubgraphComputer subgraphComputer;
-  private final Multimap<AbstractState, AbstractState> reducedToExpanded;
+  private final BAMDataManager data;
 
   //Internal state of iterator:
   //First state of previously constructed path
@@ -50,11 +48,11 @@ public class BAMSubgraphIterator {
   //Iterators for branching points
   private Map<BackwardARGState, Iterator<ARGState>> toCallerStatesIterator = new HashMap<>();
 
-  BAMSubgraphIterator(ARGState pTargetState, BAMMultipleCEXSubgraphComputer sComputer,
-      Multimap<AbstractState, AbstractState> pReducedToExpand) {
+  BAMSubgraphIterator(
+      ARGState pTargetState, BAMMultipleCEXSubgraphComputer sComputer, BAMDataManager pData) {
     targetState = pTargetState;
     subgraphComputer = sComputer;
-    reducedToExpanded = pReducedToExpand;
+    data = pData;
     firstState = null;
   }
 
@@ -135,10 +133,10 @@ public class BAMSubgraphIterator {
       ARGState reducedStateInARG = forkChildInARG.getParents().iterator().next();
 
       iterator =
-      from(reducedToExpanded.get(reducedStateInARG))
-        .skip(1)  // skip already traversed parent of forkState
-        .transform(s -> (ARGState) s)
-        .iterator();
+          from(data.getNonReducedInitialStates(reducedStateInARG))
+              .skip(1) // skip already traversed parent of forkState
+              .transform(s -> (ARGState) s)
+              .iterator();
 
       //We get this fork the second time (the first one was from path computer)
       //Found the caller, we have explored the first time
@@ -176,12 +174,10 @@ public class BAMSubgraphIterator {
       //No matter which parent to take - interesting one is single anyway
       ARGState parentInARG = currentStateInARG.getParents().iterator().next();
 
-      //Check if it is an exit state, we are waiting
-      //Recursion is not supported here!
+      // Check if it is an exit state, we are waiting
+      // Recursion is not supported here!
 
-      if (reducedToExpanded.containsKey(parentInARG) &&
-          reducedToExpanded.get(parentInARG).size() > 1) {
-
+      if (data.getNonReducedInitialStates(parentInARG).size() > 1) {
         assert parentInARG.getParents().size() == 0;
 
         //Now we should check, that there is no corresponding exit state in the path

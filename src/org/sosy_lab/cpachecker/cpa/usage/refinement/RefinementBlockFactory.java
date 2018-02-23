@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -96,8 +95,7 @@ public class RefinementBlockFactory {
 
   @SuppressWarnings("unchecked")
   public Refiner create() throws InvalidConfigurationException {
-    BAMCPA bam = CPAs.retrieveCPA(cpa, BAMCPA.class);
-    BAMTransferRelation bamTransfer = bam.getTransferRelation();
+    BAMCPA bamCpa = CPAs.retrieveCPA(cpa, BAMCPA.class);
     UsageCPA usCPA = CPAs.retrieveCPA(cpa, UsageCPA.class);
     LogManager logger = usCPA.getLogger();
 
@@ -111,8 +109,12 @@ public class RefinementBlockFactory {
       if (currentBlockType == currentType.innerType) {
         switch (currentType) {
           case IdentifierIterator:
-            currentBlock = new IdentifierIterator((ConfigurableRefinementBlock<SingleIdentifier>) currentBlock,
-                config, cpa, bamTransfer);
+            currentBlock =
+                new IdentifierIterator(
+                    (ConfigurableRefinementBlock<SingleIdentifier>) currentBlock,
+                    config,
+                    cpa,
+                    bamCpa.getTransferRelation());
             currentBlockType = currentInnerBlockType.ReachedSet;
             break;
 
@@ -128,8 +130,12 @@ public class RefinementBlockFactory {
             break;
 
           case PathIterator:
-            currentBlock = new PathPairIterator((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                bamTransfer, pathEquation);
+            currentBlock =
+                new PathPairIterator(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                        currentBlock,
+                    bamCpa,
+                    pathEquation);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 

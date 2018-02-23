@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -71,20 +71,25 @@ public class UsageCPAStatistics extends AbstractStatistics {
   private ErrorTracePrinter errPrinter;
   private final CFA cfa;
 
-  private BAMTransferRelation bamTransfer;
+  private final BAMCPA bamCpa;
 
   public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
 
   public UsageCPAStatistics(
-      Configuration pConfig, LogManager pLogger, CFA pCfa, LockTransferRelation lTransfer)
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCfa,
+      LockTransferRelation lTransfer,
+      BAMCPA pBamCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     lockTransfer = lTransfer;
     config = pConfig;
     cfa = pCfa;
+    bamCpa = pBamCpa;
   }
 
   @Override
@@ -94,7 +99,7 @@ public class UsageCPAStatistics extends AbstractStatistics {
       printUnsafesTimer.start();
       if (errPrinter == null) {
         BAMMultipleCEXSubgraphComputer computer =
-            bamTransfer.createBAMMultipleSubgraphComputer(ARGState::getStateId);
+            bamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
         if (outputFileType == OutputFileType.KLEVER) {
           errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
         } else if (outputFileType == OutputFileType.KLEVER_OLD) {
@@ -117,10 +122,6 @@ public class UsageCPAStatistics extends AbstractStatistics {
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
     }
-  }
-
-  public void setBAMTransfer(BAMTransferRelation t) {
-    bamTransfer = t;
   }
 
   @Override

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,15 +51,12 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
-  private final Multimap<AbstractState, AbstractState> reducedToExpanded;
   private Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
 
   BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA,
-      Multimap<AbstractState, AbstractState> pReduced,
       Function<ARGState, Integer> idExtractor) {
     super(bamCPA);
-    this.reducedToExpanded = pReduced;
     getStateId = idExtractor;
   }
 
@@ -103,8 +99,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
       inCallstackFunction = false;
       if (currentState.getParents().isEmpty()) {
-        //Find correct expanded state
-        Collection<AbstractState> expandedStates = reducedToExpanded.get(currentState);
+        // Find correct expanded state
+        Collection<AbstractState> expandedStates = data.getNonReducedInitialStates(currentState);
 
         if (expandedStates == null) {
           // children are a normal successors -> create an connection from parent to children
@@ -236,6 +232,6 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
    */
 
   public BAMSubgraphIterator iterator(ARGState target) {
-    return new BAMSubgraphIterator(target, this, reducedToExpanded);
+    return new BAMSubgraphIterator(target, this, data);
   }
 }

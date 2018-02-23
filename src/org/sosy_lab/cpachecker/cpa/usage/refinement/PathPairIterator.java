@@ -38,9 +38,9 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphIterator;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementBlockFactory.PathEquation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -49,12 +49,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public class PathPairIterator extends
     GenericIterator<Pair<UsageInfo, UsageInfo>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
   private final Set<List<Integer>> refinedStates = new HashSet<>();
-  private final BAMTransferRelation transfer;
+  private final BAMCPA bamCpa;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
   private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
 
@@ -75,10 +74,13 @@ public class PathPairIterator extends
   //internal state
   private ExtendedARGPath firstPath = null;
 
-  public PathPairIterator(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      BAMTransferRelation bamTransfer, PathEquation type) throws InvalidConfigurationException {
+  public PathPairIterator(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
+      BAMCPA pBamCpa,
+      PathEquation type)
+      throws InvalidConfigurationException {
     super(pWrapper);
-    transfer = bamTransfer;
+    bamCpa = pBamCpa;
 
     switch (type) {
       case ARGStateId:
@@ -101,7 +103,7 @@ public class PathPairIterator extends
     firstPath = null;
     // subgraph computer need partitioning, which is not built at creation.
     // Thus, we move the creation of subgraphcomputer here
-    subgraphComputer = transfer.createBAMMultipleSubgraphComputer(idExtractor);
+    subgraphComputer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
     targetToPathIterator.clear();
   }
 
