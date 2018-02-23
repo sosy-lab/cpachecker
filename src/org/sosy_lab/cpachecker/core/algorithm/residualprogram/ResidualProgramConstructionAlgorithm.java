@@ -142,7 +142,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private final CFA cfa;
   private final Specification spec;
-  private final Configuration config;
+  private final Configuration configuration;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdown;
 
@@ -177,7 +177,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     logger = pLogger;
     shutdown = pShutdown;
     spec = pSpec;
-    config = pConfig;
+    configuration = pConfig;
     translator = new ARGToCTranslator(logger, pConfig);
 
     checkConfiguration();
@@ -497,7 +497,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       statWriter.put("Time for C translation", translationTimer);
 
-      if (collectResidualProgramSizeStatistics || exportPixelGraphic && exportPixelFile != null) {
+      if (collectResidualProgramSizeStatistics || (exportPixelGraphic && exportPixelFile != null)) {
         CFA residProg = getResidualProgram(pReached.getFirstState());
 
         if (residProg != null) {
@@ -511,7 +511,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           }
           if (exportPixelGraphic && exportPixelFile != null) {
             try {
-              new CFAToPixelsWriter(config).write(residProg.getMainFunction(), exportPixelFile);
+              new CFAToPixelsWriter(configuration).write(residProg.getMainFunction(), exportPixelFile);
             } catch (IOException | InvalidConfigurationException e) {
               logger.logUserException(Level.WARNING, e, "Pixel export of residual program failed.");
             }
