@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -45,8 +45,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-
-import java.util.logging.Level;
 
 
 public class TargetLocationProviderImpl implements TargetLocationProvider {
@@ -75,7 +73,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
       Configuration configuration = configurationBuilder.build();
 
-      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration);
+      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logManager);
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
       final ConfigurableProgramAnalysis cpa =
           cpaBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());

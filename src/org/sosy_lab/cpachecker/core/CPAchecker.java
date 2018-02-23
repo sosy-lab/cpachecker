@@ -43,6 +43,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -78,7 +79,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -321,6 +321,7 @@ public class CPAchecker {
           } finally {
             stats.cpaCreationTime.stop();
           }
+          stats.setCPA(cpa);
 
           if (cpa instanceof StatisticsProvider) {
             ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
@@ -359,7 +360,7 @@ public class CPAchecker {
         AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
         stats.resultAnalysisTime.start();
-        Set<Property> violatedProperties = findViolatedProperties(reached);
+        Collection<Property> violatedProperties = reached.getViolatedProperties();
         if (!violatedProperties.isEmpty()) {
           violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
 
@@ -501,18 +502,6 @@ public class CPAchecker {
       // unregister management interface for CPAchecker
       mxbean.unregister();
     }
-  }
-
-  private Set<Property> findViolatedProperties(final ReachedSet reached) {
-
-    final Set<Property> result = Sets.newHashSet();
-
-    for (AbstractState e : from(reached).filter(IS_TARGET_STATE)) {
-      Targetable t = (Targetable) e;
-      result.addAll(t.getViolatedProperties());
-    }
-
-    return result;
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {

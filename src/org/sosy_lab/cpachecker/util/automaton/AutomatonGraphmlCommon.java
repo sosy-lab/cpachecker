@@ -374,8 +374,10 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
 
+      int nSpecs = 0;
       for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
         graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
+        ++nSpecs;
       }
 
       for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
@@ -383,7 +385,13 @@ public class AutomatonGraphmlCommon {
             createDataElement(
                 KeyDef.SPECIFICATION,
                 MoreFiles.asCharSource(specFile, Charsets.UTF_8).read().trim()));
+        ++nSpecs;
       }
+
+      if (nSpecs == 0) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, "TRUE"));
+      }
+
       for (Path inputWitness : pVerificationTaskMetaData.getInputWitnessFiles()) {
         graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, computeHash(inputWitness)));
       }

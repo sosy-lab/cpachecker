@@ -31,6 +31,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
+/**
+ * The BitvectorManager computes more expensive (arithmetic) operations based on bitvectors from
+ * bits (predicates, regions) from the given {@link RegionManager}.
+ *
+ * <p>This class is thread-safe, iff the delegated {@link RegionManager} is thread-safe.
+ */
 public class BitvectorManager {
 
   private final RegionManager rmgr;

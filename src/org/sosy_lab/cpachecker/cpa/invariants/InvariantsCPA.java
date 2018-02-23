@@ -468,6 +468,10 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     conditionAdjuster.adjustReachedSet(pReachedSet);
   }
 
+  public boolean isLikelyLongRunning() {
+    return this.options.abstractionStateFactory == AbstractionStrategyFactories.NEVER;
+  }
+
   private static <T> boolean reachesLimit(Collection<T> pCollection, int pLimit) {
     return pLimit >= 0 && pCollection.size() >= pLimit;
   }

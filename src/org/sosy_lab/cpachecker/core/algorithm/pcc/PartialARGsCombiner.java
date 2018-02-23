@@ -133,7 +133,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           return status;
         }
 
-        if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
+        if (reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;
@@ -192,7 +192,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<AbstractState> initialStates = initStates.getSecond();
 
     try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config).create());
+      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
       return false;

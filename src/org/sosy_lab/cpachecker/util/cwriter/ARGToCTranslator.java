@@ -247,11 +247,10 @@ public class ARGToCTranslator {
 
     translate(argRoot);
 
-    return generateCCode(includeHeader);
+    return generateCCode();
   }
 
-
-  private String generateCCode(boolean includeHeader) {
+  private String generateCCode() {
     StringBuilder buffer = new StringBuilder();
 
     if (includeHeader) {

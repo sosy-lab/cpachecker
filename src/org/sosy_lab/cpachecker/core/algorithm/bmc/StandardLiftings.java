@@ -93,6 +93,11 @@ enum StandardLiftings implements Lifting {
       Iterable<Object> pAssertionIds,
       UnsatCallback pUnsatCallback)
       throws CPATransferException, InterruptedException, SolverException {
+
+    // Note that at this point, the formula on the stack *may* already be unsatisfiable
+    // in cases where the candidate invariant can in fact be refuted by a counterexample
+    // of length k+1.
+
     Iterator<? extends CandidateInvariant> literalIterator = pCtiLiterals.iterator();
     boolean isUnsat = false;
     boolean checked = false;

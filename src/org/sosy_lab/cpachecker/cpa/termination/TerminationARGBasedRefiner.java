@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -75,7 +72,7 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   public static TerminationARGBasedRefiner create(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
     TerminationCPA terminationCPA = CPAs.retrieveCPAOrFail(pCpa, TerminationCPA.class, TerminationCPA.class);
     Refiner.Factory refinerFactory =
         new TerminationARGBasedRefinerConfig(terminationCPA.getConfig()).refinerFactory;

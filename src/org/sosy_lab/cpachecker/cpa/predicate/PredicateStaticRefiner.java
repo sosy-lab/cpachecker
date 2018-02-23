@@ -496,12 +496,14 @@ public class PredicateStaticRefiner extends StaticRefiner
         globalPredicates);
   }
 
-  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException, InterruptedException {
+  private Collection<AbstractionPredicate> assumeEdgeToPredicates(
+      boolean pAtomicPredicates, AssumeEdge assume)
+      throws CPATransferException, InterruptedException {
     BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
         pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
     Collection<AbstractionPredicate> preds;
-    if (atomicPredicates) {
+    if (pAtomicPredicates) {
       preds = predAbsManager.getPredicatesForAtomsOf(relevantAssumesFormula);
     } else {
       preds = ImmutableList.of(predAbsManager.getPredicateFor(relevantAssumesFormula));

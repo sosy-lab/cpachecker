@@ -75,7 +75,7 @@ public class SMGFeasibilityChecker {
   }
 
   private ReachabilityResult isReachable(
-      ARGPath pPath, SMGState pStartingPoint, SMGPrecision precision) throws CPAException {
+      ARGPath pPath, SMGState pStartingPoint, SMGPrecision pPrecision) throws CPAException {
 
  // We don't want sideffects of smg transfer relation for smg state propagating.
     SMGState start = new SMGState(pStartingPoint);
@@ -98,7 +98,7 @@ public class SMGFeasibilityChecker {
 //        }
 
         Collection<SMGState> successors =
-            strongestPostOp.getStrongestPost(next, precision, edge);
+            strongestPostOp.getStrongestPost(next, pPrecision, edge);
 
 //        c = 0;
 //

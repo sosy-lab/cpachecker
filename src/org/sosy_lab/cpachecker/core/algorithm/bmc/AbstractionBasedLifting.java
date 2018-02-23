@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.FluentIterable;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -230,14 +231,12 @@ public class AbstractionBasedLifting implements Lifting {
           } else {
             return unsatLiftedConcreteCTI;
           }
-          if (!bfmgr.isTrue(interpolant)) {
-            refinePrecision(
-                pAbstractionStrategy,
-                pPam,
-                pFMGR,
-                pBlockedConcreteCti.getCti().getLocation(),
-                interpolant);
-          }
+          refinePrecision(
+              pAbstractionStrategy,
+              pPam,
+              pFMGR,
+              pBlockedConcreteCti.getCti().getLocation(),
+              interpolant);
 
           SymbolicCandiateInvariant refinedBlockingClause =
               SymbolicCandiateInvariant.makeSymbolicInvariant(
@@ -263,6 +262,8 @@ public class AbstractionBasedLifting implements Lifting {
     pAbstractionStrategy.refinePrecision(
         pPam,
         pLocation,
-        SymbolicCandiateInvariant.getConjunctionOperands(pFMGR, pInterpolant, true));
+        FluentIterable.from(
+                SymbolicCandiateInvariant.getConjunctionOperands(pFMGR, pInterpolant, true))
+            .filter(f -> !pFMGR.getBooleanFormulaManager().isTrue(f)));
   }
 }

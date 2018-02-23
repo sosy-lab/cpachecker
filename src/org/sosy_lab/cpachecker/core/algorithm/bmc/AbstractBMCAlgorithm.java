@@ -32,31 +32,37 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -68,6 +74,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustmentEventSubscriber;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -83,6 +90,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -99,11 +107,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="bmc")
-abstract class AbstractBMCAlgorithm implements StatisticsProvider {
+@Options(prefix = "bmc")
+abstract class AbstractBMCAlgorithm
+    implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
   static final Predicate<AbstractState> IS_STOP_STATE =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
@@ -128,6 +138,22 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="Strategy for generating auxiliary invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
 
+  @Option(
+    secure = true,
+    description =
+        "Controls how long the invariant generator is allowed to run before the k-induction procedure starts."
+  )
+  private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
+      InvariantGeneratorHeadStartFactories.NONE;
+
+  @Option(
+    secure = true,
+    description =
+        "k-induction configuration to be used as an invariant generator for k-induction (ki-ki(-ai))."
+  )
+  @FileOption(value = Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path invariantGeneratorConfig = null;
+
   @Option(secure=true, description="Propagates the interrupts of the invariant generator.")
   private boolean propagateInvGenInterrupts = false;
 
@@ -145,6 +171,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
+  private final InvariantGeneratorHeadStart invariantGeneratorHeadStart;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
@@ -166,6 +193,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
+
+  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+      new CopyOnWriteArrayList<>();
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -212,6 +242,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
+      invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
@@ -240,8 +271,24 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (pIsInvariantGenerator && addInvariantsByInduction) {
       invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
     }
-    invariantGenerator = invariantGenerationStrategy.createInvariantGenerator(
-            pConfig,
+    Configuration invGenConfig = pConfig;
+    if (invariantGeneratorConfig != null) {
+      try {
+        invGenConfig =
+            Configuration.builder()
+                .copyFrom(invGenConfig)
+                .loadFromFile(invariantGeneratorConfig)
+                .build();
+      } catch (IOException e) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "Cannot load configuration from file %s", invariantGeneratorConfig),
+            e);
+      }
+    }
+    invariantGenerator =
+        invariantGenerationStrategy.createInvariantGenerator(
+            invGenConfig,
             pLogger,
             pReachedSetFactory,
             invariantGeneratorShutdownManager,
@@ -249,6 +296,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             pSpecification,
             pAggregatedReachedSets,
             targetLocationProvider);
+    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
+      conditionAdjustmentEventSubscribers.add(
+          (ConditionAdjustmentEventSubscriber) invariantGenerator);
+    }
+    invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
@@ -292,6 +344,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS);
         @SuppressWarnings("resource")
             KInductionProver kInductionProver = createInductionProver()) {
+      invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
         shutdownNotifier.shutdownIfNecessary();
@@ -398,10 +451,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     shutdownNotifier.shutdownIfNecessary();
 
     boolean sound = true;
-    Iterable<CandidateInvariant> artificialConjunctions =
-        buildArtificialConjunctions(candidates);
-    Iterable<CandidateInvariant> candidatesToCheck =
-        Iterables.concat(candidates, artificialConjunctions);
+    Iterable<CandidateInvariant> candidatesToCheck = candidates;
     for (CandidateInvariant candidate : candidatesToCheck) {
       // No need to check the same clause twice
       if (candidate instanceof Obligation) {
@@ -411,8 +461,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         pCtiBlockingClauses.remove(candidate);
       }
 
-      boolean extractCtiBlockingClauses =
-          usePropertyDirection && !(candidate instanceof Obligation);
+      boolean extractCtiBlockingClauses = usePropertyDirection;
 
       Lifting lifting =
           extractCtiBlockingClauses
@@ -440,12 +489,35 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         }
       } else {
         sound = false;
-        if (extractCtiBlockingClauses) {
+
+        if (candidate instanceof Obligation) {
+          Obligation obligation = (Obligation) candidate;
+          List<SymbolicCandiateInvariant> weakenings = obligation.getWeakenings();
+          for (SymbolicCandiateInvariant weakening : weakenings) {
+            inductionResult =
+                kInductionProver.check(
+                    Iterables.concat(confirmedCandidates, Collections.singleton(weakening)),
+                    k,
+                    weakening,
+                    checkedKeys,
+                    InvariantStrengthenings.noStrengthening(),
+                    lifting);
+            if (inductionResult.isSuccessful()) {
+              Iterables.addAll(
+                  confirmedCandidates,
+                  CandidateInvariantCombination.getConjunctiveParts(weakening));
+              candidateGenerator.confirmCandidates(
+                  CandidateInvariantCombination.getConjunctiveParts(weakening));
+              break;
+            }
+          }
+        }
+
+        if (!inductionResult.isSuccessful() && extractCtiBlockingClauses) {
           FluentIterable<? extends CandidateInvariant> causes =
               from(CandidateInvariantCombination.getConjunctiveParts(candidate));
           if (causes.anyMatch(Obligation.class::isInstance)) {
-            causes =
-                causes.filter(Obligation.class).filter(obligation -> obligation.getDepth() < 3);
+            causes = causes.filter(Obligation.class);
           }
           if (!causes.isEmpty()) {
             for (SymbolicCandiateInvariant badStateBlockingClause :
@@ -500,7 +572,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       logger.log(
           Level.INFO,
           "Terminating because none of the following CPAs' precision can be adjusted any further ",
-          Joiner.on(", ").join(conditionCPAs.transform(cpa -> cpa.getClass().getSimpleName())));
+          Joiner.on(", ")
+              .join(
+                  conditionCPAs.transform(
+                      conditionCpa -> conditionCpa.getClass().getSimpleName())));
       return false;
     }
     return !Iterables.isEmpty(conditionCPAs);
@@ -560,11 +635,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       BooleanFormula liftedCti = bfmgr.not(blockingClause.getPlainFormula(fmgr));
 
       // Add literals until unsat
-      Queue<BooleanFormula> literals =
-          new PriorityQueue<>(
-              (l1, l2) ->
-                  Integer.compare(
-                      fmgr.extractVariableNames(l2).size(), fmgr.extractVariableNames(l1).size()));
+      Queue<BooleanFormula> literals = new PriorityQueue<>(new BooleanFormulaComparator(fmgr));
       Iterables.addAll(
           literals, SymbolicCandiateInvariant.getConjunctionOperands(fmgr, liftedCti, true));
 
@@ -623,7 +694,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       if (refinedClause != obligation.getBlockingClause()) {
         obligationIterator.remove();
         if (refinedClause != null) {
-          newObligations.add(obligation.refineWith(refinedClause));
+          newObligations.add(obligation.refineWith(fmgr, refinedClause));
         } else {
           if (obligation.getDepth() == 0
               && obligation.getRootCause() instanceof TargetLocationCandidateInvariant) {
@@ -743,6 +814,24 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 
+  private static final class BooleanFormulaComparator implements Comparator<BooleanFormula> {
+
+    private final FormulaManagerView fmgr;
+
+    public BooleanFormulaComparator(FormulaManagerView pFmgr) {
+      fmgr = Objects.requireNonNull(pFmgr);
+    }
+
+    @Override
+    public int compare(BooleanFormula pO1, BooleanFormula pO2) {
+      Set<String> leftVariableNames = fmgr.extractVariableNames(pO1);
+      Set<String> rightVariableNames = fmgr.extractVariableNames(pO2);
+      return ComparisonChain.start()
+          .compare(rightVariableNames.size(), leftVariableNames.size())
+          .result();
+    }
+  }
+
   public static enum InvariantGeneratorFactory {
 
     INDUCTION {
@@ -842,109 +931,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
   }
 
-  private Iterable<CandidateInvariant> buildArtificialConjunctions(
-      final Set<CandidateInvariant> pCandidateInvariants) {
-    FluentIterable<CandidateInvariant> remainingLoopHeadCandidateInvariants =
-        from(pCandidateInvariants)
-            .filter(
-                pLocationFormulaInvariant -> {
-                  return cfa.getLoopStructure().isPresent()
-                      && cfa.getLoopStructure()
-                          .get()
-                          .getAllLoopHeads()
-                          .stream()
-                          .anyMatch(lh -> pLocationFormulaInvariant.appliesTo(lh));
-                })
-            .filter(Predicates.not(Predicates.in(confirmedCandidates)));
-    if (remainingLoopHeadCandidateInvariants.size() <= 1) {
-      return Collections.emptySet();
-    }
-
-    Multimap<String, CandidateInvariant> functionInvariants = HashMultimap.create();
-    Set<CandidateInvariant> others = new HashSet<>();
-    for (CandidateInvariant locationFormulaInvariant : remainingLoopHeadCandidateInvariants) {
-      if (locationFormulaInvariant instanceof SingleLocationFormulaInvariant) {
-        functionInvariants.put(
-            ((SingleLocationFormulaInvariant) locationFormulaInvariant)
-                .getLocation()
-                .getFunctionName(),
-            locationFormulaInvariant);
-      } else {
-        others.add(locationFormulaInvariant);
-      }
-    }
-    for (String key : new ArrayList<>(functionInvariants.keys())) {
-      functionInvariants.putAll(key, others);
-    }
-
-    Iterator<Map.Entry<String, Collection<CandidateInvariant>>> functionInvariantsEntryIterator =
-        functionInvariants.asMap().entrySet().iterator();
-
-    return () ->
-        new Iterator<CandidateInvariant>() {
-
-          private boolean allComputed = false;
-
-          private @Nullable CandidateInvariant next = null;
-
-          @Override
-          public boolean hasNext() {
-            if (next != null) {
-              return true;
-            }
-
-            // Create the next conjunction over function candidates
-            while (next == null && functionInvariantsEntryIterator.hasNext()) {
-              assert !allComputed;
-              Map.Entry<String, Collection<CandidateInvariant>> functionInvariantsEntry =
-                  functionInvariantsEntryIterator.next();
-              // We want at least two operands, but less than "all"; "all" comes separately later
-              if (functionInvariantsEntry.getValue().size() > 1
-                  && functionInvariantsEntry.getValue().size()
-                      < remainingLoopHeadCandidateInvariants.size()) {
-                // Only now, directly before it is used, compute the final set of operands for the
-                // conjunction
-                Set<CandidateInvariant> remainingFunctionCandidateInvariants =
-                    remainingLoopHeadCandidateInvariants
-                        .filter(
-                            pCandidateInvariant -> {
-                              if (pCandidateInvariant instanceof SingleLocationFormulaInvariant) {
-                                return ((SingleLocationFormulaInvariant) pCandidateInvariant)
-                                    .getLocation()
-                                    .getFunctionName()
-                                    .equals(functionInvariantsEntry.getKey());
-                              }
-                              return true;
-                            })
-                        .toSet();
-                // Create the conjunction only if there are actually at least two operands
-                if (remainingFunctionCandidateInvariants.size() > 1) {
-                  next = CandidateInvariantCombination.conjunction(remainingFunctionCandidateInvariants);
-                }
-              }
-            }
-
-            // Create the conjunction over all operands, if we have not done so yet
-            if (next == null && !allComputed && remainingLoopHeadCandidateInvariants.size() > 1) {
-              allComputed = true;
-              next = CandidateInvariantCombination.conjunction(remainingLoopHeadCandidateInvariants);
-            }
-
-            return next != null;
-          }
-
-          @Override
-          public CandidateInvariant next() {
-            if (!hasNext()) {
-              throw new NoSuchElementException("There is no next element.");
-            }
-            CandidateInvariant result = next;
-            next = null;
-            return result;
-          }
-        };
-  }
-
   private Predicate<CandidateInvariant> getCandidateApplicabilityPredicate(
       ReachedSet pReached, Set<Object> pCheckedKeys) {
     Map<Loop, Integer> reachedK;
@@ -996,6 +982,20 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     };
   }
 
+  @Override
+  public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+    for (ConditionAdjustmentEventSubscriber caes : conditionAdjustmentEventSubscribers) {
+      caes.adjustmentSuccessful(pCpa);
+    }
+  }
+
+  @Override
+  public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+    for (ConditionAdjustmentEventSubscriber caes : conditionAdjustmentEventSubscribers) {
+      caes.adjustmentRefused(pCpa);
+    }
+  }
+
   private static class Obligation implements CandidateInvariant, Comparable<Obligation> {
 
     private final CandidateInvariant causingCandidateInvariant;
@@ -1004,9 +1004,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     private final SymbolicCandiateInvariant blockingClause;
 
+    private final List<SymbolicCandiateInvariant> weakenings;
+
     private int hashCode = 0;
 
-    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+    private Obligation(
+        CandidateInvariant pCause,
+        SymbolicCandiateInvariant pBlockingClause,
+        List<SymbolicCandiateInvariant> pStrengthening) {
       if (pCause instanceof Obligation) {
         causingObligation = (Obligation) pCause;
         causingCandidateInvariant = causingObligation.causingCandidateInvariant;
@@ -1015,6 +1020,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         causingObligation = null;
       }
       blockingClause = Objects.requireNonNull(pBlockingClause);
+      weakenings = ImmutableList.copyOf(pStrengthening);
+    }
+
+    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+      this(pCause, pBlockingClause, Collections.emptyList());
     }
 
     public int getDepth() {
@@ -1041,11 +1051,45 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       return blockingClause;
     }
 
-    public Obligation refineWith(SymbolicCandiateInvariant pRefinedBlockingClause) {
-      if (causingObligation == null) {
-        return new Obligation(causingCandidateInvariant, pRefinedBlockingClause);
+    public List<SymbolicCandiateInvariant> getWeakenings() {
+      return weakenings;
+    }
+
+    public Obligation refineWith(
+        FormulaManagerView pFmgr, SymbolicCandiateInvariant pRefinedBlockingClause)
+        throws InterruptedException {
+      if (pRefinedBlockingClause == blockingClause) {
+        return this;
       }
-      return new Obligation(causingObligation, pRefinedBlockingClause);
+
+      BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+      Set<BooleanFormula> reducedLiftedCti =
+          from(SymbolicCandiateInvariant.getConjunctionOperands(
+                  pFmgr, bfmgr.not(pRefinedBlockingClause.getPlainFormula(pFmgr)), true))
+              .toSet();
+      List<BooleanFormula> remainingLiterals =
+          from(SymbolicCandiateInvariant.getConjunctionOperands(
+                  pFmgr, bfmgr.not(blockingClause.getPlainFormula(pFmgr)), true))
+              .filter(not(Predicates.in(reducedLiftedCti)))
+              .toList();
+      BooleanFormula strengthened = bfmgr.and(reducedLiftedCti);
+      List<SymbolicCandiateInvariant> weakenedInvariants =
+          new ArrayList<>(remainingLiterals.size());
+      for (BooleanFormula remainingLiteral : remainingLiterals) {
+        strengthened = bfmgr.and(strengthened, remainingLiteral);
+        weakenedInvariants.add(
+            SymbolicCandiateInvariant.makeSymbolicInvariant(
+                blockingClause.getApplicableLocations(),
+                blockingClause.getStateFilter(),
+                bfmgr.not(strengthened),
+                pFmgr));
+      }
+
+      if (causingObligation == null) {
+        return new Obligation(
+            causingCandidateInvariant, pRefinedBlockingClause, weakenedInvariants);
+      }
+      return new Obligation(causingObligation, pRefinedBlockingClause, weakenedInvariants);
     }
 
     @Override
@@ -1054,9 +1098,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         return hashCode;
       }
       if (causingObligation != null) {
-        return hashCode = Objects.hash(causingObligation, blockingClause);
+        return hashCode = Objects.hash(causingObligation, blockingClause, weakenings);
       }
-      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause);
+      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause, weakenings);
     }
 
     @Override
@@ -1069,10 +1113,12 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         if (causingObligation == null) {
           return other.causingObligation == null
               && causingCandidateInvariant.equals(other.causingCandidateInvariant)
-              && blockingClause.equals(other.blockingClause);
+              && blockingClause.equals(other.blockingClause)
+              && weakenings.equals(other.weakenings);
         }
         return causingObligation.equals(other.causingObligation)
-            && blockingClause.equals(other.blockingClause);
+            && blockingClause.equals(other.blockingClause)
+            && weakenings.equals(other.weakenings);
       }
       return false;
     }
@@ -1135,5 +1181,108 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       }
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
+  }
+
+  private static interface InvariantGeneratorHeadStart {
+
+    void waitForInvariantGenerator() throws InterruptedException;
+  }
+
+  private static enum InvariantGeneratorHeadStartFactories {
+
+    NONE {
+
+      @Override
+      public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
+        return new InvariantGeneratorHeadStart() {
+
+          @Override
+          public void waitForInvariantGenerator() throws InterruptedException {
+            // Return immediately
+          }
+        };
+      }
+    },
+
+    AWAIT_TERMINATION {
+
+      @Override
+      public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
+        CountDownLatch latch = new CountDownLatch(1);
+        pBmcAlgorithm.conditionAdjustmentEventSubscribers.add(
+            new ConditionAdjustmentEventSubscriber() {
+
+              @Override
+              public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+                // Ignore
+              }
+
+              @Override
+              public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+                latch.countDown();
+              }
+            });
+        return new HeadStartWithLatch(pBmcAlgorithm, latch);
+      }
+    },
+
+    WAIT_UNTIL_EXPENSIVE_ADJUSTMENT {
+
+      @Override
+      InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
+        CountDownLatch latch = new CountDownLatch(1);
+        pBmcAlgorithm.conditionAdjustmentEventSubscribers.add(
+            new ConditionAdjustmentEventSubscriber() {
+
+              @Override
+              public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+                FluentIterable<InvariantsCPA> cpas =
+                    CPAs.asIterable(pCpa).filter(InvariantsCPA.class);
+                if (cpas.isEmpty()) {
+                  latch.countDown();
+                } else {
+                  for (InvariantsCPA cpa : cpas) {
+                    if (cpa.isLikelyLongRunning()) {
+                      latch.countDown();
+                      break;
+                    }
+                  }
+                }
+              }
+
+              @Override
+              public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+                latch.countDown();
+              }
+            });
+        return new HeadStartWithLatch(pBmcAlgorithm, latch);
+      }
+    };
+
+    private static final class HeadStartWithLatch implements InvariantGeneratorHeadStart {
+
+      private final CountDownLatch latch;
+
+      private final ShutdownRequestListener shutdownListener =
+          new ShutdownRequestListener() {
+
+            @Override
+            public void shutdownRequested(String pReason) {
+              latch.countDown();
+            }
+          };
+
+      public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
+        latch = Objects.requireNonNull(pLatch);
+        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+      }
+
+      @Override
+      public void waitForInvariantGenerator() throws InterruptedException {
+        latch.await();
+      }
+    }
+
+    abstract InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm);
   }
 }

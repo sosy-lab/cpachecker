@@ -27,16 +27,12 @@ import com.google.common.collect.FluentIterable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.Formula;
 
 public class CounterexampleToInductivity {
 
@@ -116,15 +112,5 @@ public class CounterexampleToInductivity {
                   SingleLocationFormulaInvariant.makeLocationInvariant(
                       getLocation(), v.toAssignment(pFMGR), pFMGR));
             });
-  }
-
-  public Set<Formula> getVariables(FormulaManagerView pFMGR) {
-    return model
-        .values()
-        .stream()
-        .map(mv -> mv.getVariable(pFMGR))
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .collect(Collectors.toSet());
   }
 }

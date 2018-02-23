@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class PartialTransitionRelation implements Comparable<PartialTransitionRelation> {
@@ -427,17 +426,10 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
             && (actualName.equals(TotalTransitionRelation.getLocationVariableName())
                 || (variables.containsKey(actualName)
                     && !inputs.get(actualName).contains(index.getAsInt())))) {
-          Formula formula;
-          if (actualName.equals(TotalTransitionRelation.getLocationVariableName())) {
-            assert ((Number) value).intValue() == startLocation.getNodeNumber()
-                : "This is the wrong part of the transition to extract a CTI from this model.";
-            formula = valueAssignment.getKey();
-          } else {
-            formula = variables.get(actualName);
-          }
-          FormulaType<?> formulaType = fmgr.getFormulaType(formula);
+          BooleanFormula assignment = fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
           ModelValue modelValue =
-              new ModelValue(actualName, formulaType, (Number) valueAssignment.getValue());
+              new ModelValue(
+                  actualName, fmgr.dumpFormula(assignment).toString(), assignment::toString);
           modelBuilder.put(actualName, modelValue);
         }
       }
@@ -469,30 +461,14 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
         Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
         String actualName = pair.getFirst();
         OptionalInt index = pair.getSecond();
-        Object value = valueAssignment.getValue();
-        if (value instanceof Number) {
-          Formula formula = valueAssignment.getKey();
-          FormulaType<?> formulaType = pFmgr.getFormulaType(formula);
-          ModelValue modelValue =
-              new ModelValue(actualName, formulaType, (Number) valueAssignment.getValue());
 
-          // We consider as inputs
-          // a) those that have an SSA index and are contained in our list of input variables and
-          // b) those that have no SSA index and are not known as actual variables,
-          // such as __ADDRESS_OF:
-          if (index.isPresent() && inputs.get(actualName).contains(index.getAsInt())) {
-            SSAMap ssaForInstantiation =
-                SSAMap.emptySSAMap()
-                    .builder()
-                    .setIndex(actualName, types.get(actualName), index.getAsInt())
-                    .build();
-            inputAssignments =
-                bfmgr.and(
-                    inputAssignments,
-                    pFmgr.instantiate(modelValue.toAssignment(pFmgr), ssaForInstantiation));
-          } else if (!index.isPresent() && !pVariables.containsKey(actualName)) {
-            inputAssignments = bfmgr.and(inputAssignments, modelValue.toAssignment(pFmgr));
-          }
+        // We consider as inputs
+        // a) those that have an SSA index and are contained in our list of input variables and
+        // b) those that have no SSA index and are not known as actual variables,
+        // such as __ADDRESS_OF:
+        if ((index.isPresent() && inputs.get(actualName).contains(index.getAsInt()))
+            || (!index.isPresent() && !pVariables.containsKey(actualName))) {
+          inputAssignments = bfmgr.and(inputAssignments, valueAssignment.getAssignmentAsFormula());
         }
       }
     }

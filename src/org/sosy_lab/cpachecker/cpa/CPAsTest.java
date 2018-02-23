@@ -174,7 +174,7 @@ public class CPAsTest {
               .setLogger(logManager)
               .setConfiguration(config)
               .setShutdownNotifier(shutdownNotifier)
-              .set(new ReachedSetFactory(config), ReachedSetFactory.class)
+              .set(new ReachedSetFactory(config, logManager), ReachedSetFactory.class)
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
@@ -184,9 +184,9 @@ public class CPAsTest {
     }
   }
 
-  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> cpaClass)
+  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> pCpaClass)
       throws InvalidConfigurationException, CPAException {
-    if (cpaClass.equals(TerminationCPA.class)) {
+    if (pCpaClass.equals(TerminationCPA.class)) {
       return Optional.of(
           LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance());
 

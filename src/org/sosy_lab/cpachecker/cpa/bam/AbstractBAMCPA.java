@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.bam.TimedReducer.ReducerStatistics;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.bam")
@@ -105,11 +107,11 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   private boolean useCopyOnWriteRefinement = false;
 
   final Timer blockPartitioningTimer = new Timer();
+  final ReducerStatistics reducerStatistics;
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final BlockPartitioning blockPartitioning;
-  private final TimedReducer reducer;
   private final BAMCPAStatistics stats;
   private final BAMARGStatistics argStats;
   private final BAMReachedSetExporter exporter;
@@ -136,10 +138,14 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     blockPartitioning = buildBlockPartitioning(pCfa, pConfig);
     blockPartitioningTimer.stop();
 
-    reducer = new TimedReducer(getWrappedCpa().getReducer());
     argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
     stats = new BAMCPAStatistics(this);
+
+    reducerStatistics = new TimedReducer.ReducerStatistics();
+
+    // create a reducer to throw exceptions directly, actually useless code
+    getWrappedCpa().getReducer();
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
@@ -175,7 +181,12 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   }
 
   TimedReducer getReducer() {
-    return Preconditions.checkNotNull(reducer);
+    try {
+      return new TimedReducer(reducerStatistics, getWrappedCpa().getReducer());
+    } catch (InvalidConfigurationException e) {
+      // exception would already appear before, see constructor above
+      throw new AssertionError(e);
+    }
   }
 
   @Override
@@ -193,7 +204,8 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     return stats;
   }
 
-  abstract BAMDataManager getData();
+  /** only public for statistics */
+  public abstract BAMDataManager getData();
 
   boolean doPrecisionRefinementForAllStates() {
     return doPrecisionRefinementForAllStates;
