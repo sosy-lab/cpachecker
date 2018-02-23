@@ -53,6 +53,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -115,6 +116,25 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   @Option(
     secure = true,
+    name = "cfa.pixelGraphicFile",
+    description =
+        "Export CFA of residual program as pixel graphic to the given file name. The suffix is added"
+            + " corresponding"
+            + " to the value of option pixelgraphic.export.format"
+            + "If set to 'null', no pixel graphic is exported."
+  )
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportPixelFile = Paths.get("residProgPixel");
+
+  @Option(
+      secure = true,
+      name = "export.pixel",
+      description = "Export residual program as pixel graphic"
+    )
+  private boolean exportPixelGraphic = false;
+
+  @Option(
+    secure = true,
     name = "statistics.size",
     description = "Collect statistical data about size of residual program"
   )
@@ -122,6 +142,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private final CFA cfa;
   private final Specification spec;
+  private final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdown;
 
@@ -156,6 +177,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     logger = pLogger;
     shutdown = pShutdown;
     spec = pSpec;
+    config = pConfig;
     translator = new ARGToCTranslator(logger, pConfig);
 
     checkConfiguration();
@@ -475,18 +497,30 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       statWriter.put("Time for C translation", translationTimer);
 
-      if (collectResidualProgramSizeStatistics) {
-        int residProgSize = getResidualProgramSizeInLocations(pReached.getFirstState());
+      if (collectResidualProgramSizeStatistics || exportPixelGraphic && exportPixelFile != null) {
+        CFA residProg = getResidualProgram(pReached.getFirstState());
 
-        if (residProgSize >= 0) {
-          statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
-          statWriter.put("Generated program size (#loc)", residProgSize);
-          statWriter.put("Size increase", ((double) residProgSize / cfa.getAllNodes().size()));
+        if (residProg != null) {
+          if (collectResidualProgramSizeStatistics) {
+            int residProgSize = residProg.getAllNodes().size();
+            if (residProgSize >= 0) {
+              statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
+              statWriter.put("Generated program size (#loc)", residProgSize);
+              statWriter.put("Size increase", ((double) residProgSize / cfa.getAllNodes().size()));
+            }
+          }
+          if (exportPixelGraphic && exportPixelFile != null) {
+            try {
+              new CFAToPixelsWriter(config).write(residProg.getMainFunction(), exportPixelFile);
+            } catch (IOException | InvalidConfigurationException e) {
+              logger.logUserException(Level.WARNING, e, "Pixel export of residual program failed.");
+            }
+          }
         }
       }
     }
 
-    private int getResidualProgramSizeInLocations(final AbstractState root) {
+    private @Nullable CFA getResidualProgram(final AbstractState root) {
       try {
         CFACreator cfaCreator =
             new CFACreator(
@@ -503,7 +537,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         CFA residProg =
             cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
 
-        return residProg.getAllNodes().size();
+        return residProg;
 
       } catch (InterruptedException
           | InvalidConfigurationException
@@ -511,7 +545,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           | ParserException e) {
       }
 
-      return -1;
+      return null;
     }
 
     @Override

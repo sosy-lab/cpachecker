@@ -88,11 +88,15 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
-  @Option(secure=true, name="pixelGraphicFile",
-      description="Export final ARG as pixel graphic to the given file name. The suffix is added "
-          + " corresponding"
-          + " to the value of option cpa.arg.pixelgraphic.format"
-          + "If set to 'null', no pixel graphic is exported.")
+  @Option(
+    secure = true,
+    name = "pixelGraphicFile",
+    description =
+        "Export final ARG as pixel graphic to the given file name. The suffix is added "
+            + " corresponding"
+            + " to the value of option pixelgraphic.export.format"
+            + "If set to 'null', no pixel graphic is exported."
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pixelGraphicFile = Paths.get("ARG");
 

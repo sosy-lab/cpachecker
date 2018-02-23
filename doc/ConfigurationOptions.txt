@@ -596,6 +596,11 @@ cfa.initializeAllVariables = false
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
 
+# Export CFA as pixel graphic to the given file name. The suffix is added
+# corresponding to the value of option pixelgraphic.export.formatIf set to
+# 'null', no pixel graphic is exported.
+cfa.pixelGraphicFile = "cfaPixel"
+
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
 
@@ -908,37 +913,9 @@ cpa.arg.keepCoveredStatesInReached = false
 cpa.arg.mergeOnWrappedSubsumption = false
 
 # Export final ARG as pixel graphic to the given file name. The suffix is
-# added  corresponding to the value of option cpa.arg.pixelgraphic.formatIf
+# added  corresponding to the value of option pixelgraphic.export.formatIf
 # set to 'null', no pixel graphic is exported.
 cpa.arg.pixelGraphicFile = "ARG"
-
-# Format to use for image output
-cpa.arg.pixelgraphic.format = "svg"
-
-# Height of the bitmap in pixels. If set to -1, height is  computed in
-# relation to the width. If both are set to -1, the optimal bitmap size to
-# represent the ARG is used. The final height is height*scaling
-cpa.arg.pixelgraphic.height = -1
-
-# Scaling of the bitmap. If set to 1, 1 pixel represents one ARG node. If set
-# to 2, 2 * 2 pixels represent one ARG node, and so on.
-cpa.arg.pixelgraphic.scaling = 2
-
-# Highlight not only corresponding ARG nodes, but background of corresponding
-# line, too. This may give an better overview, but also introduces more
-# clutter
-cpa.arg.pixelgraphic.strongHighlight = true
-
-# Width of the bitmap in pixels. If set to -1, width is computed in relation
-# to the height. If both are set to -1, the optimal bitmap size to represent
-# the ARG is used. The final width is width*scaling
-cpa.arg.pixelgraphic.width = -1
-
-# Padding of the bitmap on the left and right (each) in pixels
-cpa.arg.pixelgraphic.xPadding = 2
-
-# Padding of the bitmap on the top and bottom (each) in pixels
-cpa.arg.pixelgraphic.yPadding = 2
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
@@ -2976,6 +2953,34 @@ pdr.maxLiteralsToDropDuringGeneralization = 5
 # trace before a consecution abstraction failure triggers a refinement.
 pdr.spuriousTransitionCountThreshold = 0
 
+# Format to use for image output
+pixelgraphic.export.format = "svg"
+
+# Height of the bitmap in pixels. If set to -1, height is  computed in
+# relation to the width. If both are set to -1, the optimal bitmap size to
+# represent the graph is used. The final height is height*scaling
+pixelgraphic.export.height = -1
+
+# Scaling of the bitmap. If set to 1, 1 pixel represents one graph node. If
+# set to 2, 2 * 2 pixels represent one graph node, and so on.
+pixelgraphic.export.scaling = 2
+
+# Highlight not only corresponding graph nodes, but background of
+# corresponding line, too. This may give an better overview, but also
+# introduces more clutter
+pixelgraphic.export.strongHighlight = true
+
+# Width of the bitmap in pixels. If set to -1, width is computed in relation
+# to the height. If both are set to -1, the optimal bitmap size to represent
+# the graph is used. The final width is width*scaling
+pixelgraphic.export.width = -1
+
+# Padding of the bitmap on the left and right (each) in pixels
+pixelgraphic.export.xPadding = 2
+
+# Padding of the bitmap on the top and bottom (each) in pixels
+pixelgraphic.export.yPadding = 2
+
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope
 # (sharing=scoped).
@@ -3092,6 +3097,14 @@ residualprogram.assumptionFile = no default value
 # config/specification/AssumptionGuidingAutomaton.spc, to enable residual
 # program from combination of program and assumption condition
 residualprogram.assumptionGuider = no default value
+
+# Export CFA of residual program as pixel graphic to the given file name. The
+# suffix is added corresponding to the value of option
+# pixelgraphic.export.formatIf set to 'null', no pixel graphic is exported.
+residualprogram.cfa.pixelGraphicFile = "residProgPixel"
+
+# Export residual program as pixel graphic
+residualprogram.export.pixel = false
 
 # write residual program to file
 residualprogram.file = "residualProgram.c"
