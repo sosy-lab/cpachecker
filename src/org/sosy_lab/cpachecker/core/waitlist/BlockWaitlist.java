@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,6 +35,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -87,10 +91,10 @@ public class BlockWaitlist implements Waitlist {
      */
     boolean checkResources() {
       if(isEntryBlock) {
-        //check entry limit
-        return countResources > limits.entryResourceLimit;
+        // check entry limit
+        return countResources > limits.getEntryResourceLimit();
       } else {
-        return countResources > limits.blockResourceLimit;
+        return countResources > limits.getBlockResourceLimit();
       }
     }
 
@@ -137,21 +141,21 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private static class BKey implements Comparable<BKey> {
-    String name;
-    int callStackDepth;
+    private final String name;
+    private final int callStackDepth;
 
     BKey(String pName, int pDepth) {
-      name = pName;
+      name = checkNotNull(pName);
       callStackDepth = pDepth;
     }
 
     @Override
     public int compareTo(BKey k2) {
-      if(callStackDepth!=k2.callStackDepth) {
-        return Integer.compare(callStackDepth, k2.callStackDepth);
+      return ComparisonChain.start()
+          .compare(callStackDepth, k2.callStackDepth)
+          .compare(name, k2.name)
+          .result();
       }
-      return name.compareTo(k2.name);
-    }
 
     @Override
     public String toString() {
@@ -163,7 +167,7 @@ public class BlockWaitlist implements Waitlist {
       final int prime = 31;
       int result = 1;
       result = prime * result + callStackDepth;
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      result = prime * result + name.hashCode();
       return result;
     }
 
@@ -179,17 +183,7 @@ public class BlockWaitlist implements Waitlist {
         return false;
       }
       BKey other = (BKey) obj;
-      if (callStackDepth != other.callStackDepth) {
-        return false;
-      }
-      if (name == null) {
-        if (other.name != null) {
-          return false;
-        }
-      } else if (!name.equals(other.name)) {
-        return false;
-      }
-      return true;
+      return (callStackDepth == other.callStackDepth) && name.equals(other.name);
     }
   }
 
@@ -214,10 +208,10 @@ public class BlockWaitlist implements Waitlist {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
     config = pConfig;
     logger = pLogger;
-    int len = config.blockFunctionPatterns.size();
+    int len = config.getBlockFunctionPatterns().size();
     int i=0;
     ldvPattern = new Pattern[len];
-    for(String p : config.blockFunctionPatterns) {
+    for (String p : config.getBlockFunctionPatterns()) {
       ldvPattern[i] = Pattern.compile(p.replaceAll("%", ".*"));
       i++;
     }
@@ -234,7 +228,7 @@ public class BlockWaitlist implements Waitlist {
     if(activeBlocksMap.containsKey(key)) {
       b = activeBlocksMap.get(key);
     } else {
-      if(config.blockSaveResources && savedBlocksMap.containsKey(key)) {
+      if (config.shouldSaveBlockResources() && savedBlocksMap.containsKey(key)) {
         //restore saved resources
         b = savedBlocksMap.remove(key);
       } else {
@@ -299,10 +293,11 @@ public class BlockWaitlist implements Waitlist {
 
   /**
    * get block for state e
+   *
    * @param e the state for which we need a block
    * @return block for state e
    */
-  private Block getBlockForState(AbstractState e) {
+  private @Nullable Block getBlockForState(AbstractState e) {
     BKey key = getBlockKey(e);
     assert key!=null;
 
@@ -385,7 +380,7 @@ public class BlockWaitlist implements Waitlist {
     Entry<BKey, Block> e = activeBlocksMap.lastEntry();
     while(e!=null && e.getValue().isEmpty()) {
       activeBlocksMap.pollLastEntry();
-      if(config.blockSaveResources && e.getValue().countResources!=0) {
+      if (config.shouldSaveBlockResources() && e.getValue().countResources != 0) {
         logger.log(Level.INFO, "Save block=" + e.getKey() + ", resources=" + e.getValue().countResources);
         savedBlocksMap.put(e.getKey(),e.getValue());
       }

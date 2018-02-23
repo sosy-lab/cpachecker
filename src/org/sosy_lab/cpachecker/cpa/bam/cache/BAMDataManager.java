@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam.cache;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -99,6 +100,9 @@ public interface BAMDataManager {
 
   /** CHech whether the given abstract state is the non-reduced initial state of a reached-set. */
   boolean hasInitialState(AbstractState state);
+
+  /** Returns all non-reduced intiial states for a reduced initial state. */
+  ImmutableSet<AbstractState> getNonReducedInitialStates(AbstractState reducedState);
 
   /**
    * Returns the non-expanded abstract state for an expanded abstract state. We expect that the

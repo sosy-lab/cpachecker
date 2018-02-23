@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.util.ArrayList;
@@ -71,7 +74,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
   private final Table<AbstractState, AbstractState, ReachedSet> initialStateToReachedSet =
       HashBasedTable.create();
 
+  /** Mapping of reduced initial states to non-reduced initial states. */
+  private final Multimap<AbstractState, AbstractState> reducedToNonReduced = HashMultimap.create();
+
   private final Map<AbstractState, BlockExitData> expandedStateToBlockExit = new HashMap<>();
+
 
   private static class BlockExitData {
 
@@ -229,6 +236,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
           reachedSet.getFirstState());
     }
     initialStateToReachedSet.put(initialState, exitState, reachedSet);
+    reducedToNonReduced.put(reachedSet.getFirstState(), initialState);
   }
 
   @Override
@@ -245,6 +253,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public boolean hasInitialState(AbstractState state) {
     return initialStateToReachedSet.containsRow(state);
+  }
+
+  @Override
+  public ImmutableSet<AbstractState> getNonReducedInitialStates(AbstractState pReducedState) {
+    return ImmutableSet.copyOf(reducedToNonReduced.get(pReducedState));
   }
 
   @Override
@@ -317,6 +330,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
     initialStateToReachedSet.clear();
     expandedStateToBlockExit.clear();
     bamCache.clear();
+    reducedToNonReduced.clear();
   }
 
   @Override

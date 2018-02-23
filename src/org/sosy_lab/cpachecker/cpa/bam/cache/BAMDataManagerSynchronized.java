@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam.cache;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -114,6 +115,13 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   public boolean hasInitialState(AbstractState pState) {
     synchronized (this) {
       return manager.hasInitialState(pState);
+    }
+  }
+
+  @Override
+  public ImmutableSet<AbstractState> getNonReducedInitialStates(AbstractState pReducedState) {
+    synchronized (this) {
+      return manager.getNonReducedInitialStates(pReducedState);
     }
   }
 
