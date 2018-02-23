@@ -503,11 +503,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         if (residProg != null) {
           if (collectResidualProgramSizeStatistics) {
             int residProgSize = residProg.getAllNodes().size();
-            if (residProgSize >= 0) {
               statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
               statWriter.put("Generated program size (#loc)", residProgSize);
               statWriter.put("Size increase", ((double) residProgSize / cfa.getAllNodes().size()));
-            }
           }
           if (exportPixelGraphic && exportPixelFile != null) {
             try {
