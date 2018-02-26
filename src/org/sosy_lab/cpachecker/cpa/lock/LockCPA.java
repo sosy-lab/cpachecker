@@ -96,7 +96,7 @@ public class LockCPA extends AbstractCPA
 
       default:
         // The analysis should fail at CPA creation
-        return null;
+        throw new UnsupportedOperationException("Unsupported analysis mode");
     }
   }
 

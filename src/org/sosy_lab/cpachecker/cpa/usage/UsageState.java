@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import java.util.Collections;
 import java.util.HashMap;
@@ -239,7 +238,7 @@ public class UsageState extends AbstractSingleWrapperState
     LockState rootLockState = AbstractStates.extractStateByType(this, LockState.class);
     LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
     List<LockEffect> difference;
-    if (rootLockState == null && reducedLockState == null) {
+    if (rootLockState == null || reducedLockState == null) {
       // No LockCPA
       difference = Collections.emptyList();
     } else {
@@ -338,7 +337,6 @@ public class UsageState extends AbstractSingleWrapperState
 
   @Override
   public UsageState join(UsageState pOther) {
-    Preconditions.checkArgument(false);
-    return null;
+    throw new UnsupportedOperationException("Join is not permitted for UsageCPA");
   }
 }

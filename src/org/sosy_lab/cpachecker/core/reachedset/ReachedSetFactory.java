@@ -185,8 +185,8 @@ public class ReachedSetFactory {
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   private final Configuration config;
+  private @Nullable BlockConfiguration blockConfig;
   private final LogManager logger;
-  private BlockConfiguration blockConfig;
 
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
