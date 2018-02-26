@@ -79,24 +79,13 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -238,134 +227,51 @@ class WitnessWriter implements EdgeAppender {
         }
 
         private boolean isConstant(CExpression pLeftSide) {
-          return pLeftSide.accept(new CExpressionVisitor<Boolean, RuntimeException>() {
-
-            @Override
-            public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-                throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CFieldReference pIastFieldReference) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CIdExpression pIastIdExpression) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CPointerExpression pPointerExpression) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CComplexCastExpression pComplexCastExpression)
-                throws RuntimeException {
-              return pComplexCastExpression.getOperand().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-              return pIastBinaryExpression.getOperand1().accept(this)
-                  && pIastBinaryExpression.getOperand2().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
-              return pIastCastExpression.getOperand().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
-              return pIastUnaryExpression.getOperand().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-                throws RuntimeException {
-              return false;
-            }
-
-          });
+          return pLeftSide.accept(IsConstantExpressionVisitor.INSTANCE);
         }
 
         private boolean isEffectivelyPointer(CExpression pLeftSide) {
-          return pLeftSide.accept(new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
+          return pLeftSide.accept(
+              new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
 
-            @Override
-            public Boolean visit(CComplexCastExpression pComplexCastExpression)
-                throws RuntimeException {
-              return pComplexCastExpression.getOperand().accept(this);
-            }
+                @Override
+                public Boolean visit(CComplexCastExpression pComplexCastExpression)
+                    throws RuntimeException {
+                  return pComplexCastExpression.getOperand().accept(this);
+                }
 
-            @Override
-            public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-              return pIastBinaryExpression.getOperand1().accept(this)
-                  || pIastBinaryExpression.getOperand2().accept(this);
-            }
+                @Override
+                public Boolean visit(CBinaryExpression pIastBinaryExpression)
+                    throws RuntimeException {
+                  return pIastBinaryExpression.getOperand1().accept(this)
+                      || pIastBinaryExpression.getOperand2().accept(this);
+                }
 
-            @Override
-            public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
-              return pIastCastExpression.getOperand().accept(this);
-            }
+                @Override
+                public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
+                  return pIastCastExpression.getOperand().accept(this);
+                }
 
-            @Override
-            public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
-              if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE).contains(pIastUnaryExpression.getOperator())) {
-                return pIastUnaryExpression.getOperand().accept(this);
-              }
-              if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-                return true;
-              }
-              return visitDefault(pIastUnaryExpression);
-            }
+                @Override
+                public Boolean visit(CUnaryExpression pIastUnaryExpression)
+                    throws RuntimeException {
+                  if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE)
+                      .contains(pIastUnaryExpression.getOperator())) {
+                    return pIastUnaryExpression.getOperand().accept(this);
+                  }
+                  if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+                    return true;
+                  }
+                  return visitDefault(pIastUnaryExpression);
+                }
 
-            @Override
-            protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
-              return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
-            }
-
-          });
+                @Override
+                protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+                  return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
+                }
+              });
         }
-  };
+      };
 
   private final WitnessOptions witnessOptions;
   private final CFA cfa;
