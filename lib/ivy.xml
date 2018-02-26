@@ -35,7 +35,7 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="23.5-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="24.0-jre" conf="runtime->default; contrib->sources"/>
 
         <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
         <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
@@ -79,7 +79,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.39" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="23.5-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="24.0-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
@@ -100,9 +100,9 @@
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.5" conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.1" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.2" conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.1" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.2" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- VerifierCloud -->
@@ -112,9 +112,6 @@
         <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-40-g94ea257f" conf="runtime->runtime; contrib->sources">
           <!-- Old version of java-cup conflicts with our newer version of java-cup-runtime -->
           <exclude org="net.sf.squirrel-sql.thirdparty-non-maven" module="java-cup"/>
-          <!-- Guava 23.6 causes some false alarms with SpotBugs, 23.5 works fine.
-               It is not included by JavaSMT itself, but via its dependency CheckStyle. -->
-          <exclude org="com.google.guava" module="guava"/>
         </dependency>
 
         <!-- LassoRanker

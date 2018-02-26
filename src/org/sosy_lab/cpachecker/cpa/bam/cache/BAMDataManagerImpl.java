@@ -303,9 +303,9 @@ public class BAMDataManagerImpl implements BAMDataManager {
       str.append(
           String.format(
               "    (%s, %s) -> %s%n",
-              getId(entry.getRowKey()),
-              getId(entry.getColumnKey()),
-              getId((entry.getValue()).getFirstState())));
+              getId(checkNotNull(entry.getRowKey())),
+              getId(checkNotNull(entry.getColumnKey())),
+              getId(checkNotNull(entry.getValue()).getFirstState())));
     }
 
     str.append("expanded state to reduced state:\n");

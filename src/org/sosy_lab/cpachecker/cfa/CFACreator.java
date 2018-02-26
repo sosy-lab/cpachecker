@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
@@ -170,6 +171,18 @@ public class CFACreator {
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
+
+  @Option(
+    secure = true,
+    name = "cfa.pixelGraphicFile",
+    description =
+        "Export CFA as pixel graphic to the given file name. The suffix is added"
+            + " corresponding"
+            + " to the value of option pixelgraphic.export.format"
+            + "If set to 'null', no pixel graphic is exported."
+  )
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportCfaPixelFile = Paths.get("cfaPixel");
 
   @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -915,6 +928,14 @@ v.addInitializer(initializer);
         logger.logUserException(Level.WARNING, e,
             "Could not write functionCalls to dot file");
         // continue with analysis
+      }
+    }
+
+    if (exportCfaPixelFile != null) {
+      try {
+        new CFAToPixelsWriter(config).write(cfa.getMainFunction(), exportCfaPixelFile);
+      } catch (IOException | InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write CFA as pixel graphic.");
       }
     }
 

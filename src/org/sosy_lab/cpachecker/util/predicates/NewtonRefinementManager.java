@@ -38,7 +38,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -330,7 +330,7 @@ public class NewtonRefinementManager {
                 new Predicate<Entry<String, Formula>>() {
 
                   @Override
-                  public boolean apply(@Nullable Entry<String, Formula> pInput) {
+                  public boolean apply(@NullableDecl Entry<String, Formula> pInput) {
                     if (pInput == null) {
                       return false;
                     } else {

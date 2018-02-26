@@ -468,7 +468,6 @@ public class PdrAlgorithm implements Algorithm {
 
       if (abstractResult.isSuccessful()) {
         // If the abstract CTI was successfully blocked, we learn its negation as a clause
-        assert implies(prover, invariants, abstractBlockingClause);
         learnClause(pFrameSet, frameIndex + 1, abstractResult.getInvariantRefinement());
         logger.log(
             Level.FINEST,

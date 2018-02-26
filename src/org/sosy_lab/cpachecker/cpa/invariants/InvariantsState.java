@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
@@ -52,6 +53,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1182,7 +1184,7 @@ public class InvariantsState implements AbstractState,
         }
         if (pFormula instanceof LogicalNot) {
           return InvariantsFormulaManager.INSTANCE.logicalNot(
-              apply(((LogicalNot<CompoundInterval>) pFormula).getNegated()));
+              checkNotNull(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated())));
         }
         if (pFormula instanceof LogicalAnd) {
           LogicalAnd<CompoundInterval> and = (LogicalAnd<CompoundInterval>) pFormula;
@@ -1251,15 +1253,16 @@ public class InvariantsState implements AbstractState,
 
     final Predicate<MemoryLocation> acceptVariable = InvariantsState::isExportable;
 
-    final Predicate<BooleanFormula<CompoundInterval>> acceptFormula = new Predicate<BooleanFormula<CompoundInterval>>() {
+    final Predicate<BooleanFormula<CompoundInterval>> acceptFormula =
+        new Predicate<BooleanFormula<CompoundInterval>>() {
 
-      @Override
-      public boolean apply(@Nullable BooleanFormula<CompoundInterval> pInput) {
-        return pInput != null
-            && FluentIterable.from(CompoundIntervalFormulaManager.collectVariableNames(pInput)).allMatch(acceptVariable);
-      }
-
-    };
+          @Override
+          public boolean apply(@NullableDecl BooleanFormula<CompoundInterval> pInput) {
+            return pInput != null
+                && FluentIterable.from(CompoundIntervalFormulaManager.collectVariableNames(pInput))
+                    .allMatch(acceptVariable);
+          }
+        };
     Iterable<BooleanFormula<CompoundInterval>> formulas = getEnvironmentAsAssumptions();
     if (includeTypeInformation) {
       formulas = Iterables.concat(formulas, getTypeInformationAsAssumptions());
