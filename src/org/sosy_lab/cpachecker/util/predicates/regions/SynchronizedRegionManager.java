@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
-import com.google.common.base.Function;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;

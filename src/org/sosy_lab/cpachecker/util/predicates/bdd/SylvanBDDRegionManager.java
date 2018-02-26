@@ -30,7 +30,6 @@ import static jsylvan.JSylvan.makeUnionPar;
 import static jsylvan.JSylvan.ref;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
@@ -42,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.logging.Level;
 import javax.annotation.concurrent.GuardedBy;
 import jsylvan.JSylvan;
