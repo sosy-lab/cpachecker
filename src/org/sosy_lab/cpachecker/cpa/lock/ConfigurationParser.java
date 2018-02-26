@@ -29,7 +29,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +68,6 @@ public class ConfigurationParser {
     Map<String, Integer> tmpInfo = new HashMap<>();
     Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects = new HashMap<>();
     Map<String, LockIdentifier> variableEffects = new HashMap<>();
-    List<String> variables;
     String tmpString;
 
     for (String lockName : lockinfo) {
@@ -81,10 +79,9 @@ public class ConfigurationParser {
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
         tmpString = tmpString.replaceAll("\\s", "");
-        variables = Splitter.on(",").splitToList(tmpString);
-        variables.forEach(k -> variableEffects.put(k, LockIdentifier.of(lockName)));
-      } else {
-        variables = new ArrayList<>();
+        Splitter.on(",")
+            .splitToList(tmpString)
+            .forEach(k -> variableEffects.put(k, LockIdentifier.of(lockName)));
       }
 
       tmpString = config.getProperty(lockName + ".setlevel");

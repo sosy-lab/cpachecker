@@ -105,11 +105,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
-      if (wrappedReducer != null) {
-        reducer = new UsageReducer(wrappedReducer);
-      } else {
-        reducer = null;
-      }
+      reducer = new UsageReducer(wrappedReducer);
     } else {
       reducer = null;
     }

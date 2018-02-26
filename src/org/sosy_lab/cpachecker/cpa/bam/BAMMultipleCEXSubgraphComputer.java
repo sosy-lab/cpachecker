@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -54,8 +55,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   private Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
 
-  BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA,
-      Function<ARGState, Integer> idExtractor) {
+  BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA, @Nonnull Function<ARGState, Integer> idExtractor) {
     super(bamCPA);
     getStateId = idExtractor;
   }
@@ -171,12 +171,14 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   private boolean checkRepeatitionOfState(ARGState currentElement) {
-    int currentId = getStateId.apply(currentElement);
-    for (ArrayDeque<Integer> rest : remainingStates) {
-      if (rest.getLast() == currentId) {
-        rest.removeLast();
-        if (rest.isEmpty()) {
-          return true;
+    if (currentElement != null) {
+      int currentId = getStateId.apply(currentElement);
+      for (ArrayDeque<Integer> rest : remainingStates) {
+        if (rest.getLast() == currentId) {
+          rest.removeLast();
+          if (rest.isEmpty()) {
+            return true;
+          }
         }
       }
     }

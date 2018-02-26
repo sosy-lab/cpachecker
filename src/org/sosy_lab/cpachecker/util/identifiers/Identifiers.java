@@ -40,17 +40,17 @@ public class Identifiers {
   }
 
   static String getCharsOf(int dereference) {
-    String info = "";
+    StringBuffer info = new StringBuffer();
     if (dereference > 0) {
       for (int i = 0; i < dereference; i++) {
-        info += "*";
+        info.append("*");
       }
     } else if (dereference == -1) {
-      info += "&";
+      info.append("&");
     } else if (dereference < -1) {
-      info = "Error in string representation, dereference < -1";
+      info.append("Error in string representation, dereference < -1");
     }
-    return info;
+    return info.toString();
   }
 
   public static AbstractIdentifier createIdentifier(CExpression expression, String function) {

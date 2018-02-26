@@ -222,12 +222,11 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   @Override
   protected void printAdditionalStatistics(StatisticsWriter pOut) {
     pOut.beginLevel()
-      .put(numberOfrefinedPaths)
-      .put(numberOfrepeatedPaths)
-      .put(solverFailures)
-      .put(numberOfBAMupdates)
-      .put("Size of false cache", falseCache.size())
-      .endLevel();
+        .put(numberOfrefinedPaths)
+        .put(numberOfrepeatedPaths)
+        .put(solverFailures)
+        .put(numberOfBAMupdates)
+        .put("Size of false cache", falseCache.size());
   }
 
   @Override

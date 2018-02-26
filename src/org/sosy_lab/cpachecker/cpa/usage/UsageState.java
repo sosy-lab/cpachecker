@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 /** Represents one abstract state of the Usage CPA. */
 public class UsageState extends AbstractSingleWrapperState
     implements LatticeAbstractState<UsageState> {
-  /* Boilerplate code to avoid serializing this class */
 
   private static final long serialVersionUID = -898577877284268426L;
   private TemporaryUsageStorage recentUsages;
