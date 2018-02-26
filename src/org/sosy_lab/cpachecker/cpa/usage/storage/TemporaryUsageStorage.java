@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 public class TemporaryUsageStorage extends AbstractUsageStorage {
   private static final long serialVersionUID = -8932709343923545136L;
 
-  //Not set! There was a bug, when two similar usages of different ids are overlapped.
-  private final List<UsageInfo> withoutARGState;
+  // Not set! There was a bug, when two similar usages of different ids are overlapped.
+  private final transient List<UsageInfo> withoutARGState;
 
   private TemporaryUsageStorage previousStorage;
 
@@ -81,5 +81,9 @@ public class TemporaryUsageStorage extends AbstractUsageStorage {
   private void clearSets() {
     super.clear();
     withoutARGState.clear();
+  }
+
+  protected Object readResolve() {
+    return new TemporaryUsageStorage();
   }
 }

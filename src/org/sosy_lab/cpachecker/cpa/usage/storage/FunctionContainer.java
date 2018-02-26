@@ -48,9 +48,9 @@ public class FunctionContainer extends AbstractUsageStorage {
   private static final long serialVersionUID = 1L;
   //private final Set<FunctionContainer> internalFunctionContainers;
   private final List<LockEffect> effects;
-  private final StorageStatistics stats;
+  private final transient StorageStatistics stats;
 
-  private final Set<FunctionContainer> joinedWith;
+  private final transient Set<FunctionContainer> joinedWith;
 
   public static FunctionContainer createInitialContainer() {
     return new FunctionContainer(new StorageStatistics(), new ArrayList<>());
@@ -142,6 +142,10 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   public StorageStatistics getStatistics() {
     return stats;
+  }
+
+  protected Object readResolve() {
+    return new FunctionContainer(new StorageStatistics(), this.effects);
   }
 
   public static class StorageStatistics {

@@ -58,11 +58,11 @@ public class UsageState extends AbstractSingleWrapperState
   private TemporaryUsageStorage recentUsages;
   private boolean isStorageCloned;
   private final FunctionContainer functionContainer;
-  private final StateStatistics stats;
+  private final transient StateStatistics stats;
 
   private boolean isExitState;
 
-  private final Map<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
+  private final transient Map<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
 
   private UsageState(
       final AbstractState pWrappedElement,
@@ -332,5 +332,16 @@ public class UsageState extends AbstractSingleWrapperState
   @Override
   public UsageState join(UsageState pOther) {
     throw new UnsupportedOperationException("Join is not permitted for UsageCPA");
+  }
+
+  protected Object readResolve() {
+    return new UsageState(
+        getWrappedState(),
+        new HashMap<>(),
+        this.recentUsages,
+        this.isStorageCloned,
+        this.functionContainer,
+        new StateStatistics(this.functionContainer.getStatistics()),
+        this.isExitState);
   }
 }
