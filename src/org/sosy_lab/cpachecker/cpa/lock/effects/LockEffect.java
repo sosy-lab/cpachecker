@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock.effects;
 
-import java.io.Serializable;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-public abstract class LockEffect implements AbstractLockEffect, Serializable {
+public abstract class LockEffect implements AbstractLockEffect {
 
-  private static final long serialVersionUID = 7847936451575171109L;
   protected final LockIdentifier target;
 
   protected LockEffect(LockIdentifier id) {

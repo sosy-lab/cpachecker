@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-public class LockIdentifier implements Comparable<LockIdentifier>, Serializable {
-  private static final long serialVersionUID = -728045025042950978L;
+public class LockIdentifier implements Comparable<LockIdentifier> {
 
   public static enum LockType {
     MUTEX,
