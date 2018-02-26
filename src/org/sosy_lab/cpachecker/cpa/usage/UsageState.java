@@ -221,7 +221,7 @@ public class UsageState extends AbstractSingleWrapperState
   public void addUsage(final SingleIdentifier id, final UsageInfo usage) {
     // Clone it
     if (!isStorageCloned) {
-      recentUsages = recentUsages.clone();
+      recentUsages = recentUsages.copy();
       isStorageCloned = true;
     }
     recentUsages.add(id, usage);
@@ -247,7 +247,7 @@ public class UsageState extends AbstractSingleWrapperState
     return new UsageState(
         wrappedState,
         new HashMap<>(),
-        recentUsages.clone(),
+        recentUsages.copy(),
         true,
         functionContainer.clone(difference),
         this.stats,

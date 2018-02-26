@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 
-public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
+public class UsagePrecision implements WrapperPrecision, AdjustablePrecision, Cloneable {
   private HashMap<CFANode, Map<GeneralIdentifier, DataType>> localStatistics;
   private final Precision wrappedPrecision;
 

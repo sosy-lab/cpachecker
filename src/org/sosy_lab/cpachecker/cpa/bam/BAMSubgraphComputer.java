@@ -296,12 +296,13 @@ public class BAMSubgraphComputer {
     // is inserted between newCurrentState and child.
   }
 
-
-  /** This ARGState is used to build the Pseudo-ARG for CEX-retrieval.
+  /**
+   * This ARGState is used to build the Pseudo-ARG for CEX-retrieval.
    *
-   * TODO we could replace the BackwardARGState completely by a normal ARGState,
-   * we just keep it for debugging. */
-  static class BackwardARGState extends ARGState {
+   * <p>TODO we could replace the BackwardARGState completely by a normal ARGState, we just keep it
+   * for debugging.
+   */
+  static class BackwardARGState extends ARGState implements Cloneable {
 
     private static final long serialVersionUID = -3279533907385516993L;
 

@@ -51,11 +51,8 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     firstUsageInfoSet = pInput.getFirst();
     secondUsageInfoSet = pInput.getSecond();
 
-    Iterable<UsageInfo> firstUsages = firstUsageInfoSet.getUsages();
-    Iterable<UsageInfo> secondUsages = secondUsageInfoSet.getUsages();
-
-    firstUsageIterator = firstUsages.iterator();
-    secondUsageIterator = secondUsages.iterator();
+    firstUsageIterator = firstUsageInfoSet.iterator();
+    secondUsageIterator = secondUsageInfoSet.iterator();
 
     firstUsage = null;
   }
@@ -75,9 +72,7 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
 
     if (result == null && firstUsageIterator.hasNext()) {
       firstUsage = firstUsageIterator.next();
-      UsageInfoSet secondUsageInfoSet = pInput.getSecond();
-      Iterable<UsageInfo> secondUsages = secondUsageInfoSet.getUsages();
-      secondUsageIterator = secondUsages.iterator();
+      secondUsageIterator = pInput.getSecond().iterator();
       result = checkSecondIterator();
     }
     if (result == null) {
@@ -118,8 +113,7 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
       logger.log(Level.FINE, "Usage " + firstUsageIterator + " is not reachable, remove it from container");
       firstUsageIterator.remove();
       firstUsage = null;
-      Iterable<UsageInfo> secondUsages = secondUsageInfoSet.getUsages();
-      secondUsageIterator = secondUsages.iterator();
+      secondUsageIterator = secondUsageInfoSet.iterator();
     }
   }
 }

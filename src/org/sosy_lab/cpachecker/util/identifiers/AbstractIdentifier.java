@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Collection;
 
-public interface AbstractIdentifier extends Comparable<AbstractIdentifier> {
+public interface AbstractIdentifier extends Comparable<AbstractIdentifier>, Cloneable {
   @Override
   public boolean equals(Object other);
 

@@ -74,8 +74,7 @@ public class TemporaryUsageStorage extends AbstractUsageStorage {
     previousStorage = null;
   }
 
-  @Override
-  public TemporaryUsageStorage clone() {
+  public TemporaryUsageStorage copy() {
     return new TemporaryUsageStorage(this);
   }
 

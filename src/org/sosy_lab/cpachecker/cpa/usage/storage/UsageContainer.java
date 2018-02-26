@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -313,13 +312,6 @@ public class UsageContainer {
        .put("Total amount of failed unsafes", generalFailedSize)
        .put(failedUsages)
        .put(resetTimer);
-  }
-
-  @Override
-  public UsageContainer clone() {
-    UsageContainer result = new UsageContainer(Maps.newTreeMap(unrefinedIds),
-        Maps.newTreeMap(refinedIds), Maps.newTreeMap(failedIds), Sets.newHashSet(falseUnsafes), logger, detector);
-    return result;
   }
 
   public Set<SingleIdentifier> getProcessedUnsafes() {
