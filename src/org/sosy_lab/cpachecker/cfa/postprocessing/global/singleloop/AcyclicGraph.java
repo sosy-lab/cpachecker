@@ -36,7 +36,7 @@ import com.google.common.collect.Multimap;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -78,8 +78,7 @@ class AcyclicGraph {
       new Function<CFANode, Iterable<CFAEdge>>() {
 
         @Override
-        @Nullable
-        public Iterable<CFAEdge> apply(@Nullable CFANode pArg0) {
+        public Iterable<CFAEdge> apply(@NullableDecl CFANode pArg0) {
           if (pArg0 == null) {
             return Collections.emptySet();
           }

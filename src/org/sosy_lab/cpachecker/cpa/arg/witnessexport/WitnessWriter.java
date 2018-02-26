@@ -175,10 +175,10 @@ class WitnessWriter implements EdgeAppender {
       new Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions>() {
 
         @Override
-        @Nullable
-        public CFAEdgeWithAssumptions apply(@Nullable CFAEdgeWithAssumptions pEdgeWithAssumptions) {
+        public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
           int originalSize = pEdgeWithAssumptions.getExpStmts().size();
-          List<AExpressionStatement> expressionStatements = Lists.newArrayListWithCapacity(originalSize);
+          List<AExpressionStatement> expressionStatements =
+              Lists.newArrayListWithCapacity(originalSize);
           for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
             AExpression assumption = expressionStatement.getExpression();
             if (!(assumption instanceof CBinaryExpression)) {
@@ -196,13 +196,18 @@ class WitnessWriter implements EdgeAppender {
                 boolean equalTypes = leftType.equals(rightType);
 
                 FluentIterable<Class<? extends CType>> acceptedTypes =
-                    FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
+                    FluentIterable.from(
+                        Collections.<Class<? extends CType>>singleton(CSimpleType.class));
 
-                boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
-                    pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
+                boolean leftIsAccepted =
+                    equalTypes
+                        || acceptedTypes.anyMatch(
+                            pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
 
-                boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
-                    pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
+                boolean rightIsAccepted =
+                    equalTypes
+                        || acceptedTypes.anyMatch(
+                            pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
 
                 if (leftIsAccepted && rightIsAccepted) {
                   boolean leftIsConstant = isConstant(leftSide);
@@ -235,26 +240,23 @@ class WitnessWriter implements EdgeAppender {
               new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
 
                 @Override
-                public Boolean visit(CComplexCastExpression pComplexCastExpression)
-                    throws RuntimeException {
+                public Boolean visit(CComplexCastExpression pComplexCastExpression) {
                   return pComplexCastExpression.getOperand().accept(this);
                 }
 
                 @Override
-                public Boolean visit(CBinaryExpression pIastBinaryExpression)
-                    throws RuntimeException {
+                public Boolean visit(CBinaryExpression pIastBinaryExpression) {
                   return pIastBinaryExpression.getOperand1().accept(this)
                       || pIastBinaryExpression.getOperand2().accept(this);
                 }
 
                 @Override
-                public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
+                public Boolean visit(CCastExpression pIastCastExpression) {
                   return pIastCastExpression.getOperand().accept(this);
                 }
 
                 @Override
-                public Boolean visit(CUnaryExpression pIastUnaryExpression)
-                    throws RuntimeException {
+                public Boolean visit(CUnaryExpression pIastUnaryExpression) {
                   if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE)
                       .contains(pIastUnaryExpression.getOperator())) {
                     return pIastUnaryExpression.getOperand().accept(this);
@@ -266,7 +268,7 @@ class WitnessWriter implements EdgeAppender {
                 }
 
                 @Override
-                protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+                protected Boolean visitDefault(CExpression pExp) {
                   return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
                 }
               });

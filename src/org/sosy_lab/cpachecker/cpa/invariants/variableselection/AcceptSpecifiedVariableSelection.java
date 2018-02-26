@@ -23,19 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
@@ -53,25 +49,27 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   @Override
   public boolean contains(final MemoryLocation pMemoryLocation) {
 
-    return FluentIterable.from(specifiedVariables).anyMatch(new Predicate<MemoryLocation>() {
+    return FluentIterable.from(specifiedVariables)
+        .anyMatch(
+            new Predicate<MemoryLocation>() {
 
-      @Override
-      public boolean apply(@Nullable MemoryLocation pArg0) {
-        if (pMemoryLocation.equals(pArg0)) {
-          return true;
-        }
-        if (pArg0.getIdentifier().endsWith("[*]")) {
-          int arraySubscriptIndex = pMemoryLocation.getIdentifier().indexOf('[');
-          if (arraySubscriptIndex >= 0) {
-            String containedArray = pArg0.getIdentifier().substring(0, pArg0.getIdentifier().indexOf('['));
-            String array = pMemoryLocation.getIdentifier().substring(arraySubscriptIndex);
-            return containedArray.equals(array);
-          }
-        }
-        return false;
-      }
-
-    });
+              @Override
+              public boolean apply(MemoryLocation pArg0) {
+                if (pMemoryLocation.equals(pArg0)) {
+                  return true;
+                }
+                if (pArg0.getIdentifier().endsWith("[*]")) {
+                  int arraySubscriptIndex = pMemoryLocation.getIdentifier().indexOf('[');
+                  if (arraySubscriptIndex >= 0) {
+                    String containedArray =
+                        pArg0.getIdentifier().substring(0, pArg0.getIdentifier().indexOf('['));
+                    String array = pMemoryLocation.getIdentifier().substring(arraySubscriptIndex);
+                    return containedArray.equals(array);
+                  }
+                }
+                return false;
+              }
+            });
   }
 
   @Override
