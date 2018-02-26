@@ -140,6 +140,13 @@ public interface PathFormulaManager {
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
 
   /**
+   * Clear all internal caches.
+   * Some launches are so huge, that may lead to memory limit,
+   * so, in some case it ise useful to reset outdated (and, maybe, necessary) information
+   */
+  public void clearCaches();
+
+  /**
    * Convert a simple C expression to a formula consistent with the
    * current state of the {@code pFormula}.
    *

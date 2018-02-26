@@ -103,4 +103,10 @@ public class CachingRelevantPredicatesComputer implements RefineableRelevantPred
   public String toString() {
     return "CachingRelevantPredicatesComputer (" + delegate + ")";
   }
+
+  @Override
+  public void clear() {
+    relevantCache.clear();
+    delegate.clear();
+  }
 }

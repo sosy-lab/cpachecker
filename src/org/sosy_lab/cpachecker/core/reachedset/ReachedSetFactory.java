@@ -45,12 +45,13 @@ import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
+import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
 
   private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED
+    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
   }
 
   @Option(
@@ -184,13 +185,12 @@ public class ReachedSetFactory {
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   private final Configuration config;
-  private final @Nullable BlockConfiguration blockConfig;
   private final LogManager logger;
+  private BlockConfiguration blockConfig;
 
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-
     this.config = pConfig;
     this.logger = pLogger;
 
@@ -259,6 +259,9 @@ public class ReachedSetFactory {
 
     case LOCATIONMAPPED:
       return new LocationMappedReachedSet(waitlistFactory);
+
+    case USAGE:
+      return new UsageReachedSet(waitlistFactory, config, logger);
 
     case NORMAL:
     default:

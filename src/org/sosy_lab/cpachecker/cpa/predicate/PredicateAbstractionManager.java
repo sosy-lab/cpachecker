@@ -279,6 +279,12 @@ public class PredicateAbstractionManager {
         noAbstractionReuse);
   }
 
+  public void clear() {
+    if (useCache) {
+      abstractionCache.clear();
+      unsatisfiabilityCache.clear();
+    }
+  }
   /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and
    * a PathFormula. The AbstractionFormula will be used in its instantiated form,

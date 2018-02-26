@@ -47,4 +47,8 @@ public class AllRelevantPredicatesComputer implements RelevantPredicatesComputer
       Block pContext, Collection<AbstractionPredicate> pPredicates) {
     return pPredicates;
   }
+
+  @Override
+  public void clear() {
+  }
 }

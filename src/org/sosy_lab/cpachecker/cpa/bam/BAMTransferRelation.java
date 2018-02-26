@@ -319,6 +319,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     assert reached != null;
+
     registerInitalAndExitStates(initialState, statesForFurtherAnalysis, reached);
 
     ARGState rootOfBlock = null;
@@ -395,6 +396,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     return returnStates;
+  }
+
+  public void cleanCaches() {
+    data.clear();
   }
 
   @Override

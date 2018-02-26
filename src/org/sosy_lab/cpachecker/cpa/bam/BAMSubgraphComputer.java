@@ -55,7 +55,7 @@ public class BAMSubgraphComputer {
 
   private final BlockPartitioning partitioning;
   private final Reducer reducer;
-  private final BAMDataManager data;
+  protected final BAMDataManager data;
   private final LogManager logger;
   private final boolean useCopyOnWriteRefinement;
 
@@ -207,7 +207,7 @@ public class BAMSubgraphComputer {
    *                     newExpandedTarget has only children, that are all part of the Pseudo-ARG
    *                     (these children are copies of states from reachedSets of other blocks)
    */
-  private void computeCounterexampleSubgraphForBlock(
+  protected void computeCounterexampleSubgraphForBlock(
           final BackwardARGState newExpandedRoot,
           final Set<BackwardARGState> newExpandedTargets)
       throws MissingBlockException, InterruptedException {
@@ -311,6 +311,11 @@ public class BAMSubgraphComputer {
 
     public ARGState getARGState() {
       return (ARGState) getWrappedState();
+    }
+
+    @Override
+    public BackwardARGState clone() {
+      return new BackwardARGState(getARGState());
     }
 
     @Override

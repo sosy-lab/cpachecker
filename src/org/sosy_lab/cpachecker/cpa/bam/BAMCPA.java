@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheAggressiveImpl;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheImpl;
@@ -172,5 +174,10 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
+  }
+
+  public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(
+      Function<ARGState, Integer> pIdExtractor) {
+    return new BAMMultipleCEXSubgraphComputer(this, pIdExtractor);
   }
 }
