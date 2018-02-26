@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
@@ -1182,7 +1183,7 @@ public class InvariantsState implements AbstractState,
         }
         if (pFormula instanceof LogicalNot) {
           return InvariantsFormulaManager.INSTANCE.logicalNot(
-              apply(((LogicalNot<CompoundInterval>) pFormula).getNegated()));
+              checkNotNull(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated())));
         }
         if (pFormula instanceof LogicalAnd) {
           LogicalAnd<CompoundInterval> and = (LogicalAnd<CompoundInterval>) pFormula;

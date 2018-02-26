@@ -936,7 +936,8 @@ class WitnessWriter implements EdgeAppender {
 
             // Get all children
             FluentIterable<ARGState> children =
-                FluentIterable.from(pSuccessorFunction.apply(parent))
+                FluentIterable.of(parent)
+                    .transformAndConcat(pSuccessorFunction)
                     .transform(COVERED_TO_COVERING)
                     .filter(parent.getChildren()::contains);
 

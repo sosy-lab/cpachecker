@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -247,6 +248,7 @@ public class WitnessExporter {
             return stateInvariant;
           }
 
+          @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
           private ExpressionTree<Object> extractValueAnalysisInvariants(
               CFAEdge pEdge, ARGState state, ExpressionTree<Object> stateInvariant) {
             ValueAnalysisState valueAnalysisState =

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.livevar;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 
 import com.google.common.base.Equivalence.Wrapper;
@@ -152,7 +153,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     if (pLang == Language.C) {
       Set<String> addressedVarsSet = variableClassification.getAddressedVariables();
       for (int i=0; i<noVars; i++) {
-        ASimpleDeclaration decl = allDeclarations.get(i).get();
+        ASimpleDeclaration decl = checkNotNull(allDeclarations.get(i).get());
         if (addressedVarsSet.contains(decl.getQualifiedName())) {
           addressedVars.set(i);
         }
@@ -281,7 +282,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     Wrapper<ASimpleDeclaration> varDecl = LIVE_DECL_EQUIVALENCE.wrap(decl);
     int varDeclPos = declarationListPos.get(varDecl);
-    AInitializer init = ((AVariableDeclaration)varDecl.get()).getInitializer();
+    AInitializer init = ((AVariableDeclaration) decl).getInitializer();
 
     // there is no initializer thus we only have to remove the initialized variable
     // from the live variables
