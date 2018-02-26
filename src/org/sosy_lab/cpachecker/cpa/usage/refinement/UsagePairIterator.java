@@ -101,7 +101,7 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   }
 
   @Override
-  protected void finalize(Pair<UsageInfo, UsageInfo> usagePair, RefinementResult r) {
+  protected void finishIteration(Pair<UsageInfo, UsageInfo> usagePair, RefinementResult r) {
     UsageInfo first = usagePair.getFirst();
     UsageInfo second = usagePair.getSecond();
 

@@ -156,7 +156,7 @@ public class PathPairIterator extends
   }
 
   @Override
-  protected void finalize(Pair<ExtendedARGPath, ExtendedARGPath> pathPair, RefinementResult wrapperResult) {
+  protected void finishIteration(Pair<ExtendedARGPath, ExtendedARGPath> pathPair, RefinementResult wrapperResult) {
     ExtendedARGPath firstExtendedPath, secondExtendedPath;
 
     firstExtendedPath = pathPair.getFirst();

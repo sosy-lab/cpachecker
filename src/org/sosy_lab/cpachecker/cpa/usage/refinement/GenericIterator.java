@@ -94,7 +94,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       completePrecision = completePrecision.mergeWith(precision);
     }
 
-    finalize(iteration, result);
+    finishIteration(iteration, result);
     return result;
   }
 
@@ -104,7 +104,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   protected void init(@SuppressWarnings("unused") I pInput) {}
 
   @ForOverride
-  protected void finalize(
+  protected void finishIteration(
       @SuppressWarnings("unused") O output, @SuppressWarnings("unused") RefinementResult r) {}
 
   @ForOverride

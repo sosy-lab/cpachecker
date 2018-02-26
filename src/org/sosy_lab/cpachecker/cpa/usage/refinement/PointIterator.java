@@ -121,7 +121,7 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   }
 
   @Override
-  protected void finalize(Pair<UsageInfoSet, UsageInfoSet> pPair, RefinementResult r) {
+  protected void finishIteration(Pair<UsageInfoSet, UsageInfoSet> pPair, RefinementResult r) {
     UsageInfoSet firstUsageInfoSet = pPair.getFirst();
     UsageInfoSet secondUsageInfoSet = pPair.getSecond();
 
