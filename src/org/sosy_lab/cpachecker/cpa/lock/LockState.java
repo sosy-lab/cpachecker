@@ -101,21 +101,18 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void add(LockIdentifier lockId) {
-      Integer a = mutableLocks.getOrDefault(lockId, 0);
-      mutableLocks.put(lockId, ++a);
+      Integer a = mutableLocks.getOrDefault(lockId, 0) + 1;
+      mutableLocks.put(lockId, a);
     }
 
     @Override
     public void free(LockIdentifier lockId) {
       if (mutableLocks.containsKey(lockId)) {
-        Integer a = mutableLocks.get(lockId);
-        if (a != null) {
-          a--;
-          if (a > 0) {
-            mutableLocks.put(lockId, a);
-          } else {
-            mutableLocks.remove(lockId);
-          }
+        Integer a = mutableLocks.get(lockId) - 1;
+        if (a > 0) {
+          mutableLocks.put(lockId, a);
+        } else {
+          mutableLocks.remove(lockId);
         }
       }
     }

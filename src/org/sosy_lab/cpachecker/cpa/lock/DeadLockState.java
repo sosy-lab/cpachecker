@@ -98,8 +98,7 @@ public class DeadLockState extends AbstractLockState {
     public void add(LockIdentifier lockId) {
       Integer a;
       if (mutableLocks.containsKey(lockId)) {
-        a = mutableLocks.get(lockId);
-        a++;
+        a = mutableLocks.get(lockId) + 1;
       } else {
         a = 1;
       }
@@ -113,15 +112,12 @@ public class DeadLockState extends AbstractLockState {
     @Override
     public void free(LockIdentifier lockId) {
       if (mutableLocks.containsKey(lockId)) {
-        Integer a = mutableLocks.get(lockId);
-        if (a != null) {
-          a--;
-          if (a > 0) {
-            mutableLocks.put(lockId, a);
-          } else {
-            mutableLocks.remove(lockId);
-            mutableLockList.remove(lockId);
-          }
+        Integer a = mutableLocks.get(lockId) - 1;
+        if (a > 0) {
+          mutableLocks.put(lockId, a);
+        } else {
+          mutableLocks.remove(lockId);
+          mutableLockList.remove(lockId);
         }
       }
     }
