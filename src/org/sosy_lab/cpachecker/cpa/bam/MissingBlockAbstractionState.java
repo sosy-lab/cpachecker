@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
  * <p>This class implements many interfaces, because we want to insert this state into an arbitrary
  * reached-set, and some types of reached-sets have special requirements.
  */
+@SuppressFBWarnings(justification = "serialization currently not needed", value = "SE_BAD_FIELD")
 public final class MissingBlockAbstractionState extends AbstractSingleWrapperState {
 
   private static final long serialVersionUID = 1L;
