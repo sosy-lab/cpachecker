@@ -201,10 +201,10 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       CBinaryExpression binExpression = (CBinaryExpression) assumption;
       if (binExpression.getOperand1() instanceof CIdExpression) {
         String varName = ((CIdExpression) ((CBinaryExpression) assumption).getOperand1()).getName();
-        if (lockDescription.variableEffectDescription.containsKey(varName)) {
+        if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
           CExpression val = binExpression.getOperand2();
           if (val instanceof CIntegerLiteralExpression) {
-            LockIdentifier id = lockDescription.variableEffectDescription.get(varName);
+            LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
             int level = ((CIntegerLiteralExpression) val).getValue().intValue();
             AbstractLockEffect e =
                 CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
@@ -217,11 +217,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private ImmutableList<? extends AbstractLockEffect> convertAnnotationToLockEffect(
-      Map<String, String> map, LockEffect e) {
-    return from(map.keySet())
-        .transform(l -> LockIdentifier.of(l, map.get(l)))
-        .transform(e::cloneWithTarget)
-        .toList();
+      Set<LockIdentifier> pAnnotatedIds, LockEffect pEffect) {
+    return from(pAnnotatedIds).transform(pEffect::cloneWithTarget).toList();
   }
 
   private List<AbstractLockEffect> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge) {
@@ -237,36 +234,34 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractLockEffect> result = new ArrayList<>();
 
       AnnotationInfo currentAnnotation = annotatedFunctions.get(fName);
-      if (currentAnnotation.restoreLocks.size() == 0
-          && currentAnnotation.freeLocks.size() == 0
-          && currentAnnotation.resetLocks.size() == 0
-          && currentAnnotation.captureLocks.size() == 0) {
+      if (currentAnnotation.getRestoreLocks().size() == 0
+          && currentAnnotation.getFreeLocks().size() == 0
+          && currentAnnotation.getResetLocks().size() == 0
+          && currentAnnotation.getCaptureLocks().size() == 0) {
         // Not specified annotations are considered to be totally restoring
         AbstractLockEffect restoreAll = RestoreAllLockEffect.getInstance();
         return Collections.singletonList(restoreAll);
       } else {
-        if (currentAnnotation.restoreLocks.size() > 0) {
+        if (currentAnnotation.getRestoreLocks().size() > 0) {
           result.addAll(
               convertAnnotationToLockEffect(
-                  currentAnnotation.restoreLocks, RestoreLockEffect.getInstance()));
+                  currentAnnotation.getRestoreLocks(), RestoreLockEffect.getInstance()));
         }
-        if (currentAnnotation.freeLocks.size() > 0) {
+        if (currentAnnotation.getFreeLocks().size() > 0) {
           result.addAll(
               convertAnnotationToLockEffect(
-                  currentAnnotation.freeLocks, ReleaseLockEffect.getInstance()));
+                  currentAnnotation.getFreeLocks(), ReleaseLockEffect.getInstance()));
         }
-        if (currentAnnotation.resetLocks.size() > 0) {
+        if (currentAnnotation.getResetLocks().size() > 0) {
           result.addAll(
               convertAnnotationToLockEffect(
-                  currentAnnotation.resetLocks, ResetLockEffect.getInstance()));
+                  currentAnnotation.getResetLocks(), ResetLockEffect.getInstance()));
         }
-        if (currentAnnotation.captureLocks.size() > 0) {
-          for (String lockName : currentAnnotation.captureLocks.keySet()) {
-            LockIdentifier tagerId =
-                LockIdentifier.of(lockName, currentAnnotation.captureLocks.get(lockName));
+        if (currentAnnotation.getCaptureLocks().size() > 0) {
+          for (LockIdentifier targetId : currentAnnotation.getCaptureLocks()) {
             result.add(
                 AcquireLockEffect.createEffectForId(
-                    tagerId, lockDescription.maxLevel.get(lockName)));
+                    targetId, lockDescription.getMaxLevel(targetId.getName())));
           }
         }
         return result;
@@ -277,11 +272,11 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
   private List<AbstractLockEffect> handleFunctionCallExpression(CFunctionCallExpression function) {
     String functionName = function.getFunctionNameExpression().toASTString();
-    if (!lockDescription.functionEffectDescription.containsKey(functionName)) {
+    if (!lockDescription.getFunctionEffectDescription().containsKey(functionName)) {
       return Collections.emptyList();
     }
     Pair<LockEffect, LockIdUnprepared> locksWithEffect =
-        lockDescription.functionEffectDescription.get(functionName);
+        lockDescription.getFunctionEffectDescription().get(functionName);
     LockEffect effect = locksWithEffect.getFirst();
     LockIdUnprepared uId = locksWithEffect.getSecond();
 
@@ -292,7 +287,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       // Replace it by parametrical one
       if (expression instanceof CIntegerLiteralExpression) {
         int newValue = ((CIntegerLiteralExpression) expression).getValue().intValue();
-        int max = lockDescription.maxLevel.get(uId.getName());
+        int max = lockDescription.getMaxLevel(uId.getName());
         if (max < newValue) {
           newValue = max;
         }
@@ -305,7 +300,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     LockIdentifier id = uId.apply(function.getParameterExpressions());
     if (effect == AcquireLockEffect.getInstance()) {
-      effect = AcquireLockEffect.createEffectForId(id, lockDescription.maxLevel.get(uId.getName()));
+      effect = AcquireLockEffect.createEffectForId(id, lockDescription.getMaxLevel(uId.getName()));
     } else {
       effect = effect.cloneWithTarget(id);
     }
@@ -331,9 +326,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         CLeftHandSide leftSide = ((CAssignment) statement).getLeftHandSide();
         CRightHandSide rightSide = ((CAssignment) statement).getRightHandSide();
         String varName = leftSide.toASTString();
-        if (lockDescription.variableEffectDescription.containsKey(varName)) {
+        if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
           if (rightSide instanceof CIntegerLiteralExpression) {
-            LockIdentifier id = lockDescription.variableEffectDescription.get(varName);
+            LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
             int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
             AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
             return Collections.singletonList(e);

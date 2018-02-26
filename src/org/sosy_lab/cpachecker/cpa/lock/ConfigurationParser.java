@@ -128,11 +128,11 @@ public class ConfigurationParser {
   }
 
   public ImmutableMap<String, AnnotationInfo> parseAnnotatedFunctions() {
-    Map<String, String> freeLocks;
-    Map<String, String> restoreLocks;
-    Map<String, String> resetLocks;
-    Map<String, String> captureLocks;
-    Map<String, AnnotationInfo> annotatedfunctions = new HashMap<>();
+    Set<LockIdentifier> freeLocks;
+    Set<LockIdentifier> restoreLocks;
+    Set<LockIdentifier> resetLocks;
+    Set<LockIdentifier> captureLocks;
+    ImmutableMap.Builder<String, AnnotationInfo> annotatedfunctions = ImmutableMap.builder();
 
     if (annotated != null) {
       for (String fName : annotated) {
@@ -141,29 +141,30 @@ public class ConfigurationParser {
         resetLocks = createAnnotationMap(fName, "reset");
         captureLocks = createAnnotationMap(fName, "lock");
         annotatedfunctions.put(
-            fName, new AnnotationInfo(fName, freeLocks, restoreLocks, resetLocks, captureLocks));
+            fName, new AnnotationInfo(freeLocks, restoreLocks, resetLocks, captureLocks));
       }
     }
-    return ImmutableMap.copyOf(annotatedfunctions);
+    return annotatedfunctions.build();
   }
 
   @SuppressWarnings("deprecation")
-  private Map<String, String> createAnnotationMap(String function, String target) {
-    Map<String, String> result = Maps.newHashMap();
+  private Set<LockIdentifier> createAnnotationMap(String function, String target) {
+    Set<LockIdentifier> result = Sets.newTreeSet();
 
     String property = config.getProperty("annotate." + function + "." + target);
     if (property != null) {
       property = property.replaceAll("\\s", "");
       List<String> lockNames = Splitter.on(",").splitToList(property);
-      result = new HashMap<>();
+      LockIdentifier parsedId;
       for (String fullName : lockNames) {
         if (fullName.matches(".*\\(.*")) {
           List<String> stringArray = Splitter.on("\\(").splitToList(fullName);
           assert stringArray.size() == 2;
-          result.put(stringArray.get(0), stringArray.get(1));
+          parsedId = LockIdentifier.of(stringArray.get(0), stringArray.get(1));
         } else {
-          result.put(fullName, "");
+          parsedId = LockIdentifier.of(fullName, "");
         }
+        result.add(parsedId);
       }
     }
     return result;

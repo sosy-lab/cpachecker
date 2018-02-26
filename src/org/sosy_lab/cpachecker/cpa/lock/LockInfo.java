@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class LockInfo {
 
-  public final Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffectDescription;
-  public final Map<String, LockIdentifier> variableEffectDescription;
-  public final Map<String, Integer> maxLevel;
+  private final ImmutableMap<String, Pair<LockEffect, LockIdUnprepared>> functionEffectDescription;
+  private final ImmutableMap<String, LockIdentifier> variableEffectDescription;
+  private final ImmutableMap<String, Integer> maxLevel;
 
   public LockInfo(
       Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects,
@@ -42,4 +42,18 @@ public class LockInfo {
     variableEffectDescription = ImmutableMap.copyOf(varEffects);
     maxLevel = ImmutableMap.copyOf(max);
   }
+
+  public ImmutableMap<String, Pair<LockEffect, LockIdUnprepared>> getFunctionEffectDescription() {
+    return functionEffectDescription;
+  }
+
+  public ImmutableMap<String, LockIdentifier> getVariableEffectDescription() {
+    return variableEffectDescription;
+  }
+
+  public int getMaxLevel(String lockName) {
+    // The max level must be in map (do not use default)
+    return maxLevel.get(lockName);
+  }
+
 }
