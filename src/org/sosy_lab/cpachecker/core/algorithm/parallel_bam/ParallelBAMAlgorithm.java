@@ -82,7 +82,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final LogManagerWithoutDuplicates oneTimeLogger;
   private final BAMCPAWithBreakOnMissingBlock bamcpa;
-  private final CPAAlgorithmFactory algorithmFactory;
+  private final AlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
 
   public ParallelBAMAlgorithm(

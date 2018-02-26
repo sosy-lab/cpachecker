@@ -54,9 +54,9 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm.ParallelBAMStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -87,7 +87,7 @@ class ReachedSetExecutor {
   private final Block block;
 
   /** the working algorithm for the reached-set, single-threaded access. */
-  private final CPAAlgorithm algorithm;
+  private final Algorithm algorithm;
 
   /** flag that causes termination if enabled. */
   private boolean targetStateFound = false;
@@ -104,7 +104,7 @@ class ReachedSetExecutor {
   private final ExecutorService pool;
 
   private final BAMCPAWithBreakOnMissingBlock bamcpa;
-  private final CPAAlgorithmFactory algorithmFactory;
+  private final AlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
   private final AtomicReference<Throwable> error;
@@ -139,7 +139,7 @@ class ReachedSetExecutor {
       ReachedSet pMainReachedSet,
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
       ExecutorService pPool,
-      CPAAlgorithmFactory pAlgorithmFactory,
+      AlgorithmFactory pAlgorithmFactory,
       ShutdownNotifier pShutdownNotifier,
       ParallelBAMStatistics pStats,
       AtomicReference<Throwable> pError,
