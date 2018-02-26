@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSetValidator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -113,8 +112,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   private AlgorithmStatus run0(final ReachedSet mainReachedSet)
       throws CPAException, InterruptedException {
 
-    final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
-        new HashMap<>();
+    final Map<ReachedSet, ReachedSetExecutor> reachedSetMapping = new HashMap<>();
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
@@ -137,8 +135,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             logger);
 
     synchronized (reachedSetMapping) {
-      CompletableFuture<Void> future = CompletableFuture.runAsync(rse.asRunnable(), pool);
-      reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
+      rse.addNewTask(rse.asRunnable());
+      reachedSetMapping.put(mainReachedSet, rse);
     }
 
     boolean isSound = true;
@@ -185,7 +183,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
    * but that might be dangerous and error-prone.
    */
   private void collectExceptions(
-      Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
+      Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       AtomicReference<Throwable> error,
       final ReachedSet mainReachedSet)
       throws CPAException {
@@ -199,11 +197,11 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         .parallelStream()
         .forEach(
             entry -> {
-              ReachedSetExecutor rse = entry.getValue().getFirst();
-              CompletableFuture<Void> job = entry.getValue().getSecond();
+              ReachedSetExecutor rse = entry.getValue();
+              CompletableFuture<Void> job = rse.getWaitingTasks();
               try {
                 job.get(5, TimeUnit.SECONDS);
-                stats.executionCounter.insertValue(entry.getValue().getFirst().execCounter);
+                stats.executionCounter.insertValue(entry.getValue().execCounter);
                 stats.unfinishedRSEcounter.inc();
 
                 if (rse.isTargetStateFound()) {

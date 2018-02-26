@@ -98,8 +98,7 @@ class ReachedSetExecutor {
   /**
    * important central data structure, shared over all threads, need to be synchronized directly.
    */
-  private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>>
-      reachedSetMapping;
+  private final Map<ReachedSet, ReachedSetExecutor> reachedSetMapping;
 
   private final ExecutorService pool;
 
@@ -132,12 +131,15 @@ class ReachedSetExecutor {
   private final Multimap<ReachedSetExecutor, AbstractState> dependingFrom =
       LinkedHashMultimap.create();
 
+  /** This future contains the list of tasks to be executed with this RSE. */
+  private CompletableFuture<Void> waitingTask;
+
   public ReachedSetExecutor(
       BAMCPAWithBreakOnMissingBlock pBamCpa,
       ReachedSet pRs,
       Block pBlock,
       ReachedSet pMainReachedSet,
-      Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
+      Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       ExecutorService pPool,
       AlgorithmFactory pAlgorithmFactory,
       ShutdownNotifier pShutdownNotifier,
@@ -168,6 +170,8 @@ class ReachedSetExecutor {
     threadTimer = stats.threadTime.getNewTimer();
     addingStatesTimer = stats.addingStatesTime.getNewTimer();
     terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
+
+    waitingTask = CompletableFuture.runAsync(NOOP, pool); // initialization
   }
 
   public Runnable asRunnable() {
@@ -178,6 +182,15 @@ class ReachedSetExecutor {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
     return () -> apply(copy);
+  }
+
+  synchronized void addNewTask(Runnable r) {
+    waitingTask = waitingTask.thenRunAsync(r, pool).exceptionally(new ExceptionHandler(this));
+  }
+
+  /** use only for debugging and exception handling */
+  CompletableFuture<Void> getWaitingTasks() {
+    return waitingTask;
   }
 
   /**
@@ -440,9 +453,9 @@ class ReachedSetExecutor {
     // register new sub-analysis as asynchronous/parallel/future work, if not existent
     synchronized (reachedSetMapping) {
       ReachedSet newRs = createAndRegisterNewReachedSet(pBsme);
-      Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(newRs);
+      ReachedSetExecutor subRse = reachedSetMapping.get(newRs);
 
-      if (p == null) {
+      if (subRse == null) {
         // BSME interleaved with termination of sub-reached-set analysis,
         // cache-update was too slow, but cleanup of RSE in reachedSetMapping was too fast.
         // Restarting the procedure once should be sufficient,
@@ -451,7 +464,11 @@ class ReachedSetExecutor {
         logger.logf(level, "%s :: interleaved with another thread, bsme=%s", this, id(parentState));
 
       } else {
-        scheduleSubAnalysis(pBsme, p);
+        // register dependencies to wait for results and to get results, asynchronous
+        addDependencies(pBsme, subRse);
+
+        // register callback to get results of terminated analysis
+        registerJob(subRse, subRse.asRunnable());
       }
     }
 
@@ -475,16 +492,6 @@ class ReachedSetExecutor {
               .breadthFirst(this),
           rse -> rse.block.getCallNodes().contains(pEntryLocation));
     }
-  }
-
-  private void scheduleSubAnalysis(
-      MissingBlockAbstractionState pBsme, Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
-    // register dependencies to wait for results and to get results, asynchronous
-    ReachedSetExecutor subRse = p.getFirst();
-    addDependencies(pBsme, subRse);
-
-    // register callback to get results of terminated analysis
-    registerJob(subRse, subRse.asRunnable());
   }
 
   /**
@@ -534,13 +541,10 @@ class ReachedSetExecutor {
               error,
               terminateAnalysis,
               logger);
-      // register NOOP here. Callback for results is registered later, we have "lazy" computation.
       logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
-      CompletableFuture<Void> future =
-          CompletableFuture.runAsync(NOOP, pool).exceptionally(new ExceptionHandler(subRse));
       assert !reachedSetMapping.containsKey(newRs)
           : "should not happen, we are in synchronized context";
-      reachedSetMapping.put(newRs, Pair.of(subRse, future));
+      reachedSetMapping.put(newRs, subRse);
     }
 
     Preconditions.checkState(
@@ -555,12 +559,10 @@ class ReachedSetExecutor {
    */
   private void registerJob(ReachedSetExecutor pRse, Runnable r) {
     synchronized (reachedSetMapping) {
-      Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
-      assert p.getFirst() == pRse;
+      assert reachedSetMapping.get(pRse.rs) == pRse;
       logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
-      CompletableFuture<Void> future =
-          p.getSecond().thenRunAsync(r, pool).exceptionally(new ExceptionHandler(pRse));
-      reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
+      pRse.addNewTask(r);
+      reachedSetMapping.put(pRse.rs, pRse);
     }
   }
 
@@ -580,8 +582,7 @@ class ReachedSetExecutor {
   String getDependenciesAsDot() {
     final List<String> dependencies = new ArrayList<>();
     synchronized (reachedSetMapping) {
-      for (ReachedSetExecutor rse :
-          Collections2.transform(reachedSetMapping.values(), Pair::getFirst)) {
+      for (ReachedSetExecutor rse : reachedSetMapping.values()) {
         for (ReachedSetExecutor dependentRse : rse.dependingFrom.keys()) {
           dependencies.add(String.format("\"%s\" -> \"%s\"", rse, dependentRse));
         }
