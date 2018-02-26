@@ -88,9 +88,9 @@ public class LocalStatistics implements Statistics {
             reachedStatistics.put(node, previousState.join(lState));
           }
         }
-        for (CFANode node : reachedStatistics.keySet()) {
-          writer.append(node.toString() + "\n");
-          writer.append(reachedStatistics.get(node).toLog() + "\n");
+        for (Map.Entry<CFANode, LocalState> entry : reachedStatistics.entrySet()) {
+          writer.append(entry.getKey().toString() + "\n");
+          writer.append(entry.getValue().toLog() + "\n");
         }
       }
     } catch (FileNotFoundException e) {

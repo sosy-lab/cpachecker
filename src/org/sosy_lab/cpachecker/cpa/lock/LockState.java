@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
@@ -325,17 +326,17 @@ public class LockState extends AbstractLockState {
       return result;
     }
 
-    Iterator<LockIdentifier> iterator1 = locks.keySet().iterator();
-    Iterator<LockIdentifier> iterator2 = other.locks.keySet().iterator();
+    Iterator<Entry<LockIdentifier, Integer>> iterator1 = locks.entrySet().iterator();
+    Iterator<Entry<LockIdentifier, Integer>> iterator2 = other.locks.entrySet().iterator();
     // Sizes are equal
     while (iterator1.hasNext()) {
-      LockIdentifier lockId1 = iterator1.next();
-      LockIdentifier lockId2 = iterator2.next();
-      result = lockId1.compareTo(lockId2);
+      Entry<LockIdentifier, Integer> entry1 = iterator1.next();
+      Entry<LockIdentifier, Integer> entry2 = iterator2.next();
+      result = entry1.getKey().compareTo(entry2.getKey());
       if (result != 0) {
         return result;
       }
-      Integer Result = locks.get(lockId1) - other.locks.get(lockId1);
+      Integer Result = entry1.getValue() - entry2.getValue();
       if (Result != 0) {
         return Result;
       }
@@ -360,9 +361,10 @@ public class LockState extends AbstractLockState {
     List<LockEffect> result = new ArrayList<>();
     Set<LockIdentifier> processedLocks = new TreeSet<>();
 
-    for (LockIdentifier lockId : locks.keySet()) {
-      int thisCounter = locks.get(lockId);
-      int otherCounter = other.locks.containsKey(lockId) ? other.locks.get(lockId) : 0;
+    for (Entry<LockIdentifier, Integer> entry : locks.entrySet()) {
+      LockIdentifier lockId = entry.getKey();
+      int thisCounter = entry.getValue();
+      int otherCounter = other.locks.getOrDefault(lockId, 0);
       if (thisCounter > otherCounter) {
         for (int i = 0; i < thisCounter - otherCounter; i++) {
           result.add(ReleaseLockEffect.createEffectForId(lockId));
@@ -374,9 +376,10 @@ public class LockState extends AbstractLockState {
       }
       processedLocks.add(lockId);
     }
-    for (LockIdentifier lockId : other.locks.keySet()) {
+    for (Entry<LockIdentifier, Integer> entry : other.locks.entrySet()) {
+      LockIdentifier lockId = entry.getKey();
       if (!processedLocks.contains(lockId)) {
-        for (int i = 0; i < other.locks.get(lockId); i++) {
+        for (int i = 0; i < entry.getValue(); i++) {
           result.add(AcquireLockEffect.createEffectForId(lockId));
         }
       }

@@ -30,6 +30,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -141,11 +142,12 @@ public class UsageContainer {
       unsafeUsages = 0;
       Set<SingleIdentifier> toDelete = new HashSet<>();
 
-      for (SingleIdentifier id : unrefinedIds.keySet()) {
-        UnrefinedUsagePointSet tmpList = unrefinedIds.get(id);
+      for (Entry<SingleIdentifier, UnrefinedUsagePointSet> entry : unrefinedIds.entrySet()) {
+        UnrefinedUsagePointSet tmpList = entry.getValue();
         if (detector.isUnsafe(tmpList)) {
           unsafeUsages += tmpList.size();
         } else {
+          SingleIdentifier id = entry.getKey();
           toDelete.add(id);
           falseUnsafes.add(id);
         }
