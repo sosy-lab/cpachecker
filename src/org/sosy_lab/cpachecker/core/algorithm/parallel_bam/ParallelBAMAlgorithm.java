@@ -26,9 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 import com.google.common.base.Preconditions;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -112,7 +113,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   private AlgorithmStatus run0(final ReachedSet mainReachedSet)
       throws CPAException, InterruptedException {
 
-    final Map<ReachedSet, ReachedSetExecutor> reachedSetMapping = new HashMap<>();
+    final ConcurrentMap<ReachedSet, ReachedSetExecutor> reachedSetMapping =
+        new ConcurrentHashMap<>();
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
@@ -134,10 +136,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             terminateAnalysis,
             logger);
 
-    synchronized (reachedSetMapping) {
-      rse.addNewTask(rse.asRunnable());
-      reachedSetMapping.put(mainReachedSet, rse);
-    }
+    // start analysis
+    rse.addNewTask(rse.asRunnable());
 
     boolean isSound = true;
     try {

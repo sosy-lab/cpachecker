@@ -39,11 +39,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -95,10 +95,8 @@ class ReachedSetExecutor {
   /** main reached-set is used for checking termination of the algorithm. */
   private final ReachedSet mainReachedSet;
 
-  /**
-   * important central data structure, shared over all threads, need to be synchronized directly.
-   */
-  private final Map<ReachedSet, ReachedSetExecutor> reachedSetMapping;
+  /** important central data structure, shared over all threads, need to be synchronized. */
+  private final ConcurrentMap<ReachedSet, ReachedSetExecutor> reachedSetMapping;
 
   private final ExecutorService pool;
 
@@ -139,7 +137,7 @@ class ReachedSetExecutor {
       ReachedSet pRs,
       Block pBlock,
       ReachedSet pMainReachedSet,
-      Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
+      ConcurrentMap<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       ExecutorService pPool,
       AlgorithmFactory pAlgorithmFactory,
       ShutdownNotifier pShutdownNotifier,
@@ -172,6 +170,7 @@ class ReachedSetExecutor {
     terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
 
     waitingTask = CompletableFuture.runAsync(NOOP, pool); // initialization
+    reachedSetMapping.put(rs, this); // backwards reference
   }
 
   public Runnable asRunnable() {
@@ -334,11 +333,9 @@ class ReachedSetExecutor {
 
       // we never need to execute this RSE again,
       // thus we can clean up and avoid a (small) memory-leak
-      synchronized (reachedSetMapping) {
-        reachedSetMapping.remove(rs);
-        stats.executionCounter.insertValue(execCounter);
-        // no need to wait for p.getSecond(), we assume a error-free exit after this point.
-      }
+      reachedSetMapping.remove(rs);
+      stats.executionCounter.insertValue(execCounter);
+      // no need to wait for this#waitingTask, we assume a error-free exit after this point.
     }
 
     logger.logf(
@@ -389,7 +386,6 @@ class ReachedSetExecutor {
   private void reAddStatesToDependingReachedSets() {
     // first lock is only against deadlock of locks for 'reachedSetMapping' and 'dependingFrom'.
     // TODO optimize lock/unlock behavior if performance is too bad
-    synchronized (reachedSetMapping) {
     synchronized (dependingFrom) {
       logger.logf(level, "%s :: %s -> %s", this, this, dependingFrom.keys());
       for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
@@ -397,7 +393,6 @@ class ReachedSetExecutor {
         registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
       }
       dependingFrom.clear();
-    }
     }
   }
 
@@ -451,26 +446,13 @@ class ReachedSetExecutor {
     }
 
     // register new sub-analysis as asynchronous/parallel/future work, if not existent
-    synchronized (reachedSetMapping) {
-      ReachedSet newRs = createAndRegisterNewReachedSet(pBsme);
-      ReachedSetExecutor subRse = reachedSetMapping.get(newRs);
+    ReachedSetExecutor subRse = createAndRegisterNewReachedSet(pBsme);
 
-      if (subRse == null) {
-        // BSME interleaved with termination of sub-reached-set analysis,
-        // cache-update was too slow, but cleanup of RSE in reachedSetMapping was too fast.
-        // Restarting the procedure once should be sufficient,
-        // such that the analysis tries a normal cache-access again.
-        // --> nothing to do
-        logger.logf(level, "%s :: interleaved with another thread, bsme=%s", this, id(parentState));
+    // register dependencies to wait for results and to get results, asynchronous
+    addDependencies(pBsme, subRse);
 
-      } else {
-        // register dependencies to wait for results and to get results, asynchronous
-        addDependencies(pBsme, subRse);
-
-        // register callback to get results of terminated analysis
-        registerJob(subRse, subRse.asRunnable());
-      }
-    }
+    // register callback to get results of terminated analysis
+    registerJob(subRse, subRse.asRunnable());
 
     if (rs.getWaitlist().isEmpty()) {
       // optimization: if no further states are waiting, no need to schedule the current RSE.
@@ -485,13 +467,10 @@ class ReachedSetExecutor {
 
   /** We need to traverse the RSEs whether there is a cyclic dependency. */
   private boolean hasRecursion(CFANode pEntryLocation) {
-    synchronized (reachedSetMapping) {
-      // TODO correct lock? we need to avoid RSE-creation during traversal.
-      return Iterables.any(
-          Traverser.<ReachedSetExecutor>forGraph(rse -> rse.dependingFrom.keys())
-              .breadthFirst(this),
-          rse -> rse.block.getCallNodes().contains(pEntryLocation));
-    }
+    // TODO do we need a lock? we need to avoid crossover RSE-creation during traversal.
+    return Iterables.any(
+        Traverser.<ReachedSetExecutor>forGraph(rse -> rse.dependingFrom.keys()).breadthFirst(this),
+        rse -> rse.block.getCallNodes().contains(pEntryLocation));
   }
 
   /**
@@ -501,7 +480,7 @@ class ReachedSetExecutor {
    *
    * @return a valid reached-set to be analyzed
    */
-  private ReachedSet createAndRegisterNewReachedSet(MissingBlockAbstractionState pBsme) {
+  private ReachedSetExecutor createAndRegisterNewReachedSet(MissingBlockAbstractionState pBsme) {
     ReachedSet newRs = pBsme.getReachedSet();
     if (newRs == null) {
       // We are only synchronized in the current method. Thus, we need to check
@@ -524,10 +503,11 @@ class ReachedSetExecutor {
                   pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
     }
 
-    if (!reachedSetMapping.containsKey(newRs)) {
+    ReachedSetExecutor subRse = reachedSetMapping.get(newRs);
+    if (subRse == null) {
       // we have a partial (or even finished) reached-set,
       // so we schedule it for further exploration
-      ReachedSetExecutor subRse =
+      subRse =
           new ReachedSetExecutor(
               bamcpa,
               newRs,
@@ -542,15 +522,8 @@ class ReachedSetExecutor {
               terminateAnalysis,
               logger);
       logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
-      assert !reachedSetMapping.containsKey(newRs)
-          : "should not happen, we are in synchronized context";
-      reachedSetMapping.put(newRs, subRse);
     }
-
-    Preconditions.checkState(
-        reachedSetMapping.containsKey(newRs),
-        "scheduling unregistered reached-set will be difficult");
-    return newRs;
+    return subRse;
   }
 
   /**
@@ -558,12 +531,8 @@ class ReachedSetExecutor {
    * reached-set.
    */
   private void registerJob(ReachedSetExecutor pRse, Runnable r) {
-    synchronized (reachedSetMapping) {
-      assert reachedSetMapping.get(pRse.rs) == pRse;
-      logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
-      pRse.addNewTask(r);
-      reachedSetMapping.put(pRse.rs, pRse);
-    }
+    logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
+    pRse.addNewTask(r);
   }
 
   private Block getBlockForState(AbstractState state) {
@@ -578,14 +547,12 @@ class ReachedSetExecutor {
     return "RSE " + idd();
   }
 
-  /** for debugging */
+  /** for debugging, warning: might not be thread-safe! */
   String getDependenciesAsDot() {
     final List<String> dependencies = new ArrayList<>();
-    synchronized (reachedSetMapping) {
-      for (ReachedSetExecutor rse : reachedSetMapping.values()) {
-        for (ReachedSetExecutor dependentRse : rse.dependingFrom.keys()) {
-          dependencies.add(String.format("\"%s\" -> \"%s\"", rse, dependentRse));
-        }
+    for (ReachedSetExecutor rse : reachedSetMapping.values()) {
+      for (ReachedSetExecutor dependentRse : rse.dependingFrom.keys()) {
+        dependencies.add(String.format("\"%s\" -> \"%s\"", rse, dependentRse));
       }
     }
     Collections.sort(dependencies); // for deterministic dot-graphs
