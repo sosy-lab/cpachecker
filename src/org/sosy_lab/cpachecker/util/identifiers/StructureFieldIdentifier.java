@@ -64,11 +64,6 @@ public class StructureFieldIdentifier extends StructureIdentifier {
   }
 
   @Override
-  public StructureFieldIdentifier clone() {
-    return cloneWithDereference(dereference);
-  }
-
-  @Override
   public StructureFieldIdentifier cloneWithDereference(int deref) {
     return new StructureFieldIdentifier(name, type, deref, owner);
   }

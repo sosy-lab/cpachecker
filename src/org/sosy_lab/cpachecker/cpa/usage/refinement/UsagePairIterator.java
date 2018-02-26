@@ -81,7 +81,7 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
       UsageInfo firstUsage = result.getFirst();
       UsageInfo secondUsage = result.getSecond();
       if (firstUsage == secondUsage) {
-        secondUsage = secondUsage.clone();
+        secondUsage = secondUsage.copy();
       }
       return Pair.of(firstUsage, secondUsage);
     }

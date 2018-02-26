@@ -87,9 +87,6 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
   }
 
   @Override
-  public abstract SingleIdentifier clone();
-
-  @Override
   public String toString() {
     String info = Identifiers.getCharsOf(dereference);
     info += name;

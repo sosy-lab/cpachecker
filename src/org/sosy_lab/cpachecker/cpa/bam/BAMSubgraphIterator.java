@@ -99,13 +99,13 @@ public class BAMSubgraphIterator {
 
   private BackwardARGState cloneTheRestOfPath(BackwardARGState pChildOfForkState) {
     BackwardARGState stateOnOriginPath = pChildOfForkState;
-    BackwardARGState stateOnClonedPath = stateOnOriginPath.clone(), tmpStateOnPath;
+    BackwardARGState stateOnClonedPath = stateOnOriginPath.copy(), tmpStateOnPath;
     BackwardARGState root = stateOnClonedPath;
 
     while (!stateOnOriginPath.getChildren().isEmpty()) {
       assert stateOnOriginPath.getChildren().size() == 1;
       stateOnOriginPath = getNextStateOnPath(stateOnOriginPath);
-      tmpStateOnPath = stateOnOriginPath.clone();
+      tmpStateOnPath = stateOnOriginPath.copy();
       tmpStateOnPath.addParent(stateOnClonedPath);
       stateOnClonedPath = tmpStateOnPath;
     }

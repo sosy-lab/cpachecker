@@ -62,11 +62,6 @@ public class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier
   }
 
   @Override
-  public GeneralGlobalVariableIdentifier clone() {
-    return cloneWithDereference(dereference);
-  }
-
-  @Override
   public GeneralGlobalVariableIdentifier cloneWithDereference(int deref) {
     return new GeneralGlobalVariableIdentifier(name, type, deref);
   }

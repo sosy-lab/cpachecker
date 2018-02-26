@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public class LocalState implements LatticeAbstractState<LocalState>, Cloneable {
+public class LocalState implements LatticeAbstractState<LocalState> {
 
   public static enum DataType {
     LOCAL,
@@ -88,11 +88,10 @@ public class LocalState implements LatticeAbstractState<LocalState>, Cloneable {
   }
 
   public LocalState getClonedPreviousState() {
-    return previousState.clone();
+    return previousState.copy();
   }
 
-  @Override
-  public LocalState clone() {
+  public LocalState copy() {
     return new LocalState(this.DataInfo, this.previousState, this.alwaysLocalData);
   }
 

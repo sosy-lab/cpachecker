@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public class UsageInfo implements Comparable<UsageInfo>, Cloneable {
+public class UsageInfo implements Comparable<UsageInfo> {
 
   public static enum Access {
     WRITE,
@@ -260,8 +260,7 @@ public class UsageInfo implements Comparable<UsageInfo>, Cloneable {
     isReachable = false;
   }
 
-  @Override
-  public UsageInfo clone() {
+  public UsageInfo copy() {
     UsageInfo result = new UsageInfo(accessType, line, id);
     result.keyState = this.keyState;
     result.path = this.path;
@@ -272,7 +271,7 @@ public class UsageInfo implements Comparable<UsageInfo>, Cloneable {
   }
 
   public UsageInfo expand(LockState expandedState) {
-    UsageInfo result = clone();
+    UsageInfo result = copy();
 
     result.compatibleStates.put(LockState.class, expandedState);
     return result;

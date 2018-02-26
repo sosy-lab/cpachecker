@@ -34,9 +34,6 @@ public abstract class VariableIdentifier extends SingleIdentifier {
   }
 
   @Override
-  public abstract SingleIdentifier clone();
-
-  @Override
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
     return Collections.emptySet();
   }

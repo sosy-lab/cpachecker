@@ -41,11 +41,6 @@ public class ReturnIdentifier extends VariableIdentifier implements GeneralIdent
   }
 
   @Override
-  public SingleIdentifier clone() {
-    return this;
-  }
-
-  @Override
   public String toLog() {
     return "r";
   }

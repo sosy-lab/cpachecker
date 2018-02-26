@@ -131,7 +131,7 @@ public class LocalTransferRelation
   protected LocalState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption) {
     // Do not try to remove clone() - leads to problems in BAM's cache
-    return state.clone();
+    return state.copy();
   }
 
   @Override
@@ -140,7 +140,7 @@ public class LocalTransferRelation
     // TODO is it necessary to clone every time?
     // Guess, it is possible to return the same state (we add only in cloned states)
     Optional<CExpression> returnExpression = cfaEdge.getExpression();
-    LocalState newState = state.clone();
+    LocalState newState = state.copy();
     if (returnExpression.isPresent()) {
 
       int potentialDereference = findDereference(returnExpression.get().getExpressionType());
@@ -218,7 +218,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
-    LocalState newState = state.clone();
+    LocalState newState = state.copy();
     if (statement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
       CAssignment assignment = (CAssignment) statement;
@@ -229,7 +229,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleDeclarationEdge(CDeclarationEdge declEdge, CDeclaration decl) {
-    LocalState newState = state.clone();
+    LocalState newState = state.copy();
     if (decl instanceof CVariableDeclaration) {
       CInitializer init = ((CVariableDeclaration) decl).getInitializer();
 

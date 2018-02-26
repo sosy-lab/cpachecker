@@ -64,7 +64,7 @@ public class UsageReducer implements Reducer {
       // and Exitable one can occur at any moment
       exp = funReducedState.getWrappedState();
     }*/
-    UsageState result = funRootState.clone(exp);
+    UsageState result = funRootState.copy(exp);
     result.joinContainerFrom(funReducedState);
     // if (funReducedState.isExitState()) {
     result.asExitable();
@@ -84,7 +84,7 @@ public class UsageReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
     UsagePrecision newPrecision =
         ((UsagePrecision) pPrecision)
-            .clone(
+            .copy(
                 wrappedReducer.getVariableReducedPrecision(
                     ((UsagePrecision) pPrecision).getWrappedPrecision(), pContext));
     return newPrecision;
@@ -96,7 +96,7 @@ public class UsageReducer implements Reducer {
     UsagePrecision redPrecision = (UsagePrecision) reducedPrecision;
     UsagePrecision newPrecision =
         ((UsagePrecision) rootPrecision)
-            .clone(
+            .copy(
                 wrappedReducer.getVariableExpandedPrecision(
                     ((UsagePrecision) rootPrecision).getWrappedPrecision(),
                     rootContext,

@@ -112,8 +112,8 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     UsageInfoSet secondUsageInfoSet = currentUsagePointSet.getUsageInfo(second);
 
     if (firstUsageInfoSet == secondUsageInfoSet) {
-      //To avoid concurrent modification
-      secondUsageInfoSet = secondUsageInfoSet.clone();
+      // To avoid concurrent modification
+      secondUsageInfoSet = secondUsageInfoSet.copy();
     }
 
     assert secondUsageInfoSet != null;

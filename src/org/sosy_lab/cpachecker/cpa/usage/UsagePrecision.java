@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 
-public class UsagePrecision implements WrapperPrecision, AdjustablePrecision, Cloneable {
+public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
   private HashMap<CFANode, Map<GeneralIdentifier, DataType>> localStatistics;
   private final Precision wrappedPrecision;
 
@@ -70,7 +70,7 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision, Cl
     return wrappedPrecision;
   }
 
-  public UsagePrecision clone(Precision wrappedPrecision) {
+  public UsagePrecision copy(Precision wrappedPrecision) {
     UsagePrecision newPrecision = new UsagePrecision(wrappedPrecision);
     newPrecision.localStatistics = this.localStatistics;
     return newPrecision;
@@ -96,11 +96,6 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision, Cl
     UsagePrecision other = (UsagePrecision) obj;
     return Objects.equals(localStatistics, other.localStatistics)
         && Objects.equals(wrappedPrecision, other.wrappedPrecision);
-  }
-
-  @Override
-  public UsagePrecision clone() {
-    return clone(this.wrappedPrecision);
   }
 
   @Override

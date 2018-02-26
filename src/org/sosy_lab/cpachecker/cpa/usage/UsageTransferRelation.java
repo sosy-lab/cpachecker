@@ -177,7 +177,7 @@ public class UsageTransferRelation implements TransferRelation {
     }
 
     AbstractState oldWrappedState = oldState.getWrappedState();
-    newState = oldState.clone();
+    newState = oldState.copy();
     precision = (UsagePrecision) pPrecision;
     handleEdge(pCfaEdge);
 
@@ -187,7 +187,7 @@ public class UsageTransferRelation implements TransferRelation {
 
     // Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
-      UsageState resultState = newState.clone(newWrappedState);
+      UsageState resultState = newState.copy(newWrappedState);
       if (resultState != null) {
         result.add(resultState);
       }

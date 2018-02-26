@@ -171,10 +171,10 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   private boolean checkRepeatitionOfState(ARGState currentElement) {
-    if (currentElement != null) {
-      int currentId = getStateId.apply(currentElement);
+    if (currentElement != null && getStateId != null) {
+      Integer currentId = getStateId.apply(currentElement);
       for (ArrayDeque<Integer> rest : remainingStates) {
-        if (rest.getLast() == currentId) {
+        if (rest.getLast().equals(currentId)) {
           rest.removeLast();
           if (rest.isEmpty()) {
             return true;

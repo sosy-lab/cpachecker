@@ -90,10 +90,10 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
       return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
     }
 
-    UsageState resultElement = element.clone(newElement);
+    UsageState resultElement = element.copy(newElement);
 
     return Optional.of(
         PrecisionAdjustmentResult.create(
-            resultElement, ((UsagePrecision) oldPrecision).clone(newPrecision), action));
+            resultElement, ((UsagePrecision) oldPrecision).copy(newPrecision), action));
   }
 }

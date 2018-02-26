@@ -119,10 +119,6 @@ public class UsageState extends AbstractSingleWrapperState
     }
   }
 
-  public boolean containsUsage(final SingleIdentifier id) {
-    return recentUsages.containsKey(id);
-  }
-
   public AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
 
     if (!containsLinks(id)) {
@@ -150,12 +146,11 @@ public class UsageState extends AbstractSingleWrapperState
     return null;
   }
 
-  @Override
-  public UsageState clone() {
-    return clone(this.getWrappedState());
+  public UsageState copy() {
+    return copy(this.getWrappedState());
   }
 
-  public UsageState clone(final AbstractState pWrappedState) {
+  public UsageState copy(final AbstractState pWrappedState) {
     return new UsageState(pWrappedState, this);
   }
 

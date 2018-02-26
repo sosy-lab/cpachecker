@@ -8,7 +8,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 
-public class UsageInfoSet extends TreeSet<UsageInfo> implements Cloneable {
+public class UsageInfoSet extends TreeSet<UsageInfo> {
 
   private static final long serialVersionUID = -5057827815596702715L;
 
@@ -43,8 +43,7 @@ public class UsageInfoSet extends TreeSet<UsageInfo> implements Cloneable {
     return Iterables.get(this, 0);
   }
 
-  @Override
-  public UsageInfoSet clone() {
+  public UsageInfoSet copy() {
     // For avoiding concurrent modification in refinement
     return new UsageInfoSet(this);
   }

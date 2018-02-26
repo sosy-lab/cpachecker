@@ -61,11 +61,6 @@ public class GeneralStructureFieldIdentifier extends StructureFieldIdentifier
   }
 
   @Override
-  public GeneralStructureFieldIdentifier clone() {
-    return cloneWithDereference(dereference);
-  }
-
-  @Override
   public GeneralStructureFieldIdentifier cloneWithDereference(int deref) {
     return new GeneralStructureFieldIdentifier(name, /* fieldType,*/ type, deref, owner);
   }

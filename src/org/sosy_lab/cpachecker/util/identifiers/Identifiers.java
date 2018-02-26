@@ -40,7 +40,7 @@ public class Identifiers {
   }
 
   static String getCharsOf(int dereference) {
-    StringBuffer info = new StringBuffer();
+    StringBuilder info = new StringBuilder();
     if (dereference > 0) {
       for (int i = 0; i < dereference; i++) {
         info.append("*");

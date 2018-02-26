@@ -77,12 +77,7 @@ public class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public BinaryIdentifier cloneWithDereference(int pDereference) {
-    return new BinaryIdentifier(id1.clone(), id2.clone(), pDereference);
-  }
-
-  @Override
-  public BinaryIdentifier clone() {
-    return cloneWithDereference(dereference);
+    return new BinaryIdentifier(id1, id2, pDereference);
   }
 
   public AbstractIdentifier getIdentifier1() {
@@ -124,11 +119,9 @@ public class BinaryIdentifier implements AbstractIdentifier {
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
     // Is important to get from *(a + i) -> *a
     int deref = id1.getDereference();
-    AbstractIdentifier tmp1 = id1.clone();
-    AbstractIdentifier tmp2 = id2.clone();
-    tmp1 = tmp1.cloneWithDereference(dereference + deref);
+    AbstractIdentifier tmp1 = id1.cloneWithDereference(dereference + deref);
     deref = id2.getDereference();
-    tmp2 = tmp2.cloneWithDereference(dereference + deref);
+    AbstractIdentifier tmp2 = id2.cloneWithDereference(dereference + deref);
     Set<AbstractIdentifier> result = Sets.newHashSet(tmp1, tmp2);
     result.addAll(tmp1.getComposedIdentifiers());
     result.addAll(tmp2.getComposedIdentifiers());

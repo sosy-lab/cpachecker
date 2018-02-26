@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import com.google.common.base.Preconditions;
 
 
 public class RefinementResult {
@@ -85,7 +83,7 @@ public class RefinementResult {
     UsageInfo secondUsage = secondPath.getUsageInfo();
 
     if (firstUsage == secondUsage) {
-      secondUsage = secondUsage.clone();
+      secondUsage = secondUsage.copy();
     }
     firstUsage.setRefinedPath(firstPath.getInnerEdges());
     secondUsage.setRefinedPath(secondPath.getInnerEdges());

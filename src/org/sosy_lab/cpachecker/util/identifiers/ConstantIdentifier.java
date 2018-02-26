@@ -38,11 +38,6 @@ public class ConstantIdentifier implements AbstractIdentifier {
   }
 
   @Override
-  public ConstantIdentifier clone() {
-    return cloneWithDereference(dereference);
-  }
-
-  @Override
   public ConstantIdentifier cloneWithDereference(int pDereference) {
     return new ConstantIdentifier(name, pDereference);
   }
