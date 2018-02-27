@@ -1,0 +1,272 @@
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.slicing;
+
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
+
+/**
+ * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
+ *
+ * <p>For a set of infeasible paths, the last edge of each path is used as a slicing criterion. The
+ * union of the corresponding program slices are the increment to the existing slicing precision.
+ *
+ * <p>[1] Weiser, 1984: Program Slicing.
+ */
+public class SlicingRefiner implements Refiner {
+
+  private final PathExtractor pathExtractor;
+  private final ARGCPA argCpa;
+  private final DependenceGraph depGraph;
+
+  private final TransferRelation transfer;
+  private final Precision precision;
+  private final AbstractState initialState;
+
+  public static SlicingRefiner create(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+
+    SlicingCPA slicingCPA = CPAs.retrieveCPAOrFail(pCpa, SlicingCPA.class, SlicingRefiner.class);
+    LogManager logger = slicingCPA.getLogger();
+    Configuration config = slicingCPA.getConfig();
+
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingRefiner.class);
+    PathExtractor pathExtractor = new PathExtractor(logger, config);
+    CFA cfa = slicingCPA.getCfa();
+
+    CFANode initialCfaNode = cfa.getMainFunction();
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    ImmutableList<ConfigurableProgramAnalysis> wrappedCpas = slicingCPA.getWrappedCPAs();
+    assert wrappedCpas.size() == 1
+        : "Slicing CPA is not wrapping exactly one CPA, but " + wrappedCpas.size();
+    ConfigurableProgramAnalysis wrapped = wrappedCpas.get(0);
+
+    TransferRelation wrappedTransfer = wrapped.getTransferRelation();
+    Precision wrappedPrecision;
+    AbstractState initialState;
+    try {
+      wrappedPrecision = wrapped.getInitialPrecision(initialCfaNode, partition);
+      initialState = wrapped.getInitialState(initialCfaNode, partition);
+    } catch (InterruptedException pE) {
+      throw new AssertionError(pE);
+    }
+
+    return new SlicingRefiner(
+        pathExtractor,
+        argCpa,
+        cfa.getDependenceGraph()
+            .orElseThrow(
+                () -> new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
+        wrappedTransfer,
+        wrappedPrecision,
+        initialState);
+  }
+
+  private SlicingRefiner(
+      final PathExtractor pPathExtractor,
+      final ARGCPA pArgCpa,
+      final DependenceGraph pDepGraph,
+      final TransferRelation pTransferRelation,
+      final Precision pFullPrecision,
+      final AbstractState pInitialState) {
+    pathExtractor = pPathExtractor;
+    argCpa = pArgCpa;
+    depGraph = pDepGraph;
+
+    precision = pFullPrecision;
+    transfer = pTransferRelation;
+    initialState = pInitialState;
+  }
+
+  @Override
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+
+    Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
+    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
+    boolean anyPathFeasible = false;
+    for (ARGPath tp : targetPaths) {
+      if (isFeasible(tp)) {
+        anyPathFeasible = true;
+        break;
+      }
+    }
+
+    if (!anyPathFeasible) {
+      updatePrecisionAndRemoveSubtree(pReached);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Checks whether the given target path is feasible. Uses the transfer relation of the CPA wrapped
+   * by the {@link SlicingCPA} to perform this check.
+   *
+   * @param pTargetPath target path to check for feasibility
+   * @return <code>true</code> if the path is feasible, <code>false</code> otherwise.
+   * @throws CPAException if the wrapped transfer relation throws an Exception during the check
+   * @throws InterruptedException
+   */
+  boolean isFeasible(final ARGPath pTargetPath) throws CPAException, InterruptedException {
+    PathIterator iterator = pTargetPath.fullPathIterator();
+    CFAEdge outgoingEdge;
+    Collection<? extends AbstractState> successorSet;
+    AbstractState state = initialState;
+    try {
+      while (iterator.hasNext()) {
+        do {
+          outgoingEdge = iterator.getOutgoingEdge();
+          // we can always just use the delegate precision,
+          // because this refinement procedure does not delegate to some other precision refinement.
+          // Thus, there is no way that any initial precision could change, either way.
+          successorSet = transfer.getAbstractSuccessorsForEdge(state, precision, outgoingEdge);
+          if (successorSet.isEmpty()) {
+            return false;
+          } else {
+            // extract singleton successor state
+            state = Iterables.get(successorSet, 0);
+          }
+          iterator.advance();
+        } while (!iterator.isPositionWithState());
+      }
+
+      return true;
+    } catch (CPATransferException e) {
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Updates the precision of the given {@link ReachedSet} and removes the subtree that must be
+   * recomputed.
+   *
+   * <p>Precision is updated based on all target paths in the reached set, using program slicing
+   * with the last CFA edge of each target path as slicing criterion. Precision is always updated
+   * for <b>all</b> states in the reached set.
+   *
+   * <p>After the precision update, only the subtree of the given reached set is removed, for which
+   * the precision change is relevant (i.e., all subtrees that are pointed to by a newly relevant
+   * CFA edge).
+   *
+   * @param pReached reached set to update precision for
+   * @throws RefinementFailedException
+   * @throws InterruptedException
+   */
+  void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+
+    Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
+    Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
+    Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<ARGState> refinementRoots = new HashSet<>();
+    for (ARGPath tp : targetPaths) {
+      ARGState target = tp.getLastState();
+      Set<CFAEdge> slice = getSlice(target);
+      refinementRoots.add(getRefinementRoot(tp, slice));
+      relevantEdges.addAll(slice);
+    }
+
+    SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
+    relevantEdges.addAll(oldPrec.getRelevantEdges());
+    Precision newPrec = new SlicingPrecision(oldPrec.getWrappedPrec(), relevantEdges);
+    argReached.updatePrecisionGlobally(newPrec, Predicates.instanceOf(SlicingPrecision.class));
+
+    for (ARGState r : refinementRoots) {
+      argReached.removeSubtree(r);
+    }
+  }
+
+  /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
+  Set<CFAEdge> getSlice(final ARGState pCriterion) {
+    CFANode loc = AbstractStates.extractLocation(pCriterion);
+    List<CFAEdge> criteria = CFAUtils.enteringEdges(loc).toList();
+
+    Set<CFAEdge> relevantEdges = new HashSet<>();
+    for (CFAEdge c : criteria) {
+      relevantEdges.addAll(depGraph.getReachable(c, TraversalDirection.BACKWARD));
+    }
+    return relevantEdges;
+  }
+
+  private ARGState getRefinementRoot(final ARGPath pPath, final Set<CFAEdge> relevantEdges) {
+    PathIterator iterator = pPath.fullPathIterator();
+    ARGState lastState = null;
+    while (iterator.hasNext()) {
+      if (iterator.isPositionWithState()) {
+        lastState = iterator.getAbstractState();
+      }
+      if (relevantEdges.contains(iterator.getOutgoingEdge())) {
+        return lastState;
+      }
+      iterator.advance();
+    }
+    throw new AssertionError("Infeasible target path has empty program slice");
+  }
+
+  private static SlicingPrecision extractSlicingPrecision(
+      final ReachedSet pReached, final AbstractState pState) {
+    return (SlicingPrecision)
+        Precisions.asIterable(pReached.getPrecision(pState))
+            .filter(Predicates.instanceOf(SlicingPrecision.class))
+            .first()
+            .orNull();
+  }
+}

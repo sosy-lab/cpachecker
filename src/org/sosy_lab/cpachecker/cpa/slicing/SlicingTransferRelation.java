@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -38,6 +36,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+/**
+ * {@link TransferRelation} of the {@link SlicingCPA}. Wraps the transfer relation of the CPA
+ * wrapped by the slicing CPA.
+ *
+ * <p>The transfer relation contains the transfer <code>a-g->a'</code> for a given {@link CFAEdge}
+ * <code>g = (l, op, l')</code> and a current {@link SlicingPrecision} <code>π</code>, if one of the
+ * following is true:
+ *
+ * <ol>
+ *   <li><code>g</code> a relevant edge (i.e., <code>g ∈ π</code>), and the wrapped transfer
+ *       relation contains <code>a-g->a'</code>
+ *   <li><code>g</code> not a relevant edge, and the wrapped transfer relation contains <code>
+ *       a-g'->a'</code> for noop-edge <code>g' = (l, noop, l')</code>.
+ * </ol>
+ */
 public class SlicingTransferRelation extends SingleEdgeTransferRelation {
 
   private final TransferRelation delegate;

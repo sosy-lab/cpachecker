@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,10 +49,12 @@ public class SlicingPrecision implements WrapperPrecision  {
     relevantEdges = pRelevantEdges;
   }
 
+  /** Returns whether the given {@link CFAEdge} is a relevant edge. */
   public boolean isRelevant(final CFAEdge pEdge) {
     return relevantEdges.contains(pEdge);
   }
 
+  /** Returns the wrapped precision. */
   public Precision getWrappedPrec() {
     return wrappedPrec;
   }
@@ -83,5 +86,34 @@ public class SlicingPrecision implements WrapperPrecision  {
 
   public ImmutableSet<CFAEdge> getRelevantEdges() {
     return ImmutableSet.copyOf(relevantEdges);
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    SlicingPrecision that = (SlicingPrecision) pO;
+    return Objects.equals(wrappedPrec, that.wrappedPrec)
+        && Objects.equals(relevantEdges, that.relevantEdges);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(wrappedPrec, relevantEdges);
+  }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName()
+        + "{"
+        + "\n\twrapped precisions: "
+        + wrappedPrec
+        + ",\n\trelevant edges: "
+        + relevantEdges
+        + '}';
   }
 }

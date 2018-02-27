@@ -63,9 +63,9 @@ public class PrecisionDelegatingMerge
     AbstractState mergeResult = delegateMerge.merge(wrappedState1, wrappedState2, wrappedPrecision);
 
     if (mergeResult != wrappedState2 || !mergeResult.equals(wrappedState2)) {
-      return pState2;
-    } else {
       return new SlicingState(mergeResult);
+    } else {
+      return pState2;
     }
   }
 }

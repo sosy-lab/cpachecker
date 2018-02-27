@@ -25,12 +25,37 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
-public class SlicingState extends AbstractSingleWrapperState {
+/**
+ * {@link AbstractState} of the {@link SlicingCPA}. Does not store any information itself, but only
+ * wraps the abstract state of the CPA wrapped by the slicing CPA.
+ */
+public class SlicingState extends AbstractSingleWrapperState implements Graphable {
 
   public static final long serialVersionUID = 0;
 
   public SlicingState(AbstractState pWrappedState) {
     super(pWrappedState);
+  }
+
+  @Override
+  public String toDOTLabel() {
+    AbstractState wrappedState = getWrappedState();
+    if (wrappedState instanceof Graphable) {
+      return ((Graphable) wrappedState).toDOTLabel();
+    } else {
+      return "";
+    }
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    AbstractState wrappedState = getWrappedState();
+    if (wrappedState instanceof Graphable) {
+      return ((Graphable) wrappedState).shouldBeHighlighted();
+    } else {
+      return false;
+    }
   }
 }
