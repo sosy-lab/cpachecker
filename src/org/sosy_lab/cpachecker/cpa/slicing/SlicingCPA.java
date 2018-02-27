@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -92,7 +91,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA {
     transferRelation = new SlicingTransferRelation(pCpa.getTransferRelation());
     mergeOperator = new PrecisionDelegatingMerge(pCpa.getMergeOperator());
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }
 
   @Override

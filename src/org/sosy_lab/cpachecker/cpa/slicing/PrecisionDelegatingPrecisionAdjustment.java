@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -65,6 +64,32 @@ public class PrecisionDelegatingPrecisionAdjustment
 
     AbstractState wrappedState = ((SlicingState) pState).getWrappedState();
     Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
-    return delegate.prec(wrappedState, wrappedPrecision, pStates, pStateProjection, pFullState);
+    Optional<PrecisionAdjustmentResult> delegateResult =
+        delegate.prec(wrappedState, wrappedPrecision, pStates, pStateProjection, pFullState);
+
+    if (delegateResult.isPresent()) {
+      PrecisionAdjustmentResult adjustmentResult = delegateResult.get();
+      AbstractState state = adjustmentResult.abstractState();
+      Precision precision = adjustmentResult.precision();
+
+      PrecisionAdjustmentResult finalResult;
+      if (state != wrappedState || precision != wrappedPrecision) {
+        // something changed
+        finalResult =
+            PrecisionAdjustmentResult.create(
+                new SlicingState(state),
+                new SlicingPrecision(precision, ((SlicingPrecision) pPrecision).getRelevantEdges()),
+                adjustmentResult.action());
+
+      } else { // nothing changed
+        finalResult =
+            PrecisionAdjustmentResult.create(pState, pPrecision, adjustmentResult.action());
+      }
+
+      return Optional.of(finalResult);
+
+    } else {
+      return delegateResult;
+    }
   }
 }

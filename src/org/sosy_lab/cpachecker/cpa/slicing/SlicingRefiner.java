@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -194,23 +195,21 @@ public class SlicingRefiner implements Refiner {
   }
 
   /**
-   * Updates the precision of the given {@link ReachedSet} and removes the subtree that must be
-   * recomputed.
+   * Updates the precision of the given {@link ReachedSet} and returns the roots of the subtrees for
+   * which the precision change is relevant. This means, in general, that these subtrees should be
+   * removed and recomputed.
    *
    * <p>Precision is updated based on all target paths in the reached set, using program slicing
    * with the last CFA edge of each target path as slicing criterion. Precision is always updated
    * for <b>all</b> states in the reached set.
    *
-   * <p>After the precision update, only the subtree of the given reached set is removed, for which
-   * the precision change is relevant (i.e., all subtrees that are pointed to by a newly relevant
-   * CFA edge).
-   *
    * @param pReached reached set to update precision for
-   * @throws RefinementFailedException
-   * @throws InterruptedException
+   * @return the refinement roots in the reached set
+   * @throws RefinementFailedException thrown if the given reached set does not contain target paths
+   *     valid for refinement
    */
-  void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
-      throws RefinementFailedException, InterruptedException {
+  @CanIgnoreReturnValue
+  Set<ARGState> updatePrecision(final ReachedSet pReached) throws RefinementFailedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
@@ -229,6 +228,13 @@ public class SlicingRefiner implements Refiner {
     Precision newPrec = new SlicingPrecision(oldPrec.getWrappedPrec(), relevantEdges);
     argReached.updatePrecisionGlobally(newPrec, Predicates.instanceOf(SlicingPrecision.class));
 
+    return refinementRoots;
+  }
+
+  private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    Set<ARGState> refinementRoots = updatePrecision(pReached);
     for (ARGState r : refinementRoots) {
       argReached.removeSubtree(r);
     }

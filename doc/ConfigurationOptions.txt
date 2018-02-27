@@ -111,6 +111,9 @@ solver.z3.requireProofs = true
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
 
+# Refiner that SlicingDelegatingRefiner should delegate to
+SlicingDelegatingRefiner.refiner = no default value
+
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
