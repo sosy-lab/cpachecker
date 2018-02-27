@@ -81,6 +81,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
     SMGState state = getInitialSmgState();
     SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
+    state.addElementToCurrentChain(object);
 
     if (object == null && variableName.getDeclaration() != null) {
       CSimpleDeclaration dcl = variableName.getDeclaration();
@@ -98,14 +99,13 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
           if (addedLocalVariable.isPresent()) {
             object = addedLocalVariable.get();
           } else {
-            return SMGAddressAndState.listOf(getInitialSmgState(), SMGAddress.UNKNOWN);
+            return SMGAddressAndState.listOf(state, SMGAddress.UNKNOWN);
           }
         }
       }
     }
 
-    return SMGAddressAndState.listOf(getInitialSmgState(),
-        SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
+    return SMGAddressAndState.listOf(state, SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
   }
 
   @Override

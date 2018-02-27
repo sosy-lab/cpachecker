@@ -74,17 +74,17 @@ public class WitnessExporter {
 
   private static final String FUNCTION_DELIMITER = "::";
 
-  private final WitnessOptions options;
+  protected final WitnessOptions options;
 
-  private final CFA cfa;
+  protected final CFA cfa;
   private final FormulaManagerView fmgr;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
-  private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  private final VerificationTaskMetaData verificationTaskMetaData;
+  protected final VerificationTaskMetaData verificationTaskMetaData;
 
   public WitnessExporter(
       final Configuration pConfig,
@@ -309,7 +309,7 @@ public class WitnessExporter {
         GraphBuilder.CFA_FULL);
   }
 
-  private String getInitialFileName(ARGState pRootState) {
+  protected String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
     while (!worklist.isEmpty()) {

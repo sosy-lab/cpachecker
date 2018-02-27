@@ -37,7 +37,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
@@ -105,6 +107,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -307,6 +310,7 @@ class WitnessWriter implements EdgeAppender {
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
   private boolean isFunctionScope = false;
+  protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
 
   WitnessWriter(
       WitnessOptions pOptions,
@@ -333,12 +337,13 @@ class WitnessWriter implements EdgeAppender {
       final String pTo,
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
-      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     attemptSwitchToFunctionScope(pEdge);
 
     Iterable<TransitionCondition> transitions =
-        constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
+        constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap, pAdditionalInfo);
 
     String from = pFrom;
     Iterator<TransitionCondition> transitionIterator = transitions.iterator();
@@ -390,8 +395,9 @@ class WitnessWriter implements EdgeAppender {
       String pFrom,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
-      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-    appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap, pAdditionalInfo);
   }
 
   private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
@@ -412,9 +418,10 @@ class WitnessWriter implements EdgeAppender {
       final String pTo,
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
-      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
-    if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+    if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
       return Collections.singletonList(TransitionCondition.empty());
     }
 
@@ -431,20 +438,41 @@ class WitnessWriter implements EdgeAppender {
             pEdge,
             goesToSink,
             isDefaultCase,
-            Optional.empty());
+            Optional.empty(),
+            pAdditionalInfo);
 
     if (pFromState.isPresent()) {
       return extractTransitionForStates(
-          pFrom, pTo, pEdge, pFromState.get(), pValueMap, result, goesToSink, isDefaultCase);
+          pFrom,
+          pTo,
+          pEdge,
+          pFromState.get(),
+          pValueMap,
+          pAdditionalInfo,
+          result,
+          goesToSink,
+          isDefaultCase);
     }
     return Collections.singletonList(result);
+  }
+
+  /**
+   * Check whether edge should absence at witness or not
+   *
+   * @param pEdge edge to be checked
+   * @param pAdditionalInfo additional info corresponds to edge
+   * @return true is edge considered as absence
+   */
+  protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return !isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
   }
 
   private TransitionCondition getSourceCodeGuards(
       CFAEdge pEdge,
       boolean pGoesToSink,
       boolean pIsDefaultCase,
-      Optional<String> pAlternativeFunctionEntry) {
+      Optional<String> pAlternativeFunctionEntry,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     TransitionCondition result = TransitionCondition.empty();
 
     if (entersLoop(pEdge, false).isPresent()) {
@@ -504,8 +532,10 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
-    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa.getMainFunction());
-    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa.getMainFunction());
+    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa
+        .getMainFunction(), pAdditionalInfo);
+    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa
+        .getMainFunction(), pAdditionalInfo);
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
       if (!min.getFileName().equals(defaultSourcefileName)) {
@@ -547,12 +577,13 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  private Iterable<TransitionCondition> extractTransitionForStates(
+  protected Iterable<TransitionCondition> extractTransitionForStates(
       final String pFrom,
       final String pTo,
       final CFAEdge pEdge,
       final Collection<ARGState> pFromStates,
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo,
       final TransitionCondition pTransitionCondition,
       final boolean pGoesToSink,
       final boolean pIsDefaultCase) {
@@ -562,7 +593,7 @@ class WitnessWriter implements EdgeAppender {
     Optional<AIdExpression> resultVariable = Optional.empty();
     Optional<String> resultFunction = Optional.empty();
     String functionName = pEdge.getPredecessor().getFunctionName();
-    boolean isFunctionScope = this.isFunctionScope;
+    boolean functionScope = this.isFunctionScope;
 
     for (ARGState state : pFromStates) {
 
@@ -624,7 +655,7 @@ class WitnessWriter implements EdgeAppender {
               if (declaration.getName().contains("static")
                   && !declaration.getOrigName().contains("static")
                   && qualified.contains("::")) {
-                isFunctionScope = true;
+                functionScope = true;
                 functionName = qualified.substring(0, qualified.indexOf("::"));
               }
             }
@@ -731,7 +762,7 @@ class WitnessWriter implements EdgeAppender {
       }
 
       result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
-      if (isFunctionScope) {
+      if (functionScope) {
         if (witnessOptions.revertThreadFunctionRenaming()) {
           functionName = CFACloner.extractFunctionName(functionName);
         }
@@ -742,15 +773,29 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
+    result = addAdditionalInfo(result, pAdditionalInfo);
+
     // TODO: For correctness witnesses, there may be multiple (disjoint) states for one location
     // available; it is not clear how we should handle thread information there.
     if (witnessOptions.exportThreadId() && pFromStates.size() == 1) {
       ARGState state = pFromStates.iterator().next();
       result = exportThreadId(result, pEdge, state);
-      return exportThreadManagement(result, pEdge, state, pGoesToSink, pIsDefaultCase);
+      return exportThreadManagement(result, pEdge, state, pGoesToSink, pIsDefaultCase, pAdditionalInfo);
     }
 
     return Collections.singleton(result);
+  }
+
+  /**
+   * Overwritten at {@link ExtendedWitnessWriter}
+   *
+   * @param pCondition current {@link TransitionCondition}
+   * @param pAdditionalInfo exported additional info
+   * @return TransitionCondition with additional info
+   */
+  protected TransitionCondition addAdditionalInfo(
+      TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return pCondition;
   }
 
   /**
@@ -780,7 +825,8 @@ class WitnessWriter implements EdgeAppender {
       final CFAEdge pEdge,
       ARGState pState,
       boolean pGoesToSink,
-      boolean pIsDefaultCase) {
+      boolean pIsDefaultCase,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
 
@@ -835,7 +881,7 @@ class WitnessWriter implements EdgeAppender {
     // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
       TransitionCondition extraTransition =
-          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName);
+          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName, pAdditionalInfo);
       if (spawnedThreadId.isPresent()) {
         extraTransition =
             extraTransition.putAndCopy(
@@ -975,6 +1021,8 @@ class WitnessWriter implements EdgeAppender {
 
     Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
+    additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
     if (pCounterExample.isPresent()) {
       if (pCounterExample.get().isPreciseCounterExample()) {
@@ -1024,6 +1072,7 @@ class WitnessWriter implements EdgeAppender {
         pIsRelevantState,
         isRelevantEdge,
         valueMap,
+        additionalInfo,
         doc,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
@@ -1050,6 +1099,28 @@ class WitnessWriter implements EdgeAppender {
     doc.appendTo(pTarget);
   }
 
+  /**
+   * Getter for additional information. Overwritten at {@link ExtendedWitnessWriter}
+   *
+   * @param pCounterExample current {@link CounterexampleInfo}
+   * @return additional information
+   */
+  protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(
+      Optional<CounterexampleInfo> pCounterExample) {
+    return ImmutableMap.of();
+  }
+
+  /**
+   * Getter of {@link AdditionalInfoConverter}. Overwritten at {@link ExtendedWitnessWriter}
+   *
+   * @param pCounterExample current {@link CounterexampleInfo}
+   * @return set of InfoConverters
+   */
+  protected Set<AdditionalInfoConverter> getAdditionalInfoConverters(
+      Optional<CounterexampleInfo> pCounterExample) {
+    return ImmutableSet.of();
+  }
+
   /** Remove edges that lead to the sink but have a sibling edge that has the same label.
    *
    * <p>
@@ -1059,10 +1130,10 @@ class WitnessWriter implements EdgeAppender {
    */
   private void removeUnnecessarySinkEdges() {
     final Collection<Edge> toRemove = Sets.newIdentityHashSet();
-    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
-      for (Edge edge : leavingEdges) {
+    for (Collection<Edge> leavingEdgesCollection : leavingEdges.asMap().values()) {
+      for (Edge edge : leavingEdgesCollection) {
         if (edge.getTarget().equals(SINK_NODE_ID)) {
-          for (Edge otherEdge : leavingEdges) {
+          for (Edge otherEdge : leavingEdgesCollection) {
             // ignore the edge itself, as well as already handled edges.
             if (edge != otherEdge && !toRemove.contains(otherEdge)) {
               // remove edges with either identical labels or redundant edge-transition
@@ -1083,13 +1154,13 @@ class WitnessWriter implements EdgeAppender {
 
   /** Merge sibling edges (with the same source) that lead to the sink if possible. */
   private void mergeRedundantSinkEdges() {
-    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
+    for (Collection<Edge> leavingEdgesCollection : leavingEdges.asMap().values()) {
       // We only need to do something if we have siblings
-      if (leavingEdges.size() > 1) {
+      if (leavingEdgesCollection.size() > 1) {
 
         // Determine all siblings that go to the sink
         List<Edge> toSink =
-            leavingEdges
+            leavingEdgesCollection
                 .stream()
                 .filter(e -> e.getTarget().equals(SINK_NODE_ID))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -1689,9 +1760,9 @@ class WitnessWriter implements EdgeAppender {
 
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
-        LoopEntryInfo loopEntryInfo = loopEntryInfoMemo.get(pEdge);
-        if (loopEntryInfo != null) {
-          this.loopEntryInfo = loopEntryInfo;
+        LoopEntryInfo loopEntryInformation = loopEntryInfoMemo.get(pEdge);
+        if (loopEntryInformation != null) {
+          this.loopEntryInfo = loopEntryInformation;
           return TraversalProcess.ABORT;
         }
         if (pNode.isLoopStart()) {
