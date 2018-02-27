@@ -25,7 +25,13 @@ package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -48,14 +54,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 
 
 public class ReachingDefTransferRelation implements TransferRelation {
@@ -228,13 +226,12 @@ public class ReachingDefTransferRelation implements TransferRelation {
   private ReachingDefState handleDeclarationEdge(ReachingDefState pState, CDeclarationEdge edge) {
     if (edge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration dec = (CVariableDeclaration) edge.getDeclaration();
-      // check if initial value is known (declaration + definition)
-      if (dec.getInitializer() != null) {
-        if (dec.isGlobal()) {
-          return pState.addGlobalReachDef(dec.getName(), edge.getPredecessor(), edge.getSuccessor());
-        } else {
-          return pState.addLocalReachDef(dec.getName(), edge.getPredecessor(), edge.getSuccessor());
-        }
+      // If there is no initialization at the declaration,
+      // we still keep the declaration as a non-deterministic, first definition.
+      if (dec.isGlobal()) {
+        return pState.addGlobalReachDef(dec.getName(), edge.getPredecessor(), edge.getSuccessor());
+      } else {
+        return pState.addLocalReachDef(dec.getName(), edge.getPredecessor(), edge.getSuccessor());
       }
     }
     return pState;

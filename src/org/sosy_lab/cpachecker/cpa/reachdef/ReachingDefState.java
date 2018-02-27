@@ -24,12 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -137,6 +139,22 @@ public class ReachingDefState implements AbstractState, Serializable,
     boolean isLocalSubset;
     isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(globalReachDefs, localReachDefs);
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (pO instanceof ReachingDefState) {
+      ReachingDefState other = (ReachingDefState) pO;
+      return Objects.equal(globalReachDefs, other.globalReachDefs)
+          && Objects.equal(localReachDefs, other.localReachDefs);
+    } else {
+      return false;
+    }
   }
 
   private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
@@ -264,27 +282,35 @@ public class ReachingDefState implements AbstractState, Serializable,
   private Map<String, Set<DefinitionPoint>> unionMaps(Map<String, Set<DefinitionPoint>> map1,
       Map<String, Set<DefinitionPoint>> map2) {
     Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
-    // every declared local variable of a function, global variable occurs in respective map, possibly undefined
-    assert (map1.keySet().equals(map2.keySet()));
     if (map1==map2) {
       return map1;
     }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
-    for (Entry<String, Set<DefinitionPoint>> entry : map1.entrySet()) {
-      String var = entry.getKey();
+    Set<String> variableUnion = Sets.union(map1.keySet(), map2.keySet());
+    for (String var : variableUnion) {
+      Set<DefinitionPoint> defPoints1 = map1.get(var);
+      Set<DefinitionPoint> defPoints2 = map2.get(var);
       // decrease merge time, avoid building union if unnecessary
-      if (entry.getValue() == map2.get(var)) {
-        newMap.put(var, map2.get(var));
+      if (defPoints1 == defPoints2) {
+        assert defPoints1 != null;
+        newMap.put(var, defPoints1);
         continue;
       }
-      unionResult = unionSets(entry.getValue(), map2.get(var));
-      if (unionResult.size() != map2.get(var).size()) {
+      if (defPoints1 == null) {
+        defPoints1 = Collections.emptySet();
+      } else if (defPoints2 == null) {
+        defPoints2 = Collections.emptySet();
+      }
+      unionResult = unionSets(defPoints1, defPoints2);
+      if (unionResult.size() != defPoints1.size() || unionResult.size() != defPoints2.size()) {
+        assert unionResult.size() >= defPoints1.size()
+            && unionResult.size() >= defPoints2
+                .size() : "Union of map1 and map2 shouldn't be able to shrink!";
         changed = true;
       }
       newMap.put(var, unionResult);
     }
-    assert (map1.keySet().equals(newMap.keySet()));
     if (changed) { return newMap; }
     return map1;
   }
@@ -376,6 +402,16 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     private Object writeReplace() {
       return writeReplace;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      return pO instanceof UninitializedDefinitionPoint;
     }
 
     private static class SerialProxy implements Serializable {
