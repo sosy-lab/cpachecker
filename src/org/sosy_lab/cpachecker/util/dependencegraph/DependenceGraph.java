@@ -92,8 +92,8 @@ public class DependenceGraph implements Serializable {
   public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection) {
     Collection<CFAEdge> reachable = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
-
-    waitlist.offer(nodes.get(pStart));
+    DGNode startNode = nodes.get(pStart);
+    waitlist.offer(startNode);
 
     while (!waitlist.isEmpty()) {
       DGNode current = waitlist.poll();

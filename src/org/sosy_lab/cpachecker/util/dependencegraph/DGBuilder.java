@@ -183,8 +183,8 @@ public class DGBuilder {
                 nodeDepending.addIncomingEdge(controlDependency);
                 edges.add(controlDependency);
                 nodesOnPath.add(precessorNode);
-                CFAUtils.leavingEdges(current.getSuccessor()).forEach(waitlist::offer);
               }
+              CFAUtils.leavingEdges(current.getSuccessor()).forEach(waitlist::offer);
             }
           }
         }
