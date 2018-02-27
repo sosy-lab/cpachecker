@@ -27,6 +27,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -217,10 +219,12 @@ public class SlicingRefiner implements Refiner {
     Set<CFAEdge> relevantEdges = new HashSet<>();
     Set<ARGState> refinementRoots = new HashSet<>();
     for (ARGPath tp : targetPaths) {
-      ARGState target = tp.getLastState();
-      Set<CFAEdge> slice = getSlice(target);
-      refinementRoots.add(getRefinementRoot(tp, slice));
-      relevantEdges.addAll(slice);
+      Collection<ARGState> relevantStates = getRelevantStates(tp);
+      for (ARGState criterion : relevantStates) {
+        Set<CFAEdge> slice = getSlice(criterion);
+        refinementRoots.add(getRefinementRoot(tp, slice));
+        relevantEdges.addAll(slice);
+      }
     }
 
     SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
@@ -231,12 +235,30 @@ public class SlicingRefiner implements Refiner {
     return refinementRoots;
   }
 
+  private Collection<ARGState> getRelevantStates(ARGPath pTargetPath) {
+    List<ARGState> relevantStates = new ArrayList<>();
+    ARGState target = pTargetPath.getLastState();
+    relevantStates.add(target);
+
+    PathIterator it = pTargetPath.pathIterator();
+    while (it.hasNext()) {
+      it.advance(); // skip the first state
+      CFAEdge incoming = it.getIncomingEdge();
+      if (incoming != null && incoming.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        relevantStates.add(it.getAbstractState());
+      }
+    }
+    return relevantStates;
+  }
+
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
     Set<ARGState> refinementRoots = updatePrecision(pReached);
     for (ARGState r : refinementRoots) {
-      argReached.removeSubtree(r);
+      if (!r.isDestroyed()) {
+        argReached.removeSubtree(r);
+      }
     }
   }
 
@@ -254,13 +276,9 @@ public class SlicingRefiner implements Refiner {
 
   private ARGState getRefinementRoot(final ARGPath pPath, final Set<CFAEdge> relevantEdges) {
     PathIterator iterator = pPath.fullPathIterator();
-    ARGState lastState = null;
     while (iterator.hasNext()) {
-      if (iterator.isPositionWithState()) {
-        lastState = iterator.getAbstractState();
-      }
       if (relevantEdges.contains(iterator.getOutgoingEdge())) {
-        return lastState;
+        return iterator.getNextAbstractState();
       }
       iterator.advance();
     }
