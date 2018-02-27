@@ -62,7 +62,7 @@ public class PrecisionDelegatingPrecisionAdjustment
     checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
         SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
 
-    AbstractState wrappedState = ((SlicingState) pState).getWrappedState();
+    AbstractState wrappedState = pState;
     Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
     Optional<PrecisionAdjustmentResult> delegateResult =
         delegate.prec(wrappedState, wrappedPrecision, pStates, pStateProjection, pFullState);
@@ -77,7 +77,7 @@ public class PrecisionDelegatingPrecisionAdjustment
         // something changed
         finalResult =
             PrecisionAdjustmentResult.create(
-                new SlicingState(state),
+                state,
                 ((SlicingPrecision) pPrecision).getNew(precision),
                 adjustmentResult.action());
 

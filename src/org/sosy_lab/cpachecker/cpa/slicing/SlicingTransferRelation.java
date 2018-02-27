@@ -67,10 +67,8 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
         SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
 
     SlicingPrecision slicingPrecision = (SlicingPrecision) pPrecision;
-    checkState(pState instanceof SlicingState, "State not of type " +
-        SlicingState.class.getSimpleName() + ", but " + pState.getClass().getSimpleName());
 
-    AbstractState wrappedState = ((SlicingState) pState).getWrappedState();
+    AbstractState wrappedState = pState;
     CFAEdge adjustedEdge = pCfaEdge;
 
     if (!slicingPrecision.isRelevant(pCfaEdge)) {
@@ -79,11 +77,7 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
 
     Precision wrappedPrecision = slicingPrecision.getWrappedPrec();
     return delegate
-        .getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, adjustedEdge)
-        .stream()
-        .map((x) -> new SlicingState(x))
-        .collect(Collectors.toList());
-
+        .getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, adjustedEdge);
   }
 
   private CFAEdge replaceWithNoop(final CFAEdge pCfaEdge) {

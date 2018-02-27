@@ -52,18 +52,14 @@ public class PrecisionDelegatingMerge
       throws CPAException, InterruptedException {
     checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
         SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
-    checkState(pState1 instanceof SlicingState, "State not of type " +
-        SlicingState.class.getSimpleName() + ", but " + pState1.getClass().getSimpleName());
-    checkState(pState2 instanceof SlicingState, "State not of type " +
-        SlicingState.class.getSimpleName() + ", but " + pState2.getClass().getSimpleName());
 
     final Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
-    AbstractState wrappedState1 = ((SlicingState) pState1).getWrappedState();
-    AbstractState wrappedState2 = ((SlicingState) pState2).getWrappedState();
+    AbstractState wrappedState1 = pState1;
+    AbstractState wrappedState2 = pState2;
     AbstractState mergeResult = delegateMerge.merge(wrappedState1, wrappedState2, wrappedPrecision);
 
     if (mergeResult != wrappedState2 || !mergeResult.equals(wrappedState2)) {
-      return new SlicingState(mergeResult);
+      return mergeResult;
     } else {
       return pState2;
     }

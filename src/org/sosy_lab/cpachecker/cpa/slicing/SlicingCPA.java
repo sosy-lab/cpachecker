@@ -117,7 +117,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA {
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    return new SlicingState(super.getInitialState(node, partition));
+    return super.getInitialState(node, partition);
   }
 
   @Override
