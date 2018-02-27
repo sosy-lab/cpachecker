@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -203,6 +203,7 @@ class ReachedSetExecutor {
     int running = stats.numActiveThreads.incrementAndGet();
     stats.histActiveThreads.insertValue(running);
     stats.numMaxRSE.accumulate(reachedSetMapping.size());
+    stats.runningRSESeries.add(running);
     execCounter++;
 
     try { // big try-block to catch all exceptions

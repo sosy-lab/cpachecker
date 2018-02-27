@@ -118,6 +118,9 @@ adjustableconditions.adjustmentLimit = -1
 # of available cores or the machine automatically.
 algorithm.parallelBam.numberOfThreads = -1
 
+# export number of running RSE instances as CSV
+algorithm.parallelBam.runningRSESeriesFile = "RSESeries.csv"
+
 # use a BMC like algorithm that checks for satisfiability after the analysis
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false
