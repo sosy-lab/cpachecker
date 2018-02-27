@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.slicing.SlicingPrecision.FullPrecision;
@@ -240,8 +239,6 @@ public class SlicingRefiner implements Refiner {
     CFAEdge outgoingEdge;
     Collection<? extends AbstractState> successorSet;
     AbstractState state = initialState;
-    ARGState asArgState = new ARGState(state, null);
-    ARGPathBuilder targetPathWithCorrectValues = ARGPath.builder();
     Precision precision;
     if (counterexampleCheckOnSlice) {
       Precision fullSlice = getNewPrecision(pReached).getSecond();
@@ -256,22 +253,19 @@ public class SlicingRefiner implements Refiner {
       while (iterator.hasNext()) {
         do {
           outgoingEdge = iterator.getOutgoingEdge();
-          targetPathWithCorrectValues.add(asArgState, outgoingEdge);
           // we can always just use the delegate precision,
           // because this refinement procedure does not delegate to some other precision refinement.
           // Thus, there is no way that any initial precision could change, either way.
           successorSet = transfer.getAbstractSuccessorsForEdge(state, precision, outgoingEdge);
           if (successorSet.isEmpty()) {
             return CounterexampleInfo.spurious();
-          } else {
-            // extract singleton successor state
-            state = Iterables.get(successorSet, 0);
-            asArgState = new ARGState(state, asArgState);
           }
+          // extract singleton successor state
+          state = Iterables.get(successorSet, 0);
           iterator.advance();
         } while (!iterator.isPositionWithState());
       }
-      return CounterexampleInfo.feasibleImprecise(targetPathWithCorrectValues.build(asArgState));
+      return CounterexampleInfo.feasibleImprecise(pTargetPath);
     } catch (CPATransferException e) {
       throw new CPAException(
           "Computation of successor failed for checking path: " + e.getMessage(), e);
