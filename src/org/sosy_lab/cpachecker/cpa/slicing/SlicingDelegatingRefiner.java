@@ -55,7 +55,8 @@ public class SlicingDelegatingRefiner implements Refiner {
   public static SlicingDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    SlicingCPA slicingCPA = CPAs.retrieveCPAOrFail(pCpa, SlicingCPA.class, SlicingRefiner.class);
+    SlicingCPA slicingCPA =
+        CPAs.retrieveCPAOrFail(pCpa, SlicingCPA.class, SlicingDelegatingRefiner.class);
 
     Configuration config = slicingCPA.getConfig();
     SlicingDelegatingRefinerOptions options = new SlicingDelegatingRefinerOptions();

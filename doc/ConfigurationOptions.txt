@@ -1993,6 +1993,9 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
 
+# recompute block formula from ARG path edges
+cpa.predicate.refinement.recomputeBlockFormulas = false
+
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0

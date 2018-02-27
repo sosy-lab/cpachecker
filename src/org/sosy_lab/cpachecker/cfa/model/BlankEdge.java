@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
 
 public class BlankEdge extends AbstractCFAEdge {
 
@@ -47,6 +47,29 @@ public class BlankEdge extends AbstractCFAEdge {
   @Override
   public String getCode() {
     return "";
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    if (!super.equals(pO)) {
+      return false;
+    }
+    BlankEdge blankEdge = (BlankEdge) pO;
+    return Objects.equals(description, blankEdge.description);
+  }
+
+  @Override
+  public int hashCode() {
+    // Add the 31 as magic number to the hash,
+    // to circumvent hashes that are equal with other edge types that also include
+    // a description String in their hash
+    return Objects.hash(super.hashCode(), description) + 31;
   }
 
   @Override

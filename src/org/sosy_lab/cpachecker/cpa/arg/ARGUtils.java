@@ -198,70 +198,7 @@ public class ARGUtils {
    * @return A path from root to lastElement.
    */
   public static ARGPath getOnePathTo(ARGState pLastElement) {
-    List<ARGState> states = new ArrayList<>(); // reversed order
-    Set<ARGState> seenElements = new HashSet<>();
-
-    // each element of the path consists of the abstract state and the outgoing
-    // edge to its successor
-
-    ARGState currentARGState = pLastElement;
-    states.add(currentARGState);
-    seenElements.add(currentARGState);
-    Deque<ARGState> backTrackPoints = new ArrayDeque<>();
-    Deque<Set<ARGState>> backTrackSeenElements = new ArrayDeque<>();
-    Deque<List<ARGState>> backTrackOptions = new ArrayDeque<>();
-
-    while (!currentARGState.getParents().isEmpty()) {
-      Iterator<ARGState> parents = currentARGState.getParents().iterator();
-
-      ARGState parentElement = parents.next();
-      while (seenElements.contains(parentElement) && parents.hasNext()) {
-        // while seenElements already contained parentElement, try next parent
-        parentElement = parents.next();
-      }
-
-      if (seenElements.contains(parentElement)) {
-        // Backtrack
-        if (backTrackPoints.isEmpty()) {
-          throw new IllegalArgumentException("No ARG path from the target state to a root state.");
-        }
-        ARGState backTrackPoint = backTrackPoints.pop();
-        ListIterator<ARGState> stateIterator = states.listIterator(states.size());
-        while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
-          stateIterator.remove();
-        }
-        seenElements = backTrackSeenElements.pop();
-        List<ARGState> options = backTrackOptions.pop();
-        for (ARGState parent : backTrackPoint.getParents()) {
-          if (!options.contains(parent)) {
-            seenElements.add(parent);
-          }
-        }
-        currentARGState = backTrackPoint;
-      } else {
-        // Record backtracking options
-        if (parents.hasNext()) {
-          List<ARGState> options = new ArrayList<>(1);
-          while (parents.hasNext()) {
-            ARGState parent = parents.next();
-            if (!seenElements.contains(parent)) {
-              options.add(parent);
-            }
-          }
-          if (!options.isEmpty()) {
-            backTrackPoints.push(currentARGState);
-            backTrackOptions.push(options);
-            backTrackSeenElements.push(new HashSet<>(seenElements));
-          }
-        }
-
-        seenElements.add(parentElement);
-        states.add(parentElement);
-
-        currentARGState = parentElement;
-      }
-    }
-    return new ARGPath(Lists.reverse(states));
+    return getOnePathFromTo((x) -> x.getParents().isEmpty(), pLastElement);
   }
 
   public static Optional<ARGPath> getOnePathTo(
@@ -335,6 +272,73 @@ public class ARGUtils {
     }
 
     return Optional.of(new ARGPath(Lists.reverse(states)));
+  }
+
+  public static ARGPath getOnePathFromTo(final Predicate<ARGState> pIsStart, final ARGState pEnd) {
+    List<ARGState> states = new ArrayList<>(); // reversed order
+    Set<ARGState> seenElements = new HashSet<>();
+
+    // each element of the path consists of the abstract state and the outgoing
+    // edge to its successor
+
+    ARGState currentARGState = pEnd;
+    states.add(currentARGState);
+    seenElements.add(currentARGState);
+    Deque<ARGState> backTrackPoints = new ArrayDeque<>();
+    Deque<Set<ARGState>> backTrackSeenElements = new ArrayDeque<>();
+    Deque<List<ARGState>> backTrackOptions = new ArrayDeque<>();
+
+    while (!pIsStart.apply(currentARGState)) {
+      Iterator<ARGState> parents = currentARGState.getParents().iterator();
+
+      ARGState parentElement = parents.next();
+      while (seenElements.contains(parentElement) && parents.hasNext()) {
+        // while seenElements already contained parentElement, try next parent
+        parentElement = parents.next();
+      }
+
+      if (seenElements.contains(parentElement)) {
+        // Backtrack
+        if (backTrackPoints.isEmpty()) {
+          throw new IllegalArgumentException("No ARG path from the target state to a root state.");
+        }
+        ARGState backTrackPoint = backTrackPoints.pop();
+        ListIterator<ARGState> stateIterator = states.listIterator(states.size());
+        while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
+          stateIterator.remove();
+        }
+        seenElements = backTrackSeenElements.pop();
+        List<ARGState> options = backTrackOptions.pop();
+        for (ARGState parent : backTrackPoint.getParents()) {
+          if (!options.contains(parent)) {
+            seenElements.add(parent);
+          }
+        }
+        currentARGState = backTrackPoint;
+      } else {
+        // Record backtracking options
+        if (parents.hasNext()) {
+          List<ARGState> options = new ArrayList<>(1);
+          while (parents.hasNext()) {
+            ARGState parent = parents.next();
+            if (!seenElements.contains(parent)) {
+              options.add(parent);
+            }
+          }
+          if (!options.isEmpty()) {
+            backTrackPoints.push(currentARGState);
+            backTrackOptions.push(options);
+            backTrackSeenElements.push(new HashSet<>(seenElements));
+          }
+        }
+
+        seenElements.add(parentElement);
+        states.add(parentElement);
+
+        currentARGState = parentElement;
+      }
+    }
+    return new ARGPath(Lists.reverse(states));
   }
 
   /**
