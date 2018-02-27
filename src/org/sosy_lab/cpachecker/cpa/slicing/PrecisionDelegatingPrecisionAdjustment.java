@@ -78,7 +78,7 @@ public class PrecisionDelegatingPrecisionAdjustment
         finalResult =
             PrecisionAdjustmentResult.create(
                 new SlicingState(state),
-                new SlicingPrecision(precision, ((SlicingPrecision) pPrecision).getRelevantEdges()),
+                ((SlicingPrecision) pPrecision).getNew(precision),
                 adjustmentResult.action());
 
       } else { // nothing changed

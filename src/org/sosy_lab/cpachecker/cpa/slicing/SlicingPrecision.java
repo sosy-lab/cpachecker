@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,6 +47,24 @@ public class SlicingPrecision implements WrapperPrecision  {
   public SlicingPrecision(final Precision pWrappedPrec, final Set<CFAEdge> pRelevantEdges) {
     wrappedPrec = pWrappedPrec;
     relevantEdges = pRelevantEdges;
+  }
+
+  /**
+   * Returns a new {@link SlicingPrecision} with the given wrapped precision and the relevant edges
+   * of this slicing precision.
+   */
+  public SlicingPrecision getNew(final Precision pWrappedPrec) {
+    return new SlicingPrecision(pWrappedPrec, relevantEdges);
+  }
+
+  /**
+   * Returns a new {@link SlicingPrecision} with the given wrapped precision and the relevant edges
+   * of this slicing precision + the given relevant edges.
+   */
+  public SlicingPrecision getNew(final Precision pWrappedPrec, final Set<CFAEdge> pIncrement) {
+    Set<CFAEdge> newRelevantEdges = new HashSet<>(relevantEdges);
+    newRelevantEdges.addAll(pIncrement);
+    return new SlicingPrecision(pWrappedPrec, newRelevantEdges);
   }
 
   /** Returns whether the given {@link CFAEdge} is a relevant edge. */
@@ -95,10 +113,6 @@ public class SlicingPrecision implements WrapperPrecision  {
     return Collections.singleton(wrappedPrec);
   }
 
-  public ImmutableSet<CFAEdge> getRelevantEdges() {
-    return ImmutableSet.copyOf(relevantEdges);
-  }
-
   @Override
   public boolean equals(Object pO) {
     if (this == pO) {
@@ -126,5 +140,27 @@ public class SlicingPrecision implements WrapperPrecision  {
         + ",\n\trelevant edges: "
         + relevantEdges
         + '}';
+  }
+
+  public static class FullPrecision extends SlicingPrecision {
+
+    public FullPrecision(final Precision pWrappedPrec) {
+      super(pWrappedPrec, Collections.emptySet());
+    }
+
+    @Override
+    public boolean isRelevant(final CFAEdge pEdge) {
+      return true;
+    }
+
+    @Override
+    public SlicingPrecision getNew(final Precision pWrappedPrec) {
+      return new FullPrecision(pWrappedPrec);
+    }
+
+    @Override
+    public SlicingPrecision getNew(final Precision pWrappedPrec, final Set<CFAEdge> pIncrement) {
+      return getNew(pWrappedPrec);
+    }
   }
 }
