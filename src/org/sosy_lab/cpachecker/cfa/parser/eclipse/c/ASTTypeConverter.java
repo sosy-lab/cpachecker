@@ -323,8 +323,12 @@ class ASTTypeConverter {
   private CArrayType conv(final ICArrayType t) {
     CExpression length = null;
     IValue v = t.getSize();
-    if (v != null && v.numericalValue() != null) {
-      length = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
+    if (v != null && v.numberValue() != null) {
+      length =
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              BigInteger.valueOf(v.numberValue().longValue()));
     } else {
       try {
         @SuppressWarnings("deprecation")

@@ -301,10 +301,8 @@ class EclipseCParser implements CParser {
     return nodeList;
   }
 
-  protected static final int PARSER_OPTIONS =
-            ILanguage.OPTION_IS_SOURCE_UNIT     // our code files are always source files, not header files
-          | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
-          ;
+  // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
+  protected static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
   private IASTTranslationUnit parse(FileContent codeReader, ParseContext parseContext)
       throws CParserException {

@@ -83,8 +83,8 @@
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201602051005" conf="runtime->default; contrib->sources"/>
-        <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="6.4.0.201802122019" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.jdt" name="core" rev="3.13.100.v20171123-1049" conf="runtime->default; contrib->sources"/>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
