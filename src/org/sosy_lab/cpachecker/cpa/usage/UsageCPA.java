@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
@@ -100,8 +99,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             pLogger,
             pCfa,
-            LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null,
-            CPAs.retrieveCPA(this, BAMCPA.class));
+            LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
     this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();

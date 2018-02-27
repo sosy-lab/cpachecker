@@ -71,25 +71,20 @@ public class UsageCPAStatistics extends AbstractStatistics {
   private ErrorTracePrinter errPrinter;
   private final CFA cfa;
 
-  private final BAMCPA bamCpa;
+  private BAMCPA bamCpa;
 
   public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
 
   public UsageCPAStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa,
-      LockTransferRelation lTransfer,
-      BAMCPA pBamCpa)
+      Configuration pConfig, LogManager pLogger, CFA pCfa, LockTransferRelation lTransfer)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     lockTransfer = lTransfer;
     config = pConfig;
     cfa = pCfa;
-    bamCpa = pBamCpa;
   }
 
   @Override
@@ -122,6 +117,10 @@ public class UsageCPAStatistics extends AbstractStatistics {
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
     }
+  }
+
+  public void setBAMCPA(BAMCPA pBamCpa) {
+    bamCpa = pBamCpa;
   }
 
   @Override

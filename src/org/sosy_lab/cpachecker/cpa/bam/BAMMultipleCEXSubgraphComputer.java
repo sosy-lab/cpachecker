@@ -102,7 +102,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         // Find correct expanded state
         Collection<AbstractState> expandedStates = data.getNonReducedInitialStates(currentState);
 
-        if (expandedStates == null) {
+        if (expandedStates.isEmpty()) {
           // children are a normal successors -> create an connection from parent to children
           for (final BackwardARGState newChild : childrenInSubgraph) {
             newChild.addParent(newCurrentElement);
