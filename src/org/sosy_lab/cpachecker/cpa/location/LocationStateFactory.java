@@ -49,7 +49,7 @@ public class LocationStateFactory {
   @Option(
     secure = true,
     description =
-        "With this option enabled, unction calls that occur"
+        "With this option enabled, function calls that occur"
             + " in the CFA are followed. By disabling this option one can traverse a function"
             + " without following function calls (in this case FunctionSummaryEdges are used)"
   )

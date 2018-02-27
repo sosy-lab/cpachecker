@@ -1379,9 +1379,9 @@ cpa.local.conservativefunctions = no default value
 # variables, which are always local
 cpa.local.localvariables = Collections.emptySet()
 
-# With this option enabled, unction calls that occur in the CFA are followed.
-# By disabling this option one can traverse a function without following
-# function calls (in this case FunctionSummaryEdges are used)
+# With this option enabled, function calls that occur in the CFA are
+# followed. By disabling this option one can traverse a function without
+# following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
 # reduce recursive locks to a single access
