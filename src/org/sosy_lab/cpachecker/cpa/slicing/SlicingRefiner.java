@@ -110,6 +110,7 @@ public class SlicingRefiner implements Refiner {
   private final AbstractState initialState;
 
   private Set<Integer> previousTargetPaths = new HashSet<>();
+  private int refinementCount = 0;
 
   public static SlicingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -189,7 +190,7 @@ public class SlicingRefiner implements Refiner {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
@@ -295,14 +296,15 @@ public class SlicingRefiner implements Refiner {
   Set<ARGState> updatePrecision(final ReachedSet pReached) throws RefinementFailedException {
     Pair<Set<ARGState>, SlicingPrecision> refinementRootsAndPrecision = getNewPrecision(pReached);
     Precision newPrec = refinementRootsAndPrecision.getSecond();
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
     argReached.updatePrecisionGlobally(newPrec, Predicates.instanceOf(SlicingPrecision.class));
+    refinementCount++;
     return refinementRootsAndPrecision.getFirst();
   }
 
   private Pair<Set<ARGState>, SlicingPrecision> getNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException {
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
@@ -342,7 +344,7 @@ public class SlicingRefiner implements Refiner {
 
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
     Set<ARGState> refinementRoots = updatePrecision(pReached);
     for (ARGState r : refinementRoots) {
       if (!r.isDestroyed()) {
