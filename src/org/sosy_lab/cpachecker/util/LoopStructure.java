@@ -147,24 +147,24 @@ public final class LoopStructure implements Serializable {
         return;
       }
 
-      Set<CFAEdge> incomingEdges = new HashSet<>();
-      Set<CFAEdge> outgoingEdges = new HashSet<>();
+      Set<CFAEdge> newIncomingEdges = new HashSet<>();
+      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
-        CFAUtils.enteringEdges(n).copyInto(incomingEdges);
-        CFAUtils.leavingEdges(n).copyInto(outgoingEdges);
+        CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
+        CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
       }
 
-      innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
-      incomingEdges.removeAll(innerLoopEdges);
-      incomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
-      outgoingEdges.removeAll(innerLoopEdges);
-      outgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
+      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+      newIncomingEdges.removeAll(innerLoopEdges);
+      newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
+      newOutgoingEdges.removeAll(innerLoopEdges);
+      newOutgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
 
-      assert !incomingEdges.isEmpty() : "Unreachable loop?";
+      assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      this.incomingEdges = ImmutableSet.copyOf(incomingEdges);
-      this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
+      this.incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
+      this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
     }
 
     private void addNodes(Loop l) {

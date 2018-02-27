@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.FlowDependenceEdge;
 
-/** @param T return type of visitor */
+/** @param <T> return type of visitor */
 public interface DGEdgeVisitor<T> {
 
   T visit(FlowDependenceEdge pEdge);

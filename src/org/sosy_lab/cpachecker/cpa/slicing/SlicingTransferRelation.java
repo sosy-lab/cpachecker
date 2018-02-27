@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

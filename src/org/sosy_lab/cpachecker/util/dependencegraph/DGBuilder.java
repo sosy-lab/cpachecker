@@ -146,12 +146,9 @@ public class DGBuilder {
   }
 
   /**
-   * Adds control dependences to dependence graph. We assume the following conditions must hold for
-   * a control dependence between CFA edge g and g':
+   * Adds control dependencies to dependence graph.
    *
-   * @throws InterruptedException
-   * @throws InvalidConfigurationException
-   * @throws CPAException
+   * @see ControlDependenceEdge
    */
   private void addControlDependences()
       throws InterruptedException, InvalidConfigurationException, CPAException {

@@ -224,7 +224,7 @@ public class SlicingRefiner implements Refiner {
    * @return a {@link CounterexampleInfo} that (among others) stores whether the target path is
    *     feasible
    * @throws CPAException if the wrapped transfer relation throws an Exception during the check
-   * @throws InterruptedException
+   * @throws InterruptedException if feasibility check got interrupted
    */
   CounterexampleInfo isFeasible(final ARGPath pTargetPath, final ReachedSet pReached)
       throws CPAException, InterruptedException {
