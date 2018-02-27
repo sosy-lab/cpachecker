@@ -109,6 +109,8 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
       CFANode representativeNode = workCopyOfCFANodes.iterator().next();
       while (!foundedRecursionLoop.contains(representativeNode)) {
         foundedRecursionLoop.add(representativeNode);
+        // TODO problems in the next line means dead code (for example, infinite loop)
+        // the case should be handled properly
         representativeNode = workCopyOfInnerFunctionCalls.get(representativeNode).iterator().next();
         assert (representativeNode != null);
       }
