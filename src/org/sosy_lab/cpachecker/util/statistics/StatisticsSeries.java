@@ -65,6 +65,16 @@ public class StatisticsSeries<T> {
     public int compareTo(DataObject<TT> pOther) {
       return Longs.compare(time, pOther.time);
     }
+
+    @Override
+    public boolean equals(Object pOther) {
+      return super.equals(pOther); // object identity
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode(); // object identity
+    }
   }
 
   /** This stub-class can be used in benchmarking mode to avoid high memory consumption. */
