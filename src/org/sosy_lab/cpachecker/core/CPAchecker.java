@@ -379,7 +379,7 @@ public class CPAchecker {
       } catch (CPAException e) {
         // Dirty hack necessary until broken exception handling in parallel algorithm is fixed
         Throwable cause = e.getCause();
-        if (cause != null && e.getMessage().equals(ParallelAlgorithm.UNEXPECTED_EXCEPTION_MSG)) {
+        if (cause != null && ParallelAlgorithm.UNEXPECTED_EXCEPTION_MSG.equals(e.getMessage())) {
           Throwables.throwIfInstanceOf(cause, IOException.class);
           Throwables.throwIfInstanceOf(cause, ParserException.class);
           Throwables.throwIfInstanceOf(cause, InvalidConfigurationException.class);
