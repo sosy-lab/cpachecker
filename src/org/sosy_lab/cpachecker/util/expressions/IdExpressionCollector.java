@@ -29,12 +29,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -70,7 +72,8 @@ public class IdExpressionCollector
 
   @Override
   public Set<CSimpleDeclaration> visit(CIdExpression pIastIdExpression) throws CPATransferException {
-    if (pIastIdExpression.getDeclaration() instanceof CVariableDeclaration) {
+    CSimpleDeclaration idDeclaration = pIastIdExpression.getDeclaration();
+    if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
       return Collections.singleton(pIastIdExpression.getDeclaration());
     } else {
       return Collections.emptySet();
