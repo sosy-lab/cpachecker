@@ -23,67 +23,82 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 
+/**
+ * CPA that computes the dominators of CFA nodes. A CFA node `d` is a dominator of a CFA node `l` in
+ * a CFA if it is part of all paths from the initial location to `l`.
+ *
+ * <p>This CPA can also be used for post-dominator computation, i.e., to compute all nodes that are
+ * part of all paths from a given node to the program exit. To do so, run the CPA with {@link
+ * org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards LocationCPABackwards}.
+ *
+ * <p>Note: If run with {@link org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards
+ * LocationCPABackwards}, each node will be post-dominated by itself. This is not a problem and not
+ * wrong, just don't be confused.
+ */
 public class DominatorCPA implements ConfigurableProgramAnalysis {
+
+  private DominatorDomain abstractDomain;
+  private DominatorState initialState;
+  private TransferRelation transferRelation;
+  private MergeOperator mergeOperator;
+  private StopOperator stopOperator;
+  private PrecisionAdjustment precisionAdjustment;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(DominatorCPA.class);
   }
 
-  private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
-
-  private DominatorCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
-    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPA(pCfa, config));
+  public DominatorCPA() {
+    abstractDomain = new DominatorDomain();
+    initialState = new DominatorState();
+    transferRelation = new DominatorTransferRelation();
+    mergeOperator = new MergeJoinOperator(abstractDomain);
+    stopOperator = new StopJoinOperator(abstractDomain);
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return this.parametricDominatorCPA.getAbstractDomain();
+    return abstractDomain;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return this.parametricDominatorCPA.getTransferRelation();
+    return transferRelation;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return this.parametricDominatorCPA.getMergeOperator();
+    return mergeOperator;
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return this.parametricDominatorCPA.getStopOperator();
+    return stopOperator;
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return this.parametricDominatorCPA.getPrecisionAdjustment();
+    return precisionAdjustment;
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    return this.parametricDominatorCPA.getInitialState(pNode, pPartition);
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return this.parametricDominatorCPA.getInitialPrecision();
+    return initialState;
   }
 }

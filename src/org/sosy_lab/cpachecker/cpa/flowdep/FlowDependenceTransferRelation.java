@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import com.google.common.collect.Multimap;
+import com.sun.istack.internal.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -92,7 +94,7 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.UsedIdsCollector;
+import org.sosy_lab.cpachecker.util.dependencegraph.UsedIdsCollector;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -205,15 +207,17 @@ class FlowDependenceTransferRelation
 
     Set<CSimpleDeclaration> usedVariables = getUsedVars(pExpression);
 
+    Multimap<MemoryLocation, ProgramDefinitionPoint> dependences = HashMultimap.create();
     for (CSimpleDeclaration use : usedVariables) {
       MemoryLocation memLoc = MemoryLocation.valueOf(use.getQualifiedName());
       Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
       if (definitionPoints != null && !definitionPoints.isEmpty()) {
-        pNextState.addDependences(memLoc, definitionPoints);
+        dependences.putAll(memLoc, definitionPoints);
       } else {
         logger.log(Level.WARNING, "No definition point for use ", memLoc, " at ", pCfaEdge);
       }
     }
+    pNextState.addDependence(pCfaEdge, dependences);
 
     return pNextState;
   }
@@ -339,15 +343,14 @@ class FlowDependenceTransferRelation
     }
   }
 
-  private Optional<ReachingDefState>
-      computeReachDefState(ReachingDefState pOldState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException {
+  private Optional<ReachingDefState> computeReachDefState(
+      ReachingDefState pOldState, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException {
 
     Collection<? extends AbstractState> computedReachDefStates;
     try {
       computedReachDefStates =
-          reachDefRelation
-              .getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
+          reachDefRelation.getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
 
     } catch (InterruptedException pE) {
       throw new CPATransferException("Exception in reaching definitions transfer", pE);

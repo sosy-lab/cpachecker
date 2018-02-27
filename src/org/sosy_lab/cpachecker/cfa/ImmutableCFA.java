@@ -33,13 +33,13 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
+import com.sun.istack.internal.Nullable;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
@@ -63,6 +64,7 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
+  private final @Nullable DependenceGraph dependenceGraph;
   private final ImmutableList<Path> fileNames;
   private final Language language;
 
@@ -74,6 +76,7 @@ class ImmutableCFA implements CFA, Serializable {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
+      Optional<DependenceGraph> pDependenceGraph,
       List<Path> pFileNames,
       Language pLanguage) {
 
@@ -84,6 +87,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = pLoopStructure.orElse(null);
     varClassification = pVarClassification.orElse(null);
     liveVariables = pLiveVariables.orElse(null);
+    dependenceGraph = pDependenceGraph.orElse(null);
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
@@ -98,6 +102,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = null;
     varClassification = null;
     liveVariables = null;
+    dependenceGraph = null;
     fileNames = ImmutableList.of();
     language = pLanguage;
   }
@@ -172,6 +177,11 @@ class ImmutableCFA implements CFA, Serializable {
   @Override
   public Optional<LiveVariables> getLiveVariables() {
     return Optional.ofNullable(liveVariables);
+  }
+
+  @Override
+  public Optional<DependenceGraph> getDependenceGraph() {
+    return Optional.ofNullable(dependenceGraph);
   }
 
   @Override

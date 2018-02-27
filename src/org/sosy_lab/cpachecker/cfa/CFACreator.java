@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -100,6 +101,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.dependencegraph.DGBuilder;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
@@ -229,6 +232,13 @@ public class CFACreator {
               + " is read later on.")
   private boolean findLiveVariables = false;
 
+  @Option(
+    secure = true,
+    name = "cfa.createDependenceGraph",
+    description = "Whether to create dependence graph for the CFA of the program"
+  )
+  private boolean createDependenceGraph = false;
+
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
@@ -249,6 +259,7 @@ private boolean classifyNodes = false;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
+    private final Timer dependenceGraphConstructionTime = new Timer();
     private final Timer exportTime = new Timer();
     private @Nullable VariableClassificationStatistics varClassificationStats;
 
@@ -270,6 +281,9 @@ private boolean classifyNodes = false;
         if (varClassificationStats != null) {
           varClassificationStats.printStatistics(out, pResult, pReached);
         }
+      }
+      if (dependenceGraphConstructionTime.getNumberOfIntervals() > 0) {
+        out.println("      Time for constr. of dep.graph:" + dependenceGraphConstructionTime);
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -496,9 +510,24 @@ private boolean classifyNodes = false;
                                                 config));
     }
 
+    Optional<DependenceGraph> depGraph;
+    if (createDependenceGraph) {
+      try {
+        stats.dependenceGraphConstructionTime.start();
+        DGBuilder depGraphBuilder = DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
+        depGraph = Optional.of(depGraphBuilder.build());
+      } catch (CPAException pE) {
+        throw new CParserException(pE);
+      } finally {
+        stats.dependenceGraphConstructionTime.stop();
+      }
+    } else {
+      depGraph = Optional.empty();
+    }
+
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
+    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, depGraph);
 
     // check the super CFA starting at the main function
     stats.checkTime.start();

@@ -21,29 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.dominator.parametric;
+package org.sosy_lab.cpachecker.cpa.dominator;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
+/**
+ * Transfer relation of {@link DominatorCPA}.
+ *
+ * <p>Computes the set of dominators of the successor location of a given edge. It only considers
+ * the dominators of the predecessor, so if multiple predecessors to a location exist, the returned
+ * dominator state is only an intermediate computation step. Multiple dominator states are
+ * automatically combined to the final set of dominators through the merge^join operator that uses
+ * {@link DominatorState#join(DominatorState)}. Thus, BFS traversal must be used to ensure that the
+ * {@link DominatorState} at a program location represents the correct, final state of dominators of
+ * that location. Otherwise, it can only be ensured that states represent the final dominators once
+ * the CPA algorithm is finished.
+ *
+ * @see DominatorCPA
+ * @see DominatorState
+ */
 public class DominatorTransferRelation extends SingleEdgeTransferRelation {
-
-  private final ConfigurableProgramAnalysis cpa;
-
-  public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
-    if (cpa == null) {
-      throw new IllegalArgumentException("cpa is null!");
-    }
-
-    this.cpa = cpa;
-  }
 
   @Override
   public Collection<DominatorState> getAbstractSuccessorsForEdge(
@@ -51,19 +57,12 @@ public class DominatorTransferRelation extends SingleEdgeTransferRelation {
 
     assert element instanceof DominatorState;
 
-    DominatorState dominatorState = (DominatorState)element;
+    DominatorState dominatorState = (DominatorState) element;
+    Set<CFANode> newDominators = new HashSet<>(dominatorState);
+    // We have to go through the predecessor to get here
+    newDominators.add(cfaEdge.getPredecessor());
+    DominatorState successor = new DominatorState(newDominators);
 
-    Collection<? extends AbstractState> successorsOfDominatedElement =
-        this.cpa.getTransferRelation().getAbstractSuccessorsForEdge(
-            dominatorState.getDominatedState(), prec, cfaEdge);
-
-    Collection<DominatorState> successors = new ArrayList<>(successorsOfDominatedElement.size());
-    for (AbstractState successorOfDominatedElement : successorsOfDominatedElement) {
-      DominatorState successor = new DominatorState(successorOfDominatedElement, dominatorState);
-      successor.update(successorOfDominatedElement);
-      successors.add(successor);
-    }
-
-    return successors;
+    return Collections.singleton(successor);
   }
 }

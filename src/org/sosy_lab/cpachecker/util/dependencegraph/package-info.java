@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-@org.sosy_lab.common.annotations.Unmaintained
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
-package org.sosy_lab.cpachecker.cpa.dominator.parametric;
+
+/**
+ * Classes in this package are concerned with creating a Dependence Graph. A dependence graph
+ * captures different kinds of dependencies between parts of a program. Parts of a program are
+ * usually assignments and expressions, but inter-procedural dependencies, e.g. between methods, are
+ * also possible.
+ */
+package org.sosy_lab.cpachecker.util.dependencegraph;

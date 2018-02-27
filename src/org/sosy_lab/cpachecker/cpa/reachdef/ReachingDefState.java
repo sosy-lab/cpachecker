@@ -157,6 +157,11 @@ public class ReachingDefState implements AbstractState, Serializable,
     }
   }
 
+  @Override
+  public String toString() {
+    return toDOTLabel();
+  }
+
   private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
     boolean result;
     do {

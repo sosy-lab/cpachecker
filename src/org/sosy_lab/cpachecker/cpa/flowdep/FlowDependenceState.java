@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,21 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -52,39 +51,30 @@ public class FlowDependenceState
     implements AbstractState, AbstractWrapperState, LatticeAbstractState<FlowDependenceState>,
     Graphable {
 
-  private final Multimap<MemoryLocation, ProgramDefinitionPoint> usedDefs;
+  private final Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> usedDefs;
 
   private ReachingDefState reachDefState;
 
   FlowDependenceState(ReachingDefState pReachDefState) {
-    usedDefs = HashMultimap.create();
+    usedDefs = new HashMap<>();
 
     reachDefState = pReachDefState;
   }
 
-  public Collection<ProgramDefinitionPoint> getDependentDefs(final MemoryLocation pIdentifier) {
-    return ImmutableSet.copyOf(usedDefs.get(pIdentifier));
+  public Set<CFAEdge> getEdges() {
+    return usedDefs.keySet();
   }
 
-  public ImmutableMultimap<MemoryLocation, ProgramDefinitionPoint> getAllDependentDefs() {
-    return ImmutableMultimap.copyOf(usedDefs);
+  public Multimap<MemoryLocation, ProgramDefinitionPoint> getDependentDefs(final CFAEdge pEdge) {
+    return ImmutableMultimap.copyOf(usedDefs.get(pEdge));
   }
 
   /**
    * Adds a flow dependence based on the given variable and its definition at the given program
    * definition point.
    */
-  public void addDependence(MemoryLocation pVarUsed, ProgramDefinitionPoint pVarDefinition) {
-    usedDefs.put(pVarUsed, pVarDefinition);
-  }
-
-  /**
-   * Adds one flow dependence based on the given variable for its definition at each given program
-   * definition point.
-   */
-  public void
-      addDependences(MemoryLocation pVarUsed, Iterable<ProgramDefinitionPoint> pVarDefinitions) {
-    usedDefs.putAll(pVarUsed, pVarDefinitions);
+  public void addDependence(CFAEdge pEdge, Multimap<MemoryLocation, ProgramDefinitionPoint> pUses) {
+    usedDefs.put(pEdge, pUses);
   }
 
   ReachingDefState getReachDefState() {
@@ -93,22 +83,31 @@ public class FlowDependenceState
 
   @Override
   public FlowDependenceState join(FlowDependenceState other) {
-    if (other.reachDefState.equals(reachDefState) && other.usedDefs.equals(usedDefs)) {
+    if (isLessOrEqual(other)) {
       return other;
     } else {
       ReachingDefState joinedReachDefs = reachDefState.join(other.reachDefState);
       FlowDependenceState joinedFlowDeps = new FlowDependenceState(joinedReachDefs);
       joinedFlowDeps.usedDefs.putAll(usedDefs);
-      joinedFlowDeps.usedDefs.putAll(other.usedDefs);
+      for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e :
+          other.usedDefs.entrySet()) {
+
+        CFAEdge g = e.getKey();
+
+        if (joinedFlowDeps.usedDefs.containsKey(g)) {
+          joinedFlowDeps.usedDefs.get(g).putAll(e.getValue());
+        } else {
+          joinedFlowDeps.usedDefs.put(g, e.getValue());
+        }
+      }
       return joinedFlowDeps;
     }
   }
 
   @Override
-  public boolean isLessOrEqual(FlowDependenceState other)
-      throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(FlowDependenceState other) {
     return reachDefState.isLessOrEqual(other.reachDefState)
-        && containsAll(other.usedDefs.asMap(), usedDefs.asMap());
+        && containsAll(other.usedDefs, usedDefs);
   }
 
   private <K, V> boolean containsAll(Map<K, V> superMap, Map<K, V> subMap) {
@@ -130,12 +129,13 @@ public class FlowDependenceState
       return false;
     }
     FlowDependenceState that = (FlowDependenceState) pO;
-    return Objects.equals(usedDefs, that.usedDefs);
+    return Objects.equals(reachDefState, that.reachDefState)
+        && Objects.equals(usedDefs, that.usedDefs);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(usedDefs);
+    return Objects.hash(reachDefState, usedDefs);
   }
 
   @Override
@@ -144,12 +144,18 @@ public class FlowDependenceState
     if (!usedDefs.isEmpty()) {
       sb.append("\n");
     }
-    for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> e : usedDefs.entries()) {
+    for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e
+        : usedDefs.entrySet()) {
       sb.append("\t");
-      sb.append(e.getKey().toString()).append(" <- ").append(e.getValue());
-      sb.append("\n");
+      sb.append(e.getKey().toString()).append(":\n");
+      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : e.getValue().entries()) {
+        sb.append("\t\t");
+        sb.append(memDefs.getKey().toString()).append(" <- ").append(memDefs.getValue());
+        sb.append("\n");
+      }
     }
-    sb.append("}");
+    sb.append("};\n");
+    sb.append(reachDefState.toString());
     return sb.toString();
   }
 
@@ -162,15 +168,25 @@ public class FlowDependenceState
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder("{");
     boolean first = true;
-    for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> e : usedDefs.entries()) {
+    for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e
+        : usedDefs.entrySet()) {
       if (!first) {
         sb.append(", ");
       }
       first = false;
-      sb.append(e.getKey().toString()).append(" <- ").append(e.getValue());
+      sb.append(e.getKey().toString()).append(": [ ");
+      boolean first2 = true;
+      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : e.getValue().entries()) {
+        if (!first2) {
+          sb.append(", ");
+        }
+        first2 = false;
+        sb.append(memDefs.getKey()).append(" <- ").append(memDefs.getValue());
+      }
+      sb.append("]");
     }
-
-    sb.append("}");
+    sb.append("};");
+    sb.append(reachDefState.toDOTLabel());
     return sb.toString();
   }
 

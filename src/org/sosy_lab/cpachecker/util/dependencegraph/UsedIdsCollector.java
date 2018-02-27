@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;

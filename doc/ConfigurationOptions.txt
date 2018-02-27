@@ -567,6 +567,9 @@ cfa.checkNullPointers.singleTargetPerFunction = true
 # This option enables the computation of a classification of CFA nodes.
 cfa.classifyNodes = false
 
+# Whether to create dependence graph for the CFA of the program
+cfa.createDependenceGraph = false
+
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
@@ -2737,6 +2740,10 @@ custominstructions.requirementsStateClassName = no default value
 # which are in turn also counted to the last loop.
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
+
+# File to export dependence graph to. If `null`, dependence graph will not be
+# exported as dot.
+dependenceGraph.exportDot = "DependenceGraph.dot"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
