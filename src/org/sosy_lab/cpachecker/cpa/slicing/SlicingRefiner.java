@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.slicing.SlicingPrecision.FullPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -194,8 +195,16 @@ public class SlicingRefiner implements Refiner {
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
     boolean anyFeasible = false;
     for (ARGPath tp : targetPaths) {
+      int targetPathId = obtainTargetPathId(tp);
+      if (previousTargetPaths.contains(targetPathId)) {
+        throw new RefinementFailedException(Reason.RepeatedCounterexample, tp);
+      }
+
       CounterexampleInfo cex = isFeasible(tp, pReached);
-      if (!cex.isSpurious()) {
+
+      if (cex.isSpurious()) {
+        previousTargetPaths.add(targetPathId);
+      } else {
         tp.getLastState().addCounterexampleInformation(cex);
         anyFeasible = true;
       }
@@ -207,6 +216,10 @@ public class SlicingRefiner implements Refiner {
       updatePrecisionAndRemoveSubtree(pReached);
       return true;
     }
+  }
+
+  private int obtainTargetPathId(final ARGPath pTargetPath) {
+    return pTargetPath.toString().hashCode();
   }
 
   /**
