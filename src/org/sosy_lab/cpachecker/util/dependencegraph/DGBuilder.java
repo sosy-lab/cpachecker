@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
@@ -89,7 +90,7 @@ public class DGBuilder {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  private Map<CFAEdge, DGNode> nodes;
+  private Map<CFAEdge, DGNode> nodes = new HashMap<>();
   private Set<DGEdge> edges;
 
   @Option(
@@ -115,7 +116,7 @@ public class DGBuilder {
 
   public DependenceGraph build()
       throws InvalidConfigurationException, InterruptedException, CPAException {
-    nodes = new HashMap<>();
+    nodes = getCFAEdges();
     edges = new HashSet<>();
     addControlDependences();
     addFlowDependences();
@@ -130,6 +131,18 @@ public class DGBuilder {
         edges.size(),
         " edges.");
     return dg;
+  }
+
+  private Map<CFAEdge, DGNode> getCFAEdges() {
+    EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().traverse(cfa.getMainFunction(), edgeCollector);
+    List<CFAEdge> allEdges = edgeCollector.getVisitedEdges();
+
+    Map<CFAEdge, DGNode> dgNodes = new HashMap<>();
+    for (CFAEdge e : allEdges) {
+      dgNodes.put(e, getDGNode(e));
+    }
+    return dgNodes;
   }
 
   /**

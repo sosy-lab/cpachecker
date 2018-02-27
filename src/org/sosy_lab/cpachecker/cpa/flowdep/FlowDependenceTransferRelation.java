@@ -217,7 +217,9 @@ class FlowDependenceTransferRelation
         logger.log(Level.WARNING, "No definition point for use ", memLoc, " at ", pCfaEdge);
       }
     }
-    pNextState.addDependence(pCfaEdge, dependences);
+    if (!dependences.isEmpty()) {
+      pNextState.addDependence(pCfaEdge, dependences);
+    }
 
     return pNextState;
   }
