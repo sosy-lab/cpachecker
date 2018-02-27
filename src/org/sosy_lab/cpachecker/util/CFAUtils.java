@@ -31,6 +31,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -39,6 +40,7 @@ import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -49,6 +51,7 @@ import java.util.SortedSet;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
@@ -115,6 +118,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CFAUtils {
 
@@ -334,6 +338,30 @@ public class CFAUtils {
     return false;
   }
 
+  public static Collection<CFANode> getEndlessLoopHeads(final LoopStructure pLoopStructure) {
+    ImmutableCollection<Loop> loops = pLoopStructure.getAllLoops();
+    Set<CFANode> loopHeads = new HashSet<>();
+
+    for (Loop l : loops) {
+      if (l.getOutgoingEdges().isEmpty()) {
+        // one loopHead per loop should be enough for finding all locations
+        loopHeads.addAll(l.getLoopHeads());
+      }
+    }
+    return loopHeads;
+  }
+
+  public static Collection<CFANode> getProgramSinks(
+      final CFA pCfa, final LoopStructure pLoopStructure, final FunctionEntryNode pCfaEntryNode) {
+    Set<CFANode> sinks = new HashSet<>();
+    CFANode cfaExitNode = pCfaEntryNode.getExitNode();
+    if (pCfa.getAllNodes().contains(cfaExitNode)) {
+      sinks.add(cfaExitNode);
+    }
+
+    sinks.addAll(getEndlessLoopHeads(pLoopStructure));
+    return sinks;
+  }
 
   /**
    * This Visitor searches for backwards edges in the CFA, if some backwards edges

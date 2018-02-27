@@ -31,10 +31,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.FileNotFoundException;
@@ -84,9 +82,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
@@ -564,11 +562,13 @@ public class CPAchecker {
                                                           .build();
         break;
       case PROGRAM_SINKS:
-        Builder<CFANode> builder = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().get()));
-        if (pCfa.getAllNodes().contains(pAnalysisEntryFunction.getExitNode())) {
-          builder.add(pAnalysisEntryFunction.getExitNode());
-        }
-         initialLocations = builder.build();
+          initialLocations =
+              ImmutableSet.<CFANode>builder()
+                  .addAll(
+                      CFAUtils.getProgramSinks(
+                          pCfa, pCfa.getLoopStructure().get(), pAnalysisEntryFunction))
+                  .build();
+
         break;
         case TARGET:
           TargetLocationProvider tlp =
@@ -610,18 +610,7 @@ public class CPAchecker {
     return functionExitNodes;
   }
 
-  private Set<CFANode> getAllEndlessLoopHeads(LoopStructure structure) {
-    ImmutableCollection<Loop> loops = structure.getAllLoops();
-    Set<CFANode> loopHeads = new HashSet<>();
-
-    for (Loop l : loops) {
-      if (l.getOutgoingEdges().isEmpty()) {
-        // one loopHead per loop should be enough for finding all locations
-        for (CFANode head : l.getLoopHeads()) {
-          loopHeads.add(head);
-        }
-      }
-    }
-    return loopHeads;
+  private Collection<CFANode> getAllEndlessLoopHeads(LoopStructure structure) {
+    return CFAUtils.getEndlessLoopHeads(structure);
   }
 }
