@@ -55,6 +55,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -400,13 +401,16 @@ public class DGBuilder {
       Algorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, pShutdownNotifier);
       ReachedSet reached = reachedFactory.create();
 
-      AbstractState initialState =
-          cpa.getInitialState(
-              pCfa.getMainFunction().getExitNode(), StateSpacePartition.getDefaultPartition());
-      Precision initialPrecision =
-          cpa.getInitialPrecision(
-              pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      reached.add(initialState, initialPrecision);
+      FunctionEntryNode mainFunction = pCfa.getMainFunction();
+      Collection<CFANode> startNodes =
+          CFAUtils.getProgramSinks(pCfa, pCfa.getLoopStructure().get(), mainFunction);
+
+      for (CFANode n : startNodes) {
+        StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+        AbstractState initialState = cpa.getInitialState(n, partition);
+        Precision initialPrecision = cpa.getInitialPrecision(n, partition);
+        reached.add(initialState, initialPrecision);
+      }
 
       // populate reached set
       algorithm.run(reached);
