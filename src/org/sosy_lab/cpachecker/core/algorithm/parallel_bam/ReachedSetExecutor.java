@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -163,14 +164,12 @@ class ReachedSetExecutor {
     logger.logf(level, "%s :: creating RSE", this);
 
     assert pBlock == getBlockForState(pRs.getFirstState());
-    assert !pReachedSetMapping.containsKey(pRs);
 
     threadTimer = stats.threadTime.getNewTimer();
     addingStatesTimer = stats.addingStatesTime.getNewTimer();
     terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
 
     waitingTask = CompletableFuture.runAsync(NOOP, pool); // initialization
-    reachedSetMapping.put(rs, this); // backwards reference
   }
 
   public Runnable asRunnable() {
@@ -482,45 +481,47 @@ class ReachedSetExecutor {
    */
   private ReachedSetExecutor createAndRegisterNewReachedSet(MissingBlockAbstractionState pBsme) {
     ReachedSet newRs = pBsme.getReachedSet();
-    if (newRs == null) {
-      // We are only synchronized in the current method. Thus, we need to check
-      // the cache again, maybe another thread already created the needed reached-set.
-      final Pair<ReachedSet, Collection<AbstractState>> pair =
-          bamcpa
-              .getCache()
-              .get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
-      newRs = pair.getFirst(); // @Nullable
+    BAMDataManager data = bamcpa.getData();
+
+    synchronized (data) {
+      if (newRs == null) {
+        // We are only synchronized in the current method. Thus, we need to check
+        // the cache again, maybe another thread already created the needed reached-set.
+        final Pair<ReachedSet, Collection<AbstractState>> pair =
+            data.getCache()
+                .get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+        newRs = pair.getFirst(); // @Nullable
+      }
+
+      // now we can be sure, whether the sub-reached-set exists or not.
+      if (newRs == null) {
+        // we have not even cached a partly computed reached-set,
+        // so we must compute the subgraph specification from scratch
+        newRs =
+            data.createAndRegisterNewReachedSet(
+                pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+      }
     }
 
-    // now we can be sure, whether the sub-reached-set exists or not.
-    if (newRs == null) {
-      // we have not even cached a partly computed reached-set,
-      // so we must compute the subgraph specification from scratch
-      newRs =
-          bamcpa
-              .getData()
-              .createAndRegisterNewReachedSet(
-                  pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
-    }
+    ReachedSetExecutor newSubRse =
+        new ReachedSetExecutor(
+            bamcpa,
+            newRs,
+            pBsme.getBlock(),
+            mainReachedSet,
+            reachedSetMapping,
+            pool,
+            algorithmFactory,
+            shutdownNotifier,
+            stats,
+            error,
+            terminateAnalysis,
+            logger);
 
-    ReachedSetExecutor subRse = reachedSetMapping.get(newRs);
-    if (subRse == null) {
-      // we have a partial (or even finished) reached-set,
-      // so we schedule it for further exploration
-      subRse =
-          new ReachedSetExecutor(
-              bamcpa,
-              newRs,
-              pBsme.getBlock(),
-              mainReachedSet,
-              reachedSetMapping,
-              pool,
-              algorithmFactory,
-              shutdownNotifier,
-              stats,
-              error,
-              terminateAnalysis,
-              logger);
+    // check whether we already have a matching RSE. If not use the new one.
+    ReachedSetExecutor subRse = reachedSetMapping.putIfAbsent(newRs, newSubRse);
+    if (subRse == null) { // there was an already existent RSE
+      subRse = newSubRse;
       logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
     }
     return subRse;

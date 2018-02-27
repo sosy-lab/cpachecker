@@ -135,6 +135,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             error,
             terminateAnalysis,
             logger);
+    reachedSetMapping.put(mainReachedSet, rse); // backwards reference
 
     // start analysis
     rse.addNewTask(rse.asRunnable());
