@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -61,7 +63,7 @@ public class PresisionParser {
         Files.newBufferedReader(Paths.get(file), Charset.defaultCharset())) {
       String line;
       CFANode node = null;
-      String[] localSet;
+      List<String> localSet;
       DataType type;
       Map<GeneralIdentifier, DataType> info = null;
       GeneralIdentifier id;
@@ -77,15 +79,15 @@ public class PresisionParser {
           info = new HashMap<>();
         } else if (line.length() > 0) {
           // it's information about local statistics
-          localSet = line.split(";");
+          localSet = Splitter.on(";").splitToList(line);
 
           if (shouldBeSkipped(localSet)) {
             continue;
           }
-          id = parseId(localSet[0], localSet[1], Integer.parseInt(localSet[2]));
+          id = parseId(localSet.get(0), localSet.get(1), Integer.parseInt(localSet.get(2)));
           Preconditions.checkNotNull(
               id, line + " can not be parsed, please, move all checks to shouldBeSkipped()");
-          type = DataType.valueOf(localSet[3].toUpperCase());
+          type = DataType.valueOf(localSet.get(3).toUpperCase());
           info.put(id, type);
         }
       }
@@ -118,9 +120,9 @@ public class PresisionParser {
     return null;
   }
 
-  private boolean shouldBeSkipped(String[] set) {
+  private boolean shouldBeSkipped(List<String> set) {
     // Return identifier, it's not interesting for us
-    return set[0].equalsIgnoreCase("r");
+    return set.get(0).equalsIgnoreCase("r");
   }
 
   private CFANode getNode(int id) {

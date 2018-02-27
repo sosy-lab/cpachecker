@@ -222,10 +222,11 @@ public class UsageInfo implements Comparable<UsageInfo> {
       // May be sorted not in the convenient order: Locks last
       CompatibleState currentState = this.getState(pClass);
       if (currentState != null) {
-        result = currentState.compareTo(pO.getState(pClass));
+        // Revert order to negate the result:
+        // Usages without locks are more convenient to analyze
+        result = pO.getState(pClass).compareTo(currentState);
         if (result != 0) {
-          // Usages without locks are more convenient to analyze
-          return -result;
+          return result;
         }
       }
     }

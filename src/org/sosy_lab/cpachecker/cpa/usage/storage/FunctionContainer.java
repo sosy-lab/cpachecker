@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,14 +44,18 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+@SuppressFBWarnings(
+  justification = "Serialization of container is useless and not supported",
+  value = "SE_BAD_FIELD"
+)
 public class FunctionContainer extends AbstractUsageStorage {
 
   private static final long serialVersionUID = 1L;
-  //private final Set<FunctionContainer> internalFunctionContainers;
+  // private final Set<FunctionContainer> internalFunctionContainers;
   private final List<LockEffect> effects;
-  private final transient StorageStatistics stats;
+  private final StorageStatistics stats;
 
-  private final transient Set<FunctionContainer> joinedWith;
+  private final Set<FunctionContainer> joinedWith;
 
   public static FunctionContainer createInitialContainer() {
     return new FunctionContainer(new StorageStatistics(), new ArrayList<>());
@@ -142,10 +147,6 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   public StorageStatistics getStatistics() {
     return stats;
-  }
-
-  protected Object readResolve() {
-    return new FunctionContainer(new StorageStatistics(), this.effects);
   }
 
   public static class StorageStatistics {
