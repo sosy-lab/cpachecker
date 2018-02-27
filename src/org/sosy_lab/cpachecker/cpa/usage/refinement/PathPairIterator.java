@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -95,7 +94,7 @@ public class PathPairIterator extends
         throw new InvalidConfigurationException("Unexpexted type " + type);
 
     }
-    targetToPathIterator = Maps.newHashMap();
+    targetToPathIterator = new IdentityHashMap<>();
   }
 
   @Override
