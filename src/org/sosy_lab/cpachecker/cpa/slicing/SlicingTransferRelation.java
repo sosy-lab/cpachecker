@@ -1,0 +1,86 @@
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.slicing;
+
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+public class SlicingTransferRelation extends SingleEdgeTransferRelation {
+
+  private final TransferRelation delegate;
+
+  public SlicingTransferRelation(final TransferRelation pDelegateTransferRelation) {
+    delegate = pDelegateTransferRelation;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge
+  ) throws CPATransferException, InterruptedException {
+    checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
+        SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
+
+    SlicingPrecision slicingPrecision = (SlicingPrecision) pPrecision;
+    checkState(pState instanceof SlicingState, "State not of type " +
+        SlicingState.class.getSimpleName() + ", but " + pState.getClass().getSimpleName());
+
+    AbstractState wrappedState = ((SlicingState) pState).getWrappedState();
+    CFAEdge adjustedEdge = pCfaEdge;
+
+    if (!slicingPrecision.isRelevant(pCfaEdge)) {
+      adjustedEdge = replaceWithNoop(pCfaEdge);
+    }
+
+    Precision wrappedPrecision = slicingPrecision.getWrappedPrec();
+    return delegate
+        .getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, adjustedEdge)
+        .stream()
+        .map((x) -> new SlicingState(x))
+        .collect(Collectors.toList());
+
+  }
+
+  private CFAEdge replaceWithNoop(final CFAEdge pCfaEdge) {
+    CFANode succ = pCfaEdge.getSuccessor();
+    CFANode pred = pCfaEdge.getPredecessor();
+    return new BlankEdge(
+        pCfaEdge.getRawStatement(),
+        pCfaEdge.getFileLocation(),
+        pred,
+        succ,
+        pCfaEdge.getDescription());
+  }
+}
