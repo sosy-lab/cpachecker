@@ -143,28 +143,22 @@ public class SlicingRefiner implements Refiner {
       throw new AssertionError(pE);
     }
 
-    if (compositePrecision instanceof WrapperPrecision) {
-      Precision fullSlicingPrecision = new FullPrecision(wrappedPrecision);
-      Precision fullArgPrecision =
-          compositePrecision.replaceWrappedPrecision(
-              fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
+    Precision fullSlicingPrecision = new FullPrecision(wrappedPrecision);
+    Precision fullArgPrecision =
+        compositePrecision.replaceWrappedPrecision(
+            fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
-      return new SlicingRefiner(
-          pathExtractor,
-          argCpa,
-          cfa.getDependenceGraph()
-              .orElseThrow(
-                  () -> new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
-          transferRelation,
-          initialCompositeState,
-          compositePrecision,
-          fullArgPrecision,
-          config);
-
-    } else {
-      throw new AssertionError(
-          "Precision of CompositeCPA is not wrapper precision: " + compositePrecision);
-    }
+    return new SlicingRefiner(
+        pathExtractor,
+        argCpa,
+        cfa.getDependenceGraph()
+            .orElseThrow(
+                () -> new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
+        transferRelation,
+        initialCompositeState,
+        compositePrecision,
+        fullArgPrecision,
+        config);
   }
 
   private SlicingRefiner(

@@ -73,7 +73,6 @@ public class FlowDependenceCPA extends AbstractSingleWrapperCPA {
   }
 
   private FlowDependenceCPA(
-      final Configuration pConfig,
       final LogManager pLogger,
       final CFA pCfa,
       final ConfigurableProgramAnalysis pCpaToWrap
