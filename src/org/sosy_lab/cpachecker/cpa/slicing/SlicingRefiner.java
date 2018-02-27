@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
@@ -75,15 +78,37 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
  *
  * <p>[1] Weiser, 1984: Program Slicing.
  */
+@Options(prefix = "cpa.slicing.refinement")
 public class SlicingRefiner implements Refiner {
+
+  @Option(
+    secure = true,
+    description =
+        "Allow counterexamples that are valid only on the program slice."
+            + " If you set this to `false`, you may have to set takeEagerSlice=true to avoid failed "
+            + "refinements. If this is set to true, the counterexample check won't work (in "
+            + "general), so you have to turn it off."
+  )
+  private boolean counterexampleCheckOnSlice = false;
+
+  @Option(
+    secure = true,
+    description =
+        "Use all assumptions of a target path as counterexamples, not just the edge to the target"
+            + " location. Always set this to `true` if you use SlicingDelegatingRefiner."
+  )
+  private boolean takeEagerSlice = true;
 
   private final PathExtractor pathExtractor;
   private final ARGCPA argCpa;
   private final DependenceGraph depGraph;
 
   private final TransferRelation transfer;
+  private final WrapperPrecision currentPrecision;
   private final Precision fullPrecision;
   private final AbstractState initialState;
+
+  private Set<Integer> previousTargetPaths = new HashSet<>();
 
   public static SlicingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -107,11 +132,12 @@ public class SlicingRefiner implements Refiner {
     TransferRelation transferRelation = outerCompositeCpa.getTransferRelation();
     AbstractState initialCompositeState;
     Precision wrappedPrecision;
-    Precision compositePrecision;
+    WrapperPrecision compositePrecision;
     try {
       initialCompositeState = outerCompositeCpa.getInitialState(initialCfaNode, partition);
       wrappedPrecision = wrapped.getInitialPrecision(initialCfaNode, partition);
-      compositePrecision = outerCompositeCpa.getInitialPrecision(initialCfaNode, partition);
+      compositePrecision =
+          (WrapperPrecision) outerCompositeCpa.getInitialPrecision(initialCfaNode, partition);
     } catch (InterruptedException pE) {
       throw new AssertionError(pE);
     }
@@ -119,9 +145,8 @@ public class SlicingRefiner implements Refiner {
     if (compositePrecision instanceof WrapperPrecision) {
       Precision fullSlicingPrecision = new FullPrecision(wrappedPrecision);
       Precision fullArgPrecision =
-          ((WrapperPrecision) compositePrecision)
-              .replaceWrappedPrecision(
-                  fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
+          compositePrecision.replaceWrappedPrecision(
+              fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
       return new SlicingRefiner(
           pathExtractor,
@@ -131,7 +156,9 @@ public class SlicingRefiner implements Refiner {
                   () -> new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
           transferRelation,
           initialCompositeState,
-          fullArgPrecision);
+          compositePrecision,
+          fullArgPrecision,
+          config);
 
     } else {
       throw new AssertionError(
@@ -145,10 +172,15 @@ public class SlicingRefiner implements Refiner {
       final DependenceGraph pDepGraph,
       final TransferRelation pTransferRelation,
       final AbstractState pInitialState,
-      final Precision pFullPrecision) {
+      final WrapperPrecision pCurrentArgPrecision,
+      final Precision pFullPrecision,
+      final Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     pathExtractor = pPathExtractor;
     argCpa = pArgCpa;
     depGraph = pDepGraph;
+    currentPrecision = pCurrentArgPrecision;
     fullPrecision = pFullPrecision;
     transfer = pTransferRelation;
     initialState = pInitialState;
@@ -160,16 +192,21 @@ public class SlicingRefiner implements Refiner {
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
+    boolean anyFeasible = false;
     for (ARGPath tp : targetPaths) {
-      CounterexampleInfo cex = isFeasible(tp);
+      CounterexampleInfo cex = isFeasible(tp, pReached);
       if (!cex.isSpurious()) {
         tp.getLastState().addCounterexampleInformation(cex);
-        return false;
+        anyFeasible = true;
       }
     }
 
-    updatePrecisionAndRemoveSubtree(pReached);
-    return true;
+    if (anyFeasible) {
+      return false;
+    } else {
+      updatePrecisionAndRemoveSubtree(pReached);
+      return true;
+    }
   }
 
   /**
@@ -182,7 +219,7 @@ public class SlicingRefiner implements Refiner {
    * @throws CPAException if the wrapped transfer relation throws an Exception during the check
    * @throws InterruptedException
    */
-  CounterexampleInfo isFeasible(final ARGPath pTargetPath)
+  CounterexampleInfo isFeasible(final ARGPath pTargetPath, final ReachedSet pReached)
       throws CPAException, InterruptedException {
 
     PathIterator iterator = pTargetPath.fullPathIterator();
@@ -191,6 +228,16 @@ public class SlicingRefiner implements Refiner {
     AbstractState state = initialState;
     ARGState asArgState = new ARGState(state, null);
     ARGPathBuilder targetPathWithCorrectValues = ARGPath.builder();
+    Precision precision;
+    if (counterexampleCheckOnSlice) {
+      Precision fullSlice = getNewPrecision(pReached).getSecond();
+      precision =
+          currentPrecision.replaceWrappedPrecision(
+              fullSlice, Predicates.instanceOf(fullSlice.getClass()));
+    } else {
+      precision = fullPrecision;
+    }
+
     try {
       while (iterator.hasNext()) {
         do {
@@ -199,7 +246,7 @@ public class SlicingRefiner implements Refiner {
           // we can always just use the delegate precision,
           // because this refinement procedure does not delegate to some other precision refinement.
           // Thus, there is no way that any initial precision could change, either way.
-          successorSet = transfer.getAbstractSuccessorsForEdge(state, fullPrecision, outgoingEdge);
+          successorSet = transfer.getAbstractSuccessorsForEdge(state, precision, outgoingEdge);
           if (successorSet.isEmpty()) {
             return CounterexampleInfo.spurious();
           } else {
@@ -210,7 +257,6 @@ public class SlicingRefiner implements Refiner {
           iterator.advance();
         } while (!iterator.isPositionWithState());
       }
-
       return CounterexampleInfo.feasibleImprecise(targetPathWithCorrectValues.build(asArgState));
     } catch (CPATransferException e) {
       throw new CPAException(
@@ -234,6 +280,15 @@ public class SlicingRefiner implements Refiner {
    */
   @CanIgnoreReturnValue
   Set<ARGState> updatePrecision(final ReachedSet pReached) throws RefinementFailedException {
+    Pair<Set<ARGState>, SlicingPrecision> refinementRootsAndPrecision = getNewPrecision(pReached);
+    Precision newPrec = refinementRootsAndPrecision.getSecond();
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    argReached.updatePrecisionGlobally(newPrec, Predicates.instanceOf(SlicingPrecision.class));
+    return refinementRootsAndPrecision.getFirst();
+  }
+
+  private Pair<Set<ARGState>, SlicingPrecision> getNewPrecision(final ReachedSet pReached)
+      throws RefinementFailedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
@@ -250,23 +305,23 @@ public class SlicingRefiner implements Refiner {
     }
 
     SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
-    Precision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
-    argReached.updatePrecisionGlobally(newPrec, Predicates.instanceOf(SlicingPrecision.class));
-
-    return refinementRoots;
+    SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
+    return Pair.of(refinementRoots, newPrec);
   }
 
-  private Collection<ARGState> getRelevantStates(ARGPath pTargetPath) {
+  private Collection<ARGState> getRelevantStates(final ARGPath pTargetPath) {
     List<ARGState> relevantStates = new ArrayList<>();
     ARGState target = pTargetPath.getLastState();
     relevantStates.add(target);
 
-    PathIterator it = pTargetPath.pathIterator();
-    while (it.hasNext()) {
-      it.advance(); // skip the first state
-      CFAEdge incoming = it.getIncomingEdge();
-      if (incoming != null && incoming.getEdgeType() == CFAEdgeType.AssumeEdge) {
-        relevantStates.add(it.getAbstractState());
+    if (takeEagerSlice) {
+      PathIterator it = pTargetPath.pathIterator();
+      while (it.hasNext()) {
+        it.advance(); // skip the first state
+        CFAEdge incoming = it.getIncomingEdge();
+        if (incoming != null && incoming.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          relevantStates.add(it.getAbstractState());
+        }
       }
     }
     return relevantStates;

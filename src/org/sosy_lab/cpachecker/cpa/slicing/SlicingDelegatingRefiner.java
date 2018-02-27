@@ -34,6 +34,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+/**
+ * Refiner for {@link SlicingCPA} that works in tandem with another precision refinement procedure.
+ * If you use this refiner, always set <code>cpa.slicing.refinement.takeEagerSlice=true</code> to
+ * ensure that full program slices are used.
+ *
+ * @see SlicingRefiner
+ */
 public class SlicingDelegatingRefiner implements Refiner {
 
   private final Refiner delegate;
@@ -83,7 +90,8 @@ public class SlicingDelegatingRefiner implements Refiner {
       throws CPAException, InterruptedException {
 
     // The delegate refiner will cut the ARG at the refinement root that is really necessary
-    // -- this is always equal to or lower in the ARG than the refinement roots of slicing.
+    // -- this is, except for predicate analysis, equal to or lower in the ARG than the
+    // refinement roots of slicing.
     // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
     slicingRefiner.updatePrecision(pReached);
     return delegate.performRefinement(pReached);

@@ -2222,6 +2222,17 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
+# Allow counterexamples that are valid only on the program slice. If you set
+# this to `false`, you may have to set takeEagerSlice=true to avoid failed
+# refinements. If this is set to true, the counterexample check won't work
+# (in general), so you have to turn it off.
+cpa.slicing.refinement.counterexampleCheckOnSlice = false
+
+# Use all assumptions of a target path as counterexamples, not just the edge
+# to the target location. Always set this to `true` if you use
+# SlicingDelegatingRefiner.
+cpa.slicing.refinement.takeEagerSlice = true
+
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
