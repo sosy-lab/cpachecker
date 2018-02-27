@@ -132,12 +132,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Objects.hashCode(accessType);
-    result = prime * result + Objects.hashCode(line);
-    result = prime * result + Objects.hashCode(compatibleStates);
-    return result;
+    return Objects.hash(accessType, line, compatibleStates);
   }
 
   @Override

@@ -251,11 +251,7 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Objects.hashCode(locks);
-    result = prime * result + Objects.hashCode(lockList);
-    return result;
+    return Objects.hash(locks, lockList);
   }
 
   @Override

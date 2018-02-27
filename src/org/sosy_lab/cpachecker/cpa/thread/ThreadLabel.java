@@ -45,12 +45,7 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + status.hashCode();
-    result = prime * result + Objects.hashCode(varName);
-    result = prime * result + Objects.hashCode(threadName);
-    return result;
+    return Objects.hash(status, varName, threadName);
   }
 
   @Override

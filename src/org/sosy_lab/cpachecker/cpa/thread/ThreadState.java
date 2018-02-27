@@ -142,13 +142,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Objects.hashCode(callstack);
-    result = prime * result + Objects.hashCode(location);
-    result = prime * result + Objects.hashCode(removedSet);
-    result = prime * result + Objects.hashCode(threadSet);
-    return result;
+    return Objects.hash(callstack, location, removedSet, threadSet);
   }
 
   @Override
