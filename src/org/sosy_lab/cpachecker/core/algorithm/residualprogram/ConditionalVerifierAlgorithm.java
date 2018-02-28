@@ -222,9 +222,12 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Parse constructed residual program");
+        stats.residParse.start();
         CFA cfaResidProg =
             new CFACreator(config, logger, shutdown)
                 .parseFileAndCreateCFA(Collections.singletonList(pResidProgPath));
+
+        stats.residParse.stop();
         stats.numResidLoc = cfaResidProg.getAllNodes().size();
         shutdown.shutdownIfNecessary();
 
@@ -254,7 +257,13 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Run verification algorithm");
-        AlgorithmStatus status = algorithm.run(reachedSet);
+        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        try {
+          stats.residAnalysis.start();
+          status = algorithm.run(reachedSet);
+        } finally {
+          stats.residAnalysis.stop();
+        }
         collectStatistics(algorithm);
 
         logger.log(Level.INFO, "Finished verification of residual program");
@@ -266,6 +275,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     } finally {
+      stats.residParse.stopIfRunning();
       stats.residVerif.stop();
     }
   }
@@ -286,6 +296,8 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
     private final Collection<Statistics> substats = new ArrayList<>();
     private final Timer residGen = new Timer();
     private final Timer residVerif = new Timer();
+    private final Timer residParse = new Timer();
+    private final Timer residAnalysis = new Timer();
     private int numResidLoc;
 
     @Override
@@ -295,6 +307,8 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
 
       statWriter.put("Time for residual program construction", residGen);
       statWriter.put("Time for residual program verification", residVerif);
+      statWriter.put("Time for residual program parsing", residParse);
+      statWriter.put("Time for residual program analysis", residAnalysis);
       statWriter.put("Size of original program", cfa.getAllNodes().size());
       statWriter.put("Size of residual program", numResidLoc);
       statWriter.spacer();
