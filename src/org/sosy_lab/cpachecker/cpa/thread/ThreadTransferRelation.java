@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -84,6 +86,14 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
           CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
           if (isThreadCreateFunction(functionCall)) {
             builder.handleParentThread((CThreadCreateStatement)functionCall);
+          }
+        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
+          if (stmnt instanceof CThreadJoinStatement) {
+            threadStatistics.threadJoins.inc();
+            if (!builder.joinThread((CThreadJoinStatement) stmnt)) {
+              return Collections.emptySet();
+            }
           }
         } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
