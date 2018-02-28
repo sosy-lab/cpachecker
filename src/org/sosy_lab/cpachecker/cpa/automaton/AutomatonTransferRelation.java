@@ -166,7 +166,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
       if (match.canNotEvaluate()) {
         if (failOnUnknownMatch) {
-          throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
+          throw new AutomatonTransferException(
+              "Automaton transition condition could not be evaluated", match);
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
         return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
@@ -179,7 +180,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           if (assertionsHold.canNotEvaluate()) {
             if (failOnUnknownMatch) {
-              throw new CPATransferException("Automaton transition assertions could not be evaluated: " + assertionsHold.getFailureMessage());
+              throw new AutomatonTransferException(
+                  "Automaton transition assertions could not be evaluated", assertionsHold);
             }
             // cannot yet be evaluated
             return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
@@ -187,7 +189,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
               if (failOnUnknownMatch) {
-                throw new CPATransferException("Automaton transition action could not be executed");
+                throw new AutomatonTransferException(
+                    "Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
               return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
