@@ -130,9 +130,11 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(secure = true, description = "Export extended witness in addition to regular witness")
+  private boolean exportExtendedWitness = false;
+
   @Option(
     secure = true,
-    name = "extendedWitnessFile",
     description = "Extended witness with specific analysis information file"
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -367,18 +369,20 @@ public class CEXExporter {
                     counterexample),
         compressWitness);
 
-    writeErrorPathFile(
-        extendedWitnessFile,
-        uniqueId,
-        (Appender)
-            pAppendable ->
-                extendedWitnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
-        compressWitness);
+    if (exportExtendedWitness) {
+      writeErrorPathFile(
+          extendedWitnessFile,
+          uniqueId,
+          (Appender)
+              pAppendable ->
+                  extendedWitnessExporter.writeErrorWitness(
+                      pAppendable,
+                      rootState,
+                      Predicates.in(pathElements),
+                      isTargetPathEdge,
+                      counterexample),
+          compressWitness);
+    }
 
     if (exportHarness) {
       writeErrorPathFile(

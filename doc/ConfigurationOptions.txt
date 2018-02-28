@@ -766,6 +766,9 @@ counterexample.export.exportAsSource = true
 # in the Assumption Automaton.
 counterexample.export.exportCounterexampleCoverage = false
 
+# Export extended witness in addition to regular witness
+counterexample.export.exportExtendedWitness = false
+
 # export test harness
 counterexample.export.exportHarness = false
 
