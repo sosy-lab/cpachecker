@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
+import static java.lang.Boolean.parseBoolean;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -338,6 +340,59 @@ public class ConfigurationFileChecks {
   }
 
   @Test
+  public void checkDefaultSpecification() throws InvalidConfigurationException {
+    assume().that(configFile).isInstanceOf(Path.class);
+    final Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    assume().that(basePath).hasSize(1);
+    final Configuration config = createConfigurationForTestInstantiation();
+    final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
+    config.inject(options);
+
+    @SuppressWarnings("deprecation")
+    final String spec = config.getProperty("specification");
+    @SuppressWarnings("deprecation")
+    final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
+    final boolean isSvcompConfig = basePath.toString().contains("svcomp");
+
+    if (options.language == Language.JAVA) {
+      assertThat(spec).endsWith("specification/JavaAssertion.spc");
+    } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
+      assertThat(spec).contains("specification/BDDCPAErrorLocation.spc");
+    } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
+      assertThat(spec).endsWith("specification/null-deref.spc");
+    } else if (isOptionEnabled(config, "analysis.algorithm.termination")
+        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")) {
+      assertThat(spec).isEmpty();
+    } else if (basePath.toString().contains("overflow")) {
+      if (isSvcompConfig) {
+        assertThat(spec).endsWith("specification/sv-comp-overflow.spc");
+      } else {
+        assertThat(spec).endsWith("specification/overflow.spc");
+      }
+
+    } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
+      assertThat(spec).endsWith("specification/UninitializedVariables.spc");
+    } else if (cpas.contains("cpa.smg.SMGCPA")) {
+      if (isSvcompConfig) {
+        assertThat(spec).contains("specification/sv-comp-memorysafety.spc");
+      } else {
+        assertThat(spec).contains("specification/memorysafety.spc");
+      }
+    } else if (basePath.toString().startsWith("ldv")) {
+      assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
+    } else if (isSvcompConfig) {
+      if (basePath.toString().matches(".*svcomp1[234].*")) {
+        assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
+      } else {
+        assertThat(spec).endsWith("specification/sv-comp-reachability.spc");
+      }
+    } else if (spec != null) {
+      // TODO should we somehow restrict which configs may specify "no specification"?
+      assertThat(spec).endsWith("specification/default.spc");
+    }
+  }
+
+  @Test
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
     if (configFile instanceof Path) {
@@ -480,5 +535,11 @@ public class ConfigurationFileChecks {
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+  }
+
+  private static boolean isOptionEnabled(Configuration config, String key) {
+    @SuppressWarnings("deprecation")
+    String value = config.getProperty(key);
+    return parseBoolean(firstNonNull(value, "false"));
   }
 }
