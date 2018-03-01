@@ -78,12 +78,14 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -136,12 +138,14 @@ public class PredicateAbstractionManager {
   private final PathFormulaManager pfmgr;
   private final Solver solver;
   private final InvariantSupplier invariantSupplier;
+  private final @Nullable InductiveWeakeningManager weakeningManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
   private static enum AbstractionType {
     CARTESIAN,
+    CARTESIAN_BY_WEAKENING,
     BOOLEAN,
     COMBINED,
     ELIMINATION;
@@ -225,6 +229,12 @@ public class PredicateAbstractionManager {
     }
     if (abstractionType == AbstractionType.COMBINED) {
       warnedOfCartesianAbstraction = true; // warning is not necessary
+    }
+    if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+      weakeningManager =
+          new InductiveWeakeningManager(pConfig, pSolver, pLogger, pShutdownNotifier);
+    } else {
+      weakeningManager = null;
     }
 
     if (useCache) {
@@ -417,6 +427,8 @@ public class PredicateAbstractionManager {
       } finally {
         stats.quantifierEliminationTime.stop();
       }
+    } else if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+      abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
@@ -914,6 +926,58 @@ public class PredicateAbstractionManager {
     } finally {
       stats.abstractionEnumTime.stopOuter();
     }
+  }
+
+  /** Build cartesian abstraction using the inductive weakening approach. */
+  private Region buildCartesianAbstractionUsingWeakening(
+      final BooleanFormula f, final SSAMap ssa, final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
+
+    stats.abstractionSolveTime.start();
+    boolean feasibility;
+    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+      thmProver.push(f);
+      feasibility = !thmProver.isUnsat();
+    } finally {
+      stats.abstractionSolveTime.stop();
+    }
+
+    if (!feasibility) {
+      // abstract post leads to false, we can return immediately
+      return rmgr.makeFalse();
+    }
+
+    Set<BooleanFormula> toStateLemmas = new HashSet<>();
+    Map<BooleanFormula, Region> info = new HashMap<>();
+    for (AbstractionPredicate a : pPredicates) {
+      BooleanFormula lemma = a.getSymbolicAtom();
+      Region r = a.getAbstractVariable();
+      toStateLemmas.add(lemma);
+      info.put(lemma, r);
+      // BooleanFormula negated = bfmgr.not(lemma);
+      // toStateLemmas.add(negated);
+      // info.put(negated, rmgr.makeNot(r));
+    }
+
+    Set<BooleanFormula> filteredLemmas;
+    stats.cartesianAbstractionTime.start();
+    try {
+      filteredLemmas =
+          weakeningManager.findInductiveWeakeningForRCNF(
+              SSAMap.emptySSAMap(),
+              new HashSet<BooleanFormula>(),
+              new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0),
+              toStateLemmas);
+    } finally {
+      stats.cartesianAbstractionTime.stop();
+    }
+
+    Region out = rmgr.makeTrue();
+    for (BooleanFormula lemma : filteredLemmas) {
+      out = rmgr.makeAnd(out, info.get(lemma));
+    }
+
+    return out;
   }
 
   /**
