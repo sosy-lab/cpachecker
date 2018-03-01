@@ -70,7 +70,6 @@ public class LlvmTypeConverter {
   public CType getCType(final TypeRef pLlvmType, final boolean pIsSigned) throws LLVMException {
     final boolean isConst = false;
     final boolean isVolatile = false;
-
     TypeKind typeKind = pLlvmType.getTypeKind();
     switch (typeKind) {
       case Void:
@@ -110,7 +109,14 @@ public class LlvmTypeConverter {
         return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType()));
 
       case Vector:
-        // TODO
+        CIntegerLiteralExpression vectorLength =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY,
+                ARRAY_LENGTH_TYPE,
+                BigInteger.valueOf(pLlvmType.getVectorSize()));
+
+        return new CArrayType(
+            isConst, isVolatile, getCType(pLlvmType.getElementType()), vectorLength);
       case Label:
       case Metadata:
       case X86_MMX:

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -33,20 +35,22 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -54,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -68,11 +73,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -89,7 +95,8 @@ public class CFABuilder extends LlvmAstVisitor {
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
   private static final String RETURN_VAR_NAME = "__retval__";
-  private static final String TMP_VAR_PREFIX = "__t_";
+  private static final String TMP_VAR_PREFIX_LOCAL = "__t_";
+  private static final String TMP_VAR_PREFIX_GLOBAL = "__tg_";
 
   private static final CFunctionDeclaration ABORT_FUNC_DECL =
       new CFunctionDeclaration(
@@ -100,7 +107,8 @@ public class CFABuilder extends LlvmAstVisitor {
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
 
-  private static long tmpVarCount = 0;
+  private static long tmpLocalVarCount = 0;
+  private static long tmpGlobalVarCount = 0;
 
   private final LogManager logger;
   private final MachineModel machineModel;
@@ -172,7 +180,7 @@ public class CFABuilder extends LlvmAstVisitor {
       return handleUnreachable(pItem, pFileName);
 
     } else if (pItem.isBinaryOperator()) {
-      return handleBinaryOp(pItem, pFunctionName, pFileName);
+      return handleBinaryOp(pItem, pFunctionName, pFileName, pItem.getOpCode());
     } else if (pItem.isUnaryInstruction()) {
       return handleUnaryOp(pItem, pFunctionName, pFileName);
     } else if (pItem.isStoreInst()) {
@@ -182,7 +190,7 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isCmpInst()) {
       return handleCmpInst(pItem, pFunctionName, pFileName);
     } else if (pItem.isGetElementPtrInst()) {
-      return handleGEP();
+      return ImmutableList.of(handleGEP(pItem, pFileName));
     } else if (pItem.isSwitchInst()) {
 
       throw new UnsupportedOperationException();
@@ -253,7 +261,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
         assert functionArg.isConstant()
             || variableDeclarations.containsKey(functionArg.getAddress());
-        parameters.add(getAssignedIdExpression(functionArg, expectedType, pFileName));
+        parameters.add(getExpression(functionArg, expectedType, pFileName));
       }
     }
 
@@ -353,10 +361,10 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private List<CAstNode> handleBinaryOp(
-      final Value pItem, String pFunctionName, final String pFileName) throws LLVMException {
-    OpCode opCode = pItem.getOpCode();
+      final Value pItem, String pFunctionName, final String pFileName, final OpCode pOpCode)
+      throws LLVMException {
 
-    switch (opCode) {
+    switch (pOpCode) {
         // Arithmetic operations
       case Add:
       case FAdd:
@@ -376,82 +384,83 @@ public class CFABuilder extends LlvmAstVisitor {
       case And:
       case Or:
       case Xor:
-        return handleArithmeticOp(pItem, opCode, pFunctionName, pFileName);
+        return handleArithmeticOp(pItem, pOpCode, pFunctionName, pFileName);
+
+      case GetElementPtr:
+        return ImmutableList.of(handleGEP(pItem, pFileName));
 
         // Comparison operations
       case ICmp:
-        break;
       case FCmp:
-        break;
+        // fall through
 
         // Select operator
       case Select:
-        break;
+        // fall through
 
         // Sign extension/truncation operations
       case Trunc:
-        break;
+        // fall through
       case ZExt:
-        break;
+        // fall through
       case SExt:
-        break;
+        // fall through
       case FPToUI:
-        break;
+        // fall through
       case FPToSI:
-        break;
+        // fall through
       case UIToFP:
-        break;
+        // fall through
       case SIToFP:
-        break;
+        // fall through
       case FPTrunc:
-        break;
+        // fall through
       case FPExt:
-        break;
+        // fall through
       case PtrToInt:
-        break;
+        // fall through
       case IntToPtr:
-        break;
+        // fall through
       case BitCast:
-        break;
+        // fall through
       case AddrSpaceCast:
-        break;
+        // fall through
 
         // Aggregate operations
       case ExtractValue:
-        break;
+        // fall through
       case InsertValue:
-        break;
+        // fall through
 
       case PHI:
-        break;
-
-      case GetElementPtr:
-        break;
+        // fall through
 
       case UserOp1:
+        // fall through
       case UserOp2:
+        // fall through
       case VAArg:
+        // fall through
+
         // Vector operations
       case ExtractElement:
+        // fall through
       case InsertElement:
+        // fall through
       case ShuffleVector:
+        // fall through
+
         // Concurrency-centric operations
       case Fence:
+        // fall through
 
       case AtomicCmpXchg:
-        break;
+        // fall through
       case AtomicRMW:
-        break;
+        // fall through
       default:
-        throw new UnsupportedOperationException(opCode.toString());
+        throw new UnsupportedOperationException(pOpCode.toString());
     }
-    CExpression dummy_exp =
-        new CIntegerLiteralExpression(
-            getLocation(pItem, pFileName),
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, false),
-            BigInteger.ONE);
-    return ImmutableList.of(new CExpressionStatement(getLocation(pItem, pFileName), dummy_exp));
   }
 
   private List<CAstNode> handleArithmeticOp(
@@ -459,7 +468,7 @@ public class CFABuilder extends LlvmAstVisitor {
       throws LLVMException {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
 
-    // TODO: Currently we only support flat expressions, no nested ones. Makes this work
+    // TODO: Currently we only support flat expressions, no nested ones. Make this work
     // in the future.
     Value operand1 = pItem.getOperand(0); // First operand
     logger.log(Level.FINE, "Getting id expression for operand 1");
@@ -531,8 +540,15 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private CExpression getExpression(
       final Value pItem, final CType pExpectedType, final String pFileName) throws LLVMException {
-    if (pItem.isConstantInt() || pItem.isConstantFP()) {
+
+    if (pItem.isConstantExpr()) {
+      List<CAstNode> statements = handleBinaryOp(pItem, "", pFileName, pItem.getConstOpCode());
+      checkState(statements.size() == 1, "More than one statement: " + statements);
+      return (CExpression) statements.get(0);
+
+    } else if (pItem.isConstant() && !pItem.isGlobalVariable()) {
       return getConstant(pItem, pFileName);
+
     } else {
       return getAssignedIdExpression(pItem, pExpectedType, pFileName);
     }
@@ -544,10 +560,54 @@ public class CFABuilder extends LlvmAstVisitor {
       long constantValue = pItem.constIntGetSExtValue();
       return new CIntegerLiteralExpression(
           getLocation(pItem, pFileName), expectedType, BigInteger.valueOf(constantValue));
+
+    } else if (pItem.isConstantPointerNull()) {
+      FileLocation location = getLocation(pItem, pFileName);
+      return new CPointerExpression(location, expectedType, getNull(location, expectedType));
+
+    } else if (pItem.isConstantExpr()) {
+      return getExpression(pItem, expectedType, pFileName);
+
     } else {
-      assert pItem.isConstantFP();
+      assert pItem.isConstantFP() : "Unhandled constant is not floating point constant: " + pItem;
       throw new UnsupportedOperationException("LLVM parsing does not support float constants yet");
     }
+  }
+
+  private CExpression getNull(final FileLocation pLocation, final CType pType) {
+    return new CIntegerLiteralExpression(pLocation, pType, BigInteger.ZERO);
+  }
+
+  private CInitializer getConstantAggregateInitializer(
+      final Value pAggregate, final String pFileName) throws LLVMException {
+
+    int length = getLength(pAggregate);
+    List<CInitializer> elementInitializers = new ArrayList<>(length);
+
+    for (int i = 0; i < length; i++) {
+      Value element = pAggregate.getElementAsConstant(i);
+      assert element.isConstant() : "Value element is not a constant!";
+      CInitializer elementInitializer;
+      if (element.isConstantArray()) {
+        elementInitializer = getConstantAggregateInitializer(element, pFileName);
+      } else {
+        elementInitializer =
+            new CInitializerExpression(
+                getLocation(element, pFileName), getConstant(element, pFileName));
+      }
+      elementInitializers.add(elementInitializer);
+    }
+
+    CInitializerList aggregateInitializer =
+        new CInitializerList(getLocation(pAggregate, pFileName), elementInitializers);
+    return aggregateInitializer;
+  }
+
+  private int getLength(Value pAggregateValue) throws LLVMException {
+    CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
+    OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
+    assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
+    return maybeArrayLength.getAsInt();
   }
 
   private List<CAstNode> getAssignStatement(
@@ -630,6 +690,9 @@ public class CFABuilder extends LlvmAstVisitor {
       } else {
         varType = typeConverter.getCType(pItem.typeOf());
       }
+      if (pItem.isGlobalConstant() && varType instanceof CPointerType) {
+        varType = ((CPointerType) varType).getType();
+      }
 
       CSimpleDeclaration newDecl =
           new CVariableDeclaration(
@@ -703,14 +766,22 @@ public class CFABuilder extends LlvmAstVisitor {
   private String getName(final Value pValue) {
     String name = pValue.getValueName();
     if (name.isEmpty()) {
-      name = getTempVar();
+      name = getTempVar(pValue.isGlobalValue());
     }
     return prepareName(name);
   }
 
-  private String getTempVar() {
-    tmpVarCount++;
-    return TMP_VAR_PREFIX + tmpVarCount;
+  private String getTempVar(boolean pIsGlobal) {
+    String var_prefix;
+    String var_suffix;
+    if (pIsGlobal) {
+      var_prefix = TMP_VAR_PREFIX_GLOBAL;
+      var_suffix = Long.toString(tmpGlobalVarCount++);
+    } else {
+      var_prefix = TMP_VAR_PREFIX_LOCAL;
+      var_suffix = Long.toString(tmpLocalVarCount++);
+    }
+    return var_prefix + var_suffix;
   }
 
   // Converts a valid LLVM name to a valid C name, so that CPAchecker
@@ -813,9 +884,62 @@ public class CFABuilder extends LlvmAstVisitor {
         null /* no initializer */);
   }
 
-  private List<CAstNode> handleGEP() {
-    return null;
-    // return getAssignStatement(pItem, ptrexpr, pFunctionName);
+  private CExpression handleGEP(final Value pItem, final String pFileName) throws LLVMException {
+
+    CType baseType = typeConverter.getCType(pItem.getOperand(0).typeOf());
+    Value startPointer = pItem.getOperand(0);
+    assert typeConverter.getCType(startPointer.typeOf()) instanceof CPointerType
+        : "Start of getelementptr is not a pointer";
+
+    FileLocation fileLocation = getLocation(pItem, pFileName);
+
+    CType currentType = baseType;
+    CType oldType; // used to check that type was actually updated at each iteration
+    CExpression currentExpression = getExpression(startPointer, currentType, pFileName);
+    currentType = baseType;
+    assert pItem.getNumOperands() >= 2
+        : "Too few operands in GEP operation : " + pItem.getNumOperands();
+    for (int i = 1; i < pItem.getNumOperands(); i++) {
+      oldType = currentType;
+      Value indexValue = pItem.getOperand(i);
+      CExpression index = getExpression(indexValue, CNumericTypes.INT, pFileName);
+
+      if (currentType instanceof CPointerType) {
+        currentExpression =
+            new CPointerExpression(
+                fileLocation,
+                currentType,
+                new CBinaryExpression(
+                    fileLocation,
+                    currentType,
+                    currentType,
+                    currentExpression,
+                    index,
+                    BinaryOperator.PLUS));
+        currentType = ((CPointerType) currentType).getType();
+
+      } else if (currentType instanceof CArrayType) {
+        currentExpression =
+            new CArraySubscriptExpression(fileLocation, currentType, currentExpression, index);
+        currentType = ((CArrayType) currentType).getType();
+
+      } else if (currentType instanceof CCompositeType) {
+        if (!(index instanceof CIntegerLiteralExpression)) {
+          throw new UnsupportedOperationException(
+              "GEP index to struct only allows integer " + "constant, but is " + index);
+        }
+        int memberIndex = ((CIntegerLiteralExpression) index).getValue().intValue();
+        CCompositeTypeMemberDeclaration field =
+            ((CCompositeType) currentType).getMembers().get(memberIndex);
+        String fieldName = field.getName();
+        currentExpression =
+            new CFieldReference(fileLocation, currentType, fieldName, currentExpression, false);
+        currentType = field.getType();
+      }
+
+      assert oldType != currentType : "Type didn't change in iteration: " + currentType;
+    }
+    return currentExpression;
   }
 
   private List<CAstNode> handleCmpInst(final Value pItem, String pFunctionName, String pFileName)
@@ -898,15 +1022,30 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   @Override
-  protected ADeclaration visitGlobalItem(final Value pItem) {
-    /*
-    assert !pItem.isExternallyInitialized();
+  protected CDeclaration visitGlobalItem(final Value pItem, final String pFileName)
+      throws LLVMException {
+    assert pItem.isGlobalValue();
 
-    // now we handle only simple initializers
-    Value initializer = pItem.getInitializer();
-    return getConstant(initializer);
-    */
-    return null;
+    CInitializer initializer;
+    if (!pItem.isExternallyInitialized()) {
+      Value initializerRaw = pItem.getInitializer();
+      if (initializerRaw.isConstantArray()
+          || initializerRaw.isConstantDataArray()
+          || initializerRaw.isConstantVector()) {
+        initializer = getConstantAggregateInitializer(initializerRaw, pFileName);
+      } else if (initializerRaw.isConstantStruct()) {
+        // TODO
+        initializer = null;
+      } else {
+        initializer =
+            new CInitializerExpression(
+                getLocation(pItem, pFileName), getConstant(initializerRaw, pFileName));
+      }
+    } else {
+      // Declaration without initialization (nondet)
+      initializer = null;
+    }
+    return (CDeclaration) getAssignedVarDeclaration(pItem, "", initializer, pFileName);
   }
 
   private FileLocation getLocation(final Value pItem, final String pFileName) {

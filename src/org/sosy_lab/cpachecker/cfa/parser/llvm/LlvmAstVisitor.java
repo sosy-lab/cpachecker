@@ -83,7 +83,7 @@ public abstract class LlvmAstVisitor {
     addFunctionDeclarations(pItem, pFileName);
 
     /* create globals */
-    iterateOverGlobals(pItem);
+    iterateOverGlobals(pItem, pFileName);
 
     /* create CFA for all functions */
     iterateOverFunctions(pItem, pFileName);
@@ -104,7 +104,7 @@ public abstract class LlvmAstVisitor {
     }
   }
 
-  private void iterateOverGlobals(final Module pItem) {
+  private void iterateOverGlobals(final Module pItem, final String pFileName) throws LLVMException {
     Value globalItem = pItem.getFirstGlobal();
     /* no globals? */
     if (globalItem == null) {
@@ -115,8 +115,9 @@ public abstract class LlvmAstVisitor {
     assert globalItemLast != null;
 
     while (true) {
-      // ADeclaration decl = visitGlobalItem(globalItem, pFileName);
-      // globalDeclarations.add(Pair.of(decl, globalItem.toString()));
+      ADeclaration decl = visitGlobalItem(globalItem, pFileName);
+
+      globalDeclarations.add(Pair.of(decl, globalItem.toString()));
 
       /* we processed the last global variable? */
       if (globalItem.equals(globalItemLast)) {
@@ -407,5 +408,6 @@ public abstract class LlvmAstVisitor {
   protected abstract CExpression getBranchCondition(Value pItem, String funcName, String pFilename)
       throws LLVMException;
 
-  protected abstract ADeclaration visitGlobalItem(final Value pItem);
+  protected abstract CDeclaration visitGlobalItem(final Value pItem, final String pFileName)
+      throws LLVMException;
 }
