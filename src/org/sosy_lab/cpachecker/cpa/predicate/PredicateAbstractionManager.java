@@ -30,6 +30,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -947,25 +948,24 @@ public class PredicateAbstractionManager {
       return rmgr.makeFalse();
     }
 
-    Set<BooleanFormula> toStateLemmas = new HashSet<>();
-    Map<BooleanFormula, Region> info = new HashMap<>();
+    ImmutableMap.Builder<BooleanFormula, Region> infoBuilder = ImmutableMap.builder();
     for (AbstractionPredicate a : pPredicates) {
       BooleanFormula lemma = a.getSymbolicAtom();
       Region r = a.getAbstractVariable();
-      toStateLemmas.add(lemma);
-      info.put(lemma, r);
+      infoBuilder.put(lemma, r);
       // BooleanFormula negated = bfmgr.not(lemma);
-      // toStateLemmas.add(negated);
       // info.put(negated, rmgr.makeNot(r));
     }
 
+    Map<BooleanFormula, Region> info = infoBuilder.build();
+    Set<BooleanFormula> toStateLemmas = info.keySet();
     Set<BooleanFormula> filteredLemmas;
     stats.cartesianAbstractionTime.start();
     try {
       filteredLemmas =
           weakeningManager.findInductiveWeakeningForRCNF(
               SSAMap.emptySSAMap(),
-              new HashSet<BooleanFormula>(),
+              ImmutableSet.of(),
               new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0),
               toStateLemmas);
     } finally {
