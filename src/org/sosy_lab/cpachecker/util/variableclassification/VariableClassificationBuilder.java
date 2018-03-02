@@ -619,6 +619,8 @@ public class VariableClassificationBuilder {
 
       } else {
         // external function
+        allVars.add(functionName);
+        dependencies.add(functionName, varName);
         Partition partition = dependencies.getPartitionForVar(varName);
         partition.addEdge(edge, -1); // negative value, because all positives are used for params
       }
