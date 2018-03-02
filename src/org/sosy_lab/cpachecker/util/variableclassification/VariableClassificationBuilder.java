@@ -405,7 +405,9 @@ public class VariableClassificationBuilder {
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge, cfa);
-        varFieldDependencies = varFieldDependencies.withDependencies(VariableAndFieldRelevancyComputer.handleEdge(edge));
+        varFieldDependencies =
+            varFieldDependencies.withDependencies(
+                VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
     addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
@@ -619,8 +621,6 @@ public class VariableClassificationBuilder {
 
       } else {
         // external function
-        allVars.add(functionName);
-        dependencies.add(functionName, varName);
         Partition partition = dependencies.getPartitionForVar(varName);
         partition.addEdge(edge, -1); // negative value, because all positives are used for params
       }

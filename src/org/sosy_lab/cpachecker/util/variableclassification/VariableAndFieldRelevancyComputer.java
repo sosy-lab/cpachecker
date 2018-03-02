@@ -40,6 +40,7 @@ import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
 import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -78,12 +79,12 @@ import org.sosy_lab.cpachecker.util.Pair;
  * variables/fields themselves. So pointer variables/fields transitively depend on all
  * variables/fields possibly addressed by them. In cases when some parts of the LHS may depend on
  * the values of other parts (e.g. {@code a[i]}, {@code g->f->h}), the former are treated as RHSs.
- * The class implements functional interface through a single function {@link #handleEdge(CFAEdge)}.
- * It should be called for all CFA edges needed to be counted in relevance computation (both for
- * data dependencies and variable/field usage). The returned {@link VarFieldDependencies} instances
- * should be merged with {@link VarFieldDependencies#withDependencies(VarFieldDependencies)}. Then
- * the resulting sets can be obtained by invoking {@link
- * VarFieldDependencies#computeRelevantVariablesAndFields()}.
+ * The class implements functional interface through a single function {@link #handleEdge(CFA,
+ * CFAEdge)}. It should be called for all CFA edges needed to be counted in relevance computation
+ * (both for data dependencies and variable/field usage). The returned {@link VarFieldDependencies}
+ * instances should be merged with {@link
+ * VarFieldDependencies#withDependencies(VarFieldDependencies)}. Then the resulting sets can be
+ * obtained by invoking {@link VarFieldDependencies#computeRelevantVariablesAndFields()}.
  *
  * <p>The class also collects a set of all explicitly addressed variables that is returned by {@link
  * VarFieldDependencies#computeAddressedVariables()}.
@@ -454,7 +455,8 @@ final class VariableAndFieldRelevancyComputer {
     }
   }
 
-  public static VarFieldDependencies handleEdge(CFAEdge edge) throws UnrecognizedCCodeException {
+  public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)
+      throws UnrecognizedCCodeException {
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
 
     switch (edge.getEdgeType()) {
@@ -463,7 +465,7 @@ final class VariableAndFieldRelevancyComputer {
           final CExpression exp = ((CAssumeEdge) edge).getExpression();
           result =
               result.withDependencies(
-                  exp.accept(CollectingRHSVisitor.create(VariableOrField.unknown())));
+                  exp.accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
           break;
         }
 
@@ -481,19 +483,20 @@ final class VariableAndFieldRelevancyComputer {
                   result.withDependencies(
                       length.accept(
                           CollectingRHSVisitor.create(
-                              VariableOrField.newVariable(decl.getQualifiedName()))));
+                              pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
             }
           }
+          CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
           for (CExpressionAssignmentStatement init :
               CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
             Pair<VariableOrField, VarFieldDependencies> r =
-                init.getLeftHandSide().accept(CollectingLHSVisitor.instance());
+                init.getLeftHandSide().accept(collectingLHSVisitor);
             result =
                 result.withDependencies(
                     r.getSecond()
                         .withDependencies(
                             init.getRightHandSide()
-                                .accept(CollectingRHSVisitor.create(r.getFirst()))));
+                                .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
           }
           break;
         }
@@ -508,19 +511,20 @@ final class VariableAndFieldRelevancyComputer {
             final CAssignment assignment = (CAssignment) statement;
             final CRightHandSide rhs = assignment.getRightHandSide();
             final Pair<VariableOrField, VarFieldDependencies> r =
-                assignment.getLeftHandSide().accept(CollectingLHSVisitor.instance());
+                assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
             if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
               result =
                   result.withDependencies(
                       r.getSecond()
-                          .withDependencies(rhs.accept(CollectingRHSVisitor.create(r.getFirst()))));
+                          .withDependencies(
+                              rhs.accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
             } else {
               throw new UnrecognizedCCodeException("Unhandled assignment", edge, assignment);
             }
           } else if (statement instanceof CFunctionCallStatement) {
             ((CFunctionCallStatement) statement)
                 .getFunctionCallExpression()
-                .accept(CollectingRHSVisitor.create(VariableOrField.unknown()));
+                .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown()));
           }
           break;
         }
@@ -536,6 +540,7 @@ final class VariableAndFieldRelevancyComputer {
                     args.get(i)
                         .accept(
                             CollectingRHSVisitor.create(
+                                pCfa,
                                 VariableOrField.newVariable(params.get(i).getQualifiedName()))));
           }
           CFunctionCall statement = call.getSummaryEdge().getExpression();
@@ -546,7 +551,7 @@ final class VariableAndFieldRelevancyComputer {
               final Pair<VariableOrField, VarFieldDependencies> r =
                   ((CFunctionCallAssignmentStatement) statement)
                       .getLeftHandSide()
-                      .accept(CollectingLHSVisitor.instance());
+                      .accept(CollectingLHSVisitor.create(pCfa));
               result =
                   result
                       .withDependencies(r.getSecond())
@@ -568,7 +573,10 @@ final class VariableAndFieldRelevancyComputer {
           final CReturnStatementEdge ret = (CReturnStatementEdge) edge;
           if (ret.asAssignment().isPresent()) {
             final Pair<VariableOrField, VarFieldDependencies> r =
-                ret.asAssignment().get().getLeftHandSide().accept(CollectingLHSVisitor.instance());
+                ret.asAssignment()
+                    .get()
+                    .getLeftHandSide()
+                    .accept(CollectingLHSVisitor.create(pCfa));
             result =
                 result.withDependencies(
                     r.getSecond()
@@ -576,7 +584,7 @@ final class VariableAndFieldRelevancyComputer {
                             ret.asAssignment()
                                 .get()
                                 .getRightHandSide()
-                                .accept(CollectingRHSVisitor.create(r.getFirst()))));
+                                .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
           }
           break;
         }
