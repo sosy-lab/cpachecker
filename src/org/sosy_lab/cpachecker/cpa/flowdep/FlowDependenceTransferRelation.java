@@ -423,9 +423,7 @@ class FlowDependenceTransferRelation
         throws CPATransferException {
       Set<CSimpleDeclaration> used = new HashSet<>();
       used.addAll(pStmt.getRightHandSide().accept(this));
-      if (!(pStmt.getLeftHandSide() instanceof CIdExpression)) {
-        used.addAll(pStmt.getLeftHandSide().accept(this));
-      }
+      used.addAll(handleLeftHandSide(pStmt.getLeftHandSide()));
 
       return used;
     }
@@ -435,11 +433,20 @@ class FlowDependenceTransferRelation
         throws CPATransferException {
       Set<CSimpleDeclaration> used = new HashSet<>();
       used.addAll(pStmt.getRightHandSide().accept(this));
-      if (!(pStmt.getLeftHandSide() instanceof CIdExpression)) {
-        used.addAll(pStmt.getLeftHandSide().accept(this));
-      }
+      used.addAll(handleLeftHandSide(pStmt.getLeftHandSide()));
 
       return used;
+    }
+
+    private Set<CSimpleDeclaration> handleLeftHandSide(final CLeftHandSide pLhs)
+        throws CPATransferException {
+      if (pLhs instanceof CPointerExpression) {
+        return ((CPointerExpression) pLhs).getOperand().accept(this);
+      } else if (pLhs instanceof CArraySubscriptExpression) {
+        return ((CArraySubscriptExpression) pLhs).getSubscriptExpression().accept(this);
+      } else {
+        return Collections.emptySet();
+      }
     }
 
     @Override
