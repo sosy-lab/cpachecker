@@ -65,7 +65,7 @@ public class IdExpressionCollector
 
   @Override
   public Set<CSimpleDeclaration> visit(CFieldReference pIastFieldReference) throws CPATransferException {
-    return Collections.emptySet();
+    return pIastFieldReference.getFieldOwner().accept(this);
   }
 
   @Override
@@ -80,7 +80,7 @@ public class IdExpressionCollector
 
   @Override
   public Set<CSimpleDeclaration> visit(CPointerExpression pointerExpression) throws CPATransferException {
-    return Collections.emptySet();
+    return pointerExpression.getOperand().accept(this);
   }
 
   @Override
