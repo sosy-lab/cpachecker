@@ -38,6 +38,8 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,15 +48,19 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
-
 
 public class ReachingDefTransferRelation implements TransferRelation {
 
@@ -147,7 +153,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       break;
     }
     case FunctionReturnEdge: {
-      result = handleReturnEdge((ReachingDefState) pState);
+          result = handleReturnEdge((ReachingDefState) pState, (CFunctionReturnEdge) pCfaEdge);
       break;
     }
     case BlankEdge:
@@ -245,9 +251,39 @@ public class ReachingDefTransferRelation implements TransferRelation {
         pCfaEdge.getPredecessor(), pCfaEdge.getSuccessor());
   }
 
-  private ReachingDefState handleReturnEdge(ReachingDefState pState) {
+  private ReachingDefState handleReturnEdge(
+      ReachingDefState pState, CFunctionReturnEdge pReturnEdge) throws UnsupportedCCodeException {
     logger.log(Level.FINE, "Return from internal function call. ",
         "Remove local variables and parameters of function from reaching definition.");
-    return pState.pop();
+    ReachingDefState newState = pState.pop();
+
+    CFunctionCallExpression functionCall =
+        pReturnEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+
+    List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
+    List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
+
+    assert outFunctionParams.size() == inFunctionParams.size()
+        : "Passed function parameters don't fit function parameters: "
+            + outFunctionParams
+            + " vs. "
+            + inFunctionParams;
+
+    CFANode defStart = pReturnEdge.getPredecessor();
+    CFANode defEnd = pReturnEdge.getSuccessor();
+    for (int i = 0; i < outFunctionParams.size(); i++) {
+      CParameterDeclaration inParam = inFunctionParams.get(i);
+      CExpression outParam = outFunctionParams.get(i);
+
+      CType parameterType = inParam.getType();
+      if (parameterType instanceof CArrayType) {
+        String var = getVarName(pReturnEdge, outParam);
+        assert var != null;
+        newState = addReachDef(newState, var, defStart, defEnd);
+      } else if (parameterType instanceof CPointerType) {
+        throw new UnsupportedCCodeException("We can't handle pointer aliasing", pReturnEdge);
+      }
+    }
+    return newState;
   }
 }

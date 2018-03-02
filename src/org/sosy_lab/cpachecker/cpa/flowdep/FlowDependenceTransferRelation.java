@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -83,9 +84,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -174,11 +179,7 @@ class FlowDependenceTransferRelation
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
-      return handleOperation(
-          pCfaEdge,
-          initializerExp,
-          pNextFlowState,
-          pReachDefState);
+      return handleOperation(pCfaEdge, getUsedVars(initializerExp), pNextFlowState, pReachDefState);
 
     } else {
       // If the declaration contains no initializer, there are no variable uses and ergo
@@ -191,25 +192,21 @@ class FlowDependenceTransferRelation
    * Adds the flow dependences based on the given {@link CAstNode} and the {@link ReachingDefState}
    * to the given {@link FlowDependenceState}.
    *
-   * <p>
-   * If no reaching definition exists for a program variable used in the expression, a flow
+   * <p>If no reaching definition exists for a program variable used in the expression, a flow
    * dependence to the declaration of the variable is added.
    */
   private FlowDependenceState handleOperation(
       CFAEdge pCfaEdge,
-      CAstNode pExpression,
+      Set<CSimpleDeclaration> pUses,
       FlowDependenceState pNextState,
-      ReachingDefState pReachDefState)
-      throws CPATransferException {
+      ReachingDefState pReachDefState) {
 
     String functionName = pCfaEdge.getPredecessor().getFunctionName();
     Map<MemoryLocation, Collection<ProgramDefinitionPoint>> defs =
         normalizeReachingDefinitions(pReachDefState, functionName);
 
-    Set<CSimpleDeclaration> usedVariables = getUsedVars(pExpression);
-
     Multimap<MemoryLocation, ProgramDefinitionPoint> dependences = HashMultimap.create();
-    for (CSimpleDeclaration use : usedVariables) {
+    for (CSimpleDeclaration use : pUses) {
       MemoryLocation memLoc = MemoryLocation.valueOf(use.getQualifiedName());
       Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
       if (definitionPoints != null && !definitionPoints.isEmpty()) {
@@ -239,7 +236,7 @@ class FlowDependenceTransferRelation
 
     if (returnAssignment.isPresent()) {
       CRightHandSide rhs = returnAssignment.get().getRightHandSide();
-      return handleOperation(pCfaEdge, rhs, pNextState, pReachDefState);
+      return handleOperation(pCfaEdge, getUsedVars(rhs), pNextState, pReachDefState);
     } else {
       return pNextState;
     }
@@ -251,7 +248,7 @@ class FlowDependenceTransferRelation
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState)
       throws CPATransferException {
-    return handleOperation(cfaEdge, expression, pNextState, pReachDefState);
+    return handleOperation(cfaEdge, getUsedVars(expression), pNextState, pReachDefState);
   }
 
   protected FlowDependenceState handleFunctionCallEdge(
@@ -263,7 +260,8 @@ class FlowDependenceTransferRelation
 
     FlowDependenceState nextState = pNextState;
     for (CExpression argument : pArguments) {
-      nextState = handleOperation(pFunctionCallEdge, argument, nextState, pReachDefState);
+      nextState =
+          handleOperation(pFunctionCallEdge, getUsedVars(argument), nextState, pReachDefState);
     }
     return nextState;
   }
@@ -275,7 +273,7 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState)
       throws CPATransferException {
 
-    return handleOperation(pCfaEdge, pStatement, pNextState, pReachDefState);
+    return handleOperation(pCfaEdge, getUsedVars(pStatement), pNextState, pReachDefState);
   }
 
   @Override
@@ -321,8 +319,8 @@ class FlowDependenceTransferRelation
           break;
 
         case ReturnStatementEdge:
-          CReturnStatementEdge returnEdge = (CReturnStatementEdge) pCfaEdge;
-          nextState = handleReturnStatementEdge(returnEdge, nextState, oldReachDefState);
+          CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pCfaEdge;
+          nextState = handleReturnStatementEdge(returnStatementEdge, nextState, oldReachDefState);
           break;
 
         case FunctionCallEdge:
@@ -330,6 +328,11 @@ class FlowDependenceTransferRelation
           nextState =
               handleFunctionCallEdge(
                   callEdge, callEdge.getArguments(), nextState, oldReachDefState);
+          break;
+
+        case FunctionReturnEdge:
+          CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) pCfaEdge;
+          nextState = handleFunctionReturnEdge(returnEdge, nextState, oldReachDefState);
           break;
 
         default:
@@ -342,6 +345,41 @@ class FlowDependenceTransferRelation
     } else {
       return Collections.emptySet();
     }
+  }
+
+  private FlowDependenceState handleFunctionReturnEdge(
+      final CFunctionReturnEdge pReturnEdge,
+      final FlowDependenceState pNewState,
+      final ReachingDefState pReachDefState) {
+
+    FlowDependenceState nextState = pNewState;
+
+    CFunctionCallExpression functionCall =
+        pReturnEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+
+    List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
+    List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
+
+    assert outFunctionParams.size() == inFunctionParams.size()
+        : "Passed function parameters don't fit function parameters: "
+            + outFunctionParams
+            + " vs. "
+            + inFunctionParams;
+
+    for (int i = 0; i < outFunctionParams.size(); i++) {
+      CParameterDeclaration inParam = inFunctionParams.get(i);
+
+      CType parameterType = inParam.getType();
+
+      if (parameterType instanceof CArrayType) {
+        nextState =
+            handleOperation(pReturnEdge, ImmutableSet.of(inParam), nextState, pReachDefState);
+
+      } else if (parameterType instanceof CPointerType) {
+        throw new AssertionError();
+      }
+    }
+    return nextState;
   }
 
   private Optional<CompositeState> computeReachDefState(
