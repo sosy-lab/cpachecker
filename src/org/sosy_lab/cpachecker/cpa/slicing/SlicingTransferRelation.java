@@ -29,6 +29,8 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -70,7 +72,9 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
     AbstractState wrappedState = pState;
     CFAEdge adjustedEdge = pCfaEdge;
 
-    if (!slicingPrecision.isRelevant(pCfaEdge)) {
+    if (!slicingPrecision.isRelevant(pCfaEdge)
+        && !(pCfaEdge instanceof CFunctionSummaryEdge)
+        && !(pCfaEdge instanceof CFunctionSummaryStatementEdge)) {
       adjustedEdge = replaceWithNoop(pCfaEdge);
     }
 

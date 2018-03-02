@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -353,9 +354,8 @@ class FlowDependenceTransferRelation
       final ReachingDefState pReachDefState) {
 
     FlowDependenceState nextState = pNewState;
-
-    CFunctionCallExpression functionCall =
-        pReturnEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+    CFunctionSummaryEdge summaryEdge = pReturnEdge.getSummaryEdge();
+    CFunctionCallExpression functionCall = summaryEdge.getExpression().getFunctionCallExpression();
 
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
     List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
@@ -378,6 +378,14 @@ class FlowDependenceTransferRelation
       } else if (parameterType instanceof CPointerType) {
         throw new AssertionError();
       }
+    }
+
+    com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
+        summaryEdge.getFunctionEntry().getReturnVariable();
+    if (maybeReturnVar.isPresent()) {
+      nextState =
+          handleOperation(
+              pReturnEdge, ImmutableSet.of(maybeReturnVar.get()), nextState, pReachDefState);
     }
     return nextState;
   }

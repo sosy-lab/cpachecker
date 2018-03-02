@@ -35,8 +35,11 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -156,6 +160,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
           result = handleReturnEdge((ReachingDefState) pState, (CFunctionReturnEdge) pCfaEdge);
       break;
     }
+      case ReturnStatementEdge:
+        result = handleReturnStatement((CReturnStatementEdge) pCfaEdge, (ReachingDefState) pState);
+        break;
     case BlankEdge:
       // TODO still correct?
       // special case entering the main method for the first time (no local variables known)
@@ -169,10 +176,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
             pCfaEdge.getPredecessor(), pCfaEdge.getSuccessor());
         break;
       }
+
       //$FALL-THROUGH$
     case AssumeEdge:
     case CallToReturnEdge:
-    case ReturnStatementEdge:
       logger.log(Level.FINE, "Reaching definition not affected by edge. ", "Keep reaching definition unchanged.");
       result = (ReachingDefState) pState;
       break;
@@ -181,6 +188,53 @@ public class ReachingDefTransferRelation implements TransferRelation {
     }
 
     return Collections.singleton(result);
+  }
+
+  private ReachingDefState handleReturnStatement(
+      CReturnStatementEdge pCfaEdge, ReachingDefState pState) throws UnsupportedCCodeException {
+    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    if (asAssignment.isPresent()) {
+      CAssignment assignment = asAssignment.get();
+      return handleStatement(pState, pCfaEdge, assignment);
+    } else {
+      return pState;
+    }
+  }
+
+  private ReachingDefState handleStatement(
+      ReachingDefState pState, CFAEdge pEdge, CStatement pStatement)
+      throws UnsupportedCCodeException {
+    CExpression left;
+    if (pStatement instanceof CExpressionAssignmentStatement) {
+      left = ((CExpressionAssignmentStatement) pStatement).getLeftHandSide();
+    } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
+      // handle function call on right hand side to external method
+      left = ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide();
+      logger.logOnce(Level.WARNING,
+          "Analysis may be unsound if external method redefines global variables",
+          "or considers extra global variables.");
+    } else {
+      return pState;
+    }
+
+    String var = getVarName(pEdge, left);
+    if (var == null) {
+      return pState;
+    }
+
+    if (left instanceof CArraySubscriptExpression) {
+      // Only add the reaching definition, don't replace
+      ReachingDefState newState =
+          addReachDef(pState, var, pEdge.getPredecessor(), pEdge.getSuccessor());
+      return pState.join(newState);
+    }
+
+    logger.log(
+        Level.FINE,
+        "Edge provided a new definition of variable ",
+        var,
+        ". Update reaching definition.");
+    return addReachDef(pState, var, pEdge.getPredecessor(), pEdge.getSuccessor());
   }
 
   /*
@@ -192,30 +246,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
   private ReachingDefState handleStatementEdge(ReachingDefState pState, CStatementEdge edge)
       throws CPATransferException {
     CStatement statement = edge.getStatement();
-    CExpression left;
-    if (statement instanceof CExpressionAssignmentStatement) {
-      left = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-    } else if (statement instanceof CFunctionCallAssignmentStatement) {
-      // handle function call on right hand side to external method
-      left = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
-      logger.logOnce(Level.WARNING,
-          "Analysis may be unsound if external method redefines global variables",
-          "or considers extra global variables.");
-    } else {
-      return pState;
-    }
 
-    String var = getVarName(edge, left);
-    if (var == null) {
-      return pState;
-    }
-
-    logger.log(
-        Level.FINE,
-        "Edge provided a new definition of variable ",
-        var,
-        ". Update reaching definition.");
-    return addReachDef(pState, var, edge.getPredecessor(), edge.getSuccessor());
+    return handleStatement(pState, edge, statement);
   }
 
   private ReachingDefState addReachDef(
@@ -257,7 +289,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   private ReachingDefState handleCallEdge(ReachingDefState pState, CFunctionCallEdge pCfaEdge) {
-    logger.log(Level.FINE, "New internal function called. ", "Add undefined position for local variables. ",
+    logger.log(
+        Level.FINE,
+        "New internal function called. ",
+        "Add undefined position for local " + "variables and return variable, if it exists. ",
         "Add definition of parameters.");
     return pState.initVariables(localVariablesPerFunction.get(pCfaEdge.getSuccessor()),
         ImmutableSet.copyOf(((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames()),
@@ -270,8 +305,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
         "Remove local variables and parameters of function from reaching definition.");
     ReachingDefState newState = pState.pop();
 
-    CFunctionCallExpression functionCall =
-        pReturnEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+    CFunctionCall callExpression = pReturnEdge.getSummaryEdge().getExpression();
+    CFunctionCallExpression functionCall = callExpression.getFunctionCallExpression();
 
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
     List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
@@ -297,6 +332,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
         throw new UnsupportedCCodeException("We can't handle pointer aliasing", pReturnEdge);
       }
     }
+
+    newState = handleStatement(newState, pReturnEdge, callExpression);
+
     return newState;
   }
 }

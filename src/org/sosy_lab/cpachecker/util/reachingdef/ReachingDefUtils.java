@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.reachingdef;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -53,7 +55,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 public class ReachingDefUtils {
 
   private static List<CFANode> cfaNodes;
@@ -67,16 +68,6 @@ public class ReachingDefUtils {
     List<CFANode> nodes = new ArrayList<>();
 
     assert(pMainNode instanceof FunctionEntryNode);
-    /*while (!(pMainNode instanceof FunctionEntryNode)) {
-      out = pMainNode.getLeavingEdge(0);
-      if (out instanceof CDeclarationEdge
-          && ((CDeclarationEdge) out).getDeclaration() instanceof CVariableDeclaration) {
-        globalVariables.add(((CVariableDeclaration) ((CDeclarationEdge) out).getDeclaration()).getName());
-      }
-      nodes.add(pMainNode);
-      pMainNode = pMainNode.getLeavingEdge(0).getSuccessor();
-    }
-TODO delete */
     Map<FunctionEntryNode, Set<String>> result = new HashMap<>();
 
     Set<FunctionEntryNode> reachedFunctions = new HashSet<>();
@@ -98,6 +89,11 @@ TODO delete */
       seen.clear();
       seen.add(currentFunction);
       localVariables.clear();
+
+      Optional<? extends AVariableDeclaration> retVar = currentFunction.getReturnVariable();
+      if (retVar.isPresent()) {
+        localVariables.add(retVar.get().getName());
+      }
 
       while (!currentWaitlist.isEmpty()) {
         currentElement = currentWaitlist.pop();
@@ -130,7 +126,7 @@ TODO delete */
       result.put(currentFunction, ImmutableSet.copyOf(localVariables));
     }
     cfaNodes = ImmutableList.copyOf(nodes);
-    return Pair.of((Set<String>) ImmutableSet.copyOf(globalVariables), result);
+    return Pair.of(ImmutableSet.copyOf(globalVariables), result);
   }
 
   private static void handleDeclaration(final CDeclarationEdge out, final List<String> globalVariables,
