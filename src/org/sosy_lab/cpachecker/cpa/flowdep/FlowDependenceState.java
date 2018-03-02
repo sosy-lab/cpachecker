@@ -73,7 +73,11 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
    * definition point.
    */
   public void addDependence(CFAEdge pEdge, Multimap<MemoryLocation, ProgramDefinitionPoint> pUses) {
-    usedDefs.put(pEdge, pUses);
+    if (usedDefs.containsKey(pEdge)) {
+      usedDefs.get(pEdge).putAll(pUses);
+    } else {
+      usedDefs.put(pEdge, pUses);
+    }
   }
 
   CompositeState getReachDefState() {
