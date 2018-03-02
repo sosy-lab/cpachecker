@@ -205,28 +205,41 @@ public class ReachingDefTransferRelation implements TransferRelation {
       return pState;
     }
 
-    // if some array element is changed the whole array is considered to be changed
-    /* if a field is changed the whole variable the field is associated with is considered to be changed,
-     * e.g. a.p.c = 110, then a should be considered
-     */
-    VariableExtractor varExtractor = new VariableExtractor(edge);
-    varExtractor.resetWarning();
-    String var = left.accept(varExtractor);
-    if (varExtractor.getWarning() != null) {
-      logger.logOnce(Level.WARNING, varExtractor.getWarning());
-    }
-
+    String var = getVarName(edge, left);
     if (var == null) {
       return pState;
     }
 
-    logger.log(Level.FINE, "Edge provided a new definition of variable ", var, ". Update reaching definition.");
-    if (pState.getGlobalReachingDefinitions().containsKey(var)) {
-      return pState.addGlobalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
+    logger.log(
+        Level.FINE,
+        "Edge provided a new definition of variable ",
+        var,
+        ". Update reaching definition.");
+    return addReachDef(pState, var, edge.getPredecessor(), edge.getSuccessor());
+  }
+
+  private ReachingDefState addReachDef(
+      ReachingDefState pOld, String pVarName, CFANode pDefStart, CFANode pDefEnd) {
+    if (pOld.getGlobalReachingDefinitions().containsKey(pVarName)) {
+      return pOld.addGlobalReachDef(pVarName, pDefStart, pDefEnd);
     } else {
-      assert (pState.getLocalReachingDefinitions().containsKey(var));
-      return pState.addLocalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
+      assert (pOld.getLocalReachingDefinitions().containsKey(pVarName));
+      return pOld.addLocalReachDef(pVarName, pDefStart, pDefEnd);
     }
+  }
+
+  private String getVarName(CFAEdge pEdge, CExpression pLhs) throws UnsupportedCCodeException {
+    // if some array element is changed the whole array is considered to be changed
+    /* if a field is changed the whole variable the field is associated with is considered to be changed,
+     * e.g. a.p.c = 110, then a should be considered
+     */
+    VariableExtractor varExtractor = new VariableExtractor(pEdge);
+    varExtractor.resetWarning();
+    String var = pLhs.accept(varExtractor);
+    if (varExtractor.getWarning() != null) {
+      logger.logOnce(Level.WARNING, varExtractor.getWarning());
+    }
+    return var;
   }
 
   private ReachingDefState handleDeclarationEdge(ReachingDefState pState, CDeclarationEdge edge) {
