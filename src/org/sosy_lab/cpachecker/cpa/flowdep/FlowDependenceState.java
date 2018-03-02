@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -31,31 +32,29 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Abstract state of {@link FlowDependenceCPA}. Each state consists of a set of used memory
  * locations that are mapped to their possibly active definitions.
  *
- * <p>
- * All objects of this class are immutable.
- * </p>
+ * <p>All objects of this class are immutable.
  */
-public class FlowDependenceState
-    implements AbstractState, AbstractWrapperState, LatticeAbstractState<FlowDependenceState>,
-    Graphable {
+public class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
 
   private final Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> usedDefs;
 
-  private ReachingDefState reachDefState;
+  private CompositeState reachDefState;
 
-  FlowDependenceState(ReachingDefState pReachDefState) {
+  FlowDependenceState(CompositeState pReachDefState) {
     usedDefs = new HashMap<>();
 
     reachDefState = pReachDefState;
@@ -77,47 +76,33 @@ public class FlowDependenceState
     usedDefs.put(pEdge, pUses);
   }
 
-  ReachingDefState getReachDefState() {
+  CompositeState getReachDefState() {
     return reachDefState;
   }
 
-  @Override
-  public FlowDependenceState join(FlowDependenceState other) {
-    if (isLessOrEqual(other)) {
-      return other;
-    } else {
-      ReachingDefState joinedReachDefs = reachDefState.join(other.reachDefState);
-      FlowDependenceState joinedFlowDeps = new FlowDependenceState(joinedReachDefs);
-      joinedFlowDeps.usedDefs.putAll(usedDefs);
-      for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e :
-          other.usedDefs.entrySet()) {
-
-        CFAEdge g = e.getKey();
-
-        if (joinedFlowDeps.usedDefs.containsKey(g)) {
-          joinedFlowDeps.usedDefs.get(g).putAll(e.getValue());
-        } else {
-          joinedFlowDeps.usedDefs.put(g, e.getValue());
-        }
-      }
-      return joinedFlowDeps;
-    }
+  void addAll(Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> pUsedDefs) {
+    usedDefs.putAll(pUsedDefs);
   }
 
-  @Override
-  public boolean isLessOrEqual(FlowDependenceState other) {
-    return reachDefState.isLessOrEqual(other.reachDefState)
-        && containsAll(other.usedDefs, usedDefs);
+  Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> getAll() {
+    return usedDefs;
   }
 
-  private <K, V> boolean containsAll(Map<K, V> superMap, Map<K, V> subMap) {
-    Set<Map.Entry<K, V>> superEntries = superMap.entrySet();
-    for (Map.Entry<K, V> e : subMap.entrySet()) {
-      if (!superEntries.contains(e)) {
-        return false;
+  public Pair<ReachingDefState, PointerState> unwrap() {
+    ImmutableList<AbstractState> wrappedStates = reachDefState.getWrappedStates();
+    ReachingDefState reachdef = null;
+    PointerState pointers = null;
+    assert wrappedStates.size() == 2 : "Wrapped state has wrong size: " + wrappedStates.size();
+    for (AbstractState s : wrappedStates) {
+      if (s instanceof ReachingDefState) {
+        reachdef = (ReachingDefState) s;
+      } else if (s instanceof PointerState) {
+        pointers = (PointerState) s;
+      } else {
+        throw new AssertionError("Wrong state type: " + s.getClass().getSimpleName());
       }
     }
-    return true;
+    return Pair.of(reachdef, pointers);
   }
 
   @Override

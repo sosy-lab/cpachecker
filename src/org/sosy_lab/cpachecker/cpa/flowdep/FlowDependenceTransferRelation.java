@@ -89,11 +89,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
-import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.UsedIdsCollector;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -103,15 +106,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 class FlowDependenceTransferRelation
     extends SingleEdgeTransferRelation {
 
-  private final ReachingDefTransferRelation reachDefRelation;
+  private final TransferRelation delegate;
   private final UsesCollector usesCollector;
 
   private final LogManager logger;
 
-  FlowDependenceTransferRelation(
-      ReachingDefTransferRelation pReachDefRelation,
-      LogManager pLogger) {
-    reachDefRelation = pReachDefRelation;
+  FlowDependenceTransferRelation(final TransferRelation pDelegate, final LogManager pLogger) {
+    delegate = pDelegate;
     usesCollector = new UsesCollector();
 
     logger = pLogger;
@@ -279,20 +280,21 @@ class FlowDependenceTransferRelation
 
   @Override
   public Collection<FlowDependenceState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException {
 
     assert pState instanceof FlowDependenceState
         : "Expected state of type " + FlowDependenceState.class.getSimpleName();
 
     FlowDependenceState oldState = (FlowDependenceState) pState;
-    ReachingDefState oldReachDefState = oldState.getReachDefState();
-    Optional<ReachingDefState> nextReachDefState =
-        computeReachDefState(oldReachDefState, pPrecision, pCfaEdge);
+    CompositeState oldComposite = oldState.getReachDefState();
+    Optional<CompositeState> nextComposite =
+        computeReachDefState(oldComposite, pPrecision, pCfaEdge);
 
-    if (nextReachDefState.isPresent()) {
-
-      ReachingDefState newReachDefState = nextReachDefState.get();
+    if (nextComposite.isPresent()) {
+      CompositeState newReachDefState = nextComposite.get();
+      Pair<ReachingDefState, PointerState> oldReachDefAndPointerState = oldState.unwrap();
+      ReachingDefState oldReachDefState = oldReachDefAndPointerState.getFirst();
 
       FlowDependenceState nextState = new FlowDependenceState(newReachDefState);
       switch (pCfaEdge.getEdgeType()) {
@@ -327,10 +329,7 @@ class FlowDependenceTransferRelation
           CFunctionCallEdge callEdge = (CFunctionCallEdge) pCfaEdge;
           nextState =
               handleFunctionCallEdge(
-                  callEdge,
-                  callEdge.getArguments(),
-                  nextState,
-                  oldReachDefState);
+                  callEdge, callEdge.getArguments(), nextState, oldReachDefState);
           break;
 
         default:
@@ -345,14 +344,14 @@ class FlowDependenceTransferRelation
     }
   }
 
-  private Optional<ReachingDefState> computeReachDefState(
-      ReachingDefState pOldState, Precision pPrecision, CFAEdge pCfaEdge)
+  private Optional<CompositeState> computeReachDefState(
+      CompositeState pOldState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
     Collection<? extends AbstractState> computedReachDefStates;
     try {
       computedReachDefStates =
-          reachDefRelation.getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
+          delegate.getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
 
     } catch (InterruptedException pE) {
       throw new CPATransferException("Exception in reaching definitions transfer", pE);
@@ -361,7 +360,8 @@ class FlowDependenceTransferRelation
     if (computedReachDefStates.isEmpty()) {
       return Optional.empty();
     } else {
-      return Optional.of((ReachingDefState) Iterables.getOnlyElement(computedReachDefStates));
+      CompositeState composite = (CompositeState) Iterables.getOnlyElement(computedReachDefStates);
+      return Optional.of(composite);
     }
   }
 
