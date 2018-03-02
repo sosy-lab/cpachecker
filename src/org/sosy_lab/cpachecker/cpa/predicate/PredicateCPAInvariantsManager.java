@@ -1088,13 +1088,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
             .beginLevel()
             .put(terminatingInvGenTries)
             .put(successfulInvGenTries)
-            .put(
-                "Used strategies per generation try",
-                String.format(
-                    "%11.2f (max: %d, min: %d)",
-                    usedStrategiesPerTrie.getAverage(),
-                    usedStrategiesPerTrie.getMax(),
-                    usedStrategiesPerTrie.getMin()))
+            .put(usedStrategiesPerTrie)
             .endLevel()
             .spacer()
             .put(invgenTime)

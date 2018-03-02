@@ -92,9 +92,21 @@ public class StatInt extends AbstractStatValue {
 
   @Override
   public String toString() {
-    return String.format(
-        "%8d (count: %d, min: %d, max: %d, avg: %.2f)",
-        getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
+    switch (getMainStatisticKind()) {
+      case SUM:
+        return String.format(
+            "%8d (count: %d, min: %d, max: %d, avg: %.2f)",
+            getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
+      case AVG:
+        return String.format(
+            "%.2f (sum: %d, count: %d, min: %d, max: %d)",
+            getAverage(), getValueSum(), getValueCount(), getMinValue(), getMaxValue());
+      case COUNT:
+        return String.format(
+            "%8d (sum: %d, min: %d, max: %d, avg: %.2f)",
+            getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
+    }
+    throw new AssertionError();
   }
 
 }

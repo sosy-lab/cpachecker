@@ -273,9 +273,9 @@ public class UsageContainer {
 
   public void printUsagesStatistics(StatisticsWriter out) {
     int unsafeSize = getTotalUnsafeSize();
-    StatInt topUsagePoints = new StatInt(StatKind.COUNT, "Total amount of unrefined usage points");
-    StatInt unrefinedUsages = new StatInt(StatKind.COUNT, "Total amount of unrefined usages");
-    StatInt refinedUsages = new StatInt(StatKind.COUNT, "Total amount of refined usages");
+    StatInt topUsagePoints = new StatInt(StatKind.SUM, "Total amount of unrefined usage points");
+    StatInt unrefinedUsages = new StatInt(StatKind.SUM, "Total amount of unrefined usages");
+    StatInt refinedUsages = new StatInt(StatKind.SUM, "Total amount of refined usages");
     StatCounter failedUsages = new StatCounter("Total amount of failed usages");
 
     final int generalUnrefinedSize = unrefinedIds.keySet().size();
