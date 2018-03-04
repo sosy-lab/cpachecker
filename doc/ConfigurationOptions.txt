@@ -373,12 +373,18 @@ analysis.unknownIfUnrestrictedProgram = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# start different analyses interleaved and continue after unknown result
+analysis.useInterleavedAnalyses = false
+
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
 
 # Use analyses parallely. The resulting reachedset is the one of the first
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
+
+# generate test cases for covered test targets
+analysis.useTestCaseGeneratorAlgorithm = false
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
@@ -2773,8 +2779,25 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
+# export test harness to file as code
+harness = no default value
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# list of files with configurations to use. If a filename is suffixed with
+# :reuse-components, reusable components like the cpa or the reached set of
+# an analysis are taken and provided to the next part of this analysis when
+# continuing after the next switch.
+interleavedAlgorithm.configFiles = no default value
+
+# print the statistics of each component of the interleaved algorithm
+# directly after the component's computation is finished
+interleavedAlgorithm.printIntermediateStatistics = false
+
+# let each analysis part of the interleaved algorithm write output files and
+# not only the last one that is executed
+interleavedAlgorithm.writeIntermediateOutputFiles = true
 
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
