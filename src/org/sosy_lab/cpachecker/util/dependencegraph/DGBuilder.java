@@ -177,9 +177,9 @@ public class DGBuilder {
       throws InterruptedException, InvalidConfigurationException, CPAException {
     PostDominators postDoms = PostDominators.create(cfa, logger, shutdownNotifier);
     NodeCollectingCFAVisitor v = new NodeCollectingCFAVisitor();
-    CFATraversal.dfs().traverse(cfa.getMainFunction(), v);
+    Set<CFANode> reachableNodes = postDoms.getNodes();
     List<CFANode> branchingNodes =
-        v.getVisitedNodes()
+        reachableNodes
             .stream()
             .filter(n -> n.getNumLeavingEdges() > 1)
             .filter(n -> n.getLeavingEdge(0) instanceof CAssumeEdge)
@@ -554,16 +554,25 @@ public class DGBuilder {
       Map<CFANode, Set<CFANode>> dependencyMap = new HashMap<>();
       for (AbstractState s : reached) {
         assert s instanceof ARGState : "AbstractState of reached set not a composite state: " + s;
-        ARGState wrappingState = (ARGState) s;
         DominatorState postDomState = AbstractStates.extractStateByType(s, DominatorState.class);
+        if (postDomState == null) {
+          throw new InvalidConfigurationException("No dominator state in computed composite "
+              + "states");
+        }
         CFANode currNode = AbstractStates.extractLocation(s);
 
-        assert !dependencyMap.containsKey(currNode) : "Second state for location:" + wrappingState;
-
-        dependencyMap.put(currNode, postDomState);
+        if (dependencyMap.containsKey(currNode)) {
+          dependencyMap.get(currNode).addAll(postDomState);
+        } else {
+          dependencyMap.put(currNode, postDomState);
+        }
       }
 
       return new PostDominators(dependencyMap);
+    }
+
+    public Set<CFANode> getNodes() {
+      return postDominatorMap.keySet();
     }
   }
 }
