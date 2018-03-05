@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -343,9 +344,12 @@ public class CFAUtils {
     Set<CFANode> loopHeads = new HashSet<>();
 
     for (Loop l : loops) {
-      if (l.getOutgoingEdges().isEmpty()) {
-        // one loopHead per loop should be enough for finding all locations
-        loopHeads.addAll(l.getLoopHeads());
+      if (l.getOutgoingEdges().isEmpty()
+          || l.getOutgoingEdges()
+          .stream()
+          .allMatch(x -> x.getSuccessor() instanceof CFATerminationNode)) {
+      // one loopHead per loop should be enough for finding all locations
+      loopHeads.addAll(l.getLoopHeads());
       }
     }
     return loopHeads;
