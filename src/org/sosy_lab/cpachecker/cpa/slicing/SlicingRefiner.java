@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,8 +42,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -75,7 +76,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -121,7 +122,9 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private Set<Integer> previousTargetPaths = new HashSet<>();
 
   private int refinementCount = 0;
-  private StatCounter sliceCount = new StatCounter("Number of slicing procedures");
+  private StatInt candidateSliceCount =
+      new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
+  private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   public static SlicingRefiner create(final ConfigurableProgramAnalysis pCpa)
@@ -313,45 +316,49 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
     Set<CFAEdge> relevantEdges = new HashSet<>();
     Set<ARGState> refinementRoots = new HashSet<>();
-    for (ARGPath tp : targetPaths) {
-      Collection<ARGState> relevantStates = getRelevantStates(tp);
-      for (ARGState criterion : relevantStates) {
-        CFANode loc = AbstractStates.extractLocation(criterion);
-        List<CFAEdge> criteriaEdges = CFAUtils.enteringEdges(loc).toList();
+    int candidateSlices = 0;
+    int realSlices = 0;
+    try {
+      for (ARGPath tp : targetPaths) {
+        List<CFAEdge> innerEdges = tp.getInnerEdges();
+        List<CFAEdge> criteriaEdges = new ArrayList<>(1);
+
+        if (takeEagerSlice) {
+          criteriaEdges =
+              innerEdges
+                  .stream()
+                  .filter(Predicates.instanceOf(CAssumeEdge.class))
+                  .collect(Collectors.toList());
+        }
+        CFANode finalNode = AbstractStates.extractLocation(tp.getLastState());
+        List<CFAEdge> edgesToTarget =
+            CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
+        criteriaEdges.addAll(edgesToTarget);
+
+        // Heuristic: Reverse to make states that are deeper in the path first - these
+        // have a higher chance of including earlier states in their dependences
+        criteriaEdges = Lists.reverse(criteriaEdges);
+
         for (CFAEdge e : criteriaEdges) {
+          candidateSlices++;
           // If the relevant edges contain e, then all dependences of e are also already included
-          // and we can skip it
-          if (!relevantEdges.contains(e) && !oldPrec.isRelevant(e)) {
+          // and we can skip it (this is only true as long as no function call/return edge is a
+          // criterion!)
+          if (!relevantEdges.contains(e)) {
+            realSlices++;
             Collection<CFAEdge> slice = getSlice(e);
             refinementRoots.add(getRefinementRoot(tp, slice));
             relevantEdges.addAll(slice);
           }
         }
       }
+    } finally {
+      candidateSliceCount.setNextValue(candidateSlices);
+      sliceCount.setNextValue(realSlices);
     }
 
     SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
     return Pair.of(refinementRoots, newPrec);
-  }
-
-  private Collection<ARGState> getRelevantStates(final ARGPath pTargetPath) {
-    List<ARGState> relevantStates = new ArrayList<>();
-    ARGState target = pTargetPath.getLastState();
-    relevantStates.add(target);
-
-    if (takeEagerSlice) {
-      PathIterator it = pTargetPath.pathIterator();
-      while (it.hasNext()) {
-        it.advance(); // skip the first state
-        CFAEdge incoming = it.getIncomingEdge();
-        if (incoming != null && incoming.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          relevantStates.add(it.getAbstractState());
-        }
-      }
-    }
-    // Heuristic: Reverse to make states that are deeper in the path first - these
-    // have a higher chance of including earlier states in their dependences
-    return Lists.reverse(relevantStates);
   }
 
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
@@ -372,7 +379,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
     } finally {
       slicingTime.stop();
-      sliceCount.inc();
     }
   }
 
@@ -406,7 +412,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
               final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
 
             StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-            writer.put(sliceCount).put(slicingTime);
+            writer.put(candidateSliceCount).put(sliceCount).put(slicingTime);
           }
 
           @Override
