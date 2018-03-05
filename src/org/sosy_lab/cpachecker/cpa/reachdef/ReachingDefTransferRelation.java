@@ -340,15 +340,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
     List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
 
-    assert outFunctionParams.size() == inFunctionParams.size()
-        : "Passed function parameters don't fit function parameters: "
-            + outFunctionParams
-            + " vs. "
-            + inFunctionParams;
-
     CFANode defStart = pReturnEdge.getPredecessor();
     CFANode defEnd = pReturnEdge.getSuccessor();
-    for (int i = 0; i < outFunctionParams.size(); i++) {
+    // TODO support varargs
+    for (int i = 0; i < inFunctionParams.size(); i++) {
       CParameterDeclaration inParam = inFunctionParams.get(i);
       CExpression outParam = outFunctionParams.get(i);
 

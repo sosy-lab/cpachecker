@@ -299,7 +299,14 @@ class FlowDependenceTransferRelation
     FlowDependenceState nextState = pNextState;
     List<CParameterDeclaration> params = pFunctionCallEdge.getSuccessor().getFunctionParameters();
     for (int i = 0; i < pArguments.size(); i++) {
-      MemoryLocation def = MemoryLocation.valueOf(params.get(i).getQualifiedName());
+      MemoryLocation def;
+      if (i < params.size()) {
+        def = MemoryLocation.valueOf(params.get(i).getQualifiedName());
+      } else {
+        assert pFunctionCallEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
+        // TODO support var args
+        break;
+      }
       CExpression argument = pArguments.get(i);
       nextState =
           handleOperation(
@@ -446,13 +453,8 @@ class FlowDependenceTransferRelation
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
     List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
 
-    assert outFunctionParams.size() == inFunctionParams.size()
-        : "Passed function parameters don't fit function parameters: "
-            + outFunctionParams
-            + " vs. "
-            + inFunctionParams;
-
-    for (int i = 0; i < outFunctionParams.size(); i++) {
+    // TODO support varargs
+    for (int i = 0; i < inFunctionParams.size(); i++) {
       CParameterDeclaration inParam = inFunctionParams.get(i);
       CType parameterType = inParam.getType();
 
