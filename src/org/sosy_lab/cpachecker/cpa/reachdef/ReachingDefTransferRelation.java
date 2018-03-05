@@ -377,7 +377,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         return strengthen((ReachingDefState) state, (PointerState) o);
       }
     }
-    return null;
+    return Collections.singleton(state);
   }
 
   private Collection<? extends AbstractState> strengthen(ReachingDefState pState, PointerState pO) {
