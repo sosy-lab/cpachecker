@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
@@ -128,6 +129,7 @@ public class DGBuilder {
     addFlowDependences();
     addFunctionControlDependences();
     addControlDependences();
+    addMissingNodes();
 
     DependenceGraph dg = new DependenceGraph(nodes, edges);
     export(dg);
@@ -139,6 +141,18 @@ public class DGBuilder {
         edges.size(),
         " edges.");
     return dg;
+  }
+
+  private void addMissingNodes() {
+    EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().traverse(cfa.getMainFunction(), edgeCollector);
+    List<CFAEdge> allEdges = edgeCollector.getVisitedEdges();
+
+    for (CFAEdge e : allEdges) {
+      if (!nodes.containsRow(e)) {
+        nodes.put(e, Optional.empty(), new DGNode(e));
+      }
+    }
   }
 
   private void addFunctionControlDependences() {
