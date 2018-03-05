@@ -37,8 +37,8 @@ public class LocationCPABackwards extends AbstractCPA {
 
   private final LocationStateFactory stateFactory;
 
-  private LocationCPABackwards(LocationStateFactory pStateFactory) {
-    super("sep", "sep", new LocationTransferRelation(pStateFactory));
+  private LocationCPABackwards(LocationStateFactory pStateFactory, CFA pCFA) {
+    super("sep", "sep", new LocationTransferRelation(pStateFactory, pCFA));
     stateFactory = pStateFactory;
   }
 
@@ -49,7 +49,7 @@ public class LocationCPABackwards extends AbstractCPA {
   public static LocationCPABackwards create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
     return new LocationCPABackwards(
-        new LocationStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
+        new LocationStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig), pCFA);
   }
 
   @Override
