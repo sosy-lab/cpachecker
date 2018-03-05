@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 
 public class ThreadCPA implements WrapperCPA, ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
@@ -74,7 +73,7 @@ public class ThreadCPA implements WrapperCPA, ConfigurableProgramAnalysisWithBAM
   private final ThreadReducer reducer;
 
   public ThreadCPA(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    locationCPA = new LocationCPA(pCfa, config);
+    locationCPA = LocationCPA.create(pCfa, config);
     callstackCPA = new CallstackCPA(config, pLogger, pCfa);
     transferRelation =
         new ThreadTransferRelation(
@@ -110,7 +109,7 @@ public class ThreadCPA implements WrapperCPA, ConfigurableProgramAnalysisWithBAM
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(pNode);
-    return ThreadState.emptyState((LocationState)locationCPA.getInitialState(pNode, pPartition),
+    return ThreadState.emptyState(locationCPA.getInitialState(pNode, pPartition),
                                     (CallstackState)callstackCPA.getInitialState(pNode, pPartition));
   }
 
