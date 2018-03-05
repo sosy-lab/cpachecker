@@ -870,6 +870,8 @@ public class CFABuilder {
 
       case GetElementPtr:
         return createGepExp(pItem, pFileName);
+      case BitCast:
+        return createBitcast(pItem, pFileName);
 
         // Comparison operations
       case ICmp:
@@ -902,8 +904,6 @@ public class CFABuilder {
       case PtrToInt:
         // fall through
       case IntToPtr:
-        // fall through
-      case BitCast:
         // fall through
       case AddrSpaceCast:
         // fall through
@@ -943,6 +943,14 @@ public class CFABuilder {
       default:
         throw new UnsupportedOperationException(pOpCode.toString());
     }
+  }
+
+  private CExpression createBitcast(Value pItem, String pFileName) throws LLVMException {
+    Value op = pItem.getOperand(2);
+    CType expectedType = typeConverter.getCType(pItem.typeOf());
+    CType opType = typeConverter.getCType(op.typeOf());
+    CExpression opToCast = getExpression(op, opType, pFileName);
+    return new CCastExpression(getLocation(pItem, pFileName), expectedType, opToCast);
   }
 
   private CExpression createFromArithmeticOp(
