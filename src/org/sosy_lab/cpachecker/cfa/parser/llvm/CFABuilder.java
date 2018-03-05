@@ -348,36 +348,84 @@ public class CFABuilder {
 
         addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, brNode, label, "(goto)"));
         continue;
+      } else if (terminatorInst.isBranchInst()) {
+        // get the operands and add branching edges
+        CExpression condition =
+            getBranchCondition(terminatorInst, pFunction.getValueName(), pFileName);
+
+        BasicBlock succ = terminatorInst.getSuccessor(0);
+        CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        addEdge(
+            new CAssumeEdge(
+                condition.toASTString(),
+                condition.getFileLocation(),
+                brNode,
+                label,
+                condition,
+                true));
+
+        succ = terminatorInst.getSuccessor(1);
+        label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        addEdge(
+            new CAssumeEdge(
+                condition.toASTString(),
+                condition.getFileLocation(),
+                brNode,
+                label,
+                condition,
+                false));
+      } else {
+        assert terminatorInst.isSwitchInst()
+            : "Unhandled instruction type: " + terminatorInst.getOpCode();
+
+        Value compValue = terminatorInst.getOperand(0);
+        CType compType = typeConverter.getCType(compValue.typeOf());
+        CExpression comparisonLhs = getAssignedIdExpression(compValue, compType, pFileName);
+        BasicBlock defaultBlock = terminatorInst.getSuccessor(0);
+        CLabelNode defaultLabel =
+            (CLabelNode) pBasicBlocks.get(defaultBlock.hashCode()).getEntryNode();
+
+        CFANode currNode = brNode;
+        for (int i = 1; i < succNum; i++) {
+          CLabelNode label =
+              (CLabelNode)
+                  pBasicBlocks.get(terminatorInst.getSuccessor(i).hashCode()).getEntryNode();
+          Value caseValue = terminatorInst.getOperand(2 * i);
+          CExpression comparisonRhs = getConstant(caseValue, pFileName);
+
+          CBinaryExpression comparisonExp =
+              new CBinaryExpression(
+                  comparisonLhs.getFileLocation(),
+                  CNumericTypes.BOOL,
+                  CNumericTypes.BOOL,
+                  comparisonLhs,
+                  comparisonRhs,
+                  BinaryOperator.EQUALS);
+
+          CAssumeEdge jumpEdge =
+              new CAssumeEdge(
+                  comparisonExp.toASTString(),
+                  comparisonExp.getFileLocation(),
+                  currNode,
+                  label,
+                  comparisonExp,
+                  true);
+          addEdge(jumpEdge);
+
+          CFANode nextNode = newNode(brNode.getFunctionName());
+          CAssumeEdge toNextCaseEdge =
+              new CAssumeEdge(
+                  comparisonExp.toASTString(),
+                  comparisonExp.getFileLocation(),
+                  currNode,
+                  nextNode,
+                  comparisonExp,
+                  false);
+          addEdge(toNextCaseEdge);
+          currNode = nextNode;
+        }
+        addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, currNode, defaultLabel, "(goto)"));
       }
-
-      // switch is not supported yet
-      assert succNum == 2;
-
-      // get the operands and add branching edges
-      CExpression condition =
-          getBranchCondition(terminatorInst, pFunction.getValueName(), pFileName);
-
-      BasicBlock succ = terminatorInst.getSuccessor(0);
-      CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
-      addEdge(
-          new CAssumeEdge(
-              condition.toASTString(),
-              condition.getFileLocation(),
-              brNode,
-              label,
-              condition,
-              true));
-
-      succ = terminatorInst.getSuccessor(1);
-      label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
-      addEdge(
-          new CAssumeEdge(
-              condition.toASTString(),
-              condition.getFileLocation(),
-              brNode,
-              label,
-              condition,
-              false));
     }
   }
 
@@ -620,8 +668,7 @@ public class CFABuilder {
     } else if (pItem.isCmpInst()) {
       return handleCmpInst(pItem, pFunctionName, pFileName);
     } else if (pItem.isSwitchInst()) {
-
-      throw new UnsupportedOperationException();
+      return null;
     } else if (pItem.isIndirectBranchInst()) {
       throw new UnsupportedOperationException();
     } else if (pItem.isBranchInst()) {
