@@ -1329,13 +1329,11 @@ public class CFABuilder {
     FileLocation fileLocation = getLocation(pItem, pFileName);
 
     CType currentType = baseType;
-    CType oldType; // used to check that type was actually updated at each iteration
     CExpression currentExpression = getExpression(startPointer, currentType, pFileName);
     currentType = baseType;
     assert pItem.getNumOperands() >= 2
         : "Too few operands in GEP operation : " + pItem.getNumOperands();
     for (int i = 1; i < pItem.getNumOperands(); i++) {
-      oldType = currentType;
       Value indexValue = pItem.getOperand(i);
       CExpression index = getExpression(indexValue, CNumericTypes.INT, pFileName);
 
@@ -1371,8 +1369,6 @@ public class CFABuilder {
             new CFieldReference(fileLocation, currentType, fieldName, currentExpression, false);
         currentType = field.getType();
       }
-
-      assert oldType != currentType : "Type didn't change in iteration: " + currentType;
     }
     return currentExpression;
   }
