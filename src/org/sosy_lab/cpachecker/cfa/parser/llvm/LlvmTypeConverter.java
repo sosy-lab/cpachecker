@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -33,9 +35,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -50,13 +54,15 @@ import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 public class LlvmTypeConverter {
 
   private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
-  private static final String PREFIX_STRUCT_MEMBER = "mem_";
+  private static final String PREFIX_STRUCT_MEMBER = ".mem_";
   private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
 
   private static int structCount = 0;
 
   private final MachineModel machineModel;
   private final LogManager logger;
+
+  private final Map<String, CType> typeCache = new HashMap<>();
 
   public LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
     machineModel = pMachineModel;
@@ -140,6 +146,20 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
+    if (typeCache.containsKey(structName)) {
+      return new CElaboratedType(
+          false,
+          false,
+          ComplexTypeKind.STRUCT,
+          structName,
+          origName,
+          (CComplexType) typeCache.get(structName));
+    }
+
+    CCompositeType cStructType =
+        new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
+    typeCache.put(structName, cStructType);
+
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());
 
@@ -152,8 +172,8 @@ public class LlvmTypeConverter {
       members.add(memDecl);
     }
 
-    return new CCompositeType(
-        isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
+    cStructType.setMembers(members);
+    return cStructType;
   }
 
   private String getStructName(TypeRef pStructType) throws LLVMException {

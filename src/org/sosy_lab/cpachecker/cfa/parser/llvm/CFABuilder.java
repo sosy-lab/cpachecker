@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -179,8 +177,8 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isUnreachableInst()) {
       return handleUnreachable(pItem, pFileName);
 
-    } else if (pItem.isBinaryOperator()) {
-      return handleBinaryOp(pItem, pFunctionName, pFileName, pItem.getOpCode());
+    } else if (pItem.isBinaryOperator() || pItem.isGetElementPtrInst()) {
+      return handleOpCode(pItem, pFunctionName, pFileName, pItem.getOpCode());
     } else if (pItem.isUnaryInstruction()) {
       return handleUnaryOp(pItem, pFunctionName, pFileName);
     } else if (pItem.isStoreInst()) {
@@ -189,8 +187,6 @@ public class CFABuilder extends LlvmAstVisitor {
       return handleCall(pItem, pFunctionName, pFileName);
     } else if (pItem.isCmpInst()) {
       return handleCmpInst(pItem, pFunctionName, pFileName);
-    } else if (pItem.isGetElementPtrInst()) {
-      return ImmutableList.of(handleGEP(pItem, pFileName));
     } else if (pItem.isSwitchInst()) {
 
       throw new UnsupportedOperationException();
@@ -360,7 +356,14 @@ public class CFABuilder extends LlvmAstVisitor {
     return pFuncName + "::" + pVarName;
   }
 
-  private List<CAstNode> handleBinaryOp(
+  private List<CAstNode> handleOpCode(
+      final Value pItem, String pFunctionName, final String pFileName, final OpCode pOpCode)
+      throws LLVMException {
+    CExpression expression = createFromOpCode(pItem, pFunctionName, pFileName, pOpCode);
+    return getAssignStatement(pItem, expression, pFunctionName, pFileName);
+  }
+
+  private CExpression createFromOpCode(
       final Value pItem, String pFunctionName, final String pFileName, final OpCode pOpCode)
       throws LLVMException {
 
@@ -384,10 +387,10 @@ public class CFABuilder extends LlvmAstVisitor {
       case And:
       case Or:
       case Xor:
-        return handleArithmeticOp(pItem, pOpCode, pFunctionName, pFileName);
+        return createFromArithmeticOp(pItem, pOpCode, pFunctionName, pFileName);
 
       case GetElementPtr:
-        return ImmutableList.of(handleGEP(pItem, pFileName));
+        return createGepExp(pItem, pFileName);
 
         // Comparison operations
       case ICmp:
@@ -463,7 +466,7 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  private List<CAstNode> handleArithmeticOp(
+  private CExpression createFromArithmeticOp(
       final Value pItem, final OpCode pOpCode, final String pFunctionName, final String pFileName)
       throws LLVMException {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
@@ -535,16 +538,14 @@ public class CFABuilder extends LlvmAstVisitor {
             operand2Exp,
             operation);
 
-    return getAssignStatement(pItem, expression, pFunctionName, pFileName);
+    return expression;
   }
 
   private CExpression getExpression(
       final Value pItem, final CType pExpectedType, final String pFileName) throws LLVMException {
 
     if (pItem.isConstantExpr()) {
-      List<CAstNode> statements = handleBinaryOp(pItem, "", pFileName, pItem.getConstOpCode());
-      checkState(statements.size() == 1, "More than one statement: " + statements);
-      return (CExpression) statements.get(0);
+      return createFromOpCode(pItem, "", pFileName, pItem.getConstOpCode());
 
     } else if (pItem.isConstant() && !pItem.isGlobalVariable()) {
       return getConstant(pItem, pFileName);
@@ -690,7 +691,7 @@ public class CFABuilder extends LlvmAstVisitor {
       } else {
         varType = typeConverter.getCType(pItem.typeOf());
       }
-      if (pItem.isGlobalConstant() && varType instanceof CPointerType) {
+      if (isGlobal && varType instanceof CPointerType) {
         varType = ((CPointerType) varType).getType();
       }
 
@@ -726,7 +727,7 @@ public class CFABuilder extends LlvmAstVisitor {
         new CIdExpression(
             getLocation(pItem, pFileName), expressionType, assignedVarName, assignedVarDeclaration);
 
-    if (pExpectedType.equals(expressionType)) {
+    if (expressionType.canBeAssignedFrom(pExpectedType)) {
       return idExpression;
 
     } else if (pointerOf(pExpectedType, expressionType)) {
@@ -884,7 +885,7 @@ public class CFABuilder extends LlvmAstVisitor {
         null /* no initializer */);
   }
 
-  private CExpression handleGEP(final Value pItem, final String pFileName) throws LLVMException {
+  private CExpression createGepExp(final Value pItem, final String pFileName) throws LLVMException {
 
     CType baseType = typeConverter.getCType(pItem.getOperand(0).typeOf());
     Value startPointer = pItem.getOperand(0);
@@ -948,7 +949,7 @@ public class CFABuilder extends LlvmAstVisitor {
     assert pItem.isICmpInst();
     boolean isSigned = true;
 
-    BinaryOperator operator = null;
+    BinaryOperator operator;
     switch (pItem.getICmpPredicate()) {
       case IntEQ:
         operator = BinaryOperator.EQUALS;
