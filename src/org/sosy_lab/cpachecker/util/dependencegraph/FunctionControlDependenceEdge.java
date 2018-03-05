@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,15 +23,24 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
-import org.sosy_lab.cpachecker.util.dependencegraph.edges.FlowDependenceEdge;
+import java.io.Serializable;
 
-/** @param <T> return type of visitor */
-public interface DGEdgeVisitor<T> {
+/**
+ * Dependence edge that represents a function control dependence edge. A function control dependence
+ * edge is a special kind of control dependence edge. A CFA edge g is function control dependent on
+ * another CFA edge g', if g is a function return edge and g' is the corresponding function entry
+ * edge.
+ */
+public class FunctionControlDependenceEdge extends DGEdge implements Serializable {
 
-  T visit(FlowDependenceEdge pEdge);
+  private static final long serialVersionUID = -6432346485345395L;
 
-  T visit(ControlDependenceEdge pEdge);
+  public FunctionControlDependenceEdge(DGNode pNodeDependentOn, DGNode pNodeDepending) {
+    super(pNodeDependentOn, pNodeDepending);
+  }
 
-  T visit(FunctionControlDependenceEdge pEdge);
+  @Override
+  public <T> T accept(DGEdgeVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
 }

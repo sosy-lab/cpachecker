@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.flowdep;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -73,12 +74,13 @@ class FlowDependenceDomain implements AbstractDomain {
 
       joinedFlowDeps.addAll(((FlowDependenceState) pState1).getAll());
 
-      for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e :
-          ((FlowDependenceState) pState2).getAll().entrySet()) {
+      for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
+          e : ((FlowDependenceState) pState2).getAll().cellSet()) {
 
-        CFAEdge g = e.getKey();
+        CFAEdge g = e.getRowKey();
+        Optional<MemoryLocation> m = e.getColumnKey();
 
-        joinedFlowDeps.addDependence(g, e.getValue());
+        joinedFlowDeps.addDependence(g, m, e.getValue());
       }
       return joinedFlowDeps;
     }
@@ -108,9 +110,9 @@ class FlowDependenceDomain implements AbstractDomain {
     }
   }
 
-  private <K, V> boolean containsAll(Map<K, V> superMap, Map<K, V> subMap) {
-    Set<Entry<K, V>> superEntries = superMap.entrySet();
-    for (Map.Entry<K, V> e : subMap.entrySet()) {
+  private <R, C, V> boolean containsAll(Table<R, C, V> superTable, Table<R, C, V> subTable) {
+    Set<Cell<R, C, V>> superEntries = superTable.cellSet();
+    for (Cell<R, C, V> e : subTable.cellSet()) {
       if (!superEntries.contains(e)) {
         return false;
       }

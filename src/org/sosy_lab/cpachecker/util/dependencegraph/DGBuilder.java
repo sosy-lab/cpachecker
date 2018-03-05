@@ -26,7 +26,12 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ForwardingMap;
+import com.google.common.collect.ForwardingTable;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -40,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -57,6 +63,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -76,11 +84,11 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.FlowDependenceEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependenceGraph")
@@ -89,8 +97,7 @@ public class DGBuilder {
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-
-  private Map<CFAEdge, DGNode> nodes = new HashMap<>();
+  private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
   private Set<DGEdge> edges;
 
   @Option(
@@ -116,10 +123,11 @@ public class DGBuilder {
 
   public DependenceGraph build()
       throws InvalidConfigurationException, InterruptedException, CPAException {
-    nodes = getCFAEdges();
+    nodes = HashBasedTable.create();
     edges = new HashSet<>();
-    addControlDependences();
     addFlowDependences();
+    addFunctionControlDependences();
+    addControlDependences();
 
     DependenceGraph dg = new DependenceGraph(nodes, edges);
     export(dg);
@@ -133,6 +141,47 @@ public class DGBuilder {
     return dg;
   }
 
+  private void addFunctionControlDependences() {
+    for (FunctionEntryNode n : cfa.getAllFunctionHeads()) {
+      if (n == cfa.getMainFunction()) {
+        continue;
+      }
+      for (CFAEdge ee : CFAUtils.enteringEdges(n)) {
+        assert ee instanceof CFunctionCallEdge
+            : "Edge to function entry node is not a function call edge: " + ee;
+
+        for (CFAEdge le : CFAUtils.leavingEdges(n.getExitNode())) {
+          assert le instanceof CFunctionReturnEdge
+              : "Edge from function exit node is not a " + "function return edge: " + le;
+          // Every return edge has to be linked to every call edge, and vice-versa.
+          // if a function return is required, the function has to be entered first.
+          // And if a function is entered, it must be able to leave it again, properly.
+
+          // We require the dg node of the call without any parameter definition
+          // - if a return edge requires that, it is already solved by flow dependence edges.
+          // But here, we only require a function control dependence to make
+          // sure that the function is actually called if a return is relevant
+          DGNode call = getDGNode(ee, Optional.empty());
+          // Take all dg nodes of return edges, since every return depends
+          // on the function being called first
+          Collection<DGNode> allRetNodes = getDGNodes(le);
+          for (DGNode returnNode : allRetNodes) {
+            DGEdge functionControlDependence = new FunctionControlDependenceEdge(call, returnNode);
+            addDependence(functionControlDependence);
+          }
+
+          DGNode ret = getDGNode(le, Optional.empty());
+          Collection<DGNode> allCallNodes = getDGNodes(ee);
+          for (DGNode callNode : allCallNodes) {
+            DGEdge functionControlDependence = new FunctionControlDependenceEdge(ret, callNode);
+            addDependence(functionControlDependence);
+          }
+        }
+      }
+    }
+  }
+
+  /*
   private Map<CFAEdge, DGNode> getCFAEdges() {
     EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().traverse(cfa.getMainFunction(), edgeCollector);
@@ -168,7 +217,9 @@ public class DGBuilder {
       assert assumeEdges.size() == 2;
       for (CFAEdge g : assumeEdges) {
 
-        DGNode nodeDependentOn = getDGNode(g);
+        DGNode nodeDependentOn = getDGNode(g, Optional.empty());
+        assert getDGNodes(g).size() == 1
+            : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
         List<CFANode> nodesOnPath = new ArrayList<>();
         Queue<CFAEdge> waitlist = new ArrayDeque<>(8);
         Set<CFAEdge> reached = new HashSet<>();
@@ -187,12 +238,12 @@ public class DGBuilder {
               // all nodes on path from branch to current are post-dominated by current
               // (condition 1 of control dependence)
               if (isPostDomOfAll(precessorNode, nodesOnPath, postDoms)) {
-                DGNode nodeDepending = getDGNode(current);
-                DGEdge controlDependency =
-                    new ControlDependenceEdge(nodeDependentOn, nodeDepending);
-                nodeDependentOn.addOutgoingEdge(controlDependency);
-                nodeDepending.addIncomingEdge(controlDependency);
-                edges.add(controlDependency);
+                Collection<DGNode> nodesDepending = getDGNodes(current);
+                for (DGNode nodeDepending : nodesDepending) {
+                  DGEdge controlDependency =
+                      new ControlDependenceEdge(nodeDependentOn, nodeDepending);
+                  addDependence(controlDependency);
+                }
                 nodesOnPath.add(precessorNode);
               }
               CFAUtils.leavingEdges(current.getSuccessor()).forEach(waitlist::offer);
@@ -220,16 +271,21 @@ public class DGBuilder {
       throws InvalidConfigurationException, InterruptedException, CPAException {
     FlowDependences flowDependences = FlowDependences.create(cfa, logger, shutdownNotifier);
 
-    for (Entry<CFAEdge, Set<CFAEdge>> e : flowDependences.entrySet()) {
-      CFAEdge key = e.getKey();
-      DGNode nodeDepending = getDGNode(key);
+    for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> c :
+        flowDependences.cellSet()) {
 
-      for (CFAEdge edgeDependentOn : e.getValue()) {
-        DGNode dependency = getDGNode(edgeDependentOn);
+      CFAEdge edgeDepending = c.getRowKey();
+      Optional<MemoryLocation> defOfEdge = c.getColumnKey();
+      DGNode nodeDepending;
+      if (defOfEdge.isPresent()) {
+        nodeDepending = getDGNode(edgeDepending, defOfEdge);
+      } else {
+        nodeDepending = getDGNode(edgeDepending, Optional.empty());
+      }
+      for (Entry<MemoryLocation, CFAEdge> useAndDef : c.getValue().entries()) {
+        DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(useAndDef.getKey()));
         DGEdge newEdge = new FlowDependenceEdge(dependency, nodeDepending);
-        dependency.addOutgoingEdge(newEdge);
-        nodeDepending.addIncomingEdge(newEdge);
-        edges.add(newEdge);
+        addDependence(newEdge);
       }
     }
   }
@@ -238,21 +294,44 @@ public class DGBuilder {
    * Returns the {@link DGNode} corresponding to the given {@link CFAEdge}. If a node for this edge
    * already exists, the existing node is returned. Otherwise, a new node is created.
    *
-   * <p>Always use this method and never use {@link #createNode(CFAEdge)}!
+   * <p>Always use this method and never use {@link #createNode(CFAEdge, Optional)}!
    */
-  private DGNode getDGNode(final CFAEdge pCfaEdge) {
-    if (!nodes.containsKey(pCfaEdge)) {
-      nodes.put(pCfaEdge, createNode(pCfaEdge));
+  private DGNode getDGNode(final CFAEdge pCfaEdge, final Optional<MemoryLocation> pCause) {
+    if (!nodes.contains(pCfaEdge, pCause)) {
+      nodes.put(pCfaEdge, pCause, createNode(pCfaEdge, pCause));
     }
-    return nodes.get(pCfaEdge);
+    return nodes.get(pCfaEdge, pCause);
+  }
+
+  private Collection<DGNode> getDGNodes(final CFAEdge pCfaEdge) {
+    if (!nodes.containsRow(pCfaEdge)) {
+      nodes.put(pCfaEdge, Optional.empty(), createNode(pCfaEdge, Optional.empty()));
+    }
+    return nodes.row(pCfaEdge).values();
   }
 
   /**
-   * Creates a new node. Never call this method directly, but use {@link #getDGNode(CFAEdge)} to
-   * retrieve nodes for {@link CFAEdge CFAEdges}!
+   * Adds the given dependence edge to the set of dependence edges and tells the nodes of the edge
+   * about the new edge.
    */
-  private DGNode createNode(final CFAEdge pCfaEdge) {
-    return new DGNode(pCfaEdge);
+  private void addDependence(DGEdge pEdge) {
+    DGNode nodeDependentOn = pEdge.getStart();
+    DGNode nodeDepending = pEdge.getEnd();
+    nodeDependentOn.addOutgoingEdge(pEdge);
+    nodeDepending.addIncomingEdge(pEdge);
+    edges.add(pEdge);
+  }
+
+  /**
+   * Creates a new node. Never call this method directly, but use {@link #getDGNode(CFAEdge,
+   * Optional)} to retrieve nodes for {@link CFAEdge CFAEdges}!
+   */
+  private DGNode createNode(final CFAEdge pCfaEdge, final Optional<MemoryLocation> pCause) {
+    if (pCause.isPresent()) {
+      return new DGNode(pCfaEdge, pCause.get());
+    } else {
+      return new DGNode(pCfaEdge);
+    }
   }
 
   private void export(DependenceGraph pDg) {
@@ -273,16 +352,22 @@ public class DGBuilder {
    * represents a variable assignment and the assignment is part of node <code>I</code>'s use-def
    * relation.
    */
-  private static class FlowDependences extends ForwardingMap<CFAEdge, Set<CFAEdge>> {
-    // CFAEdge -> Dependencies of that node
-    private Map<CFAEdge, Set<CFAEdge>> dependences;
+  private static class FlowDependences
+      extends ForwardingTable<
+          CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> {
 
-    private FlowDependences(final Map<CFAEdge, Set<CFAEdge>> pDependences) {
+    // CFAEdge + defined memory location -> Edge defining the uses
+    private Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> dependences;
+
+    private FlowDependences(
+        final Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>>
+            pDependences) {
       dependences = pDependences;
     }
 
     @Override
-    protected Map<CFAEdge, Set<CFAEdge>> delegate() {
+    protected Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>>
+        delegate() {
       return dependences;
     }
 
@@ -312,18 +397,23 @@ public class DGBuilder {
       assert !reached.hasWaitingState()
           : "CPA algorithm finished, but waitlist not empty: " + reached.getWaitlist();
 
-      Map<CFAEdge, Set<CFAEdge>> dependencyMap = new HashMap<>();
+      Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> dependencyMap =
+          HashBasedTable.create();
       for (AbstractState s : reached) {
         assert s instanceof ARGState;
         ARGState wrappingState = (ARGState) s;
         FlowDependenceState flowDepState = getState(wrappingState, FlowDependenceState.class);
 
-        for (CFAEdge g : flowDepState.getEdges()) {
-          Set<CFAEdge> edgeDependences = getDependences(flowDepState, g);
-          if (dependencyMap.containsKey(g)) {
-            dependencyMap.get(g).addAll(edgeDependences);
-          } else {
-            dependencyMap.put(g, edgeDependences);
+        for (CFAEdge g : flowDepState.getDependees()) {
+          Set<Optional<MemoryLocation>> defs = flowDepState.getDefinitions(g);
+          for (Optional<MemoryLocation> d : defs) {
+            Multimap<MemoryLocation, CFAEdge> memLocUsedAndDefiner =
+                getDependences(flowDepState, g, d);
+            if (dependencyMap.contains(g, d)) {
+              dependencyMap.get(g, d).putAll(memLocUsedAndDefiner);
+            } else {
+              dependencyMap.put(g, d, memLocUsedAndDefiner);
+            }
           }
         }
       }
@@ -344,27 +434,31 @@ public class DGBuilder {
       return s;
     }
 
-    private static Set<CFAEdge> getDependences(
-        final FlowDependenceState pFlowDepState, final CFAEdge pEdge) {
-      Set<CFAEdge> dependentEdges = new HashSet<>();
-      Collection<ProgramDefinitionPoint> dependentDefs =
-          pFlowDepState.getDependentDefs(pEdge).values();
+    private static Multimap<MemoryLocation, CFAEdge> getDependences(
+        final FlowDependenceState pFlowDepState,
+        final CFAEdge pEdge,
+        final Optional<MemoryLocation> pDef) {
+      Multimap<MemoryLocation, CFAEdge> dependencies = HashMultimap.create();
 
-      for (ProgramDefinitionPoint defPoint : dependentDefs) {
+      Multimap<MemoryLocation, ProgramDefinitionPoint> dependentDefs =
+          pFlowDepState.getDependentDefs(pEdge, pDef);
+
+      for (Entry<MemoryLocation, ProgramDefinitionPoint> e : dependentDefs.entries()) {
+        ProgramDefinitionPoint defPoint = e.getValue();
         CFANode start = defPoint.getDefinitionEntryLocation();
         CFANode stop = defPoint.getDefinitionExitLocation();
 
         boolean added = false;
         for (CFAEdge g : CFAUtils.leavingEdges(start)) {
           if (g.getSuccessor().equals(stop)) {
-            dependentEdges.add(g);
+            dependencies.put(e.getKey(), g);
             added = true;
           }
         }
         assert added : "No edge added for nodes " + start + " to " + stop;
       }
 
-      return dependentEdges;
+      return dependencies;
     }
   }
 

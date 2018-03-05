@@ -44,6 +44,14 @@ class DGEdgeDotFormatter implements DGEdgeVisitor<String> {
         + " [style=dashed]";
   }
 
+  @Override
+  public String visit(FunctionControlDependenceEdge pEdge) {
+    return getNodeRepresentation(pEdge.getStart())
+        + " -> "
+        + getNodeRepresentation(pEdge.getEnd())
+        + " [style=dotted]";
+  }
+
   private String getNodeRepresentation(final DGNode pNode) {
     return nodeFormatter.getNodeRepresentation(pNode);
   }

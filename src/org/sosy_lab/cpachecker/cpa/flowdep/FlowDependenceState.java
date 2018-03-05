@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import java.util.HashMap;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,33 +53,44 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
 
-  private final Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> usedDefs;
+  private final Table<
+          CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
+      usedDefs;
 
   private CompositeState reachDefState;
 
   FlowDependenceState(CompositeState pReachDefState) {
-    usedDefs = new HashMap<>();
+    usedDefs = HashBasedTable.create();
 
     reachDefState = pReachDefState;
   }
 
-  public Set<CFAEdge> getEdges() {
-    return usedDefs.keySet();
+  public Set<CFAEdge> getDependees() {
+    return usedDefs.rowKeySet();
   }
 
-  public Multimap<MemoryLocation, ProgramDefinitionPoint> getDependentDefs(final CFAEdge pEdge) {
-    return ImmutableMultimap.copyOf(usedDefs.get(pEdge));
+  public Set<Optional<MemoryLocation>> getDefinitions(final CFAEdge pForEdge) {
+    return usedDefs.row(pForEdge).keySet();
+  }
+
+  public Multimap<MemoryLocation, ProgramDefinitionPoint> getDependentDefs(
+      final CFAEdge pEdge, final Optional<MemoryLocation> pDefinition) {
+    return ImmutableMultimap.copyOf(usedDefs.get(pEdge, pDefinition));
   }
 
   /**
    * Adds a flow dependence based on the given variable and its definition at the given program
    * definition point.
    */
-  public void addDependence(CFAEdge pEdge, Multimap<MemoryLocation, ProgramDefinitionPoint> pUses) {
-    if (usedDefs.containsKey(pEdge)) {
-      usedDefs.get(pEdge).putAll(pUses);
+  public void addDependence(
+      CFAEdge pEdge,
+      Optional<MemoryLocation> pDefines,
+      Multimap<MemoryLocation, ProgramDefinitionPoint> pUses) {
+
+    if (usedDefs.contains(pEdge, pDefines)) {
+      usedDefs.get(pEdge, pDefines).putAll(pUses);
     } else {
-      usedDefs.put(pEdge, pUses);
+      usedDefs.put(pEdge, pDefines, pUses);
     }
   }
 
@@ -84,11 +98,14 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     return reachDefState;
   }
 
-  void addAll(Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> pUsedDefs) {
+  void addAll(
+      Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
+          pUsedDefs) {
     usedDefs.putAll(pUsedDefs);
   }
 
-  Map<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> getAll() {
+  Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
+      getAll() {
     return usedDefs;
   }
 
@@ -133,10 +150,14 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     if (!usedDefs.isEmpty()) {
       sb.append("\n");
     }
-    for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e
-        : usedDefs.entrySet()) {
+    for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
+        e : usedDefs.cellSet()) {
       sb.append("\t");
-      sb.append(e.getKey().toString()).append(":\n");
+      sb.append(e.getRowKey().toString());
+      if (e.getColumnKey().isPresent()) {
+        sb.append(" + ").append(e.getColumnKey().toString());
+      }
+      sb.append(":\n");
       for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : e.getValue().entries()) {
         sb.append("\t\t");
         sb.append(memDefs.getKey().toString()).append(" <- ").append(memDefs.getValue());
@@ -157,13 +178,17 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder("{");
     boolean first = true;
-    for (Map.Entry<CFAEdge, Multimap<MemoryLocation, ProgramDefinitionPoint>> e
-        : usedDefs.entrySet()) {
+    for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
+        e : usedDefs.cellSet()) {
       if (!first) {
         sb.append(", ");
       }
       first = false;
-      sb.append(e.getKey().toString()).append(": [ ");
+      sb.append(e.getRowKey().toString());
+      if (e.getColumnKey().isPresent()) {
+        sb.append(" + ").append(e.getColumnKey().toString());
+      }
+      sb.append(": [ ");
       boolean first2 = true;
       for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : e.getValue().entries()) {
         if (!first2) {

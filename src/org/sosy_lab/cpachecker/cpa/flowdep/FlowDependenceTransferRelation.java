@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -104,6 +105,7 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.UsedIdsCollector;
+import org.sosy_lab.cpachecker.util.expressions.IdExpressionCollector;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -114,12 +116,14 @@ class FlowDependenceTransferRelation
 
   private final TransferRelation delegate;
   private final UsesCollector usesCollector;
+  private final IdExpressionCollector idCollector;
 
   private final LogManager logger;
 
   FlowDependenceTransferRelation(final TransferRelation pDelegate, final LogManager pLogger) {
     delegate = pDelegate;
     usesCollector = new UsesCollector();
+    idCollector = new IdExpressionCollector();
 
     logger = pLogger;
   }
@@ -180,7 +184,9 @@ class FlowDependenceTransferRelation
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
-      return handleOperation(pCfaEdge, getUsedVars(initializerExp), pNextFlowState, pReachDefState);
+      MemoryLocation def = MemoryLocation.valueOf(pDecl.getQualifiedName());
+      return handleOperation(
+          pCfaEdge, Optional.of(def), getUsedVars(initializerExp), pNextFlowState, pReachDefState);
 
     } else {
       // If the declaration contains no initializer, there are no variable uses and ergo
@@ -198,6 +204,7 @@ class FlowDependenceTransferRelation
    */
   private FlowDependenceState handleOperation(
       CFAEdge pCfaEdge,
+      Optional<MemoryLocation> pDef,
       Set<CSimpleDeclaration> pUses,
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState) {
@@ -217,7 +224,7 @@ class FlowDependenceTransferRelation
       }
     }
     if (!dependences.isEmpty()) {
-      pNextState.addDependence(pCfaEdge, dependences);
+      pNextState.addDependence(pCfaEdge, pDef, dependences);
     }
 
     return pNextState;
@@ -233,14 +240,33 @@ class FlowDependenceTransferRelation
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState)
       throws CPATransferException {
-    com.google.common.base.Optional<CAssignment> returnAssignment = pCfaEdge.asAssignment();
+    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
 
-    if (returnAssignment.isPresent()) {
-      CRightHandSide rhs = returnAssignment.get().getRightHandSide();
-      return handleOperation(pCfaEdge, getUsedVars(rhs), pNextState, pReachDefState);
+    if (asAssignment.isPresent()) {
+      CAssignment returnAssignment = asAssignment.get();
+      CRightHandSide rhs = returnAssignment.getRightHandSide();
+      MemoryLocation def = getDef(returnAssignment.getLeftHandSide());
+
+      return handleOperation(
+          pCfaEdge, Optional.of(def), getUsedVars(rhs), pNextState, pReachDefState);
     } else {
       return pNextState;
     }
+  }
+
+  private MemoryLocation getDef(CLeftHandSide pLeftHandSide) throws CPATransferException {
+    Set<CSimpleDeclaration> decls;
+    if (pLeftHandSide instanceof CPointerExpression) {
+      throw new CPATransferException("Can't handle pointer dereference: " + pLeftHandSide);
+    } else if (pLeftHandSide instanceof CArraySubscriptExpression) {
+      decls = ((CArraySubscriptExpression) pLeftHandSide).getArrayExpression().accept(idCollector);
+    } else {
+      decls = pLeftHandSide.accept(idCollector);
+    }
+
+    assert decls.size() == 1;
+    CSimpleDeclaration decl = Iterables.get(decls, 0);
+    return MemoryLocation.valueOf(decl.getQualifiedName());
   }
 
   protected FlowDependenceState handleAssumption(
@@ -249,7 +275,8 @@ class FlowDependenceTransferRelation
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState)
       throws CPATransferException {
-    return handleOperation(cfaEdge, getUsedVars(expression), pNextState, pReachDefState);
+    return handleOperation(
+        cfaEdge, Optional.empty(), getUsedVars(expression), pNextState, pReachDefState);
   }
 
   protected FlowDependenceState handleFunctionCallEdge(
@@ -260,9 +287,17 @@ class FlowDependenceTransferRelation
   ) throws CPATransferException {
 
     FlowDependenceState nextState = pNextState;
-    for (CExpression argument : pArguments) {
+    List<CParameterDeclaration> params = pFunctionCallEdge.getSuccessor().getFunctionParameters();
+    for (int i = 0; i < pArguments.size(); i++) {
+      MemoryLocation def = MemoryLocation.valueOf(params.get(i).getQualifiedName());
+      CExpression argument = pArguments.get(i);
       nextState =
-          handleOperation(pFunctionCallEdge, getUsedVars(argument), nextState, pReachDefState);
+          handleOperation(
+              pFunctionCallEdge,
+              Optional.of(def),
+              getUsedVars(argument),
+              nextState,
+              pReachDefState);
     }
     return nextState;
   }
@@ -274,7 +309,12 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState)
       throws CPATransferException {
 
-    return handleOperation(pCfaEdge, getUsedVars(pStatement), pNextState, pReachDefState);
+    MemoryLocation def = null;
+    if (pStatement instanceof CAssignment) {
+      def = getDef(((CAssignment) pStatement).getLeftHandSide());
+    }
+    return handleOperation(
+        pCfaEdge, Optional.ofNullable(def), getUsedVars(pStatement), pNextState, pReachDefState);
   }
 
   @Override
@@ -351,7 +391,8 @@ class FlowDependenceTransferRelation
   private FlowDependenceState handleFunctionReturnEdge(
       final CFunctionReturnEdge pReturnEdge,
       final FlowDependenceState pNewState,
-      final ReachingDefState pReachDefState) {
+      final ReachingDefState pReachDefState)
+      throws CPATransferException {
 
     FlowDependenceState nextState = pNewState;
     CFunctionSummaryEdge summaryEdge = pReturnEdge.getSummaryEdge();
@@ -368,12 +409,25 @@ class FlowDependenceTransferRelation
 
     for (int i = 0; i < outFunctionParams.size(); i++) {
       CParameterDeclaration inParam = inFunctionParams.get(i);
-
       CType parameterType = inParam.getType();
 
       if (parameterType instanceof CArrayType) {
+        CExpression outParam = outFunctionParams.get(i);
+        MemoryLocation def;
+        if (outParam instanceof CLeftHandSide) {
+          def = getDef((CLeftHandSide) outParam);
+        } else {
+          logger.log(Level.WARNING, "Can't handle dereference to array, over-approximating");
+          def = null;
+        }
+
         nextState =
-            handleOperation(pReturnEdge, ImmutableSet.of(inParam), nextState, pReachDefState);
+            handleOperation(
+                pReturnEdge,
+                Optional.ofNullable(def),
+                ImmutableSet.of(inParam),
+                nextState,
+                pReachDefState);
 
       } else if (parameterType instanceof CPointerType) {
         throw new AssertionError();
@@ -383,9 +437,18 @@ class FlowDependenceTransferRelation
     com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
         summaryEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
+      MemoryLocation def = null;
+      CFunctionCall call = summaryEdge.getExpression();
+      if (call instanceof CFunctionCallAssignmentStatement) {
+        def = getDef(((CFunctionCallAssignmentStatement) call).getLeftHandSide());
+      }
       nextState =
           handleOperation(
-              pReturnEdge, ImmutableSet.of(maybeReturnVar.get()), nextState, pReachDefState);
+              pReturnEdge,
+              Optional.ofNullable(def),
+              ImmutableSet.of(maybeReturnVar.get()),
+              nextState,
+              pReachDefState);
     }
     return nextState;
   }

@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
@@ -42,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Dependence graph that describes flow dependence and control dependence between expressions and
@@ -60,12 +62,13 @@ public class DependenceGraph implements Serializable {
     BOTH
   }
 
-  private final ImmutableMap<CFAEdge, DGNode> nodes;
+  private final ImmutableTable<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
   private final ImmutableSet<DGEdge> edges;
 
-  DependenceGraph(final Map<CFAEdge, DGNode> pNodes, final Set<DGEdge> pEdges) {
+  DependenceGraph(
+      final Table<CFAEdge, Optional<MemoryLocation>, DGNode> pNodes, final Set<DGEdge> pEdges) {
     edges = ImmutableSet.copyOf(pEdges);
-    nodes = ImmutableMap.copyOf(pNodes);
+    nodes = ImmutableTable.copyOf(pNodes);
   }
 
   public static DGBuilder builder(
@@ -77,8 +80,8 @@ public class DependenceGraph implements Serializable {
     return new DGBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
   }
 
-  public boolean contains(final CFAEdge pNode) {
-    return nodes.containsKey(pNode);
+  public boolean contains(final CFAEdge pNode, final Optional<MemoryLocation> pCause) {
+    return nodes.contains(pNode, pCause);
   }
 
   Collection<DGEdge> getEdges() {
@@ -91,14 +94,14 @@ public class DependenceGraph implements Serializable {
 
   public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection) {
     Collection<CFAEdge> reachable = new HashSet<>();
+    Collection<DGNode> visited = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
-    DGNode startNode = nodes.get(pStart);
-    waitlist.offer(startNode);
+    nodes.row(pStart).values().forEach(waitlist::offer);
 
     while (!waitlist.isEmpty()) {
       DGNode current = waitlist.poll();
 
-      if (!reachable.contains(current.getCfaEdge())) {
+      if (!visited.contains(current)) {
         reachable.add(current.getCfaEdge());
         Collection<DGNode> adjacent = getAdjacentNodes(current, pDirection);
         waitlist.addAll(adjacent);

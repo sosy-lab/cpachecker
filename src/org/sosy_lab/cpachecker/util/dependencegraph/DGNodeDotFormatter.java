@@ -33,20 +33,20 @@ class DGNodeDotFormatter {
         shape = "diamond";
         break;
       case FunctionCallEdge:
-        shape = "doublecircle";
+        shape = "ellipse\", peripheries=\"2";
         break;
       case BlankEdge:
         shape = "box";
         break;
       default:
-        shape = "circle";
+        shape = "ellipse";
     }
 
     return format(pNode, shape);
   }
 
   String getNodeRepresentation(final DGNode pNode) {
-    String nodeId = String.valueOf(pNode.getCfaEdge().hashCode());
+    String nodeId = String.valueOf(pNode.hashCode());
     nodeId = nodeId.replaceAll("-", "");
     return "E" + nodeId;
   }
@@ -57,7 +57,7 @@ class DGNodeDotFormatter {
         + pShape
         + "\","
         + "label=\""
-        + escape(pNode.getCfaEdge().toString())
+        + escape(pNode.toString())
         + "\""
         + "]";
   }

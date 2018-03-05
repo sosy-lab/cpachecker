@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Node of a dependence graph. Represents a {@link CFAEdge}. */
 public class DGNode implements Serializable {
@@ -36,12 +37,18 @@ public class DGNode implements Serializable {
   private static final long serialVersionUID = -3772112168117340401L;
 
   private CFAEdge cfaEdge;
+  private MemoryLocation cause;
 
   private Set<DGEdge> outgoingEdges = new HashSet<>();
   private Set<DGEdge> incomingEdges = new HashSet<>();
 
-  public DGNode(final CFAEdge pCfaEdge) {
+  public DGNode(final CFAEdge pCfaEdge, final MemoryLocation pCause) {
     cfaEdge = pCfaEdge;
+    cause = pCause;
+  }
+
+  public DGNode(final CFAEdge pCfaEdge) {
+    this(pCfaEdge, null);
   }
 
   public Set<DGEdge> getOutgoingEdges() {
@@ -64,10 +71,6 @@ public class DGNode implements Serializable {
     return cfaEdge;
   }
 
-  public boolean representsSameCfaEdge(final DGNode pO) {
-    return cfaEdge.equals(pO.cfaEdge);
-  }
-
   @Override
   public boolean equals(Object pO) {
     if (this == pO) {
@@ -77,16 +80,16 @@ public class DGNode implements Serializable {
       return false;
     }
     DGNode dgNode = (DGNode) pO;
-    return cfaEdge.equals(dgNode.cfaEdge);
+    return cfaEdge.equals(dgNode.cfaEdge) && Objects.equals(cause, dgNode.cause);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(cfaEdge);
+    return Objects.hash(cfaEdge, cause);
   }
 
   @Override
   public String toString() {
-    return cfaEdge.toString();
+    return "(" + cfaEdge.toString() + ", " + cause + ")";
   }
 }
