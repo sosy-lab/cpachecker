@@ -72,15 +72,29 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
     AbstractState wrappedState = pState;
     CFAEdge adjustedEdge = pCfaEdge;
 
-    if (!slicingPrecision.isRelevant(pCfaEdge)
-        && !(pCfaEdge instanceof CFunctionSummaryEdge)
-        && !(pCfaEdge instanceof CFunctionSummaryStatementEdge)) {
+    if (!slicingPrecision.isRelevant(pCfaEdge) && !isFunctionControlEdge(pCfaEdge)) {
       adjustedEdge = replaceWithNoop(pCfaEdge);
     }
 
     Precision wrappedPrecision = slicingPrecision.getWrappedPrec();
     return delegate
         .getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, adjustedEdge);
+  }
+
+  private boolean isFunctionControlEdge(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CFunctionSummaryEdge
+        || pCfaEdge instanceof CFunctionSummaryStatementEdge) {
+      return true;
+    } else {
+      switch (pCfaEdge.getEdgeType()) {
+        case FunctionCallEdge:
+        case FunctionReturnEdge:
+        case CallToReturnEdge:
+          return true;
+        default:
+          return false;
+      }
+    }
   }
 
   private CFAEdge replaceWithNoop(final CFAEdge pCfaEdge) {
