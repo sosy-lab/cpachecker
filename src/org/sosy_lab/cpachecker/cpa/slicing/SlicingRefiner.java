@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -42,15 +43,19 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -70,6 +75,10 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -80,7 +89,7 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
  * <p>[1] Weiser, 1984: Program Slicing.
  */
 @Options(prefix = "cpa.slicing.refinement")
-public class SlicingRefiner implements Refiner {
+public class SlicingRefiner implements Refiner, StatisticsProvider {
 
   @Option(
     secure = true,
@@ -110,7 +119,10 @@ public class SlicingRefiner implements Refiner {
   private final AbstractState initialState;
 
   private Set<Integer> previousTargetPaths = new HashSet<>();
+
   private int refinementCount = 0;
+  private StatCounter sliceCount = new StatCounter("Number of slicing procedures");
+  private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   public static SlicingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -354,7 +366,13 @@ public class SlicingRefiner implements Refiner {
 
   /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
   Collection<CFAEdge> getSlice(final CFAEdge pCriterion) {
-    return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
+    try {
+      slicingTime.start();
+      return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
+    } finally {
+      slicingTime.stop();
+      sliceCount.inc();
+    }
   }
 
   private ARGState getRefinementRoot(final ARGPath pPath, final Collection<CFAEdge> relevantEdges) {
@@ -375,5 +393,25 @@ public class SlicingRefiner implements Refiner {
             .filter(Predicates.instanceOf(SlicingPrecision.class))
             .first()
             .orNull();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(
+        new Statistics() {
+
+          @Override
+          public void printStatistics(
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+
+            StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+            writer.put(sliceCount).put(slicingTime);
+          }
+
+          @Override
+          public String getName() {
+            return SlicingRefiner.class.getSimpleName();
+          }
+        });
   }
 }

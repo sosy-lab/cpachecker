@@ -262,6 +262,7 @@ private boolean classifyNodes = false;
     private final Timer dependenceGraphConstructionTime = new Timer();
     private final Timer exportTime = new Timer();
     private @Nullable VariableClassificationStatistics varClassificationStats;
+    private Statistics dependenceGraphStats;
 
     @Override
     public String getName() {
@@ -283,7 +284,10 @@ private boolean classifyNodes = false;
         }
       }
       if (dependenceGraphConstructionTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for constr. of dep.graph:" + dependenceGraphConstructionTime);
+        out.println("      Time for dep. graph:    " + dependenceGraphConstructionTime);
+        if (dependenceGraphStats != null) {
+          dependenceGraphStats.printStatistics(out, pResult, pReached);
+        }
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -516,6 +520,7 @@ private boolean classifyNodes = false;
         stats.dependenceGraphConstructionTime.start();
         DGBuilder depGraphBuilder = DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
+        stats.dependenceGraphStats = depGraphBuilder.getStatistics();
       } catch (CPAException pE) {
         throw new CParserException(pE);
       } finally {

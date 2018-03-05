@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.slicing;
 
+import java.util.Collection;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -30,6 +31,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -41,7 +44,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
  *
  * @see SlicingRefiner
  */
-public class SlicingDelegatingRefiner implements Refiner {
+public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
 
   private final Refiner delegate;
   private final SlicingRefiner slicingRefiner;
@@ -95,5 +98,15 @@ public class SlicingDelegatingRefiner implements Refiner {
     // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
     slicingRefiner.updatePrecision(pReached);
     return delegate.performRefinement(pReached);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    slicingRefiner.collectStatistics(statsCollection);
+    if (delegate instanceof Statistics) {
+      statsCollection.add((Statistics) delegate);
+    } else if (delegate instanceof StatisticsProvider) {
+      ((StatisticsProvider) delegate).collectStatistics(statsCollection);
+    }
   }
 }

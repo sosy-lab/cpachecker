@@ -33,6 +33,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -73,9 +75,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.dominator.DominatorState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState;
@@ -90,6 +94,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
 import org.sosy_lab.cpachecker.util.dependencegraph.edges.FlowDependenceEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependenceGraph")
@@ -101,6 +110,13 @@ public class DGBuilder {
   private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
   private Set<DGEdge> edges;
 
+  private StatInt flowDependenceNumber = new StatInt(StatKind.SUM, "Number of flow dependences");
+  private StatInt controlDependenceNumber =
+      new StatInt(StatKind.SUM, "Number of control dependences");
+  private StatInt functionControlDependenceNumber =
+      new StatInt(StatKind.SUM, "Number of function control dependences");
+  private StatCounter isolatedNodes = new StatCounter("Number of isolated nodes");
+
   @Option(
     secure = true,
     description =
@@ -109,6 +125,8 @@ public class DGBuilder {
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportDot = Paths.get("DependenceGraph.dot");
+
+  private VariableClassificationStatistics statistics;
 
   public DGBuilder(
       final CFA pCfa,
@@ -151,6 +169,7 @@ public class DGBuilder {
     for (CFAEdge e : allEdges) {
       if (!nodes.containsRow(e)) {
         nodes.put(e, Optional.empty(), new DGNode(e));
+        isolatedNodes.inc();
       }
     }
   }
@@ -165,6 +184,7 @@ public class DGBuilder {
             : "Edge to function entry node is not a function call edge: " + ee;
 
         for (CFAEdge le : CFAUtils.leavingEdges(n.getExitNode())) {
+          int depCount = 0;
           assert le instanceof CFunctionReturnEdge
               : "Edge from function exit node is not a " + "function return edge: " + le;
           // Every return edge has to be linked to every call edge, and vice-versa.
@@ -182,14 +202,19 @@ public class DGBuilder {
           for (DGNode returnNode : allRetNodes) {
             DGEdge functionControlDependence = new FunctionControlDependenceEdge(call, returnNode);
             addDependence(functionControlDependence);
+            depCount++;
           }
 
+          functionControlDependenceNumber.setNextValue(depCount);
+          depCount = 0;
           DGNode ret = getDGNode(le, Optional.empty());
           Collection<DGNode> allCallNodes = getDGNodes(ee);
           for (DGNode callNode : allCallNodes) {
             DGEdge functionControlDependence = new FunctionControlDependenceEdge(ret, callNode);
             addDependence(functionControlDependence);
+            depCount++;
           }
+          functionControlDependenceNumber.setNextValue(depCount);
         }
       }
     }
@@ -232,6 +257,7 @@ public class DGBuilder {
       for (CFAEdge g : assumeEdges) {
 
         DGNode nodeDependentOn = getDGNode(g, Optional.empty());
+        int controlDepCount = 0;
         assert getDGNodes(g).size() == 1
             : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
         List<CFANode> nodesOnPath = new ArrayList<>();
@@ -257,6 +283,7 @@ public class DGBuilder {
                   DGEdge controlDependency =
                       new ControlDependenceEdge(nodeDependentOn, nodeDepending);
                   addDependence(controlDependency);
+                  controlDepCount++;
                 }
                 nodesOnPath.add(precessorNode);
               }
@@ -264,6 +291,7 @@ public class DGBuilder {
             }
           }
         }
+        controlDependenceNumber.setNextValue(controlDepCount);
       }
     }
   }
@@ -296,11 +324,14 @@ public class DGBuilder {
       } else {
         nodeDepending = getDGNode(edgeDepending, Optional.empty());
       }
+      int flowDepCount = 0;
       for (Entry<MemoryLocation, CFAEdge> useAndDef : c.getValue().entries()) {
         DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(useAndDef.getKey()));
         DGEdge newEdge = new FlowDependenceEdge(dependency, nodeDepending);
         addDependence(newEdge);
+        flowDepCount++;
       }
+      flowDependenceNumber.setNextValue(flowDepCount);
     }
   }
 
@@ -357,6 +388,28 @@ public class DGBuilder {
         // continue with analysis
       }
     }
+  }
+
+  public Statistics getStatistics() {
+    return new AbstractStatistics() {
+
+      @Override
+      public void printStatistics(
+          final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+        StatInt nodeNumber = new StatInt(StatKind.SUM, "Number of DG nodes");
+        nodeNumber.setNextValue(nodes.size());
+        put(pOut, 4, nodeNumber);
+        put(pOut, 4, flowDependenceNumber);
+        put(pOut, 4, controlDependenceNumber);
+        put(pOut, 4, functionControlDependenceNumber);
+        put(pOut, 4, isolatedNodes);
+      }
+
+      @Override
+      public String getName() {
+        return ""; // empty name for nice output under CFACreator statistics
+      }
+    };
   }
 
   /**
