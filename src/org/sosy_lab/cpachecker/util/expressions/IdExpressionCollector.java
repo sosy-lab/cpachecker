@@ -46,17 +46,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Visitor that collects all {@link CIdExpression CIdExpressions} that appear in an expression.
- */
+/** Visitor that collects all {@link CIdExpression CIdExpressions} that appear in an expression. */
 public class IdExpressionCollector
-    implements CExpressionVisitor<Set<CSimpleDeclaration>, CPATransferException> {
+    implements CExpressionVisitor<Set<MemoryLocation>, CPATransferException> {
 
   @Override
-  public Set<CSimpleDeclaration> visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+  public Set<MemoryLocation> visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws CPATransferException {
-    Set<CSimpleDeclaration> ids = new HashSet<>();
+    Set<MemoryLocation> ids = new HashSet<>();
     ids.addAll(pIastArraySubscriptExpression.getArrayExpression().accept(this));
     ids.addAll(pIastArraySubscriptExpression.getSubscriptExpression().accept(this));
 
@@ -64,35 +63,37 @@ public class IdExpressionCollector
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFieldReference pIastFieldReference) throws CPATransferException {
+  public Set<MemoryLocation> visit(CFieldReference pIastFieldReference)
+      throws CPATransferException {
     return pIastFieldReference.getFieldOwner().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CIdExpression pIastIdExpression) throws CPATransferException {
+  public Set<MemoryLocation> visit(CIdExpression pIastIdExpression) throws CPATransferException {
     CSimpleDeclaration idDeclaration = pIastIdExpression.getDeclaration();
     if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
-      return Collections.singleton(pIastIdExpression.getDeclaration());
+      return Collections.singleton(MemoryLocation.valueOf(idDeclaration.getQualifiedName()));
     } else {
       return Collections.emptySet();
     }
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CPointerExpression pointerExpression) throws CPATransferException {
+  public Set<MemoryLocation> visit(CPointerExpression pointerExpression)
+      throws CPATransferException {
     return pointerExpression.getOperand().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CComplexCastExpression complexCastExpression)
+  public Set<MemoryLocation> visit(CComplexCastExpression complexCastExpression)
       throws CPATransferException {
     return complexCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CBinaryExpression pIastBinaryExpression)
+  public Set<MemoryLocation> visit(CBinaryExpression pIastBinaryExpression)
       throws CPATransferException {
-    Set<CSimpleDeclaration> ids = new HashSet<>();
+    Set<MemoryLocation> ids = new HashSet<>();
     ids.addAll(pIastBinaryExpression.getOperand1().accept(this));
     ids.addAll(pIastBinaryExpression.getOperand2().accept(this));
 
@@ -100,54 +101,55 @@ public class IdExpressionCollector
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CCastExpression pIastCastExpression) throws CPATransferException {
+  public Set<MemoryLocation> visit(CCastExpression pIastCastExpression)
+      throws CPATransferException {
     return pIastCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CCharLiteralExpression pIastCharLiteralExpression)
+  public Set<MemoryLocation> visit(CCharLiteralExpression pIastCharLiteralExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+  public Set<MemoryLocation> visit(CFloatLiteralExpression pIastFloatLiteralExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+  public Set<MemoryLocation> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CStringLiteralExpression pIastStringLiteralExpression)
+  public Set<MemoryLocation> visit(CStringLiteralExpression pIastStringLiteralExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CTypeIdExpression pIastTypeIdExpression)
+  public Set<MemoryLocation> visit(CTypeIdExpression pIastTypeIdExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CUnaryExpression pIastUnaryExpression)
+  public Set<MemoryLocation> visit(CUnaryExpression pIastUnaryExpression)
       throws CPATransferException {
     return pIastUnaryExpression.getOperand().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CImaginaryLiteralExpression PIastLiteralExpression)
+  public Set<MemoryLocation> visit(CImaginaryLiteralExpression PIastLiteralExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+  public Set<MemoryLocation> visit(CAddressOfLabelExpression pAddressOfLabelExpression)
       throws CPATransferException {
     return Collections.emptySet();
   }

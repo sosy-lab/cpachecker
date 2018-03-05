@@ -66,7 +66,7 @@ public class DependenceGraph implements Serializable {
   private final ImmutableTable<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
   private final ImmutableSet<DGEdge> edges;
 
-  private final ShutdownNotifier shutdownNotifier;
+  private final transient ShutdownNotifier shutdownNotifier;
 
   DependenceGraph(
       final Table<CFAEdge, Optional<MemoryLocation>, DGNode> pNodes,

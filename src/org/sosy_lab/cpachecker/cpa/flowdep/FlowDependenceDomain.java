@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
@@ -80,7 +82,7 @@ class FlowDependenceDomain implements AbstractDomain {
         CFAEdge g = e.getRowKey();
         Optional<MemoryLocation> m = e.getColumnKey();
 
-        joinedFlowDeps.addDependence(g, m, e.getValue());
+        joinedFlowDeps.addDependence(g, m, checkNotNull(e.getValue()));
       }
       return joinedFlowDeps;
     }

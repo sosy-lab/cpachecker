@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Optional;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -56,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -65,51 +67,45 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.IdExpressionCollector;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
-/**
- * Returns all identifiers used in the visited tree.
- */
-public class UsedIdsCollector implements CAstNodeVisitor<Set<CSimpleDeclaration>, CPATransferException> {
+/** Returns all identifiers used in the visited tree. */
+public class UsedIdsCollector
+    implements CAstNodeVisitor<Set<MemoryLocation>, CPATransferException> {
 
   private final IdExpressionCollector idCollector = new IdExpressionCollector();
 
   @Override
-  public Set<CSimpleDeclaration> visit(CExpressionStatement pIastExpressionStatement)
+  public Set<MemoryLocation> visit(CExpressionStatement pIastExpressionStatement)
       throws CPATransferException {
     return pIastExpressionStatement.getExpression().accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CExpressionAssignmentStatement pExp)
+  public Set<MemoryLocation> visit(CExpressionAssignmentStatement pExp)
       throws CPATransferException {
-    Set<CSimpleDeclaration> lhs = handleLeftHandSide(pExp.getLeftHandSide());
-    Set<CSimpleDeclaration> rhs = pExp.getRightHandSide().accept(this);
+    Set<MemoryLocation> lhs = handleLeftHandSide(pExp.getLeftHandSide());
+    Set<MemoryLocation> rhs = pExp.getRightHandSide().accept(this);
     return combine(lhs, rhs);
   }
 
-  private Set<CSimpleDeclaration> combine(
-      final Set<CSimpleDeclaration> pLhs,
-      final Set<CSimpleDeclaration> pRhs
-  ) {
-    Set<CSimpleDeclaration> combined = new HashSet<>(pLhs);
+  private Set<MemoryLocation> combine(
+      final Set<MemoryLocation> pLhs, final Set<MemoryLocation> pRhs) {
+    Set<MemoryLocation> combined = new HashSet<>(pLhs);
     combined.addAll(pRhs);
     return combined;
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFunctionCallAssignmentStatement pAssignment)
+  public Set<MemoryLocation> visit(CFunctionCallAssignmentStatement pAssignment)
       throws CPATransferException {
-    Set<CSimpleDeclaration> lhs = handleLeftHandSide(pAssignment.getLeftHandSide());
-    Set<CSimpleDeclaration> rhs = pAssignment.getRightHandSide().accept(this);
+    Set<MemoryLocation> lhs = handleLeftHandSide(pAssignment.getLeftHandSide());
+    Set<MemoryLocation> rhs = pAssignment.getRightHandSide().accept(this);
 
     return combine(lhs, rhs);
   }
 
-  private Set<CSimpleDeclaration> handleLeftHandSide(CLeftHandSide pLeftHandSide)
+  private Set<MemoryLocation> handleLeftHandSide(CLeftHandSide pLeftHandSide)
       throws CPATransferException {
 
     if (pLeftHandSide instanceof CIdExpression) {
@@ -120,9 +116,8 @@ public class UsedIdsCollector implements CAstNodeVisitor<Set<CSimpleDeclaration>
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFunctionCallStatement pCall)
-      throws CPATransferException {
-    Set<CSimpleDeclaration> used = new HashSet<>();
+  public Set<MemoryLocation> visit(CFunctionCallStatement pCall) throws CPATransferException {
+    Set<MemoryLocation> used = new HashSet<>();
     for (CExpression p : pCall.getFunctionCallExpression().getParameterExpressions()) {
       used.addAll(p.accept(idCollector));
     }
@@ -130,61 +125,63 @@ public class UsedIdsCollector implements CAstNodeVisitor<Set<CSimpleDeclaration>
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CArrayDesignator pArrayDesignator) throws CPATransferException {
+  public Set<MemoryLocation> visit(CArrayDesignator pArrayDesignator) throws CPATransferException {
     return pArrayDesignator.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CArrayRangeDesignator pArrayRangeDesignator)
+  public Set<MemoryLocation> visit(CArrayRangeDesignator pArrayRangeDesignator)
       throws CPATransferException {
-    Set<CSimpleDeclaration> fst = pArrayRangeDesignator.getCeilExpression().accept(idCollector);
-    Set<CSimpleDeclaration> snd = pArrayRangeDesignator.getFloorExpression().accept(idCollector);
+    Set<MemoryLocation> fst = pArrayRangeDesignator.getCeilExpression().accept(idCollector);
+    Set<MemoryLocation> snd = pArrayRangeDesignator.getFloorExpression().accept(idCollector);
     return combine(fst, snd);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFieldDesignator pFieldDesignator) throws CPATransferException {
+  public Set<MemoryLocation> visit(CFieldDesignator pFieldDesignator) throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CArraySubscriptExpression pExp) throws CPATransferException {
-    Set<CSimpleDeclaration> fst = pExp.getArrayExpression().accept(idCollector);
-    Set<CSimpleDeclaration> snd = pExp.getSubscriptExpression().accept(idCollector);
+  public Set<MemoryLocation> visit(CArraySubscriptExpression pExp) throws CPATransferException {
+    Set<MemoryLocation> fst = pExp.getArrayExpression().accept(idCollector);
+    Set<MemoryLocation> snd = pExp.getSubscriptExpression().accept(idCollector);
 
     return combine(fst, snd);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFieldReference pIastFieldReference) throws CPATransferException {
+  public Set<MemoryLocation> visit(CFieldReference pIastFieldReference)
+      throws CPATransferException {
     return pIastFieldReference.getFieldOwner().accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CIdExpression pIastIdExpression) throws CPATransferException {
+  public Set<MemoryLocation> visit(CIdExpression pIastIdExpression) throws CPATransferException {
     return pIastIdExpression.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CPointerExpression pointerExpression) throws CPATransferException {
+  public Set<MemoryLocation> visit(CPointerExpression pointerExpression)
+      throws CPATransferException {
     return pointerExpression.getOperand().accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CComplexCastExpression complexCastExpression)
+  public Set<MemoryLocation> visit(CComplexCastExpression complexCastExpression)
       throws CPATransferException {
     return complexCastExpression.getOperand().accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CInitializerExpression pInitializerExpression)
+  public Set<MemoryLocation> visit(CInitializerExpression pInitializerExpression)
       throws CPATransferException {
     return pInitializerExpression.getExpression().accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CInitializerList pInitializerList) throws CPATransferException {
-    Set<CSimpleDeclaration> used = new HashSet<>();
+  public Set<MemoryLocation> visit(CInitializerList pInitializerList) throws CPATransferException {
+    Set<MemoryLocation> used = new HashSet<>();
     for (CInitializer i : pInitializerList.getInitializers()) {
       used.addAll(i.accept(this));
     }
@@ -192,9 +189,9 @@ public class UsedIdsCollector implements CAstNodeVisitor<Set<CSimpleDeclaration>
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CDesignatedInitializer pCStructInitializerPart)
+  public Set<MemoryLocation> visit(CDesignatedInitializer pCStructInitializerPart)
       throws CPATransferException {
-    Set<CSimpleDeclaration> used = new HashSet<>();
+    Set<MemoryLocation> used = new HashSet<>();
     used.addAll(pCStructInitializerPart.getRightHandSide().accept(this));
     for (CDesignator d : pCStructInitializerPart.getDesignators()) {
       used.addAll(d.accept(this));
@@ -204,9 +201,8 @@ public class UsedIdsCollector implements CAstNodeVisitor<Set<CSimpleDeclaration>
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFunctionCallExpression pExp)
-      throws CPATransferException {
-    Set<CSimpleDeclaration> used = new HashSet<>();
+  public Set<MemoryLocation> visit(CFunctionCallExpression pExp) throws CPATransferException {
+    Set<MemoryLocation> used = new HashSet<>();
     used.addAll(pExp.getFunctionNameExpression().accept(idCollector));
     for (CExpression e : pExp.getParameterExpressions()) {
       used.addAll(e.accept(idCollector));
@@ -215,93 +211,87 @@ public class UsedIdsCollector implements CAstNodeVisitor<Set<CSimpleDeclaration>
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CBinaryExpression pExp)
-      throws CPATransferException {
+  public Set<MemoryLocation> visit(CBinaryExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CCastExpression pExp) throws CPATransferException {
+  public Set<MemoryLocation> visit(CCastExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CCharLiteralExpression pExp)
-      throws CPATransferException {
+  public Set<MemoryLocation> visit(CCharLiteralExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFloatLiteralExpression pExp)
-      throws CPATransferException {
+  public Set<MemoryLocation> visit(CFloatLiteralExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CIntegerLiteralExpression pExp)
-      throws CPATransferException {
+  public Set<MemoryLocation> visit(CIntegerLiteralExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CStringLiteralExpression pExp)
-      throws CPATransferException {
+  public Set<MemoryLocation> visit(CStringLiteralExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CTypeIdExpression pExp)
-      throws CPATransferException {
+  public Set<MemoryLocation> visit(CTypeIdExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CUnaryExpression pExp) throws CPATransferException {
+  public Set<MemoryLocation> visit(CUnaryExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CImaginaryLiteralExpression pExp) throws CPATransferException {
+  public Set<MemoryLocation> visit(CImaginaryLiteralExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CAddressOfLabelExpression pExp) throws CPATransferException {
+  public Set<MemoryLocation> visit(CAddressOfLabelExpression pExp) throws CPATransferException {
     return pExp.accept(idCollector);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CFunctionDeclaration pDecl) throws CPATransferException {
+  public Set<MemoryLocation> visit(CFunctionDeclaration pDecl) throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CComplexTypeDeclaration pDecl) throws CPATransferException {
+  public Set<MemoryLocation> visit(CComplexTypeDeclaration pDecl) throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CTypeDefDeclaration pDecl) throws CPATransferException {
+  public Set<MemoryLocation> visit(CTypeDefDeclaration pDecl) throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CVariableDeclaration pDecl) throws CPATransferException {
+  public Set<MemoryLocation> visit(CVariableDeclaration pDecl) throws CPATransferException {
     return pDecl.getInitializer().accept(this);
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CParameterDeclaration pDecl) throws CPATransferException {
+  public Set<MemoryLocation> visit(CParameterDeclaration pDecl) throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CEnumerator pDecl) throws CPATransferException {
+  public Set<MemoryLocation> visit(CEnumerator pDecl) throws CPATransferException {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CSimpleDeclaration> visit(CReturnStatement pNode) throws CPATransferException {
+  public Set<MemoryLocation> visit(CReturnStatement pNode) throws CPATransferException {
     Optional<CExpression> maybeExp = pNode.getReturnValue();
     if (maybeExp.isPresent()) {
       return maybeExp.get().accept(idCollector);

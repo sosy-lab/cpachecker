@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
@@ -97,7 +98,6 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependenceGraph")
@@ -122,8 +122,6 @@ public class DGBuilder {
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportDot = Paths.get("DependenceGraph.dot");
-
-  private VariableClassificationStatistics statistics;
 
   public DGBuilder(
       final CFA pCfa,
@@ -280,8 +278,9 @@ public class DGBuilder {
     for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> c :
         flowDependences.cellSet()) {
 
-      CFAEdge edgeDepending = c.getRowKey();
-      Optional<MemoryLocation> defOfEdge = c.getColumnKey();
+      CFAEdge edgeDepending = checkNotNull(c.getRowKey());
+      Optional<MemoryLocation> defOfEdge = checkNotNull(c.getColumnKey());
+      Multimap<MemoryLocation, CFAEdge> uses = checkNotNull(c.getValue());
       DGNode nodeDepending;
       if (defOfEdge.isPresent()) {
         nodeDepending = getDGNode(edgeDepending, defOfEdge);
@@ -289,8 +288,9 @@ public class DGBuilder {
         nodeDepending = getDGNode(edgeDepending, Optional.empty());
       }
       int flowDepCount = 0;
-      for (Entry<MemoryLocation, CFAEdge> useAndDef : c.getValue().entries()) {
-        DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(useAndDef.getKey()));
+      for (Entry<MemoryLocation, CFAEdge> useAndDef : uses.entries()) {
+        MemoryLocation use = checkNotNull(useAndDef.getKey());
+        DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(use));
         DGEdge newEdge = new FlowDependenceEdge(dependency, nodeDepending);
         addDependence(newEdge);
         flowDepCount++;

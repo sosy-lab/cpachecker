@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.util.Collection;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -41,18 +40,18 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
-
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Checks if a certain variable is defined at most once by the program.
  */
 public class SingleDefinitionChecker implements PropertyChecker {
 
-  private final String varDefName;
+  private final MemoryLocation varDefName;
   private ProgramDefinitionPoint point;
 
   public SingleDefinitionChecker(String varWithSingleDef) {
-    varDefName = varWithSingleDef;
+    varDefName = MemoryLocation.valueOf(varWithSingleDef);
   }
 
   @Override
@@ -113,7 +112,7 @@ public class SingleDefinitionChecker implements PropertyChecker {
         if (left != null) {
           VariableExtractor extractor = new VariableExtractor(edge);
           extractor.resetWarning();
-          String var;
+          MemoryLocation var;
           try {
             var = left.accept(extractor);
           } catch (UnsupportedCCodeException e) {
@@ -126,8 +125,10 @@ public class SingleDefinitionChecker implements PropertyChecker {
       }
       if (edge instanceof CDeclarationEdge
           && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
-          && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getInitializer() != null
-          && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getName().equals(varDefName)) {
+          && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getInitializer()
+              != null
+          && (MemoryLocation.valueOf(((CDeclarationEdge) edge).getDeclaration().getQualifiedName())
+              .equals(varDefName))) {
         return true;
       }
     }

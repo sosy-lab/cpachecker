@@ -37,8 +37,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -91,7 +90,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -106,6 +104,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.UsedIdsCollector;
 import org.sosy_lab.cpachecker.util.expressions.IdExpressionCollector;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -115,68 +114,60 @@ class FlowDependenceTransferRelation
     extends SingleEdgeTransferRelation {
 
   private final TransferRelation delegate;
-  private final UsesCollector usesCollector;
   private final IdExpressionCollector idCollector;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   FlowDependenceTransferRelation(final TransferRelation pDelegate, final LogManager pLogger) {
     delegate = pDelegate;
-    usesCollector = new UsesCollector();
     idCollector = new IdExpressionCollector();
 
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
-  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>>
-      normalizeReachingDefinitions(ReachingDefState pState, String pFunctionName) {
+  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalizeReachingDefinitions(
+      ReachingDefState pState) {
 
     Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalized = new HashMap<>();
 
-    normalized.putAll(normalize(pState.getLocalReachingDefinitions(), pFunctionName));
-    normalized.putAll(normalize(pState.getGlobalReachingDefinitions(), null));
+    normalized.putAll(normalize(pState.getLocalReachingDefinitions()));
+    normalized.putAll(normalize(pState.getGlobalReachingDefinitions()));
     return normalized;
   }
 
-  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>>
-      normalize(Map<String, Set<DefinitionPoint>> pDefs, @Nullable String pFunctionName) {
+  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalize(
+      Map<MemoryLocation, Set<DefinitionPoint>> pDefs) {
 
     Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalized = new HashMap<>();
-    for (Map.Entry<String, Set<DefinitionPoint>> e : pDefs.entrySet()) {
-      String varName = e.getKey();
+    for (Map.Entry<MemoryLocation, Set<DefinitionPoint>> e : pDefs.entrySet()) {
+      MemoryLocation varName = e.getKey();
       Set<DefinitionPoint> points = e.getValue();
 
-      MemoryLocation var;
-      if (pFunctionName != null) {
-        var = MemoryLocation.valueOf(pFunctionName, varName);
-      } else {
-        var = MemoryLocation.valueOf(varName);
-      }
-
       Collection<ProgramDefinitionPoint> defPoints =
-          points.stream()
-              .filter((DefinitionPoint x) -> (x instanceof ProgramDefinitionPoint))
-              .map((DefinitionPoint p) -> (ProgramDefinitionPoint) p)
+          points
+              .stream()
+              .filter(x -> x instanceof ProgramDefinitionPoint)
+              .map(p -> (ProgramDefinitionPoint) p)
               .collect(Collectors.toList());
 
-      normalized.put(var, defPoints);
+      normalized.put(varName, defPoints);
     }
     return normalized;
   }
 
   /**
-   * Returns a new FlowDependenceState for the declaration represented by the given
-   * {@link CVariableDeclaration} object. Since the wrapped
-   * {@link org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefCPA ReachingDefCPA} tracks new
-   * definitions of variables, we only have to consider the use of variables in the initializer that
-   * may exist.
+   * Returns a new FlowDependenceState for the declaration represented by the given {@link
+   * CVariableDeclaration} object. Since the wrapped {@link
+   * org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefCPA ReachingDefCPA} tracks new definitions of
+   * variables, we only have to consider the use of variables in the initializer that may exist.
    */
   private FlowDependenceState handleDeclarationEdge(
       CDeclarationEdge pCfaEdge,
       CVariableDeclaration pDecl,
       FlowDependenceState pNextFlowState,
-      ReachingDefState pReachDefState
-  ) throws CPATransferException {
+      ReachingDefState pReachDefState,
+      PointerState pPointerState)
+      throws CPATransferException {
 
     CInitializer maybeInitializer = pDecl.getInitializer();
 
@@ -186,7 +177,11 @@ class FlowDependenceTransferRelation
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
       MemoryLocation def = MemoryLocation.valueOf(pDecl.getQualifiedName());
       return handleOperation(
-          pCfaEdge, Optional.of(def), getUsedVars(initializerExp), pNextFlowState, pReachDefState);
+          pCfaEdge,
+          Optional.of(def),
+          getUsedVars(initializerExp, pPointerState),
+          pNextFlowState,
+          pReachDefState);
 
     } else {
       // If the declaration contains no initializer, there are no variable uses and ergo
@@ -205,17 +200,15 @@ class FlowDependenceTransferRelation
   private FlowDependenceState handleOperation(
       CFAEdge pCfaEdge,
       Optional<MemoryLocation> pDef,
-      Set<CSimpleDeclaration> pUses,
+      Set<MemoryLocation> pUses,
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState) {
 
-    String functionName = pCfaEdge.getPredecessor().getFunctionName();
     Map<MemoryLocation, Collection<ProgramDefinitionPoint>> defs =
-        normalizeReachingDefinitions(pReachDefState, functionName);
+        normalizeReachingDefinitions(pReachDefState);
 
     Multimap<MemoryLocation, ProgramDefinitionPoint> dependences = HashMultimap.create();
-    for (CSimpleDeclaration use : pUses) {
-      MemoryLocation memLoc = MemoryLocation.valueOf(use.getQualifiedName());
+    for (MemoryLocation memLoc : pUses) {
       Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
       if (definitionPoints != null && !definitionPoints.isEmpty()) {
         dependences.putAll(memLoc, definitionPoints);
@@ -230,61 +223,78 @@ class FlowDependenceTransferRelation
     return pNextState;
   }
 
-  private Set<CSimpleDeclaration> getUsedVars(CAstNode pExpression)
+  private Set<MemoryLocation> getUsedVars(CAstNode pExpression, PointerState pPointerState)
       throws CPATransferException {
+    UsesCollector usesCollector = new UsesCollector(pPointerState, logger);
     return pExpression.accept(usesCollector);
   }
 
   private FlowDependenceState handleReturnStatementEdge(
       CReturnStatementEdge pCfaEdge,
       FlowDependenceState pNextState,
-      ReachingDefState pReachDefState)
+      ReachingDefState pReachDefState,
+      PointerState pPointerState)
       throws CPATransferException {
     com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
 
     if (asAssignment.isPresent()) {
       CAssignment returnAssignment = asAssignment.get();
       CRightHandSide rhs = returnAssignment.getRightHandSide();
-      MemoryLocation def = getDef(returnAssignment.getLeftHandSide());
+      Set<MemoryLocation> defs = getDef(returnAssignment.getLeftHandSide(), pPointerState);
 
-      return handleOperation(
-          pCfaEdge, Optional.of(def), getUsedVars(rhs), pNextState, pReachDefState);
+      FlowDependenceState nextState = pNextState;
+      for (MemoryLocation d : defs) {
+        nextState =
+            handleOperation(
+                pCfaEdge,
+                Optional.of(d),
+                getUsedVars(rhs, pPointerState),
+                nextState,
+                pReachDefState);
+      }
+      return nextState;
+
     } else {
       return pNextState;
     }
   }
 
-  private MemoryLocation getDef(CLeftHandSide pLeftHandSide) throws CPATransferException {
-    Set<CSimpleDeclaration> decls;
+  private Set<MemoryLocation> getDef(CLeftHandSide pLeftHandSide, PointerState pPointerState)
+      throws CPATransferException {
+    Set<MemoryLocation> decls;
     if (pLeftHandSide instanceof CPointerExpression) {
-      throw new CPATransferException("Can't handle pointer dereference: " + pLeftHandSide);
+      return ReachingDefUtils.possiblePointees(pLeftHandSide, pPointerState);
+
     } else if (pLeftHandSide instanceof CArraySubscriptExpression) {
       decls = ((CArraySubscriptExpression) pLeftHandSide).getArrayExpression().accept(idCollector);
     } else {
       decls = pLeftHandSide.accept(idCollector);
     }
-
-    assert decls.size() == 1;
-    CSimpleDeclaration decl = Iterables.get(decls, 0);
-    return MemoryLocation.valueOf(decl.getQualifiedName());
+    return decls;
   }
 
   protected FlowDependenceState handleAssumption(
       CAssumeEdge cfaEdge,
       CExpression expression,
       FlowDependenceState pNextState,
-      ReachingDefState pReachDefState)
+      ReachingDefState pReachDefState,
+      PointerState pPointerState)
       throws CPATransferException {
     return handleOperation(
-        cfaEdge, Optional.empty(), getUsedVars(expression), pNextState, pReachDefState);
+        cfaEdge,
+        Optional.empty(),
+        getUsedVars(expression, pPointerState),
+        pNextState,
+        pReachDefState);
   }
 
   protected FlowDependenceState handleFunctionCallEdge(
       CFunctionCallEdge pFunctionCallEdge,
       List<CExpression> pArguments,
       FlowDependenceState pNextState,
-      ReachingDefState pReachDefState
-  ) throws CPATransferException {
+      ReachingDefState pReachDefState,
+      PointerState pPointerState)
+      throws CPATransferException {
 
     FlowDependenceState nextState = pNextState;
     List<CParameterDeclaration> params = pFunctionCallEdge.getSuccessor().getFunctionParameters();
@@ -295,7 +305,7 @@ class FlowDependenceTransferRelation
           handleOperation(
               pFunctionCallEdge,
               Optional.of(def),
-              getUsedVars(argument),
+              getUsedVars(argument, pPointerState),
               nextState,
               pReachDefState);
     }
@@ -306,15 +316,37 @@ class FlowDependenceTransferRelation
       CStatementEdge pCfaEdge,
       CStatement pStatement,
       FlowDependenceState pNextState,
-      ReachingDefState pReachDefState)
+      ReachingDefState pReachDefState,
+      PointerState pPointerState)
       throws CPATransferException {
 
-    MemoryLocation def = null;
+    FlowDependenceState nextState = pNextState;
+    Set<MemoryLocation> possibleDefs;
     if (pStatement instanceof CAssignment) {
-      def = getDef(((CAssignment) pStatement).getLeftHandSide());
+      possibleDefs = getDef(((CAssignment) pStatement).getLeftHandSide(), pPointerState);
+
+      if (possibleDefs != null) {
+        for (MemoryLocation def : possibleDefs) {
+          nextState =
+              handleOperation(
+                  pCfaEdge,
+                  Optional.ofNullable(def),
+                  getUsedVars(pStatement, pPointerState),
+                  nextState,
+                  pReachDefState);
+        }
+      } else {
+        nextState =
+            handleOperation(
+                pCfaEdge,
+                Optional.empty(),
+                getUsedVars(pStatement, pPointerState),
+                nextState,
+                pReachDefState);
+      }
     }
-    return handleOperation(
-        pCfaEdge, Optional.ofNullable(def), getUsedVars(pStatement), pNextState, pReachDefState);
+
+    return nextState;
   }
 
   @Override
@@ -334,6 +366,7 @@ class FlowDependenceTransferRelation
       CompositeState newReachDefState = nextComposite.get();
       Pair<ReachingDefState, PointerState> oldReachDefAndPointerState = oldState.unwrap();
       ReachingDefState oldReachDefState = oldReachDefAndPointerState.getFirst();
+      PointerState oldPointerState = oldReachDefAndPointerState.getSecond();
 
       FlowDependenceState nextState = new FlowDependenceState(newReachDefState);
       switch (pCfaEdge.getEdgeType()) {
@@ -341,7 +374,9 @@ class FlowDependenceTransferRelation
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
           if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
             CVariableDeclaration declaration = (CVariableDeclaration) declEdge.getDeclaration();
-            nextState = handleDeclarationEdge(declEdge, declaration, nextState, oldReachDefState);
+            nextState =
+                handleDeclarationEdge(
+                    declEdge, declaration, nextState, oldReachDefState, oldPointerState);
           } // else {
             // Function declarations don't introduce any flow dependencies
             // }
@@ -350,30 +385,39 @@ class FlowDependenceTransferRelation
         case StatementEdge:
           CStatementEdge stmtEdge = (CStatementEdge) pCfaEdge;
           nextState =
-              handleStatementEdge(stmtEdge, stmtEdge.getStatement(), nextState, oldReachDefState);
+              handleStatementEdge(
+                  stmtEdge, stmtEdge.getStatement(), nextState, oldReachDefState, oldPointerState);
           break;
 
         case AssumeEdge:
           CAssumeEdge assumeEdge = (CAssumeEdge) pCfaEdge;
           nextState =
-              handleAssumption(assumeEdge, assumeEdge.getExpression(), nextState, oldReachDefState);
+              handleAssumption(
+                  assumeEdge,
+                  assumeEdge.getExpression(),
+                  nextState,
+                  oldReachDefState,
+                  oldPointerState);
           break;
 
         case ReturnStatementEdge:
           CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pCfaEdge;
-          nextState = handleReturnStatementEdge(returnStatementEdge, nextState, oldReachDefState);
+          nextState =
+              handleReturnStatementEdge(
+                  returnStatementEdge, nextState, oldReachDefState, oldPointerState);
           break;
 
         case FunctionCallEdge:
           CFunctionCallEdge callEdge = (CFunctionCallEdge) pCfaEdge;
           nextState =
               handleFunctionCallEdge(
-                  callEdge, callEdge.getArguments(), nextState, oldReachDefState);
+                  callEdge, callEdge.getArguments(), nextState, oldReachDefState, oldPointerState);
           break;
 
         case FunctionReturnEdge:
           CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) pCfaEdge;
-          nextState = handleFunctionReturnEdge(returnEdge, nextState, oldReachDefState);
+          nextState =
+              handleFunctionReturnEdge(returnEdge, nextState, oldReachDefState, oldPointerState);
           break;
 
         default:
@@ -391,7 +435,8 @@ class FlowDependenceTransferRelation
   private FlowDependenceState handleFunctionReturnEdge(
       final CFunctionReturnEdge pReturnEdge,
       final FlowDependenceState pNewState,
-      final ReachingDefState pReachDefState)
+      final ReachingDefState pReachDefState,
+      final PointerState pPointerState)
       throws CPATransferException {
 
     FlowDependenceState nextState = pNewState;
@@ -413,42 +458,43 @@ class FlowDependenceTransferRelation
 
       if (parameterType instanceof CArrayType) {
         CExpression outParam = outFunctionParams.get(i);
-        MemoryLocation def;
+        Set<MemoryLocation> possibleDefs;
         if (outParam instanceof CLeftHandSide) {
-          def = getDef((CLeftHandSide) outParam);
+          possibleDefs = getDef((CLeftHandSide) outParam, pPointerState);
         } else {
-          logger.log(Level.WARNING, "Can't handle dereference to array, over-approximating");
-          def = null;
+          throw new AssertionError("Unhandled: " + outParam);
         }
 
-        nextState =
-            handleOperation(
-                pReturnEdge,
-                Optional.ofNullable(def),
-                ImmutableSet.of(inParam),
-                nextState,
-                pReachDefState);
-
-      } else if (parameterType instanceof CPointerType) {
-        throw new AssertionError();
+        for (MemoryLocation def : possibleDefs) {
+          nextState =
+              handleOperation(
+                  pReturnEdge,
+                  Optional.ofNullable(def),
+                  ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
+                  nextState,
+                  pReachDefState);
+        }
       }
     }
 
     com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
         summaryEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
-      MemoryLocation def = null;
+      Set<MemoryLocation> possibleDefs = new HashSet<>();
       CFunctionCall call = summaryEdge.getExpression();
       if (call instanceof CFunctionCallAssignmentStatement) {
-        def = getDef(((CFunctionCallAssignmentStatement) call).getLeftHandSide());
+        possibleDefs =
+            getDef(((CFunctionCallAssignmentStatement) call).getLeftHandSide(), pPointerState);
       }
-      nextState =
-          handleOperation(
-              pReturnEdge,
-              Optional.ofNullable(def),
-              ImmutableSet.of(maybeReturnVar.get()),
-              nextState,
-              pReachDefState);
+      for (MemoryLocation def : possibleDefs) {
+        nextState =
+            handleOperation(
+                pReturnEdge,
+                Optional.ofNullable(def),
+                ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
+                nextState,
+                pReachDefState);
+      }
     }
     return nextState;
   }
@@ -479,20 +525,28 @@ class FlowDependenceTransferRelation
    * their declaration.
    */
   private static class UsesCollector
-      implements CAstNodeVisitor<Set<CSimpleDeclaration>, CPATransferException> {
+      implements CAstNodeVisitor<Set<MemoryLocation>, CPATransferException> {
 
     private final UsedIdsCollector idCollector = new UsedIdsCollector();
 
+    private final PointerState pointerState;
+    private final LogManagerWithoutDuplicates logger;
+
+    public UsesCollector(
+        final PointerState pPointerState, final LogManagerWithoutDuplicates pLogger) {
+      pointerState = pPointerState;
+      logger = pLogger;
+    }
+
     @Override
-    public Set<CSimpleDeclaration> visit(CExpressionStatement pStmt)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CExpressionStatement pStmt) throws CPATransferException {
       return pStmt.getExpression().accept(new UsedIdsCollector());
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CExpressionAssignmentStatement pStmt)
+    public Set<MemoryLocation> visit(CExpressionAssignmentStatement pStmt)
         throws CPATransferException {
-      Set<CSimpleDeclaration> used = new HashSet<>();
+      Set<MemoryLocation> used = new HashSet<>();
       used.addAll(pStmt.getRightHandSide().accept(this));
       used.addAll(handleLeftHandSide(pStmt.getLeftHandSide()));
 
@@ -500,16 +554,16 @@ class FlowDependenceTransferRelation
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFunctionCallAssignmentStatement pStmt)
+    public Set<MemoryLocation> visit(CFunctionCallAssignmentStatement pStmt)
         throws CPATransferException {
-      Set<CSimpleDeclaration> used = new HashSet<>();
+      Set<MemoryLocation> used = new HashSet<>();
       used.addAll(pStmt.getRightHandSide().accept(this));
       used.addAll(handleLeftHandSide(pStmt.getLeftHandSide()));
 
       return used;
     }
 
-    private Set<CSimpleDeclaration> handleLeftHandSide(final CLeftHandSide pLhs)
+    private Set<MemoryLocation> handleLeftHandSide(final CLeftHandSide pLhs)
         throws CPATransferException {
       if (pLhs instanceof CPointerExpression) {
         return ((CPointerExpression) pLhs).getOperand().accept(this);
@@ -521,9 +575,8 @@ class FlowDependenceTransferRelation
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFunctionCallStatement pStmt)
-        throws CPATransferException {
-      Set<CSimpleDeclaration> paramDecls = new HashSet<>();
+    public Set<MemoryLocation> visit(CFunctionCallStatement pStmt) throws CPATransferException {
+      Set<MemoryLocation> paramDecls = new HashSet<>();
      for (CExpression p : pStmt.getFunctionCallExpression().getParameterExpressions()) {
        paramDecls.addAll(p.accept(this));
      }
@@ -531,63 +584,64 @@ class FlowDependenceTransferRelation
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CArrayDesignator pArrayDesignator)
+    public Set<MemoryLocation> visit(CArrayDesignator pArrayDesignator)
         throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CArrayRangeDesignator pArrayRangeDesignator)
+    public Set<MemoryLocation> visit(CArrayRangeDesignator pArrayRangeDesignator)
         throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFieldDesignator pFieldDesignator)
+    public Set<MemoryLocation> visit(CFieldDesignator pFieldDesignator)
         throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CArraySubscriptExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CArraySubscriptExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFieldReference pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CFieldReference pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CIdExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CIdExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CPointerExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CPointerExpression pExp) throws CPATransferException {
+      Set<MemoryLocation> uses = new HashSet<>(pExp.accept(idCollector));
+      Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pointerState);
+      if (pointees == null) {
+        logger.logOnce(Level.WARNING, "Unhandled pointer dereference. Analysis may be unsound.");
+      } else {
+        uses.addAll(pointees);
+      }
+      return uses;
+    }
+
+    @Override
+    public Set<MemoryLocation> visit(CComplexCastExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CComplexCastExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CInitializerExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CInitializerExpression pExp)
+    public Set<MemoryLocation> visit(CInitializerList pInitializerList)
         throws CPATransferException {
-      return pExp.accept(idCollector);
-    }
-
-    @Override
-    public Set<CSimpleDeclaration> visit(CInitializerList pInitializerList)
-        throws CPATransferException {
-      Set<CSimpleDeclaration> uses = new HashSet<>();
+      Set<MemoryLocation> uses = new HashSet<>();
       for (CInitializer i : pInitializerList.getInitializers()) {
         uses.addAll(i.accept(this));
       }
@@ -595,15 +649,13 @@ class FlowDependenceTransferRelation
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CDesignatedInitializer pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CDesignatedInitializer pExp) throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFunctionCallExpression pExp)
-        throws CPATransferException {
-      Set<CSimpleDeclaration> useds = new HashSet<>();
+    public Set<MemoryLocation> visit(CFunctionCallExpression pExp) throws CPATransferException {
+      Set<MemoryLocation> useds = new HashSet<>();
       for (CExpression p : pExp.getParameterExpressions()) {
         useds.addAll(p.accept(idCollector));
       }
@@ -611,83 +663,72 @@ class FlowDependenceTransferRelation
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CBinaryExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CBinaryExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CCastExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CCastExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CCharLiteralExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CCharLiteralExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFloatLiteralExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CFloatLiteralExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CIntegerLiteralExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CIntegerLiteralExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CStringLiteralExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CStringLiteralExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CTypeIdExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CTypeIdExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CUnaryExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CUnaryExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CImaginaryLiteralExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CImaginaryLiteralExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CAddressOfLabelExpression pExp)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CAddressOfLabelExpression pExp) throws CPATransferException {
       return pExp.accept(idCollector);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CFunctionDeclaration pDecl) throws CPATransferException {
+    public Set<MemoryLocation> visit(CFunctionDeclaration pDecl) throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CComplexTypeDeclaration pDecl)
-        throws CPATransferException {
+    public Set<MemoryLocation> visit(CComplexTypeDeclaration pDecl) throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CTypeDefDeclaration pDecl) throws CPATransferException {
+    public Set<MemoryLocation> visit(CTypeDefDeclaration pDecl) throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CVariableDeclaration pDecl) throws CPATransferException {
+    public Set<MemoryLocation> visit(CVariableDeclaration pDecl) throws CPATransferException {
       CInitializer init = pDecl.getInitializer();
       if (init != null) {
         return init.accept(this);
@@ -697,17 +738,17 @@ class FlowDependenceTransferRelation
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CParameterDeclaration pDecl) throws CPATransferException {
+    public Set<MemoryLocation> visit(CParameterDeclaration pDecl) throws CPATransferException {
       return pDecl.asVariableDeclaration().accept(this);
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CEnumerator pDecl) throws CPATransferException {
+    public Set<MemoryLocation> visit(CEnumerator pDecl) throws CPATransferException {
       return Collections.emptySet();
     }
 
     @Override
-    public Set<CSimpleDeclaration> visit(CReturnStatement pNode) throws CPATransferException {
+    public Set<MemoryLocation> visit(CReturnStatement pNode) throws CPATransferException {
       com.google.common.base.Optional<CExpression> ret = pNode.getReturnValue();
 
       if (ret.isPresent()) {

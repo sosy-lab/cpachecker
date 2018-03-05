@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -153,12 +155,13 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
         e : usedDefs.cellSet()) {
       sb.append("\t");
-      sb.append(e.getRowKey().toString());
-      if (e.getColumnKey().isPresent()) {
-        sb.append(" + ").append(e.getColumnKey().toString());
+      sb.append(checkNotNull(e.getRowKey()).toString());
+      Optional<MemoryLocation> possibleDef = checkNotNull(e.getColumnKey());
+      if (possibleDef.isPresent()) {
+        sb.append(" + ").append(possibleDef.toString());
       }
       sb.append(":\n");
-      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : e.getValue().entries()) {
+      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : checkNotNull(e.getValue()).entries()) {
         sb.append("\t\t");
         sb.append(memDefs.getKey().toString()).append(" <- ").append(memDefs.getValue());
         sb.append("\n");
@@ -184,13 +187,17 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
         sb.append(", ");
       }
       first = false;
-      sb.append(e.getRowKey().toString());
-      if (e.getColumnKey().isPresent()) {
-        sb.append(" + ").append(e.getColumnKey().toString());
+
+      CFAEdge edge = checkNotNull(e.getRowKey());
+      Optional<MemoryLocation> possibleDef = checkNotNull(e.getColumnKey());
+      Multimap<MemoryLocation, ProgramDefinitionPoint> uses = checkNotNull(e.getValue());
+      sb.append(edge.toString());
+      if (possibleDef.isPresent()) {
+        sb.append(" + ").append(possibleDef.toString());
       }
       sb.append(": [ ");
       boolean first2 = true;
-      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : e.getValue().entries()) {
+      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : uses.entries()) {
         if (!first2) {
           sb.append(", ");
         }
