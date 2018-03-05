@@ -185,7 +185,6 @@ public class DGBuilder {
       FluentIterable<CFAEdge> assumeEdges = CFAUtils.leavingEdges(branch);
       assert assumeEdges.size() == 2;
       for (CFAEdge g : assumeEdges) {
-
         DGNode nodeDependentOn = getDGNode(g, Optional.empty());
         int controlDepCount = 0;
         assert getDGNodes(g).size() == 1
@@ -196,11 +195,15 @@ public class DGBuilder {
         waitlist.offer(g);
         while (!waitlist.isEmpty()) {
           CFAEdge current = waitlist.poll();
+          CFANode succ = current.getSuccessor();
+          if (!reachableNodes.contains(succ)) {
+            continue;
+          }
           if (!reached.contains(current)) {
             reached.add(current);
             CFANode precessorNode = current.getPredecessor();
             if (precessorNode.equals(branch)) {
-              CFAUtils.leavingEdges(current.getSuccessor()).forEach(waitlist::offer);
+              CFAUtils.leavingEdges(succ).forEach(waitlist::offer);
 
             } else
             // branch node is not post-dominated by current node (condition 2 of control dependence)
@@ -500,7 +503,7 @@ public class DGBuilder {
      * <p>That means that every program path from the given node to the program exit has to go
      * through each node that is in the returned collection
      */
-    public Set<CFANode> getPostDominators(final CFANode pNode) {
+    private Set<CFANode> getPostDominators(final CFANode pNode) {
       checkState(
           postDominatorMap.containsKey(pNode), "Node " + pNode + " not in post-dominator map");
       return postDominatorMap.get(pNode);
