@@ -38,7 +38,7 @@ public class LocationCPABackwards extends AbstractCPA {
   private final LocationStateFactory stateFactory;
 
   private LocationCPABackwards(LocationStateFactory pStateFactory) {
-    super("sep", "sep", new LocationTransferRelation(pStateFactory));
+    super("sep", "sep", new LocationTransferRelationBackwards(pStateFactory));
     stateFactory = pStateFactory;
   }
 
