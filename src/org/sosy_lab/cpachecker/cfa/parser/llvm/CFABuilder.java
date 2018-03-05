@@ -417,45 +417,126 @@ public class CFABuilder {
     for (Value i : pItem) {
       if (i.isDbgInfoIntrinsic() || i.isDbgDeclareInst()) {
         continue;
-      }
 
-      // process this basic block
-      List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
-      if (expressions == null) {
+      } else if (i.isSelectInst()) {
+        CDeclaration decl = (CDeclaration) getAssignedVarDeclaration(i, funcName, null, pFileName);
         curNode = newNode(funcName);
-        addEdge(new BlankEdge(i.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
+        addEdge(
+            new CDeclarationEdge(
+                decl.toASTString(), decl.getFileLocation(), prevNode, curNode, decl));
         prevNode = curNode;
-        continue;
-      }
 
-      for (CAstNode expr : expressions) {
-        FileLocation exprLocation = expr.getFileLocation();
-        // build an edge with this expression over it
-        if (expr instanceof CDeclaration) {
+        assert i.getNumOperands() == 3
+            : "Select statement doesn't have 3 operands, but " + i.getNumOperands();
+        Value condition = i.getOperand(0);
+        Value valueIf = i.getOperand(1);
+        Value valueElse = i.getOperand(2);
+
+        CType ifType = typeConverter.getCType(valueIf.typeOf());
+        assert ifType.equals(typeConverter.getCType(valueElse.typeOf()));
+        CExpression conditionC = getBranchCondition(condition, funcName, pFileName);
+        CExpression trueValue = getExpression(valueIf, ifType, pFileName);
+        CStatement trueAssignment =
+            (CStatement) getAssignStatement(i, trueValue, funcName, pFileName).get(0);
+        // we can use ifType again, since ifType == elseType for `select` instruction
+        CExpression falseValue = getExpression(valueElse, ifType, pFileName);
+        CStatement falseAssignment =
+            (CStatement) getAssignStatement(i, falseValue, funcName, pFileName).get(0);
+
+        CFANode trueNode = newNode(funcName);
+        CFANode falseNode = newNode(funcName);
+        CAssumeEdge trueBranch =
+            new CAssumeEdge(
+                conditionC.toASTString(),
+                conditionC.getFileLocation(),
+                prevNode,
+                trueNode,
+                conditionC,
+                true);
+        addEdge(trueBranch);
+        CAssumeEdge falseBranch =
+            new CAssumeEdge(
+                conditionC.toASTString(),
+                conditionC.getFileLocation(),
+                prevNode,
+                falseNode,
+                conditionC,
+                false);
+        addEdge(falseBranch);
+
+        prevNode = trueNode;
+        trueNode = newNode(funcName);
+        CStatementEdge trueAssign =
+            new CStatementEdge(
+                trueAssignment.toASTString(),
+                trueAssignment,
+                trueAssignment.getFileLocation(),
+                prevNode,
+                trueNode);
+        addEdge(trueAssign);
+
+        prevNode = falseNode;
+        falseNode = newNode(funcName);
+        CStatementEdge falseAssign =
+            new CStatementEdge(
+                falseAssignment.toASTString(),
+                falseAssignment,
+                falseAssignment.getFileLocation(),
+                prevNode,
+                falseNode);
+        addEdge(falseAssign);
+
+        curNode = newNode(funcName);
+        BlankEdge trueMeet =
+            new BlankEdge("", falseAssignment.getFileLocation(), trueNode, curNode, "");
+        addEdge(trueMeet);
+
+        BlankEdge falseMeet =
+            new BlankEdge("", falseAssignment.getFileLocation(), falseNode, curNode, "");
+        addEdge(falseMeet);
+
+        prevNode = curNode;
+
+      } else {
+
+        // process this basic block
+        List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
+        if (expressions == null) {
           curNode = newNode(funcName);
-          addEdge(
-              new CDeclarationEdge(
-                  expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
-        } else if (expr instanceof CReturnStatement) {
-          curNode = exitNode;
-          addEdge(
-              new CReturnStatementEdge(
-                  i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
-        } else if (i.isUnreachableInst()) {
-          curNode = exitNode;
-          addEdge(new BlankEdge(i.toString(), exprLocation, prevNode, curNode, "unreachable"));
-        } else {
-          curNode = newNode(funcName);
-          addEdge(
-              new CStatementEdge(
-                  expr.toASTString() + i.toString(),
-                  (CStatement) expr,
-                  exprLocation,
-                  prevNode,
-                  curNode));
+          addEdge(new BlankEdge(i.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
+          prevNode = curNode;
+          continue;
         }
 
-        prevNode = curNode;
+        for (CAstNode expr : expressions) {
+          FileLocation exprLocation = expr.getFileLocation();
+          // build an edge with this expression over it
+          if (expr instanceof CDeclaration) {
+            curNode = newNode(funcName);
+            addEdge(
+                new CDeclarationEdge(
+                    expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
+          } else if (expr instanceof CReturnStatement) {
+            curNode = exitNode;
+            addEdge(
+                new CReturnStatementEdge(
+                    i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
+          } else if (i.isUnreachableInst()) {
+            curNode = exitNode;
+            addEdge(new BlankEdge(i.toString(), exprLocation, prevNode, curNode, "unreachable"));
+          } else {
+            curNode = newNode(funcName);
+            addEdge(
+                new CStatementEdge(
+                    expr.toASTString() + i.toString(),
+                    (CStatement) expr,
+                    exprLocation,
+                    prevNode,
+                    curNode));
+          }
+
+          prevNode = curNode;
+        }
       }
     }
 
@@ -497,11 +578,17 @@ public class CFABuilder {
 
   private CExpression getBranchCondition(final Value pItem, String funcName, final String pFileName)
       throws LLVMException {
-    Value cond = pItem.getCondition();
-    try {
+    CExpression condition;
+    if (pItem.isConditional()) {
+      Value cond = pItem.getCondition();
       CType expectedType = typeConverter.getCType(cond.typeOf());
+      condition = getExpression(cond, expectedType, pFileName);
+    } else {
+      condition = getAssignedIdExpression(pItem, CNumericTypes.BOOL, pFileName);
+    }
+    try {
       return binaryExpressionBuilder.buildBinaryExpression(
-          getExpression(cond, expectedType, pFileName),
+          condition,
           new CIntegerLiteralExpression(
               getLocation(pItem, pFileName), CNumericTypes.BOOL, BigInteger.ONE),
           BinaryOperator.EQUALS);
@@ -1076,8 +1163,9 @@ public class CFABuilder {
       return idExpression;
 
     } else if (pointerOf(pExpectedType, expressionType)) {
-      CType typePointingTo = ((CPointerType) pExpectedType).getType();
-      if (typePointingTo.equals(expressionType)) {
+      CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
+      if (expressionType.canBeAssignedFrom(typePointingTo)
+          || expressionType.equals(typePointingTo)) {
         return new CUnaryExpression(
             getLocation(pItem, pFileName), pExpectedType, idExpression, UnaryOperator.AMPER);
       } else {
@@ -1103,7 +1191,10 @@ public class CFABuilder {
    */
   private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
     if (pPotentialPointer instanceof CPointerType) {
-      return ((CPointerType) pPotentialPointer).getType().equals(pPotentialPointee);
+      return ((CPointerType) pPotentialPointer)
+          .getType()
+          .getCanonicalType()
+          .equals(pPotentialPointee.getCanonicalType());
     } else {
       return false;
     }
