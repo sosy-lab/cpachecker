@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -293,6 +294,7 @@ public class SlicingRefiner implements Refiner {
   private Pair<Set<ARGState>, SlicingPrecision> getNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
+    SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
@@ -301,13 +303,20 @@ public class SlicingRefiner implements Refiner {
     for (ARGPath tp : targetPaths) {
       Collection<ARGState> relevantStates = getRelevantStates(tp);
       for (ARGState criterion : relevantStates) {
-        Set<CFAEdge> slice = getSlice(criterion);
-        refinementRoots.add(getRefinementRoot(tp, slice));
-        relevantEdges.addAll(slice);
+        CFANode loc = AbstractStates.extractLocation(criterion);
+        List<CFAEdge> criteriaEdges = CFAUtils.enteringEdges(loc).toList();
+        for (CFAEdge e : criteriaEdges) {
+          // If the relevant edges contain e, then all dependences of e are also already included
+          // and we can skip it
+          if (!relevantEdges.contains(e) && !oldPrec.isRelevant(e)) {
+            Collection<CFAEdge> slice = getSlice(e);
+            refinementRoots.add(getRefinementRoot(tp, slice));
+            relevantEdges.addAll(slice);
+          }
+        }
       }
     }
 
-    SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
     SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
     return Pair.of(refinementRoots, newPrec);
   }
@@ -327,7 +336,9 @@ public class SlicingRefiner implements Refiner {
         }
       }
     }
-    return relevantStates;
+    // Heuristic: Reverse to make states that are deeper in the path first - these
+    // have a higher chance of including earlier states in their dependences
+    return Lists.reverse(relevantStates);
   }
 
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
@@ -342,18 +353,11 @@ public class SlicingRefiner implements Refiner {
   }
 
   /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
-  Set<CFAEdge> getSlice(final ARGState pCriterion) {
-    CFANode loc = AbstractStates.extractLocation(pCriterion);
-    List<CFAEdge> criteria = CFAUtils.enteringEdges(loc).toList();
-
-    Set<CFAEdge> relevantEdges = new HashSet<>();
-    for (CFAEdge c : criteria) {
-      relevantEdges.addAll(depGraph.getReachable(c, TraversalDirection.BACKWARD));
-    }
-    return relevantEdges;
+  Collection<CFAEdge> getSlice(final CFAEdge pCriterion) {
+    return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
   }
 
-  private ARGState getRefinementRoot(final ARGPath pPath, final Set<CFAEdge> relevantEdges) {
+  private ARGState getRefinementRoot(final ARGPath pPath, final Collection<CFAEdge> relevantEdges) {
     PathIterator iterator = pPath.fullPathIterator();
     while (iterator.hasNext()) {
       if (relevantEdges.contains(iterator.getOutgoingEdge())) {
