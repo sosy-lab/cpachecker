@@ -23,12 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,20 +32,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 
 public class LocationTransferRelation implements TransferRelation {
 
   private final LocationStateFactory factory;
-  private final ImmutableSet<Pair<CFANode, CFANode>> edgeCache;
 
-  public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA) {
+  public LocationTransferRelation(LocationStateFactory pFactory) {
     factory = pFactory;
-    edgeCache =
-        from(pCFA.getAllNodes())
-            .transformAndConcat(CFAUtils::allLeavingEdges)
-            .transform(e -> Pair.of(e.getPredecessor(), e.getSuccessor()))
-            .toSet();
   }
 
   @Override
@@ -58,8 +47,7 @@ public class LocationTransferRelation implements TransferRelation {
 
     CFANode node = ((LocationState) element).getLocationNode();
 
-    if (node.equals(cfaEdge.getPredecessor())
-        && edgeCache.contains(Pair.of(node, cfaEdge.getSuccessor()))) {
+    if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
       return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
     }
 
