@@ -294,7 +294,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    *     valid for refinement
    */
   @CanIgnoreReturnValue
-  Set<ARGState> updatePrecision(final ReachedSet pReached) throws RefinementFailedException {
+  Set<ARGState> updatePrecision(final ReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
     Pair<Set<ARGState>, SlicingPrecision> refinementRootsAndPrecision = getNewPrecision(pReached);
     Precision newPrec = refinementRootsAndPrecision.getSecond();
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
@@ -304,7 +305,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   private Pair<Set<ARGState>, SlicingPrecision> getNewPrecision(final ReachedSet pReached)
-      throws RefinementFailedException {
+      throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
     SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
 
@@ -365,7 +366,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
-  Collection<CFAEdge> getSlice(final CFAEdge pCriterion) {
+  Collection<CFAEdge> getSlice(final CFAEdge pCriterion) throws InterruptedException {
     try {
       slicingTime.start();
       return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);

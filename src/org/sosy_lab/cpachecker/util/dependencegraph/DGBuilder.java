@@ -149,7 +149,7 @@ public class DGBuilder {
     addControlDependences();
     addMissingNodes();
 
-    DependenceGraph dg = new DependenceGraph(nodes, edges);
+    DependenceGraph dg = new DependenceGraph(nodes, edges, shutdownNotifier);
     export(dg);
     logger.log(
         Level.FINE,
@@ -190,6 +190,9 @@ public class DGBuilder {
           // Every return edge has to be linked to every call edge, and vice-versa.
           // if a function return is required, the function has to be entered first.
           // And if a function is entered, it must be able to leave it again, properly.
+          // If we left a function return edge that is not relevant out,
+          // it would be replaced by a no-op and the tracked function call stack would
+          // get inconsistent.
 
           // We require the dg node of the call without any parameter definition
           // - if a return edge requires that, it is already solved by flow dependence edges.

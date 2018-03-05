@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -65,10 +66,15 @@ public class DependenceGraph implements Serializable {
   private final ImmutableTable<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
   private final ImmutableSet<DGEdge> edges;
 
+  private final ShutdownNotifier shutdownNotifier;
+
   DependenceGraph(
-      final Table<CFAEdge, Optional<MemoryLocation>, DGNode> pNodes, final Set<DGEdge> pEdges) {
+      final Table<CFAEdge, Optional<MemoryLocation>, DGNode> pNodes,
+      final Set<DGEdge> pEdges,
+      final ShutdownNotifier pShutdownNotifier) {
     edges = ImmutableSet.copyOf(pEdges);
     nodes = ImmutableTable.copyOf(pNodes);
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public static DGBuilder builder(
@@ -92,25 +98,46 @@ public class DependenceGraph implements Serializable {
     return nodes.values();
   }
 
-  public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection) {
+  public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
+      throws InterruptedException {
     Collection<CFAEdge> reachable = new HashSet<>();
     Collection<DGNode> visited = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
     nodes.row(pStart).values().forEach(waitlist::offer);
 
     while (!waitlist.isEmpty()) {
+      if (shutdownNotifier.shouldShutdown()) {
+        throw new InterruptedException();
+      }
       DGNode current = waitlist.poll();
 
       if (!visited.contains(current)) {
+        visited.add(current);
         reachable.add(current.getCfaEdge());
-        Collection<DGNode> adjacent = getAdjacentNodes(current, pDirection);
+        Collection<DGNode> adjacent = getAdjacentFlowAndControlNeighbors(current, pDirection);
         waitlist.addAll(adjacent);
+
+        // We don't consider transitive dependences of function control dependences
+        adjacent = getAdjacentFunctionControlNeighbors(current, pDirection);
+        adjacent.forEach(x -> reachable.add(x.getCfaEdge()));
       }
     }
     return reachable;
   }
 
-  private Collection<DGNode> getAdjacentNodes(DGNode pNode, TraversalDirection pDirection) {
+  private Collection<DGNode> getAdjacentFlowAndControlNeighbors(
+      final DGNode pNode, final TraversalDirection pDirection) {
+    return getAdjacentNeighbors(
+        pNode, pDirection, x -> !(x instanceof FunctionControlDependenceEdge));
+  }
+
+  private Collection<DGNode> getAdjacentFunctionControlNeighbors(
+      final DGNode pNode, final TraversalDirection pDirection) {
+    return getAdjacentNeighbors(pNode, pDirection, x -> x instanceof FunctionControlDependenceEdge);
+  }
+
+  private Collection<DGNode> getAdjacentNeighbors(
+      DGNode pNode, TraversalDirection pDirection, Predicate<DGEdge> pIsEdgeOfInterest) {
     Function<? super DGEdge, Stream<? extends DGNode>> getNextNode;
     switch (pDirection) {
       case FORWARD:
@@ -128,6 +155,7 @@ public class DependenceGraph implements Serializable {
 
     return getAdjacentEdges(pNode, pDirection)
         .stream()
+        .filter(pIsEdgeOfInterest)
         .flatMap(getNextNode)
         .collect(Collectors.toSet());
   }
