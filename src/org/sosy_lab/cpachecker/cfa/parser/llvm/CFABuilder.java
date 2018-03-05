@@ -391,7 +391,7 @@ public class CFABuilder {
               (CLabelNode)
                   pBasicBlocks.get(terminatorInst.getSuccessor(i).hashCode()).getEntryNode();
           Value caseValue = terminatorInst.getOperand(2 * i);
-          CExpression comparisonRhs = getConstant(caseValue, pFileName);
+          CExpression comparisonRhs = (CExpression) getConstant(caseValue, pFileName);
 
           CBinaryExpression comparisonExp =
               new CBinaryExpression(
@@ -715,7 +715,7 @@ public class CFABuilder {
         parameterTypes.add(expectedType);
 
         if (functionArg.isConstant()) {
-          parameters.add(getConstant(functionArg, pFileName));
+          parameters.add((CExpression) getConstant(functionArg, pFileName));
         } else {
           assert variableDeclarations.containsKey(functionArg.getAddress());
           parameters.add(getAssignedIdExpression(functionArg, expectedType, pFileName));
@@ -1008,16 +1008,13 @@ public class CFABuilder {
         throw new AssertionError("Unhandled operation " + pOpCode);
     }
 
-    CExpression expression =
-        new CBinaryExpression(
-            getLocation(pItem, pFileName),
-            expressionType,
-            expressionType, // calculation type is expression type in LLVM
-            operand1Exp,
-            operand2Exp,
-            operation);
-
-    return expression;
+    return new CBinaryExpression(
+        getLocation(pItem, pFileName),
+        expressionType,
+        expressionType, // calculation type is expression type in LLVM
+        operand1Exp,
+        operand2Exp,
+        operation);
   }
 
   private CExpression getExpression(
@@ -1027,26 +1024,55 @@ public class CFABuilder {
       return createFromOpCode(pItem, "", pFileName, pItem.getConstOpCode());
 
     } else if (pItem.isConstant() && !pItem.isGlobalVariable()) {
-      return getConstant(pItem, pFileName);
+      return (CExpression) getConstant(pItem, pFileName);
 
     } else {
       return getAssignedIdExpression(pItem, pExpectedType, pFileName);
     }
   }
 
-  private CExpression getConstant(final Value pItem, final String pFileName) throws LLVMException {
+  private CRightHandSide getConstant(final Value pItem, final String pFileName)
+      throws LLVMException {
     CType expectedType = typeConverter.getCType(pItem.typeOf());
+    FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
       long constantValue = pItem.constIntGetSExtValue();
       return new CIntegerLiteralExpression(
           getLocation(pItem, pFileName), expectedType, BigInteger.valueOf(constantValue));
 
     } else if (pItem.isConstantPointerNull()) {
-      FileLocation location = getLocation(pItem, pFileName);
       return new CPointerExpression(location, expectedType, getNull(location, expectedType));
 
     } else if (pItem.isConstantExpr()) {
       return getExpression(pItem, expectedType, pFileName);
+
+    } else if (pItem.isUndef()) {
+      CType constantType = typeConverter.getCType(pItem.typeOf());
+      String undefName = "__VERIFIER_undef_" + constantType.toString().replace(' ', '_');
+      CSimpleDeclaration undefDecl =
+          new CVariableDeclaration(
+              location,
+              true,
+              CStorageClass.AUTO,
+              expectedType,
+              undefName,
+              undefName,
+              undefName,
+              null);
+      CExpression undefExpression = new CIdExpression(location, undefDecl);
+      return undefExpression;
+
+    } else if (pItem.isFunction()) {
+      Function func = pItem.asFunction();
+      CFunctionDeclaration funcDecl = functionDeclarations.get(func.getValueName());
+      CType functionType = funcDecl.getType();
+
+      CIdExpression funcId = new CIdExpression(location, funcDecl);
+      if (pointerOf(expectedType, functionType)) {
+        return new CUnaryExpression(location, expectedType, funcId, UnaryOperator.AMPER);
+      } else {
+        return funcId;
+      }
 
     } else {
       assert pItem.isConstantFP() : "Unhandled constant is not floating point constant: " + pItem;
@@ -1073,7 +1099,7 @@ public class CFABuilder {
       } else {
         elementInitializer =
             new CInitializerExpression(
-                getLocation(element, pFileName), getConstant(element, pFileName));
+                getLocation(element, pFileName), (CExpression) getConstant(element, pFileName));
       }
       elementInitializers.add(elementInitializer);
     }
@@ -1516,7 +1542,8 @@ public class CFABuilder {
       } else {
         initializer =
             new CInitializerExpression(
-                getLocation(pItem, pFileName), getConstant(initializerRaw, pFileName));
+                getLocation(pItem, pFileName),
+                (CExpression) getConstant(initializerRaw, pFileName));
       }
     } else {
       // Declaration without initialization (nondet)
