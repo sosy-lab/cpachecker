@@ -23,21 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,17 +60,23 @@ public class DependenceGraph implements Serializable {
     BOTH
   }
 
+  public enum DependenceType {
+    CONTROL,
+    FLOW
+  }
+
   private final ImmutableTable<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
-  private final ImmutableSet<DGEdge> edges;
+  private ImmutableTable<DGNode, DGNode, DependenceType> adjacencyMatrix;
 
   private final transient ShutdownNotifier shutdownNotifier;
 
   DependenceGraph(
       final Table<CFAEdge, Optional<MemoryLocation>, DGNode> pNodes,
-      final Set<DGEdge> pEdges,
+      final Table<DGNode, DGNode, DependenceType> pEdges,
       final ShutdownNotifier pShutdownNotifier) {
-    edges = ImmutableSet.copyOf(pEdges);
+
     nodes = ImmutableTable.copyOf(pNodes);
+    adjacencyMatrix = ImmutableTable.copyOf(pEdges);
     shutdownNotifier = pShutdownNotifier;
   }
 
@@ -90,8 +93,8 @@ public class DependenceGraph implements Serializable {
     return nodes.contains(pNode, pCause);
   }
 
-  Collection<DGEdge> getEdges() {
-    return edges;
+  Table<DGNode, DGNode, DependenceType> getMatrix() {
+    return adjacencyMatrix;
   }
 
   public Collection<DGNode> getNodes() {
@@ -128,41 +131,29 @@ public class DependenceGraph implements Serializable {
   }
 
   private Collection<DGNode> getAdjacentNeighbors(
-      DGNode pNode, TraversalDirection pDirection, Predicate<DGEdge> pIsEdgeOfInterest) {
-    Function<? super DGEdge, Stream<? extends DGNode>> getNextNode;
-    switch (pDirection) {
-      case FORWARD:
-        getNextNode = (g) -> Stream.of(g.getEnd());
-        break;
-      case BACKWARD:
-        getNextNode = (g) -> Stream.of(g.getStart());
-        break;
-      case BOTH:
-        getNextNode = (g) -> Stream.of(g.getEnd(), g.getStart());
-        break;
-      default:
-        throw new AssertionError("Unhandled direction " + pDirection);
-    }
+      DGNode pNode, TraversalDirection pDirection, Predicate<DependenceType> pIsEdgeOfInterest) {
 
-    return getAdjacentEdges(pNode, pDirection)
+    return getAdjacentNodes(pNode, pDirection)
+        .entrySet()
         .stream()
-        .filter(pIsEdgeOfInterest)
-        .flatMap(getNextNode)
+        .filter(e -> pIsEdgeOfInterest.test(e.getValue()))
+        .map(e -> e.getKey())
         .collect(Collectors.toSet());
   }
 
-  private Collection<DGEdge> getAdjacentEdges(DGNode pNode, TraversalDirection pDirection) {
-    Collection<DGEdge> adjacentEdges;
+  private Map<DGNode, DependenceType> getAdjacentNodes(
+      DGNode pNode, TraversalDirection pDirection) {
+    Map<DGNode, DependenceType> adjacentEdges;
     switch (pDirection) {
       case FORWARD:
-        adjacentEdges = pNode.getOutgoingEdges();
+        adjacentEdges = adjacencyMatrix.row(pNode);
         break;
       case BACKWARD:
-        adjacentEdges = pNode.getIncomingEdges();
+        adjacentEdges = adjacencyMatrix.column(pNode);
         break;
       case BOTH:
-        adjacentEdges = pNode.getOutgoingEdges();
-        adjacentEdges.addAll(pNode.getIncomingEdges());
+        adjacentEdges = adjacencyMatrix.row(pNode);
+        adjacentEdges.putAll(adjacencyMatrix.column(pNode));
         break;
       default:
         throw new AssertionError("Unhandled direction " + pDirection);
@@ -180,11 +171,12 @@ public class DependenceGraph implements Serializable {
     }
     DependenceGraph that = (DependenceGraph) pO;
     // If these equal, the root nodes have to equal, too.
-    return Objects.equals(nodes, that.nodes) && Objects.equals(edges, that.edges);
+    return Objects.equals(nodes, that.nodes)
+        && Objects.equals(adjacencyMatrix, that.adjacencyMatrix);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(nodes, edges);
+    return Objects.hash(nodes, adjacencyMatrix);
   }
 }

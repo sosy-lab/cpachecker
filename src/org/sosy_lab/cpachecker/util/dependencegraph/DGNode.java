@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -39,9 +36,6 @@ public class DGNode implements Serializable {
   private CFAEdge cfaEdge;
   private MemoryLocation cause;
 
-  private Set<DGEdge> outgoingEdges = new HashSet<>();
-  private Set<DGEdge> incomingEdges = new HashSet<>();
-
   public DGNode(final CFAEdge pCfaEdge, final MemoryLocation pCause) {
     cfaEdge = pCfaEdge;
     cause = pCause;
@@ -49,22 +43,6 @@ public class DGNode implements Serializable {
 
   public DGNode(final CFAEdge pCfaEdge) {
     this(pCfaEdge, null);
-  }
-
-  public Set<DGEdge> getOutgoingEdges() {
-    return ImmutableSet.copyOf(outgoingEdges);
-  }
-
-  public Set<DGEdge> getIncomingEdges() {
-    return ImmutableSet.copyOf(incomingEdges);
-  }
-
-  public void addIncomingEdge(final DGEdge pIncomingEdge) {
-    incomingEdges.add(pIncomingEdge);
-  }
-
-  public void addOutgoingEdge(final DGEdge pOutgoingEdge) {
-    outgoingEdges.add(pOutgoingEdge);
   }
 
   public CFAEdge getCfaEdge() {

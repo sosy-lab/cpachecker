@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 
 /** Util methods for exporting {@link DependenceGraph DependenceGraphs}. */
 public class DGExporter {
@@ -37,18 +41,18 @@ public class DGExporter {
     List<String> nodes = new ArrayList<>();
     List<String> edges = new ArrayList<>();
     DGNodeDotFormatter nodeFormatter = new DGNodeDotFormatter();
-    List<DGNode> sortedNodes = new ArrayList<>(pDg.getNodes());
-    List<DGEdge> sortedEdges = new ArrayList<>(pDg.getEdges());
+    Table<DGNode, DGNode, DependenceType> adjacencyMatrix = pDg.getMatrix();
 
-    sortedNodes.sort(Comparator.comparing(DGNode::toString));
-    sortedEdges.sort(Comparator.comparing(DGEdge::toString));
-    for (DGNode n : sortedNodes) {
+    for (DGNode n : pDg.getNodes()) {
       nodes.add(nodeFormatter.getNodeString(n));
     }
 
-    DGEdgeVisitor<String> edgeFormatter = new DGEdgeDotFormatter();
-    for (DGEdge e : sortedEdges) {
-      edges.add(e.accept(edgeFormatter));
+    DGEdgeDotFormatter edgeFormatter = new DGEdgeDotFormatter();
+    for (Cell<DGNode, DGNode, DependenceType> e : adjacencyMatrix.cellSet()) {
+      DGNode dependentOn = checkNotNull(e.getRowKey());
+      DGNode dependingOn = checkNotNull(e.getColumnKey());
+      DependenceType type = checkNotNull(e.getValue());
+      edges.add(edgeFormatter.format(dependentOn, dependingOn, type));
     }
 
     pW.append("digraph " + "DependenceGraph" + " {\n");

@@ -91,8 +91,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
-import org.sosy_lab.cpachecker.util.dependencegraph.edges.FlowDependenceEdge;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -107,7 +106,7 @@ public class DGBuilder {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
-  private Set<DGEdge> edges;
+  private Table<DGNode, DGNode, DependenceType> adjacencyMatrix;
 
   private StatInt flowDependenceNumber = new StatInt(StatKind.SUM, "Number of flow dependences");
   private StatInt controlDependenceNumber =
@@ -138,19 +137,19 @@ public class DGBuilder {
   public DependenceGraph build()
       throws InvalidConfigurationException, InterruptedException, CPAException {
     nodes = HashBasedTable.create();
-    edges = new HashSet<>();
+    adjacencyMatrix = HashBasedTable.create();
     addFlowDependences();
     addControlDependences();
     addMissingNodes();
 
-    DependenceGraph dg = new DependenceGraph(nodes, edges, shutdownNotifier);
+    DependenceGraph dg = new DependenceGraph(nodes, adjacencyMatrix, shutdownNotifier);
     export(dg);
     logger.log(
         Level.FINE,
         "Create dependence graph with ",
         nodes.size(),
         " nodes and ",
-        edges.size(),
+        adjacencyMatrix.size(),
         " edges.");
     return dg;
   }
@@ -176,7 +175,6 @@ public class DGBuilder {
   private void addControlDependences()
       throws InterruptedException, InvalidConfigurationException, CPAException {
     PostDominators postDoms = PostDominators.create(cfa, logger, shutdownNotifier);
-    NodeCollectingCFAVisitor v = new NodeCollectingCFAVisitor();
     Set<CFANode> reachableNodes = postDoms.getNodes();
     List<CFANode> branchingNodes =
         reachableNodes
@@ -215,9 +213,7 @@ public class DGBuilder {
               if (isPostDomOfAll(precessorNode, nodesOnPath, postDoms)) {
                 Collection<DGNode> nodesDepending = getDGNodes(current);
                 for (DGNode nodeDepending : nodesDepending) {
-                  DGEdge controlDependency =
-                      new ControlDependenceEdge(nodeDependentOn, nodeDepending);
-                  addDependence(controlDependency);
+                  addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
                   controlDepCount++;
                 }
                 nodesOnPath.add(precessorNode);
@@ -242,12 +238,9 @@ public class DGBuilder {
         for (CFAEdge e : CFAUtils.leavingEdges(n)) {
           Collection<DGNode> candidates = getDGNodes(e);
           for (DGNode dgN : candidates) {
-            if (dgN.getIncomingEdges()
-                .stream()
-                .noneMatch(x -> x instanceof ControlDependenceEdge)) {
+            if (adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
               for (DGNode nodeDependentOn : functionCalls) {
-                DGEdge controlDependency = new ControlDependenceEdge(nodeDependentOn, dgN);
-                addDependence(controlDependency);
+                addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
                 depCount++;
               }
             }
@@ -291,8 +284,7 @@ public class DGBuilder {
       for (Entry<MemoryLocation, CFAEdge> useAndDef : uses.entries()) {
         MemoryLocation use = checkNotNull(useAndDef.getKey());
         DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(use));
-        DGEdge newEdge = new FlowDependenceEdge(dependency, nodeDepending);
-        addDependence(newEdge);
+        addDependence(dependency, nodeDepending, DependenceType.FLOW);
         flowDepCount++;
       }
       flowDependenceNumber.setNextValue(flowDepCount);
@@ -323,12 +315,8 @@ public class DGBuilder {
    * Adds the given dependence edge to the set of dependence edges and tells the nodes of the edge
    * about the new edge.
    */
-  private void addDependence(DGEdge pEdge) {
-    DGNode nodeDependentOn = pEdge.getStart();
-    DGNode nodeDepending = pEdge.getEnd();
-    nodeDependentOn.addOutgoingEdge(pEdge);
-    nodeDepending.addIncomingEdge(pEdge);
-    edges.add(pEdge);
+  private void addDependence(DGNode pDependentOn, DGNode pDepending, DependenceType pType) {
+    adjacencyMatrix.put(pDependentOn, pDepending, pType);
   }
 
   /**

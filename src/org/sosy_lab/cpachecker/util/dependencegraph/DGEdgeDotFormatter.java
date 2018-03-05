@@ -23,26 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import org.sosy_lab.cpachecker.util.dependencegraph.edges.ControlDependenceEdge;
-import org.sosy_lab.cpachecker.util.dependencegraph.edges.FlowDependenceEdge;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 
-/** Formats a {@link DGEdge} for GraphViz dot output. */
-class DGEdgeDotFormatter implements DGEdgeVisitor<String> {
+/** Formats a dependence graph edge for GraphViz dot output. */
+class DGEdgeDotFormatter {
 
   private final DGNodeDotFormatter nodeFormatter = new DGNodeDotFormatter();
 
-  @Override
-  public String visit(final FlowDependenceEdge pEdge) {
-    return getNodeRepresentation(pEdge.getStart()) + " -> " + getNodeRepresentation(pEdge.getEnd());
+  public String format(DGNode pStart, DGNode pEnd, DependenceType pDependenceType) {
+    String rep = getNodeRepresentation(pStart) + " -> " + getNodeRepresentation(pEnd);
+    if (pDependenceType == DependenceType.CONTROL) {
+      rep += " [style=dashed]";
+    }
+    return rep;
   }
 
-  @Override
-  public String visit(final ControlDependenceEdge pEdge) {
-    return getNodeRepresentation(pEdge.getStart())
-        + " -> "
-        + getNodeRepresentation(pEdge.getEnd())
-        + " [style=dashed]";
-  }
 
   private String getNodeRepresentation(final DGNode pNode) {
     return nodeFormatter.getNodeRepresentation(pNode);
