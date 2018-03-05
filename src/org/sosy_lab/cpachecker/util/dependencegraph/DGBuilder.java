@@ -89,7 +89,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -169,8 +168,6 @@ public class DGBuilder {
 
   /**
    * Adds control dependencies to dependence graph.
-   *
-   * @see ControlDependenceEdge
    */
   private void addControlDependences()
       throws InterruptedException, InvalidConfigurationException, CPAException {
