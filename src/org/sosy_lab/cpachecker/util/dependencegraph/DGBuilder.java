@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -113,8 +112,6 @@ public class DGBuilder {
   private StatInt flowDependenceNumber = new StatInt(StatKind.SUM, "Number of flow dependences");
   private StatInt controlDependenceNumber =
       new StatInt(StatKind.SUM, "Number of control dependences");
-  private StatInt functionControlDependenceNumber =
-      new StatInt(StatKind.SUM, "Number of function control dependences");
   private StatCounter isolatedNodes = new StatCounter("Number of isolated nodes");
 
   @Option(
@@ -145,7 +142,6 @@ public class DGBuilder {
     nodes = HashBasedTable.create();
     edges = new HashSet<>();
     addFlowDependences();
-    addFunctionControlDependences();
     addControlDependences();
     addMissingNodes();
 
@@ -172,68 +168,6 @@ public class DGBuilder {
         isolatedNodes.inc();
       }
     }
-  }
-
-  private void addFunctionControlDependences() {
-    for (FunctionEntryNode n : cfa.getAllFunctionHeads()) {
-      if (n == cfa.getMainFunction()) {
-        continue;
-      }
-      for (CFAEdge ee : CFAUtils.enteringEdges(n)) {
-        assert ee instanceof CFunctionCallEdge
-            : "Edge to function entry node is not a function call edge: " + ee;
-
-        for (CFAEdge le : CFAUtils.leavingEdges(n.getExitNode())) {
-          int depCount = 0;
-          assert le instanceof CFunctionReturnEdge
-              : "Edge from function exit node is not a " + "function return edge: " + le;
-          // Every return edge has to be linked to every call edge, and vice-versa.
-          // if a function return is required, the function has to be entered first.
-          // And if a function is entered, it must be able to leave it again, properly.
-          // If we left a function return edge that is not relevant out,
-          // it would be replaced by a no-op and the tracked function call stack would
-          // get inconsistent.
-
-          // We require the dg node of the call without any parameter definition
-          // - if a return edge requires that, it is already solved by flow dependence edges.
-          // But here, we only require a function control dependence to make
-          // sure that the function is actually called if a return is relevant
-          DGNode call = getDGNode(ee, Optional.empty());
-          // Take all dg nodes of return edges, since every return depends
-          // on the function being called first
-          Collection<DGNode> allRetNodes = getDGNodes(le);
-          for (DGNode returnNode : allRetNodes) {
-            DGEdge functionControlDependence = new FunctionControlDependenceEdge(call, returnNode);
-            addDependence(functionControlDependence);
-            depCount++;
-          }
-
-          functionControlDependenceNumber.setNextValue(depCount);
-          depCount = 0;
-          DGNode ret = getDGNode(le, Optional.empty());
-          Collection<DGNode> allCallNodes = getDGNodes(ee);
-          for (DGNode callNode : allCallNodes) {
-            DGEdge functionControlDependence = new FunctionControlDependenceEdge(ret, callNode);
-            addDependence(functionControlDependence);
-            depCount++;
-          }
-          functionControlDependenceNumber.setNextValue(depCount);
-        }
-      }
-    }
-  }
-
-  /*
-  private Map<CFAEdge, DGNode> getCFAEdges() {
-    EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
-    CFATraversal.dfs().traverse(cfa.getMainFunction(), edgeCollector);
-    List<CFAEdge> allEdges = edgeCollector.getVisitedEdges();
-
-    Map<CFAEdge, DGNode> dgNodes = new HashMap<>();
-    for (CFAEdge e : allEdges) {
-      dgNodes.put(e, getDGNode(e));
-    }
-    return dgNodes;
   }
 
   /**
@@ -296,6 +230,33 @@ public class DGBuilder {
         }
         controlDependenceNumber.setNextValue(controlDepCount);
       }
+    }
+
+    Collection<FunctionEntryNode> functionEntries = cfa.getAllFunctionHeads();
+    CFATraversal traversalInsideFunction = CFATraversal.dfs().ignoreFunctionCalls();
+    for (FunctionEntryNode fctEntry : functionEntries) {
+      Collection<DGNode> functionCalls =
+          CFAUtils.enteringEdges(fctEntry).transform(x -> getDGNode(x, Optional.empty())).toList();
+      assert CFAUtils.enteringEdges(fctEntry).allMatch(x -> x instanceof CFunctionCallEdge);
+      int depCount = 0;
+      Set<CFANode> functionNodes = traversalInsideFunction.collectNodesReachableFrom(fctEntry);
+      for (CFANode n : functionNodes) {
+        for (CFAEdge e : CFAUtils.leavingEdges(n)) {
+          Collection<DGNode> candidates = getDGNodes(e);
+          for (DGNode dgN : candidates) {
+            if (dgN.getIncomingEdges()
+                .stream()
+                .noneMatch(x -> x instanceof ControlDependenceEdge)) {
+              for (DGNode nodeDependentOn : functionCalls) {
+                DGEdge controlDependency = new ControlDependenceEdge(nodeDependentOn, dgN);
+                addDependence(controlDependency);
+                depCount++;
+              }
+            }
+          }
+        }
+      }
+      controlDependenceNumber.setNextValue(depCount);
     }
   }
 
@@ -404,7 +365,6 @@ public class DGBuilder {
         put(pOut, 4, nodeNumber);
         put(pOut, 4, flowDependenceNumber);
         put(pOut, 4, controlDependenceNumber);
-        put(pOut, 4, functionControlDependenceNumber);
         put(pOut, 4, isolatedNodes);
       }
 

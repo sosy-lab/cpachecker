@@ -114,26 +114,17 @@ public class DependenceGraph implements Serializable {
       if (!visited.contains(current)) {
         visited.add(current);
         reachable.add(current.getCfaEdge());
-        Collection<DGNode> adjacent = getAdjacentFlowAndControlNeighbors(current, pDirection);
+        Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
         waitlist.addAll(adjacent);
-
-        // We don't consider transitive dependences of function control dependences
-        adjacent = getAdjacentFunctionControlNeighbors(current, pDirection);
-        adjacent.forEach(x -> reachable.add(x.getCfaEdge()));
       }
     }
     return reachable;
   }
 
-  private Collection<DGNode> getAdjacentFlowAndControlNeighbors(
+  private Collection<DGNode> getAdjacentNeighbors(
       final DGNode pNode, final TraversalDirection pDirection) {
     return getAdjacentNeighbors(
-        pNode, pDirection, x -> !(x instanceof FunctionControlDependenceEdge));
-  }
-
-  private Collection<DGNode> getAdjacentFunctionControlNeighbors(
-      final DGNode pNode, final TraversalDirection pDirection) {
-    return getAdjacentNeighbors(pNode, pDirection, x -> x instanceof FunctionControlDependenceEdge);
+        pNode, pDirection, dgEdge -> true);
   }
 
   private Collection<DGNode> getAdjacentNeighbors(

@@ -32,6 +32,4 @@ public interface DGEdgeVisitor<T> {
   T visit(FlowDependenceEdge pEdge);
 
   T visit(ControlDependenceEdge pEdge);
-
-  T visit(FunctionControlDependenceEdge pEdge);
 }
