@@ -47,11 +47,8 @@ public class LocationTransferRelation implements TransferRelation {
 
     CFANode node = ((LocationState) element).getLocationNode();
 
-    if (CFAUtils.allLeavingEdges(node)
-        .anyMatch(
-            (x) ->
-                x.getPredecessor().equals(cfaEdge.getPredecessor())
-                    && x.getSuccessor().equals(cfaEdge.getSuccessor()))) {
+    if (node.equals(cfaEdge.getPredecessor())
+        && CFAUtils.allSuccessorsOf(node).contains(cfaEdge.getSuccessor())) {
       return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
     }
 
