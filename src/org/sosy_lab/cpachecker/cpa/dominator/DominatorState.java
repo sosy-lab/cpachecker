@@ -47,10 +47,6 @@ public class DominatorState extends ForwardingSet<CFANode>
     dominators.addAll(pDominators);
   }
 
-  DominatorState(DominatorState other) {
-    this(other.dominators);
-  }
-
   @Override
   protected Set<CFANode> delegate() {
     return dominators;
