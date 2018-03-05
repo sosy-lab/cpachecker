@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,9 +36,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -64,12 +69,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -81,6 +95,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.llvm_j.BasicBlock;
+import org.sosy_lab.llvm_j.Function;
 import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.Module;
 import org.sosy_lab.llvm_j.TypeRef;
@@ -88,7 +105,7 @@ import org.sosy_lab.llvm_j.Value;
 import org.sosy_lab.llvm_j.Value.OpCode;
 
 /** CFA builder for LLVM IR. Metadata stored in the LLVM IR file is ignored. */
-public class CFABuilder extends LlvmAstVisitor {
+public class CFABuilder {
   // TODO: Thread Local Storage Model: May be important for concurrency
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
@@ -119,6 +136,13 @@ public class CFABuilder extends LlvmAstVisitor {
   // Function name -> Function declaration
   private Map<String, CFunctionDeclaration> functionDeclarations;
 
+  // unnamed basic blocks will be named as 1,2,3,...
+  private int basicBlockId;
+  protected SortedMap<String, FunctionEntryNode> functions;
+
+  protected SortedSetMultimap<String, CFANode> cfaNodes;
+  protected List<Pair<ADeclaration, String>> globalDeclarations;
+
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     machineModel = pMachineModel;
@@ -129,6 +153,11 @@ public class CFABuilder extends LlvmAstVisitor {
     functionDeclarations = new HashMap<>();
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+    basicBlockId = 0;
+
+    functions = new TreeMap<>();
+    cfaNodes = TreeMultimap.create();
+    globalDeclarations = new ArrayList<>();
   }
 
   public ParseResult build(final Module pModule, final String pFilename) throws LLVMException {
@@ -138,7 +167,325 @@ public class CFABuilder extends LlvmAstVisitor {
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }
 
-  @Override
+  public void visit(final Module pItem, final String pFileName) throws LLVMException {
+    if (pItem.getFirstFunction() == null) {
+      return;
+    }
+
+    addFunctionDeclarations(pItem, pFileName);
+
+    /* create globals */
+    iterateOverGlobals(pItem, pFileName);
+
+    /* create CFA for all functions */
+    iterateOverFunctions(pItem, pFileName);
+  }
+
+  private void addFunctionDeclarations(final Module pItem, final String pFileName)
+      throws LLVMException {
+    for (Value func : pItem) {
+      String funcName = func.getValueName();
+      assert !funcName.isEmpty();
+
+      // XXX: may just check for generic intrinsic?
+      if (funcName.startsWith("llvm.")) {
+        continue;
+      }
+
+      declareFunction(func, pFileName);
+    }
+  }
+
+  private void iterateOverGlobals(final Module pItem, final String pFileName) throws LLVMException {
+    Value globalItem = pItem.getFirstGlobal();
+    /* no globals? */
+    if (globalItem == null) {
+      return;
+    }
+
+    Value globalItemLast = pItem.getLastGlobal();
+    assert globalItemLast != null;
+
+    while (true) {
+      ADeclaration decl = visitGlobalItem(globalItem, pFileName);
+
+      globalDeclarations.add(Pair.of(decl, globalItem.toString()));
+
+      /* we processed the last global variable? */
+      if (globalItem.equals(globalItemLast)) {
+        break;
+      }
+
+      globalItem = globalItem.getNextGlobal();
+    }
+  }
+
+  protected void addNode(String funcName, CFANode nd) {
+    cfaNodes.put(funcName, nd);
+  }
+
+  private void addEdge(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);
+  }
+
+  private void iterateOverFunctions(final Module pItem, final String pFileName)
+      throws LLVMException {
+    Function lastFunc = pItem.getLastFunction().asFunction();
+    Function currFunc = null;
+    do {
+      if (currFunc == null) {
+        currFunc = pItem.getFirstFunction().asFunction();
+      } else {
+        currFunc = currFunc.getNextFunction().asFunction();
+      }
+
+      if (currFunc.isDeclaration()) {
+        continue;
+      }
+
+      String funcName = currFunc.getValueName();
+      assert !funcName.isEmpty();
+
+      // XXX: may just check for generic intrinsic?
+      if (funcName.startsWith("llvm.")) {
+        continue;
+      }
+
+      // handle the function definition
+      FunctionEntryNode en = visitFunction(currFunc, pFileName);
+      assert en != null;
+      addNode(funcName, en);
+
+      // create the basic blocks and instructions of the function.
+      // A basic block is mapped to a pair <entry node, exit node>
+      SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
+      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, funcName, basicBlocks, pFileName);
+
+      // add the edge from the entry of the function to the first
+      // basic block
+      // BlankEdge.buildNoopEdge(en, entryBB);
+      addEdge(new BlankEdge("entry", en.getFileLocation(), en, entryBB, "Function start edge"));
+
+      // add branching between instructions
+      addJumpsBetweenBasicBlocks(currFunc, basicBlocks, pFileName);
+
+      functions.put(funcName, en);
+
+    } while (!currFunc.equals(lastFunc));
+  }
+
+  /**
+   * Iterate over basic blocks of a function.
+   *
+   * <p>Add a label created for every basic block to a mapping passed as an argument.
+   *
+   * @return the entry basic block (as a CLabelNode).
+   */
+  private CLabelNode iterateOverBasicBlocks(
+      final Function pFunction,
+      final FunctionEntryNode pEntryNode,
+      final String pFuncName,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final String pFileName)
+      throws LLVMException {
+    if (pFunction.countBasicBlocks() == 0) {
+      return null;
+    }
+
+    CLabelNode entryBB = null;
+    for (BasicBlock block : pFunction) {
+      // process this basic block
+      CLabelNode label = new CLabelNode(pFuncName, getBBName(block));
+      addNode(pFuncName, label);
+      if (entryBB == null) {
+        entryBB = label;
+      }
+
+      BasicBlockInfo bbi =
+          handleInstructions(pEntryNode.getExitNode(), pFuncName, block, pFileName);
+      pBasicBlocks.put(block.hashCode(), new BasicBlockInfo(label, bbi.getExitNode()));
+
+      // add an edge from label to the first node
+      // of this basic block
+      addEdge(
+          new BlankEdge(
+              "label_to_first",
+              pEntryNode.getFileLocation(),
+              label,
+              bbi.getEntryNode(),
+              "edge to first instr"));
+    }
+
+    assert entryBB != null || pBasicBlocks.isEmpty();
+    return entryBB;
+  }
+
+  /** Add branching edges between first and last nodes of basic blocks. */
+  private void addJumpsBetweenBasicBlocks(
+      final Function pFunction,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final String pFileName)
+      throws LLVMException {
+    // for every basic block, get the last instruction and
+    // add edges from it to labels where it jumps
+    for (BasicBlock bb : pFunction) {
+      Value terminatorInst = bb.getLastInstruction();
+      if (terminatorInst == null) {
+        continue;
+      }
+
+      assert terminatorInst.isTerminatorInst();
+      assert pBasicBlocks.containsKey(bb.hashCode());
+      CFANode brNode = pBasicBlocks.get(bb.hashCode()).getExitNode();
+
+      int succNum = terminatorInst.getNumSuccessors();
+      if (succNum == 0) {
+        continue;
+      } else if (succNum == 1) {
+        BasicBlock succ = terminatorInst.getSuccessor(0);
+        CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+
+        addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, brNode, label, "(goto)"));
+        continue;
+      }
+
+      // switch is not supported yet
+      assert succNum == 2;
+
+      // get the operands and add branching edges
+      CExpression condition =
+          getBranchCondition(terminatorInst, pFunction.getValueName(), pFileName);
+
+      BasicBlock succ = terminatorInst.getSuccessor(0);
+      CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+      addEdge(
+          new CAssumeEdge(
+              condition.toASTString(),
+              condition.getFileLocation(),
+              brNode,
+              label,
+              condition,
+              true));
+
+      succ = terminatorInst.getSuccessor(1);
+      label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+      addEdge(
+          new CAssumeEdge(
+              condition.toASTString(),
+              condition.getFileLocation(),
+              brNode,
+              label,
+              condition,
+              false));
+    }
+  }
+
+  private String getBBName(BasicBlock BB) {
+    Value bbValue = BB.basicBlockAsValue();
+    String labelStr = bbValue.getValueName();
+    if (labelStr.isEmpty()) {
+      return Integer.toString(++basicBlockId);
+    } else {
+      return labelStr;
+    }
+  }
+
+  private CFANode newNode(String funcName) {
+    CFANode nd = new CFANode(funcName);
+    addNode(funcName, nd);
+
+    return nd;
+  }
+
+  /** Create a chain of nodes and edges corresponding to one basic block. */
+  private BasicBlockInfo handleInstructions(
+      final FunctionExitNode exitNode,
+      final String funcName,
+      final BasicBlock pItem,
+      final String pFileName)
+      throws LLVMException {
+    assert pItem.getFirstInstruction() != null; // empty BB not supported
+
+    Value lastI = pItem.getLastInstruction();
+    assert lastI != null;
+
+    CFANode prevNode = newNode(funcName);
+    CFANode firstNode = prevNode;
+    CFANode curNode = null;
+
+    for (Value i : pItem) {
+      if (i.isDbgInfoIntrinsic() || i.isDbgDeclareInst()) {
+        continue;
+      }
+
+      // process this basic block
+      List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
+      if (expressions == null) {
+        curNode = newNode(funcName);
+        addEdge(new BlankEdge(i.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
+        prevNode = curNode;
+        continue;
+      }
+
+      for (CAstNode expr : expressions) {
+        FileLocation exprLocation = expr.getFileLocation();
+        // build an edge with this expression over it
+        if (expr instanceof CDeclaration) {
+          curNode = newNode(funcName);
+          addEdge(
+              new CDeclarationEdge(
+                  expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
+        } else if (expr instanceof CReturnStatement) {
+          curNode = exitNode;
+          addEdge(
+              new CReturnStatementEdge(
+                  i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
+        } else if (i.isUnreachableInst()) {
+          curNode = exitNode;
+          addEdge(new BlankEdge(i.toString(), exprLocation, prevNode, curNode, "unreachable"));
+        } else {
+          curNode = newNode(funcName);
+          addEdge(
+              new CStatementEdge(
+                  expr.toASTString() + i.toString(),
+                  (CStatement) expr,
+                  exprLocation,
+                  prevNode,
+                  curNode));
+        }
+
+        prevNode = curNode;
+      }
+    }
+
+    assert curNode != null;
+    return new BasicBlockInfo(firstNode, curNode);
+  }
+
+  private static class BasicBlockInfo {
+    private CFANode entryNode;
+    private CFANode exitNode;
+
+    public BasicBlockInfo(CFANode entry, CFANode exit) {
+      entryNode = entry;
+      exitNode = exit;
+    }
+
+    public CFANode getEntryNode() {
+      return entryNode;
+    }
+
+    public CFANode getExitNode() {
+      return exitNode;
+    }
+
+    @Override
+    public String toString() {
+      return "BasicBlock " + entryNode.toString() + " -> " + exitNode.toString();
+    }
+  }
+
   protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName)
       throws LLVMException {
     assert pItem.isFunction();
@@ -148,9 +495,8 @@ public class CFABuilder extends LlvmAstVisitor {
     return handleFunctionDefinition(pItem, pFileName);
   }
 
-  @Override
-  protected CExpression getBranchCondition(
-      final Value pItem, String funcName, final String pFileName) throws LLVMException {
+  private CExpression getBranchCondition(final Value pItem, String funcName, final String pFileName)
+      throws LLVMException {
     Value cond = pItem.getCondition();
     try {
       CType expectedType = typeConverter.getCType(cond.typeOf());
@@ -164,8 +510,7 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  @Override
-  protected List<CAstNode> visitInstruction(
+  private List<CAstNode> visitInstruction(
       final Value pItem, final String pFunctionName, final String pFileName) throws LLVMException {
     assert pItem.isInstruction();
 
@@ -805,9 +1150,7 @@ public class CFABuilder extends LlvmAstVisitor {
     return newName.toString();
   }
 
-  @Override
-  protected void declareFunction(final Value pFuncDef, final String pFileName)
-      throws LLVMException {
+  private void declareFunction(final Value pFuncDef, final String pFileName) throws LLVMException {
     String functionName = pFuncDef.getValueName();
 
     // Function type
@@ -1022,8 +1365,7 @@ public class CFABuilder extends LlvmAstVisitor {
     return getAssignStatement(pItem, cast, pFunctionName, pFileName);
   }
 
-  @Override
-  protected CDeclaration visitGlobalItem(final Value pItem, final String pFileName)
+  private CDeclaration visitGlobalItem(final Value pItem, final String pFileName)
       throws LLVMException {
     assert pItem.isGlobalValue();
 
