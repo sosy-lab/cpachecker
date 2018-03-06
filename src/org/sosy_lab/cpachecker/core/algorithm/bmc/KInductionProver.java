@@ -747,8 +747,9 @@ class KInductionProver implements AutoCloseable {
             OptionalInt index = pair.getSecond();
             Object value = valueAssignment.getValue();
             if (index.isPresent()
-                && ssaMap.containsVariable(actualName)
-                && ssaMap.getIndex(actualName) == index.getAsInt()
+                && (ssaMap.containsVariable(actualName)
+                    ? ssaMap.getIndex(actualName) == index.getAsInt()
+                    : index.getAsInt() == 1)
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
