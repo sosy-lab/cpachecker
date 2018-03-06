@@ -155,6 +155,8 @@ public class SymbolicValueAnalysisRefiner
           pPathExtractor,
           pConfig,
           pLogger);
+
+    pConfig.inject(this);
   }
 
   @Override
