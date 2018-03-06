@@ -170,6 +170,8 @@ public class ReachingDefUtils {
       return possiblePointees(
           ((CArraySubscriptExpression) pExp).getArrayExpression(), pPointerState);
 
+    } else if (pExp instanceof CCastExpression) {
+      return possiblePointees(((CCastExpression) pExp).getOperand(), pPointerState);
     } else {
       return null;
     }
