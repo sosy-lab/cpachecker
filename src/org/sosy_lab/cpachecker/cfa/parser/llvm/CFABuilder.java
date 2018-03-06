@@ -816,10 +816,43 @@ public class CFABuilder {
       return handleLoad(pItem, pFunctionName, pFileName);
     } else if (pItem.isCastInst()) {
       return handleCastInst(pItem, pFunctionName, pFileName);
+    } else if (pItem.isExtractValueInst()) {
+      return handleExtractValue(pItem, pFunctionName, pFileName);
     } else {
       throw new UnsupportedOperationException(
           "LLVM does not yet support operator with opcode " + pItem.getOpCode());
     }
+  }
+
+  private List<CAstNode> handleExtractValue(Value pItem, String pFunctionName, String pFileName)
+      throws LLVMException {
+    Value accessed = pItem.getOperand(0);
+    CType baseType = typeConverter.getCType(accessed.typeOf());
+    FileLocation fileLocation = getLocation(pItem, pFileName);
+
+    CType currentType = baseType;
+    CExpression currentExpression = getExpression(accessed, currentType, pFileName);
+    for (Integer indexValue : pItem.getIndices()) {
+      CIntegerLiteralExpression index =
+          new CIntegerLiteralExpression(
+              fileLocation, CNumericTypes.INT, BigInteger.valueOf(indexValue));
+
+      if (currentType instanceof CArrayType) {
+        currentExpression =
+            new CArraySubscriptExpression(fileLocation, currentType, currentExpression, index);
+        currentType = ((CArrayType) currentType).getType();
+
+      } else if (currentType instanceof CCompositeType) {
+        CCompositeTypeMemberDeclaration field =
+            ((CCompositeType) currentType).getMembers().get(indexValue);
+        String fieldName = field.getName();
+        currentExpression =
+            new CFieldReference(fileLocation, currentType, fieldName, currentExpression, false);
+        currentType = field.getType();
+      }
+    }
+
+    return getAssignStatement(pItem, currentExpression, pFunctionName, pFileName);
   }
 
   private List<CAstNode> handleLoad(
@@ -1140,9 +1173,10 @@ public class CFABuilder {
         return funcId;
       }
 
+    } else if (pItem.isGlobalConstant() && pItem.isGlobalVariable()) {
+      return getAssignedIdExpression(pItem, pExpectedType, pFileName);
     } else {
-      assert pItem.isConstantFP() : "Unhandled constant is not floating point constant: " + pItem;
-      throw new UnsupportedOperationException("LLVM parsing does not support float constants yet");
+      throw new UnsupportedOperationException("LLVM parsing does not support constant " + pItem);
     }
   }
 
@@ -1157,11 +1191,19 @@ public class CFABuilder {
     List<CInitializer> elementInitializers = new ArrayList<>(length);
 
     for (int i = 0; i < length; i++) {
-      Value element = pAggregate.getElementAsConstant(i);
+      Value element;
+      if (pAggregate.isConstantArray() || pAggregate.isConstantStruct()) {
+        element = pAggregate.getOperand(i);
+      } else {
+        element = pAggregate.getElementAsConstant(i);
+      }
       assert element.isConstant() : "Value element is not a constant!";
       CInitializer elementInitializer;
-      if (element.isConstantArray()) {
+      if (isConstantArrayOrVector(element) || element.isConstantStruct()) {
         elementInitializer = getConstantAggregateInitializer(element, pFileName);
+      } else if (element.isConstantAggregateZero()) {
+        elementInitializer =
+            getZeroInitializer(element, typeConverter.getCType(pAggregate.typeOf()), pFileName);
       } else {
         elementInitializer =
             new CInitializerExpression(
@@ -1175,11 +1217,62 @@ public class CFABuilder {
     return aggregateInitializer;
   }
 
+  private CInitializer getZeroInitializer(
+      final Value pForElement, final CType pExpectedType, final String pFileName) {
+    FileLocation loc = getLocation(pForElement, pFileName);
+    CInitializer init;
+    CType canonicalType = pExpectedType.getCanonicalType();
+    if (canonicalType instanceof CArrayType) {
+      int length = ((CArrayType) canonicalType).getLengthAsInt().getAsInt();
+      CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
+      CInitializer zeroInitializer = getZeroInitializer(pForElement, elementType, pFileName);
+      List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
+      init = new CInitializerList(loc, initializers);
+
+    } else if (canonicalType instanceof CCompositeType) {
+
+      List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) canonicalType).getMembers();
+      List<CInitializer> initializers = new ArrayList<>(members.size());
+      for (CCompositeTypeMemberDeclaration m : members) {
+        CType memberType = m.getType();
+        CInitializer memberInit = getZeroInitializer(pForElement, memberType, pFileName);
+        initializers.add(memberInit);
+      }
+
+      init = new CInitializerList(loc, initializers);
+
+    } else {
+      CExpression zeroExpression;
+      if (canonicalType instanceof CSimpleType) {
+        CBasicType basicType = ((CSimpleType) canonicalType).getType();
+        if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
+          // use expected type for float, not canonical
+          zeroExpression = new CFloatLiteralExpression(loc, pExpectedType, BigDecimal.ZERO);
+        } else {
+          zeroExpression = CIntegerLiteralExpression.ZERO;
+        }
+      } else {
+        // use expected type for cast, not canonical
+        zeroExpression = new CCastExpression(loc, pExpectedType, CIntegerLiteralExpression.ZERO);
+      }
+      init = new CInitializerExpression(loc, zeroExpression);
+    }
+
+    return init;
+  }
+
   private int getLength(Value pAggregateValue) throws LLVMException {
-    CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
-    OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
-    assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
-    return maybeArrayLength.getAsInt();
+    CType aggregateType = typeConverter.getCType(pAggregateValue.typeOf()).getCanonicalType();
+    if (aggregateType instanceof CArrayType) {
+      CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
+      OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
+      assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
+      return maybeArrayLength.getAsInt();
+    } else if (aggregateType instanceof CCompositeType) {
+      return ((CCompositeType) aggregateType).getMembers().size();
+    } else {
+      throw new AssertionError();
+    }
   }
 
   private List<CAstNode> getAssignStatement(
@@ -1283,6 +1376,10 @@ public class CFABuilder {
     return variableDeclarations.get(itemId);
   }
 
+  /**
+   * Returns the id expression to an already declared variable. Returns it as a cast, if necessary
+   * to match the expected type.
+   */
   private CExpression getAssignedIdExpression(
       final Value pItem, final CType pExpectedType, final String pFileName) throws LLVMException {
     logger.log(Level.FINE, "Getting var declaration for item");
@@ -1298,7 +1395,9 @@ public class CFABuilder {
         new CIdExpression(
             getLocation(pItem, pFileName), expressionType, assignedVarName, assignedVarDeclaration);
 
-    if (expressionType.canBeAssignedFrom(pExpectedType)) {
+    if (expressionType.canBeAssignedFrom(pExpectedType)
+        || expressionType instanceof CArrayType
+        || expressionType instanceof CComplexType) {
       return idExpression;
 
     } else if (pointerOf(pExpectedType, expressionType)) {
@@ -1598,13 +1697,13 @@ public class CFABuilder {
     CInitializer initializer;
     if (!pItem.isExternallyInitialized()) {
       Value initializerRaw = pItem.getInitializer();
-      if (initializerRaw.isConstantArray()
-          || initializerRaw.isConstantDataArray()
-          || initializerRaw.isConstantVector()) {
+      if (isConstantArrayOrVector(initializerRaw)) {
         initializer = getConstantAggregateInitializer(initializerRaw, pFileName);
       } else if (initializerRaw.isConstantStruct()) {
-        // TODO
-        initializer = null;
+        initializer = getConstantAggregateInitializer(initializerRaw, pFileName);
+      } else if (initializerRaw.isConstantAggregateZero()) {
+        CType expressionType = typeConverter.getCType(initializerRaw.typeOf());
+        initializer = getZeroInitializer(initializerRaw, expressionType, pFileName);
       } else {
         initializer =
             new CInitializerExpression(
@@ -1616,6 +1715,10 @@ public class CFABuilder {
       initializer = null;
     }
     return (CDeclaration) getAssignedVarDeclaration(pItem, "", initializer, pFileName);
+  }
+
+  private boolean isConstantArrayOrVector(final Value pItem) {
+    return pItem.isConstantArray() || pItem.isConstantDataArray() || pItem.isConstantVector();
   }
 
   private FileLocation getLocation(final Value pItem, final String pFileName) {
