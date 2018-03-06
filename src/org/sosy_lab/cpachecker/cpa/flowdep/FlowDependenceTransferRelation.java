@@ -467,11 +467,21 @@ class FlowDependenceTransferRelation
           throw new AssertionError("Unhandled: " + outParam);
         }
 
-        for (MemoryLocation def : possibleDefs) {
+        if (possibleDefs != null) {
+          for (MemoryLocation def : possibleDefs) {
+            nextState =
+                handleOperation(
+                    pReturnEdge,
+                    Optional.ofNullable(def),
+                    ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
+                    nextState,
+                    pReachDefState);
+          }
+        } else {
           nextState =
               handleOperation(
                   pReturnEdge,
-                  Optional.ofNullable(def),
+                  Optional.empty(),
                   ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
                   nextState,
                   pReachDefState);
@@ -482,17 +492,27 @@ class FlowDependenceTransferRelation
     com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
         summaryEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
-      Set<MemoryLocation> possibleDefs = new HashSet<>();
+      Set<MemoryLocation> possibleDefs = null;
       CFunctionCall call = summaryEdge.getExpression();
       if (call instanceof CFunctionCallAssignmentStatement) {
         possibleDefs =
             getDef(((CFunctionCallAssignmentStatement) call).getLeftHandSide(), pPointerState);
       }
-      for (MemoryLocation def : possibleDefs) {
+      if (possibleDefs != null) {
+        for (MemoryLocation def : possibleDefs) {
+          nextState =
+              handleOperation(
+                  pReturnEdge,
+                  Optional.ofNullable(def),
+                  ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
+                  nextState,
+                  pReachDefState);
+        }
+      } else {
         nextState =
             handleOperation(
                 pReturnEdge,
-                Optional.ofNullable(def),
+                Optional.empty(),
                 ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
                 nextState,
                 pReachDefState);
