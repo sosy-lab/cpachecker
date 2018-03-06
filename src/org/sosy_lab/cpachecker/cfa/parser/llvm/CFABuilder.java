@@ -350,8 +350,7 @@ public class CFABuilder {
         continue;
       } else if (terminatorInst.isBranchInst()) {
         // get the operands and add branching edges
-        CExpression condition =
-            getBranchCondition(terminatorInst, pFunction.getValueName(), pFileName);
+        CExpression condition = getBranchCondition(terminatorInst, pFileName);
 
         BasicBlock succ = terminatorInst.getSuccessor(0);
         CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
@@ -482,7 +481,7 @@ public class CFABuilder {
 
         CType ifType = typeConverter.getCType(valueIf.typeOf());
         assert ifType.equals(typeConverter.getCType(valueElse.typeOf()));
-        CExpression conditionC = getBranchCondition(condition, funcName, pFileName);
+        CExpression conditionC = getBranchCondition(condition, pFileName);
         CExpression trueValue = getExpression(valueIf, ifType, pFileName);
         CStatement trueAssignment =
             (CStatement) getAssignStatement(i, trueValue, funcName, pFileName).get(0);
@@ -624,7 +623,7 @@ public class CFABuilder {
     return handleFunctionDefinition(pItem, pFileName);
   }
 
-  private CExpression getBranchCondition(final Value pItem, String funcName, final String pFileName)
+  private CExpression getBranchCondition(final Value pItem, final String pFileName)
       throws LLVMException {
     CExpression condition;
     if (pItem.isConditional()) {
@@ -838,13 +837,12 @@ public class CFABuilder {
   private List<CAstNode> handleOpCode(
       final Value pItem, String pFunctionName, final String pFileName, final OpCode pOpCode)
       throws LLVMException {
-    CExpression expression = createFromOpCode(pItem, pFunctionName, pFileName, pOpCode);
+    CExpression expression = createFromOpCode(pItem, pFileName, pOpCode);
     return getAssignStatement(pItem, expression, pFunctionName, pFileName);
   }
 
   private CExpression createFromOpCode(
-      final Value pItem, String pFunctionName, final String pFileName, final OpCode pOpCode)
-      throws LLVMException {
+      final Value pItem, final String pFileName, final OpCode pOpCode) throws LLVMException {
 
     switch (pOpCode) {
         // Arithmetic operations
@@ -866,7 +864,7 @@ public class CFABuilder {
       case And:
       case Or:
       case Xor:
-        return createFromArithmeticOp(pItem, pOpCode, pFunctionName, pFileName);
+        return createFromArithmeticOp(pItem, pOpCode, pFileName);
 
       case GetElementPtr:
         return createGepExp(pItem, pFileName);
@@ -954,8 +952,7 @@ public class CFABuilder {
   }
 
   private CExpression createFromArithmeticOp(
-      final Value pItem, final OpCode pOpCode, final String pFunctionName, final String pFileName)
-      throws LLVMException {
+      final Value pItem, final OpCode pOpCode, final String pFileName) throws LLVMException {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
 
     // TODO: Currently we only support flat expressions, no nested ones. Make this work
@@ -1029,7 +1026,7 @@ public class CFABuilder {
       final Value pItem, final CType pExpectedType, final String pFileName) throws LLVMException {
 
     if (pItem.isConstantExpr()) {
-      return createFromOpCode(pItem, "", pFileName, pItem.getConstOpCode());
+      return createFromOpCode(pItem, pFileName, pItem.getConstOpCode());
 
     } else if (pItem.isConstant() && !pItem.isGlobalVariable()) {
       return (CExpression) getConstant(pItem, pFileName);
