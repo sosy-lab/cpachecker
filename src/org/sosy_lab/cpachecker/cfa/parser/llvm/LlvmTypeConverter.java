@@ -62,7 +62,7 @@ public class LlvmTypeConverter {
   private final MachineModel machineModel;
   private final LogManager logger;
 
-  private final Map<String, CType> typeCache = new HashMap<>();
+  private final Map<Integer, CType> typeCache = new HashMap<>();
 
   public LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
     machineModel = pMachineModel;
@@ -146,19 +146,19 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
-    if (typeCache.containsKey(structName)) {
+    if (typeCache.containsKey(pStructType.type().hashCode())) {
       return new CElaboratedType(
           false,
           false,
           ComplexTypeKind.STRUCT,
           structName,
           origName,
-          (CComplexType) typeCache.get(structName));
+          (CComplexType) typeCache.get(pStructType.type().hashCode()));
     }
 
     CCompositeType cStructType =
         new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
-    typeCache.put(structName, cStructType);
+    typeCache.put(pStructType.type().hashCode(), cStructType);
 
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());
