@@ -31,6 +31,7 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -95,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.llvm_j.BasicBlock;
 import org.sosy_lab.llvm_j.Function;
@@ -269,10 +272,33 @@ public class CFABuilder {
 
       // add branching between instructions
       addJumpsBetweenBasicBlocks(currFunc, basicBlocks, pFileName);
+      purgeUnreachableBlocks(funcName, basicBlocks.values());
+
+      if (en.getExitNode().getNumEnteringEdges() == 0) {
+        cfaNodes.remove(funcName, en.getExitNode());
+      }
 
       functions.put(funcName, en);
 
     } while (!currFunc.equals(lastFunc));
+  }
+
+  /** Remove all unreachable blocks and their CFA nodes */
+  private void purgeUnreachableBlocks(
+      final String pFunctionName, final Collection<BasicBlockInfo> pBasicBlocks) {
+
+    for (BasicBlockInfo block : pBasicBlocks) {
+      if (block.entryNode.getNumEnteringEdges() == 0) {
+        purgeBlock(pFunctionName, block);
+      }
+    }
+  }
+
+  /** Remove the block and all CFA nodes in it */
+  private void purgeBlock(String pFunctionName, BasicBlockInfo pBlock) {
+    Collection<CFANode> blockNodes =
+        CFATraversal.dfs().collectNodesReachableFrom(pBlock.getEntryNode());
+    cfaNodes.get(pFunctionName).removeAll(blockNodes);
   }
 
   /**
@@ -569,8 +595,12 @@ public class CFABuilder {
                 new CReturnStatementEdge(
                     i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
           } else if (i.isUnreachableInst()) {
-            curNode = exitNode;
+            curNode = new CFATerminationNode(funcName);
+            addNode(funcName, curNode);
             addEdge(new BlankEdge(i.toString(), exprLocation, prevNode, curNode, "unreachable"));
+            // don't continue in that block after an `undef` statement
+            break;
+
           } else {
             curNode = newNode(funcName);
             addEdge(
