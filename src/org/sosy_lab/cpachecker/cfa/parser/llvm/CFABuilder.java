@@ -944,7 +944,7 @@ public class CFABuilder {
   }
 
   private CExpression createBitcast(Value pItem, String pFileName) throws LLVMException {
-    Value op = pItem.getOperand(2);
+    Value op = pItem.getOperand(0);
     CType expectedType = typeConverter.getCType(pItem.typeOf());
     CType opType = typeConverter.getCType(op.typeOf());
     CExpression opToCast = getExpression(op, opType, pFileName);
