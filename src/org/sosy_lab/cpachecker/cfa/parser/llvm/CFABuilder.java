@@ -686,24 +686,29 @@ public class CFABuilder {
       final Value pItem, final String pCallingFunctionName, final String pFileName)
       throws LLVMException {
     assert pItem.isCallInst();
+
     FileLocation loc = getLocation(pItem, pFileName);
-    Value calledFunction = pItem.getCalledFunction();
     CType returnType = typeConverter.getCType(pItem.typeOf());
     int argumentCount = pItem.getNumArgOperands();
-    String functionName = calledFunction.getValueName();
-    // May be null and that's ok - CPAchecker will handle the call as a call to a builtin function,
-    // then
-    CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
 
-    CIdExpression functionNameExp;
+    Value calledFunction = pItem.getCalledFunction();
+    CFunctionDeclaration functionDeclaration = null;
+    String functionName = null;
+    if (calledFunction.isFunction()) {
+      functionName = calledFunction.getValueName();
+      functionDeclaration = functionDeclarations.get(functionName);
+      if (functionDeclaration == null) {
+        logger.logf(
+            Level.WARNING,
+            "Declaration for function %s not found, trying to derive it.",
+            functionName);
+      }
+    }
+
     List<CExpression> parameters = new ArrayList<>(argumentCount);
     CFunctionType functionType;
 
     if (functionDeclaration == null) {
-      logger.logf(
-          Level.WARNING,
-          "Declaration for function %s not found, trying to derive it.",
-          functionName);
       // Try to derive a function type from the call
       List<CType> parameterTypes = new ArrayList<>(argumentCount - 1);
       for (int i = 0; i < argumentCount; i++) {
@@ -712,21 +717,23 @@ public class CFABuilder {
             || variableDeclarations.containsKey(functionArg.getAddress());
         CType expectedType = typeConverter.getCType(functionArg.typeOf());
         parameterTypes.add(expectedType);
-
-        if (functionArg.isConstant()) {
-          parameters.add((CExpression) getConstant(functionArg, pFileName));
-        } else {
-          assert variableDeclarations.containsKey(functionArg.getAddress());
-          parameters.add(getAssignedIdExpression(functionArg, expectedType, pFileName));
-        }
       }
 
       functionType = new CFunctionType(returnType, parameterTypes, false);
-      functionNameExp = new CIdExpression(loc, functionType, functionName, null);
-    } else {
-      functionNameExp =
-          new CIdExpression(loc, functionDeclaration.getType(), functionName, functionDeclaration);
 
+      if (functionName != null) {
+        List<CParameterDeclaration> parameterDeclarations = new ArrayList<>();
+        for (CType paramType : parameterTypes) {
+          parameterDeclarations.add(
+              new CParameterDeclaration(FileLocation.DUMMY, paramType, getTempVar(false)));
+        }
+        CFunctionDeclaration derivedDeclaration =
+            new CFunctionDeclaration(
+                FileLocation.DUMMY, functionType, functionName, parameterDeclarations);
+        functionDeclarations.put(functionName, derivedDeclaration);
+      }
+    } else {
+      functionType = functionDeclaration.getType();
       List<CParameterDeclaration> parameterDeclarations = functionDeclaration.getParameters();
       // i = 1 to skip the function name, we only want to look at arguments
       for (int i = 0; i < argumentCount; i++) {
@@ -738,6 +745,8 @@ public class CFABuilder {
         parameters.add(getExpression(functionArg, expectedType, pFileName));
       }
     }
+
+    CExpression functionNameExp = getExpression(calledFunction, functionType, pFileName);
 
     CFunctionCallExpression callExpression =
         new CFunctionCallExpression(
@@ -1029,7 +1038,7 @@ public class CFABuilder {
       return createFromOpCode(pItem, pFileName, pItem.getConstOpCode());
 
     } else if (pItem.isConstant() && !pItem.isGlobalVariable()) {
-      return (CExpression) getConstant(pItem, pFileName);
+      return (CExpression) getConstant(pItem, pExpectedType, pFileName);
 
     } else {
       return getAssignedIdExpression(pItem, pExpectedType, pFileName);
@@ -1039,17 +1048,22 @@ public class CFABuilder {
   private CRightHandSide getConstant(final Value pItem, final String pFileName)
       throws LLVMException {
     CType expectedType = typeConverter.getCType(pItem.typeOf());
+    return getConstant(pItem, expectedType, pFileName);
+  }
+
+  private CRightHandSide getConstant(final Value pItem, CType pExpectedType, final String pFileName)
+      throws LLVMException {
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
       long constantValue = pItem.constIntGetSExtValue();
       return new CIntegerLiteralExpression(
-          getLocation(pItem, pFileName), expectedType, BigInteger.valueOf(constantValue));
+          getLocation(pItem, pFileName), pExpectedType, BigInteger.valueOf(constantValue));
 
     } else if (pItem.isConstantPointerNull()) {
-      return new CPointerExpression(location, expectedType, getNull(location, expectedType));
+      return new CPointerExpression(location, pExpectedType, getNull(location, pExpectedType));
 
     } else if (pItem.isConstantExpr()) {
-      return getExpression(pItem, expectedType, pFileName);
+      return getExpression(pItem, pExpectedType, pFileName);
 
     } else if (pItem.isUndef()) {
       CType constantType = typeConverter.getCType(pItem.typeOf());
@@ -1059,7 +1073,7 @@ public class CFABuilder {
               location,
               true,
               CStorageClass.AUTO,
-              expectedType,
+              pExpectedType,
               undefName,
               undefName,
               undefName,
@@ -1073,8 +1087,8 @@ public class CFABuilder {
       CType functionType = funcDecl.getType();
 
       CIdExpression funcId = new CIdExpression(location, funcDecl);
-      if (pointerOf(expectedType, functionType)) {
-        return new CUnaryExpression(location, expectedType, funcId, UnaryOperator.AMPER);
+      if (pointerOf(pExpectedType, functionType)) {
+        return new CUnaryExpression(location, pExpectedType, funcId, UnaryOperator.AMPER);
       } else {
         return funcId;
       }
