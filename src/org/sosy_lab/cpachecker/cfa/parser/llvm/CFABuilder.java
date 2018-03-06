@@ -27,6 +27,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -88,11 +90,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -686,7 +691,10 @@ public class CFABuilder {
     } else if (pItem.isUnreachableInst()) {
       return handleUnreachable(pItem, pFileName);
 
-    } else if (pItem.isBinaryOperator() || pItem.isGetElementPtrInst()) {
+    } else if (pItem.isBinaryOperator()
+        || pItem.isGetElementPtrInst()
+        || pItem.isIntToPtrInst()
+        || pItem.isPtrToIntInst()) {
       return handleOpCode(pItem, pFunctionName, pFileName, pItem.getOpCode());
     } else if (pItem.isUnaryInstruction()) {
       return handleUnaryOp(pItem, pFunctionName, pFileName);
@@ -817,7 +825,7 @@ public class CFABuilder {
   private List<CAstNode> handleLoad(
       final Value pItem, final String pFunctionName, final String pFileName) throws LLVMException {
     CType expectedType = typeConverter.getCType(pItem.typeOf());
-    CExpression expression = getAssignedIdExpression(pItem.getOperand(0), expectedType, pFileName);
+    CExpression expression = getExpression(pItem.getOperand(0), expectedType, pFileName);
     return getAssignStatement(pItem, expression, pFunctionName, pFileName);
   }
 
@@ -910,6 +918,13 @@ public class CFABuilder {
       case BitCast:
         return createBitcast(pItem, pFileName);
 
+      case PtrToInt:
+        // fall through
+      case IntToPtr:
+        return new CCastExpression(getLocation(pItem, pFileName), typeConverter.getCType(pItem
+            .typeOf()), getExpression(pItem.getOperand(0), typeConverter.getCType(pItem
+            .getOperand(0).typeOf()), pFileName));
+
         // Comparison operations
       case ICmp:
       case FCmp:
@@ -937,10 +952,6 @@ public class CFABuilder {
       case FPTrunc:
         // fall through
       case FPExt:
-        // fall through
-      case PtrToInt:
-        // fall through
-      case IntToPtr:
         // fall through
       case AddrSpaceCast:
         // fall through
