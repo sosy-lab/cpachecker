@@ -986,8 +986,14 @@ public class CFABuilder {
     Value op = pItem.getOperand(0);
     CType expectedType = typeConverter.getCType(pItem.typeOf());
     CType opType = typeConverter.getCType(op.typeOf());
-    CExpression opToCast = getExpression(op, opType, pFileName);
-    return new CCastExpression(getLocation(pItem, pFileName), expectedType, opToCast);
+    if (op.isFunction()) {
+      assert opType instanceof CPointerType;
+      opType = ((CPointerType) opType).getType();
+      return getExpression(op, opType, pFileName);
+    } else {
+      CExpression opToCast = getExpression(op, opType, pFileName);
+      return new CCastExpression(getLocation(pItem, pFileName), expectedType, opToCast);
+    }
   }
 
   private CExpression createFromArithmeticOp(
