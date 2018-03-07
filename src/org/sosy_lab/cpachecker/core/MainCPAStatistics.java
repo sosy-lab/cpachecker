@@ -544,19 +544,17 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void printMemoryStatistics(PrintStream out) {
-    if (monitorMemoryUsage) {
-      MemoryStatistics.printGcStatistics(out);
+    MemoryStatistics.printGcStatistics(out);
 
-      if (memStats != null) {
-        try {
-          memStatsThread.join(); // thread should have terminated already,
-                                 // but wait for it to ensure memory visibility
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        if (!memStatsThread.isAlive()) {
-          memStats.printStatistics(out);
-        }
+    if (monitorMemoryUsage && memStats != null) {
+      try {
+        memStatsThread.join(); // thread should have terminated already,
+        // but wait for it to ensure memory visibility
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      if (!memStatsThread.isAlive()) {
+        memStats.printStatistics(out);
       }
     }
   }
