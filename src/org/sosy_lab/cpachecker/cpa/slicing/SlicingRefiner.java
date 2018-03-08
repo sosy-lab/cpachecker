@@ -199,24 +199,20 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-
-    Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
-    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
     boolean anyFeasible = false;
-    for (ARGPath tp : targetPaths) {
+
+    for (ARGPath tp : getTargetPaths(pReached)) {
       int targetPathId = obtainTargetPathId(tp);
       if (previousTargetPaths.contains(targetPathId)) {
         throw new RefinementFailedException(Reason.RepeatedCounterexample, tp);
       }
-
-      CounterexampleInfo cex = isFeasible(tp, pReached);
-
-      if (cex.isSpurious()) {
-        previousTargetPaths.add(targetPathId);
-      } else {
+      if (isFeasible(tp, pReached)) {
+        CounterexampleInfo cex = getCounterexample(tp);
         tp.getLastState().addCounterexampleInformation(cex);
         anyFeasible = true;
+      } else {
+
+        previousTargetPaths.add(targetPathId);
       }
     }
 
@@ -226,6 +222,19 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       updatePrecisionAndRemoveSubtree(pReached);
       return true;
     }
+  }
+
+  CounterexampleInfo getCounterexample(ARGPath pTargetPath) {
+    return CounterexampleInfo.feasibleImprecise(pTargetPath);
+  }
+
+  Collection<ARGPath> getTargetPaths(ReachedSet pReached) throws RefinementFailedException {
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
+
+    Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
+    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
+
+    return targetPaths;
   }
 
   private int obtainTargetPathId(final ARGPath pTargetPath) {
@@ -242,7 +251,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    * @throws CPAException if the wrapped transfer relation throws an Exception during the check
    * @throws InterruptedException if feasibility check got interrupted
    */
-  CounterexampleInfo isFeasible(final ARGPath pTargetPath, final ReachedSet pReached)
+  boolean isFeasible(final ARGPath pTargetPath, final ReachedSet pReached)
       throws CPAException, InterruptedException {
 
     PathIterator iterator = pTargetPath.fullPathIterator();
@@ -268,14 +277,14 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           // Thus, there is no way that any initial precision could change, either way.
           successorSet = transfer.getAbstractSuccessorsForEdge(state, precision, outgoingEdge);
           if (successorSet.isEmpty()) {
-            return CounterexampleInfo.spurious();
+            return false;
           }
           // extract singleton successor state
           state = Iterables.get(successorSet, 0);
           iterator.advance();
         } while (!iterator.isPositionWithState());
       }
-      return CounterexampleInfo.feasibleImprecise(pTargetPath);
+      return true;
     } catch (CPATransferException e) {
       throw new CPAException(
           "Computation of successor failed for checking path: " + e.getMessage(), e);

@@ -29,11 +29,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -97,7 +99,20 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
     // refinement roots of slicing.
     // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
     slicingRefiner.updatePrecision(pReached);
-    return delegate.performRefinement(pReached);
+    boolean refinementResult = delegate.performRefinement(pReached);
+
+    // Update counterexamples to be imprecise, because the program slice
+    // may not reflect the real program semantics, but reflects the real program
+    // syntax
+    if (!refinementResult) {
+      for (ARGPath targetPath : slicingRefiner.getTargetPaths(pReached)) {
+        if (slicingRefiner.isFeasible(targetPath, pReached)) {
+          CounterexampleInfo cex = slicingRefiner.getCounterexample(targetPath);
+          targetPath.getLastState().addCounterexampleInformation(cex);
+        }
+      }
+    }
+    return refinementResult;
   }
 
   @Override
