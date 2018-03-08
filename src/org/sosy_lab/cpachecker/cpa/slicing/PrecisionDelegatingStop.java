@@ -54,9 +54,7 @@ public class PrecisionDelegatingStop
     checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
         SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
 
-    AbstractState wrappedState = pState;
     Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
-    Collection<AbstractState> wrappedReached = pReached;
-    return delegateStop.stop(wrappedState, wrappedReached, wrappedPrecision);
+    return delegateStop.stop(pState, pReached, wrappedPrecision);
   }
 }

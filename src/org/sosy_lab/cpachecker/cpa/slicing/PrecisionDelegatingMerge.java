@@ -54,14 +54,6 @@ public class PrecisionDelegatingMerge
         SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
 
     final Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
-    AbstractState wrappedState1 = pState1;
-    AbstractState wrappedState2 = pState2;
-    AbstractState mergeResult = delegateMerge.merge(wrappedState1, wrappedState2, wrappedPrecision);
-
-    if (mergeResult != wrappedState2 || !mergeResult.equals(wrappedState2)) {
-      return mergeResult;
-    } else {
-      return pState2;
-    }
+    return delegateMerge.merge(pState1, pState2, wrappedPrecision);
   }
 }
