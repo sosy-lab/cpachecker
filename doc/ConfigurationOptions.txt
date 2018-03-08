@@ -2771,6 +2771,9 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # exported as dot.
 dependenceGraph.exportDot = "DependenceGraph.dot"
 
+# Run flow dependence analysis with constant propagation
+dependencegraph.flowdep.constantPropagation = false
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false

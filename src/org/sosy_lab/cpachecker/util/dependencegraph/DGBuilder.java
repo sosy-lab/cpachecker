@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 public class DGBuilder {
 
   private final CFA cfa;
+  private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
@@ -128,6 +129,7 @@ public class DGBuilder {
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    config = pConfig;
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -266,7 +268,7 @@ public class DGBuilder {
 
   private void addFlowDependences()
       throws InvalidConfigurationException, InterruptedException, CPAException {
-    FlowDependences flowDependences = FlowDependences.create(cfa, logger, shutdownNotifier);
+    FlowDependences flowDependences = FlowDependences.create(cfa, config, logger, shutdownNotifier);
 
     for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> c :
         flowDependences.cellSet()) {
@@ -374,6 +376,16 @@ public class DGBuilder {
       extends ForwardingTable<
           CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> {
 
+    @Options(prefix = "dependencegraph.flowdep")
+    private static class FlowDependenceConfig {
+      @Option(secure = true, description = "Run flow dependence analysis with constant propagation")
+      boolean constantPropagation = false;
+
+      FlowDependenceConfig(final Configuration pConfig) throws InvalidConfigurationException {
+        pConfig.inject(this);
+      }
+    }
+
     // CFAEdge + defined memory location -> Edge defining the uses
     private Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> dependences;
 
@@ -390,9 +402,18 @@ public class DGBuilder {
     }
 
     public static FlowDependences create(
-        final CFA pCfa, final LogManager pLogger, final ShutdownNotifier pShutdownNotifier)
+        final CFA pCfa,
+        final Configuration pConfig,
+        final LogManager pLogger,
+        final ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException, CPAException, InterruptedException {
-      String configFile = "flowDependences.properties";
+      FlowDependenceConfig options = new FlowDependenceConfig(pConfig);
+      String configFile;
+      if (options.constantPropagation) {
+        configFile = "flowDependences-constantProp.properties";
+      } else {
+        configFile = "flowDependences.properties";
+      }
 
       Configuration config =
           Configuration.builder().loadFromResource(FlowDependences.class, configFile).build();
