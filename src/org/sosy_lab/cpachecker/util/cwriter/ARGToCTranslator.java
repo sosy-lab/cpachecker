@@ -331,19 +331,51 @@ public class ARGToCTranslator {
         // if part
         CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
         // create a new block starting with this condition
-        boolean truthAssumption = assumeEdge.getTruthAssumption();
-        CompoundStatement newBlock = addIfStatement(currentBlock, "if (" + (truthAssumption ? "" : "!(")
-                + assumeEdge.getExpression().toASTString() + (truthAssumption ? "" : ")") + ")");
-        ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
-        pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
+        boolean truthAssumption = getRealTruthAssumption(assumeEdge);
+
+        CompoundStatement newBlock =
+            addIfStatement(currentBlock, "if (" + assumeEdge.getExpression().toASTString() + ")");
+
+        if (truthAssumption) {
+          ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
+          pushToWaitlist(
+              waitlist,
+              e.getParentElement(),
+              e.getChildElement(),
+              e.getCfaEdge(),
+              e.getCurrentBlock());
+        } else {
+          pushToWaitlist(
+              waitlist,
+              currentElement,
+              new ARGState(null, null),
+              edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
+                  ? edgeToChild.getPredecessor().getLeavingEdge(1)
+                  : edgeToChild.getPredecessor().getLeavingEdge(0),
+              newBlock);
+        }
 
         // else part
         newBlock = addIfStatement(currentBlock, "else ");
-        pushToWaitlist(waitlist, currentElement, new ARGState(null, null),
-            edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
-                ? edgeToChild.getPredecessor().getLeavingEdge(1)
-                : edgeToChild.getPredecessor().getLeavingEdge(0),
-            newBlock);
+
+        if (truthAssumption) {
+          pushToWaitlist(
+              waitlist,
+              currentElement,
+              new ARGState(null, null),
+              edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
+                  ? edgeToChild.getPredecessor().getLeavingEdge(1)
+                  : edgeToChild.getPredecessor().getLeavingEdge(0),
+              newBlock);
+        } else {
+          ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
+          pushToWaitlist(
+              waitlist,
+              e.getParentElement(),
+              e.getChildElement(),
+              e.getCfaEdge(),
+              e.getCurrentBlock());
+        }
 
       } else {
         pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
@@ -355,35 +387,38 @@ public class ARGToCTranslator {
       //collect edges of condition branch
       ArrayList<ARGEdge> result = new ArrayList<>(2);
       int ind = 0;
+      boolean previousTruthAssumption = false;
       for (ARGState child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
         assert edgeToChild instanceof CAssumeEdge : "something wrong: branch in ARG without condition: " + edgeToChild;
         CAssumeEdge assumeEdge = (CAssumeEdge)edgeToChild;
-        boolean truthAssumption = assumeEdge.getTruthAssumption();
+        boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
         String cond = "";
 
-        if (ind == 0) {
-          cond = "if ";
-        } else if (ind == 1) {
-          cond = "else ";
+        if (truthAssumption) {
+          cond = "if (" + assumeEdge.getExpression().toASTString() + ")";
         } else {
-          assert false;
+          cond = "else ";
         }
 
-        if(ind == 0) {
-          if (truthAssumption) {
-            cond += "(" + assumeEdge.getExpression().toASTString() + ")";
-          } else {
-            cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
-          }
+        if (ind > 0 && truthAssumption == previousTruthAssumption) {
+          throw new AssertionError(
+              "Two assume edges with same truth value, thus, cannot generated C program from ARG.");
         }
 
         ind++;
 
         // create a new block starting with this condition
         CompoundStatement newBlock = addIfStatement(currentBlock, cond);
-        result.add(new ARGEdge(currentElement, child, edgeToChild, newBlock));
+        ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
+        if (truthAssumption) {
+          result.add(0, newEdge);
+        } else {
+          result.add(newEdge);
+        }
+
+        previousTruthAssumption = truthAssumption;
       }
 
       //add edges in reversed order to waitlist
@@ -392,6 +427,10 @@ public class ARGToCTranslator {
         pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
       }
     }
+  }
+
+  private boolean getRealTruthAssumption(final CAssumeEdge assumption) {
+    return assumption.isSwapped() != assumption.getTruthAssumption();
   }
 
   private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
