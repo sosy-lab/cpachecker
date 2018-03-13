@@ -173,7 +173,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
             if (testTargets.contains(targetEdge)) {
 
               if (status.isSound()) {
-                writeTestHarnessFile(targetEdge, argState);
+                writeTestHarnessFile(argState);
 
                 logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
                 testTargets.remove(targetEdge);
@@ -218,7 +218,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     }
   }
 
-  private void writeTestHarnessFile(CFAEdge pTargetEdge, ARGState pArgState) {
+  private void writeTestHarnessFile(ARGState pArgState) {
     if (testHarnessFile != null) {
       CounterexampleInfo cexInfo =
           ARGUtils.tryGetOrCreateCounterexampleInformation(
