@@ -91,16 +91,19 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 @RunWith(Parameterized.class)
 public class ConfigurationFileChecks {
 
+  private static final Pattern INDICATES_MISSING_INPUT_FILE =
+      Pattern.compile(
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*",
+          Pattern.DOTALL);
+
   private static final Pattern ALLOWED_WARNINGS =
       Pattern.compile(
-          ".*File .* does not exist.*"
-              + "|The following configuration options were specified but are not used:.*"
+          "The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
               + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*"
-              + "|.*Witness file is missing in specification.*",
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -447,6 +450,17 @@ public class ConfigurationFileChecks {
         .named("log with level WARNING or higher")
         .isEmpty();
 
+    assume()
+        .about(streams())
+        .that(
+            logHandler
+                .getStoredLogRecords()
+                .stream()
+                .map(LogRecord::getMessage)
+                .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
+        .named("messages indicating missing input files")
+        .isEmpty();
+
     if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
       // TODO find a solution how to check for unused properties correctly even with
       // RestartAlgorithm
@@ -534,6 +548,7 @@ public class ConfigurationFileChecks {
     return logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
+            .filter(s -> !INDICATES_MISSING_INPUT_FILE.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
   }
 
