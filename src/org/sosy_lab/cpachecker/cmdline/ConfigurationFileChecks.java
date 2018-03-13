@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -32,6 +33,7 @@ import static java.lang.Boolean.parseBoolean;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
@@ -48,9 +50,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -107,8 +108,8 @@ public class ConfigurationFileChecks {
           ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
-  private static final ImmutableList<String> UNUSED_OPTIONS =
-      ImmutableList.of(
+  private static final ImmutableSet<String> UNUSED_OPTIONS =
+      ImmutableSet.of(
           // always set by this test
           "java.sourcepath",
           // handled by code outside of CPAchecker class
@@ -437,26 +438,25 @@ public class ConfigurationFileChecks {
       return;
     }
 
-    Stream<String> severeMessages = getSevereMessages(options, logHandler);
-
-    if (severeMessages.count() > 0) {
-      assert_()
-          .fail(
-              "Not true that log for config %s does not contain messages with level WARNING or higher:\n%s",
-              configFile,
-              logHandler
-                  .getStoredLogRecords()
-                  .stream()
-                  .map(ConsoleLogFormatter.withoutColors()::format)
-                  .collect(Collectors.joining())
-                  .trim());
-    }
+    assert_()
+        .withMessage(
+            "Failure in CPAchecker run with following log\n%s\n",
+            formatLogRecords(logHandler.getStoredLogRecords()))
+        .about(streams())
+        .that(getSevereMessages(options, logHandler))
+        .named("log with level WARNING or higher")
+        .isEmpty();
 
     if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
-      // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
-      Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
-      unusedOptions.removeAll(UNUSED_OPTIONS);
-      assertThat(unusedOptions).named("unused options specified in " + configFile).isEmpty();
+      // TODO find a solution how to check for unused properties correctly even with
+      // RestartAlgorithm
+      assert_()
+          .withMessage(
+              "Failure in CPAchecker run with following log\n%s\n",
+              formatLogRecords(logHandler.getStoredLogRecords()))
+          .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
+          .named("list of unused options")
+          .isEmpty();
     }
   }
 
@@ -535,6 +535,15 @@ public class ConfigurationFileChecks {
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+  }
+
+  private static String formatLogRecords(Collection<? extends LogRecord> log) {
+    return log.stream()
+        .map(ConsoleLogFormatter.withoutColors()::format)
+        .flatMap(s -> Pattern.compile("\n").splitAsStream(s))
+        .map(s -> "| " + s)
+        .collect(Collectors.joining("\n"))
+        .trim();
   }
 
   private static boolean isOptionEnabled(Configuration config, String key) {
