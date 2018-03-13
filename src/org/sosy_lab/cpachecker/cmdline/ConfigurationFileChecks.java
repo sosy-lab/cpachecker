@@ -429,8 +429,9 @@ public class ConfigurationFileChecks {
       return;
     }
 
+    CPAcheckerResult result;
     try {
-      cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().fail("Java frontend has a bug and cannot be run twice");
@@ -460,6 +461,16 @@ public class ConfigurationFileChecks {
                 .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
         .named("messages indicating missing input files")
         .isEmpty();
+
+    if (!isOptionEnabled(config, "analysis.disable")) {
+      assert_()
+          .withMessage(
+              "Failure in CPAchecker run with following log\n%s\n",
+              formatLogRecords(logHandler.getStoredLogRecords()))
+          .that(result.getResult())
+          .named("analysis result '%s'", result.getResultString())
+          .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
+    }
 
     if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
       // TODO find a solution how to check for unused properties correctly even with
