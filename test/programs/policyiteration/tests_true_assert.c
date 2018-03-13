@@ -1,10 +1,9 @@
-#include <assert.h>
-#include <stdbool.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 
 int main() {
   int x = 0;
   int y = 0;
-  while (true) {
+  while (1) {
     x++;
     y++;
     x += y;
