@@ -35,7 +35,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -137,6 +136,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   private final TestCaseGeneratorAlgorithmStatistics stats;
   private Set<CFAEdge> testTargets;
 
+
   public TestCaseGeneratorAlgorithm(
       Algorithm pAlgorithm,
       CFA pCfa,
@@ -159,8 +159,31 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReached)
+  public AlgorithmStatus run(final ReachedSet pReached)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    if(pReached.getWaitlist().size()>1 || !pReached.getWaitlist().contains(pReached.getFirstState())) {
+      pReached
+          .getWaitlist()
+          .stream()
+          .filter(
+              (AbstractState state) -> {
+                return ((ARGState) state).getChildren().size() > 0;
+              })
+          .forEach(
+              (AbstractState state) -> {
+                ARGState argState = (ARGState) state;
+                List<ARGState> removedChildren = new ArrayList<>(2);
+                for (ARGState child : argState.getChildren()) {
+                  if (!pReached.contains(child)) {
+                    removedChildren.add(child);
+                  }
+                }
+                for (ARGState child : removedChildren) {
+                  child.removeFromARG();
+                }
+              });
+    }
+
     try {
       while (!testTargets.isEmpty() && pReached.hasWaitingState()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -169,26 +192,18 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
-        Set<AbstractState> oldReachedStates = new HashSet<>(pReached.asCollection());
         try {
           status = algorithm.run(pReached);
+
         } catch (CPAException e) {
           if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
-            status = status.withPrecise(false);
+            status = status.withSound(false);
           }
 
           logger.logUserException(Level.WARNING, e, "Analysis not completed.");
 
         } finally {
 
-          if (!status.isSound()) {
-            Set<AbstractState> recentlyReachedStates =
-                Sets.difference(new HashSet<>(pReached.asCollection()), oldReachedStates);
-            for (AbstractState e : recentlyReachedStates) {
-              ((ARGState) e).removeFromARG();
-              pReached.remove(e);
-            }
-          }
           assert ARGUtils.checkARG(pReached);
           assert (from(pReached).filter(IS_TARGET_STATE).size() < 2);
 
@@ -207,16 +222,16 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
             if (targetEdge != null) {
               if (testTargets.contains(targetEdge)) {
 
-                if (status.isPrecise()) {
+                if (status.isSound()) {
                   writeTestHarnessFile(targetEdge, argState);
 
-                  logger.log(Level.INFO, "Removing test target: " + targetEdge.toString());
+                  logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
                   testTargets.remove(targetEdge);
                   stats.coveredTestTargets.add(targetEdge);
                 } else {
                   logger.log(
                       Level.FINE,
-                      "Status was not precise. Current test target is not removed:"
+                      "Status was not sound. Current test target is not removed:"
                           + targetEdge.toString());
                 }
               } else {
