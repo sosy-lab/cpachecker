@@ -1,16 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
 import com.google.common.collect.ImmutableMap;
-
+import java.nio.file.Paths;
+import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
-
-import java.nio.file.Paths;
-import java.util.Map;
 
 /**
  * Integration testing for policy iteration.
@@ -223,12 +221,7 @@ public class PolicyIterationTest {
   }
 
   private void check(String filename, Configuration config) throws Exception {
-    String fullPath;
-    if (filename.contains("test/programs/benchmarks")) {
-      fullPath = filename;
-    } else {
-      fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
-    }
+    String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(config, fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
