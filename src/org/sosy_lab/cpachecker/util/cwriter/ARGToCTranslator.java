@@ -235,6 +235,10 @@ public class ARGToCTranslator {
     deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
   }
 
+  public boolean addsIncludeDirectives() {
+    return includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE;
+  }
+
   public String translateARG(ARGState argRoot) throws CPAException {
 
     return translateARG(argRoot, null);
