@@ -36,20 +36,23 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
-  private Set<CFAEdge> testTargets;
+  private final Set<CFAEdge> testTargets;
 
-  TestTargetTransferRelation(Set<CFAEdge> pTestTargets) {
+  TestTargetTransferRelation(final Set<CFAEdge> pTestTargets) {
     this.testTargets = pTestTargets;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     checkNotNull(testTargets);
 
-    boolean isTarget = testTargets.contains(pCfaEdge);
+    return Collections.singleton(
+        testTargets.contains(pCfaEdge) ? TestTargetState.TARGET : TestTargetState.NO_TARGET);
+  }
 
-    return Collections.singleton(isTarget ? TestTargetState.TARGET : TestTargetState.NO_TARGET);
+  public Set<CFAEdge> getTestTargets() {
+    return testTargets;
   }
 }

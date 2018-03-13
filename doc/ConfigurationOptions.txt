@@ -2782,9 +2782,6 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
-# export test harness to file as code
-harness = no default value
-
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
@@ -3451,6 +3448,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+
+# export test harness to file as code
+testcase.file = no default value
 
 # export undefined functions as C file
 undefFuncCollectorAlgorithm.file = "env.c"
