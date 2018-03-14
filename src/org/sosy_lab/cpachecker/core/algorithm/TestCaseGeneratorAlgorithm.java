@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -141,13 +142,15 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
       assert ARGUtils.checkARG(pReached);
       assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
 
-      AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
+      AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
       try {
         status = algorithm.run(pReached);
 
       } catch (CPAException e) {
-        if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
-          status = status.withSound(false);
+        if (e instanceof CounterexampleAnalysisFailed
+            || e instanceof RefinementFailedException
+            || e instanceof InfeasibleCounterexampleException) {
+          status = status.withPrecise(false);
         }
 
         logger.logUserException(Level.WARNING, e, "Analysis not completed.");
@@ -172,7 +175,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           if (targetEdge != null) {
             if (testTargets.contains(targetEdge)) {
 
-              if (status.isSound()) {
+              if (status.isPrecise()) {
                 writeTestHarnessFile(argState);
 
                 logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
@@ -180,7 +183,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
               } else {
                 logger.log(
                     Level.FINE,
-                    "Status was not sound. Current test target is not removed:"
+                    "Status was not precise. Current test target is not removed:"
                         + targetEdge.toString());
               }
             } else {
