@@ -80,7 +80,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InvalidConfigurationException {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
-    callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
+    callstackTransfer =
+        (CallstackTransferRelation)
+            (CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class))
+                .getTransferRelation();
     bamPccManager = new BAMPCCManager(
         wrappedChecker, pConfig, partitioning, wrappedReducer, bamCpa, data);
   }
