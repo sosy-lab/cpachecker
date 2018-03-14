@@ -102,7 +102,7 @@ public class BAMCacheImpl implements BAMCache {
   public void put(AbstractState stateKey, Precision precisionKey, Block context, Collection<AbstractState> item,
                    ARGState rootOfBlock) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    assert preciseReachedCache.get(hash) != null : "key not found in cache";
+    assert preciseReachedCache.get(hash) != null : "key not found in cache: " + hash;
     assert allStatesContainedInReachedSet(item, preciseReachedCache.get(hash)) : "output-states must be in reached-set";
     returnCache.put(hash, item);
     blockARGCache.put(hash, rootOfBlock);
