@@ -102,13 +102,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(length);
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + super.hashCode();
-    return result;
+    return Objects.hash(length, isConst, isVolatile) * 31 + super.hashCode();
   }
 
 

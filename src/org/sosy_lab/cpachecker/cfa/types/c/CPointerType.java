@@ -29,7 +29,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
-
 public final class CPointerType implements CType, Serializable {
 
   private static final long serialVersionUID = -6423006826454509009L;
@@ -109,12 +108,7 @@ public final class CPointerType implements CType, Serializable {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(type);
-      return result;
+    return Objects.hash(isConst, isVolatile, type);
   }
 
   /**

@@ -79,10 +79,7 @@ public final class CCastExpression extends ACastExpression implements CExpressio
    */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + super.hashCode();
-    return result;
+    return super.hashCode();
   }
 
   /* (non-Javadoc)

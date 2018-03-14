@@ -70,9 +70,7 @@ public class CPointerExpression extends APointerExpression implements CLeftHandS
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+    return super.hashCode();
   }
 
   @Override
