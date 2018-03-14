@@ -81,7 +81,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
-  private final TestTargetCPA testTargetCpa;
+  private final ConfigurableProgramAnalysis cpa;
   private final HarnessExporter harnessExporter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -98,14 +98,15 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     pConfig.inject(this);
     CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, TestCaseGeneratorAlgorithm.class);
     algorithm = pAlgorithm;
+    cpa = pCpa;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(pConfig, pLogger, pCfa.getMachineModel());
-    testTargetCpa =
+        AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
+    TestTargetCPA testTargetCpa =
         CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
   }
 
@@ -221,12 +222,10 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     }
   }
 
-  private void writeTestHarnessFile(ARGState pArgState) {
+  private void writeTestHarnessFile(final ARGState pTarget) {
     if (testHarnessFile != null) {
-      CounterexampleInfo cexInfo =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(
-                  pArgState, testTargetCpa, assumptionToEdgeAllocator)
-              .get();
+      CounterexampleInfo cexInfo = extractCexInfo(pTarget);
+
       Path file = testHarnessFile.getPath(id.getFreshId());
       ARGPath targetPath = cexInfo.getTargetPath();
       Object content =
@@ -244,6 +243,17 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         logger.logUserException(Level.WARNING, e, "Could not write test harness to file");
       }
     }
+  }
+
+  private CounterexampleInfo extractCexInfo(final ARGState pTarget) {
+    // TODO may not contain sufficient information to write test harness, e.g. when using
+    // ValueAnalysis
+    if (pTarget.getCounterexampleInformation().isPresent()) {
+      return pTarget.getCounterexampleInformation().get();
+    }
+
+    return ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
+        .get();
   }
 
   @Override
