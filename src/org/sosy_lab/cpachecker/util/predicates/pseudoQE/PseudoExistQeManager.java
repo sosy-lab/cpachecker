@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pseudoQE;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,7 +63,6 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 @Options(prefix = "cpa.predicate.pseudoExistQE")
 public class PseudoExistQeManager {
 
-
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bFmgr;
   private Optional<QuantifiedFormulaManager> qFmgr;
@@ -74,9 +76,8 @@ public class PseudoExistQeManager {
   @Option(secure = true, description = "Use Unconnected Parameter Drop as simplification method")
   private boolean useUPD = true;
 
-
   enum SolverQeTactic {
-    /** Don't user Solver Quantifier Elimination */
+    /** Don't use Solver Quantifier Elimination */
     NONE,
     /** Use Light Quantifier Elimination as implemented in used solver */
     LIGHT,
@@ -98,7 +99,6 @@ public class PseudoExistQeManager {
             + " if one or more quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)"
   )
   private boolean overapprox = true;
-
 
   /**
    * Create a new PseudoExistQuantifier elimination manager
@@ -145,14 +145,14 @@ public class PseudoExistQeManager {
     // on the new smaller Set of quantified Variables
     int quantifierCountLastIteration = Integer.MAX_VALUE;
 
-    while((quantifierCountLastIteration > existFormula.getNumberOfQuantifiers())
+    while ((quantifierCountLastIteration > existFormula.getNumberOfQuantifiers())
         && existFormula.hasQuantifiers()) {
       quantifierCountLastIteration = existFormula.getNumberOfQuantifiers();
 
-      if(useDER && existFormula.hasQuantifiers()) {
+      if (useDER && existFormula.hasQuantifiers()) {
         existFormula = applyDER(existFormula);
       }
-      if(useUPD && existFormula.hasQuantifiers()) {
+      if (useUPD && existFormula.hasQuantifiers()) {
         existFormula = applyUPD(existFormula);
       }
     }
@@ -163,14 +163,14 @@ public class PseudoExistQeManager {
     }
 
     // How to handle remaining Quantifiers based on Options and result of previous operations
-    if(existFormula.hasQuantifiers()) {
+    if (existFormula.hasQuantifiers()) {
       if (overapprox) {
         return overapproximateFormula(existFormula);
-      }else {
+      } else {
         // TODO: Add some better fitting Exception, right now Exception as placeholder.
         throw new Exception();
       }
-    }else {
+    } else {
       return existFormula.getInnerFormula();
     }
   }
@@ -245,23 +245,65 @@ public class PseudoExistQeManager {
   }
 
   /**
-   * Apply the "Unconnected Parameter Drop" on the Formula
+   * Apply the "Unconnected Parameter Drop" on the Formula.
+   *
+   * <ul>
+   *   <li>ex v_1,...v_n.F_1 and F_2 with:
+   *   <li>- F_2 contains only bound variables not occuring in F_1 and Theory axioms
+   *   <li>=> (ex v_1,...v_n.F_1 and F_2) == F_1
+   * </ul>
    *
    * @param pExistFormula The Formula to eliminate quantifiers in
    * @return If possible a UPD-simplified Formula, else it returns the input formula
    */
   private PseudoExistFormula applyUPD(PseudoExistFormula pExistFormula) {
-    throw new UnsupportedOperationException("Not yet implemented. Work in progress.");
+    List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
+    List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
+    Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
+
+    for (BooleanFormula conjunct : conjuncts_with_bound) {
+      Set<String> varNames = fmgr.extractVariableNames(conjunct);
+      Set<String> boundVarNames = Sets.intersection(varNames, boundVarsToElim.keySet());
+      if (varNames.equals(boundVarNames)) {
+        // The bound vars maybe can be eliminated
+        conjuncts_to_eliminate.add(conjunct);
+      } else {
+        // The bound vars in this conjunct cannot be eliminated with UPD
+        boundVarsToElim =
+            Maps.filterKeys(boundVarsToElim, Predicates.not(Predicates.in(boundVarNames)));
+      }
+    }
+
+    if (!boundVarsToElim.isEmpty()) {
+      // TODO: Show that the formula F_2 is satisfiable
+      BooleanFormula newFormula =
+          bFmgr.and(
+              bFmgr.and(pExistFormula.getConjunctsWithoutQuantifiedVars()),
+              bFmgr.and(
+                  FluentIterable.from(conjuncts_with_bound)
+                      .filter(Predicates.not(Predicates.in(conjuncts_to_eliminate)))
+                      .toList()));
+
+      Map<String, Formula> newBoundVars =
+          Maps.filterKeys(
+              pExistFormula.getQuantifiedVars(),
+              Predicates.not(Predicates.in(boundVarsToElim.keySet())));
+      return new PseudoExistFormula(newBoundVars, newFormula, fmgr);
+    } else {
+      return pExistFormula;
+    }
   }
 
   /**
    * Apply solver-integrated quantifier elimination on the Formula
    *
    * @param pExistFormula The Formula to eliminate quantifiers in
-   * @return The Formula after applying Solver-QE or in case of an solver Exception the input Formula
+   * @return The Formula after applying Solver-QE or in case of an solver Exception the input
+   *     Formula
    * @throws InterruptedException When interrupted
    */
-  private PseudoExistFormula applyRealQuantifierElimination(PseudoExistFormula pExistFormula) throws InterruptedException {
+  private PseudoExistFormula applyRealQuantifierElimination(PseudoExistFormula pExistFormula)
+      throws InterruptedException {
     assert qFmgr.isPresent();
 
     // Create the real quantified formula
@@ -306,7 +348,7 @@ public class PseudoExistQeManager {
       // Ensure the inner formula does not contain anymore Quantifiers,
       // else fallback to the inputFormula
       if (isQuantified(result.getInnerFormula())) {
-        result =pExistFormula;
+        result = pExistFormula;
       }
       return result;
     } else {
@@ -392,6 +434,4 @@ public class PseudoExistQeManager {
         });
     return foundQuantifier.get();
   }
-
-
 }
