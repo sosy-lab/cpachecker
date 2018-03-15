@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -563,12 +564,19 @@ class WitnessWriter implements EdgeAppender {
     }
 
     if (witnessOptions.exportSourcecode()) {
-      final String sourceCode;
+      String sourceCode;
       if (pIsDefaultCase && !pGoesToSink) {
         sourceCode = "default:";
       } else {
         sourceCode = pEdge.getRawStatement().trim();
       }
+      if (sourceCode.isEmpty()
+          && pAdditionalInfo != null
+          && !pAdditionalInfo.getInfos().isEmpty()
+          && pEdge instanceof FunctionReturnEdge) {
+        sourceCode = ((FunctionReturnEdge) pEdge).getSummaryEdge().getRawStatement().trim();
+      }
+
       if (!sourceCode.isEmpty()) {
         result = result.putAndCopy(KeyDef.SOURCECODE, sourceCode);
       }
