@@ -1279,14 +1279,15 @@ cpa.location.followFunctionCalls = true
 # reduce recursive locks to a single access
 cpa.lock.aggressiveReduction = false
 
+# What are we searching for: race or deadlock
+cpa.lock.analysisMode = RACE
+  enum:     [RACE, DEADLOCK]
+
 #  annotated functions, which are known to works right
 cpa.lock.annotate = no default value
 
 # contains all lock names
 cpa.lock.lockinfo = no default value
-
-# function to reset state
-cpa.lock.lockreset = no default value
 
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
@@ -2279,6 +2280,9 @@ cpa.usage.abortfunctions = no default value
 # to list variable)
 cpa.usage.binderFunctions = no default value
 
+# export counterexample core as text file
+cpa.usage.export.witnessTemplate = "witness.%s.graphml"
+
 # path to write results
 cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 
@@ -2307,9 +2311,6 @@ cpa.usage.printFalseUnsafes = false
 
 # output only true unsafes
 cpa.usage.printOnlyTrueUnsafes = false
-
-# a limit for paths for one usage, which could be refined
-cpa.usage.refinablePathLimitation = Integer.MAX_VALUE
 
 # The order of refinement blocks
 cpa.usage.refinementChain = no default value
@@ -2343,6 +2344,13 @@ cpa.usage.totalARGCleaning = false
 
 # ignore unsafes only with empty callstacks
 cpa.usage.unsafedetector.ignoreEmptyLockset = false
+
+# A name of interrupt lock for checking deadlock free
+cpa.usage.unsafedetector.intLock = no default value
+
+# defines what is unsafe
+cpa.usage.unsafedetector.unsafeMode = RACE
+  enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
 
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
