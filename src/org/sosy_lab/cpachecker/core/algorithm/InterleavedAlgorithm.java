@@ -34,8 +34,11 @@ import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -56,6 +59,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -278,6 +282,24 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   )
   private boolean writeIntermediateOutputFiles = true;
 
+  @Option(
+    secure = true,
+    name = "initCondition",
+    description =
+        "Whether or not to create an initial condition, that excludes no paths, "
+            + "before first analysis is run."
+            + "Required when first analysis uses condition from conditional model checking"
+  )
+  private boolean generateInitialFalseCondition = false;
+
+  @Option(
+    secure = true,
+    name = "condition.file",
+    description = "where to store initial condition, when generated"
+  )
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
+
   private final CFA cfa;
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -313,6 +335,23 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
                 "Shutdown of analysis %d requested (%s).",
                 stats.noOfCurrentAlgorithm,
                 reason);
+    if (generateInitialFalseCondition) {
+      generateInitialFalseCondition();
+    }
+  }
+
+  private void generateInitialFalseCondition() {
+    String condition =
+        "OBSERVER AUTOMATON AssumptionAutomaton\n\n"
+            + "INITIAL STATE __FALSE;\n\n"
+            + "STATE __FALSE :\n    TRUE -> GOTO __FALSE;\n\n"
+            + "END AUTOMATON\n";
+
+    try (Writer w = IO.openOutputFile(initialCondition, Charset.defaultCharset())) {
+      w.write(condition);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write initial condition to file");
+    }
   }
 
   @SuppressFBWarnings(

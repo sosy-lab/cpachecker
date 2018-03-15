@@ -2785,6 +2785,9 @@ enabledanalysis.enablerCPA = PREDICATE
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
+# where to store initial condition, when generated
+interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
+
 # list of files with configurations to use, which are optionally suffixed
 # according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
 # where MODE and LIMIT are place holders.MODE may take one of the following
@@ -2794,6 +2797,11 @@ impact.useForcedCovering = true
 # positive integer number specifying the time limit of the analysis in each
 # round.If no (correct) limit is given a default limit is used.
 interleavedAlgorithm.configFiles = no default value
+
+# Whether or not to create an initial condition, that excludes no paths,
+# before first analysis is run.Required when first analysis uses condition
+# from conditional model checking
+interleavedAlgorithm.initCondition = false
 
 # print the statistics of each component of the interleaved algorithm
 # directly after the component's computation is finished
