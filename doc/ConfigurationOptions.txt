@@ -2480,6 +2480,9 @@ cpa.usage.abortfunctions = no default value
 # to list variable)
 cpa.usage.binderFunctions = no default value
 
+# export counterexample core as text file
+cpa.usage.export.witnessTemplate = "witness.%s.graphml"
+
 # path to write results
 cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 
