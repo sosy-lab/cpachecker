@@ -2785,10 +2785,14 @@ enabledanalysis.enablerCPA = PREDICATE
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
-# list of files with configurations to use. If a filename is suffixed with
-# :reuse-components, reusable components like the cpa or the reached set of
-# an analysis are taken and provided to the next part of this analysis when
-# continuing after the next switch.
+# list of files with configurations to use, which are optionally suffixed
+# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
+# where MODE and LIMIT are place holders.MODE may take one of the following
+# values continue (i.e., continue analysis with same CPA and reached set),
+# reuse-precision (i.e., reuse the aggregation of the precisions from the
+# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
+# positive integer number specifying the time limit of the analysis in each
+# round.If no (correct) limit is given a default limit is used.
 interleavedAlgorithm.configFiles = no default value
 
 # print the statistics of each component of the interleaved algorithm
@@ -3451,6 +3455,9 @@ testHarnessExport.useModel = true
 
 # export test harness to file as code
 testcase.file = no default value
+
+# display all test targets and non-covered test targets in statistics
+testcase.inStats = false
 
 # export undefined functions as C file
 undefFuncCollectorAlgorithm.file = "env.c"

@@ -45,6 +45,7 @@ public class TestTargetProvider implements Statistics {
   private final CFA cfa;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
+  private boolean printTargets = false;
 
   private TestTargetProvider(final CFA pCfa) {
     cfa = pCfa;
@@ -67,8 +68,9 @@ public class TestTargetProvider implements Statistics {
     return instance.uncoveredTargets;
   }
 
-  public static Statistics getTestTargetStatisitics() {
+  public static Statistics getTestTargetStatisitics(boolean pPrintTestGoalInfo) {
     Preconditions.checkState(instance != null);
+    instance.printTargets = pPrintTestGoalInfo;
     return instance;
   }
 
@@ -86,6 +88,8 @@ public class TestTargetProvider implements Statistics {
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
     pOut.println("Number of uncovered test targets: " + (uncoveredTargets.size()));
+
+    if (printTargets) {
     pOut.println("Initial test targets: ");
     for (CFAEdge edge : initialTestTargets) {
       pOut.println(edge.toString());
@@ -94,6 +98,7 @@ public class TestTargetProvider implements Statistics {
     pOut.println("Test targets that have not been covered: ");
     for (CFAEdge edge : uncoveredTargets) {
       pOut.println(edge.toString());
+    }
     }
   }
 }

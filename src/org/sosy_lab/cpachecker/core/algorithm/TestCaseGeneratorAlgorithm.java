@@ -79,6 +79,13 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testHarnessFile = null;
 
+  @Option(
+    secure = true,
+    name = "inStats",
+    description = "display all test targets and non-covered test targets in statistics"
+  )
+  private boolean printTestTargetInfoInStats = false;
+
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ConfigurableProgramAnalysis cpa;
@@ -258,6 +265,6 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics());
+    pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics(printTestTargetInfoInStats));
   }
 }
