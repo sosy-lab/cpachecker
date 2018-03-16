@@ -49,13 +49,9 @@ public class PolicyUnguidedRefiner implements Refiner {
       final ConfigurableProgramAnalysis pCpa
   ) throws InvalidConfigurationException {
 
-    PolicyCPA policyCPA = CPAs.retrieveCPA(pCpa, PolicyCPA.class);
+    PolicyCPA policyCPA =
+        CPAs.retrieveCPAOrFail(pCpa, PolicyCPA.class, PolicyUnguidedRefiner.class);
     LoopBoundCPA loopBoundCPA = CPAs.retrieveCPA(pCpa, LoopBoundCPA.class);
-    if (policyCPA == null) {
-      throw new InvalidConfigurationException(
-          PolicyUnguidedRefiner.class.getSimpleName() + " needs a PolicyCPA"
-      );
-    }
 
     return new PolicyUnguidedRefiner(
         policyCPA, loopBoundCPA, policyCPA.getLogger(), policyCPA.getConfig());
@@ -85,7 +81,7 @@ public class PolicyUnguidedRefiner implements Refiner {
     }
   }
 
-  private void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) throws InterruptedException {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

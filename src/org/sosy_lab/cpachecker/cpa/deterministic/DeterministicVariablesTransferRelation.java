@@ -93,7 +93,7 @@ public class DeterministicVariablesTransferRelation
     }
 
     Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)pDeclaration);
-    AInitializer initializer = ((AVariableDeclaration)varDeclaration.get()).getInitializer();
+    AInitializer initializer = ((AVariableDeclaration) pDeclaration).getInitializer();
 
     // initializer is empty, return identity
     if (initializer == null) {
@@ -328,7 +328,7 @@ public class DeterministicVariablesTransferRelation
 
   @Override
   public String getName() {
-    return getClass().getSimpleName();
+    return "DeterministicVariablesCPA";
   }
 
   @Override

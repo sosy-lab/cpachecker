@@ -46,7 +46,13 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -85,14 +91,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class LiveVariables {
 
@@ -347,7 +346,7 @@ public class LiveVariables {
     }
 
     // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(variableClassification);
+    CFA cfa = pCFA.makeImmutableCFA(variableClassification, Optional.empty());
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
@@ -567,7 +566,7 @@ public class LiveVariables {
 
       Configuration config =
           Configuration.builder().loadFromResource(LiveVariables.class, configFile).build();
-      ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
+      ReachedSetFactory reachedFactory = new ReachedSetFactory(config, logger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
               .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());

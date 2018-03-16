@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -34,7 +35,6 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -441,8 +441,8 @@ public class ValueAnalysisState
       String varName = pProperty.substring("contains(".length(), pProperty.length() - 1);
       return this.constantsMap.containsKey(MemoryLocation.valueOf(varName));
     } else {
-      String[] parts = pProperty.split("==");
-      if (parts.length != 2) {
+      List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
+      if (parts.size() != 2) {
         Value value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
         if (value != null && value.isExplicitlyKnown()) {
           return value;
@@ -459,14 +459,14 @@ public class ValueAnalysisState
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
-    String[] parts = pProperty.split("==");
+    List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
 
-    if (parts.length != 2) {
+    if (parts.size() != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      Value val = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
+      Value val = this.constantsMap.get(MemoryLocation.valueOf(parts.get(0)));
       if (val == null) {
         return false;
       }
@@ -476,13 +476,19 @@ public class ValueAnalysisState
         return false;
       } else {
         try {
-          return value == Long.parseLong(parts[1]);
+          return value == Long.parseLong(parts.get(1));
         } catch (NumberFormatException e) {
-          // The command might contains something like "main::p==cmd" where the user wants to compare the variable p to the variable cmd (nearest in scope)
-          // perhaps we should omit the "main::" and find the variable via static scoping ("main::p" is also not intuitive for a user)
+          // The command might contains something like "main::p==cmd" where the user wants to
+          // compare the variable p to the variable cmd (nearest in scope)
+          // perhaps we should omit the "main::" and find the variable via static scoping ("main::p"
+          // is also not intuitive for a user)
           // TODO: implement Variable finding via static scoping
-          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the long \""
-              + parts[1] + "\"");
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Could not parse the long \""
+                  + parts.get(1)
+                  + "\"");
         }
       }
     }
@@ -498,9 +504,7 @@ public class ValueAnalysisState
     Preconditions.checkNotNull(pModification);
 
     // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
-    String[] statements = pModification.split(";");
-    for (String statement : statements) {
-      statement = statement.trim();
+    for (String statement : Splitter.on(';').trimResults().split(pModification)) {
       if (startsWithIgnoreCase(statement, "deletevalues(")) {
         if (!statement.endsWith(")")) {
           throw new InvalidQueryException(statement + " should end with \")\"");
@@ -522,19 +526,23 @@ public class ValueAnalysisState
         }
 
         String assignment = statement.substring("setvalue(".length(), statement.length() - 1);
-        String[] assignmentParts = assignment.split(":=");
+        List<String> assignmentParts = Splitter.on(":=").trimResults().splitToList(assignment);
 
-        if (assignmentParts.length != 2) {
+        if (assignmentParts.size() != 2) {
           throw new InvalidQueryException("The Query \"" + pModification
               + "\" is invalid. Could not split the property string correctly.");
         } else {
-          String varName = assignmentParts[0].trim();
+          String varName = assignmentParts.get(0);
           try {
-            Value newValue = new NumericValue(Long.parseLong(assignmentParts[1].trim()));
+            Value newValue = new NumericValue(Long.parseLong(assignmentParts.get(1)));
             this.assignConstant(varName, newValue);
           } catch (NumberFormatException e) {
-            throw new InvalidQueryException("The Query \"" + pModification
-                + "\" is invalid. Could not parse the long \"" + assignmentParts[1].trim() + "\"");
+            throw new InvalidQueryException(
+                "The Query \""
+                    + pModification
+                    + "\" is invalid. Could not parse the long \""
+                    + assignmentParts.get(1)
+                    + "\"");
           }
         }
       }
@@ -680,7 +688,7 @@ public class ValueAnalysisState
    * @return the value-analysis interpolant reflecting the value assignment of this state
    */
   public ValueAnalysisInterpolant createInterpolant() {
-    return new ValueAnalysisInterpolant(new HashMap<>(constantsMap), new HashMap<>(memLocToType));
+    return new ValueAnalysisInterpolant(constantsMap, memLocToType);
   }
 
   public ValueAnalysisInformation getInformation() {

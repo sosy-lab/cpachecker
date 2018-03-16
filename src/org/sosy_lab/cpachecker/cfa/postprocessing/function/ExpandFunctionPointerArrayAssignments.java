@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -46,8 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import com.google.common.collect.ImmutableList;
 
 /*
  * This class goes through the CFA and replace all assignments of the form

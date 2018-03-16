@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import java.util.Deque;
 import java.util.HashSet;
-
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -50,8 +50,6 @@ import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Optional;
 
 /**
  * Edge interpolator for

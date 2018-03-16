@@ -4,5 +4,5 @@
 // It currently works only with the SMGCPA
 // and also implements some functions which usually lead to a program abort.
 
-#include cpalien-leaks.spc
-#include TerminatingFunctions.spc
+#include memorysafety.spc
+#include sv-comp-terminatingfunctions.spc

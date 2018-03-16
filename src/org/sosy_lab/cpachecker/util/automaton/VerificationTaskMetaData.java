@@ -55,14 +55,6 @@ public class VerificationTaskMetaData {
 
     @Option(
       secure = true,
-      name = "witness.validation.file",
-      description = "The witness to validate."
-    )
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private Path inputWitness;
-
-    @Option(
-      secure = true,
       name = "invariantGeneration.kInduction.invariantsAutomatonFile",
       description =
           "Provides additional candidate invariants to the k-induction invariant generator."
@@ -132,15 +124,9 @@ public class VerificationTaskMetaData {
           nonWitnessAutomatonFilesBuilder.add(path);
         }
       }
-      Optional<Path> inputWitness =
-          Optional.ofNullable(hackyOptions.inputWitness).map(Path::normalize);
-      if (inputWitness.isPresent() && !specs.contains(inputWitness.get())) {
-        witnessAutomatonFilesBuilder.add(inputWitness.get());
-      }
       Optional<Path> correctnessWitness =
           Optional.ofNullable(hackyOptions.invariantsAutomatonFile).map(Path::normalize);
       if (correctnessWitness.isPresent()
-          && !correctnessWitness.equals(inputWitness)
           && !specs.contains(correctnessWitness.get())) {
         witnessAutomatonFilesBuilder.add(correctnessWitness.get());
       }

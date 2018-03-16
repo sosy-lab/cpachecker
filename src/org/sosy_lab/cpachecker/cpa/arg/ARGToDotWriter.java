@@ -23,18 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -42,6 +32,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class ARGToDotWriter {
 
@@ -145,10 +143,12 @@ public class ARGToDotWriter {
       sb.append(determineStateHint(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
-        edges.append(covered.getStateId());
-        edges.append(" -> ");
-        edges.append(currentElement.getStateId());
-        edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
+        if (displayedElements.apply(covered)) {
+          edges.append(covered.getStateId());
+          edges.append(" -> ");
+          edges.append(currentElement.getStateId());
+          edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
+        }
       }
 
       for (ARGState child : successorFunction.apply(currentElement)) {

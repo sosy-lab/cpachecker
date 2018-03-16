@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
 
   // statistics
@@ -147,7 +146,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      boolean refineablePrecision = pPrecision.usesHeapInterpoaltion();
+      boolean refineablePrecision = pPrecision.usesHeapInterpolation();
       boolean heapAbstractionChange =
           newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
 

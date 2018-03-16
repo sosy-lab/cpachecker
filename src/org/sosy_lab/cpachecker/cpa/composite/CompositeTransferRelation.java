@@ -428,6 +428,7 @@ final class CompositeTransferRelation implements TransferRelation {
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pCfaEdge);
+    Preconditions.checkState(!aggregateBasicBlocks);
 
     CompositeState compositeState = (CompositeState)pElement;
 
@@ -456,7 +457,7 @@ final class CompositeTransferRelation implements TransferRelation {
 
     if (resultCount > pSuccessors.size()) { return false; }
 
-    HashSet<List<AbstractState>> states = new HashSet<>();
+    Set<List<AbstractState>> states = new HashSet<>();
     for (AbstractState successor : pSuccessors) {
       states.add(((CompositeState) successor).getWrappedStates());
     }

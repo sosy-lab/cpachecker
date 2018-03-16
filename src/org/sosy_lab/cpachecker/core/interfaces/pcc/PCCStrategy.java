@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -101,10 +102,10 @@ public interface PCCStrategy {
         LogManager logger,
         ShutdownNotifier shutdownNotifier,
         Path pProofFile,
-        CFA cfa,
-        Specification specification,
-        ProofChecker proofChecker,
-        PropertyCheckerCPA propertyChecker)
+        @Nullable CFA cfa,
+        @Nullable Specification specification,
+        @Nullable ProofChecker proofChecker,
+        @Nullable PropertyCheckerCPA propertyChecker)
         throws InvalidConfigurationException;
   }
 }

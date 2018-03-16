@@ -97,7 +97,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-
 public class AppliedCustomInstructionParser {
 
   private final ShutdownNotifier shutdownNotifier;
@@ -437,7 +436,7 @@ public class AppliedCustomInstructionParser {
     }
 
     pOutputVariables.addAll(edgeOutputVariables);
-    HashSet<String> returnRes = new HashSet<>(pPredOutputVars);
+    Set<String> returnRes = new HashSet<>(pPredOutputVars);
     returnRes.addAll(edgeOutputVariables);
 
     return returnRes;

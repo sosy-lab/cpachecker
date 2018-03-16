@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -43,9 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-import java.util.Optional;
-
-public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
@@ -55,8 +54,14 @@ public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, Unrecogniz
   private final Constraints   constraints;
   private final ErrorConditions errorConditions;
 
-  protected LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
+  LvalueVisitor(
+      CtoFormulaConverter pConv,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions) {
 
     conv = pConv;
     edge = pEdge;
@@ -77,8 +82,8 @@ public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, Unrecogniz
     return conv.makeFreshVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
   }
 
-  /**  This method is called when we don't know what else to do. */
-  protected Formula giveUpAndJustMakeVariable(CExpression exp) {
+  /** This method is called when we don't know what else to do. */
+  private Formula giveUpAndJustMakeVariable(CExpression exp) {
     return conv.makeVariableUnsafe(exp, function, ssa, true);
   }
 

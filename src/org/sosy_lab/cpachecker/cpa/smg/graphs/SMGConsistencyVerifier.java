@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdge;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import com.google.common.collect.Queues;
+import java.util.Deque;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
@@ -184,13 +182,12 @@ final class SMGConsistencyVerifier {
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
-    List<SMGEdge> to_verify = new ArrayList<>();
-    to_verify.addAll(pEdges);
+  private static boolean verifyEdgeConsistency(
+      LogManager pLogger, SMG pSmg, Iterable<? extends SMGEdge> pEdges) {
+    Deque<SMGEdge> to_verify = Queues.newArrayDeque(pEdges);
 
-    while (to_verify.size() > 0) {
-      SMGEdge edge = to_verify.get(0);
-      to_verify.remove(0);
+    while (!to_verify.isEmpty()) {
+      SMGEdge edge = to_verify.pop();
 
       // Verify that the object assigned to the edge exists in the SMG
       if (!pSmg.getObjects().contains(edge.getObject())) {
@@ -273,10 +270,12 @@ final class SMGConsistencyVerifier {
         verifyEdgeConsistency(pLogger, pSmg, pSmg.getHVEdges()),
         pLogger,
         "Has Value edge consistency");
-    toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges().asSet()),
-        pLogger,
-        "Points To edge consistency");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
+                pLogger,
+                "Points To edge consistency");
     toReturn = toReturn && verifySMGProperty(
         verifyObjectConsistency(pLogger, pSmg),
         pLogger,

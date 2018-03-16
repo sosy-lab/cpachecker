@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -74,8 +73,7 @@ import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.apron")
-public final class ApronCPA
-    implements ConfigurableProgramAnalysis, ProofCheckerCPA, StatisticsProvider {
+public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
@@ -142,7 +140,7 @@ public final class ApronCPA
       tempPrecision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       if (initialPrecisionFile != null) {
-        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
+        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile());
       }
       // static full precision is default
     } else {
@@ -241,8 +239,7 @@ public final class ApronCPA
     }
   }
 
-
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile() {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;
@@ -280,9 +277,9 @@ public final class ApronCPA
     return idToCfaNode.values().iterator().next();
   }
 
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
     Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
-    for (CFANode n : cfa.getAllNodes()) {
+    for (CFANode n : pCfa.getAllNodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;

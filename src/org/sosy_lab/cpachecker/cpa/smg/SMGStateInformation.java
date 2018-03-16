@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableSet;
-
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 
 public class SMGStateInformation {
 

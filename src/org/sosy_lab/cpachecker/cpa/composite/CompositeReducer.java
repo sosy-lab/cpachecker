@@ -189,4 +189,14 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     }
     return new CompositeState(result);
   }
+
+  @Override
+  protected boolean canBeUsedInCache0(CompositeState pState) {
+    for (int i = 0; i < wrappedReducers.size(); i++) {
+      if (!wrappedReducers.get(i).canBeUsedInCache(pState.get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

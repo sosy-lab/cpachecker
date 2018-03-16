@@ -31,7 +31,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import org.llvm.Module;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -40,12 +39,13 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.llvm_j.LLVMException;
+import org.sosy_lab.llvm_j.Module;
 
 /**
- * Parser for the LLVM intermediate language to a CFA.
- * LLVM IR is a typed, assembler-like language that uses the SSA form by default.
- * Because of this, parsing is quite simple: there is no need for scoping
- * and expression trees are always flat.
+ * Parser for the LLVM intermediate language to a CFA. LLVM IR is a typed, assembler-like language
+ * that uses the SSA form by default. Because of this, parsing is quite simple: there is no need for
+ * scoping and expression trees are always flat.
  */
 public class LlvmParser implements Parser {
 
@@ -55,10 +55,7 @@ public class LlvmParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaCreationTimer = new Timer();
 
-  public LlvmParser(
-      final LogManager pLogger,
-      final MachineModel pMachineModel
-  ) {
+  public LlvmParser(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     cfaBuilder = new CFABuilder(logger, pMachineModel);
   }
@@ -66,21 +63,34 @@ public class LlvmParser implements Parser {
   @Override
   public ParseResult parseFile(final String pFilename)
       throws ParserException, IOException, InterruptedException {
-    Module llvmModule;
-    parseTimer.start();
+    Module llvmModule = null;
     try {
-      addLlvmLookupDirs();
-      llvmModule = Module.parseIR(pFilename);
+      parseTimer.start();
+      try {
+        addLlvmLookupDirs();
+        llvmModule = Module.parseIR(pFilename);
+
+      } catch (LLVMException pE) {
+        throw new LLVMParserException(
+            "Input program has invalid bitcode signature or is no bitcode " + "file");
+
+      } finally {
+        parseTimer.stop();
+      }
+
+      // TODO: Handle/show errors in parser
+
+      try {
+        return buildCfa(llvmModule, pFilename);
+
+      } catch (LLVMException pE) {
+        throw new LLVMParserException(pE);
+      }
     } finally {
-      parseTimer.stop();
+      if (llvmModule != null) {
+        llvmModule.dispose();
+      }
     }
-
-    if (llvmModule == null) {
-      throw new LLVMParserException("Error while parsing");
-    }
-    // TODO: Handle/show errors in parser
-
-    return buildCfa(llvmModule, pFilename);
   }
 
   private void addLlvmLookupDirs() {
@@ -113,7 +123,7 @@ public class LlvmParser implements Parser {
     Module.addLibraryLookupPaths(libDirs);
   }
 
-  private ParseResult buildCfa(final Module pModule, final String pFilename) {
+  private ParseResult buildCfa(final Module pModule, final String pFilename) throws LLVMException {
     return cfaBuilder.build(pModule, pFilename);
   }
 

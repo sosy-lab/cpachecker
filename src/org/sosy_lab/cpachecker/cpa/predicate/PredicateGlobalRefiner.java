@@ -38,12 +38,8 @@ public abstract class PredicateGlobalRefiner implements Refiner {
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(
-          PredicateGlobalRefiner.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateGlobalRefiner.class);
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
     Solver solver = predicateCpa.getSolver();
@@ -54,6 +50,11 @@ public abstract class PredicateGlobalRefiner implements Refiner {
             config, logger, predicateCpa.getPredicateManager(), solver);
 
     return new PredicateCPAGlobalRefiner(
-        logger, fmgr, strategy, solver, CPAs.retrieveCPA(pCpa, ARGCPA.class), config);
+        logger,
+        fmgr,
+        strategy,
+        solver,
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateGlobalRefiner.class),
+        config);
   }
 }

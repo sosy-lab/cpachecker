@@ -40,16 +40,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinTest {
@@ -114,9 +114,12 @@ public class SMGJoinTest {
     return Pair.of(local1, local2);
   }
 
-  //Testing condition: adds an identical value to both SMGs
-  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, int pOffset,
-      int pValue, int pSizeInBits) {
+  // Testing condition: adds an identical value to both SMGs
+  private void addValueToBoth(
+      Pair<? extends SMGObject, ? extends SMGObject> var,
+      long pOffset,
+      int pValue,
+      int pSizeInBits) {
 
     if(!smg1.getValues().contains(pValue)) {
       smg1.addValue(pValue);
@@ -133,9 +136,9 @@ public class SMGJoinTest {
     smg2.addHasValueEdge(hv2);
   }
 
-  //Testing condition: adds a pointer to both SMGs
-  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, int pOffset,
-      int pValue) {
+  // Testing condition: adds a pointer to both SMGs
+  private void addPointerToBoth(
+      Pair<? extends SMGObject, ? extends SMGObject> target, long pOffset, int pValue) {
 
     if(!smg1.getValues().contains(pValue)) {
       smg1.addValue(pValue);
@@ -152,10 +155,14 @@ public class SMGJoinTest {
     smg2.addPointsToEdge(pt2);
   }
 
-  //Testing condition: adds a pointer to both SMGs
-  private void addPointerValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var,
-      int pOffset, int pValue, int pSize,
-      Pair<? extends SMGObject, ? extends SMGObject> target, int pTargetOffset) {
+  // Testing condition: adds a pointer to both SMGs
+  private void addPointerValueToBoth(
+      Pair<? extends SMGObject, ? extends SMGObject> var,
+      long pOffset,
+      int pValue,
+      int pSize,
+      Pair<? extends SMGObject, ? extends SMGObject> target,
+      long pTargetOffset) {
 
     addValueToBoth(var, pOffset, pValue, pSize);
     addPointerToBoth(target, pTargetOffset, pValue);
@@ -235,7 +242,7 @@ public class SMGJoinTest {
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     CLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(resultSMG.getStackFrames().getFirst().containsVariable(varName));
+    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
   }
 
@@ -269,10 +276,10 @@ public class SMGJoinTest {
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     CLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(resultSMG.getStackFrames().getFirst().containsVariable(varName));
+    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
 
-    SMGObject global = resultSMG.getStackFrames().getFirst().getVariable(varName);
+    SMGObject global = Iterables.get(resultSMG.getStackFrames(), 0).getVariable(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
     SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);

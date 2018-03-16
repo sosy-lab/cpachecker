@@ -35,16 +35,15 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 /**
- * This CPA computes a loop invariant of a single loop, which contains only assignments,
- * no conditions are considered. Assignments can only contain linear expressions.
- * To compute the invariant an isympy installation is necessary.
+ * This CPA computes a loop invariant of a single loop, which contains only assignments, no
+ * conditions are considered. Assignments can only contain linear expressions. To compute the
+ * invariant an isympy installation is necessary.
  */
 @Options(prefix = "cpa.loopinvariants")
-public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class LoopInvariantsCPA extends AbstractCPA {
 
   /**
    * Gets a factory for creating LoopInvariantsCPAs.

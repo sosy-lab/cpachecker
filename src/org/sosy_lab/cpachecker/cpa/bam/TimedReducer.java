@@ -32,26 +32,38 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
-
 class TimedReducer implements Reducer {
 
-  final ThreadSafeTimerContainer reduceTime = new ThreadSafeTimerContainer("Time for reducing abstract states");
-  final ThreadSafeTimerContainer expandTime = new ThreadSafeTimerContainer("Time for expanding abstract states");
-  final ThreadSafeTimerContainer reducePrecisionTime = new ThreadSafeTimerContainer("Time for reducing precisions");
-  final ThreadSafeTimerContainer expandPrecisionTime = new ThreadSafeTimerContainer("Time for expanding precisions");
+  static class ReducerStatistics {
+    final ThreadSafeTimerContainer reduceTime =
+        new ThreadSafeTimerContainer("Time for reducing abstract states");
+    final ThreadSafeTimerContainer expandTime =
+        new ThreadSafeTimerContainer("Time for expanding abstract states");
+    final ThreadSafeTimerContainer reducePrecisionTime =
+        new ThreadSafeTimerContainer("Time for reducing precisions");
+    final ThreadSafeTimerContainer expandPrecisionTime =
+        new ThreadSafeTimerContainer("Time for expanding precisions");
+  }
 
   private final Reducer wrappedReducer;
 
-  public TimedReducer(Reducer pWrappedReducer) {
+  private final TimerWrapper reduceTimer;
+  private final TimerWrapper expandTimer;
+  private final TimerWrapper reducePrecisionTimer;
+  private final TimerWrapper expandPrecisionTimer;
+
+  public TimedReducer(ReducerStatistics pReducerStatistics, Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
+    reduceTimer = pReducerStatistics.reduceTime.getNewTimer();
+    expandTimer = pReducerStatistics.expandTime.getNewTimer();
+    reducePrecisionTimer = pReducerStatistics.reducePrecisionTime.getNewTimer();
+    expandPrecisionTimer = pReducerStatistics.expandPrecisionTime.getNewTimer();
   }
 
   @Override
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
       CFANode pCallNode) throws InterruptedException {
-
-    TimerWrapper reduceTimer = reduceTime.getNewTimer();
     reduceTimer.start();
     try {
       return wrappedReducer.getVariableReducedState(pExpandedState, pContext, pCallNode);
@@ -64,8 +76,6 @@ class TimedReducer implements Reducer {
   public AbstractState getVariableExpandedState(
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) throws InterruptedException {
-
-    TimerWrapper expandTimer = expandTime.getNewTimer();
     expandTimer.start();
     try {
       return wrappedReducer.getVariableExpandedState(pRootState, pReducedContext, pReducedState);
@@ -82,7 +92,6 @@ class TimedReducer implements Reducer {
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
-    TimerWrapper reducePrecisionTimer = reducePrecisionTime.getNewTimer();
     reducePrecisionTimer.start();
     try {
       return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
@@ -93,7 +102,6 @@ class TimedReducer implements Reducer {
 
   @Override
   public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    TimerWrapper expandPrecisionTimer = expandPrecisionTime.getNewTimer();
     expandPrecisionTimer.start();
     try {
       return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
@@ -124,5 +132,10 @@ class TimedReducer implements Reducer {
   public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation) {
     return wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState, exitLocation);
+  }
+
+  @Override
+  public boolean canBeUsedInCache(AbstractState pState) {
+    return wrappedReducer.canBeUsedInCache(pState);
   }
 }

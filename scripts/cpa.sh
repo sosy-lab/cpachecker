@@ -64,6 +64,11 @@ JAVA_ASSERTIONS=-ea
 while [ $# -gt 0 ]; do
 
   case $1 in
+   "-benchmark")
+       JAVA_ASSERTIONS=-da
+       unset DEFAULT_HEAP_SIZE  # no default heap size in benchmark mode
+       OPTIONS+=("$1")          # pass param to CPAchecker, too
+       ;;
    "-heap")
        shift
        JAVA_HEAP_SIZE=$1
@@ -101,6 +106,11 @@ if [ -n "$JAVA_HEAP_SIZE" ]; then
   echo "Running CPAchecker with Java heap of size ${JAVA_HEAP_SIZE}."
 else
   JAVA_HEAP_SIZE="$DEFAULT_HEAP_SIZE"
+  if [ -z "$JAVA_HEAP_SIZE" ]; then
+    echo "A heap size needs to be specified with -heap if -benchmark is given." 1>&2
+    echo "Please see doc/Benchmark.md for further information." 1>&2
+    exit 1
+  fi
   echo "Running CPAchecker with default heap size (${JAVA_HEAP_SIZE}). Specify a larger value with -heap if you have more RAM."
 fi
 
@@ -136,6 +146,7 @@ esac
 exec "$JAVA" \
 	-Xss${JAVA_STACK_SIZE} \
 	-XX:+PerfDisableSharedMem \
+	-Djava.awt.headless=true \
 	$JAVA_VM_ARGUMENTS \
 	-Xmx${JAVA_HEAP_SIZE} \
 	$JAVA_ASSERTIONS \

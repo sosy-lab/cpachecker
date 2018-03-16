@@ -26,15 +26,13 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.errorprone.annotations.ForOverride;
-
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
@@ -107,4 +105,8 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
     return Objects.hash(fmgr, relevantPredicates);
   }
 
+  @Override
+  public void clear() {
+    relevantPredicates.clear();
+  }
 }

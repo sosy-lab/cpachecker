@@ -54,13 +54,12 @@ class BAMCPAStatistics extends AbstractStatistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-    TimedReducer reducer = cpa.getReducer();
     put(out, "Number of blocks", cpa.getBlockPartitioning().getBlocks().size());
     put(out, "Time for building block partitioning", cpa.blockPartitioningTimer);
-    put(out, 0, reducer.reduceTime);
-    put(out, 0, reducer.expandTime);
-    put(out, 0, reducer.reducePrecisionTime);
-    put(out, 0, reducer.expandPrecisionTime);
+    put(out, 0, cpa.reducerStatistics.reduceTime);
+    put(out, 0, cpa.reducerStatistics.expandTime);
+    put(out, 0, cpa.reducerStatistics.reducePrecisionTime);
+    put(out, 0, cpa.reducerStatistics.expandPrecisionTime);
 
     for (BAMBasedRefiner refiner : refiners) {
       // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?

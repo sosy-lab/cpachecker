@@ -26,6 +26,17 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -105,18 +116,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Builder to traverse AST.
@@ -232,8 +231,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     for (JDeclaration decl : classFieldDeclaration) {
 
-      List<JDeclaration> declaration = new LinkedList<>();
-      declaration.add(decl);
+      List<JDeclaration> declaration = ImmutableList.of(decl);
 
       String rawSignature = decl.toASTString();
 
@@ -1613,7 +1611,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         || innerStatementTyp == ASTNode.DO_STATEMENT;
 
     if (innerStatementIsLoop) {
-      registeredContinues.put(labelName, new LinkedList<>());
+      registeredContinues.put(labelName, new ArrayList<>());
     }
 
     //  Skip to Body
@@ -1724,7 +1722,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     switchExprStack.pop(); // switchExpr is not needed after this point
 
-    assert postSwitchNode == loopNextStack.pop();
+    assert postSwitchNode == loopNextStack.peek();
+    loopNextStack.pop();
     assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
@@ -2001,7 +2000,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         fileloc, lastNodeInLoop, loopStart, "");
     addToCFA(loopEndToStart);
 
-    assert postLoopNode == loopNextStack.pop();
+    assert postLoopNode == loopNextStack.peek();
+    loopNextStack.pop();
     assert postLoopNode == locStack.peek();
 
     scope.leaveBlock();
@@ -2111,8 +2111,10 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     createLastNodesAndEdgeForForLoop(updateBlock, fileloc,
                                         lastNodeInLoop, loopStart);
 
-    assert lastNodeInLoop == loopStartStack.pop();
-    assert postLoopNode == loopNextStack.pop();
+    assert lastNodeInLoop == loopStartStack.peek();
+    loopStartStack.pop();
+    assert postLoopNode == loopNextStack.peek();
+    loopNextStack.pop();
     assert postLoopNode == locStack.peek();
 
     scope.leaveBlock();

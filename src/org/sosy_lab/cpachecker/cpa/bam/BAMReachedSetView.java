@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import java.util.Collection;
@@ -32,6 +34,7 @@ import java.util.function.BiConsumer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -101,7 +104,7 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
 
   @Override
   public Precision getPrecision(AbstractState state) {
-    return precisionGetter.apply(state);
+    return checkNotNull(precisionGetter.apply(state));
   }
 
   @Override
@@ -122,5 +125,18 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
   @Override
   public int size() {
     throw new UnsupportedOperationException("should not be needed");
+  }
+
+  @Override
+  public boolean hasViolatedProperties() {
+    // Just a dummy: BAMReachedSet means refinement process
+    return true;
+  }
+
+  @Override
+  public Collection<Property> getViolatedProperties() {
+    // Just a dummy: BAMReachedSet means refinement process
+    // Is someone interested in call of the wrapper?
+    return lastState.getViolatedProperties();
   }
 }

@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /** An immutable collection of points-to-edges. */
-public interface SMGPointsToEdges {
+public interface SMGPointsToEdges extends Iterable<SMGEdgePointsTo> {
 
   // Modifying methods
 
@@ -47,12 +44,7 @@ public interface SMGPointsToEdges {
 
   public boolean containsEdgeWithValue(Integer pValue);
 
-  public SMGEdgePointsTo getEdgeWithValue(Integer pValue);
+  public @Nullable SMGEdgePointsTo getEdgeWithValue(Integer pValue);
 
-  public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter);
-
-  public ImmutableSet<SMGEdgePointsTo> asSet();
-
-  public ImmutableMap<Integer, SMGEdgePointsTo> asMap();
-
+  public int size();
 }

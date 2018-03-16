@@ -29,9 +29,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
@@ -72,7 +72,12 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       throws InterruptedException {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
     assert path.getFirstState().getSubgraph().contains(element);
-    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    final ARGSubtreeRemover argSubtreeRemover;
+    if (bamCpa.useCopyOnWriteRefinement()) {
+      argSubtreeRemover = new ARGCopyOnWriteSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    } else {
+      argSubtreeRemover = new ARGInPlaceSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    }
     argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
 
     // post-processing, cleanup data-structures.
@@ -87,8 +92,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   @Override
-  public void removeSubtree(ARGState pE) {
-    throw new UnsupportedOperationException();
+  public void removeSubtree(ARGState state) throws InterruptedException {
+    removeSubtree(state, ImmutableList.of(), ImmutableList.of());
   }
 
   @Override

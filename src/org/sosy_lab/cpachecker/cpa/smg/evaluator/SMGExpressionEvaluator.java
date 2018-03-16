@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -57,18 +57,18 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGField;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownAddVal;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -170,7 +170,7 @@ public class SMGExpressionEvaluator {
       SMGAddressValue fieldOwnerAddress = fieldOwnerAddressAndState.getObject();
       SMGState newState = fieldOwnerAddressAndState.getSmgState();
       String fieldName = fieldReference.getFieldName();
-      SMGField field = getField(cfaEdge, ownerType, fieldName, newState, fieldReference);
+      SMGField field = getField(ownerType, fieldName);
 
       if (field.isUnknown() || fieldOwnerAddress.isUnknown()) {
         if (fieldReference.isPointerDereference()) {
@@ -196,7 +196,7 @@ public class SMGExpressionEvaluator {
       return SMGValueAndState.of(pSmgState);
     }
 
-    int fieldOffset = pOffset.getAsInt();
+    long fieldOffset = pOffset.getAsLong();
 
     //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = fieldOffset < 0
@@ -217,9 +217,7 @@ public class SMGExpressionEvaluator {
     return SMGValueAndState.of(pSmgState, value);
   }
 
-  private SMGField getField(
-      CFAEdge pEdge, CType pOwnerType, String pFieldName, SMGState pState, CExpression pExp)
-      throws UnrecognizedCCodeException {
+  private SMGField getField(CType pOwnerType, String pFieldName) throws UnrecognizedCCodeException {
 
     if (pOwnerType instanceof CElaboratedType) {
 
@@ -229,9 +227,9 @@ public class SMGExpressionEvaluator {
         return SMGField.getUnknownInstance();
       }
 
-      return getField(pEdge, realType, pFieldName, pState, pExp);
+      return getField(realType, pFieldName);
     } else if (pOwnerType instanceof CCompositeType) {
-      return getField(pEdge, (CCompositeType) pOwnerType, pFieldName, pState, pExp);
+      return getField((CCompositeType) pOwnerType, pFieldName);
     } else if (pOwnerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,
@@ -242,32 +240,18 @@ public class SMGExpressionEvaluator {
 
       type = getRealExpressionType(type);
 
-      return getField(pEdge, type, pFieldName, pState, pExp);
+      return getField(type, pFieldName);
     }
 
     throw new AssertionError();
   }
 
-  private SMGField getField(
-      CFAEdge pEdge,
-      CCompositeType pOwnerType,
-      String pFieldName,
-      SMGState pState,
-      CExpression pExpression)
-      throws UnrecognizedCCodeException {
+  private SMGField getField(CCompositeType pOwnerType, String pFieldName) {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = pOwnerType.getMembers();
-    OptionalInt offset = OptionalInt.empty();
     CType resultType = pOwnerType;
 
-    CSizeOfVisitor sizeofVisitor = getSizeOfVisitor(pEdge, pState, Optional.of(pExpression));
-
-    try {
-      offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);
-    }
+    long offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName);
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       if (typeMember.getName().equals(pFieldName)) {
@@ -276,8 +260,8 @@ public class SMGExpressionEvaluator {
     }
 
     SMGExplicitValue smgValue = null;
-    if (offset.isPresent() && !resultType.equals(pOwnerType)) {
-      smgValue = SMGKnownExpValue.valueOf(offset.getAsInt());
+    if (!resultType.equals(pOwnerType)) {
+      smgValue = SMGKnownExpValue.valueOf(offset);
       resultType = getRealExpressionType(resultType);
     } else {
       smgValue = SMGUnknownValue.getInstance();
@@ -591,8 +575,9 @@ public class SMGExpressionEvaluator {
       SMGAddressValue arrayAddress = arrayAddressAndState.getObject();
       SMGState newState = arrayAddressAndState.getSmgState();
 
-      List<SMGExplicitValueAndState> subscriptValueAndStates = evaluateExplicitValue(
-          newState, cfaEdge, exp.getSubscriptExpression());
+      CExpression subscriptExpression = exp.getSubscriptExpression();
+      List<SMGExplicitValueAndState> subscriptValueAndStates =
+          evaluateExplicitValue(newState, cfaEdge, subscriptExpression);
 
       for (SMGExplicitValueAndState subscriptValueAndState : subscriptValueAndStates) {
         SMGExplicitValue subscriptValue = subscriptValueAndState.getObject();
@@ -601,18 +586,30 @@ public class SMGExpressionEvaluator {
         if (subscriptValue.isUnknown()) {
           if (newState.isTrackPredicatesEnabled()  && !arrayAddress.isUnknown()) {
             SMGValueAndStateList subscriptSymbolicValueAndStates =
-                evaluateNonAddressValue(newState, cfaEdge, exp.getSubscriptExpression());
+                evaluateNonAddressValue(newState, cfaEdge, subscriptExpression);
             for (SMGValueAndState symbolicValueAndState: subscriptSymbolicValueAndStates.getValueAndStateList()) {
               SMGSymbolicValue value = symbolicValueAndState.getObject();
               newState = subscriptValueAndState.getSmgState();
               if (!value.isUnknown() && !newState
                   .isObjectExternallyAllocated(arrayAddress.getObject())) {
-                int size = arrayAddress.getObject().getSize();
-                int typeSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
-                int index = (size / typeSize) + 1;
-                int subscriptSize = getBitSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp);
-                newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
-                    subscriptSize, cfaEdge);
+                int arrayBitSize = arrayAddress.getObject().getSize();
+                int typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
+                int maxIndex = arrayBitSize / typeBitSize;
+                int subscriptSize =
+                    getBitSizeof(cfaEdge, subscriptExpression.getExpressionType(), newState, exp);
+                if (subscriptExpression instanceof CCastExpression) {
+                  CCastExpression castExpression = (CCastExpression) subscriptExpression;
+                  int originSize =
+                      getBitSizeof(
+                          cfaEdge, castExpression.getOperand().getExpressionType(), newState);
+                  subscriptSize = Integer.min(subscriptSize, originSize);
+                }
+                newState.addErrorPredicate(
+                    value,
+                    subscriptSize,
+                    SMGKnownExpValue.valueOf(maxIndex),
+                    subscriptSize,
+                    cfaEdge);
               }
             }
           } else {

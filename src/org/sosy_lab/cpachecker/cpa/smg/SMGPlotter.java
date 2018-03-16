@@ -38,16 +38,18 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -148,7 +150,7 @@ public final class SMGPlotter {
         plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
   }
 
-  private final HashMap <SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
+  private final Map<SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
   static private int nulls = 0;
   private int offset = 0;
 
@@ -202,7 +204,7 @@ public final class SMGPlotter {
       sb.append(newLineWithOffset(smgHVEdgeAsDot(edge, smg)));
     }
 
-    for (SMGEdgePointsTo edge : smg.getPTEdges().asSet()) {
+    for (SMGEdgePointsTo edge : smg.getPTEdges()) {
       if (edge.getValue() != SMG.NULL_ADDRESS) {
         sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
       }
@@ -233,7 +235,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    HashMap<String, SMGRegion> to_print = new HashMap<>();
+    Map<String, SMGRegion> to_print = new HashMap<>();
     to_print.putAll(pStackFrame.getVariables());
 
     SMGRegion returnObject = pStackFrame.getReturnObject();
@@ -290,9 +292,25 @@ public final class SMGPlotter {
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, CLangSMG pSMG) {
     if (pEdge.getValue() == 0) {
       String newNull = newNullLabel();
-      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()).getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
+      return newNull
+          + "[shape=plaintext, label=\"NULL\"];"
+          + objectIndex.get(pEdge.getObject()).getName()
+          + " -> "
+          + newNull
+          + "[label=\"["
+          + pEdge.getOffset()
+          + "b-"
+          + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel()))
+          + "b]\"];";
     } else {
-      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
+      return objectIndex.get(pEdge.getObject()).getName()
+          + " -> value_"
+          + pEdge.getValue()
+          + "[label=\"["
+          + pEdge.getOffset()
+          + "b-"
+          + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel()))
+          + "b]\"];";
     }
   }
 
@@ -301,16 +319,11 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
-
-
     String explicitValue = "";
-
     SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
-
     if (explicitValues.containsKey(symValue)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
     }
-
     return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
   }
 

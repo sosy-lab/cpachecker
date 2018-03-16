@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -38,11 +39,10 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 public class AssignmentToPathAllocatorTest {
 
@@ -60,9 +60,6 @@ public class AssignmentToPathAllocatorTest {
 
   @Test
   public void testFindFirstOccurrenceOfVariable() {
-    ValueAssignment varX = new ValueAssignment(mock(Formula.class), "x@4", 1, ImmutableList.of());
-    ValueAssignment varY = new ValueAssignment(mock(Formula.class), "y@5", 1, ImmutableList.of());
-    ValueAssignment varZ = new ValueAssignment(mock(Formula.class), "z@6", 1, ImmutableList.of());
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     List<SSAMap> ssaMaps = Lists.newArrayList();
@@ -74,10 +71,36 @@ public class AssignmentToPathAllocatorTest {
 
     ssaMapBuilder.setIndex("y", CNumericTypes.INT, 5);
     ssaMapBuilder.setIndex("z", CNumericTypes.INT, 6);
-    ssaMaps.add(ssaMapBuilder.build());
+    SSAMap ssaMap = ssaMapBuilder.build();
+    ssaMaps.add(ssaMap);
 
     ssaMapBuilder.deleteVariable("z");
     ssaMaps.add(ssaMapBuilder.build());
+
+    ValueAssignment varX =
+        new ValueAssignment(
+            mock(Formula.class),
+            mock(Formula.class),
+            mock(BooleanFormula.class),
+            FormulaManagerView.instantiateVariableName("x", ssaMap),
+            1,
+            ImmutableList.of());
+    ValueAssignment varY =
+        new ValueAssignment(
+            mock(Formula.class),
+            mock(Formula.class),
+            mock(BooleanFormula.class),
+            FormulaManagerView.instantiateVariableName("y", ssaMap),
+            1,
+            ImmutableList.of());
+    ValueAssignment varZ =
+        new ValueAssignment(
+            mock(Formula.class),
+            mock(Formula.class),
+            mock(BooleanFormula.class),
+            FormulaManagerView.instantiateVariableName("z", ssaMap),
+            1,
+            ImmutableList.of());
 
     assertEquals(1, allocator.findFirstOccurrenceOfVariable(varX, ssaMaps));
     assertEquals(2, allocator.findFirstOccurrenceOfVariable(varY, ssaMaps));

@@ -23,15 +23,29 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.Pair;
 
 abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
-  private Map<Pair<CFAEdge,String>, Integer> targetStats = new HashMap<>();
+  private final Map<Pair<CFAEdge, String>, Integer> targetStats = new HashMap<>();
+
+  private final TypeHandlerWithPointerAliasing typeHandler;
+
+  AbstractMemoryRegionManager(TypeHandlerWithPointerAliasing pTypeHandler) {
+    typeHandler = pTypeHandler;
+  }
+
+  @Override
+  public MemoryRegion makeMemoryRegion(
+      CType pFieldOwnerType, CCompositeTypeMemberDeclaration pMember) {
+    return makeMemoryRegion(
+        pFieldOwnerType, typeHandler.getSimplifiedType(pMember), pMember.getName());
+  }
 
   @Override
   public void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget) {

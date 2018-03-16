@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -69,9 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.Collection;
-import java.util.logging.Level;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -257,7 +256,7 @@ public class PredicateCPA
   }
 
   @Override
-  public PredicateTransferRelation getTransferRelation() {
+  public TransferRelation getTransferRelation() {
     return transfer;
   }
 
@@ -283,7 +282,7 @@ public class PredicateCPA
     return solver;
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 

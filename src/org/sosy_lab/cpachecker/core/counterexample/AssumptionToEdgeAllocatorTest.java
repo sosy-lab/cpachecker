@@ -50,7 +50,7 @@ public class AssumptionToEdgeAllocatorTest {
   private ConcreteState full;
   private static final String MEMORYNAME = "Test_Heap";
 
-  private MemoryName memoryName = (pExp, pAddress) -> MEMORYNAME;
+  private MemoryName memoryName = (pExp) -> MEMORYNAME;
 
   @Before
   public void setUp() throws Exception {
@@ -238,13 +238,10 @@ public class AssumptionToEdgeAllocatorTest {
 
   private void testWithEdge(CFAEdge pEdge) throws InvalidConfigurationException {
 
-    Configuration testConfig = Configuration
-        .builder()
-        .copyFrom(Configuration.defaultConfiguration())
-        .setOption("counterexample.export.assumptions.includeConstantsForPointers", "true")
-        .build();
+    Configuration testConfig = TestDataTools.configurationForTest().build();
 
-    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(testConfig, logger, machineModel);
+    AssumptionToEdgeAllocator allocator =
+        AssumptionToEdgeAllocator.create(testConfig, logger, machineModel);
 
     CFAEdgeWithAssumptions assignmentEdgeFull = allocator.allocateAssumptionsToEdge(pEdge, full);
     CFAEdgeWithAssumptions assignmentEdgeSymbolic = allocator.allocateAssumptionsToEdge(pEdge, symbolic);

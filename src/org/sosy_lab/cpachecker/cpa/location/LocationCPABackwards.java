@@ -28,52 +28,28 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class LocationCPABackwards implements ConfigurableProgramAnalysis {
+public class LocationCPABackwards extends AbstractCPA {
 
   private final LocationStateFactory stateFactory;
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final TransferRelation transferRelation;
-  private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPABackwards(CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
-    stateFactory = new LocationStateFactory(pCfa, AnalysisDirection.BACKWARD, pConfig);
-    transferRelation = new LocationTransferRelationBackwards(stateFactory);
+  private LocationCPABackwards(LocationStateFactory pStateFactory) {
+    super("sep", "sep", new LocationTransferRelationBackwards(pStateFactory));
+    stateFactory = pStateFactory;
   }
 
   public static CPAFactory factory() {
     return new LocationCPAFactory(AnalysisDirection.BACKWARD);
   }
 
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
+  public static LocationCPABackwards create(CFA pCFA, Configuration pConfig)
+      throws InvalidConfigurationException {
+    return new LocationCPABackwards(
+        new LocationStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
   }
 
   @Override

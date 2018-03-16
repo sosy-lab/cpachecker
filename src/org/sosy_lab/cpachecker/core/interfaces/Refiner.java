@@ -47,7 +47,6 @@ public interface Refiner {
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
 
   interface Factory {
-    Refiner create(ConfigurableProgramAnalysis cpa)
-        throws CPAException, InvalidConfigurationException;
+    Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException;
   }
 }

@@ -23,15 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
-import com.google.common.base.Strings;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.PrintStream;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 /**
  * Collects statistics and forwards all calls of {@link #printStatistics(PrintStream, Result,
@@ -42,6 +45,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  */
 public class StatisticsDelegator implements Statistics {
 
+  private final LogManager logger;
   private final List<Statistics> delegates;
   private final @Nullable String name;
 
@@ -51,9 +55,10 @@ public class StatisticsDelegator implements Statistics {
    * @param pName The name of this StatisticsDelegator that will be printed. May be null if nothing
    *     should be printed instead.
    */
-  public StatisticsDelegator(String pName) {
-    this.delegates = new LinkedList<>();
+  public StatisticsDelegator(String pName, LogManager pLogger) {
+    this.delegates = new ArrayList<>();
     this.name = pName;
+    logger = checkNotNull(pLogger);
   }
 
   /**
@@ -84,19 +89,14 @@ public class StatisticsDelegator implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     for (Statistics delegate : delegates) {
-      String name = delegate.getName();
+      StatisticsUtils.printStatistics(delegate, pOut, logger, pResult, pReached);
+    }
+  }
 
-      if (!Strings.isNullOrEmpty(name)) {
-        name = name + " statistics";
-        pOut.println(name);
-        pOut.println(Strings.repeat("-", name.length()));
-      }
-
-      delegate.printStatistics(pOut, pResult, pReached);
-
-      if (!Strings.isNullOrEmpty(name)) {
-        pOut.println();
-      }
+  @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    for (Statistics delegate : delegates) {
+      StatisticsUtils.writeOutputFiles(delegate, logger, pResult, pReached);
     }
   }
 

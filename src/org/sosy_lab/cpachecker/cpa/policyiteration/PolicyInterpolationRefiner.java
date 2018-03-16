@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Preconditions;
@@ -88,12 +87,12 @@ public class PolicyInterpolationRefiner implements Refiner {
   public static PolicyInterpolationRefiner create(
       ConfigurableProgramAnalysis pConfigurableProgramAnalysis
   ) throws InvalidConfigurationException {
-    PolicyCPA policyCPA = CPAs.retrieveCPA(pConfigurableProgramAnalysis,
-        PolicyCPA.class);
-    Preconditions.checkNotNull(policyCPA);
-    ARGCPA argCPA = CPAs.retrieveCPA(pConfigurableProgramAnalysis,
-        ARGCPA.class);
-    Preconditions.checkNotNull(argCPA);
+    PolicyCPA policyCPA =
+        CPAs.retrieveCPAOrFail(
+            pConfigurableProgramAnalysis, PolicyCPA.class, PolicyInterpolationRefiner.class);
+    ARGCPA argCPA =
+        CPAs.retrieveCPAOrFail(
+            pConfigurableProgramAnalysis, ARGCPA.class, PolicyInterpolationRefiner.class);
 
     Configuration config = policyCPA.getConfig();
     LogManager logger = policyCPA.getLogger();
@@ -325,7 +324,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     return cache;
   }
 
-  private void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) throws InterruptedException {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

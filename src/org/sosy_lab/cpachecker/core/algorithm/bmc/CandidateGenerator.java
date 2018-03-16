@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
-
 public interface CandidateGenerator extends Iterable<CandidateInvariant> {
 
   /**
@@ -59,6 +58,16 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
    * Returns the confirmed candidate invariants.
    */
   Set<? extends CandidateInvariant> getConfirmedCandidates();
+
+  /**
+   * Suggests candidate invariants to the generator. The generator is not required to follow the
+   * suggestion.
+   *
+   * @param pCandidates the suggested candidates.
+   */
+  default boolean suggestCandidates(Iterable<? extends CandidateInvariant> pCandidates) {
+    return false;
+  }
 
   @Override
   Iterator<CandidateInvariant> iterator();

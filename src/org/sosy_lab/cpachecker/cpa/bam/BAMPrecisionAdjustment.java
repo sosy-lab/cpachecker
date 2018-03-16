@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.base.Function;
 import java.util.Optional;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,13 +34,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
-  private final BAMPCCManager bamPccManager;
+  @Nullable private final BAMPCCManager bamPccManager;
   private final BAMDataManager data;
   private final LogManager logger;
   private final BlockPartitioning blockPartitioning;
@@ -47,7 +49,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   public BAMPrecisionAdjustment(
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       BAMDataManager pData,
-      BAMPCCManager pBamPccManager,
+      @Nullable BAMPCCManager pBamPccManager,
       LogManager pLogger,
       BlockPartitioning pBlockPartitioning) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
@@ -67,13 +69,13 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
     // so lets use the (expanded) inner precision.
-    Precision validPrecision = data.getExpandedPrecisionForState(pElement);
-    if (validPrecision != null) {
-      assert AbstractStates.isTargetState(pElement)
-              || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))
-          : "precision for state " + pElement + " cannot be found.";
-    } else {
-      validPrecision = pPrecision;
+    Precision validPrecision = pPrecision;
+    if (AbstractStates.isTargetState(pElement)
+        || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))) {
+      Precision expandedPrecision = data.getExpandedPrecisionForState(pElement);
+      if (expandedPrecision != null) {
+        validPrecision = expandedPrecision;
+      }
     }
 
     Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
@@ -87,7 +89,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       return result;
     }
 
-    if (bamPccManager.isPCCEnabled()) {
+    if (bamPccManager != null && bamPccManager.isPCCEnabled()) {
       result = result
           .map(
               t -> t.withAbstractState(
@@ -96,10 +98,11 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
           );
     }
 
-    if (pElement != result.get().abstractState()) {
+    AbstractState newState = result.get().abstractState();
+    if (pElement != newState) {
       logger.log(Level.ALL, "before PREC:", pElement);
-      logger.log(Level.ALL, "after PREC:", result.get().abstractState());
-      data.replaceStateInCaches(pElement, result.get().abstractState(), false);
+      logger.log(Level.ALL, "after PREC:", newState);
+      data.replaceStateInCaches(pElement, newState, false);
     }
 
     return result;

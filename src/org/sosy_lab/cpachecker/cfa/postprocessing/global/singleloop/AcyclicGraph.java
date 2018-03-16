@@ -26,18 +26,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -45,6 +33,15 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Instances of this class are acyclic graphs.
@@ -76,35 +73,28 @@ class AcyclicGraph {
    */
   private final Predicate<CFAEdge> CONTAINS_EDGE = pArg0 -> pArg0 != null && containsEdge(pArg0);
 
-  /**
-   * A function producing those edges leaving a node that are contained in
-   * this subgraph.
-   */
+  /** A function producing those edges leaving a node that are contained in this subgraph. */
   private final Function<CFANode, Iterable<CFAEdge>> GET_CONTAINED_LEAVING_EDGES =
       new Function<CFANode, Iterable<CFAEdge>>() {
 
-    @Override
-    @Nullable
-    public Iterable<CFAEdge> apply(@Nullable CFANode pArg0) {
-      if (pArg0 == null) {
-        return Collections.emptySet();
-      }
-      return getLeavingEdges(pArg0).filter(CONTAINS_EDGE).transform(new Function<CFAEdge, CFAEdge>() {
-
         @Override
-        @Nullable
-        public CFAEdge apply(@Nullable CFAEdge pArg0) {
-          if (pArg0 instanceof FunctionCallEdge) {
-            CFAEdge summaryEdge = ((FunctionCallEdge) pArg0).getSummaryEdge();
-            return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
+        public Iterable<CFAEdge> apply(@NullableDecl CFANode pArg0) {
+          if (pArg0 == null) {
+            return Collections.emptySet();
           }
-          return pArg0;
+          return getLeavingEdges(pArg0)
+              .filter(CONTAINS_EDGE)
+              .transform(
+                  edge -> {
+                    if (edge instanceof FunctionCallEdge) {
+                      CFAEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
+                      return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
+                    }
+                    return edge;
+                  })
+              .filter(notNull());
         }
-
-      }).filter(notNull());
-    }
-
-  };
+      };
 
   /**
    * Creates a new acyclic graph with the given root node and default growth

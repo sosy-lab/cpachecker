@@ -23,20 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import java.io.Serializable;
-
+import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @Immutable
 public final class PointerTarget implements Serializable {
 
-  /**
-   * This constructor is for fields of nested structures and arrays
-   */
-  PointerTarget(String base, @Nullable CType containerType, int properOffset, int containerOffset) {
+  /** This constructor is for fields of nested structures and arrays */
+  PointerTarget(
+      String base, @Nullable CType containerType, long properOffset, long containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
@@ -51,11 +49,11 @@ public final class PointerTarget implements Serializable {
     return PointerTargetSet.getBaseName(base);
   }
 
-  public int getOffset() {
+  public long getOffset() {
     return containerOffset + properOffset;
   }
 
-  int getProperOffset() {
+  long getProperOffset() {
     assert containerType != null : "The target's offset is ill-defined";
     return properOffset;
   }
@@ -69,7 +67,7 @@ public final class PointerTarget implements Serializable {
     return containerType;
   }
 
-  int getContainerOffset() {
+  long getContainerOffset() {
     assert containerType != null : "The target's container offset is ill-defined";
     return containerOffset;
   }
@@ -93,7 +91,7 @@ public final class PointerTarget implements Serializable {
 
   @Override
   public int hashCode() {
-    return 31 * base.hashCode() + 17 * containerOffset + properOffset;
+    return Objects.hash(base, containerOffset, properOffset);
   }
 
   @Override
@@ -103,8 +101,8 @@ public final class PointerTarget implements Serializable {
 
   final String base;
   final @Nullable CType containerType;
-  final int properOffset;
-  final int containerOffset;
+  final long properOffset;
+  final long containerOffset;
 
   private static final long serialVersionUID = -1258065871533686442L;
 }

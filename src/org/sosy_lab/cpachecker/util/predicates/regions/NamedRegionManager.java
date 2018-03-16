@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,40 +25,39 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import com.google.common.base.Function;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This class provides a RegionManager which additionally keeps track of a name
- * for each predicate, and can provide a nice String representation of a BDD.
+ * This class provides a RegionManager which additionally keeps track of a name for each predicate,
+ * and can provide a nice String representation of a BDD.
+ *
+ * <p>This class is thread-safe, iff the delegated {@link RegionManager} is thread-safe.
  */
 public class NamedRegionManager implements RegionManager {
 
   private static final String ANONYMOUS_PREDICATE = "__anon_pred";
   private final RegionManager delegate;
-  private final BiMap<String, Region> regionMap = HashBiMap.create();
-  /**
-   * counter needed for nodes in dot-output
-   */
-  int nodeCounter;
-  private int anonymousPredicateCounter = 0;
+  private final BiMap<String, Region> regionMap = Maps.synchronizedBiMap(HashBiMap.create());
+  private AtomicInteger anonymousPredicateCounter = new AtomicInteger(0);
 
   public NamedRegionManager(RegionManager pDelegate) {
     delegate = checkNotNull(pDelegate);
@@ -73,17 +72,12 @@ public class NamedRegionManager implements RegionManager {
    * @return A region representing a predicate
    */
   public Region createPredicate(String pName) {
-    Region result = regionMap.get(pName);
-    if (result == null) {
-      result = delegate.createPredicate();
-      regionMap.put(pName, result);
-    }
-    return result;
+    return regionMap.computeIfAbsent(pName, ignoreArg -> delegate.createPredicate());
   }
 
   @Override
   public Region createPredicate() {
-    return createPredicate(ANONYMOUS_PREDICATE + anonymousPredicateCounter++);
+    return createPredicate(ANONYMOUS_PREDICATE + anonymousPredicateCounter.getAndIncrement());
   }
 
   /**
@@ -149,7 +143,9 @@ public class NamedRegionManager implements RegionManager {
    * Returns a representation of a region in dot-format (graphviz).
    */
   public String regionToDot(Region r) {
-    nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
+    // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE.
+    // we use a reference to an integer to be able to change its value in called methods.
+    AtomicInteger nodeCounter = new AtomicInteger(2);
     Map<Region, Integer> cache = new HashMap<>(); // map for same regions
     StringBuilder str = new StringBuilder("digraph G {\n");
 
@@ -163,13 +159,15 @@ public class NamedRegionManager implements RegionManager {
       cache.put(makeTrue(), 1);
     }
 
-    regionToDot(r, str, cache);
+    regionToDot(r, str, cache, nodeCounter);
 
     str.append("}\n");
     return str.toString();
   }
 
-  private int regionToDot(Region r, StringBuilder str, Map<Region, Integer> cache) {
+  /** Appends a sub-tree to the String and increments the nodeCounter. */
+  private int regionToDot(
+      Region r, StringBuilder str, Map<Region, Integer> cache, AtomicInteger nodeCounter) {
     if (cache.containsKey(r)) { // use same region again
       return cache.get(r);
 
@@ -178,18 +176,17 @@ public class NamedRegionManager implements RegionManager {
 
       // create node with label
       String predName = regionMap.inverse().get(triple.getFirst());
-      nodeCounter += 1; // one more node is created
-      int predNum = nodeCounter;
+      int predNum = nodeCounter.incrementAndGet(); // one more node is created
       str.append(predNum).append(" [label=\"").append(predName).append("\"];\n");
 
       // create arrow for true branch
       Region trueBranch = triple.getSecond();
-      int trueTarget = regionToDot(trueBranch, str, cache);
+      int trueTarget = regionToDot(trueBranch, str, cache, nodeCounter);
       str.append(predNum).append(" -> ").append(trueTarget).append(" [style=filled];\n");
 
       // create arrow for false branch
       Region falseBranch = triple.getThird();
-      int falseTarget = regionToDot(falseBranch, str, cache);
+      int falseTarget = regionToDot(falseBranch, str, cache, nodeCounter);
       str.append(predNum).append(" -> ").append(falseTarget).append(" [style=dotted];\n");
 
       cache.put(r, predNum);
@@ -268,7 +265,9 @@ public class NamedRegionManager implements RegionManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
+    out.println(
+        "Number of named predicates:          "
+            + (regionMap.size() - anonymousPredicateCounter.get()));
     delegate.printStatistics(out);
   }
 
@@ -278,7 +277,9 @@ public class NamedRegionManager implements RegionManager {
   }
 
   public Set<String> getPredicates() {
-    return this.regionMap.keySet();
+    synchronized (regionMap) {
+      return ImmutableSet.copyOf(regionMap.keySet());
+    }
   }
 
   @Override

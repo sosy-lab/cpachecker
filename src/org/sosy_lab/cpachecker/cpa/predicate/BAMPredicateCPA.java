@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicat
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-
 /**
  * Implements an BAM-based predicate CPA.
  */
@@ -124,5 +123,11 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
+  }
+
+  public void clearAllCaches() {
+    getPredicateManager().clear();
+    relevantPredicatesComputer.clear();
+    getPathFormulaManager().clearCaches();
   }
 }

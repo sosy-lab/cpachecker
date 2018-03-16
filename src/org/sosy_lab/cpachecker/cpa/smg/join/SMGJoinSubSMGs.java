@@ -26,23 +26,20 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final class SMGJoinSubSMGs {
   static private boolean performChecks = false;

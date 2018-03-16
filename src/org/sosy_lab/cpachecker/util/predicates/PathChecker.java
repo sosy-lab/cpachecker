@@ -29,7 +29,12 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
-
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,15 +44,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -56,18 +65,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This class can check feasibility of a simple path using an SMT solver.
@@ -291,6 +293,7 @@ public class PathChecker {
     PathIterator pathIt = pPath.fullPathIterator();
 
     while (pathIt.hasNext()) {
+      pathFormula = handlePreconditionAssumptions(pathFormula, pathIt.getNextAbstractState());
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
 
@@ -299,6 +302,21 @@ public class PathChecker {
     }
 
     return Pair.of(pathFormula, ssaMaps);
+  }
+
+  private PathFormula handlePreconditionAssumptions(PathFormula pathFormula, ARGState nextState)
+      throws CPATransferException, InterruptedException {
+    if (nextState != null) {
+      AbstractStateWithAssumptions assumptionState =
+          AbstractStates.extractStateByType(nextState, AbstractStateWithAssumptions.class);
+      if (assumptionState != null) {
+        for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
+          assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
+          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+        }
+      }
+    }
+    return pathFormula;
   }
 
   private List<ValueAssignment> getModel(ProverEnvironment thmProver) {

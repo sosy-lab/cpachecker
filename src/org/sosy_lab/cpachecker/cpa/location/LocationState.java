@@ -32,11 +32,13 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -124,14 +126,14 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    String[] parts = pProperty.split("==");
-    if (parts.length != 2) {
+    List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
+    if (parts.size() != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts[0].toLowerCase().equals("line")) {
+      if (parts.get(0).toLowerCase().equals("line")) {
         try {
-          int queryLine = Integer.parseInt(parts[1]);
+          int queryLine = Integer.parseInt(parts.get(1));
           for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
             if (edge.getLineNumber()  == queryLine) {
               return true;
@@ -139,17 +141,38 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
           }
           return false;
         } catch (NumberFormatException nfe) {
-          throw new InvalidQueryException("The Query \"" + pProperty
-              + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Could not parse the integer \""
+                  + parts.get(1)
+                  + "\"");
         }
-      } else if (parts[0].toLowerCase().equals("functionname")) {
-        return this.locationNode.getFunctionName().equals(parts[1]);
-      } else if (parts[0].toLowerCase().equals("label")) {
-        return this.locationNode instanceof CLabelNode ?
-            ((CLabelNode) this.locationNode).getLabel().equals(parts[1]) : false;
+      } else if (parts.get(0).toLowerCase().equals("functionname")) {
+        return this.locationNode.getFunctionName().equals(parts.get(1));
+      } else if (parts.get(0).toLowerCase().equals("label")) {
+        return this.locationNode instanceof CLabelNode
+            ? ((CLabelNode) this.locationNode).getLabel().equals(parts.get(1))
+            : false;
+      } else if (parts.get(0).toLowerCase().equals("nodenumber")) {
+        try {
+          int queryNumber = Integer.parseInt(parts.get(1));
+          return this.locationNode.getNodeNumber() == queryNumber;
+        } catch (NumberFormatException nfe) {
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Could not parse the integer \""
+                  + parts.get(1)
+                  + "\"");
+        }
       } else {
-        throw new InvalidQueryException("The Query \"" + pProperty
-            + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
+        throw new InvalidQueryException(
+            "The Query \""
+                + pProperty
+                + "\" is invalid. \""
+                + parts.get(0)
+                + "\" is no valid keyword");
       }
     }
   }

@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 /**
  * Live view of an unmodifiable reached state set, where states
@@ -60,7 +61,7 @@ public class UnmodifiableReachedSetView
 
   @Override
   public AbstractState getFirstState() {
-    return mapStateFunction.apply(underlying.getFirstState());
+    return checkNotNull(mapStateFunction.apply(underlying.getFirstState()));
   }
 
   @Override
@@ -130,4 +131,13 @@ public class UnmodifiableReachedSetView
     return underlying.size();
   }
 
+  @Override
+  public boolean hasViolatedProperties() {
+    return underlying.hasViolatedProperties();
+  }
+
+  @Override
+  public Collection<Property> getViolatedProperties() {
+    return underlying.getViolatedProperties();
+  }
 }

@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -68,15 +67,10 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
-/**
- * This class implements an AutomatonAnalysis as described in the related Documentation.
- */
-@Options(prefix="cpa.automaton")
+/** This class implements an AutomatonAnalysis as described in the related Documentation. */
+@Options(prefix = "cpa.automaton")
 public class ControlAutomatonCPA
-    implements ConfigurableProgramAnalysis,
-        StatisticsProvider,
-        ConfigurableProgramAnalysisWithBAM,
-        ProofCheckerCPA {
+    implements StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
@@ -141,7 +135,7 @@ public class ControlAutomatonCPA
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, pLogger, inputFile, pCFA);
+      this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
@@ -156,8 +150,7 @@ public class ControlAutomatonCPA
     }
   }
 
-  private Automaton constructAutomataFromFile(
-      Configuration pConfig, LogManager logger, Path pFile, CFA cfa)
+  private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
       throws InvalidConfigurationException {
 
     Scope scope = cfa.getLanguage() == Language.C

@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
  *
@@ -65,11 +64,11 @@ public abstract class PartitioningHeuristic {
 
   /**
    * Creates a <code>BlockPartitioning</code> using the represented heuristic.
-   * @param cfa control-flow automaton of the program
+   *
    * @return BlockPartitioning
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
-  public final BlockPartitioning buildPartitioning(CFA cfa, BlockPartitioningBuilder builder) {
+  public final BlockPartitioning buildPartitioning(BlockPartitioningBuilder builder) {
 
     //traverse CFG
     final Set<CFANode> seen = new HashSet<>();

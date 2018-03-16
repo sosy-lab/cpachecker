@@ -112,8 +112,8 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   private ThreadingState withThreadIdsForWitness(
-      PersistentMap<String, Integer> threadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, threadIdsForWitness);
+      PersistentMap<String, Integer> pThreadIdsForWitness) {
+    return new ThreadingState(threads, locks, activeThread, pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
@@ -147,7 +147,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return (LocationState) Preconditions.checkNotNull(threads.get(id).getLocation());
   }
 
-  private Set<Integer> getThreadNums() {
+  Set<Integer> getThreadNums() {
     Set<Integer> result = new HashSet<>();
     for (ThreadState ts : threads.values()) {
       result.add(ts.getNum());

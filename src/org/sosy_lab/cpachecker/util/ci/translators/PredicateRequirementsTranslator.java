@@ -26,27 +26,23 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 public class PredicateRequirementsTranslator extends AbstractRequirementsTranslator<PredicateAbstractState>{
 
   private final FormulaManagerView fmgr;
   private int counter;
 
-  public PredicateRequirementsTranslator(PredicateCPA cpa) {
+  public PredicateRequirementsTranslator(FormulaManagerView pFmgr) {
     super(PredicateAbstractState.class);
-    fmgr = cpa.getSolver().getFormulaManager();
+    fmgr = pFmgr;
     counter = 0;
   }
 

@@ -42,7 +42,15 @@ public class JSAssumeEdge extends AssumeEdge {
       JSExpression pExpression,
       boolean pTruthAssumption) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    super(
+        pRawStatement,
+        pFileLocation,
+        pPredecessor,
+        pSuccessor,
+        pExpression,
+        pTruthAssumption,
+        false,
+        false);
   }
 
   @Override

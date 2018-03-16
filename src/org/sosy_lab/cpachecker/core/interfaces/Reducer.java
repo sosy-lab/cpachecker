@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-
 /**
  * An interface which is provided by a configurable program analysis using
  * {@link ConfigurableProgramAnalysisWithBAM} which allows it to use BAM
@@ -78,15 +77,13 @@ public interface Reducer {
   /**
    * @param pPrecision Precision object.
    * @param pOtherPrecision Other precision object.
-   *
-   * @return value (non-negative) for the difference between two
-   * precisions.
-   *
-   * <p>This function is used only when {@code cpa.bam.aggressiveCaching} is
-   * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
-   *
-   * <p>A greater value indicates a bigger difference in the precision.
-   * If the implementation of this function is not important, return zero. */
+   * @return value (non-negative) for the difference between two precisions.
+   *     <p>This function is used only when {@code cpa.bam.aggressiveCaching} is enabled (cf. {@link
+   *     org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache#get(AbstractState, Precision, Block)
+   *     BAMCache.get}).
+   *     <p>A greater value indicates a bigger difference in the precision. If the implementation of
+   *     this function is not important, return zero.
+   */
   default int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return 0;
   }
@@ -131,4 +128,13 @@ public interface Reducer {
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation);
+
+  /**
+   * See option bam.useDynamicAdjustment
+   *
+   * @param pState an abstract state which might be used in cache
+   */
+  default boolean canBeUsedInCache(AbstractState pState) {
+    return true;
   }
+}

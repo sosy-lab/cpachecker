@@ -4,9 +4,10 @@
 
   <option name="-noout"/>
   <option name="-heap">150M</option>
-  <option name="-valueAnalysis-java-with-RTT"/>
 
-  <rundefinition/>
+  <rundefinition>
+    <option name="-valueAnalysis-java-NoCegar-RTT"/>
+  </rundefinition>
 
   <tasks>
     <requiredfiles>../programs/java/CallTests</requiredfiles>

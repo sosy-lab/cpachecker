@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**

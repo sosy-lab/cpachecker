@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.bam.TimedReducer.ReducerStatistics;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.bam")
@@ -77,16 +79,41 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   @Option(
     secure = true,
+    description =
+        "Heuristic: This flag determines which precisions should be updated during "
+            + "refinement. This flag also updates the precision of the most inner block."
+  )
+  private boolean doPrecisionRefinementForMostInnerBlock = true;
+
+  @Option(
+    secure = true,
     description = "Use more fast partitioning builder, which can not handle loops"
   )
   private boolean useExtendedPartitioningBuilder = false;
 
+  @Option(
+    secure = true,
+    description =
+        "In some cases BAM cache can not be easily applied. "
+            + "If the option is enabled CPAs can inform BAM that the result states should not be used"
+            + " even if there will a cache hit."
+  )
+  private boolean useDynamicAdjustment = false;
+
+  @Option(
+    secure = true,
+    description =
+        "This flag determines which refinement procedure we should use. "
+            + "We can choose between an in-place refinement and a copy-on-write refinement."
+  )
+  private boolean useCopyOnWriteRefinement = false;
+
   final Timer blockPartitioningTimer = new Timer();
+  final ReducerStatistics reducerStatistics;
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final BlockPartitioning blockPartitioning;
-  private final TimedReducer reducer;
   private final BAMCPAStatistics stats;
   private final BAMARGStatistics argStats;
   private final BAMReachedSetExporter exporter;
@@ -113,10 +140,14 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     blockPartitioning = buildBlockPartitioning(pCfa, pConfig);
     blockPartitioningTimer.stop();
 
-    reducer = new TimedReducer(getWrappedCpa().getReducer());
     argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
     stats = new BAMCPAStatistics(this);
+
+    reducerStatistics = new TimedReducer.ReducerStatistics();
+
+    // create a reducer to throw exceptions directly, actually useless code
+    getWrappedCpa().getReducer();
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
@@ -128,7 +159,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
       blockBuilder = new BlockPartitioningBuilder();
     }
     PartitioningHeuristic heuristic = blockHeuristic.create(logger, pCfa, pConfig);
-    BlockPartitioning partitioning = heuristic.buildPartitioning(pCfa, blockBuilder);
+    BlockPartitioning partitioning = heuristic.buildPartitioning(blockBuilder);
     if (exportBlocksPath != null) {
       BlockToDotWriter writer = new BlockToDotWriter(partitioning);
       writer.dump(exportBlocksPath, logger);
@@ -152,7 +183,12 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   }
 
   TimedReducer getReducer() {
-    return Preconditions.checkNotNull(reducer);
+    try {
+      return new TimedReducer(reducerStatistics, getWrappedCpa().getReducer());
+    } catch (InvalidConfigurationException e) {
+      // exception would already appear before, see constructor above
+      throw new AssertionError(e);
+    }
   }
 
   @Override
@@ -170,9 +206,22 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     return stats;
   }
 
-  abstract BAMDataManager getData();
+  /** only public for statistics */
+  public abstract BAMDataManager getData();
 
   boolean doPrecisionRefinementForAllStates() {
     return doPrecisionRefinementForAllStates;
+  }
+
+  boolean doPrecisionRefinementForMostInnerBlock() {
+    return doPrecisionRefinementForMostInnerBlock;
+  }
+
+  boolean useCopyOnWriteRefinement() {
+    return useCopyOnWriteRefinement;
+  }
+
+  boolean useDynamicAdjustment() {
+    return useDynamicAdjustment;
   }
 }

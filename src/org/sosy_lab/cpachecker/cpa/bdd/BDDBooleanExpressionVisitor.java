@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 public class BDDBooleanExpressionVisitor
         extends DefaultCExpressionVisitor<Region, RuntimeException> {
 
-  private final static int BOOLEAN_SIZE = 1;
-  private final PredicateManager predMgr;
-  private final VariableTrackingPrecision precision;
+  protected static final int BOOLEAN_SIZE = 1;
+  protected final PredicateManager predMgr;
+  protected final VariableTrackingPrecision precision;
   protected final RegionManager rmgr;
-  private final CFANode location;
+  protected final CFANode location;
 
   /** This Visitor returns the boolean value for an expression. */
   protected BDDBooleanExpressionVisitor(final PredicateManager pPredMgr, final RegionManager pRmgr, final VariableTrackingPrecision pPrecision, final CFANode pLocation) {

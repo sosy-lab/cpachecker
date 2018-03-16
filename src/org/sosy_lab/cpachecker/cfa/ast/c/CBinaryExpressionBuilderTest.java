@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.*;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import com.google.common.collect.ImmutableList;
 
 @RunWith(Parameterized.class)
 public class CBinaryExpressionBuilderTest {
@@ -142,7 +140,7 @@ public class CBinaryExpressionBuilderTest {
 
   private void checkArithmeticCalculationTypes(BinaryOperator op) throws UnrecognizedCCodeException {
     checkCalculation(op, U_INT, U_INT, U_INT);
-    if (machineModel == MachineModel.LINUX32) {
+    if (machineModel == MachineModel.LINUX32 || machineModel == MachineModel.ARM) {
       checkCalculation(op, U_INT, S_LONG_INT, U_LONG_INT); // !!!!
     } else {
       checkCalculation(op, U_INT, S_LONG_INT, S_LONG_INT);

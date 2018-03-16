@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.rtt;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
@@ -78,8 +79,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import java.util.List;
 
 /**
  * Transfer Relation traversing the CFA and tracking Run Time Type Information
@@ -591,9 +590,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     private boolean isEnum(JClassType pClassType) {
-      List<JClassOrInterfaceType> superTypes = pClassType.getAllSuperTypesOfType();
-
-      for (JClassOrInterfaceType currentType : superTypes) {
+      for (JClassOrInterfaceType currentType : pClassType.getAllSuperTypesOfType()) {
         if (currentType.getName().equals(JAVA_ENUM_OBJECT_NAME)) {
           return false;
         }

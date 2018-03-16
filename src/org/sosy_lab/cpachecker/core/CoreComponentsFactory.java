@@ -40,20 +40,21 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAfterAnalysisAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -62,8 +63,11 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -124,6 +128,20 @@ public class CoreComponentsFactory {
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
+  @Option(
+    secure = true,
+    name = "useInterleavedAnalyses",
+    description = "start different analyses interleaved and continue after unknown result"
+  )
+  private boolean useInterleavedAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "useTestCaseGeneratorAlgorithm",
+    description = "generate test cases for covered test targets"
+  )
+  private boolean useTestCaseGeneratorAlgorithm = false;
+
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
@@ -142,6 +160,13 @@ public class CoreComponentsFactory {
     name = "algorithm.termination",
     description = "Use termination algorithm to prove (non-)termination.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "split.program",
+    description = "Split program in subprograms which can be analyzed separately afterwards"
+  )
+  private boolean splitProgram = false;
 
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
@@ -179,12 +204,23 @@ public class CoreComponentsFactory {
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
+  @Option(
+    secure = true,
+    name = "algorithm.nonterminationWitnessCheck",
+    description =
+        "use nontermination witness validator to check a violation witness for termination"
+  )
+  private boolean useNonTerminationWitnessValidation = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.undefinedFunctionCollector",
+    description = "collect undefined functions"
+  )
+  private boolean useUndefinedFunctionCollector = false;
+
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
-
-  @Option(secure=true, name="restartAlgorithmWithARGReplay",
-      description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
-  private boolean useRestartAlgorithmWithARGReplay = false;
 
   @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
   private boolean useParallelBAM = false;
@@ -238,7 +274,7 @@ public class CoreComponentsFactory {
       aggregatedReachedSets = pAggregatedReachedSets;
     }
 
-    reachedSetFactory = new ReachedSetFactory(config);
+    reachedSetFactory = new ReachedSetFactory(config, logger);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
 
     if (checkCounterexamplesWithBDDCPARestriction) {
@@ -254,7 +290,6 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && !useRestartAlgorithmWithARGReplay
         && !runCBMCasExternalTool
         && useBMC;
   }
@@ -276,7 +311,15 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if(useProofCheckAlgorithmWithStoredConfig) {
+    if (useUndefinedFunctionCollector) {
+      logger.log(Level.INFO, "Using undefined function collector");
+      algorithm = new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+    } else if (useNonTerminationWitnessValidation) {
+      logger.log(Level.INFO, "Using validator for violation witnesses for termination");
+      algorithm =
+          new NonTerminationWitnessValidator(
+              cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
+    } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
@@ -293,16 +336,15 @@ public class CoreComponentsFactory {
     } else if (asConditionalVerifier) {
       logger.log(Level.INFO, "Using Conditional Verifier");
       algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
-    }else if (useRestartingAlgorithm) {
+    } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useInterleavedAlgorithm) {
+      logger.log(Level.INFO, "Using Interleaved Algorithm");
+      algorithm = new InterleavedAlgorithm(config, logger, shutdownNotifier, specification, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
-
-    } else if (useRestartAlgorithmWithARGReplay) {
-      algorithm =
-          new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
       if (cfa.getFileNames().size() > 1) {
@@ -338,19 +380,19 @@ public class CoreComponentsFactory {
       }
 
       if (useCEGAR) {
-        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new CEGARAlgorithmFactory(algorithm, cpa, logger, config).newInstance();
       }
 
       if (usePDR) {
         algorithm =
-            new PDRAlgorithm(
-                reachedSetFactory,
-                cpa,
+            new PdrAlgorithm(
                 algorithm,
-                cfa,
+                cpa,
                 config,
                 logger,
+                reachedSetFactory,
                 shutdownNotifier,
+                cfa,
                 specification);
       }
 
@@ -389,12 +431,21 @@ public class CoreComponentsFactory {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
+      if (useTestCaseGeneratorAlgorithm) {
+        algorithm =
+            new TestCaseGeneratorAlgorithm(algorithm, cfa, config, cpa, logger, shutdownNotifier);
+      }
+
       if (collectAssumptions) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (splitProgram) {
+        algorithm = new ProgramSplitAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
       }
 
       if (usePropertyCheckingAlgorithm) {
@@ -444,7 +495,9 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm
+    if (useInterleavedAlgorithm
+        || useRestartingAlgorithm
+        || useParallelAlgorithm
         || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
@@ -462,8 +515,14 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
-        || useProofCheckWithARGCMCStrategy || asConditionalVerifier) {
+    if (useInterleavedAlgorithm
+        || useRestartingAlgorithm
+        || useParallelAlgorithm
+        || useProofCheckAlgorithmWithStoredConfig
+        || useProofCheckWithARGCMCStrategy
+        || asConditionalVerifier
+        || useNonTerminationWitnessValidation
+        || useUndefinedFunctionCollector) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

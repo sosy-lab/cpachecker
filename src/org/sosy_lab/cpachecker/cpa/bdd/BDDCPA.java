@@ -63,11 +63,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
@@ -85,7 +85,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
 
-  @Option(secure=true, description="mergeType")
+  @Option(
+    secure = true,
+    description = "mergeType",
+    values = {"sep", "join"}
+  )
   private String merge = "join";
 
   @Option(secure = true, name = "logfile", description = "Dump tracked variables to a file.")
@@ -134,9 +138,14 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public MergeOperator getMergeOperator() {
-    return (merge.equals("sep"))
-        ? MergeSepOperator.getInstance()
-        : new MergeJoinOperator(getAbstractDomain());
+    switch (merge) {
+      case "sep":
+        return MergeSepOperator.getInstance();
+      case "join":
+        return new MergeJoinOperator(getAbstractDomain());
+      default:
+        throw new AssertionError("unexpected operator: " + merge);
+    }
   }
 
   @Override
@@ -187,7 +196,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
                 new TreeSet<>(); // TreeSet for nicer output through ordering
             Collection<String> trackedIntEq = new TreeSet<>();
             Collection<String> trackedIntAdd = new TreeSet<>();
-            for (String var : predmgr.getTrackedVars().keySet()) {
+            for (String var : predmgr.getTrackedVars()) {
               if (varClass.getIntBoolVars().contains(var)) {
                 trackedIntBool.add(var);
               } else if (varClass.getIntEqualVars().contains(var)) {
@@ -245,7 +254,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return new BDDReducer(predmgr);
+    return new BDDReducer();
   }
 
   public Configuration getConfiguration() {

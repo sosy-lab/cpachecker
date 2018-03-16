@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Perform weakening based on the syntactic information.
@@ -44,37 +42,28 @@ public class SyntacticWeakeningManager {
   }
 
   /**
-   * Syntactic formula weakening: slices away all atoms which have variables
-   * which were changed (== SSA index changed) by the transition relation.
-   * In that case, \phi is exactly the same as \phi',
+   * Syntactic formula weakening: slices away all atoms which have variables which were changed (==
+   * SSA index changed) by the transition relation. In that case, \phi is exactly the same as \phi',
    * and the formula should be unsatisfiable.
    *
-   *
-   * @param selectionInfo selection variable -> corresponding lemma
-   *                      (instantiated with unprimed SSA).
-   * @param transition Transition with respect to which the weakening must be inductive.
-   *
+   * @param selectionInfo selection variable -> corresponding (uninstantiated) lemma
    * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
-   * @return Set of selectors which correspond to atoms which *should*
-   *         be abstracted.
+   * @return Set of selectors which correspond to atoms which *should* be abstracted.
    */
   public Set<BooleanFormula> performWeakening(
       SSAMap pFromSSA,
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      PathFormula transition,
+      SSAMap pToSSA,
       Set<BooleanFormula> pFromStateLemmas) {
     Set<BooleanFormula> out = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionInfo.entrySet()) {
       BooleanFormula selector = e.getKey();
       BooleanFormula lemma = e.getValue();
 
-      BooleanFormula uninstantiated = fmgr.uninstantiate(lemma);
-      BooleanFormula instantiatedFrom = fmgr.instantiate(uninstantiated, pFromSSA);
-      BooleanFormula instantiatedTo =
-          fmgr.instantiate(uninstantiated, transition.getSsa());
+      BooleanFormula instantiatedFrom = fmgr.instantiate(lemma, pFromSSA);
+      BooleanFormula instantiatedTo = fmgr.instantiate(lemma, pToSSA);
 
-      if (!pFromStateLemmas.contains(uninstantiated) ||
-            !instantiatedFrom.equals(instantiatedTo)) {
+      if (!pFromStateLemmas.contains(lemma) || !instantiatedFrom.equals(instantiatedTo)) {
         out.add(selector);
       }
     }

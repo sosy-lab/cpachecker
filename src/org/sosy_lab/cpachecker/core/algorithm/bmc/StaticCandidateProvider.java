@@ -23,28 +23,66 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.annotation.Nullable;
 
 public class StaticCandidateProvider implements CandidateGenerator {
 
-  private final ImmutableSet<CandidateInvariant> allCandidates;
+  private int nextOrdinal = Integer.MIN_VALUE;
+
+  private final Map<CandidateInvariant, Integer> order = new HashMap<>();
+
+  private final Set<CandidateInvariant> allCandidates;
 
   private final Set<CandidateInvariant> confirmedInvariants = Sets.newLinkedHashSet();
 
-  private final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+  private final Set<CandidateInvariant> refutedInvariants = Sets.newLinkedHashSet();
+
+  private final NavigableSet<CandidateInvariant> candidates =
+      new TreeSet<>(
+          (a, b) -> {
+            return Integer.compare(order.get(a), order.get(b));
+          });
 
   private boolean produced = false;
 
   public StaticCandidateProvider(Iterable<? extends CandidateInvariant> pCandidates) {
-    Iterables.addAll(candidates, pCandidates);
+    addAllCandidates(pCandidates);
     allCandidates = ImmutableSet.copyOf(pCandidates);
+  }
+
+  private boolean addAllCandidates(Iterable<? extends CandidateInvariant> pCandidateInvariants) {
+    boolean changed = false;
+    for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
+      if (addCandidate(candidateInvariant)) {
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  private boolean addCandidate(CandidateInvariant pCandidateInvariant) {
+    if (confirmedInvariants.contains(pCandidateInvariant)
+        || refutedInvariants.contains(pCandidateInvariant)
+        || order.containsKey(pCandidateInvariant)) {
+      return false;
+    }
+    Integer oldValue = order.put(pCandidateInvariant, nextOrdinal++);
+    assert oldValue == null;
+    if (!candidates.add(pCandidateInvariant)) {
+      order.remove(pCandidateInvariant);
+      return false;
+    }
+    return true;
   }
 
   @Override
@@ -64,7 +102,10 @@ public class StaticCandidateProvider implements CandidateGenerator {
   @Override
   public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
     for (CandidateInvariant candidate : pCandidates) {
-      candidates.remove(candidate);
+      if (order.containsKey(candidate)) {
+        candidates.remove(candidate);
+        order.remove(candidate);
+      }
     }
     Iterables.addAll(confirmedInvariants, pCandidates);
   }
@@ -72,14 +113,44 @@ public class StaticCandidateProvider implements CandidateGenerator {
   @Override
   public Iterator<CandidateInvariant> iterator() {
     if (!produced) {
-      return Collections.<CandidateInvariant>emptyIterator();
+      return Collections.emptyIterator();
     }
-    return candidates.iterator();
+    final Iterator<CandidateInvariant> iterator = candidates.descendingIterator();
+    return new Iterator<CandidateInvariant>() {
+
+      private @Nullable CandidateInvariant candidate;
+
+      @Override
+      public boolean hasNext() {
+        return iterator.hasNext();
+      }
+
+      @Override
+      public CandidateInvariant next() {
+        return candidate = iterator.next();
+      }
+
+      @Override
+      public void remove() {
+        if (candidate == null) {
+          throw new IllegalStateException();
+        }
+        refutedInvariants.add(candidate);
+        iterator.remove();
+        order.remove(candidate);
+        candidate = null;
+      }
+    };
   }
 
   @Override
   public Set<CandidateInvariant> getConfirmedCandidates() {
     return Collections.unmodifiableSet(confirmedInvariants);
+  }
+
+  @Override
+  public boolean suggestCandidates(Iterable<? extends CandidateInvariant> pCandidates) {
+    return addAllCandidates(pCandidates);
   }
 
   public Set<CandidateInvariant> getAllCandidates() {

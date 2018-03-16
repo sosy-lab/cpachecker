@@ -29,7 +29,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
-
 public final class CPointerType implements CType, Serializable {
 
   private static final long serialVersionUID = -6423006826454509009L;
@@ -82,18 +81,24 @@ public final class CPointerType implements CType, Serializable {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     // ugly hack but it works:
-    // We need to insert the "*" between the type and the name (e.g. "int *var").
-    String decl;
+    // We need to insert the "*" and qualifiers between the type and the name (e.g. "int *var").
+    StringBuilder inner = new StringBuilder("*");
+    if (isConst()) {
+      inner.append(" const");
+    }
+    if (isVolatile()) {
+      inner.append(" volatile");
+    }
+    if (inner.length() > 1) {
+      inner.append(' ');
+    }
+    inner.append(pDeclarator);
 
     if (type instanceof CArrayType) {
-      decl = type.toASTString("(*" + pDeclarator + ")");
+      return type.toASTString("(" + inner.toString() + ")");
     } else {
-      decl = type.toASTString("*" + pDeclarator);
+      return type.toASTString(inner.toString());
     }
-
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + decl;
   }
 
   @Override
@@ -103,12 +108,7 @@ public final class CPointerType implements CType, Serializable {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(type);
-      return result;
+    return Objects.hash(isConst, isVolatile, type);
   }
 
   /**

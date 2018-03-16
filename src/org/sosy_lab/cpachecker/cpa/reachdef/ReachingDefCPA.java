@@ -34,23 +34,22 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /*
  * Requires preprocessing with cil to get proper result because preprocessing guarantees that
@@ -61,13 +60,9 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
  * with CallstackCPA.
  */
 @Options(prefix = "cpa.reachdef")
-public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofCheckerCPA {
+public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
 
   private LogManager logger;
-
-  private AbstractDomain domain;
-
-  private ReachingDefTransferRelation transfer;
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which merge operator to use for ReachingDefCPA")
@@ -77,64 +72,56 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
       description="which stop operator to use for ReachingDefCPA")
   private String stopType = "SEP";
 
-  private StopOperator stop;
-  private MergeOperator merge;
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ReachingDefCPA.class);
   }
 
   private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
+    super(
+        DelegateAbstractDomain.getInstance(),
+        new ReachingDefTransferRelation(logger, shutdownNotifier));
     config.inject(this);
     this.logger = logger;
-
-    domain = DelegateAbstractDomain.<ReachingDefState>getInstance();
-    transfer = new ReachingDefTransferRelation(logger, shutdownNotifier);
-
-    if (stopType.equals("SEP")) {
-      stop = new StopSepOperator(domain);
-    } else if (stopType.equals("JOIN")) {
-      stop = new StopJoinOperator(domain);
-    } else {
-      stop = new StopIgnoringCallstack();
-    }
-    if (mergeType.equals("SEP")) {
-      merge = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("JOIN")) {
-      merge = new MergeJoinOperator(domain);
-    } else {
-      merge = new MergeIgnoringCallstack();
-    }
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return domain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transfer;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    switch (mergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+      case "JOIN":
+        return new MergeJoinOperator(getAbstractDomain());
+      case "IGNORECALLSTACK":
+        return new MergeIgnoringCallstack();
+      default:
+        throw new AssertionError("unknown merge operator");
+    }
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    switch (stopType) {
+      case "SEP":
+        return new StopSepOperator(getAbstractDomain());
+      case "JOIN":
+        return new StopJoinOperator(getAbstractDomain());
+      case "IGNORECALLSTACK":
+        return new StopIgnoringCallstack();
+      default:
+        throw new AssertionError("unknown stop operator");
+    }
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     logger.log(Level.FINE, "Start extracting all declared variables in program.",
         "Distinguish between local and global variables.");
-    Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> result = ReachingDefUtils.getAllVariables(pNode);
+    Pair<Set<MemoryLocation>, Map<FunctionEntryNode, Set<MemoryLocation>>> result =
+        ReachingDefUtils.getAllVariables(pNode);
     logger.log(Level.FINE, "Extracted all declared variables.", "Create initial state.");
-    transfer.provideLocalVariablesOfFunctions(result.getSecond());
-    transfer.setMainFunctionNode(pNode);
+    ((ReachingDefTransferRelation) getTransferRelation())
+        .provideLocalVariablesOfFunctions(result.getSecond());
+    ((ReachingDefTransferRelation) getTransferRelation()).setMainFunctionNode(pNode);
     return new ReachingDefState(result.getFirst());
   }
 }

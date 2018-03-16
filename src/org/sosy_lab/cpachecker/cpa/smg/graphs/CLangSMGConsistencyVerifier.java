@@ -25,16 +25,15 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class CLangSMGConsistencyVerifier {
   private CLangSMGConsistencyVerifier() {} /* utility class */
@@ -80,10 +79,8 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG pSmg) {
-    Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
-
-    for (CLangStackFrame frame: stack_frames) {
+    for (CLangStackFrame frame : pSmg.getStackFrames()) {
       stack.addAll(frame.getAllObjects());
     }
     Set<SMGObject> heap = pSmg.getHeapObjects();
@@ -105,10 +102,8 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG pSmg) {
-    Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
-
-    for (CLangStackFrame frame: stack_frames) {
+    for (CLangStackFrame frame : pSmg.getStackFrames()) {
       stack.addAll(frame.getAllObjects());
     }
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
@@ -130,7 +125,7 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG pSmg) {
-    HashSet<SMGObject> object_union = new HashSet<>();
+    Set<SMGObject> object_union = new HashSet<>();
 
     object_union.addAll(pSmg.getHeapObjects());
     object_union.addAll(pSmg.getGlobalObjects().values());
@@ -228,7 +223,7 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG pSmg) {
-    HashSet<SMGObject> stack_objects = new HashSet<>();
+    Set<SMGObject> stack_objects = new HashSet<>();
 
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
       for (SMGObject object : frame.getAllObjects()) {

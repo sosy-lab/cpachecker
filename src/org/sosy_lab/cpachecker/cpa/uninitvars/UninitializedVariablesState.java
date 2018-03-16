@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
-
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
-import java.util.LinkedList;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
@@ -49,7 +48,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   public UninitializedVariablesState(String entryFunction) {
     globalVars = new ArrayList<>();
-    localVars = new LinkedList<>();
+    localVars = new ArrayDeque<>();
     warnings = new ArrayList<>();
     // create context of the entry function
     callFunction(entryFunction);
@@ -141,7 +140,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   @Override
   protected UninitializedVariablesState clone() {
-    LinkedList<Pair<String, Collection<String>>> newLocalVars = new LinkedList<>();
+    Deque<Pair<String, Collection<String>>> newLocalVars = new ArrayDeque<>();
 
     for (Pair<String, Collection<String>> localContext : localVars) {
       newLocalVars.addLast(Pair.of(localContext.getFirst(),

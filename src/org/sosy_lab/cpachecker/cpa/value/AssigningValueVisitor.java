@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
+import java.util.Collection;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -53,9 +55,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.Collection;
 
 /**
  * Visitor that derives further information from an assume edge
@@ -306,7 +305,12 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
   /** returns an initialized, empty visitor */
   ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(
-        getState(), getFunctionName(), getMachineModel(), getLogger());
+    if (options.isIgnoreFunctionValue()) {
+      return new ExpressionValueVisitor(
+          getState(), getFunctionName(), getMachineModel(), getLogger());
+    } else {
+      return new FunctionPointerExpressionValueVisitor(
+          getState(), getFunctionName(), getMachineModel(), getLogger());
+    }
   }
 }

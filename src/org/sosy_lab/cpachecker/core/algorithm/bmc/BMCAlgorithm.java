@@ -24,14 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -39,6 +37,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,7 +53,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -73,12 +71,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.GraphBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.InvariantProvider;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -97,7 +94,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="bmc")
@@ -125,7 +121,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
 
-  private final ARGPathExporter argPathExporter;
+  private final WitnessExporter argWitnessExporter;
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -156,10 +152,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     config = pConfig;
     cfa = pCFA;
 
-    PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    if (predCpa == null) {
-      throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
-    }
+    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -167,7 +160,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     MachineModel machineModel = pCFA.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
-    argPathExporter = new ARGPathExporter(config, logger, specification, cfa);
+    argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override
@@ -175,7 +168,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       return super.run(reachedSet);
     } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
+      throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
       invariantGenerator.cancel();
     }
@@ -186,14 +179,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      Set<CFANode> loopHeads = getLoopHeads();
       return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
+          Collections.singleton(TargetLocationCandidateInvariant.INSTANCE));
     }
   }
 
   @Override
-  protected boolean boundedModelCheck(final ReachedSet pReachedSet, final ProverEnvironment pProver, CandidateInvariant pInductionProblem) throws CPATransferException, InterruptedException, SolverException {
+  protected boolean boundedModelCheck(
+      final ReachedSet pReachedSet,
+      final ProverEnvironmentWithFallback pProver,
+      CandidateInvariant pInductionProblem)
+      throws CPATransferException, InterruptedException, SolverException {
     if (!checkTargetStates) {
       return true;
     }
@@ -202,14 +198,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * This method tries to find a feasible path to (one of) the target state(s).
-   * It does so by asking the solver for a satisfying assignment.
+   * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
+   * the solver for a satisfying assignment.
    */
   @Override
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
-      final ProverEnvironment pProver)
+      final ProverEnvironmentWithFallback pProver)
       throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
@@ -221,7 +217,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Error found, creating error path");
 
       Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = redundantStates(targetStates);
+      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
       redundantStates.forEach(state -> {
         state.removeFromARG();
       });
@@ -333,28 +329,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  private Set<ARGState> redundantStates(Iterable<ARGState> pStates) {
-    Multimap<ARGState, ARGState> parentToTarget = HashMultimap.create();
-    for (ARGState state : FluentIterable.from(pStates).filter(AbstractStates.IS_TARGET_STATE)) {
-      if (state.getChildren().isEmpty()) {
-        Collection<ARGState> parents = state.getParents();
-        for (ARGState parent : parents) {
-          parentToTarget.put(parent, state);
-        }
-      }
-    }
-    Set<ARGState> redundantStates = Sets.newHashSet();
-    for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
-      ARGState parent = family.getKey();
-      Collection<ARGState> children = family.getValue();
-      Set<CFAEdge> edges = FluentIterable.from(children).transformAndConcat(parent::getEdgesToChild).toSet();
-      if (edges.size() == 1 && !(edges.iterator().next() instanceof AssumeEdge)) {
-        Iterables.addAll(redundantStates, Iterables.skip(children, 1));
-      }
-    }
-    return redundantStates;
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
@@ -390,12 +364,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
 
               try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
-                argPathExporter.writeProofWitness(
+                argWitnessExporter.writeProofWitness(
                     w,
                     rootState,
                     Predicates.alwaysTrue(),
                     Predicates.alwaysTrue(),
-                    GraphBuilder.CFA_FULL,
                     new InvariantProvider() {
 
                       @Override

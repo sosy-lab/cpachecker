@@ -30,6 +30,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -62,13 +64,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -94,9 +95,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
 
-  @Option(secure=true, description = "Handle arrays using the theory of arrays.")
-  private boolean handleArrays = false;
-
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
@@ -112,6 +110,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
+  private final @Nullable CtoWpConverter wpConverter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -143,17 +142,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (handleArrays) {
-      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      CtoFormulaTypeHandler typeHandler =
-          new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
-      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
-
-      logger.log(Level.WARNING,
-          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
-
-    } else if (handlePointerAliasing) {
+    if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {
         try {
@@ -177,11 +166,32 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
 
+      wpConverter = null;
+
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
-      converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
+      converter =
+          new CtoFormulaConverter(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              typeHandler,
+              pDirection);
+
+      wpConverter =
+          new CtoWpConverter(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              typeHandler,
+              pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
@@ -272,6 +282,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(),
                            m,
@@ -280,7 +291,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2) throws InterruptedException {
+  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m, PointerTargetSet pPts) {
+    return new PathFormula(oldFormula.getFormula(), m, pPts, oldFormula.getLength());
+  }
+
+  @Override
+  public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2)
+      throws InterruptedException {
 
     final BooleanFormula formula1 = pathFormula1.getFormula();
     final BooleanFormula formula2 = pathFormula2.getFormula();
@@ -298,9 +315,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
+    final SSAMap newSSA = mergeSSAResult.getResult();
 
-    final MergeResult<PointerTargetSet> mergePtsResult = converter.mergePointerTargetSets(pts1, pts2, newSSA);
+    final MergeResult<PointerTargetSet> mergePtsResult =
+        converter.mergePointerTargetSets(pts1, pts2, mergeSSAResult.getResult());
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
@@ -312,7 +330,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA, newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
@@ -352,6 +370,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         forcePointerDereference);
   }
 
+
+
   /**
    * Build a formula containing a predicate for all branching situations in the
    * ARG. If a satisfying assignment is created for this formula, it can be used
@@ -366,8 +386,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
+    return buildBranchingFormula(
+        elementsOnPath, Collections.<Pair<ARGState, CFAEdge>, PathFormula>emptyMap());
+  }
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
+   * assignment is created for this formula, it can be used to find out which paths in the ARG are
+   * feasible.
+   *
+   * <p>This method may be called with an empty set, in which case it does nothing and returns the
+   * formula "true".
+   *
+   * @param elementsOnPath The ARG states that should be considered.
+   * @param parentFormulasOnPath TODO.
+   * @return A formula containing a predicate for each branching.
+   */
+  @Override
+  public BooleanFormula buildBranchingFormula(
+      Set<ARGState> elementsOnPath, Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
+      throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
-    BooleanFormula branchingFormula = bfmgr.makeTrue();
+    List<BooleanFormula> branchingFormula = new ArrayList<>();
     for (final ARGState pathElement : elementsOnPath) {
       Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
       Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
@@ -415,25 +455,30 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
 
-        // create formula by edge, be sure to use the correct SSA indices!
-        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-        // it is used without PredicateCPA as well.
-        PathFormula pf;
-        PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-        if (pe == null) {
-          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return bfmgr.makeTrue();
-        } else {
-          pf = pe.getPathFormula();
-        }
-        pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
-        pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
+        Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
+        PathFormula pf = parentFormulasOnPath.get(key);
 
+        if (pf == null) {
+          // create formula by edge, be sure to use the correct SSA indices!
+          // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+          // it is used without PredicateCPA as well.
+          PredicateAbstractState pe =
+              AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+          if (pe == null) {
+            logger.log(
+                Level.WARNING, "Cannot find precise error path information without PredicateCPA");
+            return bfmgr.makeTrue();
+          } else {
+            pf = pe.getPathFormula();
+          }
+          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+          pf = this.makeAnd(pf, positiveEdge); // conjunct with edge
+        }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
-        branchingFormula = bfmgr.and(branchingFormula, equiv);
+        branchingFormula.add(equiv);
       }
     }
-    return branchingFormula;
+    return bfmgr.and(branchingFormula);
   }
 
   /**
@@ -476,9 +521,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public Formula expressionToFormula(PathFormula pFormula,
-      CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException {
+  public void clearCaches() {}
+
+  @Override
+  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+      throws UnrecognizedCCodeException {
     return converter.buildTermFromPathFormula(pFormula, expr, edge);
   }
 
@@ -499,8 +546,35 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public BooleanFormula addBitwiseAxiomsIfNeeded(
+      final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
+    if (fmgr.useBitwiseAxioms()) {
+      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(pExtractionFormula);
+      if (!fmgr.getBooleanFormulaManager().isTrue(bitwiseAxioms)) {
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+        return fmgr.getBooleanFormulaManager().and(pMainFormula, bitwiseAxioms);
+      }
+    }
+
+    return pMainFormula;
+  }
+
+  @Override
   public void printStatistics(PrintStream out) {
     converter.printStatistics(out);
   }
 
+  @Override
+  public BooleanFormula buildWeakestPrecondition(
+      final CFAEdge pEdge, final BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException {
+
+    // TODO: refactor as soon as there is a WP converter with pointer aliasing
+
+    if (wpConverter != null) {
+      return wpConverter.makePreconditionForEdge(pEdge, pPostcond);
+    }
+
+    throw new UnsupportedOperationException();
+  }
 }

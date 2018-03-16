@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
@@ -101,8 +102,15 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       secure=true)
   private boolean useLocalAccessLocks = true;
 
+  @Option(
+    description =
+        "in case of witness validation we need to check all possible function calls of cloned CFAs.",
+    secure = true
+  )
+  private boolean useAllPossibleClones = false;
+
   public static final String THREAD_START = "pthread_create";
-  protected static final String THREAD_JOIN = "pthread_join";
+  public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
@@ -128,7 +136,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
-    locationCPA = new LocationCPA(pCfa, pConfig);
+    locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger, pCfa);
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
@@ -314,9 +322,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return results;
   }
 
-  /** checks whether the location is the last node of a thread,
-   * i.e. the current thread will terminate after this node. */
-  static boolean isLastNodeOfThread(CFANode node) {
+  /**
+   * checks whether the location is the last node of a thread, i.e. the current thread will
+   * terminate after this node.
+   */
+  public static boolean isLastNodeOfThread(CFANode node) {
 
     if (0 == node.getNumLeavingEdges()) {
       return true;
@@ -399,8 +409,33 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
     String functionName = ((CIdExpression) expr2).getName();
-    int newThreadNum = threadingState.getSmallestMissingThreadNum();
 
+    if (useAllPossibleClones) {
+      // for witness validation we need to produce all possible successors,
+      // the witness automaton should then limit their number by checking function-entries..
+      final Collection<ThreadingState> newResults = new ArrayList<>();
+      Set<Integer> usedNumbers = threadingState.getThreadNums();
+      for (int i = ThreadingState.MIN_THREAD_NUM; i < maxNumberOfThreads; i++) {
+        if (!usedNumbers.contains(i)) {
+          newResults.addAll(createThreadWithNumber(threadingState, id, functionName, i, results));
+        }
+      }
+      return newResults;
+
+    } else {
+      // a default reachability analysis can determine the thread-number on its own.
+      int newThreadNum = threadingState.getSmallestMissingThreadNum();
+      return createThreadWithNumber(threadingState, id, functionName, newThreadNum, results);
+    }
+  }
+
+  private Collection<ThreadingState> createThreadWithNumber(
+      final ThreadingState threadingState,
+      CIdExpression id,
+      String functionName,
+      int newThreadNum,
+      final Collection<ThreadingState> results)
+      throws UnrecognizedCodeException, InterruptedException {
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
@@ -431,7 +466,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
       throws InterruptedException {
     CFANode functioncallNode =
-        Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
+        Preconditions.checkNotNull(
+            cfa.getFunctionHead(functionName),
+            "Function '" + functionName + "' was not found. Please enable cloning for the CFA!");
     AbstractState initialStack =
         callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
     AbstractState initialLoc =
@@ -618,7 +655,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private @Nullable ThreadingState handleWitnessAutomaton(
       ThreadingState ts, AutomatonState automatonState) {
     Map<String, AutomatonVariable> vars = automatonState.getVars();
-    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADID.id.toUpperCase());
+    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADNAME.id.toUpperCase());
     String threadId = ts.getActiveThread();
     if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
       // values not available or default value zero -> ignore and return state unchanged
@@ -643,5 +680,35 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       // threadId does not match -> no successor
       return ts;
     }
+  }
+
+  /** if the current edge creates a new function, return its name, else nothing. */
+  public static Optional<String> getCreatedThreadFunction(final CFAEdge edge)
+      throws UnrecognizedCodeException {
+    if (edge instanceof AStatementEdge) {
+      AStatement statement = ((AStatementEdge) edge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp =
+            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          final String functionName = ((AIdExpression) functionNameExp).getName();
+          if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
+            List<? extends AExpression> params =
+                ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+            if (!(params.get(2) instanceof CUnaryExpression)) {
+              throw new UnrecognizedCodeException(
+                  "unsupported thread function call", params.get(2));
+            }
+            CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
+            if (!(expr2 instanceof CIdExpression)) {
+              throw new UnrecognizedCodeException("unsupported thread function call", expr2);
+            }
+            String newThreadFunctionName = ((CIdExpression) expr2).getName();
+            return Optional.of(newThreadFunctionName);
+          }
+        }
+      }
+    }
+    return Optional.absent();
   }
 }

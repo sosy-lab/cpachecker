@@ -105,13 +105,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
    */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(operand);
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(isReal);
-    result = prime * result + super.hashCode();
-    return result;
+    return Objects.hash(operand, type, isReal) * 31 + super.hashCode();
   }
 
   /* (non-Javadoc)

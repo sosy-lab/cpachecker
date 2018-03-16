@@ -23,9 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.reachingdef;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -42,18 +53,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ReachingDefUtils {
 
@@ -63,29 +69,20 @@ public class ReachingDefUtils {
     return cfaNodes;
   }
 
-  public static Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> getAllVariables(CFANode pMainNode) {
-    List<String> globalVariables = new ArrayList<>();
+  public static Pair<Set<MemoryLocation>, Map<FunctionEntryNode, Set<MemoryLocation>>>
+      getAllVariables(CFANode pMainNode) {
+    List<MemoryLocation> globalVariables = new ArrayList<>();
     List<CFANode> nodes = new ArrayList<>();
 
     assert(pMainNode instanceof FunctionEntryNode);
-    /*while (!(pMainNode instanceof FunctionEntryNode)) {
-      out = pMainNode.getLeavingEdge(0);
-      if (out instanceof CDeclarationEdge
-          && ((CDeclarationEdge) out).getDeclaration() instanceof CVariableDeclaration) {
-        globalVariables.add(((CVariableDeclaration) ((CDeclarationEdge) out).getDeclaration()).getName());
-      }
-      nodes.add(pMainNode);
-      pMainNode = pMainNode.getLeavingEdge(0).getSuccessor();
-    }
-TODO delete */
-    Map<FunctionEntryNode, Set<String>> result = new HashMap<>();
+    Map<FunctionEntryNode, Set<MemoryLocation>> result = new HashMap<>();
 
-    HashSet<FunctionEntryNode> reachedFunctions = new HashSet<>();
-    Stack<FunctionEntryNode> functionsToProcess = new Stack<>();
+    Set<FunctionEntryNode> reachedFunctions = new HashSet<>();
+    Deque<FunctionEntryNode> functionsToProcess = new ArrayDeque<>();
 
-    Stack<CFANode> currentWaitlist = new Stack<>();
-    HashSet<CFANode> seen = new HashSet<>();
-    List<String> localVariables = new ArrayList<>();
+    Deque<CFANode> currentWaitlist = new ArrayDeque<>();
+    Set<CFANode> seen = new HashSet<>();
+    List<MemoryLocation> localVariables = new ArrayList<>();
     CFANode currentElement;
     FunctionEntryNode currentFunction;
 
@@ -99,6 +96,11 @@ TODO delete */
       seen.clear();
       seen.add(currentFunction);
       localVariables.clear();
+
+      Optional<? extends AVariableDeclaration> retVar = currentFunction.getReturnVariable();
+      if (retVar.isPresent()) {
+        localVariables.add(MemoryLocation.valueOf(retVar.get().getQualifiedName()));
+      }
 
       while (!currentWaitlist.isEmpty()) {
         currentElement = currentWaitlist.pop();
@@ -131,22 +133,74 @@ TODO delete */
       result.put(currentFunction, ImmutableSet.copyOf(localVariables));
     }
     cfaNodes = ImmutableList.copyOf(nodes);
-    return Pair.of((Set<String>) ImmutableSet.copyOf(globalVariables), result);
+    return Pair.of(ImmutableSet.copyOf(globalVariables), result);
   }
 
-  private static void handleDeclaration(final CDeclarationEdge out, final List<String> globalVariables,
-      final List<String> localVariables) {
+  private static void handleDeclaration(
+      final CDeclarationEdge out,
+      final List<MemoryLocation> globalVariables,
+      final List<MemoryLocation> localVariables) {
     if (out.getDeclaration() instanceof CVariableDeclaration) {
       if (out.getDeclaration().isGlobal()) {
-        globalVariables.add(((CVariableDeclaration) out.getDeclaration()).getName());
+        globalVariables.add(MemoryLocation.valueOf((out.getDeclaration()).getQualifiedName()));
       } else {
-        // do not use qualified names because local and global parameters considered separately
-        localVariables.add(((CVariableDeclaration) out.getDeclaration()).getName());
+        localVariables.add(MemoryLocation.valueOf((out.getDeclaration().getQualifiedName())));
       }
     }
   }
 
-  public static class VariableExtractor extends DefaultCExpressionVisitor<String, UnsupportedCCodeException> {
+  public static Set<MemoryLocation> possiblePointees(CExpression pExp, PointerState pPointerState) {
+    Set<MemoryLocation> possibleOperands;
+
+    if (pExp instanceof CPointerExpression) {
+      possibleOperands = possiblePointees(((CPointerExpression) pExp).getOperand(), pPointerState);
+
+    } else if (pExp instanceof CIdExpression) {
+      return Collections.singleton(
+          MemoryLocation.valueOf(((CIdExpression) pExp).getDeclaration().getQualifiedName()));
+
+    } else if (pExp instanceof CFieldReference) {
+      if (((CFieldReference) pExp).isPointerDereference()) {
+        possibleOperands =
+            possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
+      } else {
+        return possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
+      }
+    } else if (pExp instanceof CArraySubscriptExpression) {
+      return possiblePointees(
+          ((CArraySubscriptExpression) pExp).getArrayExpression(), pPointerState);
+
+    } else if (pExp instanceof CCastExpression) {
+      return possiblePointees(((CCastExpression) pExp).getOperand(), pPointerState);
+    } else {
+      return null;
+    }
+
+    if (possibleOperands == null) {
+      return null;
+    }
+
+    Set<MemoryLocation> possiblePointees = new HashSet<>();
+    for (MemoryLocation possibleOp : possibleOperands) {
+      LocationSet pointedTo = pPointerState.getPointsToSet(possibleOp);
+
+      if (pointedTo == null || pointedTo.isTop()) {
+        return null;
+
+      } else if (pointedTo.isBot()) {
+        return Collections.emptySet();
+
+      } else {
+        assert pointedTo instanceof ExplicitLocationSet;
+        ExplicitLocationSet pointees = (ExplicitLocationSet) pointedTo;
+        Iterables.addAll(possiblePointees, pointees);
+      }
+    }
+    return possiblePointees;
+  }
+
+  public static class VariableExtractor
+      extends DefaultCExpressionVisitor<MemoryLocation, UnsupportedCCodeException> {
 
     private CFAEdge edgeForExpression;
     private String warning;
@@ -164,28 +218,32 @@ TODO delete */
     }
 
     @Override
-    protected String visitDefault(CExpression pExp) {
+    protected MemoryLocation visitDefault(CExpression pExp) {
       return null;
     }
-// TODO adapt, need more
+    // TODO adapt, need more
     @Override
-    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnsupportedCCodeException {
+    public MemoryLocation visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+        throws UnsupportedCCodeException {
       warning = "Analysis may be unsound in case of aliasing.";
       return pIastArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
-    public String visit(CCastExpression pIastCastExpression) throws UnsupportedCCodeException {
+    public MemoryLocation visit(CCastExpression pIastCastExpression)
+        throws UnsupportedCCodeException {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CComplexCastExpression pIastCastExpression) throws UnsupportedCCodeException {
+    public MemoryLocation visit(CComplexCastExpression pIastCastExpression)
+        throws UnsupportedCCodeException {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CFieldReference pIastFieldReference) throws UnsupportedCCodeException {
+    public MemoryLocation visit(CFieldReference pIastFieldReference)
+        throws UnsupportedCCodeException {
       if (pIastFieldReference.isPointerDereference()) {
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
@@ -196,17 +254,19 @@ TODO delete */
     }
 
     @Override
-    public String visit(CIdExpression pIastIdExpression) {
-      return pIastIdExpression.getName();
+    public MemoryLocation visit(CIdExpression pIastIdExpression) {
+      return MemoryLocation.valueOf(pIastIdExpression.getDeclaration().getQualifiedName());
     }
 
     @Override
-    public String visit(CUnaryExpression pIastUnaryExpression) throws UnsupportedCCodeException {
+    public MemoryLocation visit(CUnaryExpression pIastUnaryExpression)
+        throws UnsupportedCCodeException {
       return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CPointerExpression pIastUnaryExpression) throws UnsupportedCCodeException {
+    public MemoryLocation visit(CPointerExpression pIastUnaryExpression)
+        throws UnsupportedCCodeException {
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
             pIastUnaryExpression);

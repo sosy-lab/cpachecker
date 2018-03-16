@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -242,8 +242,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         }
       }
 
-      LinkedList<String> uninitParameters = new LinkedList<>();
-      LinkedList<String> initParameters = new LinkedList<>();
+      List<String> uninitParameters = new ArrayList<>();
+      List<String> initParameters = new ArrayList<>();
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {

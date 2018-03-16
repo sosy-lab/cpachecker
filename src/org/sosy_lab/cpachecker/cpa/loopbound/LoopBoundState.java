@@ -65,7 +65,8 @@ public class LoopBoundState
   }
 
   public LoopBoundState exit(Loop pOldLoop) throws CPATransferException {
-    assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    assert !loopStack.isEmpty()
+        : "Exiting loop without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (loopIterationState.isEntryKnown()) {
       if (!pOldLoop.equals(loopIterationState.getLoopEntry().getLoop())) {
@@ -110,7 +111,7 @@ public class LoopBoundState
 
   @Override
   public Object getPartitionKey() {
-    return this;
+    return this.setStop(false);
   }
 
   @Override
@@ -132,9 +133,8 @@ public class LoopBoundState
       return false;
     }
 
-    LoopBoundState other = (LoopBoundState)obj;
-    return this.stopIt == other.stopIt
-        && this.loopStack == other.loopStack;
+    LoopBoundState other = (LoopBoundState) obj;
+    return this.stopIt == other.stopIt && this.loopStack.equals(other.loopStack);
   }
 
   @Override
@@ -194,18 +194,6 @@ public class LoopBoundState
     return loopStack.getSize() - 1;
   }
 
-  boolean deepEquals(LoopBoundState pOther) {
-    // Quick checks for common case (inequality) first
-    if (this.stopIt != pOther.stopIt) {
-      return false;
-    }
-    // Hash code is cached, so this is also quick
-    if (loopStack.hashCode() != pOther.loopStack.hashCode()) {
-      return false;
-    }
-    return loopStack.equals(pOther.loopStack);
-  }
-
   public LoopBoundState enforceAbstraction(int pLoopIterationsBeforeAbstraction) {
     if (loopStack.isEmpty()) {
       return this;
@@ -216,5 +204,9 @@ public class LoopBoundState
       return this;
     }
     return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
+  }
+
+  public int getMaxNumberOfIterationsInLoopstackFrame() {
+    return loopStack.peek().getMaxIterationCount();
   }
 }

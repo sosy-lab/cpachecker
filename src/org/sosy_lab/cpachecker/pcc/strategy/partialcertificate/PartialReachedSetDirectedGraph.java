@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -247,13 +248,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
   private void visitOutsideSuccessors(final Set<Integer> pNodeSet, final NodeVisitor pVisitor) {
     try {
-      Predicate<Integer> isOutsideSet = new Predicate<Integer>() {
-
-        @Override
-        public boolean apply(@Nullable Integer pNode) {
-          return !pNodeSet.contains(pNode);
-        }
-      };
+      Predicate<Integer> isOutsideSet = pNode -> !pNodeSet.contains(pNode);
       for (int predecessor : pNodeSet) {
         visitOutsideSuccessorsOf(predecessor, pVisitor, isOutsideSet);
       }
@@ -280,13 +275,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
   private void visitSuccessorsInOtherSet(final Set<Integer> pNodeSet,
       final Set<Integer> pOtherNodeSet,
       final NodeVisitor pVisitor) {
-    Predicate<Integer> isInOtherSet = new Predicate<Integer>() {
-
-      @Override
-      public boolean apply(@Nullable Integer pNode) {
-        return pOtherNodeSet.contains(pNode);
-      }
-    };
+    Predicate<Integer> isInOtherSet = pOtherNodeSet::contains;
     for (int predecessor : pNodeSet) {
       visitOutsideSuccessorsOf(predecessor, pVisitor, isInOtherSet);
     }
@@ -333,9 +322,9 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
     private ARGState predecessor;
     private int indexPredecessor;
-    private final HashMap<AbstractState, Integer> nodeToIndex;
+    private final Map<AbstractState, Integer> nodeToIndex;
     private final List<List<Integer>> changeableAdjacencyList;
-    private final HashSet<Pair<Integer, Integer>> knownEdges;
+    private final Set<Pair<Integer, Integer>> knownEdges;
 
     public SuccessorEdgeConstructor(List<List<Integer>> pAdjacencyList) {
       super(false);

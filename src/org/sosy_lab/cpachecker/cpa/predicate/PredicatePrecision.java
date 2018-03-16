@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -35,28 +36,25 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
- * This class represents the precision of the PredicateCPA.
- * It is basically a map which assigns to each node in the CFA a (possibly empty)
- * set of predicates which should be used at this location.
- * Additionally, there may be some predicates which are used for all locations
- * ("global" predicates), and some predicates which are used for all locations
- * within a specific function.
+ * This class represents the precision of the PredicateCPA. It is basically a map which assigns to
+ * each node in the CFA a (possibly empty) set of predicates which should be used at this location.
+ * Additionally, there may be some predicates which are used for all locations ("global"
+ * predicates), and some predicates which are used for all locations within a specific function.
  *
- * All instances of this class are immutable.
+ * <p>All instances of this class are immutable.
  */
-public class PredicatePrecision implements Precision {
+public class PredicatePrecision implements AdjustablePrecision {
 
   /**
    * This class identifies a position in the ARG where predicates can be applied.
@@ -480,5 +478,24 @@ public class PredicatePrecision implements Precision {
     } else {
       return sb.toString();
     }
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
+    Preconditions.checkArgument(pOtherPrecision instanceof PredicatePrecision);
+    return mergeWith((PredicatePrecision) pOtherPrecision);
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
+    Preconditions.checkArgument(pOtherPrecision instanceof PredicatePrecision);
+    PredicatePrecision other = (PredicatePrecision) pOtherPrecision;
+
+    return new PredicatePrecision(
+        Sets.difference(
+            mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
+        Sets.difference(mLocalPredicates.entries(), other.getLocalPredicates().entries()),
+        Sets.difference(mFunctionPredicates.entries(), other.getFunctionPredicates().entries()),
+        Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()));
   }
 }

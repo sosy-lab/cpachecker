@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -71,12 +74,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {
@@ -111,13 +123,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   @Override
-  protected Collection<BDDState> preCheck(BDDState state, VariableTrackingPrecision precision) {
+  protected Collection<BDDState> preCheck(BDDState pState, VariableTrackingPrecision pPrecision) {
     // no variables should be tracked
-    if (precision.isEmpty()) {
-      return Collections.singleton(state);
+    if (pPrecision.isEmpty()) {
+      return Collections.singleton(pState);
     }
     // the path is not fulfilled
-    if (state.getRegion().isFalse()) {
+    if (pState.getRegion().isFalse()) {
       return Collections.emptyList();
     }
     return null;
@@ -154,12 +166,14 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       throws UnsupportedCCodeException {
     CExpression lhs = assignment.getLeftHandSide();
 
-    if (!(lhs instanceof CIdExpression)) {
-      return state;
+    final String varName;
+    if (lhs instanceof CIdExpression) {
+      varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
+    } else {
+      varName = functionName + "::" + lhs.toString();
     }
 
     final CType targetType = lhs.getExpressionType();
-    final String varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
 
     // next line is a shortcut, not necessary
     if (!precision.isTracking(MemoryLocation.valueOf(varName), targetType, successor)) {
@@ -175,7 +189,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (isUsedInExpression(varName, exp)) {
         // make tmp for assignment,
         // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        String tmpVarName = predmgr.getTmpVariableForVars(partition.getVars());
+        String tmpVarName = predmgr.getTmpVariableForPartition(partition);
         final Region[] tmp = predmgr.createPredicateWithoutPrecisionCheck(tmpVarName, getBitsize(partition, targetType));
 
         // make region for RIGHT SIDE and build equality of var and region
@@ -345,9 +359,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // remove returnVar from state,
       // all other function-variables were removed earlier (see handleReturnStatementEdge()).
       // --> now the state does not contain any variable from scope of called function.
-      if  (predmgr.getTrackedVars().containsKey(returnVar)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
-                returnVar, predmgr.getTrackedVars().get(returnVar)));
+      if (predmgr.getTrackedVars().contains(returnVar)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(returnVar));
       }
 
     } else {
@@ -386,9 +399,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     // delete variables from returning function,
     // we do not need them after this location, because the next edge is the functionReturnEdge.
     // this results in a smaller BDD and allows to call a function twice.
-    for (String var : predmgr.getTrackedVars().keySet()) {
+    for (String var : predmgr.getTrackedVars()) {
       if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
       }
     }
 
@@ -405,9 +418,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // we do not need them after this location, because the next edge is the functionReturnEdge.
       // this results in a smaller BDD and allows to call a function twice.
       BDDState newState = state;
-      for (String var : predmgr.getTrackedVars().keySet()) {
+      for (String var : predmgr.getTrackedVars()) {
         if (isLocalVariableForFunction(var, functionName)) {
-          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
         }
       }
       return newState;
@@ -428,6 +441,35 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor());
+    if (operand == null) {
+      return state;
+    } // assumption cannot be evaluated
+    Region evaluated = bvmgr.makeOr(operand);
+
+    if (!truthAssumption) { // if false-branch
+      evaluated = rmgr.makeNot(evaluated);
+    }
+
+    // get information from region into evaluated region
+    Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
+    if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
+      return null;
+    } else {
+      return new BDDState(rmgr, bvmgr, newRegion);
+    }
+  }
+
+  private BDDState handleAssumption(
+      CAssumeEdge cfaEdge,
+      CExpression expression,
+      boolean truthAssumption,
+      PointerState pPointerInfo)
+      throws UnsupportedCCodeException {
+
+    Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    final Region[] operand =
+        evaluateVectorExpressionWithPointerState(
+            partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor(), pPointerInfo);
     if (operand == null) {
       return state;
     } // assumption cannot be evaluated
@@ -475,17 +517,67 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
+  /**
+   * This function returns a bitvector, that represents the expression. The partition chooses the
+   * compression of the bitvector.
+   */
+  private @Nullable Region[] evaluateVectorExpressionWithPointerState(
+      final Partition partition,
+      final CExpression exp,
+      CType targetType,
+      final CFANode location,
+      final PointerState pPointerInfo)
+      throws UnsupportedCCodeException {
+    final boolean compress =
+        (partition != null)
+            && compressIntEqual
+            && varClass.getIntEqualPartitions().contains(partition);
+    if (varClass.getIntBoolPartitions().contains(partition)) {
+      Region booleanResult =
+          exp.accept(
+              new BDDPointerBooleanExpressionVisitor(
+                  predmgr, rmgr, precision, location, pPointerInfo));
+      return (booleanResult == null) ? null : new Region[] {booleanResult};
+    } else if (compress) {
+      return exp.accept(
+          new BDDPointerCompressExpressionVisitor(
+              predmgr,
+              precision,
+              getBitsize(partition, null),
+              location,
+              bvmgr,
+              partition,
+              pPointerInfo));
+    } else {
+      Region[] value =
+          exp.accept(
+              new BDDPointerVectorCExpressionVisitor(
+                  predmgr, precision, bvmgr, machineModel, location, pPointerInfo));
+      targetType = targetType.getCanonicalType();
+      if (value != null && targetType instanceof CSimpleType) {
+        // cast to correct length
+        final CType sourceType = exp.getExpressionType().getCanonicalType();
+        value =
+            bvmgr.toBitsize(
+                machineModel.getSizeofInBits((CSimpleType) targetType),
+                sourceType instanceof CSimpleType
+                    && machineModel.isSigned((CSimpleType) sourceType),
+                value);
+      }
+      return value;
+    }
+  }
+
   /** This function returns, if the variable is used in the Expression. */
   private static boolean isUsedInExpression(String varName, CExpression exp) {
     return exp.accept(new VarCExpressionVisitor(varName));
   }
 
-  private static String scopeVar(final CExpression exp) {
+  private String scopeVar(final CExpression exp) {
     if (exp instanceof CIdExpression) {
       return ((CIdExpression) exp).getDeclaration().getQualifiedName();
     } else {
-      // TODO function name?
-      return exp.toASTString();
+      return functionName + "::" + exp.toASTString();
     }
   }
 
@@ -527,6 +619,25 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
+  /**
+   * returns a canonical representation of a field reference, including functionname. return NULL if
+   * the canonical name could not determined.
+   */
+  static @Nullable String getCanonicalName(CExpression expr) {
+    String name = "";
+    while (true) {
+      if (expr instanceof CIdExpression) {
+        return ((CIdExpression) expr).getDeclaration().getQualifiedName() + name;
+      } else if (expr instanceof CFieldReference) {
+        CFieldReference fieldRef = (CFieldReference) expr;
+        name = (fieldRef.isPointerDereference() ? "->" : ".") + fieldRef.getFieldName() + name;
+        expr = fieldRef.getFieldOwner();
+      } else {
+        return null;
+      }
+    }
+  }
+
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
   private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
@@ -538,7 +649,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     private Boolean handle(CExpression exp) {
-      return varName.equals(exp.toASTString());
+      String name = getCanonicalName(exp);
+      return varName.equals(name == null ? exp.toASTString() : name);
     }
 
     @Override
@@ -587,5 +699,126 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     protected Boolean visitDefault(CExpression pExp) {
       return false;
     }
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState, List<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
+      throws CPATransferException {
+    BDDState bddState = (BDDState) pState;
+
+    for (AbstractState otherState : states) {
+      if (otherState instanceof PointerState) {
+        super.setInfo(bddState, pPrecision, cfaEdge);
+        bddState = strengthenWithPointerInformation(bddState, (PointerState) otherState, cfaEdge);
+        super.resetInfo();
+        if (bddState == null) {
+          return Collections.emptyList();
+        }
+      }
+    }
+    return Collections.singleton(bddState);
+  }
+
+  private BDDState strengthenWithPointerInformation(
+      BDDState bddState, PointerState pPointerInfo, CFAEdge cfaEdge)
+      throws UnrecognizedCCodeException {
+
+    if (cfaEdge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+      return handleAssumption(
+          assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption(), pPointerInfo);
+    }
+
+    // get target for LHS
+    MemoryLocation target = null;
+    ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(cfaEdge);
+    if (leftHandSide instanceof CIdExpression) {
+      target =
+          MemoryLocation.valueOf(
+              ((CIdExpression) leftHandSide).getDeclaration().getQualifiedName());
+    } else if (leftHandSide instanceof CPointerExpression) {
+      ExplicitLocationSet explicitSet =
+          getLocationsForLhs(pPointerInfo, (CPointerExpression) leftHandSide);
+      if (explicitSet != null && explicitSet.getSize() == 1) {
+        target = Iterables.getOnlyElement(explicitSet);
+      }
+    }
+
+    // without a target, nothing can be done.
+    if (target == null) {
+      return bddState;
+    }
+
+    // get value for RHS
+    MemoryLocation value = null;
+    CType valueType = null;
+    ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
+    if (rightHandSide instanceof CIdExpression) {
+      CIdExpression idExpr = (CIdExpression) rightHandSide;
+      value = MemoryLocation.valueOf(idExpr.getDeclaration().getQualifiedName());
+      valueType = idExpr.getDeclaration().getType();
+    } else if (rightHandSide instanceof CPointerExpression) {
+      CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;
+      value = getLocationForRhs(pPointerInfo, ptrExpr);
+      valueType = ptrExpr.getExpressionType().getCanonicalType();
+    }
+
+    // without a value, nothing can be done.
+    if (value == null) {
+      return bddState;
+    }
+
+    final Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    int size = getBitsize(partition, valueType);
+
+    final Region[] rhs =
+        predmgr.createPredicate(
+            target.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
+
+    final Region[] evaluation =
+        predmgr.createPredicate(
+            value.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
+    BDDState newState = bddState.forget(rhs);
+    return newState.addAssignment(rhs, evaluation);
+  }
+
+  /** get all possible explicit targets for a pointer, or NULL if they are unknown. */
+  static @Nullable ExplicitLocationSet getLocationsForLhs(
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+    LocationSet directLocation = PointerTransferRelation.asLocations(pPointer, pPointerInfo);
+    if (!(directLocation instanceof ExplicitLocationSet)) {
+      LocationSet indirectLocation =
+          PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
+      if (indirectLocation instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
+        if (explicitSet.getSize() == 1) {
+          directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+        }
+      }
+    }
+    if (directLocation instanceof ExplicitLocationSet) {
+      return (ExplicitLocationSet) directLocation;
+    }
+    return null;
+  }
+
+  static @Nullable MemoryLocation getLocationForRhs(
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+    LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
+    if (fullSet instanceof ExplicitLocationSet) {
+      ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
+      if (explicitSet.getSize() == 1) {
+        LocationSet pointsToSet =
+            pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+        if (pointsToSet instanceof ExplicitLocationSet) {
+          ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
+          if (explicitPointsToSet.getSize() == 1) {
+            return Iterables.getOnlyElement(explicitPointsToSet);
+          }
+        }
+      }
+    }
+    return null;
   }
 }

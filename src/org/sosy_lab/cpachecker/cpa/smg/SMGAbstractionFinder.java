@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionFinder {
 
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState)
-      throws SMGInconsistentException;
+  default Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState)
+      throws SMGInconsistentException {
+    return traverse(pSmg, pSMGState, ImmutableSet.of());
+  }
 
   public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
       Set<SMGAbstractionBlock> abstractionLocks)

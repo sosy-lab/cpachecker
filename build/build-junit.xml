@@ -20,10 +20,10 @@
     <target name="load-junit" depends="resolve-dependencies" unless="ant.junit.available">
         <taskdef name="junit"
                  classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
-                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+                 classpath="${ivy.jar.dir}/ant-junit.jar:${ivy.jar.dir}/ant-junit4.jar"/>
         <taskdef name="junitreport"
                  classname="org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator"
-                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+                 classpath="${ivy.jar.dir}/ant-junit.jar:${ivy.jar.dir}/ant-junit4.jar"/>
     </target>
 
     <target name="init-unit-tests">
@@ -41,6 +41,7 @@
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
+            <sysproperty key="java.awt.headless" value="true" />
             <batchtest fork="true" todir="${junit.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
@@ -63,11 +64,13 @@
     </target>
 
     <target name="unit-tests-coverage" depends="build, load-junit, load-jacoco, init-unit-tests" description="Run all JUnit tests with coverage report">
+        <delete dir="{junit.dir}"/>
         <jacoco:coverage destfile="${junit.dir}/jacoco.exec" excludes="**/*Test*:**/Dummy*">
             <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
                 <assertions><enable/></assertions>
                 <formatter type="xml"/>
                 <classpath refid="classpath.junit"/>
+                <sysproperty key="java.awt.headless" value="true" />
                 <batchtest fork="true" todir="${junit.dir}">
                     <fileset dir="${class.dir}">
                         <include name="**/*Test.*"/>
@@ -83,6 +86,7 @@
                 <sourcefiles encoding="UTF-8"><fileset dir="${source.dir}" excludes="**/*Test*,**/Dummy*/"/></sourcefiles>
             </structure>
             <html destdir="JUnit-coverage"/>
+            <xml destfile="${junit.dir}/coverage.xml"/>
         </jacoco:report>
         <junitreport todir="${junit.dir}">
             <fileset dir="${junit.dir}" includes="TEST-*.xml"/>

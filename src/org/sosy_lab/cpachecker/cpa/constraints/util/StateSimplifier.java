@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,8 +44,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-import com.google.common.collect.Iterables;
-
 /**
  * Simplifier for {@link ConstraintsState}s.
  * Provides different methods for simplifying a <code>ConstraintsState</code>
@@ -54,12 +52,19 @@ import com.google.common.collect.Iterables;
 @Options(prefix = "cpa.constraints")
 public class StateSimplifier {
 
-  @Option(description = "Whether to remove trivial constraints from constraints states during"
-      + " simplification")
+  @Option(
+    description =
+        "Whether to remove trivial constraints from constraints states during" + " simplification",
+    secure = true
+  )
   private boolean removeTrivial = false;
 
-  @Option(description = "Whether to remove constraints that can't add any more information to"
-      + "analysis during simplification")
+  @Option(
+    description =
+        "Whether to remove constraints that can't add any more information to"
+            + "analysis during simplification",
+    secure = true
+  )
   private boolean removeOutdated = true;
 
   public StateSimplifier(

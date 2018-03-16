@@ -33,7 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,7 +77,7 @@ public class LoopBoundCPA extends AbstractCPA
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
   LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", LoopBoundDomain.INSTANCE, new LoopBoundTransferRelation(pCFA));
+    super("sep", "sep", new LoopBoundTransferRelation(pCFA));
     loopStructure = pCFA.getLoopStructure().get();
     pConfig.inject(this);
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
@@ -114,16 +114,22 @@ public class LoopBoundCPA extends AbstractCPA
 
   @Override
   public void adjustReachedSet(final ReachedSet pReachedSet) {
-    Set<AbstractState> toRemove = from(pReachedSet).filter(new Predicate<AbstractState>() {
+    Set<AbstractState> toRemove =
+        from(pReachedSet)
+            .filter(
+                new Predicate<AbstractState>() {
 
-      @Override
-      public boolean apply(@Nullable AbstractState pArg0) {
-        if (pArg0 == null) {
-          return false;
-        }
-        LoopBoundState loopBoundState = extractStateByType(pArg0, LoopBoundState.class);
-        return loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance();
-      }}).toSet();
+                  @Override
+                  public boolean apply(@NullableDecl AbstractState pArg0) {
+                    if (pArg0 == null) {
+                      return false;
+                    }
+                    LoopBoundState loopBoundState = extractStateByType(pArg0, LoopBoundState.class);
+                    return loopBoundState != null
+                        && loopBoundState.mustDumpAssumptionForAvoidance();
+                  }
+                })
+            .toSet();
 
     // Never delete the first state
     if (toRemove.contains(pReachedSet.getFirstState())) {
@@ -131,21 +137,26 @@ public class LoopBoundCPA extends AbstractCPA
       return;
     }
 
-    List<AbstractState> waitlist = from(toRemove).transformAndConcat(new Function<AbstractState, Iterable<? extends AbstractState>>() {
+    List<AbstractState> waitlist =
+        from(toRemove)
+            .transformAndConcat(
+                new Function<AbstractState, Iterable<? extends AbstractState>>() {
 
-      @Override
-      public Iterable<? extends AbstractState> apply(@Nullable AbstractState pArg0) {
-        if (pArg0 == null) {
-          return Collections.emptyList();
-        }
-        ARGState argState = extractStateByType(pArg0, ARGState.class);
-        if (argState == null) {
-          return Collections.emptyList();
-        }
-        return argState.getParents();
-      }
-
-    }).toSet().asList();
+                  @Override
+                  public Iterable<? extends AbstractState> apply(
+                      @NullableDecl AbstractState pArg0) {
+                    if (pArg0 == null) {
+                      return Collections.emptyList();
+                    }
+                    ARGState argState = extractStateByType(pArg0, ARGState.class);
+                    if (argState == null) {
+                      return Collections.emptyList();
+                    }
+                    return argState.getParents();
+                  }
+                })
+            .toSet()
+            .asList();
 
     // Add the new waitlist
     for (AbstractState s : waitlist) {

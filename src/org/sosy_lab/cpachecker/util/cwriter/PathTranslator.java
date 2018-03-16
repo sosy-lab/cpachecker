@@ -32,14 +32,15 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -55,11 +56,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 
 public abstract class PathTranslator {
 
@@ -96,11 +97,11 @@ public abstract class PathTranslator {
 
   /**
    * Translate a single linear path to code.
+   *
    * @param pPath the path to translate
-   * @param callback A callback that receives each <code>ARGState</code>
-   * along with their edges and can then determine what code to generate
-   * from it. The default behavior of a <code>ProcessEdgeFunction</code>
-   *  is to call {@link #processEdge(ARGState, CFAEdge, Stack)}
+   * @param callback A callback that receives each <code>ARGState</code> along with their edges and
+   *     can then determine what code to generate from it. The default behavior of a <code>
+   *     ProcessEdgeFunction</code> is to call {@link #processEdge(ARGState, CFAEdge, Deque)}
    */
   protected void translateSinglePath0(ARGPath pPath, EdgeVisitor callback) {
     assert pPath.size() >= 1;
@@ -108,7 +109,7 @@ public abstract class PathTranslator {
     PathIterator pathIt = pPath.fullPathIterator();
     ARGState firstElement = pathIt.getAbstractState();
 
-    Stack<FunctionBody> functionStack = new Stack<>();
+    Deque<FunctionBody> functionStack = new ArrayDeque<>();
 
     // create the first function and put in into the stack
     startFunction(firstElement, functionStack, extractFunctionCallLocation(firstElement));
@@ -137,7 +138,7 @@ public abstract class PathTranslator {
 
     // create initial element
     {
-      Stack<FunctionBody> newStack = new Stack<>();
+      Deque<FunctionBody> newStack = new ArrayDeque<>();
 
       // create the first function and put in into newStack
       startFunction(firstElement, newStack, extractFunctionCallLocation(firstElement));
@@ -164,7 +165,8 @@ public abstract class PathTranslator {
    * @param functionStack the current callstack
    * @param predecessor the previous node
    */
-  protected String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack, CFANode predecessor) {
+  protected String startFunction(
+      ARGState firstFunctionElement, Deque<FunctionBody> functionStack, CFANode predecessor) {
     // create the first stack element using the first element of the function
     CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
@@ -185,11 +187,12 @@ public abstract class PathTranslator {
 
   /**
    * Processes an edge of the CFA and will write code to the output function body.
+   *
    * @param childElement the state after the given edge
    * @param edge the edge to process
    * @param functionStack the current callstack
    */
-  void processEdge(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+  void processEdge(ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();
 
     if (childElement.isTarget()) {
@@ -221,7 +224,7 @@ public abstract class PathTranslator {
       EdgeVisitor callback) {
     ARGState childElement = nextEdge.getChildState();
     CFAEdge edge = nextEdge.getEdge();
-    Stack<FunctionBody> functionStack = nextEdge.getStack();
+    Deque<FunctionBody> functionStack = nextEdge.getStack();
 
     // clone stack to have a different representation of the function calls and conditions
     // for every element
@@ -286,8 +289,7 @@ public abstract class PathTranslator {
   }
 
   private Collection<Edge> getRelevantChildrenOfState(
-      ARGState currentElement, Stack<FunctionBody> functionStack,
-      Set<ARGState> elementsOnPath) {
+      ARGState currentElement, Deque<FunctionBody> functionStack, Set<ARGState> elementsOnPath) {
     // find the next elements to add to the waitlist
 
     List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
@@ -308,7 +310,7 @@ public abstract class PathTranslator {
       Collection<Edge> result = new ArrayList<>(2);
       int ind = 0;
       for (ARGState elem : relevantChildrenOfElement) {
-        Stack<FunctionBody> newStack = cloneStack(functionStack);
+        Deque<FunctionBody> newStack = cloneStack(functionStack);
         CFAEdge e = currentElement.getEdgeToChild(elem);
         FunctionBody currentFunction = newStack.peek();
         assert e instanceof CAssumeEdge;
@@ -357,13 +359,13 @@ public abstract class PathTranslator {
       if (!result.isEmpty()) {
         Set<AbstractState> candidateChildren =
             FluentIterable.from(candidate.getChildren())
-                .transform(ARGState.getUnwrapFunction())
+                .transform(AbstractSingleWrapperState.getUnwrapFunction())
                 .toSet();
         for (ARGState chosen : result) {
           if (parent.getEdgesToChild(chosen).equals(parent.getEdgesToChild(candidate))) {
             Set<AbstractState> chosenChildren =
                 FluentIterable.from(chosen.getChildren())
-                    .transform(ARGState.getUnwrapFunction())
+                    .transform(AbstractSingleWrapperState.getUnwrapFunction())
                     .toSet();
             if (chosenChildren.containsAll(candidateChildren)) {
               valid = false;
@@ -466,11 +468,11 @@ public abstract class PathTranslator {
     return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
   }
 
-  private Stack<FunctionBody> cloneStack(Stack<FunctionBody> pStack) {
+  private Deque<FunctionBody> cloneStack(Deque<FunctionBody> pStack) {
 
-    Stack<FunctionBody> ret = new Stack<>();
+    Deque<FunctionBody> ret = new ArrayDeque<>();
     for (FunctionBody functionBody : pStack) {
-      ret.push(new FunctionBody(functionBody));
+      ret.add(new FunctionBody(functionBody));
     }
     return ret;
   }

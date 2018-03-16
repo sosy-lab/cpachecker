@@ -24,14 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -39,14 +40,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMG {
@@ -85,14 +86,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     object_validity = PathCopyingPersistentTreeMap.of();
     objectAllocationIdentity = PathCopyingPersistentTreeMap.of();
-
-    addObject(SMGNullObject.INSTANCE);
-    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
-
-    addValue(NULL_ADDRESS);
-    addPointsToEdge(NULL_POINTER);
-
     machine_model = pMachineModel;
+
+    initializeNullObject();
+    initializeNullAddress();
   }
 
   /**
@@ -169,9 +166,7 @@ public class SMG {
    * @param pValue Value to remove
    */
   final public void removeValue(final Integer pValue) {
-
-    assert pValue != 0;
-
+    Preconditions.checkArgument(pValue != 0, "Can not remove NULL from SMG");
     values = values.removeAndCopy(pValue);
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
@@ -200,9 +195,7 @@ public class SMG {
    * @param pObj Object to remove
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
-
-    assert pObj != SMGNullObject.INSTANCE;
-
+    Preconditions.checkArgument(pObj != SMGNullObject.INSTANCE, "Can not remove NULL from SMG");
     removeObject(pObj);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
     pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
@@ -275,8 +268,7 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
-    assert pValue != 0;
-
+    Preconditions.checkArgument(pValue != 0, "Can not remove NULL from SMG");
     pt_edges = pt_edges.removeEdgeWithValueAndCopy(pValue);
   }
 
@@ -291,10 +283,7 @@ public class SMG {
    * @param pValidity Validity to set.
    */
   public void setValidity(SMGObject pObject, boolean pValidity) {
-    if (! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     object_validity = object_validity.putAndCopy(pObject, pValidity);
   }
 
@@ -309,10 +298,7 @@ public class SMG {
    * @param pExternal Validity to set.
    */
   public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
-    if (! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObject, new ExternalObjectFlag(pExternal));
   }
 
@@ -419,11 +405,11 @@ public class SMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Collections.unmodifiableSet(hv_edges.filter(pFilter));
+    return ImmutableSet.copyOf(pFilter.filter(hv_edges));
   }
 
   public Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter) {
-    return ImmutableSet.copyOf(pt_edges.filter(pFilter));
+    return ImmutableSet.copyOf(pFilter.filter(pt_edges));
   }
 
   public SMGPointsToEdges getPTEdges() {
@@ -434,22 +420,13 @@ public class SMG {
    * Getter for obtaining an object, pointed by a value pValue. Constant.
    *
    * @param pValue An origin value.
-   * @return The object pointed by the value pValue, if such exists.
-   * Null, if pValue does not point to any
-   * object.
-   *
-   * Throws {@link IllegalArgumentException} if pValue is
-   * not present in the SMG.
-   *
-   * TODO: Test
-   * TODO: Consistency check: no value can point to more objects
+   * @return The object pointed by the value pValue, if such exists. Null, if pValue does not point
+   *     to any object.
+   *     <p>Throws {@link IllegalArgumentException} if pValue is not present in the SMG.
+   *     <p>TODO: Test TODO: Consistency check: no value can point to more objects
    */
-  final public SMGObject getObjectPointedBy(Integer pValue) {
-    if (!values.contains(
-        pValue)) {
-      throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
-    }
-
+  public final @Nullable SMGObject getObjectPointedBy(Integer pValue) {
+    Preconditions.checkArgument(values.contains(pValue), "Value [" + pValue + "] not in SMG");
     if (pt_edges.containsEdgeWithValue(pValue)) {
       return pt_edges.getEdgeWithValue(pValue).getObject();
     } else {
@@ -466,10 +443,7 @@ public class SMG {
    * @return True if Object is valid, False if it is invalid.
    */
   final public boolean isObjectValid(SMGObject pObject) {
-    if ( ! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return object_validity.get(pObject);
   }
 
@@ -478,10 +452,7 @@ public class SMG {
    * Throws {@link IllegalAccessException} if pObject is not present is the SMG
    */
   final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
-    if ( ! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return objectAllocationIdentity.get(pObject).isExternal();
   }
 
@@ -496,31 +467,32 @@ public class SMG {
   /**
    * Obtains a TreeMap offset to size signifying where the object bytes are nullified.
    *
-   * Constant.
+   * <p>Constant.
    *
    * @param pObj SMGObject for which the information is to be obtained
-   * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
-   * object to null value
+   * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an object
+   *     to null value
    */
-  public TreeMap<Integer, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
-    Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
-    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(SMG.NULL_ADDRESS);
-    edges = objectFilter.filterSet(edges);
-
-    TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
-    for (SMGEdgeHasValue edge : edges) {
+  public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+    SMGEdgeHasValueFilter objectFilter =
+        new SMGEdgeHasValueFilter().filterByObject(pObj).filterHavingValue(SMG.NULL_ADDRESS);
+    TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
+    for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
-    TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
-    if (offsetToSize != null && !offsetToSize.isEmpty()) {
-      Iterator<Integer> offsetsIterator = offsetToSize.keySet().iterator();
-      Integer resultOffset = offsetsIterator.next();
+    TreeMap<Long, Integer> resultOffsetToSize = new TreeMap<>();
+    if (!offsetToSize.isEmpty()) {
+      Iterator<Long> offsetsIterator = offsetToSize.keySet().iterator();
+      long resultOffset = offsetsIterator.next();
       Integer resultSize = offsetToSize.get(resultOffset).last();
       while (offsetsIterator.hasNext()) {
-        Integer nextOffset = offsetsIterator.next();
+        long nextOffset = offsetsIterator.next();
         if (nextOffset <= resultOffset + resultSize) {
-          resultSize = Integer.max(offsetToSize.get(nextOffset).last() + nextOffset - resultOffset, resultSize);
+          resultSize =
+              Math.toIntExact(
+                  Long.max(
+                      offsetToSize.get(nextOffset).last() + nextOffset - resultOffset, resultSize));
         } else {
           resultOffsetToSize.put(resultOffset, resultSize);
           resultOffset = nextOffset;
@@ -561,35 +533,31 @@ public class SMG {
     return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
   }
 
-  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
+  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType) {
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
   }
 
-  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {
-    int expectedMinClear = pOffset + size;
+  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, int size) {
+    long expectedMinClear = pOffset + size;
 
-    TreeMap<Integer, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
-    Entry<Integer, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
+    TreeMap<Long, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    Entry<Long, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
   public void mergeValues(int pV1, int pV2) {
 
-    if (!values.contains(pV2)) {
-      /*Might merge predicates?*/
-      addValue(pV2);
-    }
+    /*Might merge predicates?*/
+    addValue(pV2);
 
     /* Value might not have been added yet */
-    if (!values.contains(pV1)) {
-      addValue(pV1);
-    }
+    addValue(pV1);
 
     if (pV1 == pV2) {
       return;
     }
 
-    if (pV2 == NULL_ADDRESS) {
+    if (pV2 == NULL_ADDRESS) { // swap
       int tmp = pV1;
       pV1 = pV2;
       pV2 = tmp;
@@ -600,8 +568,7 @@ public class SMG {
 
     removeValue(pV2);
 
-    Set<SMGEdgeHasValue> old_hv_edges = getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2));
-    for (SMGEdgeHasValue old_hve : old_hv_edges) {
+    for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2))) {
       SMGEdgeHasValue newHvEdge =
           new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), pV1);
       hv_edges = hv_edges.removeEdgeAndCopy(old_hve);
@@ -629,6 +596,11 @@ public class SMG {
     public boolean isExternal() {
       return external;
     }
+
+    @Override
+    public String toString() {
+      return "" + external;
+    }
   }
 
   protected void clearValuesHvePte() {
@@ -637,6 +609,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     neq = new NeqRelation();
     pathPredicate.clear();
+    initializeNullAddress();
+  }
+
+  private void initializeNullAddress() {
     addValue(NULL_ADDRESS);
     addPointsToEdge(NULL_POINTER);
   }
@@ -644,8 +620,10 @@ public class SMG {
   public void clearObjects() {
     objects = PersistentSet.of();
     object_validity = PathCopyingPersistentTreeMap.of();
+    initializeNullObject();
+  }
 
-    /*May not clear null objects*/
+  private void initializeNullObject() {
     addObject(SMGNullObject.INSTANCE);
     object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
   }

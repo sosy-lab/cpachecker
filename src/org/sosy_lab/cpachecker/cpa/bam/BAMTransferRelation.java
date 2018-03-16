@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -79,7 +80,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InvalidConfigurationException {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
-    callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
+    callstackTransfer =
+        (CallstackTransferRelation)
+            (CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class))
+                .getTransferRelation();
     bamPccManager = new BAMPCCManager(
         wrappedChecker, pConfig, partitioning, wrappedReducer, bamCpa, data);
   }
@@ -116,9 +120,17 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   }
 
   /**
-   * check if
-   * - the current node is before a function-block and
-   * - the block was entered before (and thus is part of the stack).
+   * overriding super-method, because it is much faster to access the stack-element than searching
+   * for the last entry-state.
+   */
+  @Override
+  protected Block getBlockForState(ARGState state) {
+    return stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird();
+  }
+
+  /**
+   * check if - the current node is before a function-block and - the block was entered before (and
+   * thus is part of the stack).
    */
   protected boolean isRecursiveCall(final CFANode node) {
     if (!partitioning.isCallNode(node)) {
@@ -309,7 +321,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     assert reached != null;
-    data.registerInitialState(initialState, reached);
+
+    registerInitalAndExitStates(initialState, statesForFurtherAnalysis, reached);
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {
@@ -385,6 +398,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     }
 
     return returnStates;
+  }
+
+  public void cleanCaches() {
+    data.clear();
   }
 
   @Override

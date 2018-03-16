@@ -22,9 +22,20 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
+
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
+/**
+ * This interface represents types in C. Note that different object instances might represent the
+ * conceptually same type (e.g., due to typedefs). {@link #getCanonicalType()} can be used to get a
+ * canonical representation of each type.
+ *
+ * <p>{@link CTypes} contains further helper methods for type instances.
+ *
+ * <p>The files "CTypes.dia"/"CTypes.pdf" in this package document the C type system and the
+ * CPAchecker-specific classes.
+ */
 @SuppressWarnings("serial")
 public interface CType extends Type {
 
@@ -83,11 +94,13 @@ public interface CType extends Type {
     CType rightHandSide = pType.getCanonicalType();
 
     // Cf. C-Standard §6.5.16.1 (1), first and last constraint of the list.
-    // The {@link CSimpleType}s are corresponding to the arithmetic types
-    // described in the standard (§6.2.5).
-    if (leftHandSide instanceof CSimpleType) {
-      if ((((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL) && rightHandSide instanceof CPointerType)
-          || rightHandSide instanceof CSimpleType) {
+    if (CTypes.isArithmeticType(leftHandSide)) {
+      if (CTypes.isArithmeticType(rightHandSide)) {
+        return true;
+      }
+      if (leftHandSide instanceof CSimpleType
+          && ((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL)
+          && rightHandSide instanceof CPointerType) {
         return true;
       }
     }
@@ -106,11 +119,25 @@ public interface CType extends Type {
       CType leftPointedToType = pointerLeft.getType();
       CType rightPointedToType = pointerRight.getType();
 
-      // Cf. C-Standard §6.5.16.1 (1), third and forth constraint.
-      return pointerLeft.isConst() == pointerRight.isConst() && pointerLeft.isVolatile() == pointerRight.isVolatile()
-          && ((leftPointedToType instanceof CVoidType && !(rightPointedToType instanceof CVoidType))
-              || (rightPointedToType instanceof CVoidType && !(leftPointedToType instanceof CVoidType))
-              || CTypes.areTypesCompatible(leftHandSide, rightHandSide));
+      if (leftPointedToType instanceof CProblemType || rightPointedToType instanceof CProblemType) {
+        return true;
+      }
+
+      // Cf. C-Standard §6.5.16.1 (1), third and fourth constraint.
+      return (((leftPointedToType.isConst() || !rightPointedToType.isConst())
+              && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile()))
+          && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
+              || CTypes.areTypesCompatible(
+                  CTypes.copyDequalified(leftPointedToType),
+                  CTypes.copyDequalified(rightPointedToType))));
+    }
+
+    // Cf. C-Standard §6.3.2.1 (3)
+    if (leftHandSide instanceof CPointerType && rightHandSide instanceof CArrayType) {
+      CPointerType pointerLeft = (CPointerType) leftHandSide;
+      CArrayType arrayRight = (CArrayType) rightHandSide;
+
+      return CTypes.areTypesCompatible(pointerLeft.getType(), arrayRight.getType());
     }
 
     // default case

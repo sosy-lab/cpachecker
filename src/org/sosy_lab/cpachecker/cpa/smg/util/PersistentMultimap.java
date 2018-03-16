@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.util;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -45,12 +46,24 @@ public class PersistentMultimap<K, V> {
   }
 
   public PersistentMultimap<K, V> putAndCopy(K key, V value) {
+    return putAllAndCopy(key, Collections.singleton(value));
+  }
+
+  public PersistentMultimap<K, V> putAllAndCopy(K key, Iterable<V> values) {
     Builder<V> builder = ImmutableSet.builder();
     Set<V> old = delegate.get(key);
     if (old != null) {
       builder.addAll(old);
     }
-    return new PersistentMultimap<>(delegate.putAndCopy(key, builder.add(value).build()));
+    return new PersistentMultimap<>(delegate.putAndCopy(key, builder.addAll(values).build()));
+  }
+
+  public PersistentMultimap<K, V> putAllAndCopy(PersistentMultimap<K, V> other) {
+    PersistentMultimap<K, V> tmp = this;
+    for (Entry<K, ImmutableSet<V>> entry : other.entries()) {
+      tmp = tmp.putAllAndCopy(entry.getKey(), entry.getValue());
+    }
+    return tmp;
   }
 
   public PersistentMultimap<K, V> removeAndCopy(K key) {

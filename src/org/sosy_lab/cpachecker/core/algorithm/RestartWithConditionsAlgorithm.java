@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,8 +45,6 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-
-import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm {
@@ -92,7 +87,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // run the inner algorithm to fill the reached set
       status = status.update(innerAlgorithm.run(pReached));
 
-      if (from(pReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+      if (pReached.hasViolatedProperties() && status.isPrecise()) {
         return status;
       }
 
@@ -151,7 +146,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     return retList;
   }
 
-  private void adjustThresholds(List<AbstractState> pStatesWithAssumptions, ReachedSet pReached) {
+  private void adjustThresholds(List<AbstractState> pStatesWithAssumptions, ReachedSet pReached)
+      throws InterruptedException {
 
     ARGReachedSet reached = new ARGReachedSet(pReached, cpa);
     for (AbstractState s: pStatesWithAssumptions) {

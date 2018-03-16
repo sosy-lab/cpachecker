@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-
 
 /**
  * Merge operator for symbolic predicate abstraction.
@@ -69,8 +67,11 @@ public class PredicateMergeOperator implements MergeOperator {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
-      // don't merge if the elements are in different blocks (they have different abstraction formulas)
-      if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
+      // don't merge if the elements are in different blocks (they have different abstraction
+      // formulas)
+      // or if the path formulas are equal (no new information would be added)
+      if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())
+          || elem1.getPathFormula().equals(elem2.getPathFormula())) {
         merged = elem2;
 
       } else {

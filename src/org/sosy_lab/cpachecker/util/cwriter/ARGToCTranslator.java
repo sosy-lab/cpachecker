@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -72,9 +75,9 @@ public class ARGToCTranslator {
   private static String DEFAULTRETURN = "default return";
 
   private static abstract class Statement {
-    public abstract void translateToCode(StringBuffer buffer, int indent);
+    public abstract void translateToCode(StringBuilder buffer, int indent);
 
-    protected static void writeIndent(StringBuffer buffer, int indent) {
+    protected static void writeIndent(StringBuilder buffer, int indent) {
       for(int i = 0; i < indent; i++) {
         // buffer.append(" ");
       }
@@ -108,7 +111,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append("{\n");
 
@@ -133,7 +136,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(code);
       buffer.append("\n");
@@ -154,7 +157,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuffer buffer, int indent) {
+    public void translateToCode(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(functionHeader);
       buffer.append("\n");
@@ -232,6 +235,10 @@ public class ARGToCTranslator {
     deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
   }
 
+  public boolean addsIncludeDirectives() {
+    return includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE;
+  }
+
   public String translateARG(ARGState argRoot) throws CPAException {
 
     return translateARG(argRoot, null);
@@ -244,12 +251,11 @@ public class ARGToCTranslator {
 
     translate(argRoot);
 
-    return generateCCode(includeHeader);
+    return generateCCode();
   }
 
-
-  private String generateCCode(boolean includeHeader) {
-    StringBuffer buffer = new StringBuffer();
+  private String generateCCode() {
+    StringBuilder buffer = new StringBuilder();
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
@@ -329,19 +335,51 @@ public class ARGToCTranslator {
         // if part
         CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
         // create a new block starting with this condition
-        boolean truthAssumption = assumeEdge.getTruthAssumption();
-        CompoundStatement newBlock = addIfStatement(currentBlock, "if (" + (truthAssumption ? "" : "!(")
-                + assumeEdge.getExpression().toASTString() + (truthAssumption ? "" : ")") + ")");
-        ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
-        pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
+        boolean truthAssumption = getRealTruthAssumption(assumeEdge);
+
+        CompoundStatement newBlock =
+            addIfStatement(currentBlock, "if (" + assumeEdge.getExpression().toASTString() + ")");
+
+        if (truthAssumption) {
+          ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
+          pushToWaitlist(
+              waitlist,
+              e.getParentElement(),
+              e.getChildElement(),
+              e.getCfaEdge(),
+              e.getCurrentBlock());
+        } else {
+          pushToWaitlist(
+              waitlist,
+              currentElement,
+              new ARGState(null, null),
+              edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
+                  ? edgeToChild.getPredecessor().getLeavingEdge(1)
+                  : edgeToChild.getPredecessor().getLeavingEdge(0),
+              newBlock);
+        }
 
         // else part
         newBlock = addIfStatement(currentBlock, "else ");
-        pushToWaitlist(waitlist, currentElement, new ARGState(null, null),
-            edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
-                ? edgeToChild.getPredecessor().getLeavingEdge(1)
-                : edgeToChild.getPredecessor().getLeavingEdge(0),
-            newBlock);
+
+        if (truthAssumption) {
+          pushToWaitlist(
+              waitlist,
+              currentElement,
+              new ARGState(null, null),
+              edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
+                  ? edgeToChild.getPredecessor().getLeavingEdge(1)
+                  : edgeToChild.getPredecessor().getLeavingEdge(0),
+              newBlock);
+        } else {
+          ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
+          pushToWaitlist(
+              waitlist,
+              e.getParentElement(),
+              e.getChildElement(),
+              e.getCfaEdge(),
+              e.getCurrentBlock());
+        }
 
       } else {
         pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
@@ -353,35 +391,38 @@ public class ARGToCTranslator {
       //collect edges of condition branch
       ArrayList<ARGEdge> result = new ArrayList<>(2);
       int ind = 0;
+      boolean previousTruthAssumption = false;
       for (ARGState child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
         assert edgeToChild instanceof CAssumeEdge : "something wrong: branch in ARG without condition: " + edgeToChild;
         CAssumeEdge assumeEdge = (CAssumeEdge)edgeToChild;
-        boolean truthAssumption = assumeEdge.getTruthAssumption();
+        boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
         String cond = "";
 
-        if (ind == 0) {
-          cond = "if ";
-        } else if (ind == 1) {
-          cond = "else ";
+        if (truthAssumption) {
+          cond = "if (" + assumeEdge.getExpression().toASTString() + ")";
         } else {
-          assert false;
+          cond = "else ";
         }
 
-        if(ind == 0) {
-          if (truthAssumption) {
-            cond += "(" + assumeEdge.getExpression().toASTString() + ")";
-          } else {
-            cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
-          }
+        if (ind > 0 && truthAssumption == previousTruthAssumption) {
+          throw new AssertionError(
+              "Two assume edges with same truth value, thus, cannot generated C program from ARG.");
         }
 
         ind++;
 
         // create a new block starting with this condition
         CompoundStatement newBlock = addIfStatement(currentBlock, cond);
-        result.add(new ARGEdge(currentElement, child, edgeToChild, newBlock));
+        ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
+        if (truthAssumption) {
+          result.add(0, newEdge);
+        } else {
+          result.add(newEdge);
+        }
+
+        previousTruthAssumption = truthAssumption;
       }
 
       //add edges in reversed order to waitlist
@@ -390,6 +431,10 @@ public class ARGToCTranslator {
         pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
       }
     }
+  }
+
+  private boolean getRealTruthAssumption(final CAssumeEdge assumption) {
+    return assumption.isSwapped() != assumption.getTruthAssumption();
   }
 
   private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
@@ -519,7 +564,7 @@ public class ARGToCTranslator {
   }
 
   private ARGState getCovering(final ARGState pCovered) {
-    HashSet<ARGState> seen = new HashSet<>();
+    Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
 
     while (current.isCovered()) {
@@ -582,42 +627,61 @@ public class ARGToCTranslator {
         return statementText + (statementText.endsWith(";") ? "" : ";");
       }
 
-      case DeclarationEdge: {
-        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
-        String declaration;
-        // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-        if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
-          declaration = lDeclarationEdge.getDeclaration().toASTString();
-        } else {
-          declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
-          if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
-              if (predEdge.getRawStatement().equals(declaration)) {
-                declaration = "";
-                break;
+      case DeclarationEdge:
+        {
+          CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+          String declaration;
+          // TODO adapt if String in
+          // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+          if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
+            declaration = lDeclarationEdge.getDeclaration().toASTString();
+          } else {
+            declaration =
+                lDeclarationEdge
+                    .getCode(); // TODO check if works without lDeclarationEdge.getRawStatement();
+
+            if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+              CVariableDeclaration varDecl =
+                  (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+              if (varDecl.getType() instanceof CArrayType
+                  && varDecl.getInitializer() instanceof CInitializerExpression) {
+                int assignAfterPos = declaration.indexOf("=") + 1;
+                declaration =
+                    declaration.substring(0, assignAfterPos)
+                        + "{"
+                        + declaration.substring(assignAfterPos, declaration.lastIndexOf(";"))
+                        + "};";
               }
             }
-          }
-          if (includeHeader && declaration.contains("assert")
-              && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
-            declaration = "";
-          }
-        }
 
-        if (declaration.contains(
-            "org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
-          throw new CPAException(
+            if (declaration.contains(",")) {
+              for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+                if (predEdge.getRawStatement().equals(declaration)) {
+                  declaration = "";
+                  break;
+                }
+              }
+            }
+            if (includeHeader
+                && declaration.contains("assert")
+                && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
+              declaration = "";
+            }
+          }
+
+          if (declaration.contains("org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+            throw new CPAException(
                 "Failed to translate ARG into program because a type could not be properly resolved.");
-        }
+          }
 
-        if (lDeclarationEdge.getDeclaration().isGlobal()) {
-          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-        } else {
-          return declaration;
-        }
+          if (lDeclarationEdge.getDeclaration().isGlobal()) {
+            globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+          } else {
+            return declaration;
+          }
 
-        break;
-      }
+          break;
+        }
 
       case CallToReturnEdge: {
         //          this should not have been taken
@@ -657,8 +721,12 @@ public class ARGToCTranslator {
       String tempVariableName = "__tmp_" + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
 
-      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " = " + actualParamSignature + ";"));
-      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + " = " + tempVariableName + ";"));
+      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + ";"));
+      actualParamAssignStatements.add(
+          new SimpleStatement(tempVariableName + " = " + actualParamSignature + ";"));
+      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + ";"));
+      formalParamAssignStatements.add(
+          new SimpleStatement(formalParam.getName() + " = " + tempVariableName + ";"));
     }
 
     for(Statement stmt : actualParamAssignStatements) {

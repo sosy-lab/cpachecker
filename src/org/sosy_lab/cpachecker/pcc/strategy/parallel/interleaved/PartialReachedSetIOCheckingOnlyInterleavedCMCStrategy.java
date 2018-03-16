@@ -114,8 +114,14 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
       Thread readingThread =
           new Thread(
-              new ProofPartReader(automatonAvailable, partitionsAvailable, checkResult, ioHelpers, cpas, roots,
-                  new ReachedSetFactory(config)));
+              new ProofPartReader(
+                  automatonAvailable,
+                  partitionsAvailable,
+                  checkResult,
+                  ioHelpers,
+                  cpas,
+                  roots,
+                  new ReachedSetFactory(config, logger)));
       try {
         readingThread.start();
 

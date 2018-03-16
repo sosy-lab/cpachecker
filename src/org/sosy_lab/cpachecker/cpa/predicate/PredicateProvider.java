@@ -24,9 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.OptionalInt;
+import java.util.Set;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -52,14 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.Prec
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.OptionalInt;
-import java.util.Set;
 
 /**
  * This class provides additional predicates for a given source of information.
@@ -161,8 +160,11 @@ public class PredicateProvider {
 
     StringBuilder in = new StringBuilder();
     Converter converter = Converter.getConverter(PrecisionConverter.INT2BV, cfa, logger);
-    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(
-        pOldPredicateState.getAbstractionFormula().asFormula());
+    Appender app =
+        oldPredicateCPA
+            .getSolver()
+            .getFormulaManager()
+            .dumpFormula(pOldPredicateState.getAbstractionFormula().asFormula());
 
     try {
       app.appendTo(in);
@@ -172,7 +174,7 @@ public class PredicateProvider {
 
     LogManagerWithoutDuplicates logger2 = new LogManagerWithoutDuplicates(logger);
     StringBuilder out = new StringBuilder();
-    for (String line : in.toString().split("\n")) {
+    for (String line : Splitter.on('\n').split(in)) {
       line = FormulaParser.convertFormula(Preconditions.checkNotNull(converter), line, logger2);
       if (line != null) {
         out.append(line).append("\n");

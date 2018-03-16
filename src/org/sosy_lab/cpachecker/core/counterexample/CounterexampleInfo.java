@@ -29,6 +29,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -38,14 +40,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class CounterexampleInfo extends AbstractAppender {
@@ -59,18 +63,25 @@ public class CounterexampleInfo extends AbstractAppender {
 
   private final ARGPath targetPath;
   private final CFAPathWithAssumptions assignments;
+  private final CFAPathWithAdditionalInfo additionalInfo;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
-  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
+  private static final CounterexampleInfo SPURIOUS =
+      new CounterexampleInfo(true, null, null, false, CFAPathWithAdditionalInfo.empty());
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
-      CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
+  private CounterexampleInfo(
+      boolean pSpurious,
+      ARGPath pTargetPath,
+      CFAPathWithAssumptions pAssignments,
+      boolean pIsPreciseCEX,
+      CFAPathWithAdditionalInfo pAdditionalInfo) {
     uniqueId = ID_GENERATOR.getFreshId();
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignments = pAssignments;
+    additionalInfo = pAdditionalInfo;
     isPreciseCounterExample = pIsPreciseCEX;
 
     if (!spurious) {
@@ -112,7 +123,13 @@ public class CounterexampleInfo extends AbstractAppender {
    *     and unreliable representation of the path from the first state to the target state.
    */
   public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), null, false);
+    return feasibleImprecise(checkNotNull(pTargetPath), CFAPathWithAdditionalInfo.empty());
+  }
+
+  public static CounterexampleInfo feasibleImprecise(
+      ARGPath pTargetPath, CFAPathWithAdditionalInfo pAdditionalInfo) {
+    return new CounterexampleInfo(
+        false, checkNotNull(pTargetPath), null, false, checkNotNull(pAdditionalInfo));
   }
 
   /**
@@ -132,9 +149,18 @@ public class CounterexampleInfo extends AbstractAppender {
    */
   public static CounterexampleInfo feasiblePrecise(
       ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
+    return feasiblePrecise(
+        checkNotNull(pTargetPath), pAssignments, CFAPathWithAdditionalInfo.empty());
+  }
+
+  public static CounterexampleInfo feasiblePrecise(
+      ARGPath pTargetPath,
+      CFAPathWithAssumptions pAssignments,
+      CFAPathWithAdditionalInfo pAdditionalInfo) {
     checkArgument(!pAssignments.isEmpty());
     checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
+    return new CounterexampleInfo(
+        false, checkNotNull(pTargetPath), pAssignments, true, checkNotNull(pAdditionalInfo));
   }
 
   public boolean isSpurious() {
@@ -203,6 +229,18 @@ public class CounterexampleInfo extends AbstractAppender {
     checkState(!spurious);
     checkState(isPreciseCounterExample);
     return assignments.getExactVariableValues(targetPath);
+  }
+
+  public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
+    return additionalInfo.isEmpty()
+        ? ImmutableMap.of()
+        : additionalInfo.getAdditionalInfoMapping(targetPath);
+  }
+
+  public Set<AdditionalInfoConverter> getAdditionalInfoConverters() {
+    return additionalInfo.isEmpty()
+        ? ImmutableSet.of()
+        : additionalInfo.getAdditionalInfoConverters();
   }
 
   /**

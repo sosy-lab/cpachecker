@@ -31,7 +31,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -51,6 +50,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Class collecting and containing information about all loops in a CFA.
@@ -146,24 +147,24 @@ public final class LoopStructure implements Serializable {
         return;
       }
 
-      Set<CFAEdge> incomingEdges = new HashSet<>();
-      Set<CFAEdge> outgoingEdges = new HashSet<>();
+      Set<CFAEdge> newIncomingEdges = new HashSet<>();
+      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
-        CFAUtils.enteringEdges(n).copyInto(incomingEdges);
-        CFAUtils.leavingEdges(n).copyInto(outgoingEdges);
+        CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
+        CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
       }
 
-      innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
-      incomingEdges.removeAll(innerLoopEdges);
-      incomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
-      outgoingEdges.removeAll(innerLoopEdges);
-      outgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
+      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+      newIncomingEdges.removeAll(innerLoopEdges);
+      newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
+      newOutgoingEdges.removeAll(innerLoopEdges);
+      newOutgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
 
-      assert !incomingEdges.isEmpty() : "Unreachable loop?";
+      assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      this.incomingEdges = ImmutableSet.copyOf(incomingEdges);
-      this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
+      this.incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
+      this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
     }
 
     private void addNodes(Loop l) {
@@ -280,11 +281,11 @@ public final class LoopStructure implements Serializable {
 
   private final ImmutableMultimap<String, Loop> loops;
 
-  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+  private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
   // computed lazily
-  private @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private @Nullable ImmutableSet<String> loopIncDecVariables;
+  private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
 
   private LoopStructure(ImmutableMultimap<String, Loop> pLoops) {
     loops = pLoops;
@@ -537,30 +538,50 @@ public final class LoopStructure implements Serializable {
    */
   private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 
-    // if there are no backwards directed edges, there are no loops, so we do
-    // not need to search for them
+    // Two optimizations:
+    // - if there are no backwards directed edges, there are no loops,
+    //   so we do not need to search for them
+    // - linear chains of nodes at the function start cannot be part of a loop, so we remove them
+    // The latter can be a huge improvement for the main function, which may have thousands of nodes
+    // in such an initial chain (global declarations).
+    List<CFANode> initialChain = new ArrayList<>();
     {
       CFANode functionExitNode = nodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
-        CFANode functionEntryNode = ((FunctionExitNode)functionExitNode).getEntryNode();
+        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+        while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
+          initialChain.add(startNode);
+          startNode = startNode.getLeavingEdge(0).getSuccessor();
+        }
 
-        if (!hasBackWardsEdges(functionEntryNode)) {
+        // Workaround: remove last state of initial chain such that it will be used by the algorithm
+        // Otherwise, the algorithm still works correctly, but it will often find a different set
+        // of loop head nodes that does not contain what most users would consider
+        // the most important loop head node of a function.
+        if (!initialChain.isEmpty()) {
+          initialChain.remove(initialChain.size() - 1);
+        }
+
+        if (!hasBackWardsEdges(startNode)) {
           return ImmutableList.of();
         }
       }
     }
 
-    nodes = new TreeSet<>(nodes); // copy nodes because we change it
+    nodes = new TreeSet<>(nodes); // copy nodes because we change it, it is our working set
+    nodes.removeAll(initialChain);
 
     // We need to store some information per pair of CFANodes.
     // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
     // inefficient. Instead we use some arrays.
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
+    // (Note that all removed nodes from initialChain
+    // are guaranteed to have higher reverse post-order ids than the remaining nodes.)
     // It's important to not use the node number because it has large gaps.
     final Function<CFANode, Integer> arrayIndexForNode = CFANode::getReversePostorderId;
     // this is the size of the arrays
-    int size = nodes.size();
+    final int size = nodes.size();
 
     // all nodes of the graph
     // forall i : arrayIndexForNode.apply(nodes[i]) == i

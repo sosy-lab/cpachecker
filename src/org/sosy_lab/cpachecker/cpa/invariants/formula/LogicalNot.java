@@ -30,10 +30,8 @@ import com.google.common.base.Preconditions;
  */
 public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
 
-  /**
-   * The formula logically negated by this formula.
-   */
-  private final BooleanFormula<ConstantType> negated;
+  /** The formula logically negated by this formula. */
+  private final BooleanFormula<ConstantType> negatedFormula;
 
   /**
    * Creates a new logical negation of the given formula.
@@ -42,7 +40,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private LogicalNot(BooleanFormula<ConstantType> pToNegate) {
     Preconditions.checkNotNull(pToNegate);
-    this.negated = pToNegate;
+    this.negatedFormula = pToNegate;
   }
 
   /**
@@ -51,7 +49,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    * @return the formula logically negated by this formula.
    */
   public BooleanFormula<ConstantType> getNegated() {
-    return this.negated;
+    return this.negatedFormula;
   }
 
   @Override

@@ -41,14 +41,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -92,20 +91,28 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     ARGState root = (ARGState)pReached.getFirstState();
-    Collection<ARGState> targets = Collections2.filter(root.getSubgraph(),
-        s -> s.getChildren().isEmpty() && !s.isCovered()
-        // sometimes we find leaf-states that are at block-entry-locations,
-        // and it seems that those states are "not" contained in the reachedSet.
-        // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
-        // Possible case: entry state of an infinite loop, loop is a block without exit-state.
-        && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s)));
+    Collection<ARGState> targets =
+        Collections2.filter(
+            root.getSubgraph(), s -> s.getChildren().isEmpty() && !s.isCovered()
+            // sometimes we find leaf-states that are at block-entry-locations,
+            // and it seems that those states are "not" contained in the reachedSet.
+            // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
+            // Possible case: entry state of an infinite loop, loop is a block without exit-state.
+            // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
+            );
 
     if (targets.isEmpty()) {
-      logger.log(
-          Level.INFO,
-          "could not compute full reached set graph (missing block), "
-              + "some output or statistics might be missing");
-      return; // invalid ARG, ignore output.
+      if (pResult.equals(Result.FALSE)) {
+        logger.log(
+            Level.INFO,
+            "could not compute full reached set graph (missing block), "
+                + "some output or statistics might be missing");
+        // invalid ARG, ignore output.
+      } else if (pResult.equals(Result.TRUE)) {
+        // In case of TRUE verdict we do not need a target to print super statistics
+        super.printStatistics(pOut, pResult, pReached);
+      }
+      return;
     }
 
     // assertion disabled, because it happens with BAM-parallel (reason unknown).

@@ -37,7 +37,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -211,7 +210,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       InterpolatingProverEnvironment<T> itpProver)
       throws InterruptedException, SolverException, CPAException {
     List<T> itpStack = new ArrayList<>();
-    LinkedList<ARGState> currentPath = new LinkedList<>();
+    Deque<ARGState> currentPath = new ArrayDeque<>();
     currentPath.add(current);
     Optional<ARGState> errorState =
         step(currentPath, itpStack, successors, predecessors, pReached, targets, itpProver);
@@ -219,20 +218,16 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
   /**
-   * Recursively perform refinement on the subgraph of the ARG starting with a given state.
-   * Each recursion step corresponds to one "block" of the ARG. As one block
-   * may have several successors, this is recursion on a tree.
-   * We proceed in a DFS order.
-   * Recursion stops as soon as the path has been determined to be infeasible
-   * (so we do refinement as soon as possible) or a target state is reached
-   * (then we found a feasible counterexample).
-   * When an infeasible state was found, we call
-   * {@link #performRefinementOnPath(List, ARGState, List, ARGReachedSet, InterpolatingProverEnvironment)}
-   * to do the actual refinement.
+   * Recursively perform refinement on the subgraph of the ARG starting with a given state. Each
+   * recursion step corresponds to one "block" of the ARG. As one block may have several successors,
+   * this is recursion on a tree. We proceed in a DFS order. Recursion stops as soon as the path has
+   * been determined to be infeasible (so we do refinement as soon as possible) or a target state is
+   * reached (then we found a feasible counterexample). When an infeasible state was found, we call
+   * {@link #performRefinementOnPath(List, ARGState, List, ARGReachedSet,
+   * InterpolatingProverEnvironment)} to do the actual refinement.
    *
-   * Note that the successor and predecessor relation contains only states
-   * that belong to paths to a target state, so we refine only such paths,
-   * and not all paths in the ARG.
+   * <p>Note that the successor and predecessor relation contains only states that belong to paths
+   * to a target state, so we refine only such paths, and not all paths in the ARG.
    *
    * @param currentPath The list of ARG states from the root to the current element.
    * @param itpStack The stack of interpolation groups added to the solver environment so far.
@@ -243,7 +238,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
    * @return The feasible error location or absent
    */
   private <T> Optional<ARGState> step(
-      final LinkedList<ARGState> currentPath,
+      final Deque<ARGState> currentPath,
       final List<T> itpStack,
       final SetMultimap<ARGState, ARGState> successors,
       final Map<ARGState, ARGState> predecessors,
@@ -301,7 +296,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       } finally {
         itpStack.remove(itpStack.size() - 1);
         itpProver.pop();
-        currentPath.remove(currentPath.size() - 1);
+        currentPath.removeLast();
       }
     }
     return Optional.empty();

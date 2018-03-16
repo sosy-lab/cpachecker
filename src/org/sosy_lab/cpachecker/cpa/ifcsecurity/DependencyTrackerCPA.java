@@ -62,8 +62,6 @@ public class DependencyTrackerCPA extends AbstractCPA {
 
   private DependencyTrackerCPA(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(
-        "irrelevant", // operator-initialization is overridden
-        "irrelevant", // operator-initialization is overridden
         DelegateAbstractDomain.<DependencyTrackerState>getInstance(),
         new DependencyTrackerRelation(pLogger, pShutdownNotifier));
     pConfig.inject(this);

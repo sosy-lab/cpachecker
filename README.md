@@ -33,8 +33,12 @@ Verifying a Program with CPAchecker
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
-   Example: `config/predicateAnalysis.properties`
-   The configuration of CPAchecker is explained in doc/Configuration.txt.
+   If you do not want a specific analysis,
+   we recommend `config/default.properties`.
+   However, note that if you are on Windows or MacOS
+   you need to provide specifically-compiled MathSAT binaries
+   for this configuration to work.
+   The configuration of CPAchecker is explained in doc/Configuration.md.
 
 3. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use `config/specification/default.spc`
@@ -45,10 +49,10 @@ Verifying a Program with CPAchecker
 4. Execute `scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>`
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
-   Additional command line switches are described in doc/Configuration.txt.
-   Example: `scripts/cpa.sh -config config/predicateAnalysis.properties doc/examples/example.c`
+   Additional command line switches are described in doc/Configuration.md.
+   Example: `scripts/cpa.sh -config config/default.properties doc/examples/example.c`
    This example can also be abbreviated to:
-   `scripts/cpa.sh -predicateAnalysis doc/examples/example.c`
+   `scripts/cpa.sh -default doc/examples/example.c`
    A Java 1.8 compatible JVM is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java`

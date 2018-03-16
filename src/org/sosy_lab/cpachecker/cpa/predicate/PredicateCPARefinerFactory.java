@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Optional;
-
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,15 +40,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Factory for {@link PredicateCPARefiner}, the base class for most refiners for the PredicateCPA.
@@ -61,9 +59,19 @@ public class PredicateCPARefinerFactory {
 
   @Option(
     secure = true,
+    name = "graphblockformulastrategy",
+    description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)"
+  )
+  private boolean graphBlockFormulaStrategy = false;
+
+  @Option(
+    secure = true,
     description = "use heuristic to extract predicates from the CFA statically on first refinement"
   )
   private boolean performInitialStaticRefinement = false;
+
+  @Option(secure = true, description = "recompute block formula from ARG path edges")
+  private boolean recomputeBlockFormulas = false;
 
   private final PredicateCPA predicateCpa;
 
@@ -78,12 +86,8 @@ public class PredicateCPARefinerFactory {
   @SuppressWarnings("options")
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    predicateCpa = CPAs.retrieveCPA(checkNotNull(pCpa), PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(
-          PredicateCPARefiner.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    predicateCpa =
+        CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
   }
 
@@ -160,7 +164,15 @@ public class PredicateCPARefinerFactory {
       }
       bfs = blockFormulaStrategy;
     } else {
-      bfs = sliceBlockFormulas ? new BlockFormulaSlicer(pfmgr) : new BlockFormulaStrategy();
+      if (sliceBlockFormulas) {
+        bfs = new BlockFormulaSlicer(pfmgr);
+      } else if (graphBlockFormulaStrategy) {
+        bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
+      } else if (recomputeBlockFormulas) {
+        bfs = new RecomputeBlockFormulaStrategy(pfmgr);
+      } else {
+        bfs = new BlockFormulaStrategy();
+      }
     }
 
     ARGBasedRefiner refiner =

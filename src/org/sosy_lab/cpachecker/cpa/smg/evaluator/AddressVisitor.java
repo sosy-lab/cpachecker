@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Preconditions;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -41,9 +42,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -80,6 +81,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
     SMGState state = getInitialSmgState();
     SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
+    state.addElementToCurrentChain(object);
 
     if (object == null && variableName.getDeclaration() != null) {
       CSimpleDeclaration dcl = variableName.getDeclaration();
@@ -90,14 +92,20 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
           object = state.addGlobalVariable(smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
               varDcl.getName());
         } else {
-          object = state.addLocalVariable(smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
-              varDcl.getName());
+          Optional<SMGObject> addedLocalVariable =
+              state.addLocalVariable(
+                  smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
+                  varDcl.getName());
+          if (addedLocalVariable.isPresent()) {
+            object = addedLocalVariable.get();
+          } else {
+            return SMGAddressAndState.listOf(state, SMGAddress.UNKNOWN);
+          }
         }
       }
     }
 
-    return SMGAddressAndState.listOf(getInitialSmgState(),
-        SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
+    return SMGAddressAndState.listOf(state, SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
   }
 
   @Override

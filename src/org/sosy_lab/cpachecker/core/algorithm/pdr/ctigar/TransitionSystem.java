@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -212,8 +213,8 @@ public class TransitionSystem {
   private Collection<Block> getForwardReachableBlocks(
       CFANode pStartPoint, ForwardTransition pForwardTransition)
       throws CPAException, InterruptedException {
-    Collection<Block> exploredBlocks = new LinkedList<>();
-    Deque<Block> blockTraversalStack = new LinkedList<>();
+    Collection<Block> exploredBlocks = new ArrayList<>();
+    Deque<Block> blockTraversalStack = new ArrayDeque<>();
 
     for (Block block : pForwardTransition.getBlocksFrom(pStartPoint)) {
       blockTraversalStack.push(block);
@@ -333,8 +334,13 @@ public class TransitionSystem {
             SSAMap.emptySSAMap().withDefault(PC_PRIMED_SSA));
     extendedBlockFormula = pBfmgr.and(pcBefore, extendedBlockFormula, pcAfter);
 
-    return pPfmgr.makeNewPathFormula(
-        primedBlockContext.updateFormula(extendedBlockFormula), this.primedContext.getSsa());
+    @SuppressWarnings("deprecation")
+    // TODO: seems buggy because it implicitly combines extendedBlockFormula and
+    // primedContext.getSsa() with PointerTargetSet of primedBlockContext, is this correct?
+    PathFormula pathFormula =
+        pPfmgr.makeNewPathFormula(
+            primedBlockContext.updateFormula(extendedBlockFormula), this.primedContext.getSsa());
+    return pathFormula;
   }
 
   /** Creates a variable with the given name, type, and ssa index. */

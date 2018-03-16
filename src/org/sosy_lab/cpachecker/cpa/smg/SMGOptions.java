@@ -41,9 +41,11 @@ public class SMGOptions {
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
   @Option(
-      secure = true,
-      description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
-  private boolean handleNonFreedMemoryInMainAsMemLeak = false;
+    secure = true,
+    description =
+        "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main"
+  )
+  private boolean handleNonFreedMemoryInMainAsMemLeak = true;
 
   @Option(
       secure = true,
@@ -57,7 +59,12 @@ public class SMGOptions {
       name = "handleUnknownFunctions",
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
-  public static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
+
+  public static enum UnknownFunctionHandling {
+    STRICT,
+    ASSUME_SAFE,
+    ASSUME_EXTERNAL_ALLOCATED
+  }
 
   @Option(
       secure = true,
@@ -73,15 +80,25 @@ public class SMGOptions {
   private boolean guessSizeOfUnknownMemorySize = false;
 
   @Option(
-      secure = true,
-      name = "memoryAllocationFunctions",
-      description = "Memory allocation functions")
-  private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc");
+    secure = true,
+    name = "memoryAllocationFunctions",
+    description = "Memory allocation functions"
+  )
+  private ImmutableSet<String> memoryAllocationFunctions =
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
-      secure = true,
-      name = "memoryAllocationFunctionsSizeParameter",
-      description = "Size parameter of memory allocation functions")
+    secure = true,
+    name = "guessSize",
+    description = "Allocation size of memory that cannot be calculated."
+  )
+  private int guessSize = 2;
+
+  @Option(
+    secure = true,
+    name = "memoryAllocationFunctionsSizeParameter",
+    description = "Size parameter of memory allocation functions"
+  )
   private int memoryAllocationFunctionsSizeParameter = 0;
 
   @Option(
@@ -103,10 +120,11 @@ public class SMGOptions {
   private int memoryArrayAllocationFunctionsElemSizeParameter = 1;
 
   @Option(
-      secure = true,
-      name = "zeroingMemoryAllocation",
-      description = "Allocation functions which set memory to zero")
-  private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc");
+    secure = true,
+    name = "zeroingMemoryAllocation",
+    description = "Allocation functions which set memory to zero"
+  )
+  private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc", "kzalloc");
 
   @Option(secure = true, name = "deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of("free");
@@ -130,8 +148,18 @@ public class SMGOptions {
   private boolean trackPredicates = false;
 
   @Option(
-      secure = true,
-      description = "with this option enabled, heap abstraction will be enabled.")
+    secure = true,
+    name = "handleUnknownDereferenceAsSafe",
+    description =
+        "Handle unknown dereference as safe and check error based on error predicate, "
+            + "depends on trackPredicates"
+  )
+  private boolean handleUnknownDereferenceAsSafe = false;
+
+  @Option(
+    secure = true,
+    description = "with this option enabled, heap abstraction will be enabled."
+  )
   private boolean enableHeapAbstraction = false;
 
   @Option(
@@ -166,7 +194,20 @@ public class SMGOptions {
       description = "Describes when SMG graphs should be dumped.")
   private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
 
-  public static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
+  @Option(
+    secure = true,
+    name = "handleExternVariableAsExternalAllocation",
+    description =
+        "Handle extern variables with incomplete type (extern int array[]) as external allocation"
+  )
+  private boolean handleExternVariableAsExternalAllocation = false;
+
+  public static enum SMGExportLevel {
+    NEVER,
+    LEAF,
+    INTERESTING,
+    EVERY
+  }
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -194,6 +235,10 @@ public class SMGOptions {
 
   public boolean isGuessSizeOfUnknownMemorySize() {
     return guessSizeOfUnknownMemorySize;
+  }
+
+  public int getGuessSize() {
+    return guessSize;
   }
 
   public ImmutableSet<String> getMemoryAllocationFunctions() {
@@ -258,5 +303,13 @@ public class SMGOptions {
 
   public SMGExportLevel getExportSMGLevel() {
     return exportSMG;
+  }
+
+  public boolean isHandleExternVariableAsExternalAllocation() {
+    return handleExternVariableAsExternalAllocation;
+  }
+
+  public boolean isHandleUnknownDereferenceAsSafe() {
+    return handleUnknownDereferenceAsSafe;
   }
 }

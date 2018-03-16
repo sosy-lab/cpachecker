@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -50,9 +51,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-import java.util.Collection;
-import java.util.logging.Level;
-
 @Options(prefix="counterexample.export", deprecatedPrefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -73,10 +71,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     this.logger = logger;
     config.inject(this);
 
-    BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
-    if (bddCpa == null) {
-      throw new InvalidConfigurationException("BDD CPA needed for BDDCPARestrictionAlgorithm");
-    }
+    BDDCPA bddCpa = CPAs.retrieveCPAOrFail(pCpa, BDDCPA.class, BDDCPARestrictionAlgorithm.class);
     logger.log(Level.INFO, "using the BDDCPA Restriction Algorithm");
 
     manager = bddCpa.getManager();

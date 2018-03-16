@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Verify.verifyNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
@@ -60,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
-@Options(prefix = "cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
   private static class CEGARStatistics implements Statistics {
@@ -119,7 +116,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
     public CEGARMBean() {
       super("org.sosy_lab.cpachecker:type=CEGAR", logger);
-      register();
     }
 
     @Override
@@ -138,53 +134,101 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     }
   }
 
+  @Options(prefix = "cegar")
+  public static class CEGARAlgorithmFactory implements AlgorithmFactory {
+
+    @Option(
+      secure = true,
+      name = "refiner",
+      required = true,
+      description =
+          "Which refinement algorithm to use? "
+              + "(give class name, required for CEGAR) If the package name starts with "
+              + "'org.sosy_lab.cpachecker.', this prefix can be omitted."
+    )
+    @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
+    private Refiner.Factory refinerFactory;
+
+    @Option(
+      secure = true,
+      name = "globalRefinement",
+      description =
+          "Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely."
+    )
+    private boolean globalRefinement = false;
+
+    /*
+     * Widely used in CPALockator, as there are many error paths, and refinement all of them takes
+     * too much time, so, limit refinement iterations and remove at least some infeasible paths
+     */
+    @Option(
+      name = "maxIterations",
+      description = "Max number of refinement iterations, -1 for no limit"
+    )
+    private int maxRefinementNum = -1;
+
+    private final AlgorithmFactory algorithmFactory;
+    private final LogManager logger;
+    private final Refiner refiner;
+
+    public CEGARAlgorithmFactory(
+        Algorithm pAlgorithm,
+        ConfigurableProgramAnalysis pCpa,
+        LogManager pLogger,
+        Configuration pConfig)
+        throws InvalidConfigurationException {
+      this(() -> pAlgorithm, pCpa, pLogger, pConfig);
+    }
+
+    public CEGARAlgorithmFactory(
+        AlgorithmFactory pAlgorithmFactory,
+        ConfigurableProgramAnalysis pCpa,
+        LogManager pLogger,
+        Configuration pConfig)
+        throws InvalidConfigurationException {
+      pConfig.inject(this);
+      algorithmFactory = pAlgorithmFactory;
+      logger = pLogger;
+      verifyNotNull(refinerFactory);
+      refiner = refinerFactory.create(pCpa);
+    }
+
+    @Override
+    public CEGARAlgorithm newInstance() {
+      return new CEGARAlgorithm(
+          algorithmFactory.newInstance(), refiner, logger, globalRefinement, maxRefinementNum);
+    }
+  }
+
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
-
-  @Option(
-    secure = true,
-    name = "refiner",
-    required = true,
-    description =
-        "Which refinement algorithm to use? "
-            + "(give class name, required for CEGAR) If the package name starts with "
-            + "'org.sosy_lab.cpachecker.', this prefix can be omitted."
-  )
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
-  private Refiner.Factory refinerFactory;
-
-  @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
+  private int maxRefinementNum = -1;
 
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  public CEGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
-    config.inject(this);
-    verifyNotNull(refinerFactory);
-    this.algorithm = algorithm;
-    this.logger = logger;
-
-    mRefiner = refinerFactory.create(pCpa);
-    new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
-  }
-
-  /**
-   * This constructor gets a Refiner object instead of generating it
-   * from the refiner parameter.
-   */
-  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
-    this.algorithm = algorithm;
-    this.logger = logger;
+  /** This constructor gets a Refiner object instead of generating it from the refiner parameter. */
+  private CEGARAlgorithm(
+      Algorithm pAlgorithm,
+      Refiner pRefiner,
+      LogManager pLogger,
+      boolean pGlobalRefinement,
+      int pMaxRefinementNum) {
+    algorithm = pAlgorithm;
     mRefiner = Preconditions.checkNotNull(pRefiner);
+    logger = pLogger;
+    globalRefinement = pGlobalRefinement;
+    maxRefinementNum = pMaxRefinementNum;
+
+    // don't store it because we wouldn't know when to unregister anyway
+    new CEGARMBean().register();
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-    int initialReachedSetSize = reached.size();
     boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     try {
@@ -197,21 +241,27 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         status = status.update(algorithm.run(reached));
         notifyReachedSetUpdateListeners(reached);
 
+        if (stats.countRefinements == maxRefinementNum) {
+          logger.log(
+              Level.WARNING,
+              "Aborting analysis because maximum number of refinements "
+                  + maxRefinementNum
+                  + " used");
+          status = status.withPrecise(false);
+          break;
+        }
+
         // if there is any target state do refinement
         if (refinementNecessary(reached, previousLastState)) {
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
-          // assert that reached set is free of target states,
-          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
-          if (refinementSuccessful && initialReachedSetSize == 1) {
-            assert !from(reached).anyMatch(IS_TARGET_STATE) : "Target state should not be present"
-                + " in the reached set after refinement.";
-          }
+          // Note, with special options reached set still contains violated properties
+          // i.e (stopAfterError = true) or race conditions analysis
         }
 
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
-        else if(mRefiner instanceof UnsoundRefiner) {
+        else if (mRefiner instanceof UnsoundRefiner) {
           if (!refinedInPreviousIteration) {
             break;
           }
@@ -232,7 +282,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     if (globalRefinement) {
       // check other states
-      return from(reached).anyMatch(IS_TARGET_STATE);
+      return reached.hasViolatedProperties();
 
     } else {
       // Check only last state, but only if it is different from the last iteration.

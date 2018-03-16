@@ -1,83 +1,85 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
+
   <option name="-noout"/>
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <tasks>
-      <includesfile>../programs/simple/simple.set</includesfile>
-      <propertyfile>../programs/simple/ALL.prp</propertyfile>
-      <exclude>../programs/benchmarks/forester-heap/*</exclude>
-    </tasks>
-    <tasks>
-      <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-      <option name="-setprop">analysis.checkCounterexamples=true</option>
-      <option name="-setprop">counterexample.checker=CBMC</option>
-      <!-- SV-Comp files assume that malloc always succeeds -->
-      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-      <exclude reason="timeout">../programs/benchmarks/ssh/s3_srvr.blast.1*</exclude>
-      <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
-      <exclude reason="partial set only">../programs/benchmarks/ssh/*</exclude>
-      <exclude reason="partial set only">../programs/benchmarks/ntdrivers-simplified/*</exclude>
-      <exclude reason="partial set only">../programs/benchmarks/ssh-simplified/*</exclude>
-      <exclude reason="partial set only">../programs/benchmarks/locks/*</exclude>
-    </tasks>
-    <tasks>
-      <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-      <!-- SV-Comp files assume that malloc always succeeds -->
-      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-      <!-- exclude tasks from Forester set -->
-      <exclude>../programs/benchmarks/forester-heap/*</exclude>
-    </tasks>
-    <tasks>
-      <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-      <option name="-setprop">analysis.checkCounterexamples=true</option>
-      <option name="-setprop">counterexample.checker=CBMC</option>
-      <!-- SV-Comp files assume that malloc always succeeds -->
-      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-      <exclude>../programs/benchmarks/loop-acceleration/*</exclude>
-    </tasks>
-    <tasks>
-      <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-      <!-- SV-Comp files assume that malloc always succeeds -->
-      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-      <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
-      <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/mem_slave_tlm.1_true-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.*_false*</exclude>
-      <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/transmitter.1*_false*</exclude>
-    </tasks>
-    <tasks>
-      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-      <option name="-skipRecursion"/>
-      <option name="-64"/>
-      <option name="-setprop">analysis.checkCounterexamples=true</option>
-      <option name="-setprop">counterexample.checker=CBMC</option>
-      <!-- SV-Comp files assume that malloc always succeeds -->
-      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
-    </tasks>
     <option name="-predicateAnalysis-bam"/>
   </rundefinition>
+
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+    <option name="-setprop">counterexample.checker=CBMC</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude reason="timeout">../programs/benchmarks/ssh/s3_srvr.blast.1*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ssh/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ntdrivers-simplified/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ssh-simplified/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/locks/*</exclude>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <!-- exclude tasks from Forester set -->
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+    <option name="-setprop">counterexample.checker=CBMC</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/loop-acceleration/*</exclude>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+    <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.1_true-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.*_false*</exclude>
+    <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/transmitter.1*_false*</exclude>
+  </tasks>
+  <tasks>
+    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
+    <option name="-skipRecursion"/>
+    <option name="-64"/>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+    <option name="-setprop">counterexample.checker=CBMC</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--serial--mos7840_false-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout -->
+  </tasks>
 
   <columns>
     <column title="block building time">Time for building block partitioning</column>
     <column title="#blocks">Number of blocks</column>
   </columns>
-
 </benchmark>

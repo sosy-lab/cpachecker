@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -133,12 +134,25 @@ public class BAMPredicateReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) throws InterruptedException {
 
-    if (useAbstractionReduction) {
-      PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
-      PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
+    PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
+    PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
-      Preconditions.checkState(reducedState.isAbstractionState());
-      Preconditions.checkState(rootState.isAbstractionState());
+    Preconditions.checkState(reducedState.isAbstractionState());
+    Preconditions.checkState(rootState.isAbstractionState());
+
+    PathFormula oldPathFormula = reducedState.getPathFormula();
+    assert bfmgr.isTrue(oldPathFormula.getFormula())
+        : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
+    SSAMap oldSSA = oldPathFormula.getSsa();
+
+    // pathFormula.getSSa() might not contain index for the newly added variables in predicates;
+    // while the actual index is not really important at this point,
+    // there still should be at least _some_ index for each variable of the abstraction formula.
+    SSAMapBuilder builder = oldSSA.builder();
+    SSAMap rootSSA = rootState.getPathFormula().getSsa();
+    PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+
+    if (useAbstractionReduction) {
 
       //Note: BAM might introduce some additional abstraction if root region is not a cube
       AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
@@ -149,14 +163,6 @@ public class BAMPredicateReducer implements Reducer {
           cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
-      PathFormula oldPathFormula = reducedState.getPathFormula();
-      assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
-      SSAMap oldSSA = oldPathFormula.getSsa();
-
-      //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
-      //there still should be at least _some_ index for each variable of the abstraction formula.
-      SSAMapBuilder builder = oldSSA.builder();
-      SSAMap rootSSA = rootState.getPathFormula().getSsa();
       for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
         if (!oldSSA.containsVariable(var)) {
@@ -165,7 +171,7 @@ public class BAMPredicateReducer implements Reducer {
         }
       }
       SSAMap newSSA = builder.build();
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, rootPts);
 
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
@@ -176,7 +182,11 @@ public class BAMPredicateReducer implements Reducer {
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
     } else {
-      return pReducedState;
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, rootPts);
+      return PredicateAbstractState.mkAbstractionState(
+          newPathFormula,
+          reducedState.getAbstractionFormula(),
+          reducedState.getAbstractionLocationsOnPath());
     }
   }
 
@@ -377,6 +387,7 @@ public class BAMPredicateReducer implements Reducer {
       }
     }
     SSAMap newSSA = builder.build();
+    @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
     AbstractionFormula newAbstractionFormula =
@@ -558,5 +569,11 @@ public class BAMPredicateReducer implements Reducer {
       bamfvp.put(name, idx);
       ssa.mergeFreshValueProviderWith(bamfvp);
     }
+  }
+
+  @Override
+  public boolean canBeUsedInCache(AbstractState pState) {
+    PredicateAbstractState predicateState = (PredicateAbstractState) pState;
+    return !predicateState.getPathFormula().getPointerTargetSet().hasEmptyDeferredAllocationsSet();
   }
 }

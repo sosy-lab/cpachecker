@@ -25,21 +25,23 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Implementation of ReachedSet that forwards all calls to another instance.
- * The target instance is changable.
+ * Implementation of ReachedSet that forwards all calls to another instance. The target instance is
+ * changable.
  */
-public class ForwardingReachedSet implements ReachedSet {
+public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
 
   private volatile ReachedSet delegate;
 
@@ -176,5 +178,22 @@ public class ForwardingReachedSet implements ReachedSet {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    if (delegate instanceof StatisticsProvider) {
+      ((StatisticsProvider) delegate).collectStatistics(statsCollection);
+    }
+  }
+
+  @Override
+  public boolean hasViolatedProperties() {
+    return delegate.hasViolatedProperties();
+  }
+
+  @Override
+  public Collection<Property> getViolatedProperties() {
+    return delegate.getViolatedProperties();
   }
 }

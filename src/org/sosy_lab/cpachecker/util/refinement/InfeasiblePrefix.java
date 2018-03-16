@@ -27,17 +27,14 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 
 public class InfeasiblePrefix {
 

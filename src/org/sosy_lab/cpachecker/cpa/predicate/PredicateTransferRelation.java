@@ -27,6 +27,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,15 +60,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -110,7 +109,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
-  protected final FormulaManagerView fmgr;
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
   private final AnalysisDirection direction;
@@ -366,6 +365,36 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
 
     PathFormula pf = pElement.getPathFormula();
+
+    PathFormula previousPathFormula = pAssumeElement.getPreviousPathFormula(pf);
+    if (previousPathFormula != null) {
+      for (CExpression preconditionAssumption :
+          from(pAssumeElement.getPreconditionAssumptions()).filter(CExpression.class)) {
+        if (CFAUtils.getIdExpressionsOfExpression(preconditionAssumption)
+            .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
+          continue;
+        }
+        pathFormulaTimer.start();
+        try {
+          // compute a pathFormula where the SSAMap/ PointerTargetSet is set back to the previous
+          // state:
+          PathFormula temp =
+              new PathFormula(
+                  pf.getFormula(),
+                  previousPathFormula.getSsa(),
+                  previousPathFormula.getPointerTargetSet(),
+                  previousPathFormula.getLength());
+          // add the assumption, which is now instantiated with the right indices:
+          temp = pathFormulaManager.makeAnd(temp, preconditionAssumption);
+          // add back the original SSAMap ant PointerTargetSet:
+          pf =
+              new PathFormula(
+                  temp.getFormula(), pf.getSsa(), pf.getPointerTargetSet(), pf.getLength() + 1);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      }
+    }
 
     for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
       // assumptions do not contain compete type nor scope information

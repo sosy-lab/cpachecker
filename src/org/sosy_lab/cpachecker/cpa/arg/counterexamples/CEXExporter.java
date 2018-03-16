@@ -34,11 +34,9 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -53,20 +51,19 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -117,8 +114,15 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   PathTemplate coveragePrefixTemplate = PathTemplate.ofFormatString("Counterexample.%d.aa-prefix.coverage-info");
 
-  @Option(secure=true, name="exportCounterexampleCoverage",
-      description="export coverage information for every witness")
+  @Option(
+    secure = true,
+    name = "exportCounterexampleCoverage",
+    description =
+        "export coverage information for every witness: "
+            + "requires using an Assumption Automaton as part of the specification. "
+            + "Lines are considered to be covered only when the path reaching "
+            + "the statement does not reach the __FALSE state in the Assumption Automaton."
+  )
   private boolean exportCounterexampleCoverage = false;
 
   @Option(secure=true, name="exportWitness",
@@ -129,6 +133,14 @@ public class CEXExporter {
       description="export counterexample to file as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
+
+  @Option(secure = true, description = "Export extended witness in addition to regular witness")
+  private boolean exportExtendedWitness = false;
+
+  @Option(secure = true, description = "Extended witness with specific analysis information file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate extendedWitnessFile =
+      PathTemplate.ofFormatString("extendedWitness.%d.graphml");
 
   @Option(secure = true, name = "exportHarness", description = "export test harness")
   private boolean exportHarness = false;
@@ -170,23 +182,26 @@ public class CEXExporter {
   private final CounterexampleFilter cexFilter;
 
   private final LogManager logger;
-  private final ARGPathExporter witnessExporter;
+  private final WitnessExporter witnessExporter;
+  private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
 
   public CEXExporter(
       Configuration config,
-      LogManager logger,
+      LogManager pLogger,
       CFA cfa,
-      Specification pSpecification,
-      ConfigurableProgramAnalysis cpa)
+      ConfigurableProgramAnalysis cpa,
+      WitnessExporter pWitnessExporter,
+      ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.logger = logger;
+    this.logger = pLogger;
 
     cexFilter =
-        CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
-    witnessExporter = new ARGPathExporter(config, logger, pSpecification, cfa);
-    harnessExporter = new HarnessExporter(config, logger, cfa);
+        CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
+    witnessExporter = checkNotNull(pWitnessExporter);
+    extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
+    harnessExporter = new HarnessExporter(config, pLogger, cfa);
 
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -246,26 +261,13 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
     final int uniqueId = counterexample.getUniqueId();
 
-    if (exportCounterexampleCoverage) {
-      HashMap<Integer, Integer> visitedLinesPrefix = new HashMap<>();
-
-      for (CFAEdge edge : targetPath.getFullPathPrefixWithinAssumptionAutomaton()) {
-        handleCoveredEdge(edge, visitedLinesPrefix);
-        // Considering covered up until (but not including) when the
-        // AssumptionAutomaton state is __FALSE.
-      }
-
-      String LINEDATA = "DA:";
-      try (Writer w = IO.openOutputFile(coveragePrefixTemplate.getPath(counterexample.getUniqueId()), Charset.defaultCharset())) {
-        for (Entry<Integer, Integer> entry : visitedLinesPrefix.entrySet()) {
-          w.append(
-              LINEDATA +
-              String.valueOf(entry.getKey()) + "," +
-              String.valueOf(entry.getValue()) + "\n");
-        }
+    if (exportCounterexampleCoverage && coveragePrefixTemplate != null) {
+      Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
+      try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
+        CoverageReportGcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write coverage information about the error path to file");
+        logger.logUserException(
+            Level.WARNING, e, "Could not write coverage information for counterexample to file");
       }
     }
 
@@ -312,7 +314,12 @@ public class CEXExporter {
           logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
           break;
         case CBMC:
-          pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+            // "translatePaths" does not work if the ARG branches without assume edge
+            if (ARGUtils.hasAmbiguousBranching(rootState, pathElements)) {
+              pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+            } else {
+              pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+            }
           break;
         default:
           throw new AssertionError("Unhandled case statement: " + codeStyle);
@@ -363,6 +370,21 @@ public class CEXExporter {
                     counterexample),
         compressWitness);
 
+    if (exportExtendedWitness) {
+      writeErrorPathFile(
+          extendedWitnessFile,
+          uniqueId,
+          (Appender)
+              pAppendable ->
+                  extendedWitnessExporter.writeErrorWitness(
+                      pAppendable,
+                      rootState,
+                      Predicates.in(pathElements),
+                      isTargetPathEdge,
+                      counterexample),
+          compressWitness);
+    }
+
     if (exportHarness) {
       writeErrorPathFile(
           testHarnessFile,
@@ -387,24 +409,6 @@ public class CEXExporter {
       visitedLines.put(pLine, 1);
     }
   }
-
-  //Copied from org.sosy_lab.cpachecker.util.coverage.CoverageReport.handleCoveredEdge(CFAEdge, Map<String, FileCoverageInformation>)
-  private void handleCoveredEdge(final CFAEdge pEdge, Map<Integer,Integer> visitedLines) {
-    FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      return;
-    }
-
-    // Not necessary, not tracking assumes.
-    //   if (pEdge instanceof AssumeEdge) { [...] }
-
-    //Do not extract lines from edge - there are not origin lines
-    addVisitedLine(visitedLines, loc.getStartingLineInOrigin());
- }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
     writeErrorPathFile(template, uniqueId, content, false);

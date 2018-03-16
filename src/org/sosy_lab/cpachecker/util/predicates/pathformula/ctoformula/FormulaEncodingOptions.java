@@ -60,11 +60,14 @@ public class FormulaEncodingOptions {
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
-  @Option(secure=true, description = "Set of functions that non-deterministically provide new memory on the heap, " +
-                        "i.e. they can return either a valid pointer or zero.")
-  private Set<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kmalloc"
-      );
+  @Option(
+    secure = true,
+    description =
+        "Set of functions that non-deterministically provide new memory on the heap, "
+            + "i.e. they can return either a valid pointer or zero."
+  )
+  private Set<String> memoryAllocationFunctions =
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca");
 
   @Option(secure=true, description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
@@ -72,6 +75,13 @@ public class FormulaEncodingOptions {
 
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
+
+  @Option(
+    secure = true,
+    description =
+        "Do not ignore variables that could lead to an overflow (only makes sense if ignoreIrrelevantVariables is set to true)"
+  )
+  private boolean overflowVariablesAreRelevant = false;
 
   @Option(secure=true, description = "Ignore fields that are not relevant for reachability properties. This is unsound in case fields are accessed by pointer arithmetic with hard-coded field offsets. Only relvant if ignoreIrrelevantVariables is enabled.")
   private boolean ignoreIrrelevantFields = true;
@@ -103,6 +113,13 @@ public class FormulaEncodingOptions {
       + "which returns either the normal value or an UF representing the overflow.")
   private boolean encodeOverflowsWithUFs = false;
 
+  @Option(
+    secure = true,
+    description =
+        "For multithreaded programs this is an overapproximation of possible values of shared variables."
+  )
+  private boolean useHavocAbstraction = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -132,6 +149,10 @@ public class FormulaEncodingOptions {
     return ignoreIrrelevantVariables;
   }
 
+  public boolean overflowVariablesAreRelevant() {
+    return overflowVariablesAreRelevant;
+  }
+
   public boolean ignoreIrrelevantFields() {
     return ignoreIrrelevantFields;
   }
@@ -158,5 +179,9 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public boolean useHavocAbstraction() {
+    return useHavocAbstraction;
   }
 }

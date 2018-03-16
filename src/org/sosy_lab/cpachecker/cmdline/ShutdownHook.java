@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.ShutdownManager;
 
-
 /**
  * This class is a thread which should be registered as a VM shutdown hook.
  * It will try to stop the analysis when the user presses Ctrl+C.
@@ -61,6 +60,7 @@ class ShutdownHook extends Thread {
 
   // We want to use Thread.stop() to force the main thread to stop
   // when interrupted by the user.
+  @SuppressWarnings("ThreadJoinLoop") // interrupt is used on purpose by disableAndStop()
   @Override
   public void run() {
 
@@ -75,7 +75,8 @@ class ShutdownHook extends Thread {
       // from immediate termination.)
       try {
         mainThread.join();
-      } catch (InterruptedException e) {}
+      } catch (InterruptedException expected) {
+      }
     }
   }
 }

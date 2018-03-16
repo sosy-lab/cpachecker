@@ -77,6 +77,11 @@ class DummyProject implements IProject {
   }
 
   @Override
+  public void clearCachedDynamicReferences() {
+    throw new RuntimeException("Dummy not implemented");
+  }
+
+  @Override
   public void close(final IProgressMonitor pIProgressMonitor) throws CoreException {
     throw new RuntimeException("Dummy not implemented");
   }

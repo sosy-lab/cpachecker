@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.List;
-
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 
 public interface PrefixProvider {
 

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph;
 
 import com.google.common.base.Predicate;
@@ -62,10 +60,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -74,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantM
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -143,8 +142,9 @@ public class ValueAnalysisRefiner
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    final ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisRefiner.class);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisRefiner.class);
 
     valueAnalysisCpa.injectRefinablePrecision();
 
@@ -153,7 +153,7 @@ public class ValueAnalysisRefiner
     final CFA cfa = valueAnalysisCpa.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, config, cfa);
 
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
@@ -275,8 +275,7 @@ public class ValueAnalysisRefiner
       final ARGState pRefinementRoot, final UnmodifiableReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant :
-        from(pRefinementRoot.getSubgraph()).filter(not(ARGState::isCovered))) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractValuePrecision(pReached.getPrecision(descendant)));
     }
 
@@ -292,8 +291,8 @@ public class ValueAnalysisRefiner
   private VariableTrackingPrecision extractValuePrecision(Precision precision) {
     return (VariableTrackingPrecision)
         Precisions.asIterable(precision)
-            .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-            .get(0);
+            .firstMatch(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+            .get();
   }
 
   /**

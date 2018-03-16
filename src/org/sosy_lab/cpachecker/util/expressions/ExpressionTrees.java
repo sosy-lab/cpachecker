@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -33,7 +35,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,8 +45,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-
-
 
 public final class ExpressionTrees {
 
@@ -799,7 +798,7 @@ public final class ExpressionTrees {
           @Override
           public ExpressionTree<T> cacheMissLeaf(LeafExpression<S> pLeafExpression) {
             return LeafExpression.of(
-                (T) pLeafConverter.apply(pLeafExpression.getExpression()),
+                checkNotNull((T) pLeafConverter.apply(pLeafExpression.getExpression())),
                 pLeafExpression.assumeTruth());
           }
 

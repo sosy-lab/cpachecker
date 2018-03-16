@@ -60,13 +60,13 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -197,8 +197,10 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
       SMGObject variableObject = smgState
           .getObjectForVisibleVariable(idExpression.getName());
 
+      smgState.addElementToCurrentChain(variableObject);
       SMGValueAndState result = smgExpressionEvaluator.readValue(smgState, variableObject, SMGKnownExpValue.ZERO,
           smgExpressionEvaluator.getRealExpressionType(idExpression), cfaEdge);
+      result.getSmgState().addElementToCurrentChain(result.getObject());
 
       return SMGValueAndStateList.of(result);
     }

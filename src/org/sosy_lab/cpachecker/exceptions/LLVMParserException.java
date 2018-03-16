@@ -30,25 +30,19 @@ public class LLVMParserException extends ParserException {
 
   public static final long serialVersionUID = 0;
 
-  public LLVMParserException(String msg) {
-    super(msg, Language.LLVM);
+  public LLVMParserException(final String pMsg) {
+    super(pMsg, Language.LLVM);
   }
 
-  public LLVMParserException(Throwable cause) {
-    super(cause, Language.LLVM);
+  public LLVMParserException(final Throwable pCause) {
+    super(pCause, Language.LLVM);
   }
 
-  public LLVMParserException(
-      String msg,
-      Throwable cause
-  ) {
-    super(msg, cause, Language.LLVM);
+  public LLVMParserException(final String pMsg, Throwable pCause) {
+    super(pMsg, pCause, Language.LLVM);
   }
 
-  public LLVMParserException(
-      String msg,
-      CFAEdge edge
-  ) {
-    super(msg, edge, Language.LLVM);
+  public LLVMParserException(final String pMsg, CFAEdge pEdge) {
+    super(pMsg, pEdge, Language.LLVM);
   }
 }

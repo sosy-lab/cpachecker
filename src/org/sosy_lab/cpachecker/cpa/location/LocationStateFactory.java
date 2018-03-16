@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
-
+import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
-
-import java.util.Collection;
 
 @Options(prefix = "cpa.location")
 public class LocationStateFactory {
@@ -49,7 +47,7 @@ public class LocationStateFactory {
   @Option(
     secure = true,
     description =
-        "With this option enabled, unction calls that occur"
+        "With this option enabled, function calls that occur"
             + " in the CFA are followed. By disabling this option one can traverse a function"
             + " without following function calls (in this case FunctionSummaryEdges are used)"
   )

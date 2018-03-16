@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownAddVal;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AssumeVisitor extends ExpressionValueVisitor {
@@ -67,17 +67,18 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       CExpression leftSideExpression = pExp.getOperand1();
       CExpression rightSideExpression = pExp.getOperand2();
 
-      CFAEdge cfaEdge = getCfaEdge();
+        CFAEdge edge = getCfaEdge();
 
-      SMGValueAndStateList leftSideValAndStates = smgExpressionEvaluator.evaluateExpressionValue(getInitialSmgState(),
-          cfaEdge, leftSideExpression);
+        SMGValueAndStateList leftSideValAndStates =
+            smgExpressionEvaluator.evaluateExpressionValue(
+                getInitialSmgState(), edge, leftSideExpression);
 
       for (SMGValueAndState leftSideValAndState : leftSideValAndStates.getValueAndStateList()) {
         SMGSymbolicValue leftSideVal = leftSideValAndState.getObject();
         SMGState newState = leftSideValAndState.getSmgState();
 
-        SMGValueAndStateList rightSideValAndStates = smgExpressionEvaluator.evaluateExpressionValue(
-            newState, cfaEdge, rightSideExpression);
+          SMGValueAndStateList rightSideValAndStates =
+              smgExpressionEvaluator.evaluateExpressionValue(newState, edge, rightSideExpression);
 
         for (SMGValueAndState rightSideValAndState : rightSideValAndStates.getValueAndStateList()) {
           SMGSymbolicValue rightSideVal = rightSideValAndState.getObject();
@@ -90,11 +91,20 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               newState = resultValueAndState.getSmgState();
               SMGSymbolicValue resultValue = resultValueAndState.getObject();
 
-              //TODO: separate modifiable and unmodifiable visitor
-              int leftSideTypeSize = smgExpressionEvaluator.getBitSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
-              int rightSideTypeSize = smgExpressionEvaluator.getBitSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
-              newState.addPredicateRelation(leftSideVal, leftSideTypeSize,
-                  rightSideVal, rightSideTypeSize, binaryOperator, cfaEdge);
+              // TODO: separate modifiable and unmodifiable visitor
+              int leftSideTypeSize =
+                  smgExpressionEvaluator.getBitSizeof(
+                      edge, leftSideExpression.getExpressionType(), newState);
+              int rightSideTypeSize =
+                  smgExpressionEvaluator.getBitSizeof(
+                      edge, rightSideExpression.getExpressionType(), newState);
+              newState.addPredicateRelation(
+                  leftSideVal,
+                  leftSideTypeSize,
+                  rightSideVal,
+                  rightSideTypeSize,
+                  binaryOperator,
+                  edge);
               result.add(SMGValueAndState.of(newState, resultValue));
             }
         }

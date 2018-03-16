@@ -31,9 +31,11 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -50,6 +52,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
@@ -152,11 +155,10 @@ public class ReportGenerator {
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
-        console.println("Graphical representation included in the \"" + reportFile.getFileName() + "\" file.");
+        console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
     } else {
-      StringBuilder counterExFiles = new StringBuilder();
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
@@ -164,14 +166,20 @@ public class ReportGenerator {
             pCfa,
             dotBuilder,
             pStatistics);
-        counterExFiles.append("\"");
-        counterExFiles.append(counterExampleFiles.getPath(counterExample.getUniqueId()).getFileName());
-        counterExFiles.append("\"");
-        counterExFiles.append(" ");
       }
-      String info = counterExamples.size() > 1 ? "files." : "file.";
-      counterExFiles.append(info);
-      console.println("Graphical representation included in the " + counterExFiles.toString());
+
+      StringBuilder counterExFiles = new StringBuilder();
+      counterExFiles.append("Graphical representation included in the file");
+      if (counterExamples.size() > 1) {
+        counterExFiles.append('s');
+      }
+      counterExFiles.append(" \"");
+      Joiner.on("\", \"")
+          .appendTo(
+              counterExFiles,
+              counterExamples.transform(cex -> counterExampleFiles.getPath(cex.getUniqueId())));
+      counterExFiles.append("\".");
+      console.println(counterExFiles.toString());
     }
   }
 
@@ -457,10 +465,14 @@ public class ReportGenerator {
     }
   }
 
+  // Program entry function at first place is important for the graph generation
   private void insertFunctionNames(Writer writer, CFA cfa) {
     try {
       writer.write("\"functionNames\":");
-      JSON.writeJSONString(cfa.getAllFunctionNames(), writer);
+      Set<String> allFunctionsEntryFirst = Sets.newLinkedHashSet();
+      allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
+      allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
+      JSON.writeJSONString(allFunctionsEntryFirst, writer);
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of function names failed.");
@@ -482,36 +494,32 @@ public class ReportGenerator {
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
     if (reached.getFirstState() instanceof ARGState) {
       reached
-      .asCollection()
-      .forEach(
-          entry -> {
-            int parentStateId = ((ARGState) entry).getStateId();
-            for (CFANode node : AbstractStates.extractLocations(entry)) {
-              if (!argNodes.containsKey(parentStateId)) {
-                if (((ARGState) entry).toDOTLabel().length() > 0) {
-                  createArgNode(parentStateId, node, (ARGState) entry);
-                } else {
-                  createArgNode(parentStateId, node, (ARGState) entry);
-                }
-              }
-              if (!((ARGState) entry).getChildren().isEmpty()) {
-                for (ARGState child : ((ARGState) entry).getChildren()) {
-                  int childStateId = child.getStateId();
-                  // Covered state is not contained in the reached set
-                  if (child.isCovered()) {
-                    String label = child.toDOTLabel().length() > 2 ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2) : "";
-                    createCoveredArgNode(
-                        childStateId,
-                        child,
-                        label);
-                    createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+          .asCollection()
+          .forEach(
+              entry -> {
+                int parentStateId = ((ARGState) entry).getStateId();
+                for (CFANode node : AbstractStates.extractLocations(entry)) {
+                  if (!argNodes.containsKey(parentStateId)) {
+                    createArgNode(parentStateId, node, (ARGState) entry);
                   }
-                  createArgEdge(
-                      parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                  if (!((ARGState) entry).getChildren().isEmpty()) {
+                    for (ARGState child : ((ARGState) entry).getChildren()) {
+                      int childStateId = child.getStateId();
+                      // Covered state is not contained in the reached set
+                      if (child.isCovered()) {
+                        String label =
+                            child.toDOTLabel().length() > 2
+                                ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2)
+                                : "";
+                        createCoveredArgNode(childStateId, child, label);
+                        createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+                      }
+                      createArgEdge(
+                          parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                    }
+                  }
                 }
-              }
-            }
-          });
+              });
     }
   }
 
@@ -603,9 +611,12 @@ public class ReportGenerator {
       for (CFAEdge edge : edges) {
         if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           edgeLabel.append("\n");
-          edgeLabel.append(getEdgeText(edge).split(":")[0]);
-          edgeLabel.append("\n");
-          edgeLabel.append(getEdgeText(edge).split(":")[1]);
+          List<String> edgeText = Splitter.on(':').limit(2).splitToList(getEdgeText(edge));
+          edgeLabel.append(edgeText.get(0));
+          if (edgeText.size() > 1) {
+            edgeLabel.append("\n");
+            edgeLabel.append(edgeText.get(1));
+          }
         } else {
           edgeLabel.append("\n");
           edgeLabel.append(getEdgeText(edge));

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -32,15 +33,16 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -83,10 +85,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
     AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
-    ARGCPA argCpa = bamCpa.retrieveWrappedCpa(ARGCPA.class);
-    if (argCpa == null) {
-      throw new InvalidConfigurationException("ARG CPA needed for refinement");
-    }
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger());
   }
 
@@ -116,8 +115,9 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   @Override
   protected final ARGPath computePath(
       ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
-    assert pLastElement.isTarget();
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
+    assert BAMReachedSetValidator.validateData(
+        bamCpa.getData(), bamCpa.getBlockPartitioning(), pMainReachedSet);
 
     computePathTimer.start();
     try {
@@ -125,7 +125,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph;
       try {
         try {
-          rootAndTargetOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
+          final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
+          rootAndTargetOfSubgraph =
+              Preconditions.checkNotNull(
+                  cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet));
         } catch (MissingBlockException e) {
           // We return NULL, such that the method performRefinementForPath can handle it.
           return null;
@@ -144,15 +147,5 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     } finally {
       computePathTimer.stop();
     }
-  }
-
-  //returns root of a subtree leading from the root element of the given reachedSet to the target state
-  //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
-  //in the constructed subtree that represents target
-  private Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet)
-      throws MissingBlockException, InterruptedException {
-    assert pMainReachedSet.asReachedSet().contains(target);
-    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
-    return cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
   }
 }

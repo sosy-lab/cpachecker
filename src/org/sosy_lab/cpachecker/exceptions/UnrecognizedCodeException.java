@@ -26,15 +26,13 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.CharMatcher;
-
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-
-import javax.annotation.Nullable;
 
 /**
  * Exception thrown when a CPA cannot handle some code attached to a CFAEdge.
@@ -124,6 +122,7 @@ public class UnrecognizedCodeException extends CPATransferException {
       if (astNode != null) {
         code = astNode.toASTString();
       } else {
+        assert edge != null : "Edge is null";
         code = edge.getCode();
       }
 

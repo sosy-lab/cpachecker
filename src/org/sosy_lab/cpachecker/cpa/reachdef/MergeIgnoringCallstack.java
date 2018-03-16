@@ -27,13 +27,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MergeIgnoringCallstack implements MergeOperator{
 
@@ -42,31 +41,31 @@ public class MergeIgnoringCallstack implements MergeOperator{
     if (pState1 instanceof ReachingDefState && pState2 instanceof ReachingDefState) {
       ReachingDefState e1 = (ReachingDefState) pState1;
       ReachingDefState e2 = (ReachingDefState) pState2;
-      Map<String, Set<DefinitionPoint>> local = unionMaps(e1.getLocalReachingDefinitions(),
-          e2.getLocalReachingDefinitions());
-      Map<String, Set<DefinitionPoint>> global = unionMaps(e1.getGlobalReachingDefinitions(),
-          e2.getGlobalReachingDefinitions());
+      Map<MemoryLocation, Set<DefinitionPoint>> local =
+          unionMaps(e1.getLocalReachingDefinitions(), e2.getLocalReachingDefinitions());
+      Map<MemoryLocation, Set<DefinitionPoint>> global =
+          unionMaps(e1.getGlobalReachingDefinitions(), e2.getGlobalReachingDefinitions());
       if (local != e2.getLocalReachingDefinitions() || global != e2.getGlobalReachingDefinitions()) {
-        return new ReachingDefState(local, global, null);
+        return new ReachingDefState(local, global);
       }
     }
     return pState2;
   }
 
-
-  private Map<String, Set<DefinitionPoint>> unionMaps(Map<String, Set<DefinitionPoint>> map1,
-      Map<String, Set<DefinitionPoint>> map2) {
-    Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
-    HashSet<String> vars = new HashSet<>();
+  private Map<MemoryLocation, Set<DefinitionPoint>> unionMaps(
+      Map<MemoryLocation, Set<DefinitionPoint>> map1,
+      Map<MemoryLocation, Set<DefinitionPoint>> map2) {
+    Map<MemoryLocation, Set<DefinitionPoint>> newMap = new HashMap<>();
+    Set<MemoryLocation> vars = new HashSet<>();
     vars.addAll(map1.keySet());
     vars.addAll(map2.keySet());
 
-    HashSet<DefinitionPoint> unionResult;
+    Set<DefinitionPoint> unionResult;
     boolean changed = false;
     if (map1 == map2) {
       return map2;
     }
-    for (String var : vars) {
+    for (MemoryLocation var : vars) {
       // decrease merge time, avoid building union if unnecessary
       if (map1.get(var)== map2.get(var)) {
         newMap.put(var, map2.get(var));

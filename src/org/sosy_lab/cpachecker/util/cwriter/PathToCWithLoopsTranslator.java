@@ -34,7 +34,15 @@ import static org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor.get
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,24 +57,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.regex.Pattern;
 
 /**
  * This class translates a given ARGpath into c-code. The created code consists
@@ -162,7 +159,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   }
 
   @Override
-  protected String startFunction(final ARGState firstFunctionElement, Stack<FunctionBody> functionStack, final CFANode predecessor) {
+  protected String startFunction(
+      final ARGState firstFunctionElement,
+      Deque<FunctionBody> functionStack,
+      final CFANode predecessor) {
     // create the first stack element using the first element of the function
     CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
     String functionName = functionStartNode.getFunctionName();
@@ -203,7 +203,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   }
 
   @Override
-  protected void processEdge(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+  protected void processEdge(
+      ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     // we don't need to handle this edge again
     if (handledFunctions.contains(callStack.peek()) && edge instanceof CFunctionReturnEdge) {
       callStack.pop();
@@ -223,10 +224,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     }
   }
 
-  /**
-   * Processes an edge of the CFA and will write code to the output function body.
-   */
-  private final void processEdge0(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+  /** Processes an edge of the CFA and will write code to the output function body. */
+  private final void processEdge0(
+      ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();
 
     if (childElement.isTarget()) {

@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
+import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,7 +99,7 @@ public class CalculationHelper {
 
     List<String> groebnerBasis = getMatchesFromStreamWithGroebner(pSympy);
 
-    List<Polynom> polynoms = new LinkedList<>();
+    List<Polynom> polynoms = new ArrayList<>();
 
     for (String invariant : groebnerBasis) {
       Polynom poly = new Polynom();
@@ -133,8 +133,8 @@ public class CalculationHelper {
       Matcher matcher = p.matcher(line);
       if (matcher.matches()) {
         String basisStr = matcher.group(1);
-        String[] basisPolyStrs = basisStr.split(", ");
-        List<String> res = new ArrayList<>(basisPolyStrs.length);
+        Iterable<String> basisPolyStrs = Splitter.on(", ").split(basisStr);
+        List<String> res = new ArrayList<>();
         for (String str : basisPolyStrs) {
           res.add(str.replace("**", "^"));
         }
@@ -176,7 +176,7 @@ public class CalculationHelper {
 
     CollectVariablesVisitor collector = new CollectVariablesVisitor();
     Set<String> variables;
-    List<String> closedFormPolynomials = new LinkedList<>();
+    List<String> closedFormPolynomials = new ArrayList<>();
 
     for (PolynomExpression polynom : polynomials) {
 

@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-
 public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
@@ -96,14 +95,12 @@ public class GlobalInfo {
           apronManager = apron.getManager();
           apronLogger = apron.getLogger();
         } else if (c instanceof AssumptionStorageCPA) {
+          // override the existing manager
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         } else if (c instanceof PredicateCPA) {
           Preconditions.checkState(absManager == null);
           absManager = ((PredicateCPA) c).getAbstractionManager();
           predicateFormulaManagerView = ((PredicateCPA) c).getSolver().getFormulaManager();
-        } else if (c instanceof AssumptionStorageCPA) {
-          Preconditions.checkState(assumptionFormulaManagerView == null);
-          assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         }
       }
     }

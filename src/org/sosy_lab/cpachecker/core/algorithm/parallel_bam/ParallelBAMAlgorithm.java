@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,11 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import com.google.common.base.Preconditions;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,9 +48,11 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -56,12 +63,17 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSetValidator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.NoopStatisticsSeries;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 @Options(prefix="algorithm.parallelBam")
 public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
@@ -74,11 +86,15 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   )
   private int numberOfThreads = -1;
 
+  @Option(description = "export number of running RSE instances as CSV", secure = true)
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path runningRSESeriesFile = Paths.get("RSESeries.csv");
+
   private final ParallelBAMStatistics stats = new ParallelBAMStatistics();
   private final LogManager logger;
   private final LogManagerWithoutDuplicates oneTimeLogger;
-  private final BAMCPAWithoutReachedSetCreation bamcpa;
-  private final CPAAlgorithmFactory algorithmFactory;
+  private final BAMCPAWithBreakOnMissingBlock bamcpa;
+  private final AlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
 
   public ParallelBAMAlgorithm(
@@ -88,7 +104,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    bamcpa = (BAMCPAWithoutReachedSetCreation) pCpa;
+    bamcpa = (BAMCPAWithBreakOnMissingBlock) pCpa;
     logger = pLogger;
     oneTimeLogger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
@@ -98,35 +114,51 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public AlgorithmStatus run(final ReachedSet mainReachedSet)
       throws CPAException, InterruptedException {
+    stats.wallTime.start();
+    try {
+      return run0(mainReachedSet);
+    } finally {
+      stats.wallTime.stop();
+    }
+  }
 
-    //    boolean targetStateFound = false;
+  private AlgorithmStatus run0(final ReachedSet mainReachedSet)
+      throws CPAException, InterruptedException {
 
-    Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
-        new HashMap<>();
+    final ConcurrentMap<ReachedSet, ReachedSetExecutor> reachedSetMapping =
+        new ConcurrentHashMap<>();
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
     final AtomicReference<Throwable> error = new AtomicReference<>(null);
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
 
-    synchronized (reachedSetMapping) {
-      ReachedSetExecutor rse =
-          new ReachedSetExecutor(
-              bamcpa,
-              mainReachedSet,
-              mainReachedSet,
-              reachedSetMapping,
-              pool,
-              algorithmFactory,
-              shutdownNotifier,
-              stats,
-              error,
-              terminateAnalysis,
-              logger);
-      CompletableFuture<Void> future = CompletableFuture.runAsync(rse.asRunnable(), pool);
-      reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
+    {
+      int running = stats.numActiveThreads.get();
+      assert running == 0;
+      stats.runningRSESeries.add(running);
     }
 
+    ReachedSetExecutor rse =
+        new ReachedSetExecutor(
+            bamcpa,
+            mainReachedSet,
+            bamcpa.getBlockPartitioning().getMainBlock(),
+            mainReachedSet,
+            reachedSetMapping,
+            pool,
+            algorithmFactory,
+            shutdownNotifier,
+            stats,
+            error,
+            terminateAnalysis,
+            logger);
+    reachedSetMapping.put(mainReachedSet, rse); // backwards reference
+
+    // start analysis
+    rse.addNewTask(rse.asRunnable());
+
+    boolean isSound = true;
     try {
       // TODO set timelimit to global limit minus overhead?
       pool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
@@ -136,6 +168,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         // in case of problems we must kill the thread pool,
         // otherwise we have a running daemon thread and CPAchecker does not terminate.
         logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+        logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
+        isSound = false;
         pool.shutdownNow();
       }
     }
@@ -148,7 +182,16 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     //    readdStatesToWaitlists(dependencyGraph);
 
-    return AlgorithmStatus.SOUND_AND_PRECISE;
+    assert BAMReachedSetValidator.validateData(
+        bamcpa.getData(), bamcpa.getBlockPartitioning(), new ARGReachedSet(mainReachedSet));
+
+    {
+      int running = stats.numActiveThreads.get();
+      assert running == 0;
+      stats.runningRSESeries.add(running);
+    }
+
+    return AlgorithmStatus.SOUND_AND_PRECISE.withSound(isSound);
   }
 
   private int getNumberOfCores() {
@@ -165,24 +208,25 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
    * but that might be dangerous and error-prone.
    */
   private void collectExceptions(
-      Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
+      Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       AtomicReference<Throwable> error,
       final ReachedSet mainReachedSet)
       throws CPAException {
 
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
+    final AtomicBoolean timeoutAlreadyLogged = new AtomicBoolean(false);
 
     pReachedSetMapping
         .entrySet()
         .parallelStream()
         .forEach(
             entry -> {
-              ReachedSetExecutor rse = entry.getValue().getFirst();
-              CompletableFuture<Void> job = entry.getValue().getSecond();
+              ReachedSetExecutor rse = entry.getValue();
+              CompletableFuture<Void> job = rse.getWaitingTasks();
               try {
                 job.get(5, TimeUnit.SECONDS);
-                stats.executionCounter.insertValue(entry.getValue().getFirst().execCounter);
+                stats.executionCounter.insertValue(entry.getValue().execCounter);
                 stats.unfinishedRSEcounter.inc();
 
                 if (rse.isTargetStateFound()) {
@@ -196,8 +240,11 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
               } catch (RejectedExecutionException e) {
                 logger.log(Level.SEVERE, e);
               } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                logger.log(Level.SEVERE, e);
-                error.compareAndSet(null, e);
+                boolean wasAlreadyLogged = timeoutAlreadyLogged.getAndSet(true);
+                if (!wasAlreadyLogged) {
+                  logger.log(Level.SEVERE, e);
+                  error.compareAndSet(null, e);
+                }
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
             });
@@ -221,12 +268,22 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  static class ParallelBAMStatistics implements Statistics {
+  class ParallelBAMStatistics implements Statistics {
+    final StatTimer wallTime = new StatTimer("Time for execution of algorithm");
+    final ThreadSafeTimerContainer threadTime =
+        new ThreadSafeTimerContainer("Time for RSE execution");
+    final ThreadSafeTimerContainer addingStatesTime =
+        new ThreadSafeTimerContainer("Time for adding states to RSE");
+    final ThreadSafeTimerContainer terminationCheckTime =
+        new ThreadSafeTimerContainer("Time for terminating RSE");
     final LongAccumulator numMaxRSE = new LongAccumulator(Math::max, 0);
     final AtomicInteger numActiveThreads = new AtomicInteger(0);
     final StatHist histActiveThreads = new StatHist("Active threads");
     final StatHist executionCounter = new StatHist("RSE execution counter");
     private final StatCounter unfinishedRSEcounter = new StatCounter("unfinished reached-sets");
+
+    final StatisticsSeries<Integer> runningRSESeries =
+        (runningRSESeriesFile == null) ? new NoopStatisticsSeries<>() : new StatisticsSeries<>();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -234,6 +291,18 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       StatisticsUtils.write(pOut, 0, 50, histActiveThreads);
       StatisticsUtils.write(pOut, 0, 50, executionCounter);
       StatisticsUtils.write(pOut, 0, 50, unfinishedRSEcounter);
+      StatisticsUtils.write(pOut, 0, 50, wallTime);
+      StatisticsUtils.write(pOut, 0, 50, threadTime);
+      StatisticsUtils.write(pOut, 1, 50, addingStatesTime);
+      StatisticsUtils.write(pOut, 1, 50, terminationCheckTime);
+
+      if (runningRSESeriesFile != null) {
+        try {
+          IO.writeFile(runningRSESeriesFile, Charset.defaultCharset(), runningRSESeries);
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write data-series for RSEs to file");
+        }
+      }
     }
 
     @Override

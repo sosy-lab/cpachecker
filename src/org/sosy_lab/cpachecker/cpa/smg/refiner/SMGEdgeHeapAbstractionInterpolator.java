@@ -23,19 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
 
 public class SMGEdgeHeapAbstractionInterpolator {
 

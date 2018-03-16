@@ -35,6 +35,14 @@ abstract class Expression {
   static abstract class Location extends Expression {
     static final class AliasedLocation extends Location {
 
+      static AliasedLocation ofAddress(final Formula address) {
+        return new AliasedLocation(checkNotNull(address));
+      }
+
+      static AliasedLocation ofAddressWithRegion(final Formula address, final MemoryRegion region) {
+        return new AliasedLocation(checkNotNull(address), checkNotNull(region));
+      }
+
       private AliasedLocation(final Formula address) {
         this(address, null);
       }
@@ -96,6 +104,10 @@ abstract class Expression {
 
     static final class UnaliasedLocation extends Location {
 
+      static UnaliasedLocation ofVariableName(final String variableName) {
+        return new UnaliasedLocation(checkNotNull(variableName));
+      }
+
       private UnaliasedLocation(final String variableName) {
         this.variableName = variableName;
       }
@@ -143,18 +155,6 @@ abstract class Expression {
       private final String variableName;
     }
 
-    static AliasedLocation ofAddress(final Formula address) {
-      return new AliasedLocation(checkNotNull(address));
-    }
-
-    static AliasedLocation ofAddressWithRegion(final Formula address, final MemoryRegion region) {
-      return new AliasedLocation(checkNotNull(address), checkNotNull(region));
-    }
-
-    static UnaliasedLocation ofVariableName(final String variableName) {
-      return new UnaliasedLocation(checkNotNull(variableName));
-    }
-
     boolean isAliased() {
       return this instanceof AliasedLocation;
     }
@@ -176,6 +176,15 @@ abstract class Expression {
   }
 
   static class Value extends Expression {
+
+    static Value ofValue(final Formula value) {
+      return new Value(checkNotNull(value));
+    }
+
+    static Value nondetValue() {
+      return Value.nondet;
+    }
+
     private static class Nondet extends Value {
       private Nondet() {
         super(null);
@@ -266,14 +275,6 @@ abstract class Expression {
 
     private final @Nullable Formula value;
     private static final Value nondet = new Nondet();
-  }
-
-  static Value ofValue(final Formula value) {
-    return new Value(checkNotNull(value));
-  }
-
-  static Value nondetValue() {
-    return Value.nondet;
   }
 
   boolean isLocation() {

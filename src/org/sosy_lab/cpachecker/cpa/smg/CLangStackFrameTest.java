@@ -38,9 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class CLangStackFrameTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -78,7 +77,7 @@ public class CLangStackFrameTest {
 
   @Test
   public void CLangStackFrameAddVariableTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     assert_().withMessage("Added variable is present").that(sf.containsVariable("fooVar")).isTrue();
 
     Map<String, SMGRegion> variables = sf.getVariables();
@@ -113,7 +112,7 @@ public class CLangStackFrameTest {
     // Test that there is an return value object at
     assertThat(objects).hasSize(1);
 
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     objects = sf.getAllObjects();
     assertThat(objects).hasSize(2);
   }
@@ -123,13 +122,13 @@ public class CLangStackFrameTest {
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
     assertThat(retval.getSize())
-        .isEqualTo(usedMachineModel.getBitSizeof(CNumericTypes.UNSIGNED_LONG_INT));
+        .isEqualTo(usedMachineModel.getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT));
   }
 
   @Test(expected=IllegalArgumentException.class)
   public void CLangStackFrameAddVariableTwiceTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
-    sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
   }
 
   @Test(expected=NoSuchElementException.class)

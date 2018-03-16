@@ -179,10 +179,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(calculationType);
-    return result * prime + super.hashCode();
+    return Objects.hashCode(calculationType) * 31 + super.hashCode();
   }
 
   @Override

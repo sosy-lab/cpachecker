@@ -31,31 +31,25 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public class LocationCPA
-    implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
+public class LocationCPA extends AbstractCPA
+    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
 
   private final LocationStateFactory stateFactory;
 
-  public LocationCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
-    stateFactory = new LocationStateFactory(pCfa, AnalysisDirection.FORWARD, config);
+  private LocationCPA(LocationStateFactory pStateFactory) {
+    super("sep", "sep", new LocationTransferRelation(pStateFactory));
+    stateFactory = pStateFactory;
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
     if (cfaInfo.isPresent()) {
@@ -67,28 +61,13 @@ public class LocationCPA
     return new LocationCPAFactory(AnalysisDirection.FORWARD);
   }
 
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return new FlatLatticeDomain();
+  public static LocationCPA create(CFA pCFA, Configuration pConfig)
+      throws InvalidConfigurationException {
+    return new LocationCPA(new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig));
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return new LocationTransferRelation(stateFactory);
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return new StopSepOperator(getAbstractDomain());
-  }
-
-  @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public LocationState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return stateFactory.getState(pNode);
   }
 

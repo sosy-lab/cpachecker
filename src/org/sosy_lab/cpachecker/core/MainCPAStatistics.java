@@ -33,7 +33,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
@@ -72,17 +72,26 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -124,10 +133,20 @@ class MainCPAStatistics implements Statistics {
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
 
+  @Option(
+    secure = true,
+    name = "coverage.enabled",
+    description = "Compute and export information about the verification coverage?"
+  )
+  private boolean exportCoverage = true;
+
+  @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputCoverageFile = Paths.get("coverage.info");
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
-  private final CoverageReport coverageReport;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
@@ -142,6 +161,7 @@ class MainCPAStatistics implements Statistics {
 
   private @Nullable Statistics cfaCreatorStatistics;
   private @Nullable CFA cfa;
+  private @Nullable ConfigurableProgramAnalysis cpa;
 
   public MainCPAStatistics(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
@@ -179,7 +199,6 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     }
 
-    coverageReport = new CoverageReport(pConfig, pLogger);
     if (cInvariantsExport && cInvariantsPrefix != null) {
       cExpressionInvariantExporter =
           new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier, cInvariantsPrefix);
@@ -269,14 +288,11 @@ class MainCPAStatistics implements Statistics {
 
     if (result != Result.NOT_YET_STARTED) {
       dumpReachedSet(reached);
-
       printSubStatistics(out, result, reached);
-
-      if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, reached, cfa);
-      }
+      exportCoverage(out, reached);
     }
 
+    out.println();
     out.println("CPAchecker general statistics");
     out.println("-----------------------------");
 
@@ -316,6 +332,33 @@ class MainCPAStatistics implements Statistics {
     printMemoryStatistics(out);
   }
 
+  private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
+    if (exportCoverage && cfa != null) {
+      FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
+
+      // hack to get all reached states for BAM
+      if (cpa instanceof AbstractBAMCPA) {
+        Collection<ReachedSet> otherReachedSets =
+            ((AbstractBAMCPA) cpa).getData().getCache().getAllCachedReachedStates();
+        reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
+      }
+
+      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
+
+      out.println();
+      out.println("Code Coverage");
+      out.println("-----------------------------");
+      CoverageReportStdoutSummary.write(infosPerFile, out);
+
+      if (outputCoverageFile != null) {
+        try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+          CoverageReportGcov.write(infosPerFile, gcovOut);
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+        }
+      }
+    }
+  }
 
   private void dumpReachedSet(UnmodifiableReachedSet reached) {
     dumpReachedSet(reached, reachedSetFile, false);
@@ -331,7 +374,7 @@ class MainCPAStatistics implements Statistics {
         if (writeDotFormat) {
 
           // Location-map specific dump.
-          dumpLocationMappedReachedSet(reached, cfa, w);
+          dumpLocationMappedReachedSet(reached, w);
         } else {
 
           // Default dump.
@@ -346,10 +389,8 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void dumpLocationMappedReachedSet(
-      final UnmodifiableReachedSet pReachedSet,
-      CFA cfa,
-      Appendable sb) throws IOException {
+  private void dumpLocationMappedReachedSet(final UnmodifiableReachedSet pReachedSet, Appendable sb)
+      throws IOException {
     final ListMultimap<CFANode, AbstractState> locationIndex
         =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
 
@@ -373,23 +414,8 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     for (Statistics s : subStats) {
-      String name = s.getName();
-      if (!Strings.isNullOrEmpty(name)) {
-        name = name + " statistics";
-        out.println(name);
-        out.println(Strings.repeat("-", name.length()));
-      }
-
-      try {
-        s.printStatistics(out, result, reached);
-      } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Out of memory while generating statistics and writing output files");
-      }
-
-      if (!Strings.isNullOrEmpty(name)) {
-        out.println();
-      }
+      StatisticsUtils.printStatistics(s, out, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(s, logger, result, reached);
     }
   }
 
@@ -429,9 +455,8 @@ class MainCPAStatistics implements Statistics {
       mostFrequentLocationCount = maxPartition.getValue().size();
 
     } else {
-      HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
-                                                                    .transform(EXTRACT_LOCATION)
-                                                                    .filter(notNull()));
+      Multiset<CFANode> allLocations =
+          HashMultiset.create(from(reached).transform(EXTRACT_LOCATION).filter(notNull()));
 
       locations = allLocations.elementSet();
 
@@ -476,22 +501,25 @@ class MainCPAStatistics implements Statistics {
 
   private void printCfaStatistics(PrintStream out) {
     if (cfa != null) {
-      int edges = 0;
-      for (CFANode n : cfa.getAllNodes()) {
-        edges += n.getNumEnteringEdges();
-      }
-
-      out.println("Number of program locations:     " + cfa.getAllNodes().size());
-      out.println("Number of CFA edges:             " + edges);
-      if (cfa.getVarClassification().isPresent()) {
-        out.println("Number of relevant variables:    " + cfa.getVarClassification().get().getRelevantVariables().size());
-      }
-      out.println("Number of functions:             " + cfa.getNumberOfFunctions());
-
-      if (cfa.getLoopStructure().isPresent()) {
-        int loops = cfa.getLoopStructure().get().getCount();
-        out.println("Number of loops:                 " + loops);
-      }
+      StatisticsWriter.writingStatisticsTo(out)
+          .put("Number of program locations", cfa.getAllNodes().size())
+          .put(
+              StatInt.forStream(
+                  StatKind.SUM,
+                  "Number of CFA edges (per node)",
+                  cfa.getAllNodes().stream().mapToInt(CFANode::getNumLeavingEdges)))
+          .putIfPresent(
+              cfa.getVarClassification(),
+              "Number of relevant variables",
+              vc -> vc.getRelevantVariables().size())
+          .put("Number of functions", cfa.getNumberOfFunctions())
+          .putIfPresent(
+              cfa.getLoopStructure(),
+              loops ->
+                  StatInt.forStream(
+                      StatKind.COUNT,
+                      "Number of loops (and loop nodes)",
+                      loops.getAllLoops().stream().mapToInt(loop -> loop.getLoopNodes().size())));
     }
   }
 
@@ -500,7 +528,8 @@ class MainCPAStatistics implements Statistics {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
-      cfaCreatorStatistics.printStatistics(out, result, reached);
+      StatisticsUtils.printStatistics(cfaCreatorStatistics, out, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
@@ -513,19 +542,17 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void printMemoryStatistics(PrintStream out) {
-    if (monitorMemoryUsage) {
-      MemoryStatistics.printGcStatistics(out);
+    MemoryStatistics.printGcStatistics(out);
 
-      if (memStats != null) {
-        try {
-          memStatsThread.join(); // thread should have terminated already,
-                                 // but wait for it to ensure memory visibility
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        if (!memStatsThread.isAlive()) {
-          memStats.printStatistics(out);
-        }
+    if (monitorMemoryUsage && memStats != null) {
+      try {
+        memStatsThread.join(); // thread should have terminated already,
+        // but wait for it to ensure memory visibility
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      if (!memStatsThread.isAlive()) {
+        memStats.printStatistics(out);
       }
     }
   }
@@ -540,4 +567,8 @@ class MainCPAStatistics implements Statistics {
     cfa = pCfa;
   }
 
+  public void setCPA(ConfigurableProgramAnalysis pCpa) {
+    Preconditions.checkState(cpa == null);
+    cpa = pCpa;
+  }
 }

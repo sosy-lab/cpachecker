@@ -1,4 +1,7 @@
 benchexec
 
 # For push notifications from VerifierCloud WebClient instead of polling.
-sseclient
+# Older version because it is unclear whether these issues affect us:
+# https://github.com/btubbs/sseclient/issues/8
+# https://github.com/btubbs/sseclient/issues/9
+sseclient==0.0.15

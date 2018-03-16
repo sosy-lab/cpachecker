@@ -46,13 +46,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 
 public class SMGStateTest {
   static private final  LogManager logger = LogManager.createTestLogManager();
@@ -167,18 +169,18 @@ public class SMGStateTest {
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
 
-   SMGObject dls = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
-   SMGEdgeHasValue dlsN = new SMGEdgeHasValue(pointerType, 0, dls, 5);
-   SMGEdgeHasValue dlsP = new SMGEdgeHasValue(pointerType, 4, dls, 5);
-   heap.addHeapObject(dls);
-   heap.setValidity(dls, true);
+    SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
+    SMGEdgeHasValue dllN = new SMGEdgeHasValue(pointerType, 0, dll, 5);
+    SMGEdgeHasValue dllP = new SMGEdgeHasValue(pointerType, 4, dll, 5);
+    heap.addHeapObject(dll);
+    heap.setValidity(dll, true);
    heap.addValue(5);
    heap.addValue(6);
    heap.addValue(7);
-   heap.addHasValueEdge(dlsP);
-   heap.addHasValueEdge(dlsN);
-   heap.addPointsToEdge(new SMGEdgePointsTo(6, dls, 0, SMGTargetSpecifier.FIRST));
-   heap.addPointsToEdge(new SMGEdgePointsTo(7, dls, 0, SMGTargetSpecifier.LAST));
+    heap.addHasValueEdge(dllP);
+    heap.addHasValueEdge(dllN);
+    heap.addPointsToEdge(new SMGEdgePointsTo(6, dll, 0, SMGTargetSpecifier.FIRST));
+    heap.addPointsToEdge(new SMGEdgePointsTo(7, dll, 0, SMGTargetSpecifier.LAST));
 
    SMGRegion l1 = new SMGRegion(96, "l1", 1);
    SMGRegion l2 = new SMGRegion(96, "l2", 1);
@@ -191,7 +193,7 @@ public class SMGStateTest {
    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, 9);
    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 11);
-   SMGEdgeHasValue dlsSub = new SMGEdgeHasValue(pointerType, 8, dls, 12);
+    SMGEdgeHasValue dllSub = new SMGEdgeHasValue(pointerType, 8, dll, 12);
 
    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 4, l1, 11);
    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 4, l2, 12);
@@ -223,7 +225,7 @@ public class SMGStateTest {
    heap.addHasValueEdge(l3fn);
    heap.addHasValueEdge(l4fn);
    heap.addHasValueEdge(l5fn);
-   heap.addHasValueEdge(dlsSub);
+    heap.addHasValueEdge(dllSub);
 
    heap.addHasValueEdge(l1fp);
    heap.addHasValueEdge(l2fp);
@@ -351,8 +353,8 @@ public class SMGStateTest {
     Assert.assertNotEquals(copy.getId(), original.getId());
     Assert.assertNotEquals(copy.getId(), second.getId());
 
-    Assert.assertSame(second.getPredecessorId(), original.getId());
-    Assert.assertSame(copy.getPredecessorId(), original.getId());
+    Assert.assertEquals(second.getPredecessorId(), original.getId());
+    Assert.assertEquals(copy.getPredecessorId(), original.getId());
   }
 
   @Test

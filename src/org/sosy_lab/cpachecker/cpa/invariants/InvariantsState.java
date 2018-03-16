@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
@@ -52,6 +53,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -323,11 +325,11 @@ public class InvariantsState implements AbstractState,
     if (allContained) {
       return this;
     }
-    PersistentSortedMap<MemoryLocation, CType> variableTypes = this.variableTypes;
+    PersistentSortedMap<MemoryLocation, CType> newVariableTypes = this.variableTypes;
     for (Map.Entry<MemoryLocation, CType> entry : pVarTypes.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
-      if (!entry.getValue().equals(variableTypes.get(memoryLocation))) {
-        variableTypes = variableTypes.putAndCopy(memoryLocation, entry.getValue());
+      if (!entry.getValue().equals(newVariableTypes.get(memoryLocation))) {
+        newVariableTypes = newVariableTypes.putAndCopy(memoryLocation, entry.getValue());
       }
     }
     return new InvariantsState(
@@ -336,7 +338,7 @@ public class InvariantsState implements AbstractState,
         machineModel,
         abstractionState,
         environment,
-        variableTypes,
+        newVariableTypes,
         overflowDetected,
         includeTypeInformation,
         overapproximatesUnsupportedFeature);
@@ -1169,29 +1171,29 @@ public class InvariantsState implements AbstractState,
 
           isAlwaysInvalid = Predicates.or(isAlwaysInvalid, pIsPointerOrArray);
 
-          NumeralFormula<CompoundInterval> op1 = eq.getOperand1().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
+          NumeralFormula<CompoundInterval> op1 =
+              eq.getOperand1().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
           final Set<MemoryLocation> op1Vars = op1.accept(COLLECT_VARS_VISITOR);
-          isAlwaysInvalid = Predicates.or(isAlwaysInvalid, new Predicate<NumeralFormula<CompoundInterval>>() {
-
-            @Override
-            public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
-              return !Sets.intersection(op1Vars, pFormula.accept(COLLECT_VARS_VISITOR)).isEmpty();
-            }
-
-          });
-          NumeralFormula<CompoundInterval> op2 = eq.getOperand2().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
+          isAlwaysInvalid =
+              Predicates.or(
+                  isAlwaysInvalid,
+                  f -> !Sets.intersection(op1Vars, f.accept(COLLECT_VARS_VISITOR)).isEmpty());
+          NumeralFormula<CompoundInterval> op2 =
+              eq.getOperand2().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
           return InvariantsFormulaManager.INSTANCE.equal(op1, op2);
         }
         if (pFormula instanceof LogicalNot) {
-          return InvariantsFormulaManager.INSTANCE.logicalNot(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated()));
+          return InvariantsFormulaManager.INSTANCE.logicalNot(
+              checkNotNull(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated())));
         }
         if (pFormula instanceof LogicalAnd) {
           LogicalAnd<CompoundInterval> and = (LogicalAnd<CompoundInterval>) pFormula;
-          return InvariantsFormulaManager.INSTANCE.logicalAnd(apply(and.getOperand1()), apply(and.getOperand2()));
+          return InvariantsFormulaManager.INSTANCE.logicalAnd(
+              apply(and.getOperand1()), apply(and.getOperand2()));
         }
-        return pFormula.accept(getInvalidReplacementVisitor(Predicates.or(pIsAlwaysInvalid, pIsPointerOrArray)));
+        return pFormula.accept(
+            getInvalidReplacementVisitor(Predicates.or(pIsAlwaysInvalid, pIsPointerOrArray)));
       }
-
     };
   }
 
@@ -1204,16 +1206,8 @@ public class InvariantsState implements AbstractState,
     CompoundInterval evaluated = pFormula.accept(tools.evaluationVisitor, environment);
     if (!evaluated.isSingleton() && pFormula instanceof Variable) {
       // Try and replace the variable by a fitting value
-      ReplaceVisitor<CompoundInterval> evaluateInvalidVars = new ReplaceVisitor<>(
-          pIsInvalid,
-          new Function<NumeralFormula<CompoundInterval>, NumeralFormula<CompoundInterval>>() {
-
-            @Override
-            public NumeralFormula<CompoundInterval> apply(NumeralFormula<CompoundInterval> pFormula) {
-              return replaceOrEvaluateInvalid(pFormula, pIsInvalid);
-            }
-
-          });
+      ReplaceVisitor<CompoundInterval> evaluateInvalidVars =
+          new ReplaceVisitor<>(pIsInvalid, f -> replaceOrEvaluateInvalid(f, pIsInvalid));
 
       MemoryLocation memoryLocation = ((Variable<?>) pFormula).getMemoryLocation();
       NumeralFormula<CompoundInterval> value =
@@ -1259,15 +1253,16 @@ public class InvariantsState implements AbstractState,
 
     final Predicate<MemoryLocation> acceptVariable = InvariantsState::isExportable;
 
-    final Predicate<BooleanFormula<CompoundInterval>> acceptFormula = new Predicate<BooleanFormula<CompoundInterval>>() {
+    final Predicate<BooleanFormula<CompoundInterval>> acceptFormula =
+        new Predicate<BooleanFormula<CompoundInterval>>() {
 
-      @Override
-      public boolean apply(@Nullable BooleanFormula<CompoundInterval> pInput) {
-        return pInput != null
-            && FluentIterable.from(CompoundIntervalFormulaManager.collectVariableNames(pInput)).allMatch(acceptVariable);
-      }
-
-    };
+          @Override
+          public boolean apply(@NullableDecl BooleanFormula<CompoundInterval> pInput) {
+            return pInput != null
+                && FluentIterable.from(CompoundIntervalFormulaManager.collectVariableNames(pInput))
+                    .allMatch(acceptVariable);
+          }
+        };
     Iterable<BooleanFormula<CompoundInterval>> formulas = getEnvironmentAsAssumptions();
     if (includeTypeInformation) {
       formulas = Iterables.concat(formulas, getTypeInformationAsAssumptions());
@@ -1551,10 +1546,10 @@ public class InvariantsState implements AbstractState,
         }
 
         // Compute the union of the types
-        PersistentSortedMap<MemoryLocation, CType> variableTypes = state1.variableTypes;
+        PersistentSortedMap<MemoryLocation, CType> mergedVariableTypes = state1.variableTypes;
         for (Map.Entry<MemoryLocation, CType> entry : state2.variableTypes.entrySet()) {
-          if (!variableTypes.containsKey(entry.getKey())) {
-            variableTypes = variableTypes.putAndCopy(entry.getKey(), entry.getValue());
+          if (!mergedVariableTypes.containsKey(entry.getKey())) {
+            mergedVariableTypes = mergedVariableTypes.putAndCopy(entry.getKey(), entry.getValue());
           }
         }
 

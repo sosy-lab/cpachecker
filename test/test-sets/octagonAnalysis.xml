@@ -91,14 +91,14 @@
 
 <!-- Analyses which were compared to the octagon ones in Bachelor thesis of Thomas Stieglmaier -->
 <!--
- <rundefinition name="valueAnalysis-noRefiner-noCBMC">
+ <rundefinition name="valueAnalysis-NoCegar">
     <option name="-heap">29000M</option>
-    <option name="-valueAnalysis-NoRefiner"/>
+    <option name="-valueAnalysis-NoCegar"/>
     <option name="-setprop">analysis.checkCounterexamples=false</option>
  </rundefinition>
- <rundefinition name="valueAnalysis-ItpRefiner-noCBMC">
+ <rundefinition name="valueAnalysis-Cegar">
     <option name="-heap">29000M</option>
-    <option name="-valueAnalysis-ItpRefiner"/>
+    <option name="-valueAnalysis-Cegar"/>
     <option name="-setprop">analysis.checkCounterexamples=false</option>
  </rundefinition>
  <rundefinition name="predicateAnalysis">

@@ -46,7 +46,7 @@ __version__ = '0.1'
 
 
 GCC_ARGS_FIXED = ["-D__alias__(x)="]
-EXPECTED_RETURN = 107
+EXPECTED_ERRMSG = "__VERIFIER_error_called"
 
 MACHINE_MODEL_32 = '32bit'
 MACHINE_MODEL_64 = '64bit'
@@ -210,7 +210,8 @@ def get_cpachecker_executable():
     # Directories the CPAchecker executable may ly in.
     # It's important to put '.' and './scripts' last, because we
     # want to look at the "real" PATH directories first
-    path_candidates = os.environ["PATH"].split(os.pathsep) + ['.', '.' + os.sep + 'scripts']
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    path_candidates = os.environ["PATH"].split(os.pathsep) + [script_dir, '.', '.' + os.sep + 'scripts']
     for path in path_candidates:
         path = path.strip('"')
         exe_file = os.path.join(path, executable_name)
@@ -251,7 +252,7 @@ def execute(command, quiet=False):
 
 
 def analyze_result(test_result, harness):
-    if test_result.returncode == EXPECTED_RETURN:
+    if test_result.stderr and EXPECTED_ERRMSG in test_result.stderr:
         logging.info("Harness {} reached expected error location.".format(harness))
         return RESULT_ACCEPT
     elif test_result.returncode == 0:

@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-
 class ARGReducer extends GenericReducer<ARGState, Precision> {
 
   private final Reducer wrappedReducer;
@@ -114,5 +113,10 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
             expandedState.getWrappedState(),
             exitLocation),
         null);
+  }
+
+  @Override
+  protected boolean canBeUsedInCache0(ARGState pState) {
+    return wrappedReducer.canBeUsedInCache(pState.getWrappedState());
   }
 }

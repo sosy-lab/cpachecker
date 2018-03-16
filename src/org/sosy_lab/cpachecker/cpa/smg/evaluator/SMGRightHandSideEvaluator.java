@@ -37,9 +37,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -69,8 +70,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CFAEdge pCfaEdge, CRightHandSide rVal)
       throws UnrecognizedCCodeException {
 
-    ForceExplicitValueVisitor v = new ForceExplicitValueVisitor(this, this, smgState,
-        null, machineModel, logger, pCfaEdge);
+    ForceExplicitValueVisitor v =
+        new ForceExplicitValueVisitor(
+            this, this, smgState, null, machineModel, logger, pCfaEdge, options);
 
     Value val = rVal.accept(v);
 
@@ -96,22 +98,51 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       throws SMGInconsistentException, UnrecognizedCCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
-      return SMGValueAndState.of(pSmgState.setInvalidRead());
+      SMGState errState = pSmgState.setInvalidRead();
+      errState.setErrorDescription("Can't evaluate offset or object");
+      return SMGValueAndState.of(errState);
     }
 
-    int fieldOffset = pOffset.getAsInt();
+    long fieldOffset = pOffset.getAsLong();
+    int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    int objectBitSize = pObject.getSize();
 
-    //FIXME Does not work with variable array length.
-    boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+    // FIXME Does not work with variable array length.
+    boolean doesNotFitIntoObject = fieldOffset < 0 || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
+      SMGState errState = pSmgState.setInvalidRead();
       // Field does not fit size of declared Memory
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
-
-      return SMGValueAndState.of(pSmgState.setInvalidRead());
+      if (!pObject.equals(SMGNullObject.INSTANCE)) {
+        if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
+          errState.setErrorDescription(
+              "Field with "
+                  + typeBitSize
+                  + " bit size can't be read from offset "
+                  + fieldOffset
+                  + " bit of "
+                  + "object "
+                  + objectBitSize
+                  + " bit size");
+        } else {
+          errState.setErrorDescription(
+              "Field with "
+                  + typeBitSize / 8
+                  + " byte size can't be read from offset "
+                  + fieldOffset / 8
+                  + " byte of "
+                  + "object "
+                  + objectBitSize / 8
+                  + " byte size");
+        }
+        errState.addInvalidObject(pObject);
+      } else {
+        errState.setErrorDescription("NULL pointer dereference on read");
+      }
+      return SMGValueAndState.of(errState);
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);

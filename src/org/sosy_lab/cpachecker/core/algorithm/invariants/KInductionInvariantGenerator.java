@@ -79,8 +79,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustmentEventSubscriber;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -115,10 +114,9 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Generate invariants using k-induction.
- */
-public class KInductionInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
+/** Generate invariants using k-induction. */
+public class KInductionInvariantGenerator extends AbstractInvariantGenerator
+    implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
   @Options(prefix="invariantGeneration.kInduction")
   private static class KInductionInvariantGeneratorOptions {
@@ -348,18 +346,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             stats,
             statisticsCandidateGenerator,
             pAggregatedReachedSets);
-
-    PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    if (predicateCPA == null) {
-      throw new InvalidConfigurationException("Predicate CPA required");
-    }
-    String solverVersion = predicateCPA.getSolver().getVersion().toLowerCase();
-    if (async && !(solverVersion.contains("smtinterpol")
-        || solverVersion.contains("z3"))) {
-      throw new InvalidConfigurationException(
-          "Only SMTInterpol and Z3 are known to support concurrent execution "
-              + "at this time.");
-    }
   }
 
   @Override
@@ -502,7 +488,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           getRelevantAssumeEdges(
               pTargetLocationProvider.tryGetAutomatonTargetLocations(
                   pCFA.getMainFunction(), pSpecification))) {
-        candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+        for (CFANode loopHead : pCFA.getLoopStructure().get().getAllLoopHeads()) {
+          candidates.add(new EdgeFormulaNegation(loopHead, assumeEdge));
+        }
       }
     }
 
@@ -514,14 +502,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
-    final TargetLocationCandidateInvariant safetyProperty;
-    if (pCFA.getAllLoopHeads().isPresent()) {
-      safetyProperty =
-          new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider));
-      candidates.add(safetyProperty);
-    } else {
-      safetyProperty = null;
-    }
+    candidates.add(TargetLocationCandidateInvariant.INSTANCE);
 
     if (pOptions.terminateOnCounterexample) {
       return new StaticCandidateProvider(candidates) {
@@ -558,9 +539,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
                 // Remove the location from the group
                 String groupId = expressionTreeLocationInvariant.getGroupId();
                 Collection<CFANode> remainingLocations = candidateGroupLocations.get(groupId);
-                remainingLocations.removeAll(expressionTreeLocationInvariant.getLocations());
+                remainingLocations.remove(expressionTreeLocationInvariant.getLocation());
 
-                // If no location remains, the invariant has been disproved at all possible locations
+                // If no location remains, the invariant has been disproved at all possible
+                // locations
                 if (remainingLocations.isEmpty()) {
                   pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
                 }
@@ -573,7 +555,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         @Override
         public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
           super.confirmCandidates(pCandidates);
-          if (safetyProperty != null && Iterables.contains(pCandidates, safetyProperty)) {
+          if (Iterables.contains(pCandidates, TargetLocationCandidateInvariant.INSTANCE)) {
             safetyPropertyConfirmed = true;
           }
         }
@@ -605,7 +587,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
     Configuration config = configBuilder.build();
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config);
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
     ReachedSet reachedSet = reachedSetFactory.create();
     CPABuilder builder = new CPABuilder(config, pLogger, notifier, reachedSetFactory);
@@ -695,12 +677,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(
-          new ExpressionTreeLocationInvariant(
-              expressionTreeLocationInvariant.getGroupId(),
-              expressionTreeLocationInvariant.getLocation(),
-              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-              toCodeVisitorCache));
+      for (CFANode location :
+          candidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        candidates.add(
+            new ExpressionTreeLocationInvariant(
+                expressionTreeLocationInvariant.getGroupId(),
+                location,
+                expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+                toCodeVisitorCache));
+      }
     }
   }
 
@@ -727,5 +712,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     return assumeEdges;
+  }
+
+  @Override
+  public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
+    algorithm.adjustmentSuccessful(pCpa);
+  }
+
+  @Override
+  public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
+    algorithm.adjustmentRefused(pCpa);
   }
 }

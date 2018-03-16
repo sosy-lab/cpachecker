@@ -306,7 +306,6 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CCastExpression pIastCastExpression)
       throws UnrecognizedCodeException {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = pIastCastExpression.getOperand().accept(this);
 
     if (operand == null) {
