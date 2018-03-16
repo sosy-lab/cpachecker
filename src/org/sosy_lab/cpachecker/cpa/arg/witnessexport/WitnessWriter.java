@@ -504,7 +504,7 @@ class WitnessWriter implements EdgeAppender {
       if (AutomatonGraphmlCommon.isPointerCallAssumption(assumeEdge)) {
         // If the assume edge is followed by a pointer call,
         // the assumption is artificial and should not be exported
-        if (!pGoesToSink) {
+        if (!pGoesToSink && isEmptyTransitionPossible(pAdditionalInfo)) {
           // remove all info from transitionCondition
           return TransitionCondition.empty();
         } else if (assumeEdge.getTruthAssumption() && witnessOptions.exportFunctionCallsAndReturns()) {
@@ -528,7 +528,9 @@ class WitnessWriter implements EdgeAppender {
               : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         } else {
-          return TransitionCondition.empty();
+          if (isEmptyTransitionPossible(pAdditionalInfo)) {
+            return TransitionCondition.empty();
+          }
         }
       }
     }
@@ -571,8 +573,7 @@ class WitnessWriter implements EdgeAppender {
         sourceCode = pEdge.getRawStatement().trim();
       }
       if (sourceCode.isEmpty()
-          && pAdditionalInfo != null
-          && !pAdditionalInfo.getInfos().isEmpty()
+          && !isEmptyTransitionPossible(pAdditionalInfo)
           && pEdge instanceof FunctionReturnEdge) {
         sourceCode = ((FunctionReturnEdge) pEdge).getSummaryEdge().getRawStatement().trim();
       }
@@ -583,6 +584,16 @@ class WitnessWriter implements EdgeAppender {
     }
 
     return result;
+  }
+
+  /**
+   * Method is used for additional check if TransitionCondition.empty() is applicable.
+   *
+   * @param pAdditionalInfo is used at {@link ExtendedWitnessWriter}
+   * @return true if TransitionCondition.empty is applicable.
+   */
+  protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return true;
   }
 
   protected Iterable<TransitionCondition> extractTransitionForStates(
