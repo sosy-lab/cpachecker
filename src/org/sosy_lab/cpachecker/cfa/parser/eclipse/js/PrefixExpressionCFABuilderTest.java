@@ -134,7 +134,7 @@ public class PrefixExpressionCFABuilderTest {
     final JSIdExpression result =
         (JSIdExpression) new PrefixExpressionCFABuilder().append(builder, prefixExpression);
 
-    Truth.assertThat(result).isNotNull();
+    Truth.assertThat(result).isEqualTo(variableId);
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
     final JSStatementEdge incrementStatementEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
     final JSAssignment incrementStatement = (JSAssignment) incrementStatementEdge.getStatement();
