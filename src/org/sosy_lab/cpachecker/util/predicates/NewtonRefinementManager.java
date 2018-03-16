@@ -26,12 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -55,16 +52,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pseudoQE.PseudoExistQeManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
@@ -85,6 +80,7 @@ public class NewtonRefinementManager {
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
+  private final PseudoExistQeManager qeManager;
 
   @Option(
     secure = true,
@@ -101,6 +97,7 @@ public class NewtonRefinementManager {
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     pfmgr = pPfmgr;
+    qeManager = new PseudoExistQeManager(fmgr, config);
   }
 
   /**
@@ -303,24 +300,26 @@ public class NewtonRefinementManager {
    *     basically havocs the assigned variable)
    * @return The postCondition as BooleanFormula
    * @throws InterruptedException When interrupted
+   * @throws CPAException When the Quantifier Elimination Step fails
    */
   private BooleanFormula calculatePostconditionForAssignment(
       BooleanFormula preCondition, PathFormula pathFormula, boolean abstractThisFormula)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
+
     BooleanFormula toExist;
 
     // If this formula should be abstracted, this statement havocs the leftHand variable
     // Therefore its previous values can be existentially quantified in the preCondition
     if (abstractThisFormula) {
       toExist = preCondition;
-    }
-    else {
+    } else {
       toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
     }
     // If the toExist is true, the postCondition is True too.
     if (toExist == fmgr.getBooleanFormulaManager().makeTrue()) {
       return toExist;
     }
+
     // Get all intermediate Variables, stored in map to hold both String and Formula
     // Mutable as removing entries might be necessary.
     Map<String, Formula> intermediateVars =
@@ -339,114 +338,24 @@ public class NewtonRefinementManager {
                   }
                 }));
 
-      // If there are no intermediate Variables, no quantification is necessary
-      if (intermediateVars.isEmpty()) {
-        return toExist;
-    }
-    // TODO: Try to avoid quantification with techniques like:
-    //          Destructive Equality Resolution (DER)
-    //          Unconnected Parameter Drop (UPD)
-
-    // Try to apply Destructive Equality Resolution (DER) :
-    Iterator<Entry<String, Formula>> varIterator = intermediateVars.entrySet().iterator();
-    while (varIterator.hasNext()) {
-      Entry<String, Formula> intermediateVar = varIterator.next();
-
-      // Try if it is possible to apply DER to find a replacement for the potentialQuantifier
-      Optional<Formula> replacement =
-          getReplacementIfDERPossible(intermediateVar.getValue(), toExist);
-
-      // If a replacement was found, DER is possible, and will be applied
-      if (replacement.isPresent()) {
-        toExist = applyDER(toExist, intermediateVar.getValue(), replacement.get());
-        intermediateVars.remove(intermediateVar.getKey());
-        }
-      }
-
+    // If there are no intermediate Variables, no quantification is necessary
     if (intermediateVars.isEmpty()) {
-      return toExist; // No more intermediate Vars
+      return toExist;
+    }
+    // Now we existentially quantify all intermediate Variables
+    // and use quantifier elimination to obtain a quantifier free formula
+    BooleanFormula result;
+    try {
+      result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
+    } catch (Exception e) {
+      // TODO Right now a plain Exception for testing, has to be exchanged against a
+      // more meaningful Exception
+      throw new CPAException(
+          "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
+          e);
     }
 
-    BooleanFormula quantified = toExist;
-    for (Entry<String, Formula> entry : intermediateVars.entrySet()) {
-      quantified = quantifyRelevantFormulaParts(entry.getValue(), quantified);
-    }
-
-    //try to eliminate quantifiers
-    BooleanFormula afterQE = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
-    return overapproximateQuantifiedFormulas(afterQE);
-  }
-
-  /**
-   * Check if it is possible to apply the Destructive Equality Resolution on the formula that would
-   * be existentially quantified.
-   *
-   * @param potentialQuantifier The Variable to quantify
-   * @param toExist The formula to existentially quantify the variable in
-   * @return An Optional<Formula>. If the Optional is empty DER cannot be applied.Else the returned
-   *     Formula is the formula the potentialQuantifier should be replaced with.
-   */
-  private Optional<Formula> getReplacementIfDERPossible(
-      final Formula potentialQuantifier, final Formula toExist) {
-    // TODO: seems kind of dirty, try to find a better way
-    List<Formula> replacement = new ArrayList<>();
-
-    fmgr.visitRecursively(
-        toExist,
-        new DefaultFormulaVisitor<TraversalProcess>() {
-
-          @Override
-          protected TraversalProcess visitDefault(Formula pF) {
-            return TraversalProcess.CONTINUE;
-          }
-
-          @Override
-          public TraversalProcess visitFunction(
-              Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-            switch (pFunctionDeclaration.getKind()) {
-              case EQ: // check those functions that represent equality
-              case BV_EQ:
-              case FP_EQ:
-                // Same story here kind of ugly
-                if (pArgs.get(0).equals(potentialQuantifier)
-                    && !fmgr.extractVariableNames(pArgs.get(1))
-                        .containsAll(fmgr.extractVariableNames(potentialQuantifier))) {
-                  replacement.add(pArgs.get(1));
-                  return TraversalProcess.ABORT;
-                } else if (pArgs.get(1).equals(potentialQuantifier)
-                    && !fmgr.extractVariableNames(pArgs.get(0))
-                        .containsAll(fmgr.extractVariableNames(potentialQuantifier))) {
-                  replacement.add(pArgs.get(0));
-                  return TraversalProcess.ABORT;
-                } else {
-                  return TraversalProcess.CONTINUE;
-                }
-              default: // Ignore all other functions
-                return TraversalProcess.CONTINUE;
-            }
-          }
-        });
-    assert (replacement.size() <= 1);
-    if (replacement.size() == 0) {
-      return Optional.empty();
-    } else {
-      return Optional.of(replacement.get(0));
-    }
-  }
-  /**
-   * Apply the Destructive Equality Resolution. Replace all occurrences of the otherwise quantified
-   * Variable by the term it is equal as we know from calling getReplacementIfDERPossible()
-   *
-   * @param formula The Formula to replace in
-   * @param toSubstitute The otherwise quantified variable
-   * @param replacement The replacement for the quantified variable
-   * @return The formula with all occurences of toSubstitute replaced by replacement.
-   */
-  private BooleanFormula applyDER(
-      final BooleanFormula formula, final Formula toSubstitute, final Formula replacement) {
-    Map<Formula, Formula> substitution = new HashMap<>();
-    substitution.put(toSubstitute, replacement);
-    return fmgr.substitute(formula, substitution);
+    return result;
   }
 
   /**
@@ -460,7 +369,7 @@ public class NewtonRefinementManager {
    * @return A Map<String, Formula> where the Names are the keys are the formulas.
    */
   private Map<String, Formula> extractVariables(BooleanFormula formula) {
-    Map<String,Formula> result = new HashMap<>();
+    Map<String, Formula> result = new HashMap<>();
     fmgr.visitRecursively(
         formula,
         new DefaultFormulaVisitor<TraversalProcess>() {
@@ -479,77 +388,6 @@ public class NewtonRefinementManager {
     assert result.size() == fmgr.extractVariableNames(formula).size()
         : "Should have same number of elements as the extractVariableNames method";
     return ImmutableMap.copyOf(result);
-  }
-
-  /**
-   * Quantifies a conjunctive formula in such way, that only those parts that contain the quantified
-   * variable are quantified
-   *
-   * @param quantifiedVar The variable to quantify
-   * @param quantifiedFormula The formula to quantify
-   * @return A conjunctive formula containing of quantified and unquantified conjuncts
-   */
-  private BooleanFormula quantifyRelevantFormulaParts(
-      Formula quantifiedVar, BooleanFormula quantifiedFormula) {
-    Set<String> names = fmgr.extractVariableNames(quantifiedVar);
-    assert names.size() == 1;
-    String quantifiedVarName = Iterables.getOnlyElement(names);
-
-    // Get all parts of a Conjunction
-    Set<BooleanFormula> parts =
-        fmgr.getBooleanFormulaManager().toConjunctionArgs(quantifiedFormula, false);
-    Set<BooleanFormula> toQuantify = new HashSet<>();
-    Set<BooleanFormula> noQuantify = new HashSet<>();
-    for (BooleanFormula part : parts) {
-      if (fmgr.extractVariableNames(part).contains(quantifiedVarName)) {
-        toQuantify.add(part);
-      } else {
-        noQuantify.add(part);
-      }
-    }
-    BooleanFormula noQuantFormula = fmgr.getBooleanFormulaManager().and(noQuantify);
-    BooleanFormula quantFormula = fmgr.getBooleanFormulaManager().and(toQuantify);
-    BooleanFormula result =
-        fmgr.makeAnd(
-            noQuantFormula, fmgr.getQuantifiedFormulaManager().exists(quantifiedVar, quantFormula));
-
-    return result;
-  }
-
-  /**
-   * Overapproximate a conjunction of quantified and unquantified conjuncts by removing the
-   * quantified parts
-   *
-   * @param formula The formula to overapproximate
-   * @return The Formula without quantified conjuncts
-   */
-  private BooleanFormula overapproximateQuantifiedFormulas(BooleanFormula formula) {
-    Set<BooleanFormula> parts = fmgr.getBooleanFormulaManager().toConjunctionArgs(formula, false);
-    BooleanFormula result = fmgr.getBooleanFormulaManager().makeTrue();
-    for (BooleanFormula part : parts) {
-      if (fmgr.visit(
-          part,
-          new DefaultFormulaVisitor<Boolean>() {
-
-            @Override
-            protected Boolean visitDefault(Formula pF) {
-              return true;
-            }
-
-            @Override
-            public Boolean visitQuantifier(
-                BooleanFormula pF,
-                Quantifier pQ,
-                List<Formula> pBoundVariables,
-                BooleanFormula pBody) {
-              return false;
-            }
-          })) {
-        result = fmgr.makeAnd(result, part);
-      }
-    }
-
-    return result;
   }
 
   /**
