@@ -32,9 +32,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +67,10 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
   private final @Nullable DependenceGraph dependenceGraph;
-  private final ImmutableList<Path> fileNames;
   private final Language language;
+
+  /* fileNames are final, except for serialization. */
+  private transient ImmutableList<Path> fileNames;
 
   ImmutableCFA(
       MachineModel pMachineModel,
@@ -212,6 +216,9 @@ class ImmutableCFA implements CFA, Serializable {
       Iterables.addAll(leavingEdges, CFAUtils.leavingEdges(node));
     }
     s.writeObject(leavingEdges);
+
+    // UnixPath is not serializable, we convert it to String and back
+    s.writeObject(ImmutableList.copyOf(Lists.transform(fileNames, Path::toString)));
   }
 
   @SuppressWarnings("unchecked")
@@ -230,5 +237,7 @@ class ImmutableCFA implements CFA, Serializable {
     for (CFAEdge edge : (List<CFAEdge>) s.readObject()) {
       edge.getPredecessor().addLeavingEdge(edge);
     }
+
+    fileNames = ImmutableList.copyOf(Lists.transform((List<String>) s.readObject(), Paths::get));
   }
 }
