@@ -621,7 +621,8 @@ cfa.moveDeclarationsToFunctionStart = false
 cfa.pixelGraphicFile = "cfaPixel"
 
 # export CFA as .ser file (dump Java objects)
-cfa.serialize = "cfa.ser.gz"
+cfa.serialize = false
+cfa.serializeFile = "cfa.ser.gz"
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true

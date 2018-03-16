@@ -183,7 +183,15 @@ public class CFACreator {
   @Option(
     secure = true,
     name = "cfa.serialize",
-    description = "export CFA as .ser file (dump Java objects)")
+    description = "export CFA as .ser file (dump Java objects)"
+  )
+  private boolean serializeCfa = false;
+
+  @Option(
+    secure = true,
+    name = "cfa.serializeFile",
+    description = "export CFA as .ser file (dump Java objects)"
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path serializeCfaFile = Paths.get("cfa.ser.gz");
 
@@ -554,7 +562,7 @@ private boolean classifyNodes = false;
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
-        || (serializeCfaFile != null)
+        || ((serializeCfaFile != null) && serializeCfa)
         || (exportCfaPixelFile != null)) {
       exportCFAAsync(immutableCFA);
     }
@@ -988,7 +996,7 @@ v.addInitializer(initializer);
       }
     }
 
-    if (serializeCfaFile != null) {
+    if (serializeCfa && serializeCfaFile != null) {
       try {
         MoreFiles.createParentDirectories(serializeCfaFile);
         try (OutputStream outputStream = Files.newOutputStream(serializeCfaFile);
