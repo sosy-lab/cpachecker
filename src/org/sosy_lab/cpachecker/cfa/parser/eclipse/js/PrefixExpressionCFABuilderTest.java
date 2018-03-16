@@ -98,6 +98,7 @@ public class PrefixExpressionCFABuilderTest {
     Truth.assertThat(result).isNotNull();
     Truth.assertThat(result.getOperator()).isEqualTo(pExpectedUnaryOperator);
     Truth.assertThat(result.getOperand()).isEqualTo(expectedOperand);
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(0);
   }
 
   @Test
