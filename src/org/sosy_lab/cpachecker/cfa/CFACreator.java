@@ -25,11 +25,15 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -39,6 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPOutputStream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -174,6 +179,13 @@ public class CFACreator {
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
+
+  @Option(
+    secure = true,
+    name = "cfa.serialize",
+    description = "export CFA as .ser file (dump Java objects)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path serializeCfaFile = Paths.get("cfa.ser.gz");
 
   @Option(
     secure = true,
@@ -370,6 +382,7 @@ private boolean classifyNodes = false;
       assert mainFunction != null : "program lacks main function.";
 
       CFA cfa = createCFA(parseResult, mainFunction);
+
       return cfa;
     } finally {
       stats.totalTime.stop();
@@ -970,6 +983,19 @@ v.addInitializer(initializer);
         new CFAToPixelsWriter(config).write(cfa.getMainFunction(), exportCfaPixelFile);
       } catch (IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA as pixel graphic.");
+      }
+    }
+
+    if (serializeCfaFile != null) {
+      try {
+        MoreFiles.createParentDirectories(serializeCfaFile);
+        try (OutputStream outputStream = Files.newOutputStream(serializeCfaFile);
+            OutputStream gzipOutputStream = new GZIPOutputStream(outputStream);
+            ObjectOutputStream oos = new ObjectOutputStream(gzipOutputStream)) {
+          oos.writeObject(cfa);
+        }
+      } catch (IOException e) {
+        logger.logException(Level.WARNING, e, "Could not serialize CFA to file.");
       }
     }
 
