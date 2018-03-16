@@ -124,6 +124,8 @@ public class PrefixExpressionCFABuilderTest {
           return variableId;
         });
 
+    // prefix expression:
+    //    ++x
     // expected side effect:
     //    x = x + 1
     // expected result:
