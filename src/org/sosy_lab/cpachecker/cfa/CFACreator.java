@@ -553,7 +553,9 @@ private boolean classifyNodes = false;
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-        || ((exportFunctionCallsFile != null) && exportFunctionCalls)) {
+        || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+        || (serializeCfaFile != null)
+        || (exportCfaPixelFile != null)) {
       exportCFAAsync(immutableCFA);
     }
 
