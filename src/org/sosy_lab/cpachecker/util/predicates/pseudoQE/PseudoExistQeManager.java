@@ -37,10 +37,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -66,6 +68,8 @@ public class PseudoExistQeManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bFmgr;
   private Optional<QuantifiedFormulaManager> qFmgr;
+
+  private final LogManager logger;
 
   @Option(
     secure = true,
@@ -106,17 +110,19 @@ public class PseudoExistQeManager {
    * @param pFmgr The FormulaManager to use for simplification etc.
    * @throws InvalidConfigurationException If the Configuration is invalid
    */
-  public PseudoExistQeManager(FormulaManagerView pFmgr, Configuration pConfig)
+  public PseudoExistQeManager(FormulaManagerView pFmgr, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this, PseudoExistQeManager.class);
     this.fmgr = pFmgr;
     this.bFmgr = fmgr.getBooleanFormulaManager();
+    this.logger = pLogger;
     try {
       qFmgr = Optional.of(fmgr.getQuantifiedFormulaManager());
     } catch (UnsupportedOperationException e) {
       qFmgr = Optional.empty();
-      // TODO: If this does not correspond with the value of useRealQuantifierElimination log a warning
-      // and ignore the user-selected Option
+      this.logger.log(
+          Level.WARNING,
+          "The selected SMT-Solver does not support Quantifier Elimination, but Solver-based QE is enabled. Switched solverQeTactic configuration option to NONE.");
       solverQeTactic = SolverQeTactic.NONE;
     }
   }
@@ -165,6 +171,13 @@ public class PseudoExistQeManager {
     // How to handle remaining Quantifiers based on Options and result of previous operations
     if (existFormula.hasQuantifiers()) {
       if (overapprox) {
+        logger.log(
+            Level.FINE,
+            "Successfully eliminated "
+                + (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers())
+                + "quantified variable(s), overapproximated formulas containing remaining "
+                + existFormula.getNumberOfQuantifiers()
+                + "quantified variable(s).");
         return overapproximateFormula(existFormula);
       } else {
         // TODO: Add some better fitting Exception, right now Exception as placeholder.
@@ -172,6 +185,7 @@ public class PseudoExistQeManager {
         throw new Exception("Failed to eliminate Quantifiers!");
       }
     } else {
+      logger.log(Level.FINE, "Sucessfully eliminated all quantified Variables.");
       return existFormula.getInnerFormula();
     }
   }
@@ -233,6 +247,7 @@ public class PseudoExistQeManager {
       Formula replacedVar = Iterables.getOnlyElement(potentialReplacement.keySet());
       newFormula = fmgr.simplify(newFormula);
 
+      logger.log(Level.FINER, "Successfully applied DER to eliminate 1 quantified variable.");
       // Filter the old Map of bound variables to create a new PseudoExistFormula
       return new PseudoExistFormula(
           Maps.filterValues(pExistFormula.getQuantifiedVars(), e -> !replacedVar.equals(e)),
@@ -288,6 +303,11 @@ public class PseudoExistQeManager {
           Maps.filterKeys(
               pExistFormula.getQuantifiedVars(),
               Predicates.not(Predicates.in(boundVarsToElim.keySet())));
+      logger.log(
+          Level.FINER,
+          "Successfully applied UPD to eliminate "
+              + (pExistFormula.getNumberOfQuantifiers() - newBoundVars.size())
+              + "quantified variable(s).");
       return new PseudoExistFormula(newBoundVars, newFormula, fmgr);
     } else {
       return pExistFormula;
@@ -322,6 +342,8 @@ public class PseudoExistQeManager {
       try {
         afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
       } catch (SolverException e) {
+        logger.log(
+            Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
         // Unable to solve the QE-problem
         afterQE = quantifiedFormula;
       }
@@ -336,6 +358,11 @@ public class PseudoExistQeManager {
       if (numberQuantifiers == 0) {
         // If no more quantifiers just return the result of QE
         result = new PseudoExistFormula(new HashMap<>(), afterQE, fmgr);
+        logger.log(
+            Level.FINER,
+            "Successfully applied Solver-QE to eliminate "
+                + pExistFormula.getNumberOfQuantifiers()
+                + "quantified variable(s).");
       } else {
 
         // Extract Formula and map of quantified vars and create new Formula
@@ -366,6 +393,7 @@ public class PseudoExistQeManager {
   BooleanFormula overapproximateFormula(PseudoExistFormula pExistFormula) {
     return bFmgr.and(pExistFormula.getConjunctsWithoutQuantifiedVars());
   }
+
   /**
    * Checks the number of top-level quantifiers.
    *
@@ -411,7 +439,7 @@ public class PseudoExistQeManager {
    */
   boolean isQuantified(BooleanFormula pAfterQE) {
     AtomicBoolean foundQuantifier = new AtomicBoolean();
-    // Check if Formula contains any Quantif
+    // Check if Formula contains any quantified vars
     fmgr.visitRecursively(
         pAfterQE,
         new DefaultFormulaVisitor<TraversalProcess>() {

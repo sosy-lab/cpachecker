@@ -97,7 +97,7 @@ public class NewtonRefinementManager {
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     pfmgr = pPfmgr;
-    qeManager = new PseudoExistQeManager(fmgr, config);
+    qeManager = new PseudoExistQeManager(fmgr, config, logger);
   }
 
   /**
