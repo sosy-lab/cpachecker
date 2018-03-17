@@ -168,7 +168,8 @@ public class PseudoExistQeManager {
         return overapproximateFormula(existFormula);
       } else {
         // TODO: Add some better fitting Exception, right now Exception as placeholder.
-        throw new Exception();
+        // IDEAs: QuantifierEliminationException, FailedQuantifierElimination
+        throw new Exception("Failed to eliminate Quantifiers!");
       }
     } else {
       return existFormula.getInnerFormula();
@@ -182,8 +183,7 @@ public class PseudoExistQeManager {
    * @return If possible a DER-simplified Formula, else it returns the input formula
    * @throws InterruptedException when interrupted
    */
-  private PseudoExistFormula applyDER(PseudoExistFormula pExistFormula)
-      throws InterruptedException {
+  PseudoExistFormula applyDER(PseudoExistFormula pExistFormula) throws InterruptedException {
     Set<Formula> boundVars = new HashSet<>(pExistFormula.getQuantifiedVarFormulas());
 
     FormulaVisitor<Map<Formula, Formula>> visitor =
@@ -256,7 +256,7 @@ public class PseudoExistQeManager {
    * @param pExistFormula The Formula to eliminate quantifiers in
    * @return If possible a UPD-simplified Formula, else it returns the input formula
    */
-  private PseudoExistFormula applyUPD(PseudoExistFormula pExistFormula) {
+  PseudoExistFormula applyUPD(PseudoExistFormula pExistFormula) {
     List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
     List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
     Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
@@ -302,7 +302,7 @@ public class PseudoExistQeManager {
    *     Formula
    * @throws InterruptedException When interrupted
    */
-  private PseudoExistFormula applyRealQuantifierElimination(PseudoExistFormula pExistFormula)
+  PseudoExistFormula applyRealQuantifierElimination(PseudoExistFormula pExistFormula)
       throws InterruptedException {
     assert qFmgr.isPresent();
 
@@ -363,7 +363,7 @@ public class PseudoExistQeManager {
    * @param pExistFormula The Pseudo Existential Formula to overapproximate
    * @return The over-approximated quantifier-free BooleanFormula
    */
-  private BooleanFormula overapproximateFormula(PseudoExistFormula pExistFormula) {
+  BooleanFormula overapproximateFormula(PseudoExistFormula pExistFormula) {
     return bFmgr.and(pExistFormula.getConjunctsWithoutQuantifiedVars());
   }
   /**
@@ -377,7 +377,7 @@ public class PseudoExistQeManager {
    * @param pAfterQE the formula
    * @return True if quantified, False if quantifier-free
    */
-  private int numberQuantifiers(BooleanFormula pAfterQE) {
+  int numberQuantifiers(BooleanFormula pAfterQE) {
     Integer numberQuantifiers =
         fmgr.visit(
             pAfterQE,
@@ -409,7 +409,7 @@ public class PseudoExistQeManager {
    * @param pAfterQE the formula
    * @return True if quantified, False if quantifier-free
    */
-  private boolean isQuantified(BooleanFormula pAfterQE) {
+  boolean isQuantified(BooleanFormula pAfterQE) {
     AtomicBoolean foundQuantifier = new AtomicBoolean();
     // Check if Formula contains any Quantif
     fmgr.visitRecursively(
@@ -418,7 +418,6 @@ public class PseudoExistQeManager {
 
           @Override
           protected TraversalProcess visitDefault(Formula pF) {
-            // TODO Auto-generated method stub
             return TraversalProcess.CONTINUE;
           }
 
