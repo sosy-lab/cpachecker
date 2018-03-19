@@ -29,7 +29,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,11 +40,17 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -64,13 +72,14 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
  * for all other cases the behavior is not tested and probably not sufficient.
  */
 @Options(prefix = "cpa.predicate.pseudoExistQE")
-public class PseudoExistQeManager {
+public class PseudoExistQeManager implements StatisticsProvider {
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bFmgr;
   private Optional<QuantifiedFormulaManager> qFmgr;
 
   private final LogManager logger;
+  private final PseudoExQeStatistics stats = new PseudoExQeStatistics();
 
   @Option(
     secure = true,
@@ -147,50 +156,57 @@ public class PseudoExistQeManager {
    */
   public BooleanFormula eliminateQuantifiers(
       Map<String, Formula> pQuantifiedVars, BooleanFormula pQuantifiedFormula) throws Exception {
-    PseudoExistFormula existFormula =
-        new PseudoExistFormula(pQuantifiedVars, pQuantifiedFormula, fmgr);
+    stats.qeTimer.start();
+    try {
+      stats.qeTotalCounter += pQuantifiedVars.size();
+      PseudoExistFormula existFormula =
+          new PseudoExistFormula(pQuantifiedVars, pQuantifiedFormula, fmgr);
 
-    // Apply the implemented solver-independent techniques for quantifier elimination one by one.
-    // Each time one quantified variable has been removed the previous techniques will be repeated,
-    // on the new smaller Set of quantified Variables
-    int quantifierCountLastIteration = Integer.MAX_VALUE;
+      // Apply the implemented solver-independent techniques for quantifier elimination one by one.
+      // Each time one quantified variable has been removed the previous techniques will be repeated,
+      // on the new smaller Set of quantified Variables
+      int quantifierCountLastIteration = Integer.MAX_VALUE;
 
-    while ((quantifierCountLastIteration > existFormula.getNumberOfQuantifiers())
-        && existFormula.hasQuantifiers()) {
-      quantifierCountLastIteration = existFormula.getNumberOfQuantifiers();
+      while ((quantifierCountLastIteration > existFormula.getNumberOfQuantifiers())
+          && existFormula.hasQuantifiers()) {
+        quantifierCountLastIteration = existFormula.getNumberOfQuantifiers();
 
-      if (useDER && existFormula.hasQuantifiers()) {
-        existFormula = applyDER(existFormula);
+        if (useDER && existFormula.hasQuantifiers()) {
+          existFormula = applyDER(existFormula);
+        }
+        if (useUPD && existFormula.hasQuantifiers()) {
+          existFormula = applyUPD(existFormula);
+        }
       }
-      if (useUPD && existFormula.hasQuantifiers()) {
-        existFormula = applyUPD(existFormula);
+
+      // Use Solver-Build-In Quantifier elimination techniques if supported
+      if (solverQeTactic != SolverQeTactic.NONE && existFormula.hasQuantifiers()) {
+        existFormula = applyRealQuantifierElimination(existFormula);
       }
-    }
 
-    // Use Solver-Build-In Quantifier elimination techniques if supported
-    if (solverQeTactic != SolverQeTactic.NONE && existFormula.hasQuantifiers()) {
-      existFormula = applyRealQuantifierElimination(existFormula);
-    }
-
-    // How to handle remaining Quantifiers based on Options and result of previous operations
-    if (existFormula.hasQuantifiers()) {
-      if (overapprox) {
-        logger.log(
-            Level.FINE,
-            "Successfully eliminated "
-                + (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers())
-                + "quantified variable(s), overapproximated formulas containing remaining "
-                + existFormula.getNumberOfQuantifiers()
-                + "quantified variable(s).");
-        return overapproximateFormula(existFormula);
+      stats.qeSuccessCounter += (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers());
+      // How to handle remaining Quantifiers based on Options and result of previous operations
+      if (existFormula.hasQuantifiers()) {
+        if (overapprox) {
+          logger.log(
+              Level.FINE,
+              "Successfully eliminated "
+                  + (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers())
+                  + "quantified variable(s), overapproximated formulas containing remaining "
+                  + existFormula.getNumberOfQuantifiers()
+                  + "quantified variable(s).");
+          return overapproximateFormula(existFormula);
+        } else {
+          // TODO: Add some better fitting Exception, right now Exception as placeholder.
+          // IDEAs: QuantifierEliminationException, FailedQuantifierElimination
+          throw new Exception("Failed to eliminate Quantifiers!");
+        }
       } else {
-        // TODO: Add some better fitting Exception, right now Exception as placeholder.
-        // IDEAs: QuantifierEliminationException, FailedQuantifierElimination
-        throw new Exception("Failed to eliminate Quantifiers!");
+        logger.log(Level.FINE, "Sucessfully eliminated all quantified Variables.");
+        return existFormula.getInnerFormula();
       }
-    } else {
-      logger.log(Level.FINE, "Sucessfully eliminated all quantified Variables.");
-      return existFormula.getInnerFormula();
+    } finally {
+      stats.qeTimer.stop();
     }
   }
 
@@ -202,64 +218,71 @@ public class PseudoExistQeManager {
    * @throws InterruptedException when interrupted
    */
   PseudoExistFormula applyDER(PseudoExistFormula pExistFormula) throws InterruptedException {
-    Set<Formula> boundVars = new HashSet<>(pExistFormula.getQuantifiedVarFormulas());
+    stats.derTimer.start();
+    try {
+      Set<Formula> boundVars = new HashSet<>(pExistFormula.getQuantifiedVarFormulas());
 
-    FormulaVisitor<Map<Formula, Formula>> visitor =
-        new DefaultFormulaVisitor<Map<Formula, Formula>>() {
-          @Override
-          protected Map<Formula, Formula> visitDefault(Formula pF) {
-            return null;
-          }
-
-          @Override
-          public Map<Formula, Formula> visitFunction(
-              Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-            switch (pFunctionDeclaration.getKind()) {
-              case EQ: // check those functions that represent equality
-              case BV_EQ:
-              case FP_EQ:
-                if (boundVars.contains(pArgs.get(0))) {
-                  return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
-                } else if (boundVars.contains(pArgs.get(1))) {
-                  return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
-                } else {
-                  return null;
-                }
-              default:
-                return null;
+      FormulaVisitor<Map<Formula, Formula>> visitor =
+          new DefaultFormulaVisitor<Map<Formula, Formula>>() {
+            @Override
+            protected Map<Formula, Formula> visitDefault(Formula pF) {
+              return null;
             }
-          }
-        };
 
-    Map<Formula, Formula> potentialReplacement = null;
+            @Override
+            public Map<Formula, Formula> visitFunction(
+                Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+              switch (pFunctionDeclaration.getKind()) {
+                case EQ: // check those functions that represent equality
+                case BV_EQ:
+                case FP_EQ:
+                  if (boundVars.contains(pArgs.get(0))) {
+                    return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
+                  } else if (boundVars.contains(pArgs.get(1))) {
+                    return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
+                  } else {
+                    return null;
+                  }
+                default:
+                  return null;
+              }
+            }
+          };
 
-    // Loop through Conjuncts with quantified Vars
-    for (BooleanFormula conjunct : pExistFormula.getConjunctsWithQuantifiedVars()) {
-      potentialReplacement = fmgr.visit(conjunct, visitor);
-      if (potentialReplacement != null) {
-        break;
+      Map<Formula, Formula> potentialReplacement = null;
+
+      // Loop through Conjuncts with quantified Vars
+      for (BooleanFormula conjunct : pExistFormula.getConjunctsWithQuantifiedVars()) {
+        potentialReplacement = fmgr.visit(conjunct, visitor);
+        if (potentialReplacement != null) {
+          break;
+        }
       }
-    }
 
-    if (potentialReplacement != null) {
-      // As implementation only allows 1 replacement at a time
-      assert potentialReplacement.size() == 1;
+      if (potentialReplacement != null) {
+        // As implementation only allows 1 replacement at a time
+        assert potentialReplacement.size() == 1;
 
-      // Substitute the bound variable by the term in entire inner formula
-      BooleanFormula newFormula =
-          fmgr.substitute(pExistFormula.getInnerFormula(), potentialReplacement);
-      Formula replacedVar = Iterables.getOnlyElement(potentialReplacement.keySet());
-      newFormula = fmgr.simplify(newFormula);
+        // Substitute the bound variable by the term in entire inner formula
+        BooleanFormula newFormula =
+            fmgr.substitute(pExistFormula.getInnerFormula(), potentialReplacement);
+        Formula replacedVar = Iterables.getOnlyElement(potentialReplacement.keySet());
+        newFormula = fmgr.simplify(newFormula);
 
-      logger.log(Level.FINER, "Successfully applied DER to eliminate 1 quantified variable.");
-      // Filter the old Map of bound variables to create a new PseudoExistFormula
-      return new PseudoExistFormula(
-          Maps.filterValues(pExistFormula.getQuantifiedVars(), e -> !replacedVar.equals(e)),
-          newFormula,
-          fmgr);
-    } else {
-      // Return unchanged, DER is not applicable at this time
-      return pExistFormula;
+        logger.log(Level.FINER, "Successfully applied DER to eliminate 1 quantified variable.");
+        stats.derSucessCounter += 1;
+
+        // Filter the old Map of bound variables to create a new PseudoExistFormula
+        return new PseudoExistFormula(
+            Maps.filterValues(pExistFormula.getQuantifiedVars(), e -> !replacedVar.equals(e)),
+            newFormula,
+            fmgr);
+      } else {
+        // Return unchanged, DER is not applicable at this time
+        return pExistFormula;
+      }
+    } finally {
+      stats.derTimer.stop();
     }
   }
 
@@ -277,58 +300,64 @@ public class PseudoExistQeManager {
    * @throws InterruptedException When interrupted
    */
   PseudoExistFormula applyUPD(PseudoExistFormula pExistFormula) throws InterruptedException {
-    List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
-    List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
-    Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
+    stats.updTimer.start();
+    try {
+      List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
+      List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
+      Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
 
-    for (BooleanFormula conjunct : conjuncts_with_bound) {
-      Set<String> varNames = fmgr.extractVariableNames(conjunct);
-      Set<String> boundVarNames = Sets.intersection(varNames, boundVarsToElim.keySet());
-      if (varNames.equals(boundVarNames)) {
-        // The bound vars maybe can be eliminated
-        conjuncts_to_eliminate.add(conjunct);
-      } else {
-        // The bound vars in this conjunct cannot be eliminated with UPD
-        boundVarsToElim =
-            Maps.filterKeys(boundVarsToElim, Predicates.not(Predicates.in(boundVarNames)));
+      for (BooleanFormula conjunct : conjuncts_with_bound) {
+        Set<String> varNames = fmgr.extractVariableNames(conjunct);
+        Set<String> boundVarNames = Sets.intersection(varNames, boundVarsToElim.keySet());
+        if (varNames.equals(boundVarNames)) {
+          // The bound vars maybe can be eliminated
+          conjuncts_to_eliminate.add(conjunct);
+        } else {
+          // The bound vars in this conjunct cannot be eliminated with UPD
+          boundVarsToElim =
+              Maps.filterKeys(boundVarsToElim, Predicates.not(Predicates.in(boundVarNames)));
+        }
       }
-    }
 
-    if (!boundVarsToElim.isEmpty()) {
-      // Show that the conjuncts to remove are satisfiable
-      try {
-        if (solver.isUnsat(bFmgr.and(conjuncts_to_eliminate))) {
+      if (!boundVarsToElim.isEmpty()) {
+        // Show that the conjuncts to remove are satisfiable
+        try {
+          if (solver.isUnsat(bFmgr.and(conjuncts_to_eliminate))) {
+            return pExistFormula;
+          }
+        } catch (SolverException e) {
+          logger.log(
+              Level.WARNING,
+              "Solver failed while proving satisfiability of unconnected conjuncts. Ignore UPD-result.");
           return pExistFormula;
         }
-      } catch (SolverException e) {
+        // Create resulting inner Formula
+        BooleanFormula newFormula =
+            bFmgr.and(
+                bFmgr.and(pExistFormula.getConjunctsWithoutQuantifiedVars()),
+                bFmgr.and(
+                    FluentIterable.from(conjuncts_with_bound)
+                        .filter(Predicates.not(Predicates.in(conjuncts_to_eliminate)))
+                        .toList()));
+
+        // newBoundVars = oldBoundVars \ boundVarstoElim
+        Map<String, Formula> newBoundVars =
+            Maps.filterKeys(
+                pExistFormula.getQuantifiedVars(),
+                Predicates.not(Predicates.in(boundVarsToElim.keySet())));
+
         logger.log(
-            Level.WARNING,
-            "Solver failed while proving satisfiability of unconnected conjuncts. Ignore UPD-result.");
+            Level.FINER,
+            "Successfully applied UPD to eliminate "
+                + (pExistFormula.getNumberOfQuantifiers() - newBoundVars.size())
+                + "quantified variable(s).");
+        stats.updSucessCounter += pExistFormula.getNumberOfQuantifiers() - newBoundVars.size();
+        return new PseudoExistFormula(newBoundVars, newFormula, fmgr);
+      } else {
         return pExistFormula;
       }
-      // Create resulting inner Formula
-      BooleanFormula newFormula =
-          bFmgr.and(
-              bFmgr.and(pExistFormula.getConjunctsWithoutQuantifiedVars()),
-              bFmgr.and(
-                  FluentIterable.from(conjuncts_with_bound)
-                      .filter(Predicates.not(Predicates.in(conjuncts_to_eliminate)))
-                      .toList()));
-
-      // newBoundVars = oldBoundVars \ boundVarstoElim
-      Map<String, Formula> newBoundVars =
-          Maps.filterKeys(
-              pExistFormula.getQuantifiedVars(),
-              Predicates.not(Predicates.in(boundVarsToElim.keySet())));
-
-      logger.log(
-          Level.FINER,
-          "Successfully applied UPD to eliminate "
-              + (pExistFormula.getNumberOfQuantifiers() - newBoundVars.size())
-              + "quantified variable(s).");
-      return new PseudoExistFormula(newBoundVars, newFormula, fmgr);
-    } else {
-      return pExistFormula;
+    } finally {
+      stats.updTimer.stop();
     }
   }
 
@@ -342,63 +371,69 @@ public class PseudoExistQeManager {
    */
   PseudoExistFormula applyRealQuantifierElimination(PseudoExistFormula pExistFormula)
       throws InterruptedException {
-    assert qFmgr.isPresent();
+    stats.solverQETimer.start();
+    try {
+      assert qFmgr.isPresent();
 
-    // Create the real quantified formula
-    BooleanFormula quantifiedFormula =
-        qFmgr
-            .get()
-            .exists(
-                new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
-                pExistFormula.getInnerFormula());
+      // Create the real quantified formula
+      BooleanFormula quantifiedFormula =
+          qFmgr
+              .get()
+              .exists(
+                  new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
+                  pExistFormula.getInnerFormula());
 
-    BooleanFormula afterQE;
-    // Apply the Quantifier elimination tactic
-    if (solverQeTactic == SolverQeTactic.LIGHT) {
-      afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
-    } else if (solverQeTactic == SolverQeTactic.FULL) {
-      try {
-        afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
-      } catch (SolverException e) {
-        logger.log(
-            Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
-        // Unable to solve the QE-problem
+      BooleanFormula afterQE;
+      // Apply the Quantifier elimination tactic
+      if (solverQeTactic == SolverQeTactic.LIGHT) {
+        afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
+      } else if (solverQeTactic == SolverQeTactic.FULL) {
+        try {
+          afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
+        } catch (SolverException e) {
+          logger.log(
+              Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
+          // Unable to solve the QE-problem
+          afterQE = quantifiedFormula;
+        }
+      } else {
         afterQE = quantifiedFormula;
       }
-    } else {
-      afterQE = quantifiedFormula;
-    }
-    int numberQuantifiers = numberQuantifiers(afterQE);
-    // Check if number of quantified vars less than before
-    if (numberQuantifiers < pExistFormula.getNumberOfQuantifiers()) {
-      PseudoExistFormula result;
+      int numberQuantifiers = numberQuantifiers(afterQE);
+      // Check if number of quantified vars less than before
+      if (numberQuantifiers < pExistFormula.getNumberOfQuantifiers()) {
+        PseudoExistFormula result;
 
-      if (numberQuantifiers == 0) {
-        // If no more quantifiers just return the result of QE
-        result = new PseudoExistFormula(new HashMap<>(), afterQE, fmgr);
-        logger.log(
-            Level.FINER,
-            "Successfully applied Solver-QE to eliminate "
-                + pExistFormula.getNumberOfQuantifiers()
-                + "quantified variable(s).");
+        if (numberQuantifiers == 0) {
+          // If no more quantifiers just return the result of QE
+          result = new PseudoExistFormula(new HashMap<>(), afterQE, fmgr);
+          logger.log(
+              Level.FINER,
+              "Successfully applied Solver-QE to eliminate "
+                  + pExistFormula.getNumberOfQuantifiers()
+                  + "quantified variable(s).");
+          stats.solverQeSucessCounter += pExistFormula.getNumberOfQuantifiers();
+        } else {
+
+          // Extract Formula and map of quantified vars and create new Formula
+
+          // TODO:    1. extract the Variable names of the still bound variables
+          //          2. replace the bound vars in the inner formula by the unbound variables
+          //          3. build pseudoQuantified Formula
+          result = pExistFormula;
+        }
+        // Ensure the inner formula does not contain anymore Quantifiers,
+        // else fallback to the inputFormula
+        if (isQuantified(result.getInnerFormula())) {
+          result = pExistFormula;
+        }
+        return result;
       } else {
-
-        // Extract Formula and map of quantified vars and create new Formula
-
-        // TODO:    1. extract the Variable names of the still bound variables
-        //          2. replace the bound vars in the inner formula by the unbound variables
-        //          3. build pseudoQuantified Formula
-        result = pExistFormula;
+        // Return unchanged input
+        return pExistFormula;
       }
-      // Ensure the inner formula does not contain anymore Quantifiers,
-      // else fallback to the inputFormula
-      if (isQuantified(result.getInnerFormula())) {
-        result = pExistFormula;
-      }
-      return result;
-    } else {
-      // Return unchanged input
-      return pExistFormula;
+    } finally {
+      stats.solverQETimer.stop();
     }
   }
 
@@ -478,5 +513,51 @@ public class PseudoExistQeManager {
           }
         });
     return foundQuantifier.get();
+  }
+
+  private class PseudoExQeStatistics implements Statistics {
+    // Counter
+    private int qeTotalCounter = 0;
+    private int qeSuccessCounter = 0;
+    private int derSucessCounter = 0;
+    private int updSucessCounter = 0;
+    private int solverQeSucessCounter = 0;
+
+    // Timer
+    private final Timer qeTimer = new Timer();
+    private final Timer derTimer = new Timer();
+    private final Timer updTimer = new Timer();
+    private final Timer solverQETimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      pOut.println("Number of QEs                 : " + qeTotalCounter);
+      if (qeTotalCounter > 0) {
+        pOut.println("Successful QEs              : " + qeSuccessCounter);
+        pOut.println("Time spent QE               : " + qeTimer);
+        if (useDER) {
+          pOut.println("  Sucessful DER             : " + derSucessCounter);
+          pOut.println("  Time spent DER            : " + derTimer);
+        }
+        if (useUPD) {
+          pOut.println("  Sucessful UPD             : " + updSucessCounter);
+          pOut.println("  Time spent UPD            : " + updTimer);
+        }
+        if (solverQeTactic != SolverQeTactic.NONE) {
+          pOut.println("  Sucessful Solver Based QEs: " + solverQeSucessCounter);
+          pOut.println("  Time spent Solver Based QE: " + solverQETimer);
+        }
+      }
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "Quantifier Elimination";
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
