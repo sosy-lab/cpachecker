@@ -1094,9 +1094,6 @@ cpa.bam.useCopyOnWriteRefinement = false
 # will a cache hit.
 cpa.bam.useDynamicAdjustment = false
 
-# Use more fast partitioning builder, which can not handle loops
-cpa.bam.useExtendedPartitioningBuilder = false
-
 # max bitsize for values and vars, initial value
 cpa.bdd.bitsize = 64
 
