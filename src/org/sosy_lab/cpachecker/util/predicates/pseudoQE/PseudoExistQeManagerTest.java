@@ -77,12 +77,12 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
             .setOption("cpa.predicate.pseudoExistQE.overapprox", overapprox ? "true" : "false")
             .build();
 
-    this.pQEmgr = new PseudoExistQeManager(mgrv, testConfig, logger);
+    this.pQEmgr = new PseudoExistQeManager(solver, testConfig, logger);
   }
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    this.pQEmgr = new PseudoExistQeManager(mgrv, config, logger);
+    this.pQEmgr = new PseudoExistQeManager(solver, config, logger);
   }
 
   // Assert ex x. x=5 and y>x  after QE is y>5

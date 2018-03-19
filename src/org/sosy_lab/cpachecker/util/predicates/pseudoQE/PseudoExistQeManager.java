@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
@@ -64,7 +65,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
  */
 @Options(prefix = "cpa.predicate.pseudoExistQE")
 public class PseudoExistQeManager {
-
+  private final Solver solver;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bFmgr;
   private Optional<QuantifiedFormulaManager> qFmgr;
@@ -107,13 +108,16 @@ public class PseudoExistQeManager {
   /**
    * Create a new PseudoExistQuantifier elimination manager
    *
-   * @param pFmgr The FormulaManager to use for simplification etc.
+   * @param pSolver The Solver to use
+   * @param pConfig The configuration to use
+   * @param pLogger The logger instance to use
    * @throws InvalidConfigurationException If the Configuration is invalid
    */
-  public PseudoExistQeManager(FormulaManagerView pFmgr, Configuration pConfig, LogManager pLogger)
+  public PseudoExistQeManager(Solver pSolver, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this, PseudoExistQeManager.class);
-    this.fmgr = pFmgr;
+    this.solver = pSolver;
+    this.fmgr = pSolver.getFormulaManager();
     this.bFmgr = fmgr.getBooleanFormulaManager();
     this.logger = pLogger;
     try {
@@ -270,8 +274,9 @@ public class PseudoExistQeManager {
    *
    * @param pExistFormula The Formula to eliminate quantifiers in
    * @return If possible a UPD-simplified Formula, else it returns the input formula
+   * @throws InterruptedException When interrupted
    */
-  PseudoExistFormula applyUPD(PseudoExistFormula pExistFormula) {
+  PseudoExistFormula applyUPD(PseudoExistFormula pExistFormula) throws InterruptedException {
     List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
     List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
     Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
@@ -290,7 +295,18 @@ public class PseudoExistQeManager {
     }
 
     if (!boundVarsToElim.isEmpty()) {
-      // TODO: Show that the formula F_2 is satisfiable
+      // Show that the conjuncts to remove are satisfiable
+      try {
+        if (solver.isUnsat(bFmgr.and(conjuncts_to_eliminate))) {
+          return pExistFormula;
+        }
+      } catch (SolverException e) {
+        logger.log(
+            Level.WARNING,
+            "Solver failed while proving satisfiability of unconnected conjuncts. Ignore UPD-result.");
+        return pExistFormula;
+      }
+      // Create resulting inner Formula
       BooleanFormula newFormula =
           bFmgr.and(
               bFmgr.and(pExistFormula.getConjunctsWithoutQuantifiedVars()),
@@ -299,10 +315,12 @@ public class PseudoExistQeManager {
                       .filter(Predicates.not(Predicates.in(conjuncts_to_eliminate)))
                       .toList()));
 
+      // newBoundVars = oldBoundVars \ boundVarstoElim
       Map<String, Formula> newBoundVars =
           Maps.filterKeys(
               pExistFormula.getQuantifiedVars(),
               Predicates.not(Predicates.in(boundVarsToElim.keySet())));
+
       logger.log(
           Level.FINER,
           "Successfully applied UPD to eliminate "
