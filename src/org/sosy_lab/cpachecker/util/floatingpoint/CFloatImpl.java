@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 
 public class CFloatImpl implements CFloat {
@@ -91,7 +92,7 @@ public class CFloatImpl implements CFloat {
           exp = CFloatUtil.getBias(pType) + 2L;
           man =
               ((CFloatUtil.getNormalizationMask(pType) >>> 2)
-                  + CFloatUtil.getNormalizationMask(pType) >>> 1
+                  + (CFloatUtil.getNormalizationMask(pType) >>> 1)
                       + CFloatUtil.getNormalizationMask(pType))
                   & CFloatUtil.getNormalizedMantissaMask(pType);
           break;
@@ -144,7 +145,7 @@ public class CFloatImpl implements CFloat {
       this.wrapper.setExponent(exp);
       this.wrapper.setMantissa(man);
     } else {
-      String[] parts = pRep.split("\\.");
+      String[] parts = ImmutableList.copyOf(Splitter.on('.').split(pRep)).toArray(new String[] {});
 
       CFloat integral = null;
       CFloat fractional = null;
@@ -182,7 +183,7 @@ public class CFloatImpl implements CFloat {
       rep = pRep;
     }
 
-    String[] digits = rep.split("");
+    String[] digits = ImmutableList.copyOf(Splitter.on("").split(rep)).toArray(new String[] {});
     CFloat ten = new CFloatImpl("10", pType);
 
     CFloat result = new CFloatImpl("0", pType);
@@ -200,7 +201,7 @@ public class CFloatImpl implements CFloat {
   }
 
   private CFloat makeFractionalPart(String pRep, int pType) {
-    String[] digits = pRep.split("");
+    String[] digits = ImmutableList.copyOf(Splitter.on("").split(pRep)).toArray(new String[] {});
     CFloat ten = new CFloatImpl("10", pType);
 
     CFloat result = new CFloatImpl("0", pType);
