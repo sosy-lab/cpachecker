@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.local;
 
+import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -74,9 +75,9 @@ public class LocalStatistics implements Statistics {
     }
     try {
       Map<CFANode, LocalState> reachedStatistics = new TreeMap<>();
-      // Path p = Paths.get(outputFileName);
-      try (Writer writer =
-          Files.newBufferedWriter(Paths.get(outputFileName.toString()), Charset.defaultCharset())) {
+      // As the analysis is used as preanalysis the output directory may not be created
+      MoreFiles.createParentDirectories(outputFileName);
+      try (Writer writer = Files.newBufferedWriter(outputFileName, Charset.defaultCharset())) {
         logger.log(Level.FINE, "Write precision to " + outputFileName);
         for (AbstractState state : pReached.asCollection()) {
           CFANode node = AbstractStates.extractLocation(state);
