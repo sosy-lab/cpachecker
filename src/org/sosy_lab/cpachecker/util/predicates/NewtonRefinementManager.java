@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -150,6 +151,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
             this.calculateStrongestPostCondition(pathLocations, unsatCore);
 
         // TODO: Remove parts of the predicates that are not future live
+        predicates = filterFutureLiveVariables(pathLocations, predicates);
+
         return CounterexampleTraceInfo.infeasible(predicates);
       }
     } finally {
@@ -381,6 +384,71 @@ public class NewtonRefinementManager implements StatisticsProvider {
   }
 
   /**
+   * Projects the Predicate on the future live variables.
+   *
+   * <p>Future live variables are all variables that are present in PathFormulas after the
+   * corresponding predicate. Due to the SSAMap we can consider each variable final as for a
+   * reassignment a fresh SSAIndex is assigned.
+   *
+   * @param pPathLocations The path of the counterexample
+   * @param pPredicates The predicates as derived in previous steps
+   * @return The new predicates without variables that are not future live
+   * @throws CPAException In case of a failing Existential Quantification
+   */
+  private List<BooleanFormula> filterFutureLiveVariables(
+      List<PathLocation> pPathLocations, List<BooleanFormula> pPredicates) throws CPAException {
+
+    // Only variables that are in the predicates need be considered
+    Set<String> variablesToTest = new HashSet<>();
+    for (BooleanFormula pred : pPredicates) {
+      variablesToTest.addAll(fmgr.extractVariableNames(pred));
+    }
+    Map<String, Integer> lastOccurance = new HashMap<>();
+
+    // Map var to the last location it occurs in the path
+    for (PathLocation location : pPathLocations) {
+      Set<String> localVars = fmgr.extractVariableNames(location.getPathFormula().getFormula());
+      for (String var : variablesToTest) {
+        if (localVars.contains(var)) {
+          lastOccurance.put(var, location.getPathPosition());
+        }
+      }
+    }
+
+    List<BooleanFormula> newPredicates = new ArrayList<>();
+
+    // Map each predicate to the variables that are future live at its position
+    for (BooleanFormula pred : pPredicates) {
+
+      int predPos = 0; // TODO: This should be the position of the predicate
+      Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
+
+      // identify the variables that are not future live and can be existentially quantified
+      Map<String, Formula> toQuantify =
+          Maps.filterEntries(
+              extractVariables(pred),
+              (e) -> {
+                return !futureLives.contains(e.getKey());
+              });
+
+      // quantify the previously identified variables
+      if (!toQuantify.isEmpty()) {
+        try {
+          newPredicates.add(qeManager.eliminateQuantifiers(toQuantify, pred));
+        } catch (Exception e) {
+          throw new CPAException(
+              "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
+              e);
+        }
+      } else {
+        newPredicates.add(pred);
+      }
+    }
+
+    return newPredicates;
+  }
+
+  /**
    * Extract the Variables in a given Formula and store them in a Map, where its name is the key and
    * its Formula is the value.
    *
@@ -430,6 +498,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // always true.
     PathIterator pathIterator = pPath.fullPathIterator();
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
+    int pos = 0;
 
     while (pathIterator.hasNext()) {
       pathIterator.advance();
@@ -444,7 +513,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
         throw new CPAException(
             "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")", e);
       }
-      pathLocationList.add(new PathLocation(lastEdge, pathFormula, state));
+      pathLocationList.add(new PathLocation(pos, lastEdge, pathFormula, state));
+      pos++;
     }
     return pathLocationList;
   }
@@ -457,16 +527,30 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * iteration-steps more comprehensible
    */
   private static class PathLocation {
+    final int pos; // Position in the path
     final CFAEdge lastEdge;
     final PathFormula pathFormula;
     final Optional<ARGState> state;
 
     PathLocation(
-        final CFAEdge pLastEdge, final PathFormula pPathFormula, final Optional<ARGState> pState) {
+        final int pPosition,
+        final CFAEdge pLastEdge,
+        final PathFormula pPathFormula,
+        final Optional<ARGState> pState) {
+      pos = pPosition;
       lastEdge = pLastEdge;
       pathFormula = pPathFormula;
       state = pState;
     }
+    /**
+     * Get the position of the location in the path
+     *
+     * @return The position of the location in the path
+     */
+    int getPathPosition() {
+      return pos;
+    }
+
     /**
      * Get the incoming edge of this location
      *
