@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
@@ -125,20 +126,21 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.noOfRefinements++;
     stats.totalTimer.start();
     try {
-        // Create the list of pathLocations(holding all relevant data)
-        List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
-      List<BooleanFormula> completePathFormula = createCompletePathFormula(pathLocations);
-
-        if (isFeasible(completePathFormula)) {
+      if (isFeasible(pFormulas.getFormulas())) {
+        // Create feasible Counterexampletrace
         return CounterexampleTraceInfo.feasible(
-            completePathFormula,
+            pFormulas.getFormulas(),
             ImmutableList.<ValueAssignment>of(),
             ImmutableMap.<Integer, Boolean>of());
-        }
-      Optional<List<BooleanFormula>> unsatCore;
+      } else {
+        // Create the list of pathLocations(holding all relevant data)
+        List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
+
+        Optional<List<BooleanFormula>> unsatCore;
+
         // Only compute if unsatCoreOption is set
         if (useUnsatCore) {
-          unsatCore = Optional.of(computeUnsatCore(completePathFormula));
+          unsatCore = Optional.of(computeUnsatCore(pathLocations));
         } else {
           unsatCore = Optional.empty();
         }
@@ -149,43 +151,34 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // TODO: Remove parts of the predicates that are not future live
         return CounterexampleTraceInfo.infeasible(predicates);
+      }
     } finally {
       stats.totalTimer.stop();
     }
   }
 
   /**
-   * Create the complete path formula up to the error state
-   *
-   * @param pPathLocations The list of path locations in between
-   * @return A List of all individual PathFormulas of the edges
-   */
-  private List<BooleanFormula> createCompletePathFormula(List<PathLocation> pPathLocations) {
-    // Compute the conjunction of the pathFormulas
-    List<BooleanFormula> completePathFormula = new ArrayList<>();
-    for (PathLocation loc : pPathLocations) {
-      completePathFormula.add(loc.getPathFormula().getFormula());
-    }
-    return ImmutableList.copyOf(completePathFormula);
-  }
-
-  /**
    * Compute the Unsatisfiable core as a list of BooleanFormulas
    *
-   * @param pPathFormulas The list of PathFormulas
+   * @param pPathLocations The PathLocations on the infeasible trace
    * @return A List of BooleanFormulas
    * @throws CPAException Thrown if the solver failed while calculating unsatisfiable core
-   * @throws InterruptedException If the Execution is interrupted
+   * @throws InterruptedException If the Excecution is interrupted
    */
-  private List<BooleanFormula> computeUnsatCore(List<BooleanFormula> pPathFormulas)
+  private List<BooleanFormula> computeUnsatCore(List<PathLocation> pPathLocations)
       throws CPAException, InterruptedException {
     stats.unsatCoreTimer.start();
     try {
-      BooleanFormula completeFormula = fmgr.getBooleanFormulaManager().and(pPathFormulas);
+      // Compute the conjunction of the pathFormulas
+      BooleanFormula completePathFormula = fmgr.getBooleanFormulaManager().makeTrue();
+      for (PathLocation loc : pPathLocations) {
+        completePathFormula = fmgr.makeAnd(completePathFormula, loc.getPathFormula().getFormula());
+      }
+
       // Compute the unsat core
       List<BooleanFormula> unsatCore;
       try {
-        unsatCore = solver.unsatCore(completeFormula);
+        unsatCore = solver.unsatCore(completePathFormula);
       } catch (SolverException e) {
         throw new CPAException(
             "Solver failed to compute the unsat core while Newton refinement.", e);
@@ -199,19 +192,24 @@ public class NewtonRefinementManager implements StatisticsProvider {
   /**
    * Check the feasibility of the traceformula
    *
-   * @param pPathFormulas The path formulas
+   * @param pFormulas The path formula
    * @return <code>true</code> if the trace is feasible
    * @throws CPAException Thrown if the solver failed while proving unsatisfiability
-   * @throws InterruptedException If the Execution is interrupted
+   * @throws InterruptedException If the Excecution is interrupted
    */
-  private boolean isFeasible(List<BooleanFormula> pPathFormulas)
+  private boolean isFeasible(List<BooleanFormula> pFormulas)
       throws CPAException, InterruptedException {
-    try {
-      return !solver.isUnsat(fmgr.getBooleanFormulaManager().and(pPathFormulas));
+    boolean isFeasible;
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      for (BooleanFormula formula : pFormulas) {
+        prover.push(formula);
+      }
+      isFeasible = !prover.isUnsat();
     } catch (SolverException e) {
       throw new CPAException(
           "Prover failed while proving unsatisfiability in Newtonrefinement.", e);
     }
+    return isFeasible;
   }
 
   /**
