@@ -73,7 +73,7 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
- * Class designed to perform a Newton based refinement
+ * Class designed to perform a Newton-based refinement
  *
  * <p>based on:
  *
@@ -99,6 +99,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
         "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
   )
   private boolean useUnsatCore = true;
+
+  //TODO: Make an option
+  private boolean useLiveVariables = true;
 
   public NewtonRefinementManager(
       LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
@@ -128,7 +131,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.totalTimer.start();
     try {
       if (isFeasible(pFormulas.getFormulas())) {
-        // Create feasible Counterexampletrace
+        // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
             pFormulas.getFormulas(),
             ImmutableList.<ValueAssignment>of(),
@@ -150,8 +153,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
         List<BooleanFormula> predicates =
             this.calculateStrongestPostCondition(pathLocations, unsatCore);
 
-        // TODO: Remove parts of the predicates that are not future live
-        predicates = filterFutureLiveVariables(pathLocations, predicates);
+        if (useLiveVariables) {
+          predicates = filterFutureLiveVariables(pathLocations, predicates);
+        }
 
         return CounterexampleTraceInfo.infeasible(predicates);
       }
@@ -166,11 +170,12 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pPathLocations The PathLocations on the infeasible trace
    * @return A List of BooleanFormulas
    * @throws CPAException Thrown if the solver failed while calculating unsatisfiable core
-   * @throws InterruptedException If the Excecution is interrupted
+   * @throws InterruptedException If the Execution is interrupted
    */
   private List<BooleanFormula> computeUnsatCore(List<PathLocation> pPathLocations)
       throws CPAException, InterruptedException {
     stats.unsatCoreTimer.start();
+
     try {
       // Compute the conjunction of the pathFormulas
       BooleanFormula completePathFormula = fmgr.getBooleanFormulaManager().makeTrue();
@@ -193,12 +198,12 @@ public class NewtonRefinementManager implements StatisticsProvider {
   }
 
   /**
-   * Check the feasibility of the traceformula
+   * Check the feasibility of the trace formula
    *
    * @param pFormulas The path formula
    * @return <code>true</code> if the trace is feasible
    * @throws CPAException Thrown if the solver failed while proving unsatisfiability
-   * @throws InterruptedException If the Excecution is interrupted
+   * @throws InterruptedException If the Execution is interrupted
    */
   private boolean isFeasible(List<BooleanFormula> pFormulas)
       throws CPAException, InterruptedException {
@@ -286,7 +291,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
               logger.log(
                   Level.FINE,
-                  "Pathformula is True, so no addtionial Formula in PostCondition for EdgeType: "
+                  "Pathformula is True, so no additional Formula in PostCondition for EdgeType: "
                       + edge.getEdgeType());
               postCondition = preCondition;
               break;
@@ -294,7 +299,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
             // Throw an exception if the type of the Edge is none of the above but it holds a PathFormula
             throw new UnsupportedOperationException(
-                "Found unsupported Edgetype in Newton Refinement: "
+                "Found unsupported EdgeType in Newton Refinement: "
                     + edge.getDescription()
                     + " of Type :"
                     + edge.getEdgeType());
@@ -397,55 +402,60 @@ public class NewtonRefinementManager implements StatisticsProvider {
    */
   private List<BooleanFormula> filterFutureLiveVariables(
       List<PathLocation> pPathLocations, List<BooleanFormula> pPredicates) throws CPAException {
+    stats.futureLivesTimer.start();
+    try {
+      // Only variables that are in the predicates need be considered
+      Set<String> variablesToTest = new HashSet<>();
+      for (BooleanFormula pred : pPredicates) {
+        variablesToTest.addAll(fmgr.extractVariableNames(pred));
+      }
+      Map<String, Integer> lastOccurance = new HashMap<>();
 
-    // Only variables that are in the predicates need be considered
-    Set<String> variablesToTest = new HashSet<>();
-    for (BooleanFormula pred : pPredicates) {
-      variablesToTest.addAll(fmgr.extractVariableNames(pred));
-    }
-    Map<String, Integer> lastOccurance = new HashMap<>();
-
-    // Map var to the last location it occurs in the path
-    for (PathLocation location : pPathLocations) {
-      Set<String> localVars = fmgr.extractVariableNames(location.getPathFormula().getFormula());
-      for (String var : variablesToTest) {
-        if (localVars.contains(var)) {
-          lastOccurance.put(var, location.getPathPosition());
+      // Map variables to the last location it occurs in the path
+      for (PathLocation location : pPathLocations) {
+        Set<String> localVars = fmgr.extractVariableNames(location.getPathFormula().getFormula());
+        for (String var : variablesToTest) {
+          if (localVars.contains(var)) {
+            lastOccurance.put(var, location.getPathPosition());
+          }
         }
       }
-    }
 
-    List<BooleanFormula> newPredicates = new ArrayList<>();
+      List<BooleanFormula> newPredicates = new ArrayList<>();
 
-    // Map each predicate to the variables that are future live at its position
-    for (BooleanFormula pred : pPredicates) {
+      // Map each predicate to the variables that are future live at its position
+      for (BooleanFormula pred : pPredicates) {
 
-      int predPos = 0; // TODO: This should be the position of the predicate
-      Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
+        int predPos = 0; // TODO: This should be the position of the predicate
+        Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
 
-      // identify the variables that are not future live and can be existentially quantified
-      Map<String, Formula> toQuantify =
-          Maps.filterEntries(
-              extractVariables(pred),
-              (e) -> {
-                return !futureLives.contains(e.getKey());
-              });
+        // identify the variables that are not future live and can be existentially quantified
+        Map<String, Formula> toQuantify =
+            Maps.filterEntries(
+                extractVariables(pred),
+                (e) -> {
+                  return !futureLives.contains(e.getKey());
+                });
 
-      // quantify the previously identified variables
-      if (!toQuantify.isEmpty()) {
-        try {
-          newPredicates.add(qeManager.eliminateQuantifiers(toQuantify, pred));
-        } catch (Exception e) {
-          throw new CPAException(
-              "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
-              e);
+        // quantify the previously identified variables
+        if (!toQuantify.isEmpty()) {
+          try {
+            newPredicates.add(qeManager.eliminateQuantifiers(toQuantify, pred));
+            stats.noOfQuantifiedFutureLives += toQuantify.size();
+          } catch (Exception e) {
+            throw new CPAException(
+                "Newton Refinement failed because quantifier elimination was not possible while projecting predicate on future live variables.",
+                e);
+          }
+        } else {
+          newPredicates.add(pred);
         }
-      } else {
-        newPredicates.add(pred);
       }
-    }
 
-    return newPredicates;
+      return newPredicates;
+    } finally {
+      stats.futureLivesTimer.stop();
+    }
   }
 
   /**
@@ -487,7 +497,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *
    * @param pPath The Path to build the path locations for.
    * @return A list of PathLocations
-   * @throws CPAException if the calculation of a pathformula fails
+   * @throws CPAException if the calculation of a PathFormula fails
    * @throws InterruptedException if interrupted
    */
   private List<PathLocation> buildPathLocationList(ARGPath pPath)
@@ -607,19 +617,28 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private class NewtonStatistics implements Statistics {
     // Counter
     private int noOfRefinements = 0;
+    private int noOfQuantifiedFutureLives = 0;
 
     // Timer
     private final Timer totalTimer = new Timer();
     private final Timer postConditionTimer = new Timer();
     private final Timer unsatCoreTimer = new Timer();
+    private final Timer futureLivesTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      pOut.println("Number of Newton Refinements            : " + noOfRefinements);
-      pOut.println("  Total Time spent                      : " + totalTimer.getSumTime());
-      pOut.println("  Time spent for strongest postcondition: " + postConditionTimer.getSumTime());
+      pOut.println("Number of Newton Refinements                : " + noOfRefinements);
+      pOut.println("  Total Time spent                          : " + totalTimer.getSumTime());
+      pOut.println(
+          "  Time spent for strongest postcondition    : " + postConditionTimer.getSumTime());
       if (useUnsatCore) {
-        pOut.println("  Time spent for unsat Core             : " + unsatCoreTimer.getSumTime());
+        pOut.println(
+            "  Time spent for unsat Core                 : " + unsatCoreTimer.getSumTime());
+      }
+      if (useLiveVariables) {
+        pOut.println(
+            "  Time spent for Live Variable projection   : " + futureLivesTimer.getSumTime());
+        pOut.println("  Number of quantified Future Live variables: " + noOfQuantifiedFutureLives);
       }
     }
 
