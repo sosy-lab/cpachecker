@@ -72,11 +72,16 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractionBasedLifting.Liftin
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.PartialTransitionRelation.CtiWithInputs;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -97,6 +102,7 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -128,6 +134,8 @@ public class PdrAlgorithm implements Algorithm {
   private final BasicPdrOptions basicPdrOptions;
   private final AbstractionStrategy abstractionStrategy;
 
+  private final InvariantGenerator invariantGenerator;
+
   private final TargetLocationProvider targetLocationProvider;
 
   private final ShutdownNotifier shutdownNotifier;
@@ -135,6 +143,8 @@ public class PdrAlgorithm implements Algorithm {
   private final AssignmentToPathAllocator assignmentToPathAllocator;
 
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
+
+  private boolean invariantGenerationRunning;
 
   private static class PdrStatistics implements Statistics {
 
@@ -165,7 +175,8 @@ public class PdrAlgorithm implements Algorithm {
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       CFA pCFA,
-      Specification pSpecification)
+      Specification pSpecification,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
 
     algorithm = pAlgorithm;
@@ -194,6 +205,30 @@ public class PdrAlgorithm implements Algorithm {
 
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, cfa.getMachineModel());
+    invariantGenerator = new AbstractInvariantGenerator() {
+
+      @Override
+      protected void startImpl(CFANode pInitialLocation) {
+        // do nothing
+      }
+
+      @Override
+      public boolean isProgramSafe() {
+        // just return false, program will be ended by parallel algorithm if the invariant
+        // generator can prove safety before the current analysis
+        return false;
+      }
+
+      @Override
+      public void cancel() {
+        // do nothing
+      }
+
+      @Override
+      public AggregatedReachedSets get() throws CPAException, InterruptedException {
+        return pAggregatedReachedSets;
+      }
+    };
   }
 
   @Override
@@ -644,6 +679,51 @@ public class PdrAlgorithm implements Algorithm {
     pFrameSet.addFrameClause(pFrameIndex, pClause);
   }
 
+  private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
+    if (invariantGenerationRunning) {
+      try {
+        if (invariantGenerator instanceof KInductionInvariantGenerator) {
+          return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
+        } else {
+          // in the general case we have to retrieve the invariants from a reachedset
+          return new FormulaInvariantsSupplier(invariantGenerator.get());
+        }
+      } catch (CPAException e) {
+        logger.logUserException(Level.FINE, e, "Invariant generation failed.");
+        invariantGenerationRunning = false;
+      } catch (InterruptedException e) {
+        shutdownNotifier.shutdownIfNecessary();
+        logger.log(Level.FINE, "Invariant generation was cancelled.");
+        logger.logDebugException(e);
+        invariantGenerationRunning = false;
+      }
+    }
+    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+  }
+
+  private CandidateInvariant getCurrentInvariant(TotalTransitionRelation pTotalTransitionRelation)
+      throws InterruptedException {
+    BooleanFormula invariant = bfmgr.makeTrue();
+    for (CFANode location : pTotalTransitionRelation.getPredecessorLocations()) {
+      BooleanFormula locationInvariant =
+          getCurrentInvariantSupplier()
+              .getInvariantFor(location, Optional.empty(), fmgr, pmgr, null);
+      if (!bfmgr.isTrue(locationInvariant)) {
+        invariant =
+            bfmgr.and(
+                invariant,
+                bfmgr.implication(
+                    TotalTransitionRelation.getUnprimedLocationFormula(fmgr, location),
+                    locationInvariant));
+      }
+    }
+    return SymbolicCandiateInvariant.makeSymbolicInvariant(
+        pTotalTransitionRelation.getPredecessorLocations(),
+        pTotalTransitionRelation.getCandidateInvariantStatePredicate(),
+        invariant,
+        fmgr);
+  }
+
   @SuppressWarnings("resource")
   private FrontierExtensionResult extendFrontier(
       CandidateInvariant pRootCandidateInvariant,
@@ -653,6 +733,9 @@ public class PdrAlgorithm implements Algorithm {
 
     int oldFrontierIndex = pFrameSet.getFrontierIndex(pRootCandidateInvariant);
     Set<CandidateInvariant> predecessorAssertions = pFrameSet.getInvariants(oldFrontierIndex);
+    predecessorAssertions =
+        Sets.union(
+            predecessorAssertions, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
     ProverEnvironmentWithFallback prover = pFrameSet.getFrameProver(oldFrontierIndex);
 
     boolean eagerLiftingRefinement = oldFrontierIndex == 0 || basicPdrOptions.liftingAbstractionFailureThreshold <= 0;

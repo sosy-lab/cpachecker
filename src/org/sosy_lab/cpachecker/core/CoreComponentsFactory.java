@@ -135,7 +135,7 @@ public class CoreComponentsFactory {
   @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
     private boolean useTestCaseGeneratorAlgorithm = false;
-  
+
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
@@ -387,7 +387,8 @@ public class CoreComponentsFactory {
                 reachedSetFactory,
                 shutdownNotifier,
                 cfa,
-                specification);
+                specification,
+                aggregatedReachedSets);
       }
 
       if (useBMC) {
@@ -424,7 +425,7 @@ public class CoreComponentsFactory {
       if (checkCounterexamplesWithBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
-      
+
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
             new TestCaseGeneratorAlgorithm(algorithm, cfa, config, cpa, logger, shutdownNotifier);
