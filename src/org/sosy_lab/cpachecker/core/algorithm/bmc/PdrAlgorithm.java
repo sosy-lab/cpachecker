@@ -301,6 +301,9 @@ public class PdrAlgorithm implements Algorithm {
             @SuppressWarnings("resource")
             ProverEnvironmentWithFallback frameProver = frameSet.getFrameProver(i);
             Set<CandidateInvariant> frameInvariants = frameSet.getInvariants(i);
+            frameInvariants =
+                Sets.union(
+                    frameInvariants, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
             List<CandidateInvariant> toPush = new ArrayList<>();
             for (CandidateInvariant frameClause : frameSet.getPushableFrameClauses(i)) {
               InductionResult<CandidateInvariant> pushAttempt =
@@ -475,6 +478,8 @@ public class PdrAlgorithm implements Algorithm {
       SymbolicCandiateInvariant abstractBlockingClause = obligation.getBlockedAbstractCti();
       int frameIndex = obligation.getFrameIndex();
       Set<CandidateInvariant> invariants = pFrameSet.getInvariants(frameIndex);
+      invariants =
+          Sets.union(invariants, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
       ProverEnvironmentWithFallback prover = pFrameSet.getFrameProver(frameIndex);
 
       boolean eagerLiftingRefinement =
