@@ -1563,7 +1563,9 @@ public class InvariantsState implements AbstractState,
         additionalAssumptions.add(hint);
       }
     }
-    result = result.addAssumptions(additionalAssumptions);
+    if (result != null) {
+      result = result.addAssumptions(additionalAssumptions);
+    }
 
     if (equals(result)) {
       return this;
