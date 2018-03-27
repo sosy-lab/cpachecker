@@ -144,7 +144,7 @@ public class PdrAlgorithm implements Algorithm {
 
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
-  private boolean invariantGenerationRunning;
+  private boolean invariantGenerationRunning = true;
 
   private static class PdrStatistics implements Statistics {
 
@@ -717,9 +717,10 @@ public class PdrAlgorithm implements Algorithm {
         invariant =
             bfmgr.and(
                 invariant,
-                bfmgr.implication(
-                    TotalTransitionRelation.getUnprimedLocationFormula(fmgr, location),
-                    locationInvariant));
+                fmgr.uninstantiate(
+                    bfmgr.implication(
+                        TotalTransitionRelation.getUnprimedLocationFormula(fmgr, location),
+                        locationInvariant)));
       }
     }
     return SymbolicCandiateInvariant.makeSymbolicInvariant(
