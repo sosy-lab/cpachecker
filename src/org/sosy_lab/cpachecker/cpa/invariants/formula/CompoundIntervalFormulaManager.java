@@ -232,7 +232,8 @@ public class CompoundIntervalFormulaManager {
     return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula, false);
   }
 
-  private boolean definitelyImplies(final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
+  public boolean definitelyImplies(
+      final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
       final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
       final BooleanFormula<CompoundInterval> pFormula,
       final boolean pDisableOverflowCheck) {

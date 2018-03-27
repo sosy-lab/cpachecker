@@ -1373,6 +1373,9 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
+# use modulo-2 template during widening if applicable.
+cpa.invariants.useMod2Template = false
+
 # use pointer-alias information in strengthening, if available.
 cpa.invariants.usePointerAliasStrengthening = true
 
