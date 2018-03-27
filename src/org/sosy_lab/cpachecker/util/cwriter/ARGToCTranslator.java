@@ -392,6 +392,7 @@ public class ARGToCTranslator {
       ArrayList<ARGEdge> result = new ArrayList<>(2);
       int ind = 0;
       boolean previousTruthAssumption = false;
+      String elseCond = null;
       for (ARGState child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
         assert edgeToChild instanceof CAssumeEdge : "something wrong: branch in ARG without condition: " + edgeToChild;
@@ -414,7 +415,19 @@ public class ARGToCTranslator {
         ind++;
 
         // create a new block starting with this condition
-        CompoundStatement newBlock = addIfStatement(currentBlock, cond);
+        CompoundStatement newBlock;
+        if (ind == 1 && !truthAssumption) {
+          newBlock = new CompoundStatement(currentBlock);
+          elseCond = cond;
+        } else {
+          newBlock = addIfStatement(currentBlock, cond);
+        }
+
+        if (truthAssumption && elseCond != null) {
+          currentBlock.addStatement(new SimpleStatement(elseCond));
+          currentBlock.addStatement(result.get(0).getCurrentBlock());
+        }
+
         ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
         if (truthAssumption) {
           result.add(0, newEdge);
