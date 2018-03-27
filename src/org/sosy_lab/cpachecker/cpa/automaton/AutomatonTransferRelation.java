@@ -247,7 +247,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
-                cpa,
+                state.getAutomatonCPA(),
                 t.getAssumptions(edge, logger, machineModel),
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
