@@ -1485,10 +1485,14 @@ public class InvariantsState implements AbstractState,
       MemoryLocation memoryLocation = entry.getKey();
       NumeralFormula<CompoundInterval> newValueFormula = entry.getValue();
       TypeInfo typeInfo = entry.getValue().getTypeInfo();
-      Variable<CompoundInterval> variable =
-          InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, memoryLocation);
-      BooleanFormula<CompoundInterval> hint = instantiateMod2Template(variable);
-      additionalHints.add(hint);
+
+      if (pPrecision.shouldUseMod2Template()) {
+        Variable<CompoundInterval> variable =
+            InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, memoryLocation);
+        BooleanFormula<CompoundInterval> hint = instantiateMod2Template(variable);
+        additionalHints.add(hint);
+      }
+
       CompoundInterval simpleExactValue =
           newValueFormula.accept(tools.evaluationVisitor, resultEnvironment);
       if (simpleExactValue.isSingleton()) {
