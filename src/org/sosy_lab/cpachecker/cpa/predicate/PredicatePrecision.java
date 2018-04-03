@@ -29,38 +29,32 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
- * This class represents the precision of the PredicateCPA.
- * It is basically a map which assigns to each node in the CFA a (possibly empty)
- * set of predicates which should be used at this location.
- * Additionally, there may be some predicates which are used for all locations
- * ("global" predicates), and some predicates which are used for all locations
- * within a specific function.
+ * This class represents the precision of the PredicateCPA. It is basically a map which assigns to
+ * each node in the CFA a (possibly empty) set of predicates which should be used at this location.
+ * Additionally, there may be some predicates which are used for all locations ("global"
+ * predicates), and some predicates which are used for all locations within a specific function.
  *
- * All instances of this class are immutable.
+ * <p>All instances of this class are immutable.
  */
-public class PredicatePrecision implements AdjustablePrecision, AdjustableInternalPrecision {
+public class PredicatePrecision implements AdjustablePrecision {
 
   /**
    * This class identifies a position in the ARG where predicates can be applied.
@@ -444,81 +438,12 @@ public class PredicatePrecision implements AdjustablePrecision, AdjustableIntern
   }
 
   @Override
-  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
-    return mergeWith((PredicatePrecision)otherPrecision);
-  }
-
-  @Override
-  public void clear() {
-    mLocalPredicates = ImmutableSetMultimap.of();
-    mLocationInstancePredicates = ImmutableSetMultimap.of();
-    mFunctionPredicates = ImmutableSetMultimap.of();
-    mGlobalPredicates = ImmutableSet.of();
-  }
-
-  @Override
-  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision) {
-    assert otherPrecision.getClass().equals(this.getClass());
-    if (!mLocalPredicates.isEmpty())
-    {
-      SetMultimap<CFANode,AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getLocalPredicates();
-      SetMultimap<CFANode, AbstractionPredicate> localPredicates =
-         HashMultimap.create(mLocalPredicates);
-      for (CFANode cfaNode : mLocalPredicates.keys()) {
-        ImmutableSet<AbstractionPredicate> tmpAbstractionPredicates = mLocalPredicates.get(cfaNode);
-        if (removed.containsKey(cfaNode) && removed.get(cfaNode).equals(tmpAbstractionPredicates))
-        {
-          localPredicates.removeAll(cfaNode);
-        }
-      }
-      mLocalPredicates = ImmutableSetMultimap.copyOf(localPredicates);
-    }
-    if (!mLocationInstancePredicates.isEmpty())
-    {
-      SetMultimap<LocationInstance, AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getLocationInstancePredicates();
-      SetMultimap<LocationInstance, AbstractionPredicate> localPredicates =
-        HashMultimap.create(mLocationInstancePredicates);
-      for (LocationInstance key : mLocationInstancePredicates.keys()) {
-        ImmutableSet<AbstractionPredicate> tmpAbstractionPredicates = mLocationInstancePredicates.get(key);
-        if (removed.containsKey(key) && removed.get(key).equals(tmpAbstractionPredicates))
-        {
-          localPredicates.removeAll(key);
-        }
-      }
-      mLocationInstancePredicates = ImmutableSetMultimap.copyOf(localPredicates);
-    }
-    if (!mFunctionPredicates.isEmpty())
-    {
-      SetMultimap<String, AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getFunctionPredicates();
-      SetMultimap<String, AbstractionPredicate> localPredicates =
-        HashMultimap.create(mFunctionPredicates);
-      for (String key : mFunctionPredicates.keys()) {
-        ImmutableSet<AbstractionPredicate> tmpAbstractionPredicates = mFunctionPredicates.get(key);
-        if (removed.containsKey(key) && removed.get(key).equals(tmpAbstractionPredicates))
-        {
-          localPredicates.removeAll(key);
-        }
-      }
-      mFunctionPredicates = ImmutableSetMultimap.copyOf(localPredicates);
-    }
-    if (!mGlobalPredicates.isEmpty())
-    {
-      Set<AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getGlobalPredicates();
-      Set<AbstractionPredicate> localPredicates = new HashSet<>(mGlobalPredicates);
-      for (AbstractionPredicate abstractionPredicate : mGlobalPredicates.asList()) {
-        if (removed.contains(abstractionPredicate))
-        {
-          localPredicates.remove(abstractionPredicate);
-        }
-      }
-      mGlobalPredicates = ImmutableSet.copyOf(localPredicates);
-    }
-
-    return false;
+  public AdjustablePrecision makeEmpty() {
+    return new PredicatePrecision(
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSet.of());
   }
 
   public boolean isEmpty() {

@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public abstract class VariableTrackingPrecision implements Precision, AdjustableInternalPrecision {
+public abstract class VariableTrackingPrecision implements Precision, AdjustablePrecision {
 
   /**
    * This method creates a precision which cannot be refined, all decisions about
@@ -79,11 +79,14 @@ public abstract class VariableTrackingPrecision implements Precision, Adjustable
     return joinedPrecision;
   }
 
-  /** This method creates Precision by the given increment.
-   * @param pIncrement
-   * @return
+  /**
+   * This method creates Precision by the given increment.
+   *
+   * @param pIncrement the given increment
+   * @return created Precision
    */
-  public abstract VariableTrackingPrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> pIncrement);
+  public abstract VariableTrackingPrecision createPrecisionByIncrement(
+      Multimap<CFANode, MemoryLocation> pIncrement);
 
   /**
    * This method creates a refinable precision. The baseline should usually be

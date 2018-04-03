@@ -51,4 +51,9 @@ public class SingletonPrecision implements AdjustablePrecision {
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     return this;
   }
+
+  @Override
+  public AdjustablePrecision makeEmpty() {
+    return this;
+  }
 }

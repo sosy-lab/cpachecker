@@ -34,7 +34,7 @@ import java.io.Writer;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -112,12 +112,12 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
     return join((VariableTrackingPrecision) otherPrecision);
   }
 
   @Override
-  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision) {
+  public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
     assert otherPrecision.getClass().equals(this.getClass());
     Multimap<CFANode, MemoryLocation> newPrecision = TreeMultimap.create();
     Multimap<CFANode, MemoryLocation> removeable = TreeMultimap.create(
@@ -130,8 +130,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
         newPrecision.putAll(cfaNode, currentLocations);
       }
     }
-    rawPrecision = ImmutableMultimap.copyOf(newPrecision);
-    return false;
+    return new LocalizedRefinablePrecision(getBaseline(), ImmutableMultimap.copyOf(newPrecision));
   }
 
   @Override
@@ -147,8 +146,8 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public void clear() {
-    rawPrecision = ImmutableMultimap.of();
+  public AdjustablePrecision makeEmpty() {
+    return new LocalizedRefinablePrecision(getBaseline(), ImmutableMultimap.of());
   }
 
   @Override

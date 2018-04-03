@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 
 public class AnalysisNotifier {
   private AnalysisNotifier() {
@@ -100,7 +99,7 @@ public class AnalysisNotifier {
     public void afterRefinement(boolean isSpurious, ReachedSet pReached, ARGReachedSet reached, ARGPath pPath, int pRefinementNumber)
         throws CPAException;
 
-    public void onPrecisionIncrementCreate(AdjustableInternalPrecision pAdjustablePrecision);
+    public void onPrecisionIncrementCreate(AdjustablePrecision pAdjustablePrecision);
     public AlgorithmStatus onRestartInOneRun(AlgorithmStatus pStatus, Algorithm algorithm, ReachedSet reached) throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException;
     public void printResults(PrintStream pOut);
   }
@@ -159,7 +158,7 @@ public class AnalysisNotifier {
     }
   }
 
-  public void onPrecisionIncrementCreate(AdjustableInternalPrecision adjustablePrecision) {
+  public void onPrecisionIncrementCreate(AdjustablePrecision adjustablePrecision) {
     if(isEnabled) {
       for(AnalysisListener e : listeners) {
          e.onPrecisionIncrementCreate(adjustablePrecision);

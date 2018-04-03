@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -239,24 +239,24 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
     return join((VariableTrackingPrecision) otherPrecision);
   }
 
   @Override
-  public boolean subtractInternal(AdjustableInternalPrecision pOtherPrecision) {
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     // Do nothing for Configurable Precision.
-    return false;
+    return this;
   }
 
   @Override
   public VariableTrackingPrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> pIncrement) {
     return this;
-    }
+  }
 
   @Override
-  public void clear() {
-    // Do nothing for Configurable Precision.
+  public AdjustablePrecision makeEmpty() {
+    return this;
   }
 
   @Override

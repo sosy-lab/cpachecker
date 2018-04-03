@@ -32,9 +32,11 @@ public interface AbstractWrapperState extends AbstractState {
    * @return A non-empty list of abstract states.
    */
   public Iterable<AbstractState> getWrappedStates();
+
   /**
    * Retrieve all wrapped target abstract states.
-   * @return
-  */
+   *
+   * @return all wrapped target abstract states.
+   */
   public List<AbstractState> getTargetLeaves();
 }

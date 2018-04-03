@@ -38,7 +38,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
@@ -71,14 +71,15 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
     return join((VariableTrackingPrecision) otherPrecision);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
-  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision) {
+  public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
     assert otherPrecision.getClass().equals(this.getClass());
-    Collection<MemoryLocation> newPrecision = new ArrayList<>();
+    SortedSet<MemoryLocation> newPrecision = new TreeSet<>();
     Collection<MemoryLocation> removeable = ((ScopedRefinablePrecision)
       otherPrecision).rawPrecision;
     for (MemoryLocation memoryLocation : rawPrecision) {
@@ -87,13 +88,12 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
         newPrecision.add(memoryLocation);
       }
     }
-    rawPrecision = ImmutableSortedSet.copyOf(newPrecision);
-    return false;
+    return new ScopedRefinablePrecision(getBaseline(), ImmutableSortedSet.copyOf(newPrecision));
   }
 
   @Override
-  public void clear() {
-    rawPrecision = ImmutableSortedSet.of();
+  public AdjustablePrecision makeEmpty() {
+    return new ScopedRefinablePrecision(getBaseline(), ImmutableSortedSet.of());
   }
 
   @Override

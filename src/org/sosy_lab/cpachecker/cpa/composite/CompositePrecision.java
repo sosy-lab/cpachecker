@@ -28,13 +28,11 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BiFunction;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-public class CompositePrecision
-    implements WrapperPrecision, AdjustablePrecision, AdjustableInternalPrecision {
+public class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   private final ImmutableList<Precision> precisions;
 
@@ -68,42 +66,14 @@ public class CompositePrecision
   }
 
   @Override
-  public AdjustableInternalPrecision addInternal(AdjustableInternalPrecision otherPrecision) {
-    Class<?> requiredClass = otherPrecision.getClass();
+  public AdjustablePrecision makeEmpty() {
+    ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
     for (Precision precision : precisions) {
-      Class<?> currentClass = precision.getClass();
-      if (requiredClass.equals(currentClass))
-      {
-        AdjustableInternalPrecision currentPrecision = (AdjustableInternalPrecision) precision;
-        return currentPrecision.addInternal(otherPrecision);
+      if (precision instanceof AdjustablePrecision) {
+        newPrecisions.add(((AdjustablePrecision) precision).makeEmpty());
       }
     }
-    return otherPrecision;
-  }
-
-  @Override
-  public boolean subtractInternal(AdjustableInternalPrecision otherPrecision) {
-    Class<?> requiredClass = otherPrecision.getClass();
-    for (Precision precision : precisions) {
-      Class<?> currentClass = precision.getClass();
-      if (requiredClass.equals(currentClass))
-      {
-        AdjustableInternalPrecision currentPrecision = (AdjustableInternalPrecision) precision;
-        return currentPrecision.subtractInternal(otherPrecision);
-      }
-    }
-    return false;
-  }
-
-  @Override
-  public void clear() {
-    for (Precision precision : precisions) {
-      if (precision instanceof AdjustableInternalPrecision)
-      {
-        AdjustableInternalPrecision currentPrecision = (AdjustableInternalPrecision) precision;
-        currentPrecision.clear();
-      }
-    }
+    return new CompositePrecision(newPrecisions.build());
   }
 
   @Override
@@ -173,13 +143,21 @@ public class CompositePrecision
   private AdjustablePrecision adjustPrecisionWith(
       AdjustablePrecision pOtherPrecision,
       BiFunction<AdjustablePrecision, AdjustablePrecision, AdjustablePrecision> adjustFunction) {
-    Preconditions.checkArgument(pOtherPrecision instanceof CompositePrecision);
-    CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
 
     for (int i = 0; i < this.precisions.size(); i++) {
       Precision currentPrecision = this.get(i);
-      Precision adjustedPrecision = precisionToAdjust.get(i);
+      Precision adjustedPrecision;
+
+      if (pOtherPrecision instanceof CompositePrecision) {
+        CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+        adjustedPrecision = precisionToAdjust.get(i);
+      } else if (pOtherPrecision.getClass() == currentPrecision.getClass()) {
+        adjustedPrecision = pOtherPrecision;
+      } else {
+        newPrecisions.add(currentPrecision);
+        continue;
+      }
 
       Preconditions.checkArgument(
           currentPrecision instanceof AdjustablePrecision,

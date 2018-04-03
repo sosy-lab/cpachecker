@@ -244,13 +244,12 @@ public class ValueAnalysisRefiner
       }
 
       // merge the value precisions of the subtree, and refine it
-      Multimap<CFANode, MemoryLocation> increment = pInterpolationTree.extractPrecisionIncrement(root);
-      VariableTrackingPrecision oldPrecision =
-          mergeValuePrecisionsForSubgraph(root, pReached.asReachedSet());
-      precisions.add(oldPrecision.withIncrement(increment));
+      final Multimap<CFANode, MemoryLocation> increment =
+          pInterpolationTree.extractPrecisionIncrement(root);
+      precisions.add(basePrecision.withIncrement(increment));
       // Process Variable Precision in MAVNotifier.
       VariableTrackingPrecision variablePrecision =
-          oldPrecision.createPrecisionByIncrement(increment);
+          basePrecision.createPrecisionByIncrement(increment);
       if (variablePrecision != null)
       {
         AnalysisNotifier.getInstance().onPrecisionIncrementCreate(variablePrecision);
@@ -260,7 +259,7 @@ public class ValueAnalysisRefiner
       if (predicatePrecisionIsAvailable) {
         precisions.add(findAllPredicatesFromSubgraph(root, reached));
         // Process Predicate Precision in MAVNotifier
-        PredicatePrecision predicatePrecision = (PredicatePrecision) precisions.get(1);
+        final PredicatePrecision predicatePrecision = (PredicatePrecision) precisions.get(1);
         if (!predicatePrecision.isEmpty())
         {
           AnalysisNotifier.getInstance().onPrecisionIncrementCreate(predicatePrecision);

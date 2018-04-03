@@ -40,8 +40,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -53,97 +53,132 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.mav.RuleSpecification.SpecificationStatus;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
-/**
- * Class implements Multi-Aspect Verification.
- */
-@Options(prefix="analysis.mav")
+/** Class implements Multi-Aspect Verification. */
+@Options(prefix = "analysis.mav")
 public class MultiAspectVerification {
 
   /**
-   * Where precisions will be cleaned:
-   * NONE - do not clean;
-   * WAITLIST - clean precisions in waitlist;
+   * Where precisions will be cleaned: NONE - do not clean; WAITLIST - clean precisions in waitlist;
    * ALL - clean precisions in all abstract states.
    */
-  public enum PrecisionCleanSet {NONE, WAITLIST, ALL}
+  private enum PrecisionCleanSet {
+    NONE,
+    WAITLIST,
+    ALL
+  }
 
   /**
-   * Precision clean strategy:
-   * NONE - do not clean;
-   * FULL - clean all precisions;
-   * BY_SPECIFICATION - clean all precisions, which correspond to current specification.
+   * Precision clean strategy: NONE - do not clean; FULL - clean all precisions; BY_SPECIFICATION -
+   * clean all precisions, which correspond to current specification.
    */
-  public enum PrecisionCleanStrategy {NONE, FULL, BY_SPECIFICATION}
+  private enum PrecisionCleanStrategy {
+    NONE,
+    FULL,
+    BY_SPECIFICATION
+  }
 
   /**
-   * Where specification ids are presented:
-   * AUTOMATON - Automaton name (default);
-   * VIOLATED_PROPERTY - Violated property description in automaton transitions
+   * Where specification ids are presented: AUTOMATON - Automaton name (default); VIOLATED_PROPERTY
+   * - Violated property description in automaton transitions
    */
-  public enum SpecificationComparators {AUTOMATON, VIOLATED_PROPERTY}
+  private enum SpecificationComparators {
+    AUTOMATON,
+    VIOLATED_PROPERTY
+  }
 
-  static SpecificationKey FIRST_SPEC = new SpecificationKey("");
-
-  @Option(secure=true, name="stopAfterError",
-      description="Stop checking for current specification after the first error was found" +
-          "(for Multi-Aspect Verification only)")
+  @Option(
+    secure = true,
+    name = "stopAfterError",
+    description =
+        "Stop checking for current specification after the first error was found"
+            + "(for Multi-Aspect Verification only)"
+  )
   private boolean stopAfterError = true;
 
-  @Option(secure=true, name="basicIntervalTimeLimit",
-      description="time limit for all intervals in MAV algorithm")
+  @Option(
+    secure = true,
+    name = "basicIntervalTimeLimit",
+    description = "time limit for all intervals in MAV algorithm"
+  )
   private int basicIntervalTimeLimit = 0;
 
-  @Option(secure=true, name="assertTimeLimit",
-      description="time limit for each assert in MAV")
+  @Option(
+    secure = true,
+    name = "assertTimeLimit",
+    description = "time limit for each assert in MAV"
+  )
   private int assertTimeLimit = 0;
 
-  @Option(secure=true, name="divideTimePerPropertyEqually",
-      description="divide all given resources per each property equally in MAV")
+  @Option(
+    secure = true,
+    name = "divideTimePerPropertyEqually",
+    description = "divide all given resources per each property equally in MAV"
+  )
   private boolean divideTimePerPropertyEqually = false;
 
-  @Option(secure=true, name="idleIntervalTimeLimit",
-      description="time limit for idle intervals in MAV (hard time limit)")
+  @Option(
+    secure = true,
+    name = "idleIntervalTimeLimit",
+    description = "time limit for idle intervals in MAV (hard time limit)"
+  )
   private int idleIntervalTimeLimit = 0;
 
-  @Option(secure=true, name="firstIntervalTimeLimit",
-      description="time limit for idle intervals in MAV (hard time limit)")
+  @Option(
+    secure = true,
+    name = "firstIntervalTimeLimit",
+    description = "time limit for idle intervals in MAV (hard time limit)"
+  )
   private int firstIntervalTimeLimit = 0;
 
-  // TODO: remove it
-  @Deprecated
-  @Option(secure=true, name="precisionClearingTimeLimit",
-      description="precision clearing time limit")
-  private int precisionClearingTimeLimit = 0;
+  @Option(
+    secure = true,
+    name = "precisionCleaningTimeLimit",
+    description = "time limit for cleaning precision"
+  )
+  private int precisionCleaningTimeLimit = 0;
 
-  @Option(secure=true, name="resultsFile",
-      description="file for information reuse")
+  @Option(secure = true, name = "resultsFile", description = "file for information reuse")
   private String resultsFile = null;
 
-  @Option(secure=true, name="relaunchInOneRun",
-      description="Relaunch MAV inside one verification run")
+  @Option(
+    secure = true,
+    name = "relaunchInOneRun",
+    description = "Relaunch MAV inside one verification run"
+  )
   private boolean relaunchInOneRun = false;
 
-  @Option(secure=true, name="specificationComparator",
-      description="comparator for Specification Id. " +
-          "Possible values - AUTOMATON (automaton name), VIOLATED_PROPERTY " +
-          "(violated property description)")
+  @Option(
+    secure = true,
+    name = "specificationComparator",
+    description =
+        "comparator for Specification Id. "
+            + "Possible values - AUTOMATON (automaton name), VIOLATED_PROPERTY "
+            + "(violated property description)"
+  )
   private SpecificationComparators specificationComparator = SpecificationComparators.AUTOMATON;
 
-  @Option(secure=true, name="precisionCleanStrategy",
-      description="Clean starategy for precisions for specification disable " +
-          "(NONE - do not clean precisions, FULL - clean all precisions," +
-          "BY_SPECIFICATION - clean all precisions for current specification)")
-  private PrecisionCleanStrategy precisionCleanStrategy =
-      PrecisionCleanStrategy.BY_SPECIFICATION;
+  @Option(
+    secure = true,
+    name = "precisionCleanStrategy",
+    description =
+        "Clean starategy for precisions for specification disable "
+            + "(NONE - do not clean precisions, FULL - clean all precisions,"
+            + "BY_SPECIFICATION - clean all precisions for current specification)"
+  )
+  private PrecisionCleanStrategy precisionCleanStrategy = PrecisionCleanStrategy.BY_SPECIFICATION;
 
-  @Option(secure=true, name="precisionCleanSet",
-      description="Specify states set in which precision will be cleaned on specification disable " +
-          "(NONE - do not clean at all, WAITLIST - clean precisions in waitlist," +
-          "ALL - clean precisions in all abstract states)")
-  private PrecisionCleanSet precisionCleanSet =
-      PrecisionCleanSet.WAITLIST;
+  @Option(
+    secure = true,
+    name = "precisionCleanSet",
+    description =
+        "Specify states set in which precision will be cleaned on specification disable "
+            + "(NONE - do not clean at all, WAITLIST - clean precisions in waitlist,"
+            + "ALL - clean precisions in all abstract states)"
+  )
+  private PrecisionCleanSet precisionCleanSet = PrecisionCleanSet.WAITLIST;
 
-  private Long previousCpuTimeMeasurement; // Internal result for calculating CPU time for each specification.
+  /** Internal result for calculating CPU time for each specification. */
+  private Long previousCpuTimeMeasurement;
 
   private Map<SpecificationKey, RuleSpecification> ruleSpecifications;
 
@@ -152,41 +187,44 @@ public class MultiAspectVerification {
   private SpecificationKey currentSpecificationKey;
   private ControlAutomatonCPA controlAutomaton;
   private final Configuration config;
-  public MultiAspectVerification(Configuration pConfig)
-          throws InvalidConfigurationException
-  {
-    ruleSpecifications = new HashMap<>();
+  private final boolean isCheckPCTL;
+
+  public MultiAspectVerification(Configuration pConfig) throws InvalidConfigurationException {
+    this.ruleSpecifications = new HashMap<>();
     this.config = pConfig;
     this.config.inject(this);
-    lastSpecificationKey = new SpecificationKey("");
+    this.isCheckPCTL =
+        (precisionCleaningTimeLimit > 0) && (precisionCleanSet == PrecisionCleanSet.ALL);
+    this.lastSpecificationKey = new SpecificationKey("");
     this.controlAutomaton = null;
   }
 
-  public void addNewSpecification(List<Automaton> automata) {
+  public void addNewSpecification(final List<Automaton> automata) {
     for (Automaton errorAutomaton : automata) {
       switch (specificationComparator) {
-      case AUTOMATON:
-        String specificationId = errorAutomaton.getName();
-        SpecificationKey specificationKey = new SpecificationKey(specificationId);
-        RuleSpecification specification = new RuleSpecification(specificationKey);
-        addNewSpecification(specification);
-        break;
-      case VIOLATED_PROPERTY:
-        for (AutomatonInternalState automatonInternalState : errorAutomaton.getStates()) {
-          List<AutomatonTransition> automatonTransitionSet = automatonInternalState.getTransitions();
-          for (AutomatonTransition automatonTransition : automatonTransitionSet) {
-            specificationId = automatonTransition.getName();
-            SpecificationKey errorLabel = new SpecificationKey(specificationId);
-            if (!ruleSpecifications.containsKey(errorLabel)) {
-              specification = new RuleSpecification(errorLabel);
-            addNewSpecification(specification);
+        case AUTOMATON:
+          String specificationId = errorAutomaton.getName();
+          SpecificationKey specificationKey = new SpecificationKey(specificationId);
+          RuleSpecification specification = new RuleSpecification(specificationKey);
+          addNewSpecification(specification);
+          break;
+        case VIOLATED_PROPERTY:
+          for (AutomatonInternalState automatonInternalState : errorAutomaton.getStates()) {
+            List<AutomatonTransition> automatonTransitionSet =
+                automatonInternalState.getTransitions();
+            for (AutomatonTransition automatonTransition : automatonTransitionSet) {
+              specificationId = automatonTransition.getName();
+              SpecificationKey errorLabel = new SpecificationKey(specificationId);
+              if (!ruleSpecifications.containsKey(errorLabel)) {
+                specification = new RuleSpecification(errorLabel);
+                addNewSpecification(specification);
+              }
             }
           }
-        }
-        break;
-      default:
-        assert false;
-        break;
+          break;
+        default:
+          assert false;
+          break;
       }
     }
   }
@@ -195,173 +233,191 @@ public class MultiAspectVerification {
     ruleSpecifications.put(differentSpecification.getSpecificationKey(), differentSpecification);
   }
 
-  /**
-   * Adds Adjustable precision to the current checked specification.
-   */
-  public void addPrecision(AdjustableInternalPrecision addedPrecision) {
-    if (currentSpecificationKey == null)
-    {
+  /** Adds Adjustable precision to the current checked specification. */
+  public void addPrecision(final AdjustablePrecision addedPrecision) {
+    if (currentSpecificationKey == null) {
       // No current specification.
       return;
     }
-
     // Collect Precisions only if they are needed in selected Precision Clean Strategy.
-    if (precisionCleanStrategy == PrecisionCleanStrategy.BY_SPECIFICATION)
-    {
+    if (precisionCleanStrategy == PrecisionCleanStrategy.BY_SPECIFICATION) {
       ruleSpecifications.get(currentSpecificationKey).addPrecision(addedPrecision);
     }
   }
 
-  public void changeSpecificationStatus(SpecificationKey targetErrorLabel, SpecificationStatus specificationStatus) {
-    if (targetErrorLabel == null)
-    {
+  public void changeSpecificationStatus(
+      final SpecificationKey targetErrorLabel, final SpecificationStatus specificationStatus) {
+    if (targetErrorLabel == null) {
       return;
     }
     RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
-    if (tmpRuleSpecification != null)
-    {
+    if (tmpRuleSpecification != null) {
       tmpRuleSpecification.setStatus(specificationStatus);
     }
   }
 
-  public boolean checkAssertTimeLimit(long currentSpecificationTime) {
+  public final boolean checkAssertTimeLimit(final long currentSpecificationTime) {
     // Do not check for time limit if is set to 0.
-    if (assertTimeLimit <= 0) { return true; }
-    if (currentSpecificationTime > assertTimeLimit * 1000) { return false; }
+    if (assertTimeLimit <= 0) {
+      return true;
+    }
+    if (currentSpecificationTime > assertTimeLimit * 1000) {
+      return false;
+    }
     return true;
   }
 
-  public boolean checkBasicIntervalTimeLimit(long currentAbstractionTime) {
+  public final boolean checkBasicIntervalTimeLimit(final long currentAbstractionTime) {
     // Do not check for time limit if is set to 0.
-    if (basicIntervalTimeLimit <= 0) { return true; }
-    if (currentAbstractionTime > basicIntervalTimeLimit * 1000) { return false; }
+    if (basicIntervalTimeLimit <= 0) {
+      return true;
+    }
+    if (currentAbstractionTime > basicIntervalTimeLimit * 1000) {
+      return false;
+    }
     return true;
   }
 
-  public boolean checkIdleIntervalTimeLimit(long currentHardTime) {
-    // Do not check for time limit if is set to 0.
-    if (idleIntervalTimeLimit <= 0) { return true; }
-    if (currentHardTime > idleIntervalTimeLimit * 1000) { return false; }
+  public final boolean checkPrecisionClearingTimeLimit(final long currentTime) {
+    if (isCheckPCTL) {
+      if (currentTime > precisionCleaningTimeLimit * 1000) {
+        return false;
+      }
+    }
     return true;
   }
 
-  public boolean checkFirstIntervalTimeLimit(long currentTime) {
+  public final boolean checkIdleIntervalTimeLimit(final long currentHardTime) {
     // Do not check for time limit if is set to 0.
-    if (firstIntervalTimeLimit <= 0) { return true; }
-    if (currentTime > firstIntervalTimeLimit * 1000) { return false; }
+    if (idleIntervalTimeLimit <= 0) {
+      return true;
+    }
+    if (currentHardTime > idleIntervalTimeLimit * 1000) {
+      return false;
+    }
     return true;
   }
 
-  public boolean checkPrecisionClearingTimeLimit(long currentTime) {
+  public final boolean checkFirstIntervalTimeLimit(final long currentTime) {
     // Do not check for time limit if is set to 0.
-    if (precisionClearingTimeLimit <= 0) { return true; }
-    if (currentTime > precisionClearingTimeLimit * 1000) { return false; }
+    if (firstIntervalTimeLimit <= 0) {
+      return true;
+    }
+    if (currentTime > firstIntervalTimeLimit * 1000) {
+      return false;
+    }
     return true;
   }
 
-  public boolean cleanPrecision(ReachedSet reachedSet, SpecificationKey specificationKey)
+  public void cleanPrecision(ReachedSet reachedSet, final SpecificationKey specificationKey)
       throws CPAException {
 
-    boolean isTimeout = false;
-
     if (specificationKey == null || !ruleSpecifications.containsKey(specificationKey)) {
-      return false;
+      return;
     }
 
     Collection<AbstractState> statesForCleaning = null;
     switch (precisionCleanSet) {
-    case NONE:
-      return false;
-    case WAITLIST:
-      statesForCleaning = reachedSet.getWaitlist();
-      break;
-    case ALL:
-      statesForCleaning = reachedSet.asCollection();
-      break;
-    default:
-      assert false;
-      return false;
+      case NONE:
+        return;
+      case WAITLIST:
+        statesForCleaning = reachedSet.getWaitlist();
+        break;
+      case ALL:
+        statesForCleaning = reachedSet.asCollection();
+        break;
+      default:
+        assert false;
+        return;
     }
 
     switch (precisionCleanStrategy) {
-    case NONE:
-      return false;
-    case FULL:
-      for (AbstractState state : statesForCleaning)
-      {
-        Precision currentPrecision = reachedSet.getPrecision(state);
-          if (currentPrecision instanceof AdjustableInternalPrecision)
-        {
-            AdjustableInternalPrecision currentAdjustablePrecision =
-                (AdjustableInternalPrecision) currentPrecision;
-          currentAdjustablePrecision.clear();
-        }
-
-        // Check PCTL.
-        Long currentCpuTime = getCurrentCpuTime();
-        if (!checkPrecisionClearingTimeLimit(currentCpuTime))
-        {
-          return true;
-        }
-      }
-      break;
-    case BY_SPECIFICATION:
-        Collection<Class<? extends AdjustableInternalPrecision>> precisionTypes =
-        ruleSpecifications.get(specificationKey).getPrecisionTypes();
-      if (precisionTypes == null || precisionTypes.isEmpty()) {
-        // No precision to clean.
-        return false;
-      }
-
-        for (Class<? extends AdjustableInternalPrecision> precisionType : precisionTypes) {
-          AdjustableInternalPrecision precisionForCleaning =
-              getPrecision(specificationKey, precisionType);
-
-        for (AbstractState state : statesForCleaning)
-        {
-          Precision currentPrecision = reachedSet.getPrecision(state);
-            if (currentPrecision instanceof AdjustableInternalPrecision)
-          {
-              AdjustableInternalPrecision currentAdjustablePrecision =
-                  (AdjustableInternalPrecision) currentPrecision;
-              isTimeout = currentAdjustablePrecision.subtractInternal(precisionForCleaning);
-          }
-
-          // Check PCTL.
-          Long currentCpuTime = getCurrentCpuTime();
-          if (isTimeout || !checkPrecisionClearingTimeLimit(currentCpuTime))
-          {
-            setLastCheckedSpecification(null);
-            return true;
+      case NONE:
+        return;
+      case FULL:
+        for (AbstractState state : statesForCleaning) {
+          clearPrecisionForState(reachedSet, state);
+          if (isCheckPCTL) {
+            final Long currentCpuTime = getCurrentCpuTime();
+            if (!checkPrecisionClearingTimeLimit(currentCpuTime)) {
+              // Process waitlist instead of ARG -- it takes too long.
+              for (AbstractState waitListState : reachedSet.getWaitlist()) {
+                clearPrecisionForState(reachedSet, waitListState);
+              }
+              break;
+            }
           }
         }
-      }
-      break;
-    default:
-      assert false;
-      return false;
+        break;
+      case BY_SPECIFICATION:
+        final Collection<Class<? extends AdjustablePrecision>> precisionTypes =
+            ruleSpecifications.get(specificationKey).getPrecisionTypes();
+        if (precisionTypes == null || precisionTypes.isEmpty()) {
+          // No precision to clean.
+          return;
+        }
+        for (Class<? extends AdjustablePrecision> precisionType : precisionTypes) {
+          AdjustablePrecision precisionForCleaning = getPrecision(specificationKey, precisionType);
+          for (AbstractState state : statesForCleaning) {
+            subtractPrecisionForState(reachedSet, state, precisionForCleaning);
+            if (isCheckPCTL) {
+              final Long currentCpuTime = getCurrentCpuTime();
+              if (!checkPrecisionClearingTimeLimit(currentCpuTime)) {
+                // Process waitlist instead of ARG -- it takes too long.
+                for (AbstractState waitListState : reachedSet.getWaitlist()) {
+                  subtractPrecisionForState(reachedSet, waitListState, precisionForCleaning);
+                }
+                break;
+              }
+            }
+          }
+        }
+        break;
+      default:
+        assert false;
+        return;
     }
 
-    return false;
+    return;
   }
 
-  public void disableSpecification(ControlAutomatonCPA controlAutomatonCPA,
-      SpecificationKey specificationKey) throws CPAException {
+  private void clearPrecisionForState(ReachedSet reachedSet, final AbstractState state) {
+    final Precision currentPrecision = reachedSet.getPrecision(state);
+    if (currentPrecision instanceof AdjustablePrecision) {
+      reachedSet.updatePrecision(state, ((AdjustablePrecision) currentPrecision).makeEmpty());
+    }
+  }
+
+  private void subtractPrecisionForState(
+      ReachedSet reachedSet,
+      final AbstractState state,
+      final AdjustablePrecision precisionForCleaning) {
+    final Precision currentPrecision = reachedSet.getPrecision(state);
+    if (currentPrecision instanceof AdjustablePrecision) {
+      reachedSet.updatePrecision(
+          state, ((AdjustablePrecision) currentPrecision).subtract(precisionForCleaning));
+    }
+  }
+
+  public void disableSpecification(
+      final ControlAutomatonCPA controlAutomatonCPA, final SpecificationKey specificationKey)
+      throws CPAException {
     if (specificationKey == null || controlAutomatonCPA == null) {
       // Do nothing.
       return;
     }
     switch (specificationComparator) {
-    case AUTOMATON:
-      assert Objects.equals(controlAutomatonCPA.getAutomaton().getName(), specificationKey.getId());
-      controlAutomatonCPA.disable();
-      break;
-    case VIOLATED_PROPERTY:
-      controlAutomatonCPA.disable(specificationKey.getId());
-      break;
-    default:
-      assert false;
-      break;
+      case AUTOMATON:
+        assert Objects.equals(
+            controlAutomatonCPA.getAutomaton().getName(), specificationKey.getId());
+        controlAutomatonCPA.disable();
+        break;
+      case VIOLATED_PROPERTY:
+        controlAutomatonCPA.disable(specificationKey.getId());
+        break;
+      default:
+        assert false;
+        break;
     }
     boolean isFinished = true;
     for (RuleSpecification specification : getAllSpecifications()) {
@@ -370,35 +426,35 @@ public class MultiAspectVerification {
       }
     }
     if (isFinished) {
-      throw new CPAException("Stopping verification, since all properties have been already checked");
+      throw new CPAException(
+          "Stopping verification, since all properties have been already checked");
     }
   }
 
-  public Collection<RuleSpecification> getAllSpecifications() {
+  public final Collection<RuleSpecification> getAllSpecifications() {
     return ruleSpecifications.values();
   }
 
-  public SpecificationComparators getComparator() {
+  public final SpecificationComparators getComparator() {
     return specificationComparator;
   }
 
-  public Long getCpuTime(SpecificationKey targetErrorLabel) {
+  public final Long getCpuTime(SpecificationKey targetErrorLabel) {
     if (targetErrorLabel == null) {
       return -1L;
     }
     RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
-    if (tmpRuleSpecification != null)
-    {
+    if (tmpRuleSpecification != null) {
       return tmpRuleSpecification.getCpuTime();
     }
     return -1L;
   }
 
-  public ControlAutomatonCPA getCurrentControlAutomaton() {
+  public final ControlAutomatonCPA getCurrentControlAutomaton() {
     return controlAutomaton;
   }
 
-  public Long getCurrentCpuTime() throws CPAException {
+  public final Long getCurrentCpuTime() throws CPAException {
     Long currentCpuTime = 0L;
     try {
       Long fullCpuTime = ProcessCpuTime.read();
@@ -410,60 +466,52 @@ public class MultiAspectVerification {
     return currentCpuTime;
   }
 
-  public SpecificationKey getCurrentSpecification() {
+  public final SpecificationKey getCurrentSpecification() {
     return currentSpecificationKey;
   }
 
-  public SpecificationKey getLastCheckedSpecification() {
+  public final SpecificationKey getLastCheckedSpecification() {
     return lastSpecificationKey;
   }
 
-  /**
-   * Get Precision of selected class.
-   */
-  public AdjustableInternalPrecision getPrecision(
-      SpecificationKey specificationKey,
-      Class<? extends AdjustableInternalPrecision> pPrecisionType) {
-    if (specificationKey == null)
-    {
+  /** Get Precision of selected class. */
+  public final AdjustablePrecision getPrecision(
+      final SpecificationKey specificationKey,
+      final Class<? extends AdjustablePrecision> pPrecisionType) {
+    if (specificationKey == null) {
       return null;
     }
-    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(specificationKey);
-    if (tmpRuleSpecification != null)
-    {
+    final RuleSpecification tmpRuleSpecification = ruleSpecifications.get(specificationKey);
+    if (tmpRuleSpecification != null) {
       return tmpRuleSpecification.getPrecision(pPrecisionType);
     }
     return null;
   }
 
-  /**
-   * Create specification key by known target state.
-   */
-  public SpecificationKey getViolatedSpecification(AutomatonState targetState) {
+  /** Create specification key by known target state. */
+  public final SpecificationKey getViolatedSpecification(AutomatonState targetState) {
     SpecificationKey specificationKey = null;
     switch (specificationComparator) {
-    case AUTOMATON:
-      ControlAutomatonCPA targetAutomaton = targetState.getAutomaton();
-      specificationKey = new SpecificationKey(targetAutomaton.getAutomaton().getName());
-      break;
-    case VIOLATED_PROPERTY:
-      specificationKey = new SpecificationKey(targetState.getTransitionName());
-      break;
-    default:
-      assert false;
-      break;
+      case AUTOMATON:
+        ControlAutomatonCPA targetAutomaton = targetState.getAutomaton();
+        specificationKey = new SpecificationKey(targetAutomaton.getAutomaton().getName());
+        break;
+      case VIOLATED_PROPERTY:
+        specificationKey = new SpecificationKey(targetState.getTransitionName());
+        break;
+      default:
+        assert false;
+        break;
     }
     return specificationKey;
   }
 
-  private void incTime(SpecificationKey targetErrorLabel, Long cpuTime) {
-    if (targetErrorLabel == null)
-    {
+  private void incTime(final SpecificationKey targetErrorLabel, final Long cpuTime) {
+    if (targetErrorLabel == null) {
       return;
     }
-    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
-    if (tmpRuleSpecification != null)
-    {
+    final RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
+    if (tmpRuleSpecification != null) {
       tmpRuleSpecification.addCpuTime(cpuTime);
     }
   }
@@ -483,13 +531,11 @@ public class MultiAspectVerification {
     }
     try {
       File file = new File(resultsFile);
-      try (
-          BufferedWriter writer = Files.newBufferedWriter(file.toPath(), Charset.defaultCharset());
-          )
-      {
+      try (BufferedWriter writer =
+          Files.newBufferedWriter(file.toPath(), Charset.defaultCharset()); ) {
         writer.write(toString());
         if (lastSpecificationKey != null) {
-          writer.write(lastSpecificationKey.toString()+"\n");
+          writer.write(lastSpecificationKey.toString() + "\n");
         }
         writer.flush();
       }
@@ -498,7 +544,8 @@ public class MultiAspectVerification {
     }
   }
 
-  public void setCurrentSpecification(SpecificationKey currentCheckedSpecification, ControlAutomatonCPA automaton) {
+  public void setCurrentSpecification(
+      SpecificationKey currentCheckedSpecification, ControlAutomatonCPA automaton) {
     this.currentSpecificationKey = currentCheckedSpecification;
     this.controlAutomaton = automaton;
   }
@@ -522,7 +569,11 @@ public class MultiAspectVerification {
 
   public void printResults(PrintStream pOut) {
     for (RuleSpecification differentSpecification : ruleSpecifications.values()) {
-      pOut.println(String.format("\tProperty %s: %s", differentSpecification.getSpecificationKey().getId(), differentSpecification.getVerdict()));
+      pOut.println(
+          String.format(
+              "\tProperty %s: %s",
+              differentSpecification.getSpecificationKey().getId(),
+              differentSpecification.getVerdict()));
     }
   }
 
@@ -535,7 +586,7 @@ public class MultiAspectVerification {
     return result;
   }
 
-  public void updateTime(SpecificationKey targetErrorLabel) throws CPAException {
+  public void updateTime(final SpecificationKey targetErrorLabel) throws CPAException {
     // Calculate current time.
     Long currentCpuTime = 0L;
     try {
@@ -550,5 +601,4 @@ public class MultiAspectVerification {
     // Update current time.
     incTime(targetErrorLabel, currentCpuTime);
   }
-
 }

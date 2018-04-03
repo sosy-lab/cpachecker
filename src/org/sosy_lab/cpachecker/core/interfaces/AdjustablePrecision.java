@@ -31,6 +31,9 @@ public interface AdjustablePrecision extends Precision {
   /** Add other Precision to current and return a new Precision. */
   public AdjustablePrecision add(AdjustablePrecision otherPrecision);
 
-  /** Subtract other Precision from current and a return new Precision. */
+  /** Subtract other Precision from current and return a new Precision. */
   public AdjustablePrecision subtract(AdjustablePrecision otherPrecision);
+
+  /** Return empty Precision. */
+  public AdjustablePrecision makeEmpty();
 }

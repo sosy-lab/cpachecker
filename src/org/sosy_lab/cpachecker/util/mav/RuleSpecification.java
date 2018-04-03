@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.util.mav;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
 /**
- * Utility class for representation of specification.
- * This class is designed for Multi-Aspect Verification
- * (options analysis.stopAfterError = false, analysis.multiAspectVerification = true).
+ * Utility class for representation of specification. This class is designed for Multi-Aspect
+ * Verification (options analysis.stopAfterError = false, analysis.multiAspectVerification = true).
  * Each specification differs by its unique id.
  */
 public class RuleSpecification {
@@ -39,53 +38,52 @@ public class RuleSpecification {
   private Long cpuTime; // in ms
 
   /**
-   * Corresponding precisions, that were added when this specification was checking.
-   * Key is the class name of this precision.
-   * All precisions, that will be used, must implement AdjustablePrecision
-   * (for adding/subtracting).
+   * Corresponding precisions, that were added when this specification was checking. Key is the
+   * class name of this precision. All precisions, that will be used, must implement
+   * AdjustablePrecision (for adding/subtracting).
    */
-  private Map<Class<? extends AdjustableInternalPrecision>, AdjustableInternalPrecision> precisions;
+  private Map<Class<? extends AdjustablePrecision>, AdjustablePrecision> precisions;
 
   /**
-   * Possible verdicts for each specification:
-   * CHECKING - specification is checking (initial);
-   * UNSAFE - error trace (counterexample) was found for this RS;
-   * UNKNOWN - specification has exhausted its internal resources;
-   * RECHECK - specification has exhausted its internal resources
-   * (probably because of other specification and should be rechecked);
-   * SAFE - analysis has been completed for this specification without finding any error traces
-   * or exhausting internal resources.
+   * Possible verdicts for each specification: CHECKING - specification is checking (initial);
+   * UNSAFE - error trace (counterexample) was found for this RS; UNKNOWN - specification has
+   * exhausted its internal resources; RECHECK - specification has exhausted its internal resources
+   * (probably because of other specification and should be rechecked); SAFE - analysis has been
+   * completed for this specification without finding any error traces or exhausting internal
+   * resources.
    */
-  public enum SpecificationStatus {CHECKING, UNSAFE, UNKNOWN, RECHECK, SAFE}
-  private SpecificationStatus specificationStatus;
-
-
-  public RuleSpecification (SpecificationKey specificationKey)
-  {
-    this.specificationKey = specificationKey;
-    cpuTime = 0L;
-    specificationStatus = SpecificationStatus.CHECKING;
-    precisions = new HashMap<>();
+  public enum SpecificationStatus {
+    CHECKING,
+    UNSAFE,
+    UNKNOWN,
+    RECHECK,
+    SAFE
   }
 
-  public void addPrecision(AdjustableInternalPrecision otherPrecision) {
-    Class<? extends AdjustableInternalPrecision> type = otherPrecision.getClass();
-    if (precisions.containsKey(type))
-    {
-      precisions.put(type, precisions.get(type).addInternal(otherPrecision));
-    }
-    else
-    {
+  private SpecificationStatus specificationStatus;
+
+  public RuleSpecification(SpecificationKey specificationKey) {
+    this.specificationKey = specificationKey;
+    this.cpuTime = 0L;
+    this.specificationStatus = SpecificationStatus.CHECKING;
+    this.precisions = new HashMap<>(2);
+  }
+
+  public void addPrecision(final AdjustablePrecision otherPrecision) {
+    Class<? extends AdjustablePrecision> type = otherPrecision.getClass();
+    if (precisions.containsKey(type)) {
+      precisions.put(type, precisions.get(type).add(otherPrecision));
+    } else {
       precisions.put(type, otherPrecision);
     }
   }
 
-  public AdjustableInternalPrecision
-      getPrecision(Class<? extends AdjustableInternalPrecision> pPrecisionType) {
+  public final AdjustablePrecision getPrecision(
+      final Class<? extends AdjustablePrecision> pPrecisionType) {
     return precisions.get(pPrecisionType);
   }
 
-  public Set<Class<? extends AdjustableInternalPrecision>> getPrecisionTypes() {
+  public final Set<Class<? extends AdjustablePrecision>> getPrecisionTypes() {
     return precisions.keySet();
   }
 
@@ -96,19 +94,19 @@ public class RuleSpecification {
     }
   }
 
-  public SpecificationStatus getStatus() {
+  public final SpecificationStatus getStatus() {
     return specificationStatus;
   }
 
-  public SpecificationKey getSpecificationKey() {
+  public final SpecificationKey getSpecificationKey() {
     return specificationKey;
   }
 
-  public void addCpuTime(Long addingTime) {
+  public void addCpuTime(final Long addingTime) {
     cpuTime += addingTime;
   }
 
-  public Long getCpuTime() {
+  public final Long getCpuTime() {
     return cpuTime;
   }
 
@@ -145,19 +143,23 @@ public class RuleSpecification {
   public String getVerdict() {
     // Represent internal verdicts into general format.
     switch (specificationStatus) {
-    case SAFE:
-      return "TRUE";
-    case UNSAFE:
-      return "FALSE";
-    default:
-      return "UNKNOWN";
+      case SAFE:
+        return "TRUE";
+      case UNSAFE:
+        return "FALSE";
+      default:
+        return "UNKNOWN";
     }
   }
 
   @Override
   public String toString() {
-    return "[assert=" + specificationKey + ", time=" + cpuTime +
-        ", verdict=" + specificationStatus + "]";
+    return "[assert="
+        + specificationKey
+        + ", time="
+        + cpuTime
+        + ", verdict="
+        + specificationStatus
+        + "]";
   }
-
 }

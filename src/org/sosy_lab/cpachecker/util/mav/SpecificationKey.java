@@ -24,21 +24,19 @@
 package org.sosy_lab.cpachecker.util.mav;
 
 /**
- * Utility class for representation of unique specification key.
- * This class is designed for Multi-Aspect Verification,
- * in which more than one specification can be checked at once
- * (options analysis.stopAfterError = false, analysis.multiAspectVerification = true).
+ * Utility class for representation of unique specification key. This class is designed for
+ * Multi-Aspect Verification, in which more than one specification can be checked at once (options
+ * analysis.stopAfterError = false, analysis.multiAspectVerification = true).
  */
 public class SpecificationKey {
 
-  private String id;
-
+  private final String id;
 
   SpecificationKey(String id) {
-    this.id=id;
+    this.id = id;
   }
 
-  public String getId() {
+  public final String getId() {
     return id;
   }
 
@@ -76,5 +74,4 @@ public class SpecificationKey {
   public String toString() {
     return "[" + id + "]";
   }
-
 }

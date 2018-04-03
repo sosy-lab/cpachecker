@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.core.AnalysisNotifier.AnalysisListener;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.defaults.AdjustableInternalPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -53,59 +53,54 @@ import org.sosy_lab.cpachecker.exceptions.IdleIntervalTimeLimitExhaustionExcepti
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.mav.RuleSpecification.SpecificationStatus;
 
-
-/**
- * This class implements Conditional Multi Aspect Verification (CMAV).
- */
+/** This class implements Conditional Multi Aspect Verification (CMAV). */
 public class ConditionalMAVListener implements AnalysisListener {
 
-  private LogManager logger;
-  private Configuration config;
+  private final LogManager logger;
+  private final Configuration config;
+  private final SpecificationKey emptySpecification = new SpecificationKey("");
   private CFA cfa;
 
   public ConditionalMAVListener(Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     this.logger = logger;
     this.config = config;
-    mav = new MultiAspectVerification(this.config);
+    this.mav = new MultiAspectVerification(this.config);
   }
 
-  private MultiAspectVerification mav;
-
+  private final MultiAspectVerification mav;
 
   /**
-   * Check internal timers:
-   * Abstraction Time Limit (ATL) - set limit on a single abstraction construction;
-   * in case of exhaustion specification will be disabled with verdict 'UNKNOWN' and Hard Time Limit will be started.
-   * Hard Time Limit (HTL) - starts after the exhaustion of any "soft" time limit (for example, ATL or STL)
-   * and sets limit on selecting new specification to check;
-   * in case of exhaustion CPAchecker will be terminated with global verdict 'UNKNOWN'.
+   * Check internal timers: Abstraction Time Limit (ATL) - set limit on a single abstraction
+   * construction; in case of exhaustion specification will be disabled with verdict 'UNKNOWN' and
+   * Hard Time Limit will be started. Hard Time Limit (HTL) - starts after the exhaustion of any
+   * "soft" time limit (for example, ATL or STL) and sets limit on selecting new specification to
+   * check; in case of exhaustion CPAchecker will be terminated with global verdict 'UNKNOWN'.
    */
   @Override
   public void beforeAbstractionStep(ReachedSet reachedSet) throws CPAException {
     // Get cpu time.
-    Long currentCpuTime = mav.getCurrentCpuTime();
-    SpecificationKey specificationKey = mav.getLastCheckedSpecification();
+    final Long currentCpuTime = mav.getCurrentCpuTime();
+    final SpecificationKey specificationKey = mav.getLastCheckedSpecification();
 
     if (specificationKey == null) {
       // Idle Interval
 
       // Check Idle Interval Time Limit (IITL).
-      if (!mav.checkIdleIntervalTimeLimit(currentCpuTime))
-      {
+      if (!mav.checkIdleIntervalTimeLimit(currentCpuTime)) {
         // Stop analysis.
-        throw new IdleIntervalTimeLimitExhaustionException("Idle Interval Time Limit has been exhausted");
+        throw new IdleIntervalTimeLimitExhaustionException(
+            "Idle Interval Time Limit has been exhausted");
       }
 
-    } else if (specificationKey.equals(MultiAspectVerification.FIRST_SPEC)) {
+    } else if (specificationKey.equals(emptySpecification)) {
       // First Interval
 
       // Check First Interval Time Limit (IITL).
-      if (!mav.checkFirstIntervalTimeLimit(currentCpuTime))
-      {
+      if (!mav.checkFirstIntervalTimeLimit(currentCpuTime)) {
         for (RuleSpecification specificationAssert : mav.getAllSpecifications()) {
-          mav.changeSpecificationStatus(specificationAssert.getSpecificationKey(),
-              SpecificationStatus.UNKNOWN);
+          mav.changeSpecificationStatus(
+              specificationAssert.getSpecificationKey(), SpecificationStatus.UNKNOWN);
         }
         mav.printToFile();
         throw new CPAException("First Interval Time Limit has been exhausted");
@@ -114,49 +109,43 @@ public class ConditionalMAVListener implements AnalysisListener {
       // Basic Interval
 
       // Check Basic Interval Time Limit (BITL).
-      if (!mav.checkBasicIntervalTimeLimit(currentCpuTime))
-      {
-        ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
+      if (!mav.checkBasicIntervalTimeLimit(currentCpuTime)) {
+        final ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
 
         mav.updateTime(specificationKey);
         mav.changeSpecificationStatus(specificationKey, SpecificationStatus.UNKNOWN);
         mav.disableSpecification(controlAutomatonCPA, specificationKey);
-        if (mav.cleanPrecision(reachedSet, specificationKey))
-        {
-          // deprecated time limit
-          logger.log(Level.WARNING, "Cleaning precisions has exhausted its timeout and " +
-              "was stopped");
-        }
+        mav.cleanPrecision(reachedSet, specificationKey);
 
         // Reset last checked specification (start checking for IITL).
         mav.setLastCheckedSpecification(null);
 
-        logger.log(Level.INFO, "Assert " + specificationKey +
-            " has exhausted its Basic Interval Time Limit " +
-            "and will not be checked anymore");
+        logger.log(
+            Level.INFO,
+            "Assert "
+                + specificationKey
+                + " has exhausted its Basic Interval Time Limit "
+                + "and will not be checked anymore");
         mav.printToFile();
       }
     }
   }
 
   /**
-   * Fix verdicts for specifications after analysis and set global result.
-   * If there is any UNSAFE specification results then global result must be FALSE.
-   * If analysis was finished normally, then all specification verdicts CHECKING should be
-   * changed to SAFE.
+   * Fix verdicts for specifications after analysis and set global result. If there is any UNSAFE
+   * specification results then global result must be FALSE. If analysis was finished normally, then
+   * all specification verdicts CHECKING should be changed to SAFE.
    */
   @Override
-  public Result updateResult(Result pResult) {
+  public Result updateResult(final Result pResult) {
     Result result = pResult;
     // Multi-aspect verification verdicts.
-    if (result == Result.TRUE || result == Result.FALSE)
-    {
+    if (result == Result.TRUE || result == Result.FALSE) {
       for (RuleSpecification ruleSpecification : mav.getAllSpecifications()) {
         if (ruleSpecification.getStatus() == SpecificationStatus.CHECKING) {
           ruleSpecification.setStatus(SpecificationStatus.SAFE);
         }
-        if (result == Result.TRUE && ruleSpecification.getStatus() == SpecificationStatus.UNSAFE)
-        {
+        if (result == Result.TRUE && ruleSpecification.getStatus() == SpecificationStatus.UNSAFE) {
           result = Result.FALSE;
         }
       }
@@ -173,53 +162,53 @@ public class ConditionalMAVListener implements AnalysisListener {
   private void startTimers() throws CPAException {
     mav.startTimers();
     mav.printToFile();
-    mav.setLastCheckedSpecification(MultiAspectVerification.FIRST_SPEC);
+    mav.setLastCheckedSpecification(emptySpecification);
   }
 
-  /**
-   * Start timer and print initial specifications set.
-   */
+  /** Start timer and print initial specifications set. */
   @Override
-  public void onStartAnalysis(CFA cfa) throws CPAException {
+  public void onStartAnalysis(final CFA pCfa) throws CPAException {
     startTimers();
-    this.cfa = cfa;
+    this.cfa = pCfa;
   }
 
-  /**
-   * Process specification automatons in order to create specifications.
-   */
+  /** Process specification automatons in order to create specifications. */
   @Override
-  public void onSpecificationAutomatonCreate(List<Automaton> automata) {
+  public void onSpecificationAutomatonCreate(final List<Automaton> automata) {
     mav.addNewSpecification(automata);
   }
 
   /**
-   * Define violated specification.
-   * It is supposed that only one specification can be violated at once.
-   * In case of few violated specifications (for example, the same specification was specified twice),
-   * one of them will be selected and marked as Current.
+   * Define violated specification. It is supposed that only one specification can be violated at
+   * once. In case of few violated specifications (for example, the same specification was specified
+   * twice), one of them will be selected and marked as Current.
    */
   @Override
-  public void beforeRefinement(ARGState lastElement) {
+  public void beforeRefinement(final ARGState lastElement) {
     // Find violated specification.
-    List<AbstractState> targetList = lastElement.getTargetLeaves();
+    final List<AbstractState> targetList = lastElement.getTargetLeaves();
     assert targetList.size() == 1; // Only one target automaton is expected.
     assert targetList.get(0) instanceof AutomatonState;
-    AutomatonState targetState = (AutomatonState)targetList.get(0);
-    SpecificationKey specificationKey = mav.getViolatedSpecification(targetState);
+    final AutomatonState targetState = (AutomatonState) targetList.get(0);
+    final SpecificationKey specificationKey = mav.getViolatedSpecification(targetState);
 
     // Mark current violated specification.
     mav.setCurrentSpecification(specificationKey, targetState.getAutomaton());
   }
 
   /**
-   * @throws CPAException
-   * For true errors specifications will be disabled (unless option mav.analysis.stopAfterError=false
-   * was specified) and marked as UNSAFE. In other case Specification Time Limit (STL)
-   * will be checked. In case of exhaustion will be disabled and marked as UNKNOWN.
+   * @throws CPAException For true errors specifications will be disabled (unless option
+   *     mav.analysis.stopAfterError=false was specified) and marked as UNSAFE. In other case
+   *     Specification Time Limit (STL) will be checked. In case of exhaustion will be disabled and
+   *     marked as UNKNOWN.
    */
   @Override
-  public void afterRefinement(boolean isSpurious, ReachedSet pReached, ARGReachedSet reached, ARGPath path, int refinementNumber)
+  public void afterRefinement(
+      final boolean isSpurious,
+      ReachedSet pReached,
+      ARGReachedSet reached,
+      final ARGPath path,
+      final int refinementNumber)
       throws CPAException {
 
     // Get Current specification.
@@ -227,102 +216,99 @@ public class ConditionalMAVListener implements AnalysisListener {
 
     // Update internal MAV timers.
     mav.updateTime(specificationKey);
-    Long cpuTime = mav.getCpuTime(specificationKey);
+    final Long cpuTime = mav.getCpuTime(specificationKey);
 
-    if (!isSpurious)
-    {
+    if (!isSpurious) {
       // Error trace has been found (counterexample is false).
       // Current specification will have Unsafe verdict.
-      if (mav.isStopAfterError())
-      {
+      if (mav.isStopAfterError()) {
         // Multi-Aspect Verification with First Error Analysis.
-        stopCheckingSpecification(SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
+        stopCheckingSpecification(
+            SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
         mav.setLastCheckedSpecification(specificationKey);
-      }
-      else
-      {
+      } else {
         // Multi-Aspect Verification with Multiple Error Analysis.
         // Change status and continue analysis.
         mav.changeSpecificationStatus(specificationKey, SpecificationStatus.UNSAFE);
 
         // Check STL.
-        if (!mav.checkAssertTimeLimit(cpuTime))
-        {
-          logger.log(Level.INFO, "Assert " + specificationKey +
-              " has exhausted its Assert Time Limit " +
-              "and will not be checked anymore");
-          stopCheckingSpecification(SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
+        if (!mav.checkAssertTimeLimit(cpuTime)) {
+          logger.log(
+              Level.INFO,
+              "Assert "
+                  + specificationKey
+                  + " has exhausted its Assert Time Limit "
+                  + "and will not be checked anymore");
+          stopCheckingSpecification(
+              SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
           mav.setLastCheckedSpecification(null);
-        }
-        else
-        {
+        } else {
           mav.setLastCheckedSpecification(specificationKey);
         }
       }
-    }
-    else
-    {
+    } else {
       // Error trace has not been found (counterexample is true).
       // Analysis should continue, unless current specification
       // have exhausted its time limit.
 
       // Check STL.
-      if (!mav.checkAssertTimeLimit(cpuTime))
-      {
-        if (mav.getLastCheckedSpecification() == null)
-        {
+      if (!mav.checkAssertTimeLimit(cpuTime)) {
+        if (mav.getLastCheckedSpecification() == null) {
           // Previous specification was Unknown, that is why this specification
           // should be rechecked without the previous one.
-          stopCheckingSpecification(SpecificationStatus.RECHECK, pReached, reached, path, specificationKey);
-        }
-        else
-        {
+          stopCheckingSpecification(
+              SpecificationStatus.RECHECK, pReached, reached, path, specificationKey);
+        } else {
           // Mark this specification as Unknown.
-          stopCheckingSpecification(SpecificationStatus.UNKNOWN, pReached, reached, path, specificationKey);
+          stopCheckingSpecification(
+              SpecificationStatus.UNKNOWN, pReached, reached, path, specificationKey);
         }
-        logger.log(Level.INFO, "Assert " + specificationKey +
-            " has exhausted its Assert Time Limit " +
-            "and will not be checked anymore");
+        logger.log(
+            Level.INFO,
+            "Assert "
+                + specificationKey
+                + " has exhausted its Assert Time Limit "
+                + "and will not be checked anymore");
 
         // Reset last checked specification (start checking HTL).
         mav.setLastCheckedSpecification(null);
-      }
-      else
-      {
+      } else {
         // Continue analysis.
         // Save current specification
         mav.setLastCheckedSpecification(specificationKey);
       }
     }
 
-    logger.log(Level.ALL, "Refinement " + refinementNumber + " finished with " +
-        isSpurious + ": " + specificationKey +
-        "; sum time: " + cpuTime + "ms");
+    logger.log(
+        Level.ALL,
+        "Refinement "
+            + refinementNumber
+            + " finished with "
+            + isSpurious
+            + ": "
+            + specificationKey
+            + "; sum time: "
+            + cpuTime
+            + "ms");
     logger.log(Level.ALL, "Last checked assert (LCA): " + mav.getLastCheckedSpecification());
 
     // Print results into file if specified.
     mav.printToFile();
-
   }
 
-  /**
-   * Perform required actions to stop checking this specification.
-   */
-  private void stopCheckingSpecification(SpecificationStatus specificationStatus,
+  /** Perform required actions to stop checking this specification. */
+  private void stopCheckingSpecification(
+      final SpecificationStatus specificationStatus,
       ReachedSet pReached,
       ARGReachedSet reached,
-      ARGPath path,
-      SpecificationKey specificationKey) throws CPAException {
+      final ARGPath path,
+      final SpecificationKey specificationKey)
+      throws CPAException {
 
     ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
     mav.changeSpecificationStatus(specificationKey, specificationStatus);
     mav.disableSpecification(controlAutomatonCPA, specificationKey);
-    if (mav.cleanPrecision(pReached, specificationKey))
-    {
-      // deprecated time limit
-      logger.log(Level.WARNING, "Cleaning precisions has exhausted its timeout and " +
-          "was stopped");
-    }
+    mav.cleanPrecision(pReached, specificationKey);
 
     // Rebuild last state.
     try {
@@ -333,32 +319,32 @@ public class ConditionalMAVListener implements AnalysisListener {
     }
   }
 
-  /**
-   * Save current adjustable precision.
-   */
+  /** Save current adjustable precision. */
   @Override
-  public void onPrecisionIncrementCreate(AdjustableInternalPrecision adjustablePrecision) {
+  public void onPrecisionIncrementCreate(final AdjustablePrecision adjustablePrecision) {
     mav.addPrecision(adjustablePrecision);
   }
 
   @Override
-  public AlgorithmStatus onRestartInOneRun(AlgorithmStatus pStatus,
-      Algorithm algorithm, ReachedSet reached) throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+  public AlgorithmStatus onRestartInOneRun(
+      final AlgorithmStatus pStatus, final Algorithm algorithm, ReachedSet reached)
+      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
     if (!mav.isRelaunchInOneRun()) {
       throw new CPAException("Idle Interval Time Limit has been exhausted");
     }
     AlgorithmStatus status = pStatus;
     boolean isCompleted = false;
     int iterationNumber = 2;
-    do{
+    do {
       try {
         do {
-
           // clear reached
           CFANode initLocation = cfa.getMainFunction();
           ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
-          final AbstractState initialState = cpa.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
-          final Precision initialPrecision = cpa.getInitialPrecision(initLocation, StateSpacePartition.getDefaultPartition());
+          final AbstractState initialState =
+              cpa.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
+          final Precision initialPrecision =
+              cpa.getInitialPrecision(initLocation, StateSpacePartition.getDefaultPartition());
           reached.clear();
           reached.add(initialState, initialPrecision);
 
@@ -382,8 +368,7 @@ public class ConditionalMAVListener implements AnalysisListener {
   }
 
   @Override
-  public void printResults(PrintStream pOut) {
+  public void printResults(final PrintStream pOut) {
     mav.printResults(pOut);
   }
-
 }

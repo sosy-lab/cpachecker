@@ -21,7 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * Multi Aspect Verification approach.
- */
+/** Multi Aspect Verification approach. */
 package org.sosy_lab.cpachecker.util.mav;

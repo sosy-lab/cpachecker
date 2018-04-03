@@ -267,8 +267,8 @@ analysis.mav.precisionCleanSet = WAITLIST
 analysis.mav.precisionCleanStrategy = BY_SPECIFICATION
   enum:     [NONE, FULL, BY_SPECIFICATION]
 
-# DEPRECATED: precision clearing time limit
-analysis.mav.precisionClearingTimeLimit = 0
+# time limit for cleaning precision
+analysis.mav.precisionCleaningTimeLimit = 0
 
 # Relaunch MAV inside one verification run
 analysis.mav.relaunchInOneRun = false
