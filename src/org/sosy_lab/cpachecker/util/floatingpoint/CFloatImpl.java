@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public class CFloatImpl implements CFloat {
 
@@ -145,16 +146,16 @@ public class CFloatImpl implements CFloat {
       this.wrapper.setExponent(exp);
       this.wrapper.setMantissa(man);
     } else {
-      String[] parts = ImmutableList.copyOf(Splitter.on('.').split(pRep)).toArray(new String[] {});
+      List<String> parts = Splitter.on('.').splitToList(pRep);
 
       CFloat integral = null;
       CFloat fractional = null;
 
-      if (!parts[0].equals("")) {
-        integral = makeIntegralPart(parts[0], pType);
+      if (!parts.get(0).equals("")) {
+        integral = makeIntegralPart(parts.get(0), pType);
       }
-      if (parts.length > 1 && !parts[1].equals("")) {
-        fractional = makeFractionalPart(parts[1], pType);
+      if (parts.size() > 1 && !parts.get(1).equals("")) {
+        fractional = makeFractionalPart(parts.get(1), pType);
       }
 
       CFloat result = new CFloatImpl("0", pType);
@@ -183,7 +184,7 @@ public class CFloatImpl implements CFloat {
       rep = pRep;
     }
 
-    String[] digits = ImmutableList.copyOf(Splitter.on("").split(rep)).toArray(new String[] {});
+    List<String> digits = Splitter.on("").splitToList(rep);
     CFloat ten = new CFloatImpl("10", pType);
 
     CFloat result = new CFloatImpl("0", pType);
@@ -201,12 +202,12 @@ public class CFloatImpl implements CFloat {
   }
 
   private CFloat makeFractionalPart(String pRep, int pType) {
-    String[] digits = ImmutableList.copyOf(Splitter.on("").split(pRep)).toArray(new String[] {});
+    List<String> digits = Splitter.on("").splitToList(pRep);
     CFloat ten = new CFloatImpl("10", pType);
 
     CFloat result = new CFloatImpl("0", pType);
-    for (int i = digits.length - 1; i > -1; i--) {
-      CFloat fD = new CFloatImpl(digits[i], pType);
+    for (int i = digits.size() - 1; i > -1; i--) {
+      CFloat fD = new CFloatImpl(digits.get(i), pType);
       result = result.add(fD);
       result = result.divideBy(ten);
     }
