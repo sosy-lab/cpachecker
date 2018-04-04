@@ -75,11 +75,13 @@ public class InfixExpressionCFABuilderTest {
 
   @Test
   public void testConditionalAnd() throws ParserException {
+    // TODO short circuit
     testOperator("true && false", BinaryOperator.CONDITIONAL_AND);
   }
 
   @Test
   public void testConditionalOr() throws ParserException {
+    // TODO short circuit
     testOperator("true || false", BinaryOperator.CONDITIONAL_OR);
   }
 
