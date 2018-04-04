@@ -84,6 +84,7 @@ public class IfStatementCFABuilderTest {
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(2);
     final JSAssumeEdge firstEdge = (JSAssumeEdge) entryNode.getLeavingEdge(0);
     final JSAssumeEdge secondEdge = (JSAssumeEdge) entryNode.getLeavingEdge(1);
+    Truth.assertThat(firstEdge.getTruthAssumption()).isNotEqualTo(secondEdge.getTruthAssumption());
     final JSAssumeEdge thenEdge = firstEdge.getTruthAssumption() ? firstEdge : secondEdge;
     final JSAssumeEdge elseEdge = firstEdge.getTruthAssumption() ? secondEdge : firstEdge;
 
@@ -115,6 +116,7 @@ public class IfStatementCFABuilderTest {
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(2);
     final JSAssumeEdge firstEdge = (JSAssumeEdge) entryNode.getLeavingEdge(0);
     final JSAssumeEdge secondEdge = (JSAssumeEdge) entryNode.getLeavingEdge(1);
+    Truth.assertThat(firstEdge.getTruthAssumption()).isNotEqualTo(secondEdge.getTruthAssumption());
     final JSAssumeEdge thenEdge = firstEdge.getTruthAssumption() ? firstEdge : secondEdge;
     final JSAssumeEdge elseEdge = firstEdge.getTruthAssumption() ? secondEdge : firstEdge;
 
