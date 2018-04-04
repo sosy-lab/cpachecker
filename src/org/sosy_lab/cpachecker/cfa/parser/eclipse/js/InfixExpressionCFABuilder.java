@@ -48,7 +48,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
     //    tmpLeft + tmpRight
     final ASTConverter converter = pBuilder.getAstConverter();
     final JSExpression leftOperand = pBuilder.append(pInfixExpression.getLeftOperand());
-    final String tmpLeftVariableName = "tmpLeft"; // TODO generate
+    final String tmpLeftVariableName = pBuilder.generateVariableName();
     final JSVariableDeclaration tmpLeftVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
@@ -59,7 +59,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
             tmpLeftVariableName,
             new JSInitializerExpression(FileLocation.DUMMY, leftOperand));
     final JSExpression rightOperand = pBuilder.append(pInfixExpression.getRightOperand());
-    final String tmpRightVariableName = "tmpRight"; // TODO generate
+    final String tmpRightVariableName = pBuilder.generateVariableName();
     final JSVariableDeclaration tmpRightVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
