@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -48,8 +49,8 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
     final BinaryOperator operator = convert(pInfixExpression.getOperator());
     switch (operator) {
       case CONDITIONAL_AND:
+      case CONDITIONAL_OR:
         return appendWithSideEffect(pBuilder, pInfixExpression, operator);
-      case CONDITIONAL_OR: // TODO with side effect
       case AND:
       case DIVIDE:
       case EQUALS:
@@ -81,6 +82,8 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
       final JavaScriptCFABuilder pBuilder,
       final InfixExpression pInfixExpression,
       final BinaryOperator pOperator) {
+    assert ImmutableSet.of(BinaryOperator.CONDITIONAL_AND, BinaryOperator.CONDITIONAL_OR)
+        .contains(pOperator);
     final String resultVariableName = pBuilder.generateVariableName();
     final JSVariableDeclaration resultVariableDeclaration =
         new JSVariableDeclaration(
@@ -107,9 +110,14 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
 
     final JavaScriptCFABuilder thenBranchBuilder =
         pBuilder.copy().appendEdge(assume(leftEvaluated, true));
-    final JSExpression right = thenBranchBuilder.append(pInfixExpression.getRightOperand());
+    final JSExpression thenValue =
+        pOperator == BinaryOperator.CONDITIONAL_AND
+            ? thenBranchBuilder.append(pInfixExpression.getRightOperand())
+            : leftEvaluated;
     final JSExpressionAssignmentStatement thenStatement =
-        new JSExpressionAssignmentStatement(FileLocation.DUMMY, resultVariableId, right);
+        new JSExpressionAssignmentStatement(FileLocation.DUMMY, resultVariableId, thenValue);
+    final String operatorRightExprDescription =
+        pOperator.getOperator() + " " + pInfixExpression.getRightOperand();
     pBuilder.addParseResult(
         thenBranchBuilder
             .appendEdge(
@@ -121,16 +129,18 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
                         pPredecessor,
                         pSuccessor))
             .appendEdge(
-                exitNode,
-                DummyEdge.withDescription("end true && " + pInfixExpression.getRightOperand()))
+                exitNode, DummyEdge.withDescription("end true " + operatorRightExprDescription))
             .getParseResult());
-
+    final JavaScriptCFABuilder elseBranchBuilder =
+        pBuilder.copy().appendEdge(assume(leftEvaluated, false));
+    final JSExpression elseValue =
+        pOperator == BinaryOperator.CONDITIONAL_AND
+            ? leftEvaluated
+            : elseBranchBuilder.append(pInfixExpression.getRightOperand());
     final JSExpressionAssignmentStatement elseStatement =
-        new JSExpressionAssignmentStatement(FileLocation.DUMMY, resultVariableId, leftEvaluated);
+        new JSExpressionAssignmentStatement(FileLocation.DUMMY, resultVariableId, elseValue);
     pBuilder.append(
-        pBuilder
-            .copy()
-            .appendEdge(assume(leftEvaluated, false))
+        elseBranchBuilder
             .appendEdge(
                 (pPredecessor, pSuccessor) ->
                     new JSStatementEdge(
@@ -140,8 +150,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
                         pPredecessor,
                         pSuccessor))
             .appendEdge(
-                exitNode,
-                DummyEdge.withDescription("end false && " + pInfixExpression.getRightOperand()))
+                exitNode, DummyEdge.withDescription("end false " + operatorRightExprDescription))
             .getBuilder());
     return resultVariableId;
   }
