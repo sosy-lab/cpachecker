@@ -96,6 +96,7 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
     } else if (PrefixExpression.Operator.NOT == pOperator) {
       return UnaryOperator.NOT;
     }
+    // TODO implement operators TYPE_OF, DELETE, VOID
     throw new CFAGenerationRuntimeException(
         "Unknown kind of unary operator (not handled yet): " + pOperator);
   }
