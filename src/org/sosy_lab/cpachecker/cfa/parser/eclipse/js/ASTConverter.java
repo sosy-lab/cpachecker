@@ -258,7 +258,7 @@ class ASTConverter {
         "Unknown kind of binary operator (not handled yet): " + pOperator.toString());
   }
 
-  private JSIdExpression convert(final SimpleName pSimpleName) {
+  public JSIdExpression convert(final SimpleName pSimpleName) {
     final IBinding binding = pSimpleName.resolveBinding();
     assert binding != null;
     return new JSIdExpression(
