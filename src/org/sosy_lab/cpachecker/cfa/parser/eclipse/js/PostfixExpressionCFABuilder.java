@@ -54,7 +54,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
     final BinaryOperator binaryOperator = getBinaryOperator(pPostfixExpression);
     final JSIdExpression variableToIncrement =
         (JSIdExpression) pBuilder.append(pPostfixExpression.getOperand());
-    final String oldValueVariableName = "__CPAChecker_TMP_0"; // TODO generate
+    final String oldValueVariableName = pBuilder.generateVariableName();
     final JSVariableDeclaration oldValueVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
