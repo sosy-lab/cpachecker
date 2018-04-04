@@ -31,17 +31,23 @@ import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class InfixExpressionCFABuilderTest {
@@ -74,9 +80,106 @@ public class InfixExpressionCFABuilderTest {
   }
 
   @Test
-  public void testConditionalAnd() throws ParserException {
-    // TODO short circuit
-    testOperator("true && false", BinaryOperator.CONDITIONAL_AND);
+  public void testConditionalAnd() {
+    final InfixExpression infixExpression = parseInfixExpression("lhs && rhs");
+    // infix expression:
+    //    left && right
+    // expected side effect:
+    //    var result
+    //    if (left) {
+    //      result = right
+    //    } else {
+    //      result = left
+    //    }
+    // expected result:
+    //    result
+    // expected CFA:   <entryNode> --{var result}--> () ----------------------\
+    //                                                                        |
+    //                /-------------{result = right}-- () <--[leftEvaluated]--/
+    //   (result) <--{                                                       /
+    //                \--{result = leftEvaluated}-- () <--[!leftEvaluated]--/
+
+    final JSExpression left = mock(JSExpression.class);
+    when(left.getFileLocation()).thenReturn(FileLocation.DUMMY);
+    final JSExpression right = mock(JSExpression.class);
+    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
+    //    when(expressionAppendable.append(any(), any())).thenReturn(left, right);
+    when(expressionAppendable.append(any(), any(SimpleName.class)))
+        .thenAnswer(
+            pInvocationOnMock -> {
+              final SimpleName name = pInvocationOnMock.getArgument(1);
+              switch (name.getIdentifier()) {
+                case "lhs":
+                  return left;
+                case "rhs":
+                  return right;
+              }
+              throw new RuntimeException("Unexpected SimpleName expression");
+            });
+    builder.setExpressionAppendable(expressionAppendable);
+
+    final JSIdExpression result =
+        (JSIdExpression) new InfixExpressionCFABuilder().append(builder, infixExpression);
+
+    Truth.assertThat(result).isNotNull();
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
+    // assert expected side effect: var result
+    final JSDeclarationEdge resultDeclarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
+    final JSVariableDeclaration resultDeclaration =
+        (JSVariableDeclaration) resultDeclarationEdge.getDeclaration();
+    Truth.assertThat(resultDeclaration.getInitializer()).isEqualTo(null);
+
+    // assert expected side effect:
+    //    if (left) {
+    //      result = right
+    //    } else {
+    //      result = left
+    //    }
+    final CFANode resultDeclarationEdgeSuccessor = resultDeclarationEdge.getSuccessor();
+    Truth.assertThat(resultDeclarationEdgeSuccessor.getNumLeavingEdges()).isEqualTo(2);
+    final JSAssumeEdge firstEdge = (JSAssumeEdge) resultDeclarationEdgeSuccessor.getLeavingEdge(0);
+    final JSAssumeEdge secondEdge = (JSAssumeEdge) resultDeclarationEdgeSuccessor.getLeavingEdge(1);
+    Truth.assertThat(firstEdge.getTruthAssumption()).isNotEqualTo(secondEdge.getTruthAssumption());
+    final JSAssumeEdge thenEdge = firstEdge.getTruthAssumption() ? firstEdge : secondEdge;
+    final JSAssumeEdge elseEdge = firstEdge.getTruthAssumption() ? secondEdge : firstEdge;
+
+    // assert expected side effect:
+    //    if (left) { ... } else { ... }
+    Truth.assertThat(thenEdge.getTruthAssumption()).isTrue();
+    Truth.assertThat(elseEdge.getTruthAssumption()).isFalse();
+    Truth.assertThat(thenEdge.getExpression()).isEqualTo(left);
+    Truth.assertThat(elseEdge.getExpression()).isEqualTo(left);
+
+    // assert expected side effect:
+    //      result = right
+    final JSStatementEdge thenStatementEdge =
+        (JSStatementEdge) thenEdge.getSuccessor().getLeavingEdge(0);
+    final JSAssignment thenStatement = (JSAssignment) thenStatementEdge.getStatement();
+    Truth.assertThat(((JSIdExpression) thenStatement.getLeftHandSide()).getDeclaration())
+        .isEqualTo(resultDeclaration);
+    Truth.assertThat(thenStatement.getRightHandSide()).isEqualTo(right);
+
+    // assert expected side effect:
+    //      result = left
+    final JSStatementEdge elseStatementEdge =
+        (JSStatementEdge) elseEdge.getSuccessor().getLeavingEdge(0);
+    final JSAssignment elseStatement = (JSAssignment) elseStatementEdge.getStatement();
+    Truth.assertThat(((JSIdExpression) elseStatement.getLeftHandSide()).getDeclaration())
+        .isEqualTo(resultDeclaration);
+    Truth.assertThat(elseStatement.getRightHandSide()).isEqualTo(left);
+
+    // assert that conditional branches are joined in exit node
+    final CFANode exitNode = builder.getExitNode();
+    Truth.assertThat(exitNode.getNumEnteringEdges()).isEqualTo(2);
+    final CFAEdge thenStatementExitEdge = thenStatementEdge.getSuccessor().getLeavingEdge(0);
+    Truth.assertThat(thenStatementExitEdge.getSuccessor()).isEqualTo(exitNode);
+    Truth.assertThat(thenStatementExitEdge.getDescription()).isEqualTo("end true && rhs");
+    final CFAEdge elseStatementExitEdge = elseStatementEdge.getSuccessor().getLeavingEdge(0);
+    Truth.assertThat(elseStatementExitEdge.getSuccessor()).isEqualTo(exitNode);
+    Truth.assertThat(elseStatementExitEdge.getDescription()).isEqualTo("end false && rhs");
+
+    // assert expected result
+    Truth.assertThat(result.getDeclaration()).isEqualTo(resultDeclaration);
   }
 
   @Test
