@@ -92,11 +92,11 @@ public class InfixExpressionCFABuilderTest {
     //    }
     // expected result:
     //    result
-    // expected CFA:   <entryNode> --{var result}--> () ----------------------\
-    //                                                                        |
-    //                /-------------{result = right}-- () <--[leftEvaluated]--/
-    //   (result) <--{                                                       /
-    //                \--{result = leftEvaluated}-- () <--[!leftEvaluated]--/
+    // expected CFA:   <entryNode> --{var result}--> () ----\
+    //                                                      |
+    //                /----{result = right}-- () <--[left]--/
+    //   (result) <--{                                     /
+    //                \--{result = left}-- () <--[!left]--/
 
     final JSExpression left = mock(JSExpression.class, "left");
     when(left.getFileLocation()).thenReturn(FileLocation.DUMMY);
