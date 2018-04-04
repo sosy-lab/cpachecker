@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
+import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
@@ -38,16 +39,21 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
 class ExpressionCFABuilder implements ExpressionAppendable {
 
+  private ConditionalExpressionAppendable conditionalExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
   private PostfixExpressionAppendable postfixExpressionAppendable;
 
+  void setConditionalExpressionAppendable(
+      final ConditionalExpressionAppendable pConditionalExpressionAppendable) {
+    conditionalExpressionAppendable = pConditionalExpressionAppendable;
+  }
+
   void setFunctionInvocationAppendable(
       final FunctionInvocationAppendable pFunctionInvocationAppendable) {
     functionInvocationAppendable = pFunctionInvocationAppendable;
   }
-
   void setInfixExpressionAppendable(
       final InfixExpressionAppendable pInfixExpressionAppendable) {
     infixExpressionAppendable = pInfixExpressionAppendable;
@@ -65,7 +71,9 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
-    if (pExpression instanceof FunctionInvocation) {
+    if (pExpression instanceof ConditionalExpression) {
+      return conditionalExpressionAppendable.append(pBuilder, (ConditionalExpression) pExpression);
+    } else if (pExpression instanceof FunctionInvocation) {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
     }
     // TODO do without ASTConverter
