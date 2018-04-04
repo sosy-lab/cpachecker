@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class InfixExpressionCFABuilderTest {
 
@@ -75,7 +74,7 @@ public class InfixExpressionCFABuilderTest {
   }
 
   @Test
-  public void testAnd() throws ParserException {
+  public void testAnd() {
     testOperator("2 & 7", BinaryOperator.AND);
   }
 
@@ -183,114 +182,113 @@ public class InfixExpressionCFABuilderTest {
   }
 
   @Test
-  public void testConditionalOr() throws ParserException {
+  public void testConditionalOr() {
     // TODO short circuit
     testOperator("true || false", BinaryOperator.CONDITIONAL_OR);
   }
 
   @Test
-  public void testDivide() throws ParserException {
+  public void testDivide() {
     testOperator("1 / 2", BinaryOperator.DIVIDE);
   }
 
   @Test
-  public void testEquals() throws ParserException {
+  public void testEquals() {
     testOperator("1 == 2", BinaryOperator.EQUALS);
   }
 
   @Test
-  public void testEqualEqualEqual() throws ParserException {
+  public void testEqualEqualEqual() {
     testOperator("1 === 1", BinaryOperator.EQUAL_EQUAL_EQUAL);
   }
 
   @Test
-  public void testGreater() throws ParserException {
+  public void testGreater() {
     testOperator("1 > 2", BinaryOperator.GREATER);
   }
 
   @Test
-  public void testGreaterEquals() throws ParserException {
+  public void testGreaterEquals() {
     testOperator("1 >= 2", BinaryOperator.GREATER_EQUALS);
   }
 
   @Test
-  public void testIn() throws ParserException {
+  public void testIn() {
     testOperator("1 in []", BinaryOperator.IN);
   }
 
   @Test
-  public void testInstanceOf() throws ParserException {
+  public void testInstanceOf() {
     testOperator("[] instanceof Object", BinaryOperator.INSTANCEOF);
   }
 
   @Test
-  public void testLeftShift() throws ParserException {
+  public void testLeftShift() {
     testOperator("8 << 2", BinaryOperator.LEFT_SHIFT);
   }
 
   @Test
-  public void testLess() throws ParserException {
+  public void testLess() {
     testOperator("1 < 2", BinaryOperator.LESS);
   }
 
   @Test
-  public void testLessEquals() throws ParserException {
+  public void testLessEquals() {
     testOperator("1 <= 2", BinaryOperator.LESS_EQUALS);
   }
 
   @Test
-  public void testMinus() throws ParserException {
+  public void testMinus() {
     testOperator("1 - 2", BinaryOperator.MINUS);
   }
 
   @Test
-  public void testNotEqualEqual() throws ParserException {
+  public void testNotEqualEqual() {
     testOperator("1 !== 2", BinaryOperator.NOT_EQUAL_EQUAL);
   }
 
   @Test
-  public void testNotEquals() throws ParserException {
+  public void testNotEquals() {
     testOperator("1 != 2", BinaryOperator.NOT_EQUALS);
   }
 
   @Test
-  public void testOr() throws ParserException {
+  public void testOr() {
     testOperator("1 | 2", BinaryOperator.OR);
   }
 
   @Test
-  public void testPlus() throws ParserException {
+  public void testPlus() {
     testOperator("1 + 2", BinaryOperator.PLUS);
   }
 
   @Test
-  public void testRemainder() throws ParserException {
+  public void testRemainder() {
     testOperator("1 % 2", BinaryOperator.REMAINDER);
   }
 
   @Test
-  public void testRightShiftSigned() throws ParserException {
+  public void testRightShiftSigned() {
     testOperator("1 >> 2", BinaryOperator.RIGHT_SHIFT_SIGNED);
   }
 
   @Test
-  public void testRightShiftUnsigned() throws ParserException {
+  public void testRightShiftUnsigned() {
     testOperator("1 >>> 2", BinaryOperator.RIGHT_SHIFT_UNSIGNED);
   }
 
   @Test
-  public void testTimes() throws ParserException {
+  public void testTimes() {
     testOperator("1 * 2", BinaryOperator.TIMES);
   }
 
   @Test
-  public void testXor() throws ParserException {
+  public void testXor() {
     testOperator("1 ^ 2", BinaryOperator.XOR);
   }
 
   // shared code for operators
-  private void testOperator(final String pCode, final BinaryOperator pExpectedOperator)
-      throws ParserException {
+  private void testOperator(final String pCode, final BinaryOperator pExpectedOperator) {
     // infix expression:
     //    left + right
     // expected side effect:
