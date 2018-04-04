@@ -30,6 +30,7 @@
     <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_1*true-unreach-call*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/locks/test_locks_7_true-unreach-call_true-valid-memsafety_false-termination.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ntdrivers/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
@@ -53,6 +54,8 @@
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/cs_time_var_mutex_true-unreach-call.i</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/cs_queue_false-unreach-call.i</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_stack_false-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_stack_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 

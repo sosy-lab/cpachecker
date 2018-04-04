@@ -584,7 +584,7 @@ public class SMGBuiltins {
               int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
               int availableTarget = targetSize - targetRangeOffset;
 
-              if (explicitSizeValue.isUnknown()) {
+              if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
                 if (!currentState.isObjectExternallyAllocated(sourceObject.getObject())) {
                   currentState.addErrorPredicate(
                       symbolicValue,

@@ -18,6 +18,7 @@
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/bitvector/soft_float_4_true-unreach-call_true-no-overflow_true-termination.c.cil.c</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
@@ -64,6 +65,8 @@
     <exclude>../programs/benchmarks/seq-mthreaded/rek*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/systemc/token_ring*_true-unreach-call*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.5_false-unreach-call.1.ufo.UNBOUNDED.pals.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.5_false-unreach-call.3.ufo.UNBOUNDED.pals.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.5_false-unreach-call.3.ufo.BOUNDED-10.pals_true-termination.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.4_true-unreach-call.ufo.UNBOUNDED.pals.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.7_false-unreach-call.1.ufo.UNBOUNDED.pals.c</exclude> <!-- flapping timeout -->
@@ -78,6 +81,8 @@
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-bluetooth-btmrvl_false-termination.ko_true-unreach-call.cil.out.i.pp.i</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--rtc--rtc-v3020.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--staging--serqt_usb2--serqt_usb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout -->
   </tasks>
 </benchmark>

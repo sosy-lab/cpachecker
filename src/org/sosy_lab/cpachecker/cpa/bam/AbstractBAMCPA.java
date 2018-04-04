@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -84,12 +83,6 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
             + "refinement. This flag also updates the precision of the most inner block."
   )
   private boolean doPrecisionRefinementForMostInnerBlock = true;
-
-  @Option(
-    secure = true,
-    description = "Use more fast partitioning builder, which can not handle loops"
-  )
-  private boolean useExtendedPartitioningBuilder = false;
 
   @Option(
     secure = true,
@@ -152,12 +145,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException, CPAException {
-    final BlockPartitioningBuilder blockBuilder;
-    if (useExtendedPartitioningBuilder) {
-      blockBuilder = new ExtendedBlockPartitioningBuilder();
-    } else {
-      blockBuilder = new BlockPartitioningBuilder();
-    }
+    final BlockPartitioningBuilder blockBuilder = new BlockPartitioningBuilder();
     PartitioningHeuristic heuristic = blockHeuristic.create(logger, pCfa, pConfig);
     BlockPartitioning partitioning = heuristic.buildPartitioning(blockBuilder);
     if (exportBlocksPath != null) {

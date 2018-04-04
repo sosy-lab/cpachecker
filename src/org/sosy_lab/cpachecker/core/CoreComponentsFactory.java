@@ -128,19 +128,13 @@ public class CoreComponentsFactory {
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "useInterleavedAnalyses",
-    description = "start different analyses interleaved and continue after unknown result"
-  )
-  private boolean useInterleavedAlgorithm = false;
+  @Option(secure = true, name = "useInterleavedAnalyses",
+      description = "start different analyses interleaved and continue after unknown result")
+    private boolean useInterleavedAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "useTestCaseGeneratorAlgorithm",
-    description = "generate test cases for covered test targets"
-  )
-  private boolean useTestCaseGeneratorAlgorithm = false;
+  @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
+      description = "generate test cases for covered test targets")
+    private boolean useTestCaseGeneratorAlgorithm = false;
 
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
@@ -213,10 +207,9 @@ public class CoreComponentsFactory {
   private boolean useNonTerminationWitnessValidation = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.undefinedFunctionCollector",
-    description = "collect undefined functions"
-  )
+      secure = true,
+      name = "algorithm.undefinedFunctionCollector",
+      description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
 
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
@@ -313,13 +306,14 @@ public class CoreComponentsFactory {
 
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
-      algorithm = new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+      algorithm =
+          new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
-    } else if (useProofCheckAlgorithmWithStoredConfig) {
+    } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
@@ -393,7 +387,8 @@ public class CoreComponentsFactory {
                 reachedSetFactory,
                 shutdownNotifier,
                 cfa,
-                specification);
+                specification,
+                aggregatedReachedSets);
       }
 
       if (useBMC) {
@@ -495,10 +490,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useInterleavedAlgorithm
-        || useRestartingAlgorithm
-        || useParallelAlgorithm
-        || asConditionalVerifier) {
+    if (useInterleavedAlgorithm || useRestartingAlgorithm || useParallelAlgorithm || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {

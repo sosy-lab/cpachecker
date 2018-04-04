@@ -182,7 +182,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super.collectStatistics(pStatsCollection);
   }
 
-  ARGStatistics getARGExporter() {
+  public ARGStatistics getARGExporter() {
     return stats;
   }
 

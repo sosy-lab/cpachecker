@@ -204,21 +204,23 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
-      if (filterByLiveness
-          && Sets.intersection(
-                  ImmutableSet.copyOf(
-                      liveVariables
-                          .getLiveVariablesForNode(node)
-                          .transform(ASimpleDeclaration::getQualifiedName)
-                          .filter(s -> s != null)),
-                  fmgr.extractFunctionNames(fmgr.uninstantiate(lemma)))
-              .isEmpty()) {
-
+      if (filterByLiveness && !containsLiveVariables(lemma, node)) {
         continue;
       }
       finalLemmas.add(fmgr.uninstantiate(lemma));
     }
     return finalLemmas;
+  }
+
+  private boolean containsLiveVariables(BooleanFormula lemma, CFANode node) {
+    Set<String> functionNames = fmgr.extractFunctionNames(fmgr.uninstantiate(lemma));
+    for (ASimpleDeclaration variable : liveVariables.getLiveVariablesForNode(node)) {
+      String name = variable.getQualifiedName();
+      if (name != null && functionNames.contains(name)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private final Map<Pair<SlicingIntermediateState, SlicingAbstractedState>,

@@ -372,7 +372,8 @@ public class ARGStatistics implements Statistics {
     }
   }
 
-  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
+  public Map<ARGState, CounterexampleInfo> getAllCounterexamples(
+      final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {

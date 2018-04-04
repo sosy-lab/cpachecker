@@ -1094,9 +1094,6 @@ cpa.bam.useCopyOnWriteRefinement = false
 # will a cache hit.
 cpa.bam.useDynamicAdjustment = false
 
-# Use more fast partitioning builder, which can not handle loops
-cpa.bam.useExtendedPartitioningBuilder = false
-
 # max bitsize for values and vars, initial value
 cpa.bdd.bitsize = 64
 
@@ -1375,6 +1372,9 @@ cpa.invariants.maximumFormulaDepth = 4
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
+
+# use modulo-2 template during widening if applicable.
+cpa.invariants.useMod2Template = false
 
 # use pointer-alias information in strengthening, if available.
 cpa.invariants.usePointerAliasStrengthening = true

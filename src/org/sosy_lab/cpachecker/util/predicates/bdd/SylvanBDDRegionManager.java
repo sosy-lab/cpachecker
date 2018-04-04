@@ -121,7 +121,7 @@ class SylvanBDDRegionManager implements RegionManager {
           threads, SYLVAN_MAX_THREADS);
       threads = SYLVAN_MAX_THREADS;
     }
-    JSylvan.initialize(threads, 100000, tableSize, cacheSize,
+    JSylvan.initialize(threads, 100000, 1 << tableSize, 1 << cacheSize,
         cacheGranularity);
 
     trueFormula = new SylvanBDDRegion(JSylvan.getTrue());
@@ -289,13 +289,13 @@ class SylvanBDDRegionManager implements RegionManager {
       return pF1;
     }
 
-    int[] vars = new int[pF2.length];
-    for (int i = 0; i < pF2.length; i++) {
-      vars[i] = JSylvan.getVar(unwrap(pF2[i]));
+    long tmp = unwrap(pF2[0]);
+    for (int i = 1; i < pF2.length; i++) {
+      tmp = JSylvan.makeAnd(tmp, unwrap(pF2[i]));
     }
-    long varSet = ref(JSylvan.makeSet(vars));
-    Region result = wrap(JSylvan.makeExists(unwrap(pF1), varSet));
-    deref(varSet);
+    Region result = wrap(JSylvan.makeExists(unwrap(pF1), tmp));
+    // TODO: is there a way/necessity to free 'tmp'? deref(...) fails.
+
     return result;
   }
 

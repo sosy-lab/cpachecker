@@ -618,6 +618,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (strategy instanceof StatisticsProvider) {
       ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
     }
+    if (useNewtonRefinement) {
+      newtonManager.get().collectStatistics(pStatsCollection);
+    }
   }
 
   private class Stats implements Statistics {
