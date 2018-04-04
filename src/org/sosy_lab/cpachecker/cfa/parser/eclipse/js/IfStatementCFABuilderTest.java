@@ -64,7 +64,7 @@ public class IfStatementCFABuilderTest {
   }
 
   @Test
-  public final void testIfWithoutElse() throws ParserException {
+  public final void testIfWithoutElse() {
     final IfStatement ifStatement = parseStatement("if (condition) { doSomething() }");
     // expected CFA: <entryNode> --[condition]--> () -{doSomething()}-> () --\
     //                    \                                                   }--> ()
@@ -95,7 +95,7 @@ public class IfStatementCFABuilderTest {
   }
 
   @Test
-  public final void testIfWithElse() throws ParserException {
+  public final void testIfWithElse() {
     final IfStatement ifStatement =
         parseStatement("if (condition) var thenCase; else var elseCase;");
     // expected CFA: <entryNode> --[condition]--> () -{var thenCase}-> () --\
