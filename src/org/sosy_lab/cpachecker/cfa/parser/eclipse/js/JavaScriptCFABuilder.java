@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
-interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuilder> {
+interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuilder>, VariableNameGenerator {
 
   @Override
   default ParseResult getParseResult() {

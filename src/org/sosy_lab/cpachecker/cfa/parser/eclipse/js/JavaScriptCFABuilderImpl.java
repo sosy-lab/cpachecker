@@ -40,9 +40,16 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   private FunctionDeclarationAppendable functionDeclarationAppendable;
   private JavaScriptUnitAppendable javaScriptUnitAppendable;
   private StatementAppendable statementAppendable;
+  private VariableNameGenerator variableNameGenerator;
 
   JavaScriptCFABuilderImpl(final CFABuilder pBuilder) {
     builder = pBuilder;
+    variableNameGenerator = new VariableNameGeneratorImpl();
+  }
+
+  private JavaScriptCFABuilderImpl(final CFABuilder pBuilder, final VariableNameGenerator pVariableNameGenerator) {
+    builder = pBuilder;
+    variableNameGenerator = pVariableNameGenerator;
   }
 
   @Override
@@ -65,7 +72,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
 
   @Override
   public JavaScriptCFABuilder copyWith(final CFABuilder pBuilder) {
-    final JavaScriptCFABuilderImpl duplicate = new JavaScriptCFABuilderImpl(pBuilder);
+    final JavaScriptCFABuilderImpl duplicate = new JavaScriptCFABuilderImpl(pBuilder, variableNameGenerator);
     duplicate.setExpressionAppendable(expressionAppendable);
     duplicate.setFunctionDeclarationAppendable(functionDeclarationAppendable);
     duplicate.setJavaScriptUnitAppendable(javaScriptUnitAppendable);
@@ -121,5 +128,10 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   public void setJavaScriptUnitAppendable(
       final JavaScriptUnitAppendable pJavaScriptUnitAppendable) {
     javaScriptUnitAppendable = pJavaScriptUnitAppendable;
+  }
+
+  @Override
+  public String generateVariableName() {
+    return variableNameGenerator.generateVariableName();
   }
 }
