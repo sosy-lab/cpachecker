@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,18 +110,20 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
     // use a new prover, because we use several distinct queries
     try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
       final List<T> A = new ArrayList<>();
+      final List<T> B = new ArrayList<>();
+
       A.add(itpProver.push(lastItp));
       A.add(itpProver.push(formulasWithStatesAndGroupdIds.get(positionOfA).getFirst()));
 
       // add all remaining PHI_j
       for (Triple<BooleanFormula, AbstractState, T> t : Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-        itpProver.push(t.getFirst());
+        B.add(itpProver.push(t.getFirst()));
       }
 
       // add all previous function calls
       for (Pair<BooleanFormula, BooleanFormula> t : callstack) {
-        itpProver.push(t.getFirst()); // add PSI_k
-        itpProver.push(t.getSecond()); // ... and PHI_k
+        B.add(itpProver.push(t.getFirst())); // add PSI_k
+        B.add(itpProver.push(t.getSecond())); // ... and PHI_k
       }
 
       // update prover with new formulas.
@@ -140,6 +142,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
       try (InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment()) {
         final List<T> A2 = new ArrayList<>();
+        final List<T> B2 = new ArrayList<>();
 
         A2.add(itpProver2.push(itp));
         // A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
@@ -150,19 +153,19 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
         // add all remaining PHI_j
         for (Triple<BooleanFormula, AbstractState, T> t :
             Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-          itpProver2.push(t.getFirst());
+          B2.add(itpProver2.push(t.getFirst()));
         }
 
         // add all previous function calls
         for (Pair<BooleanFormula, BooleanFormula> t : callstack) {
-          itpProver2.push(t.getFirst()); // add PSI_k
-          itpProver2.push(t.getSecond()); // ... and PHI_k
+          B2.add(itpProver2.push(t.getFirst())); // add PSI_k
+          B2.add(itpProver2.push(t.getSecond())); // ... and PHI_k
         }
 
         boolean unsat2 = itpProver2.isUnsat();
         assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
 
-        // get interpolant of A and B, for B we use the complementary set of A
+        // get interpolant of A2 and B2, for B2 we use the complementary set of A2
         BooleanFormula itp2 = itpProver2.getInterpolant(A2);
 
         BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
