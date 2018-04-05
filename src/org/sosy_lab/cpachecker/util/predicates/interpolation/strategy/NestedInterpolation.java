@@ -133,6 +133,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
       assert unsat : "formulas were unsat before, they have to be unsat now.";
 
       // get interpolant of A and B, for B we use the complementary set of A
+      assert !A.isEmpty() && !B.isEmpty();
       itp = itpProver.getInterpolant(A);
     }
 
@@ -166,10 +167,13 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
         assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
 
         // get interpolant of A2 and B2, for B2 we use the complementary set of A2
+        assert !A2.isEmpty() && !B2.isEmpty();
         BooleanFormula itp2 = itpProver2.getInterpolant(A2);
 
         BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
         if (!bfmgr.isTrue(scopingItp.getFirst())) {
+          assert !bfmgr.isFalse(scopingItp.getFirst());
+          assert !bfmgr.isFalse(rebuildItp);
           rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
         }
 
