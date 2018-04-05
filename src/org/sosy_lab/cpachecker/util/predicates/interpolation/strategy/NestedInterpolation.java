@@ -138,45 +138,45 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
       // case 4, we are returning from a function, rule 4
       Pair<BooleanFormula, BooleanFormula> scopingItp = callstack.removeLast();
 
-        try (InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment()) {
-          final List<T> A2 = new ArrayList<>();
+      try (InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment()) {
+        final List<T> A2 = new ArrayList<>();
 
-          A2.add(itpProver2.push(itp));
-          //A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
+        A2.add(itpProver2.push(itp));
+        // A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
 
-          A2.add(itpProver2.push(scopingItp.getFirst()));
-          A2.add(itpProver2.push(scopingItp.getSecond()));
+        A2.add(itpProver2.push(scopingItp.getFirst()));
+        A2.add(itpProver2.push(scopingItp.getSecond()));
 
-          // add all remaining PHI_j
-          for (Triple<BooleanFormula, AbstractState, T> t :
-              Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-            itpProver2.push(t.getFirst());
-          }
+        // add all remaining PHI_j
+        for (Triple<BooleanFormula, AbstractState, T> t :
+            Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
+          itpProver2.push(t.getFirst());
+        }
 
         // add all previous function calls
         for (Pair<BooleanFormula, BooleanFormula> t : callstack) {
-            itpProver2.push(t.getFirst()); // add PSI_k
-            itpProver2.push(t.getSecond()); // ... and PHI_k
-          }
-
-          boolean unsat2 = itpProver2.isUnsat();
-          assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
-
-          // get interpolant of A and B, for B we use the complementary set of A
-          BooleanFormula itp2 = itpProver2.getInterpolant(A2);
-
-          BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
-          if (!bfmgr.isTrue(scopingItp.getFirst())) {
-            rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
-          }
-
-          interpolants.add(rebuildItp);
-          return itp2;
+          itpProver2.push(t.getFirst()); // add PSI_k
+          itpProver2.push(t.getSecond()); // ... and PHI_k
         }
 
+        boolean unsat2 = itpProver2.isUnsat();
+        assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
+
+        // get interpolant of A and B, for B we use the complementary set of A
+        BooleanFormula itp2 = itpProver2.getInterpolant(A2);
+
+        BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
+        if (!bfmgr.isTrue(scopingItp.getFirst())) {
+          rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
+        }
+
+        interpolants.add(rebuildItp);
+        return itp2;
+      }
+
     } else {
-        interpolants.add(itp);
-        return itp;
+      interpolants.add(itp);
+      return itp;
     }
   }
 }
