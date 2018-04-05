@@ -171,11 +171,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
         BooleanFormula itp2 = itpProver2.getInterpolant(A2);
 
         BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
-        if (!bfmgr.isTrue(scopingItp.getFirst())) {
-          assert !bfmgr.isFalse(scopingItp.getFirst());
-          assert !bfmgr.isFalse(rebuildItp);
-          rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
-        }
+        rebuildItp = rebuildInterpolant(rebuildItp, scopingItp.getFirst());
 
         interpolants.add(rebuildItp);
         return itp2;
