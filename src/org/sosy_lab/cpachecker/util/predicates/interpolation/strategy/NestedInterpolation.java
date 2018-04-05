@@ -86,8 +86,8 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
       final List<BooleanFormula> interpolants,
       final Deque<Pair<BooleanFormula, BooleanFormula>> callstack,
       final InterpolationManager.Interpolator<T> interpolator,
-      int positionOfA,
-      BooleanFormula lastItp)
+      final int positionOfA,
+      final BooleanFormula lastItp)
       throws InterruptedException, SolverException {
 
     final AbstractState abstractionState =
@@ -171,7 +171,14 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
         BooleanFormula itp2 = itpProver2.getInterpolant(A2);
 
         BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
-        rebuildItp = rebuildInterpolant(rebuildItp, scopingItp.getFirst());
+        BooleanFormula scope = scopingItp.getFirst();
+
+        // filter out FALSE, because it might be simplified, and we need the atoms of the formula.
+        // We ignore the case when the rebuildItp is FALSE, because the analysis will first
+        // compute the nested abstraction, which (in theory) uses the rebuildItp's atoms.
+        if (!bfmgr.isFalse(scope)) {
+          rebuildItp = bfmgr.and(rebuildItp, scope);
+        }
 
         interpolants.add(rebuildItp);
         return itp2;
