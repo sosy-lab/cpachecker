@@ -299,7 +299,7 @@ analysis.summaryEdges = false
 
 # Replace thread creation operations with a special function callsso, any
 # analysis can go through the function
-analysis.threadOperationsTrasform = false
+analysis.threadOperationsTransform = false
 
 # Patterns for detecting block starts (ldv_ like functions)
 analysis.traversal.blockFunctionPatterns = {"ldv_%_instance_%"}

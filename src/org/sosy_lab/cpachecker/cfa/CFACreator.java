@@ -153,7 +153,7 @@ public class CFACreator {
 
   @Option(
     secure = true,
-    name = "analysis.threadOperationsTrasform",
+    name = "analysis.threadOperationsTransform",
     description =
         "Replace thread creation operations with a special function calls"
             + "so, any analysis can go through the function"
