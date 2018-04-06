@@ -279,7 +279,7 @@ analysis.reachedSet = PARTITIONED
 analysis.replaceFunctionWithParameterPointer = false
 
 # Functions with function pointer parameter which will be instrumented
-analysis.replacedFunctionsWithParameters = Sets.newHashSet("pthread_create", "pthread_create_N")
+analysis.replacedFunctionsWithParameters = {"pthread_create"}
 
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false

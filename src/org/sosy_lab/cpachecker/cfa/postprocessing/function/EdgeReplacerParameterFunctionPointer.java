@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -50,8 +50,7 @@ public class EdgeReplacerParameterFunctionPointer extends EdgeReplacer {
     name = "analysis.replacedFunctionsWithParameters",
     description = "Functions with function pointer parameter which will be instrumented"
   )
-  protected Set<String> replacedFunctionsWithParameters =
-      Sets.newHashSet("pthread_create", "pthread_create_N");
+  protected Set<String> replacedFunctionsWithParameters = ImmutableSet.of("pthread_create");
 
   public EdgeReplacerParameterFunctionPointer(
       MutableCFA pCfa, Configuration config, LogManager pLogger)
