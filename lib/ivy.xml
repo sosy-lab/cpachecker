@@ -37,8 +37,7 @@
              Contains a lot of helpful data structures. -->
         <dependency org="com.google.guava" name="guava" rev="24.0-jre" conf="runtime->default; contrib->sources"/>
 
-        <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
-        <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.2" conf="runtime->runtime; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
