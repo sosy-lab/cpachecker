@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -257,7 +258,7 @@ public class CFunctionPointerResolver {
     }
   }
 
-  private CExpression getParameter(CFunctionCall call) {
+  private @Nullable CExpression getParameter(CFunctionCall call) {
     for (CExpression param : call.getFunctionCallExpression().getParameterExpressions()) {
       if (param.getExpressionType() instanceof CPointerType
           && ((CPointerType) param.getExpressionType()).getType() instanceof CFunctionTypeWithNames
