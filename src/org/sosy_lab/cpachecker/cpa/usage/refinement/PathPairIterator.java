@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -238,8 +239,9 @@ public class PathPairIterator extends
     //Start from already computed set (it is partially refined)
     Iterator<ExtendedARGPath> iterator = currentIterators.get(info);
     if (iterator == null && computedPathsForUsage.containsKey(info)) {
-      //first call
-      iterator = computedPathsForUsage.get(info).iterator();
+      // first call
+      // Clone the set to avoid concurrent modification
+      iterator = Sets.newHashSet(computedPathsForUsage.get(info)).iterator();
       currentIterators.put(info, iterator);
     }
 

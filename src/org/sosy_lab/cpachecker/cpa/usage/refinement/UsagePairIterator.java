@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -39,6 +42,8 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   private Iterator<UsageInfo> secondUsageIterator;
   private UsageInfo firstUsage = null;
   private UsageInfoSet secondUsageInfoSet;
+
+  private UnsafeDetector detector;
 
   public UsagePairIterator(ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper, LogManager l) {
     super(pWrapper);
@@ -94,7 +99,9 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
         //It may happens if we refine to same sets (first == second)
         //It is normal, just skip
       } else {
-        return Pair.of(firstUsage, secondUsage);
+        if (detector.isUnsafe(Sets.newHashSet(firstUsage, secondUsage))) {
+          return Pair.of(firstUsage, secondUsage);
+        }
       }
     }
     return null;
@@ -114,6 +121,20 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
       firstUsageIterator.remove();
       firstUsage = null;
       secondUsageIterator = secondUsageInfoSet.iterator();
+    }
+    if ((first.isLooped() || second.isLooped()) && first.equals(second)) {
+      first.setAsLooped();
+      second.setAsLooped();
+    }
+  }
+
+  @Override
+  protected void
+      handleUpdateSignal(Class<? extends RefinementInterface> pCallerClass, Object pData) {
+    if (pCallerClass.equals(IdentifierIterator.class)) {
+      assert pData instanceof UsageContainer;
+      UsageContainer container = (UsageContainer) pData;
+      detector = container.getUnsafeDetector();
     }
   }
 }
