@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -149,6 +150,15 @@ public class CFACreator {
   @Option(secure=true, name="analysis.functionPointerCalls",
       description="create all potential function pointer call edges")
   private boolean fptrCallEdges = true;
+
+  @Option(
+    secure = true,
+    name = "analysis.threadOperationsTrasform",
+    description =
+        "Replace thread creation operations with a special function calls"
+            + "so, any analysis can go through the function"
+  )
+  private boolean enableThreadOperationsInstrumentation = false;
 
   @Option(secure=true, name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
@@ -667,6 +677,12 @@ private boolean classifyNodes = false;
     if (language == Language.C && fptrCallEdges) {
       CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, globalDeclarations, config, logger);
       fptrResolver.resolveFunctionPointers();
+    }
+
+    // Transform pthread_create(.., &func) -> func()
+    if (enableThreadOperationsInstrumentation) {
+      ThreadCreateTransformer TCtransformer = new ThreadCreateTransformer(logger, config);
+      TCtransformer.transform(cfa);
     }
 
     if (useFunctionCallUnwinding) {
