@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -96,6 +97,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeASTComparison;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -139,13 +147,15 @@ public class VariableClassificationBuilder {
 
   private final Dependencies dependencies = new Dependencies();
 
-  private Optional<Set<String>> relevantVariables = Optional.absent();
+  private Optional<Set<String>> relevantVariables = Optional.of(Sets.newHashSet());
   private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.absent();
   private Optional<Multimap<CCompositeType, String>> addressedFields = Optional.absent();
   private Optional<Set<String>> addressedVariables = Optional.absent();
 
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
+
+  private final ImmutableSet<AutomatonBoolExpr> automatonBoolExpressions;
 
   public static class VariableClassificationStatistics extends AbstractStatistics {
 
@@ -170,18 +180,38 @@ public class VariableClassificationBuilder {
     }
   }
 
-  public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public VariableClassificationBuilder(
+      Configuration config, LogManager pLogger, final ImmutableList<Automaton> pAutomata)
+      throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
+    automatonBoolExpressions = extractAutomatonBoolExpressions(pAutomata);
     config.inject(this);
+  }
+
+  private ImmutableSet<AutomatonBoolExpr> extractAutomatonBoolExpressions(
+      final ImmutableList<Automaton> pAutomata) {
+    ImmutableSet.Builder<AutomatonBoolExpr> expressions = ImmutableSet.builder();
+    for (Automaton automaton : pAutomata) {
+      for (AutomatonInternalState state : automaton.getStates()) {
+        for (AutomatonTransition transition : state.getTransitions()) {
+          AutomatonBoolExpr expression = transition.getTrigger();
+          if (expression instanceof MatchCFAEdgeASTComparison) {
+            expressions.add(expression);
+          }
+        }
+      }
+    }
+    return expressions.build();
   }
 
   public VariableClassificationStatistics getStatistics() {
     return stats;
   }
 
-  /** This function does the whole work:
-   * creating all maps, collecting vars, solving dependencies.
-   * The function runs only once, after that it does nothing. */
+  /**
+   * This function does the whole work: creating all maps, collecting vars, solving dependencies.
+   * The function runs only once, after that it does nothing.
+   */
   public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
@@ -397,8 +427,10 @@ public class VariableClassificationBuilder {
     return Sets.intersection(ofVars, relevantVariables.get()).size();
   }
 
-  /** This function iterates over all edges of the cfa, collects all variables
-   * and orders them into different sets, i.e. nonBoolean and nonIntEuqalNumber. */
+  /**
+   * This function iterates over all edges of the cfa, collects all variables and orders them into
+   * different sets, i.e. nonBoolean and nonIntEuqalNumber.
+   */
   private void collectVars(CFA cfa) throws UnrecognizedCCodeException {
     Collection<CFANode> nodes = cfa.getAllNodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
@@ -412,9 +444,14 @@ public class VariableClassificationBuilder {
     }
     addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
     addressedFields = Optional.of(varFieldDependencies.computeAddressedFields());
+
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
                                                               varFieldDependencies.computeRelevantVariablesAndFields();
-    relevantVariables = Optional.of(relevant.getFirst());
+    // Join relevant variables from automata and CFA.
+    ImmutableSet.Builder<String> relevantVariablesBuilder = ImmutableSet.builder();
+    relevantVariablesBuilder.addAll(relevantVariables.get());
+    relevantVariablesBuilder.addAll(relevant.getFirst());
+    relevantVariables = Optional.of(relevantVariablesBuilder.build());
     relevantFields = Optional.of(relevant.getSecond());
   }
 
@@ -491,21 +528,31 @@ public class VariableClassificationBuilder {
       break;
     }
 
-    case StatementEdge: {
-      final CStatement statement = ((CStatementEdge) edge).getStatement();
+      case StatementEdge:
+        {
+          final CStatement statement = ((CStatementEdge) edge).getStatement();
 
-      // normal assignment of variable, rightHandSide can be expression or (external) functioncall
-      if (statement instanceof CAssignment) {
-        handleAssignment(edge, (CAssignment) statement, cfa);
+          // normal assignment of variable, rightHandSide can be expression or (external)
+          // functioncall
+          if (statement instanceof CAssignment) {
+            handleAssignment(edge, (CAssignment) statement, cfa);
 
-        // pure external functioncall
-      } else if (statement instanceof CFunctionCallStatement) {
-        handleExternalFunctionCall(edge, ((CFunctionCallStatement) statement).
-            getFunctionCallExpression().getParameterExpressions());
-      }
+            // pure external functioncall
+          } else if (statement instanceof CFunctionCallStatement) {
 
-      break;
-    }
+            if (!automatonBoolExpressions.isEmpty()) {
+              handleFunctionParametersForAutomata(
+                  edge, ((CFunctionCallStatement) statement).getFunctionCallExpression());
+            }
+            handleExternalFunctionCall(
+                edge,
+                ((CFunctionCallStatement) statement)
+                    .getFunctionCallExpression()
+                    .getParameterExpressions());
+          }
+
+          break;
+        }
 
     case FunctionCallEdge: {
       handleFunctionCallEdge((CFunctionCallEdge) edge);
@@ -609,6 +656,10 @@ public class VariableClassificationBuilder {
       CFunctionCallExpression func = (CFunctionCallExpression) rhs;
       String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
 
+      if (!automatonBoolExpressions.isEmpty()) {
+        handleFunctionParametersForAutomata(edge, func);
+      }
+
       if (cfa.getAllFunctionNames().contains(functionName)) {
         Optional<? extends AVariableDeclaration> returnVariable = cfa.getFunctionHead(functionName).getReturnVariable();
         if (!returnVariable.isPresent()) {
@@ -629,6 +680,30 @@ public class VariableClassificationBuilder {
 
     } else {
       throw new UnrecognizedCCodeException("unhandled assignment", edge, assignment);
+    }
+  }
+
+  private void handleFunctionParametersForAutomata(
+      final CFAEdge pCFAEdge, final CFunctionCallExpression pFunc) {
+
+    for (CExpression parameter : pFunc.getParameterExpressions()) {
+      if (parameter instanceof CIdExpression) {
+        final String varName = ((CIdExpression) parameter).getDeclaration().getQualifiedName();
+        if (!relevantVariables.get().contains(varName)) {
+          final AutomatonExpressionArguments dummy =
+              new AutomatonExpressionArguments(null, null, null, pCFAEdge, null);
+          for (AutomatonBoolExpr expression : automatonBoolExpressions) {
+            try {
+              if (expression.eval(dummy).getValue()) {
+                relevantVariables.get().add(varName);
+              }
+            } catch (CPATransferException pE) {
+              logger.log(
+                  Level.FINE, "Could not match CFA edge AST comparison", pE.getLocalizedMessage());
+            }
+          }
+        }
+      }
     }
   }
 

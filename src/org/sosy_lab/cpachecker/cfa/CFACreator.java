@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -96,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -324,6 +326,17 @@ private boolean classifyNodes = false;
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
+  private ImmutableList<Automaton> specificationAutomata = ImmutableList.of();
+
+  public CFACreator(
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      final ImmutableList<Automaton> pAutomata)
+      throws InvalidConfigurationException {
+    this(config, logger, pShutdownNotifier);
+    this.specificationAutomata = pAutomata;
+  }
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -514,7 +527,8 @@ private boolean classifyNodes = false;
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
+        VariableClassificationBuilder builder =
+            new VariableClassificationBuilder(config, logger, specificationAutomata);
         varClassification = Optional.of(builder.build(cfa));
         stats.varClassificationStats = builder.getStatistics();
       } catch (UnrecognizedCCodeException e) {

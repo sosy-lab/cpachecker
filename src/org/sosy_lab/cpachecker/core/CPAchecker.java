@@ -457,12 +457,17 @@ public class CPAchecker {
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
-      ClassNotFoundException {
+          ClassNotFoundException {
 
     final CFA cfa;
     if (serializedCfaFile == null) {
       // parse file and create CFA
-      CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+      CFACreator cfaCreator =
+          new CFACreator(
+              config,
+              logger,
+              shutdownNotifier,
+              factory.createAutomataWithoutCFA(specificationFiles));
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
 

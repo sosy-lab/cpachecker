@@ -74,10 +74,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
 /**
- * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
- * The Expression can be evaluated multiple times.
+ * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when
+ * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
-interface AutomatonBoolExpr extends AutomatonExpression {
+public interface AutomatonBoolExpr extends AutomatonExpression {
   static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
   static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
 

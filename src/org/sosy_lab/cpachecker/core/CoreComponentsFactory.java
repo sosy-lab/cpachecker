@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -36,6 +39,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -76,6 +82,8 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -544,5 +552,24 @@ public class CoreComponentsFactory {
     }
 
     return terminationSpecification;
+  }
+
+  public ImmutableList<Automaton> createAutomataWithoutCFA(final List<Path> pSpecificationFiles) {
+    ImmutableList.Builder<Automaton> result = ImmutableList.builder();
+    for (Path specFile : pSpecificationFiles) {
+      try {
+        result.addAll(
+            AutomatonParser.parseAutomatonFile(
+                specFile, config, logger, MachineModel.LINUX64, CProgramScope.empty(), Language.C));
+      } catch (InvalidConfigurationException e) {
+        // If file cannot be parsed without CFA, then skip it.
+        logger.log(
+            Level.ALL,
+            "Skipping specification automata file "
+                + specFile
+                + " since it cannot be parsed without CFA");
+      }
+    }
+    return result.build();
   }
 }

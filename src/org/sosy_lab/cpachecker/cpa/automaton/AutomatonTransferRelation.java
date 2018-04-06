@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -44,6 +45,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,6 +73,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private final MachineModel machineModel;
+  private final CParser cparser;
 
   private final TimerWrapper totalPostTime;
   private final TimerWrapper matchTime;
@@ -82,6 +87,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     this.cpa = pCpa;
     this.logger = pLogger;
     this.machineModel = pMachineModel;
+    this.cparser =
+        CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions(), pMachineModel);
 
     totalPostTime = pCpa.stats.totalPostTime.getNewTimer();
     matchTime = pCpa.stats.matchTime.getNewTimer();
@@ -243,12 +250,28 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
         }
 
+        logger.log(Level.ALL, "Replace variables in automata assumptions");
+        ImmutableList.Builder<AExpression> assumptionsBuilder = ImmutableList.builder();
+        for (AExpression assumption : t.getAssumptions(edge, logger, machineModel)) {
+          try {
+            final List<CStatement> modifiedStatements =
+                CParserUtils.parseListOfStatements(
+                    exprArgs.replaceVariables(assumption.toASTString()), cparser, cpa.getScope());
+            final List<AExpression> modifiedExpressions =
+                CParserUtils.convertStatementsToAssumptions(
+                    modifiedStatements, machineModel, logger);
+            assumptionsBuilder.addAll(modifiedExpressions);
+          } catch (InvalidAutomatonException e) {
+            throw new AutomatonTransferException(
+                "Automaton assumption could not be evaluated: " + assumption.toASTString());
+          }
+        }
         AutomatonState lSuccessor =
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
                 state.getAutomatonCPA(),
-                t.getAssumptions(edge, logger, machineModel),
+                assumptionsBuilder.build(),
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),

@@ -148,10 +148,8 @@ interface AutomatonExpression {
     String getFailureOrigin() {
       return failureOrigin;
     }
-    /**
-     * @returns null if cannotEvaluate() == true
-     */
-    resultType getValue() {
+    /** @returns null if cannotEvaluate() == true */
+    public resultType getValue() {
       return value;
     }
 

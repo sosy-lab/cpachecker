@@ -154,14 +154,18 @@ public class ControlAutomatonCPA
     }
   }
 
+  public final Scope getScope() {
+    return cfa.getLanguage() == Language.C
+        ? new CProgramScope(cfa, logger)
+        : DummyScope.getInstance();
+  }
+
   private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
       throws InvalidConfigurationException {
 
-    Scope scope = cfa.getLanguage() == Language.C
-        ? new CProgramScope(cfa, logger)
-        : DummyScope.getInstance();
-
-    List<Automaton> lst = AutomatonParser.parseAutomatonFile(pFile, pConfig, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+    List<Automaton> lst =
+        AutomatonParser.parseAutomatonFile(
+            pFile, pConfig, logger, cfa.getMachineModel(), getScope(), cfa.getLanguage());
 
     if (lst.isEmpty()) {
       throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
