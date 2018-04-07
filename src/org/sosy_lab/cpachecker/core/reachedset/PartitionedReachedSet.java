@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
 
 /**
  * Special implementation of the reached set that partitions the set by keys that
@@ -52,6 +50,8 @@ import com.google.common.collect.Multimap;
  * key is equal to the key of the state given as a parameter.
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
+
+  private static final long serialVersionUID = 1L;
 
   private final Multimap<Object, AbstractState> partitionedReached = LinkedHashMultimap.create(100, 1);
 
