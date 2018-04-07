@@ -133,7 +133,9 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
       if (!solver.implies(bfmgr.and(previousInterpolants), interpolants.get(i))) {
         throw new SolverException(
-                String.format("Interpolant %s is not implied by previous part of the path.", interpolants.get(i)));
+            String.format(
+                "Interpolant \n%s\n is not implied by previous part of the path \n%s.",
+                interpolants.get(i), bfmgr.and(previousInterpolants)));
       }
     }
 
