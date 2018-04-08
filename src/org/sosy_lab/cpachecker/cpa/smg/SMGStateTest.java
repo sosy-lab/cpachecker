@@ -296,8 +296,8 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    SMGState inconsistent_state = new SMGState(this.inconsistent_state);
-    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.NONE);
+    SMGState inconsistentState = new SMGState(this.inconsistent_state);
+    inconsistentState.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   /*
@@ -307,8 +307,8 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    SMGState inconsistent_state = new SMGState(this.inconsistent_state);
-    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    SMGState inconsistentState = new SMGState(this.inconsistent_state);
+    inconsistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /*
@@ -318,8 +318,8 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    SMGState inconsistent_state = new SMGState(this.inconsistent_state);
-    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    SMGState inconsistentState = new SMGState(this.inconsistent_state);
+    inconsistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /*
@@ -329,8 +329,8 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    SMGState consistent_state = new SMGState(this.consistent_state);
-    consistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    SMGState consistentState = new SMGState(this.consistent_state);
+    consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
    * Test that no consistency violation is reported on:
@@ -339,8 +339,8 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    SMGState consistent_state = new SMGState(this.consistent_state);
-    consistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    SMGState consistentState = new SMGState(this.consistent_state);
+    consistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   @Test

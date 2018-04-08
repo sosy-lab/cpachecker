@@ -193,9 +193,9 @@ public class SMGTransferRelation
 
   private void plotWhenConfigured(
       Collection<SMGState> pStates, String pLocation, SMGExportLevel pLevel) {
-    for (SMGState state : pStates) {
-      SMGUtils.plotWhenConfigured(getDotExportFileName(state), state, pLocation, logger, pLevel,
-          exportSMGOptions);
+    for (SMGState s : pStates) {
+      SMGUtils.plotWhenConfigured(
+          getDotExportFileName(s), s, pLocation, logger, pLevel, exportSMGOptions);
     }
   }
 
@@ -655,31 +655,39 @@ public class SMGTransferRelation
       CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-      String functionName = fileNameExpression.toASTString();
+      String calledFunctionName = fileNameExpression.toASTString();
 
-      if (builtins.isABuiltIn(functionName)) {
+      if (builtins.isABuiltIn(calledFunctionName)) {
         SMGState newState = new SMGState(state);
-        if (builtins.isConfigurableAllocationFunction(functionName)) {
-          logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
-              "Calling ", functionName, " and not using the result, resulting in memory leak.");
+        if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
+          logger.log(
+              Level.INFO,
+              pCfaEdge.getFileLocation(),
+              ":",
+              "Calling ",
+              calledFunctionName,
+              " and not using the result, resulting in memory leak.");
           newStates = builtins.evaluateConfigurableAllocationFunction(cFCExpression, newState, pCfaEdge).asSMGStateList();
 
-          for (SMGState state : newStates) {
-            state.setErrorDescription("Calling '" + functionName + "' and not using the result, "
-                + "resulting in memory leak.");
-            state.setMemLeak();
+          for (SMGState s : newStates) {
+            s.setErrorDescription(
+                "Calling '"
+                    + calledFunctionName
+                    + "' and not using the result, "
+                    + "resulting in memory leak.");
+            s.setMemLeak();
           }
         }
 
-        if (builtins.isDeallocationFunction(functionName)) {
+        if (builtins.isDeallocationFunction(calledFunctionName)) {
           newStates = builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
 
-        if (builtins.isExternalAllocationFunction(functionName)) {
+        if (builtins.isExternalAllocationFunction(calledFunctionName)) {
           newStates = builtins.evaluateExternalAllocation(cFCExpression, newState).asSMGStateList();
         }
 
-        switch (functionName) {
+        switch (calledFunctionName) {
         case "__VERIFIER_BUILTIN_PLOT":
           builtins.evaluateVBPlot(cFCExpression, newState);
           break;
@@ -705,7 +713,10 @@ public class SMGTransferRelation
       } else {
         switch (options.getHandleUnknownFunctions()) {
           case STRICT:
-            throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+            throw new CPATransferException(
+                "Unknown function '"
+                    + calledFunctionName
+                    + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
           case ASSUME_SAFE:
             return ImmutableList.of(state);
           case ASSUME_EXTERNAL_ALLOCATED:
@@ -890,7 +901,7 @@ public class SMGTransferRelation
 
   public SMGAddressValueAndStateList handleSafeExternFuction(CFunctionCallExpression pFunctionCallExpression,
       SMGState pSmgState, CFAEdge pCfaEdge) throws CPATransferException {
-    String functionName = pFunctionCallExpression.getFunctionNameExpression().toString();
+    String calledFunctionName = pFunctionCallExpression.getFunctionNameExpression().toString();
     List<CExpression> parameters = pFunctionCallExpression.getParameterExpressions();
     for (int i = 0; i < parameters.size(); i++) {
       CExpression param = parameters.get(i);
@@ -911,8 +922,13 @@ public class SMGTransferRelation
                 && (smgState.isObjectValid(object)
                     || smgState.isObjectExternallyAllocated(object))) {
 
-              SMGAddressValue newParamValue = pSmgState.addExternalAllocation(
-                  functionName + "_Param_No_" + i + "_ID" + SMGValueFactory.getNewValue());
+              SMGAddressValue newParamValue =
+                  pSmgState.addExternalAllocation(
+                      calledFunctionName
+                          + "_Param_No_"
+                          + i
+                          + "_ID"
+                          + SMGValueFactory.getNewValue());
               pSmgState = assignFieldToState(pSmgState, pCfaEdge, object, offset.getAsLong(),
                   newParamValue, paramType);
             }
@@ -923,7 +939,8 @@ public class SMGTransferRelation
 
     CType returnValueType = expressionEvaluator.getRealExpressionType(pFunctionCallExpression.getExpressionType());
     if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
-      SMGAddressValue returnValue = pSmgState.addExternalAllocation(functionName + SMGValueFactory.getNewValue());
+      SMGAddressValue returnValue =
+          pSmgState.addExternalAllocation(calledFunctionName + SMGValueFactory.getNewValue());
       return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(pSmgState, returnValue));
     }
     return SMGAddressValueAndStateList.of(pSmgState);
@@ -1346,10 +1363,10 @@ public class SMGTransferRelation
       if (ae instanceof AutomatonState) {
         // New result
         result.clear();
-        for (SMGState state : toStrengthen) {
-          Collection<SMGState> ret = strengthen((AutomatonState) ae, state, cfaEdge);
+        for (SMGState stateToStrengthen : toStrengthen) {
+          Collection<SMGState> ret = strengthen((AutomatonState) ae, stateToStrengthen, cfaEdge);
           if (ret == null) {
-            result.add(state);
+            result.add(stateToStrengthen);
           } else {
             result.addAll(ret);
           }
