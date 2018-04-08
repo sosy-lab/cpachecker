@@ -1808,8 +1808,8 @@ class WitnessWriter implements EdgeAppender {
       }
 
       @Override
-      public TraversalProcess visitEdge(CFAEdge pEdge) {
-        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)
+      public TraversalProcess visitEdge(CFAEdge pCfaEdge) {
+        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pCfaEdge)
             ? TraversalProcess.CONTINUE
             : TraversalProcess.SKIP;
       }

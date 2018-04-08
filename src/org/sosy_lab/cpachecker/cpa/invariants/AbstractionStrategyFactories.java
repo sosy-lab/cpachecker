@@ -162,7 +162,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
             private ImmutableSet<MemoryLocation> determineWideningTargets(
                 Iterable<CFAEdge> pEdges) {
-              ImmutableSet.Builder<MemoryLocation> wideningTargets = ImmutableSet.builder();
+              ImmutableSet.Builder<MemoryLocation> wideningTargetsBuilder = ImmutableSet.builder();
               Set<CFAEdge> checkedEdges = new HashSet<>();
               Queue<CFAEdge> waitlist = new ArrayDeque<>();
               Iterables.addAll(waitlist, pEdges);
@@ -205,7 +205,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     if (functionCall instanceof AFunctionCallAssignmentStatement) {
                       AFunctionCallAssignmentStatement assignmentStatement =
                           (AFunctionCallAssignmentStatement) functionCall;
-                      wideningTargets.addAll(
+                      wideningTargetsBuilder.addAll(
                           edgeAnalyzer
                               .getInvolvedVariableTypes(
                                   assignmentStatement.getLeftHandSide(), summaryEdge)
@@ -262,9 +262,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     }
                   }
                 }
-                wideningTargets.addAll(edgeAnalyzer.getInvolvedVariableTypes(lastEdge).keySet());
+                wideningTargetsBuilder.addAll(
+                    edgeAnalyzer.getInvolvedVariableTypes(lastEdge).keySet());
               }
-              return wideningTargets.build();
+              return wideningTargetsBuilder.build();
             }
 
             @Override

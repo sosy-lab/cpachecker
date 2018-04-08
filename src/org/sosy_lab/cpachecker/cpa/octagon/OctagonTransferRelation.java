@@ -1596,15 +1596,22 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFunctionCallExpression e) throws CPATransferException {
+      IOctagonCoefficients coefficients = OctagonUniversalCoefficients.INSTANCE;
       if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        String functionName = ((CIdExpression)e.getFunctionNameExpression()).getName();
-        if (functionName.equals("__VERIFIER_nondet_uint")) {
-          return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonIntervalCoefficients.getNondetUIntCoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-        } else if (functionName.equals("__VERIFIER_nondet_bool")) {
-          return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonIntervalCoefficients.getNondetBoolCoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+          case "__VERIFIER_nondet_uint":
+            coefficients =
+                OctagonIntervalCoefficients.getNondetUIntCoeffs(
+                    visitorState.sizeOfVariables(), visitorState);
+            break;
+          case "__VERIFIER_nondet_bool":
+            coefficients =
+                OctagonIntervalCoefficients.getNondetBoolCoeffs(
+                    visitorState.sizeOfVariables(), visitorState);
+            break;
         }
       }
-      return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+      return Collections.singleton(Pair.of(coefficients, visitorState));
     }
   }
 
