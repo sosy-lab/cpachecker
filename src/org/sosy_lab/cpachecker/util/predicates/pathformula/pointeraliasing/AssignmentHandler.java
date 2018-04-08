@@ -222,7 +222,7 @@ class AssignmentHandler {
             = PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
         finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
-        assert updatedRegions.isEmpty();
+        assert updatedRegions != null && updatedRegions.isEmpty();
       }
     }
 

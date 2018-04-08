@@ -312,17 +312,17 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       PathFormulaManager pPfmgr,
       PathFormula pContext)
       throws InterruptedException {
-    BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+    BooleanFormulaManager bfManager = pFmgr.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
-    BooleanFormula globalInvariant = bfmgr.makeTrue();
+    BooleanFormula globalInvariant = bfManager.makeTrue();
 
     if (useGlobalInvariants) {
       globalInvariant = globalInvariants.getInvariantFor(
           pNode, pCallstackInformation, pFmgr, pPfmgr, pContext);
     }
 
-    return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
+    return bfManager.and(globalInvariant, bfManager.and(localInvariants));
   }
 
   /**
