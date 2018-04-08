@@ -1609,6 +1609,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
                 OctagonIntervalCoefficients.getNondetBoolCoeffs(
                     visitorState.sizeOfVariables(), visitorState);
             break;
+          default:
+            // $FALL-THROUGH$
         }
       }
       return Collections.singleton(Pair.of(coefficients, visitorState));
