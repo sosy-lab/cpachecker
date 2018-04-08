@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -39,37 +36,26 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier.LockType;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 
-public class LockState implements LatticeAbstractState<LockState>, Serializable, CompatibleState {
+public class LockState extends AbstractLockState {
 
-  public static class LockTreeNode extends TreeSet<LockIdentifier> implements UsageTreeNode{
+  public static class LockTreeNode extends TreeSet<LockIdentifier> implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;
 
     public LockTreeNode(Set<LockIdentifier> locks) {
       super(locks);
     }
+
     @Override
     public boolean isCompatibleWith(CompatibleState pState) {
       Preconditions.checkArgument(pState instanceof LockTreeNode);
       return Sets.intersection(this, (LockTreeNode)pState).isEmpty();
-    }
-
-    @Override
-    public CompatibleState prepareToStore() {
-      return this;
-    }
-
-    @Override
-    public UsageTreeNode getTreeNode() {
-      return this;
     }
 
     @Override
@@ -92,13 +78,10 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     }
 
     @Override
-    public boolean cover(UsageTreeNode pNode) {
+    public boolean cover(CompatibleNode pNode) {
       Preconditions.checkArgument(pNode instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pNode;
-      if (o.containsAll(this)) {
-        return true;
-      }
-      return false;
+      return o.containsAll(this);
     }
 
     @Override
@@ -108,31 +91,21 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
 
   }
 
-  public class LockStateBuilder {
+  public class LockStateBuilder extends AbstractLockStateBuilder {
     private SortedMap<LockIdentifier, Integer> mutableLocks;
-    private LockState mutableToRestore;
-    private boolean isRestored;
-    private boolean isFalseState;
 
     public LockStateBuilder(LockState state) {
+      super(state);
       mutableLocks = Maps.newTreeMap(state.locks);
-      mutableToRestore = state.toRestore;
-      isRestored = false;
-      isFalseState = false;
     }
 
+    @Override
     public void add(LockIdentifier lockId) {
-      Integer a;
-      if (mutableLocks.containsKey(lockId)) {
-        a = mutableLocks.get(lockId);
-        a++;
-      } else {
-        a = 1;
-      }
-      assert (a != null);
-      mutableLocks.put(lockId, a);
+      Integer a = mutableLocks.getOrDefault(lockId, 0);
+      mutableLocks.put(lockId, ++a);
     }
 
+    @Override
     public void free(LockIdentifier lockId) {
       if (mutableLocks.containsKey(lockId)) {
         Integer a = mutableLocks.get(lockId);
@@ -147,10 +120,12 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       }
     }
 
+    @Override
     public void reset(LockIdentifier lockId) {
       mutableLocks.remove(lockId);
     }
 
+    @Override
     public void set(LockIdentifier lockId, int num) {
       //num can be equal 0, this means, that in origin file it is 0 and we should delete locks
 
@@ -170,11 +145,12 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       }
     }
 
+    @Override
     public void restore(LockIdentifier lockId) {
       if (mutableToRestore == null) {
         return;
       }
-      Integer size = mutableToRestore.locks.get(lockId);
+      Integer size = ((LockState)mutableToRestore).locks.get(lockId);
       mutableLocks.remove(lockId);
       if (size != null) {
         mutableLocks.put(lockId, size);
@@ -182,10 +158,12 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       isRestored = true;
     }
 
+    @Override
     public void restoreAll() {
-      mutableLocks = mutableToRestore.locks;
+      mutableLocks = ((LockState)mutableToRestore).locks;
     }
 
+    @Override
     public LockState build() {
       if (isFalseState) {
         return null;
@@ -196,29 +174,33 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       if (locks.equals(mutableLocks) && mutableToRestore == toRestore) {
         return getParentLink();
       } else {
-        return new LockState(mutableLocks, mutableToRestore);
+        return new LockState(mutableLocks, (LockState) mutableToRestore);
       }
     }
 
+    @Override
     public LockState getOldState() {
       return getParentLink();
     }
 
+    @Override
     public void resetAll() {
       mutableLocks.clear();
     }
 
+    @Override
     public void reduce() {
       mutableToRestore = null;
     }
 
+    @Override
     public void reduceLocks(Set<LockIdentifier> usedLocks) {
       if (usedLocks != null) {
-        Set<LockIdentifier> reducableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), usedLocks);
-        reducableLocks.forEach(l -> mutableLocks.remove(l));
+        usedLocks.forEach(mutableLocks::remove);
       }
     }
 
+    @Override
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
       Set<LockIdentifier> reducableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks);
       reducableLocks.forEach(l ->
@@ -232,6 +214,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       mutableToRestore = rootState.toRestore;
     }
 
+    @Override
     public void expandLocks(LockState pRootState,  Set<LockIdentifier> usedLocks) {
       if (usedLocks != null) {
         Set<LockIdentifier> expandableLocks = Sets.difference(pRootState.locks.keySet(), usedLocks);
@@ -239,6 +222,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       }
     }
 
+    @Override
     public void expandLockCounters(LockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
       for (LockIdentifier lock : pRootState.locks.keySet()) {
         if (!pRestrictedLocks.contains(lock)) {
@@ -261,35 +245,31 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       }
     }
 
+    @Override
     public void setRestoreState() {
       mutableToRestore = getParentLink();
     }
 
+    @Override
     public void setAsFalseState() {
       isFalseState = true;
     }
   }
 
-  private static final long serialVersionUID = -3152134511524554357L;
-
   private final SortedMap<LockIdentifier, Integer> locks;
-  private final LockState toRestore;
   //if we need restore state, we save it here
   //Used for function annotations like annotate.function_name.restore
   public LockState() {
+    super();
     locks = Maps.newTreeMap();
-    toRestore = null;
   }
 
-  private LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {
+  protected LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {
+    super(state);
     this.locks  = Maps.newTreeMap(gLocks);
-    toRestore = state;
   }
 
-  public int getSize() {
-    return locks.size();
-  }
-
+  @Override
   public Map<LockIdentifier, Integer> getHashCodeForState() {
     //Special hash for BAM, in other cases use iterator
     return locks;
@@ -298,19 +278,18 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
   @Override
   public String toString() {
     if (locks.size() > 0) {
-      return from(locks.keySet())
-        .transform(l -> l.toString() + "[" + locks.get(l) + "]")
-        .join(Joiner.on(", "));
+      StringBuilder sb = new StringBuilder();
+      return Joiner.on("], ")
+             .withKeyValueSeparator("[")
+             .appendTo(sb, locks)
+             .append("]")
+             .toString();
     } else {
       return "Without locks";
     }
   }
 
-  public int getCounter(String lockName, String varName) {
-    LockIdentifier lock = LockIdentifier.of(lockName, varName, LockType.GLOBAL_LOCK);
-    return getCounter(lock);
-  }
-
+  @Override
   public int getCounter(LockIdentifier lock) {
     return locks.getOrDefault(lock, 0);
   }
@@ -330,24 +309,8 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       return false;
     }
     LockState other = (LockState) obj;
-    if (!Objects.equals(locks, other.locks)) {
-      return false;
-    }
-    return Objects.equals(toRestore, other.toRestore);
-  }
-
-  /**
-   * This method decides if this element is less or equal than the other element, based on the order imposed by the lattice.
-   *
-   * @param other the other element
-   * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
-   */
-  @Override
-  public boolean isLessOrEqual(LockState other) {
-    //State is less, if it has the same locks as the other and may be some more
-
-    return from(other.locks.keySet())
-            .allMatch(lock -> this.locks.containsKey(lock));
+    return Objects.equals(toRestore, other.toRestore)
+        && Objects.equals(locks, other.locks);
   }
 
   /**
@@ -386,12 +349,6 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
   }
 
   @Override
-  public boolean isCompatibleWith(CompatibleState state) {
-    Preconditions.checkArgument(state.getClass() == LockState.class);
-    LockState pLocks = (LockState) state;
-    return !Sets.intersection(locks.keySet(), pLocks.locks.keySet()).isEmpty();
-  }
-
   public LockStateBuilder builder() {
     return new LockStateBuilder(this);
   }
@@ -400,8 +357,10 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     return this;
   }
 
-  public List<LockEffect> getDifference(LockState other) {
+  @Override
+  public List<LockEffect> getDifference(AbstractLockState pOther) {
     //Return the effect, which shows, what should we do to transform from this state to the other
+    LockState other = (LockState) pOther;
 
     List<LockEffect> result = new LinkedList<>();
     Set<LockIdentifier> processedLocks = new TreeSet<>();
@@ -436,12 +395,12 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
   }
 
   @Override
-  public UsageTreeNode getTreeNode() {
+  public CompatibleNode getTreeNode() {
     return new LockTreeNode(locks.keySet());
   }
 
   @Override
-  public LockState join(LockState pOther) {
-    throw new UnsupportedOperationException("Operation join isn't supported for LockStatisticsCPA");
+  protected Set<LockIdentifier> getLocks() {
+    return locks.keySet();
   }
 }

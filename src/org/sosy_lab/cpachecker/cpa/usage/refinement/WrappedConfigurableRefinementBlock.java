@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import java.util.Collection;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
 
-public abstract class WrappedConfigurableRefinementBlock<I, O> implements ConfigurableRefinementBlock<I> {
+public abstract class WrappedConfigurableRefinementBlock<I, O> implements ConfigurableRefinementBlock<I>, StatisticsProvider {
   protected ConfigurableRefinementBlock<O> wrappedRefiner;
 
   protected void handleStartSignal(Class<? extends RefinementInterface> callerClass) {}
@@ -73,5 +76,12 @@ public abstract class WrappedConfigurableRefinementBlock<I, O> implements Config
   public final void finish(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException {
     handleFinishSignal(callerClass);
     wrappedRefiner.finish(callerClass);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    if (wrappedRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider)wrappedRefiner).collectStatistics(statsCollection);
+    }
   }
 }

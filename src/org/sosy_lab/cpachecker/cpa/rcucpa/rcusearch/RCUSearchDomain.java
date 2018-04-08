@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerDomain;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -40,7 +42,12 @@ public class RCUSearchDomain implements AbstractDomain {
 
     Set<MemoryLocation> pointers = new HashSet<>(searchState1.getRcuPointers());
     pointers.addAll(searchState2.getRcuPointers());
-    result = new RCUSearchState(pointers);
+    PointerState pointerState1 = (PointerState) searchState1.getWrappedStates().iterator().next();
+    PointerState pointerState2 = (PointerState) searchState2.getWrappedStates().iterator().next();
+
+    PointerDomain pDomain = PointerDomain.INSTANCE;
+    result = new RCUSearchState(pointers,
+                                (PointerState) pDomain.join(pointerState1, pointerState2));
 
     if (result.equals(searchState1)) {
       return searchState1;

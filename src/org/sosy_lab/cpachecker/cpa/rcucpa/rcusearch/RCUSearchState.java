@@ -23,20 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.rcucpa.rcusearch;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class RCUSearchState implements AbstractState {
+public class RCUSearchState implements AbstractWrapperState {
   private final Set<MemoryLocation> rcuPointers;
+  private final PointerState pointerState;
 
-  public RCUSearchState(Set<MemoryLocation> pointers) {
+  public RCUSearchState(Set<MemoryLocation> pointers, PointerState pPointerState) {
     rcuPointers = pointers;
+    pointerState = pPointerState;
   }
 
   public RCUSearchState() {
     rcuPointers = new HashSet<>();
+    pointerState = PointerState.INITIAL_STATE;
   }
 
   public Set<MemoryLocation> getRcuPointers() {
@@ -64,5 +70,19 @@ public class RCUSearchState implements AbstractState {
   @Override
   public int hashCode() {
     return rcuPointers != null ? rcuPointers.hashCode() : 0;
+  }
+
+  @Override
+  public String toString() {
+    return rcuPointers.toString();
+  }
+
+  @Override
+  public Iterable<AbstractState> getWrappedStates() {
+    return Collections.singleton(pointerState);
+  }
+
+  public static RCUSearchState copyOf(RCUSearchState pState) {
+    return new RCUSearchState(pState.rcuPointers, pState.pointerState);
   }
 }

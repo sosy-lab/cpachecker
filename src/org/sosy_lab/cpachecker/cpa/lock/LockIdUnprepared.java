@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.usage;
+package org.sosy_lab.cpachecker.cpa.lock;
 
-public interface UsageTreeNode extends CompatibleState {
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
-  public boolean cover(UsageTreeNode node);
-  default public boolean hasEmptyLockSet() { return true; }
+public class LockIdUnprepared {
+
+  private int p;
+  private String lockName;
+
+  public LockIdUnprepared(String pName, int num) {
+    p = num;
+    lockName = pName;
+  }
+
+  public String getName() {
+    return lockName;
+  }
+
+  public LockIdentifier apply(List<CExpression> params) {
+    if (p == 0) {
+      return LockIdentifier.of(lockName);
+    } else {
+      return LockIdentifier.of(lockName, params.get(p - 1).toASTString());
+    }
+  }
+
 }

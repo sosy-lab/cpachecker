@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 import com.google.common.base.Preconditions;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 
 
 public class AcquireLockEffect extends LockEffect {
@@ -48,7 +48,7 @@ public class AcquireLockEffect extends LockEffect {
   }
 
   @Override
-  public void effect(LockStateBuilder pBuilder) {
+  public void effect(AbstractLockStateBuilder pBuilder) {
     Preconditions.checkArgument(target != null, "Lock identifier must be set");
     int previousP = pBuilder.getOldState().getCounter(target);
     if (maxRecursiveCounter > previousP) {

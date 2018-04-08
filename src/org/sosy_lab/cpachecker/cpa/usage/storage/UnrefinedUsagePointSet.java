@@ -124,23 +124,10 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   public void remove(UsagePoint currentUsagePoint) {
     usageInfoSets.remove(currentUsagePoint);
     topUsages.remove(currentUsagePoint);
-    currentUsagePoint.getCoveredUsages().forEach(p -> add(p));
+    currentUsagePoint.getCoveredUsages().forEach(this::add);
   }
 
   SortedSet<UsagePoint> getTopUsages() {
     return topUsages;
-  }
-
-  public UsagePoint next(UsagePoint p) {
-    if (p == null) {
-      //initialization
-      if (topUsages.size() == 0) {
-        return null;
-      } else {
-        return topUsages.first();
-      }
-    } else {
-      return topUsages.higher(p);
-    }
   }
 }

@@ -29,7 +29,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreate
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -44,13 +44,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
-public class ThreadState implements AbstractState, AbstractStateWithLocation, Partitionable,
-    AbstractWrapperState, UsageTreeNode {
+public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractStateWithLocation, Partitionable,
+    AbstractWrapperState, CompatibleNode {
 
   public static class ThreadStateBuilder {
     private List<ThreadLabel> tSet;
@@ -129,7 +130,10 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
 
   public String getCurrentThreadName() {
     //Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread = from(threadSet).firstMatch(l -> l.isCreatedThread());
+    Optional<ThreadLabel> createdThread =
+        from(threadSet)
+        .firstMatch(ThreadLabel::isCreatedThread);
+
     if (createdThread.isPresent()) {
       return createdThread.get().getName();
     } else {
@@ -227,13 +231,9 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
       return result;
     }
 
-    Iterator<ThreadLabel> iterator1 = threadSet.iterator();
-    Iterator<ThreadLabel> iterator2 = other.threadSet.iterator();
     //Sizes are equal
-    while (iterator1.hasNext()) {
-      ThreadLabel label1 = iterator1.next();
-      ThreadLabel label2 = iterator2.next();
-      result = label1.compareTo(label2);
+    for (Pair<ThreadLabel, ThreadLabel> pair : Pair.zipList(threadSet, other.threadSet)) {
+      result = pair.getFirst().compareTo(pair.getSecond());
       if (result != 0) {
         return result;
       }
@@ -248,9 +248,10 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
     Preconditions.checkArgument(state instanceof ThreadState);
     ThreadState other = (ThreadState) state;
     for (ThreadLabel label : threadSet) {
-      if (from(other.threadSet)
-            .anyMatch(l -> label.isCompatibleWith(l))) {
-        return true;
+      for (ThreadLabel otherLabel : other.threadSet) {
+        if (label.isCompatibleWith(otherLabel)) {
+          return true;
+        }
       }
     }
     return false;
@@ -258,7 +259,7 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
 
   @Override
   public ThreadState prepareToStore() {
-    return new StoredThreadState(this);
+    return new ThreadState(null, null, this.threadSet, null);
   }
 
   public ThreadStateBuilder getBuilder() {
@@ -272,27 +273,25 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
 
   @Override
   public String toString() {
-    return getCurrentThreadName();
-  }
-
-  public static class StoredThreadState extends ThreadState {
-    StoredThreadState(ThreadState origin) {
-      super(null, null, origin.threadSet, null);
-    }
+    return location.toString() + "\n"
+            + callstack.toString() + "\n"
+            + getCurrentThreadName();
   }
 
   @Override
-  public UsageTreeNode getTreeNode() {
-    return this;
+  public boolean cover(CompatibleNode pNode) {
+    return ((ThreadState)pNode).isLessOrEqual(this);
   }
 
   @Override
-  public boolean cover(UsageTreeNode pNode) {
-    return this.threadSet.containsAll(((ThreadState)pNode).threadSet);
+  public ThreadState join(ThreadState pOther) {
+    Preconditions.checkArgument(false, "Join of Thread states is not supported");
+    return null;
   }
 
   @Override
-  public boolean hasEmptyLockSet() {
-    return true;
+  public boolean isLessOrEqual(ThreadState pOther) {
+    return Objects.equals(removedSet, pOther.removedSet)
+        && pOther.threadSet.containsAll(threadSet);
   }
 }

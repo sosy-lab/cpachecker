@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -41,12 +40,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.usage")
 public class UsageContainer {
@@ -65,7 +68,7 @@ public class UsageContainer {
 
   private final LogManager logger;
 
-  public Timer resetTimer = new Timer();
+  private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
 
   int unsafeUsages = -1;
   int totalIds = 0;
@@ -95,10 +98,10 @@ public class UsageContainer {
     detector = pDetector;
   }
 
-  public void addNewUsagesIfNecessary(FunctionContainer storage) {
+  public void initContainerIfNecessary(FunctionContainer storage) {
     if (unsafeUsages == -1) {
       copyUsages(storage);
-      getUnsafesIfNecessary();
+      calculateUnsafesIfNecessary();
     }
   }
 
@@ -132,7 +135,7 @@ public class UsageContainer {
     uset.add(usage);
   }
 
-  private void getUnsafesIfNecessary() {
+  private void calculateUnsafesIfNecessary() {
     if (unsafeUsages == -1) {
       processedUnsafes.clear();
       unsafeUsages = 0;
@@ -147,7 +150,7 @@ public class UsageContainer {
           falseUnsafes.add(id);
         }
       }
-      toDelete.forEach(id -> removeIdFromCaches(id));
+      toDelete.forEach(this::removeIdFromCaches);
 
       refinedIds.forEach((id, list) -> unsafeUsages += list.size());
 
@@ -164,16 +167,17 @@ public class UsageContainer {
     processedUnsafes.add(id);
   }
 
-  public Set<SingleIdentifier> getAllUnsafes() {
-    getUnsafesIfNecessary();
+  public Set<SingleIdentifier> getFalseUnsafes() {
+    Set<SingleIdentifier> currentUnsafes = getAllUnsafes();
+    return Sets.difference(initialSet, currentUnsafes);
+  }
+
+  private Set<SingleIdentifier> getAllUnsafes() {
+    calculateUnsafesIfNecessary();
     Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
     result.addAll(refinedIds.keySet());
     result.addAll(failedIds.keySet());
     return result;
-  }
-
-  public Set<SingleIdentifier> getInitialUnsafes() {
-    return initialSet;
   }
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
@@ -189,7 +193,7 @@ public class UsageContainer {
     return getKeySetIterator(unrefinedIds);
   }
 
-  public Iterator<SingleIdentifier> getTrueUnsafeIterator() {
+  private Iterator<SingleIdentifier> getTrueUnsafeIterator() {
     //New set to avoid concurrent modification exception
     return getKeySetIterator(refinedIds);
   }
@@ -200,7 +204,7 @@ public class UsageContainer {
   }
 
   public int getUnsafeSize() {
-    getUnsafesIfNecessary();
+    calculateUnsafesIfNecessary();
     if (printOnlyTrueUnsafes) {
       return refinedIds.size();
     } else {
@@ -223,7 +227,8 @@ public class UsageContainer {
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
     unsafeUsages = -1;
-    unrefinedIds.forEach((id, s) -> s.reset());
+    unrefinedIds.values()
+      .forEach(UnrefinedUsagePointSet::reset);
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }
@@ -265,61 +270,47 @@ public class UsageContainer {
     removeIdFromCaches(id);
   }
 
-  public void printUsagesStatistics(final PrintStream out) {
+  public void printUsagesStatistics(StatisticsWriter out) {
     int unsafeSize = getTotalUnsafeSize();
-    int topUsagePoints = 0, maxTopUsagePoints = 0;
+    StatInt topUsagePoints = new StatInt(StatKind.COUNT, "Total amount of unrefined usage points");
+    StatInt unrefinedUsages = new StatInt(StatKind.COUNT, "Total amount of unrefined usages");
+    StatInt refinedUsages = new StatInt(StatKind.COUNT, "Total amount of refined usages");
+    StatCounter failedUsages = new StatCounter("Total amount of failed usages");
 
     final int generalUnrefinedSize = unrefinedIds.keySet().size();
-    int unrefinedUsages = 0, maxUnrefinedUsages = 0;
     for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
-      unrefinedUsages += uset.size();
-      if (maxUnrefinedUsages < uset.size()) {
-        maxUnrefinedUsages = uset.size();
-      }
-      topUsagePoints += uset.getNumberOfTopUsagePoints();
-      if (maxTopUsagePoints < uset.getNumberOfTopUsagePoints()) {
-        maxTopUsagePoints = uset.getNumberOfTopUsagePoints();
-      }
+      unrefinedUsages.setNextValue(uset.size());
+      topUsagePoints.setNextValue(uset.getNumberOfTopUsagePoints());
     }
 
     final int generalRefinedSize = refinedIds.keySet().size();
-    int refinedUsages = 0;
-    for (RefinedUsagePointSet uset : refinedIds.values()) {
-      refinedUsages += uset.size();
-    }
+    refinedIds.forEach(
+        (id, rset) -> refinedUsages.setNextValue(rset.size()));
 
     final int generalFailedSize = failedIds.keySet().size();
-    int failedUsages = 0;
     for (RefinedUsagePointSet uset : failedIds.values()) {
       Pair<UsageInfo, UsageInfo> pair = uset.getUnsafePair();
       if (pair.getFirst().isLooped()) {
-        failedUsages++;
+        failedUsages.inc();
       }
       if (pair.getSecond().isLooped() && !pair.getFirst().equals(pair.getSecond())) {
-        failedUsages++;
+        failedUsages.inc();
       }
     }
 
-    out.println("Total amount of unsafes:                          " + unsafeSize);
-
-    out.println("Initial amount of unsafes (before refinement):    " + initialSet.size());
-    out.println("Initial amount of usages (before refinement):     " + initialUsages);
-    out.println("Initial amount of refined false unsafes:          " + falseUnsafes.size());
-
-    out.println("Total amount of unrefined unsafes:                " + generalUnrefinedSize);
-    out.println("Total amount of unrefined usage points:           " + topUsagePoints + "(avg. " +
-        (generalUnrefinedSize == 0 ? "0" : (topUsagePoints/generalUnrefinedSize))
-        + ", max. " + maxTopUsagePoints + ")");
-    out.println("Total amount of unrefined usages:                 " + unrefinedUsages + "(avg. " +
-        (generalUnrefinedSize == 0 ? "0" : (unrefinedUsages/generalUnrefinedSize)) + ", max " + maxUnrefinedUsages + ")");
-
-    out.println("Total amount of refined unsafes:                  " + generalRefinedSize);
-    out.println("Total amount of refined usages:                   " + refinedUsages + "(avg. " +
-        (generalRefinedSize == 0 ? "0" : (refinedUsages/generalRefinedSize)) + ")");
-
-    out.println("Total amount of failed unsafes:                   " + generalFailedSize);
-    out.println("Total amount of failed usages:                    " + failedUsages + "(avg. " +
-        (generalFailedSize == 0 ? "0" : (failedUsages/generalFailedSize)) + ")");
+    out.spacer()
+       .put("Total amount of unsafes", unsafeSize)
+       .put("Initial amount of unsafes (before refinement)", initialSet.size())
+       .put("Initial amount of usages (before refinement)", initialUsages)
+       .put("Initial amount of refined false unsafes", falseUnsafes.size())
+       .put("Total amount of unrefined unsafes", generalUnrefinedSize)
+       .put(topUsagePoints)
+       .put(unrefinedUsages)
+       .put("Total amount of refined unsafes", generalRefinedSize)
+       .put(refinedUsages)
+       .put("Total amount of failed unsafes", generalFailedSize)
+       .put(failedUsages)
+       .put(resetTimer);
   }
 
   @Override

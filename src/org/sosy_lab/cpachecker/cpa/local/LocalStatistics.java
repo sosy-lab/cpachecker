@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -74,8 +75,9 @@ public class LocalStatistics implements Statistics {
     }
     try {
       Map<CFANode, LocalState> reachedStatistics = new TreeMap<>();
-      //Path p = Paths.get(outputFileName);
-      try (Writer writer = Files.newBufferedWriter(Paths.get(outputFileName.toString()), Charset.defaultCharset())) {
+      //As the analysis is used as preanalysis the output directory may not be created
+      MoreFiles.createParentDirs(outputFileName);
+      try (Writer writer = Files.newBufferedWriter(outputFileName, Charset.defaultCharset())) {
         logger.log(Level.FINE, "Write precision to " + outputFileName);
         for (AbstractState state : pReached.asCollection()) {
           CFANode node = AbstractStates.extractLocation(state);

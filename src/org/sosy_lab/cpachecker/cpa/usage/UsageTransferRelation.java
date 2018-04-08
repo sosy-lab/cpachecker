@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.base.Predicates.instanceOf;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
@@ -32,7 +33,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +70,8 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.usage.BinderFunctionInfo.LinkerInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
+import org.sosy_lab.cpachecker.cpa.usage.refinement.AliasInfoProvider;
+import org.sosy_lab.cpachecker.cpa.usage.refinement.LocalInfoProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -76,7 +79,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
@@ -97,7 +100,7 @@ public class UsageTransferRelation implements TransferRelation {
 
   @Option(name="abortfunctions", description="functions, which stops analysis",
       secure = true)
-  private Set<String> abortfunctions;
+  private Set<String> abortfunctions = null;
 
   private final CallstackTransferRelation callstackTransfer;
   private final VariableSkipper varSkipper;
@@ -117,18 +120,18 @@ public class UsageTransferRelation implements TransferRelation {
     statistics = s;
 
     logger = pLogger;
-    binderFunctionInfo = new HashMap<>();
     if (binderFunctions != null) {
-      BinderFunctionInfo tmpInfo;
-      for (String name : binderFunctions) {
-        tmpInfo = new BinderFunctionInfo(name, config, logger);
-        binderFunctionInfo.put(name, tmpInfo);
-      }
+      binderFunctionInfo =
+          from(binderFunctions)
+          .toMap(name -> new BinderFunctionInfo(name, config, logger));
       //BindedFunctions should not be analysed
       skippedfunctions = skippedfunctions == null ? binderFunctions : Sets.union(skippedfunctions, binderFunctions);
     }
 
     varSkipper = new VariableSkipper(config);
+    if (abortfunctions == null) {
+      abortfunctions = new HashSet<>();
+    }
   }
 
   @Override
@@ -168,6 +171,7 @@ public class UsageTransferRelation implements TransferRelation {
       callstackTransfer.enableRecursiveContext();
       needToReset = true;
       currentEdge = ((FunctionCallEdge)pCfaEdge).getSummaryEdge();
+      currentEdge = currentEdge.getPredecessor().getEdgeTo(currentEdge.getSuccessor());
       Preconditions.checkNotNull(currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
       logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
     }
@@ -179,6 +183,8 @@ public class UsageTransferRelation implements TransferRelation {
 
     Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessorsForEdge(oldWrappedState,
         precision.getWrappedPrecision(), currentEdge);
+
+    //Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
       UsageState resultState = newState.clone(newWrappedState);
       if (resultState != null) {
@@ -249,17 +255,12 @@ public class UsageTransferRelation implements TransferRelation {
       /*
        * a = f(b)
        */
-      CRightHandSide right = ((CFunctionCallAssignmentStatement)statement).getRightHandSide();
+      CFunctionCallExpression right = ((CFunctionCallAssignmentStatement)statement).getRightHandSide();
       CExpression variable = ((CFunctionCallAssignmentStatement)statement).getLeftHandSide();
 
       visitStatement(variable, Access.WRITE);
       // expression - only name of function
-      if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(variable, (CFunctionCallExpression)right);
-      } else {
-        //where is function?
-        throw new HandleCodeException("Can't find function call here: " + right.toASTString());
-      }
+      handleFunctionCallExpression(variable, right);
 
     } else if (statement instanceof CFunctionCallStatement) {
       handleFunctionCallExpression(null, ((CFunctionCallStatement)statement).getFunctionCallExpression());
@@ -310,14 +311,12 @@ public class UsageTransferRelation implements TransferRelation {
       linkVariables(left, params, currentInfo.linkInfo);
 
       AbstractIdentifier id;
-      IdentifierCreator creator = new IdentifierCreator(getCurrentFunction());
 
       for (int i = 0; i < params.size(); i++) {
-        id = creator.createIdentifier(params.get(i), currentInfo.pInfo.get(i).dereference);
-        id = newState.getLinksIfNecessary(id);
-        UsageInfo usage = UsageInfo.createUsageInfo(currentInfo.pInfo.get(i).access,
-            fcExpression.getFileLocation().getStartingLineNumber(), newState, id);
-        addUsageIfNeccessary(usage);
+        id = Identifiers.createIdentifier(params.get(i), currentInfo.pInfo.get(i).dereference, getCurrentFunction());
+        UsageBuilder builder = new UsageBuilder(currentInfo.pInfo.get(i).access,
+            fcExpression.getFileLocation().getStartingLineNumber(), newState);
+        addUsageIfNecessary(id, builder);
       }
 
     } else if (abortfunctions.contains(functionCallName)) {
@@ -374,18 +373,18 @@ public class UsageTransferRelation implements TransferRelation {
 
   private AbstractIdentifier getLinkedIdentifier(final LinkerInfo info, final CExpression left
       , final List<CExpression> params) {
-    IdentifierCreator creator = new IdentifierCreator(getCurrentFunction());
-    AbstractIdentifier result = null;
+    CExpression expr;
     if (info.num == 0 && left != null) {
-      result = creator.createIdentifier(left, info.dereference);
+      expr = left;
     } else if (info.num > 0) {
-      result = creator.createIdentifier(params.get(info.num - 1), info.dereference);
+      expr = params.get(info.num - 1);
     } else {
       /* f.e. sdlGetFirst(), which is used for deleting element
        * we don't link, but it isn't an error
        */
+      return null;
     }
-    return result;
+    return Identifiers.createIdentifier(expr, info.dereference, getCurrentFunction());
   }
 
   private void linkId(final AbstractIdentifier idIn, AbstractIdentifier idFrom) {
@@ -405,62 +404,103 @@ public class UsageTransferRelation implements TransferRelation {
 
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
-      id = newState.getLinksIfNecessary(id);
-      UsageInfo usage = UsageInfo.createUsageInfo(pair.getSecond(), expression.getFileLocation().getStartingLineNumber(), newState, id);
-      addUsageIfNeccessary(usage);
+      UsageBuilder builder = new UsageBuilder(pair.getSecond(),
+          expression.getFileLocation().getStartingLineNumber(), newState);
+      addUsageIfNecessary(id, builder);
     }
   }
 
-  private void addUsageIfNeccessary(UsageInfo usage) {
+  private void addUsageIfNecessary(AbstractIdentifier id, UsageBuilder builder) {
 
     //Precise information, using results of shared analysis
-    if (!usage.isRelevant()) {
+    if (!(id instanceof SingleIdentifier)) {
+      // Basically the same as returning irrelevant usage before the change
       return;
     }
 
-    SingleIdentifier singleId = usage.getId();
+    SingleIdentifier singleId = (SingleIdentifier) id;
 
     CFANode node = AbstractStates.extractLocation(newState);
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 
-    if (localInfo != null) {
-      GeneralIdentifier gId = singleId.getGeneralId();
-      if (localInfo.get(gId) == DataType.LOCAL) {
-        logger.log(Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
-        return;
-      } else {
-        FluentIterable<GeneralIdentifier> composedIds =
-            from(singleId.getComposedIdentifiers())
-            .filter(SingleIdentifier.class)
-            .transform(SingleIdentifier::getGeneralId);
-        boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
-        boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
-        if (isLocal && !isGlobal) {
-          logger.log(Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
-          return;
+    Iterable<AbstractState> providers = AbstractStates.asIterable(newState).
+        filter(instanceOf(AliasInfoProvider.class));
+    Set<AbstractIdentifier> aliases = new HashSet<>();
+    Set<AbstractIdentifier> unnecessary = new HashSet<>();
+
+    aliases.add(singleId);
+    logger.log(Level.ALL, "ALIAS: ", aliases);
+    for (AbstractState provider : providers) {
+      aliases.addAll(((AliasInfoProvider) provider).getAllPossibleIds(singleId));
+    }
+    logger.log(Level.ALL, "ALIAS: ", aliases);
+
+    for (AbstractState provider : providers) {
+      unnecessary.addAll(((AliasInfoProvider) provider).getUnnecessaryIds(singleId, aliases));
+    }
+
+    aliases.removeAll(unnecessary);
+    logger.log(Level.ALL, "ALIAS: ", aliases);
+
+    for (AbstractIdentifier aliasId : aliases) {
+
+      UsageInfo usage = builder.buildForId(aliasId);
+
+      if (!usage.isRelevant()) {
+        continue;
+      }
+
+      Iterable<AbstractState> itStates = AbstractStates.asIterable(newState).
+          filter(instanceOf(LocalInfoProvider.class));
+      boolean isLocal = false;
+      boolean isGlobal = false;
+      GeneralIdentifier gId = aliasId.getGeneralId();
+      FluentIterable<GeneralIdentifier> composedIds =
+          from(aliasId.getComposedIdentifiers())
+              .filter(SingleIdentifier.class)
+              .transform(SingleIdentifier::getGeneralId);
+
+      if (localInfo != null) {
+        if (localInfo.get(gId) == DataType.LOCAL) {
+          isLocal = true;
+        } else {
+          isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
+          isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
         }
       }
-    }
 
-    if (varSkipper.shouldBeSkipped(singleId, usage)) {
-      return;
-    }
+      for (AbstractState state : itStates) {
+        isLocal |= ((LocalInfoProvider) state).isLocal(gId);
+        isLocal |= composedIds.anyMatch(i -> ((LocalInfoProvider) state).isLocal(i));
+      }
 
-    if (singleId instanceof LocalVariableIdentifier && singleId.getDereference() <= 0) {
-      //we don't save in statistics ordinary local variables
-      return;
-    }
-    if (singleId instanceof StructureIdentifier && !singleId.isGlobal() && !singleId.isDereferenced()) {
-      //skips such cases, as 'a.b'
-      return;
-    }
-    if (singleId instanceof StructureIdentifier) {
-      singleId = ((StructureIdentifier)singleId).toStructureFieldIdentifier();
-    }
+      if (isLocal && !isGlobal) {
+        logger.log(Level.FINER,
+            singleId + " is considered to be local, so it wasn't add to statistics");
+        continue;
+      }
 
-    logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");
+      if (varSkipper.shouldBeSkipped(aliasId, usage)) {
+        continue;
+      }
 
-    newState.addUsage(singleId, usage);
+      if (aliasId instanceof LocalVariableIdentifier && aliasId.getDereference() <= 0) {
+        //we don't save in statistics ordinary local variables
+        continue;
+      }
+      if (aliasId instanceof StructureIdentifier && !aliasId.isGlobal() &&
+          !aliasId.isDereferenced()) {
+        //skips such cases, as 'a.b'
+        continue;
+      }
+      if (aliasId instanceof StructureIdentifier) {
+        aliasId = ((StructureIdentifier) aliasId).toStructureFieldIdentifier();
+      }
+
+      logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");
+
+      newState.addUsage((SingleIdentifier) aliasId, usage);
+    }
   }
 
   private String getCurrentFunction() {

@@ -23,32 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 
 public class LockInfo {
-  public final String lockName;
-  public final ImmutableMap<String, Integer> LockFunctions;  /* integer: 0 - if we don't use parameter as identifier */
-  public final ImmutableMap<String, Integer> UnlockFunctions;/*          i - we use parameter number i as identifier */
-  public final ImmutableMap<String, Integer> ResetFunctions;
-  public final ImmutableSet<String> Variables;
-  public final String setLevel;
-  public final int maxLock;
 
-  public LockInfo(String name, Map<String, Integer> lock, Map<String, Integer> unlock, Map<String, Integer> reset
-      , Set<String> vars, String level, int max) {
-    lockName = name;
-    LockFunctions = ImmutableMap.copyOf(lock);
-    UnlockFunctions = ImmutableMap.copyOf(unlock);
-    ResetFunctions = ImmutableMap.copyOf(reset);
-    Variables = ImmutableSet.copyOf(vars);
-    setLevel = level;
-    maxLock = max;
+  public final Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffectDescription;
+  public final Map<String, LockIdentifier> variableEffectDescription;
+  public final Map<String, Integer> maxLevel;
+
+  public LockInfo(Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects,
+                  Map<String, LockIdentifier> varEffects,
+                  Map<String, Integer> max) {
+    functionEffectDescription = ImmutableMap.copyOf(functionEffects);
+    variableEffectDescription = ImmutableMap.copyOf(varEffects);
+    maxLevel = ImmutableMap.copyOf(max);
   }
 
 }

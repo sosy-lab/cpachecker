@@ -60,9 +60,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -193,7 +195,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     UsageCPA usageCPA = CPAs.retrieveCPA(pCpa, UsageCPA.class);
     if (usageCPA != null) {
-      usageCPA.getStats().setBAMTransfer(transfer);
+      usageCPA.getStats().setBAMTransfer(transfer.createBAMMultipleSubgraphComputer(ARGState::getStateId));
     }
     stats = new BAMCPAStatistics(this, data, config, logger);
     argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);
@@ -203,7 +205,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     BlockPartitioningBuilder blockBuilder;
     if (useExtendedPartitioningBuilder) {
       LockCPA cpa = retrieveWrappedCpa(LockCPA.class);
-      blockBuilder = new ExtendedBlockPartitioningBuilder(cpa == null ? null : (LockTransferRelation)cpa.getTransferRelation());
+      blockBuilder = new ExtendedBlockPartitioningBuilder(cpa == null ? null : (LockTransferRelation)cpa.getTransferRelation(),
+                                                          new PointerTransferRelation());
     } else {
       blockBuilder = new BlockPartitioningBuilder();
     }

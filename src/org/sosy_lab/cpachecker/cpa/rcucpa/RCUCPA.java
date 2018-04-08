@@ -39,13 +39,15 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerCPA;
 
 @Options(prefix = "cpa.rcucpa")
-public class RCUCPA extends AbstractCPA implements ConfigurableProgramAnalysis, WrapperCPA {
+public class RCUCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM{ /*,
+    WrapperCPA {*/
 
   @Option(name = "precisionFile", secure = true, description = "name of a file containing "
       + "information on which pointers are RCU pointers")
@@ -77,6 +79,7 @@ public class RCUCPA extends AbstractCPA implements ConfigurableProgramAnalysis, 
       CFANode node, StateSpacePartition partition) throws InterruptedException {
     return new RCUPrecision(fileName);
   }
+  /*
 
   @Nullable
   @Override
@@ -88,4 +91,5 @@ public class RCUCPA extends AbstractCPA implements ConfigurableProgramAnalysis, 
   public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return null;
   }
+  */
 }

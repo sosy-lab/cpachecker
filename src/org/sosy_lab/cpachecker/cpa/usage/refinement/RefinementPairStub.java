@@ -23,60 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
-import org.sosy_lab.cpachecker.cpa.usage.UsageState;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
-import org.sosy_lab.cpachecker.cpa.usage.refinement.ConfigurableRefinementBlock;
-import org.sosy_lab.cpachecker.cpa.usage.refinement.ExtendedARGPath;
-import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementInterface;
-import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public class RefinementPairStub implements ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>{
 
-  private UnsafeDetector detector = null;
   @Override
   public void update(Class<? extends RefinementInterface> pCallerClass, Class<? extends RefinementInterface> pDstClass,
-      Object pData) {
-  }
+      Object pData) {}
 
   @Override
-  public void start(Class<? extends RefinementInterface> pCallerClass) {
-  }
+  public void start(Class<? extends RefinementInterface> pCallerClass) {}
 
   @Override
-  public void finish(Class<? extends RefinementInterface> pCallerClass) throws CPAException, InterruptedException {
-  }
+  public void finish(Class<? extends RefinementInterface> pCallerClass) throws CPAException, InterruptedException {}
 
   @Override
-  public void printStatistics(PrintStream pOut) {
-
-  }
+  public void printStatistics(StatisticsWriter pOut) {}
 
   @Override
-  public RefinementResult performRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
 
-    if (detector == null) {
-      detector = AbstractStates.extractStateByType(pInput.getFirst().getUsageInfo().getKeyState(),
-          UsageState.class).getContainer().getUnsafeDetector();
-
-    }
-    Set<UsageInfo> tmpSet = new HashSet<>();
-    tmpSet.add(pInput.getFirst().getUsageInfo());
-    tmpSet.add(pInput.getSecond().getUsageInfo());
-    boolean b = detector.isUnsafe(tmpSet);
-    if (b) {
-      return RefinementResult.createTrue(pInput.getFirst(), pInput.getSecond());
-    } else {
-      return RefinementResult.createFalse();
-    }
+    return RefinementResult.createTrue(pInput.getFirst(), pInput.getSecond());
   }
 
 }

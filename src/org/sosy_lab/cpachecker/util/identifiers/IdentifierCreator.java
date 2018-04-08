@@ -193,8 +193,4 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     return new ConstantIdentifier(pExp.toASTString(), dereference);
   }
 
-  public static MemoryLocation idToMemLoc(AbstractIdentifier id) {
-
-    return null;
-  }
 }

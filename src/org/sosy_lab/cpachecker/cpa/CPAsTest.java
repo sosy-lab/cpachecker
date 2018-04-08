@@ -170,7 +170,7 @@ public class CPAsTest {
               .setLogger(logManager)
               .setConfiguration(config)
               .setShutdownNotifier(shutdownNotifier)
-              .set(new ReachedSetFactory(config), ReachedSetFactory.class)
+              .set(new ReachedSetFactory(config, logManager), ReachedSetFactory.class)
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)

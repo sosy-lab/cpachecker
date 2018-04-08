@@ -271,6 +271,10 @@ public class PointerState implements AbstractState, ForgetfulState<PointerInform
     return pointsToMap.keySet();
   }
 
+  public static boolean isFictionalPointer(MemoryLocation ptr) {
+    return ptr.getIdentifier().contains("##");
+  }
+
   @Override
   public int getSize() {
     return pointsToMap.size();

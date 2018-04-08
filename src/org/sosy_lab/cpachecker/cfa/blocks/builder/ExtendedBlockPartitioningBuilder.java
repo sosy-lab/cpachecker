@@ -44,8 +44,14 @@ import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerPrecision;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  *  Class implements more intelligent partitioning building,
@@ -56,9 +62,11 @@ import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
 
   private final LockTransferRelation ltransfer;
+  private final PointerTransferRelation ptransfer;
 
-  public ExtendedBlockPartitioningBuilder(LockTransferRelation t) {
+  public ExtendedBlockPartitioningBuilder(LockTransferRelation t, PointerTransferRelation p) {
     ltransfer = t;
+    ptransfer = p;
   }
 
   @Override
@@ -154,6 +162,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     Map<CFANode, ImmutableSet<ReferencedVariable>> immutableVariablesMap = new HashMap<>();
     Map<CFANode, ImmutableSet<CFANode>> immutableNodesMap = new HashMap<>();
     Map<CFANode, ImmutableSet<LockIdentifier>> immutableLocksMap = new HashMap<>();
+    Map<CFANode, ImmutableSet<MemoryLocation>> immutableLocationsMap = new HashMap<>();
     //Resolve loop mapping
     for (Entry<CFANode, CFANode> nodeMapping : loopMapping.entrySet()) {
       CFANode node = nodeMapping.getKey();
@@ -167,6 +176,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
       ImmutableSet<ReferencedVariable> resultVars;
       ImmutableSet<CFANode> resultNodes;
       ImmutableSet<LockIdentifier> resultLocks;
+      ImmutableSet<MemoryLocation> resultMemLocks;
       if (!immutableVariablesMap.containsKey(mappedNode)) {
         resultVars = ImmutableSet.copyOf(referencedVariablesMap.get(mappedNode));
         immutableVariablesMap.put(mappedNode, resultVars);
@@ -188,6 +198,13 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
         resultLocks = immutableLocksMap.get(mappedNode);
       }
       immutableLocksMap.put(node, resultLocks);
+      if (!immutableLocationsMap.containsKey(mappedNode)) {
+        resultMemLocks = ImmutableSet.copyOf(knownMemoryLocations.get(mappedNode));
+        immutableLocationsMap.put(mappedNode, resultMemLocks);
+      } else {
+        resultMemLocks = immutableLocationsMap.get(mappedNode);
+      }
+      immutableLocationsMap.put(node, resultMemLocks);
     }
 
     //now we can create the Blocks for the BlockPartitioning
@@ -196,10 +213,13 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
       CFANode key = returnNodesEntry.getKey();
       if (immutableVariablesMap.containsKey(key)) {
         assert immutableNodesMap.containsKey(key);
-        blocks.add(new Block(immutableVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), immutableNodesMap.get(key), immutableLocksMap.get(key)));
+        blocks.add(new Block(immutableVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key),
+                              immutableNodesMap.get(key), immutableLocksMap.get(key), immutableLocationsMap.get(key)));
       } else {
         blocks.add(new Block(ImmutableSet.copyOf(referencedVariablesMap.get(key)), callNodesMap.get(key),
-            returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key)), ImmutableSet.copyOf(capturedLocksMap.get(key))));
+                              returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key)),
+                              ImmutableSet.copyOf(capturedLocksMap.get(key)),
+                              ImmutableSet.copyOf(knownMemoryLocations.get(key))));
       }
     }
     return new BlockPartitioning(blocks, cfa.getMainFunction());
@@ -219,9 +239,14 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     Set<CFANode> callNodes = collectCallNodes(nodes);
     Set<CFANode> returnNodes = collectReturnNodes(nodes);
     Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
+    Set<MemoryLocation> locations = Sets.newHashSet();
     Set<LockIdentifier> innerLocks = Sets.newHashSet();
     if (ltransfer != null) {
       innerLocks = collectLocks(nodes);
+    }
+
+    if (ptransfer != null) {
+      locations = collectMemoryLocations(nodes);
     }
 
     if (callNodes.isEmpty()) {
@@ -248,6 +273,27 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     innerFunctionCallsMap.put(registerNode, innerFunctionCalls);
     blockNodesMap.put(registerNode, nodes);
     capturedLocksMap.put(registerNode, innerLocks);
+    knownMemoryLocations.put(registerNode, locations);
+  }
+
+  private Set<MemoryLocation> collectMemoryLocations(Set<CFANode> pNodes) {
+    Set<MemoryLocation> result = new HashSet<>();
+    PointerState fstate = PointerState.INITIAL_STATE;
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); ++i) {
+        CFAEdge e = node.getLeavingEdge(i);
+        try {
+          for (AbstractState state : ptransfer.getAbstractSuccessorsForEdge(fstate, new PointerPrecision(), e)) {
+            result.addAll(((PointerState)state).getKnownLocations());
+          }
+        } catch (CPATransferException pE) {
+          //
+        } catch (InterruptedException pE) {
+          //
+        }
+      }
+    }
+    return result;
   }
 
   private Set<LockIdentifier> collectLocks(Set<CFANode> pNodes) {

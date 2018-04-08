@@ -32,19 +32,52 @@ public class LockStateRCU implements LatticeAbstractState<LockStateRCU>{
     return null;
   }
 
+  private LockStateRCU(HeldLock lock, int readCount) {
+    lockType = lock;
+    readLockCount = readCount;
+  }
+
   @Override
   public boolean isLessOrEqual(LockStateRCU other) throws CPAException, InterruptedException {
     return readLockCount <= other.readLockCount;
   }
 
   boolean isCompatible(LockStateRCU other) {
-    boolean first = this.lockType == HeldLock.READ_LOCK
-                    && this.readLockCount > 0
+    boolean first = this.lockType == HeldLock.READ_LOCK &&
+                    this.readLockCount > 0
                     && other.lockType == HeldLock.WRITE_LOCK;
     boolean second = this.lockType == HeldLock.WRITE_LOCK
                       && other.lockType == HeldLock.READ_LOCK
                       && other.readLockCount > 0;
     return !first && !second;
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+
+    LockStateRCU that = (LockStateRCU) pO;
+
+    if (readLockCount != that.readLockCount) {
+      return false;
+    }
+    if (lockType != that.lockType) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = lockType.hashCode();
+    result = 31 * result + readLockCount;
+    return result;
   }
 
   public enum HeldLock {
@@ -81,8 +114,12 @@ public class LockStateRCU implements LatticeAbstractState<LockStateRCU>{
 
   @Override
   public String toString() {
-    return "\nLock Type: " + lockType.name() +
+    return "\n Lock Type: " + lockType.name() +
             "\n Read Lock Count: " + readLockCount;
+  }
+
+  public static LockStateRCU copyOf(LockStateRCU other) {
+    return new LockStateRCU(other.lockType, other.readLockCount);
   }
 
 }

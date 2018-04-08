@@ -95,6 +95,11 @@ public class ConstantIdentifier implements AbstractIdentifier {
   }
 
   @Override
+  public GeneralIdentifier getGeneralId() {
+    return null;
+  }
+
+  @Override
   public boolean isDereferenced() {
     return (dereference > 0);
   }

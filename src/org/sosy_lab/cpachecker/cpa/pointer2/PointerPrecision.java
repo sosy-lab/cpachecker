@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,7 +38,7 @@ public class PointerPrecision implements Precision {
     // TODO: extract JSON parsing into class, apply the method to parsing a file
   }
 
-  PointerPrecision() {
+  public PointerPrecision() {
     trackedPointers = new HashSet<>();
   }
 

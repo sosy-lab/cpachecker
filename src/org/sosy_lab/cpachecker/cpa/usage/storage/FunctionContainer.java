@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
-
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
-import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,12 +32,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class FunctionContainer extends AbstractUsageStorage {
 
@@ -58,7 +59,7 @@ public class FunctionContainer extends AbstractUsageStorage {
   private FunctionContainer(StorageStatistics pStats, List<LockEffect> pEffects) {
     super();
     stats = pStats;
-    stats.numberOfFunctionContainers++;
+    stats.numberOfFunctionContainers.inc();
     effects = pEffects;
     joinedWith = new IdentityHashSet<>();
   }
@@ -89,18 +90,18 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public void join(FunctionContainer funcContainer) {
-    stats.totalJoins++;
+    stats.totalJoins.inc();
     if (joinedWith.contains(funcContainer)) {
       //We may join two different exit states to the same parent container
-      stats.hitTimes++;
+      stats.hitTimes.inc();
       return;
     }
     joinedWith.add(funcContainer);
 
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();
-      stats.emptyJoin++;
-      funcContainer.forEach((id, set) -> this.addUsages(id, set));
+      stats.emptyJoin.inc();
+      funcContainer.forEach(this::addUsages);
       stats.copyTimer.stop();
     } else {
       Map<LockState, LockState> reduceToExpand = new HashMap<>();
@@ -108,18 +109,18 @@ public class FunctionContainer extends AbstractUsageStorage {
       for (Map.Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : funcContainer.entrySet()) {
         SingleIdentifier id = entry.getKey();
         SortedSet<UsageInfo> usages = entry.getValue();
-        stats.totalUsages += usages.size();
+        stats.totalUsages.setNextValue(usages.size());
 
         stats.effectTimer.start();
-        stats.effectJoin++;
+        stats.effectJoin.inc();
         SortedSet<UsageInfo> result = new TreeSet<>();
         LockState locks, expandedLocks;
         for (UsageInfo uinfo : usages) {
-          locks = (LockState) uinfo.getState(LockState.class);
+          locks = (LockState) uinfo.getLockState();
           if (reduceToExpand.containsKey(locks)) {
             expandedLocks = reduceToExpand.get(locks);
           } else {
-            stats.expandedUsages++;
+            stats.expandedUsages.inc();
             LockStateBuilder builder = locks.builder();
             funcContainer.effects.forEach(e -> e.effect(builder));
             expandedLocks = builder.build();
@@ -144,29 +145,28 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public static class StorageStatistics {
-    private int totalUsages = 0;
-    private int expandedUsages = 0;
-    private int emptyJoin = 0;
-    private int effectJoin = 0;
-    private int hitTimes = 0;
-    private int totalJoins = 0;
-    private int numberOfFunctionContainers = 0;
+    private StatInt totalUsages = new StatInt(StatKind.SUM, "Number of expanding querries");
+    private StatCounter expandedUsages = new StatCounter("Number of executed querries");
+    private StatCounter emptyJoin = new StatCounter("Number of empty joins");
+    private StatCounter effectJoin = new StatCounter("Number of effect joins");
+    private StatCounter hitTimes = new StatCounter("Number of hits into cache");
+    private StatCounter totalJoins = new StatCounter("Total number of joins");
+    private StatCounter numberOfFunctionContainers = new StatCounter("Total number of function containers");
 
-    Timer effectTimer = new Timer();
-    Timer copyTimer = new Timer();
+    private StatTimer effectTimer = new StatTimer("Time for appling effect");
+    private StatTimer copyTimer = new StatTimer("Time for joining");
 
-    public void printStatistics(PrintStream out) {
-      out.println("");
-      out.println("Time for effect:                    " + effectTimer);
-      out.println("Time for copy:                      " + copyTimer);
-      out.println("Total number of joins:              " + totalJoins);
-      out.println("Number of hits into cache:          " + valueWithPercentage(hitTimes, totalJoins));
-      int missTimes = totalJoins - hitTimes;
-      out.println("Number of empty joins:              " + valueWithPercentage(emptyJoin, missTimes));
-      out.println("Number of effect joins:             " + valueWithPercentage(effectJoin, missTimes));
-      out.println("Number of expanding querries:       " + totalUsages);
-      out.println("Number of executed querries:        " + expandedUsages);
-      out.println("Total number of function containers:" + numberOfFunctionContainers);
+    public void printStatistics(StatisticsWriter out) {
+      out.spacer()
+         .put(effectTimer)
+         .put(copyTimer)
+         .put(totalJoins)
+         .put(hitTimes)
+         .put(emptyJoin)
+         .put(effectJoin)
+         .put(totalUsages)
+         .put(expandedUsages)
+         .put(numberOfFunctionContainers);
     }
   }
 }

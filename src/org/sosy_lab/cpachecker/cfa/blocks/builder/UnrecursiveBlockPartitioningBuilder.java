@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 public class UnrecursiveBlockPartitioningBuilder extends ExtendedBlockPartitioningBuilder {
 
   public UnrecursiveBlockPartitioningBuilder(LockTransferRelation l) {
-    super(l);
+    super(l, null);
   }
 
   @Override
@@ -46,7 +46,9 @@ public class UnrecursiveBlockPartitioningBuilder extends ExtendedBlockPartitioni
     Collection<Block> blocks = new ArrayList<>(returnNodesMap.keySet().size());
     for (CFANode key : returnNodesMap.keySet()) {
       blocks.add(new Block(ImmutableSet.copyOf(referencedVariablesMap.get(key)), callNodesMap.get(key),
-          returnNodesMap.get(key), ImmutableSet.copyOf(blockNodesMap.get(key)), ImmutableSet.copyOf(capturedLocksMap.get(key))));
+          returnNodesMap.get(key), ImmutableSet.copyOf(blockNodesMap.get(key)),
+          ImmutableSet.copyOf(capturedLocksMap.get(key)),
+          ImmutableSet.copyOf(knownMemoryLocations.get(key))));
     }
     return new BlockPartitioning(blocks, cfa.getMainFunction());
   }

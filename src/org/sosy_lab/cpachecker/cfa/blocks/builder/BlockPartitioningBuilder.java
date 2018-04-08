@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Helper class can build a <code>BlockPartitioning</code> from a partition of a program's CFA into blocks.
@@ -62,6 +63,7 @@ public class BlockPartitioningBuilder {
   protected final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
+  protected final Map<CFANode, Set<MemoryLocation>> knownMemoryLocations = new HashMap<>();
 
   public BlockPartitioning build(CFA cfa) {
 

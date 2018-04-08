@@ -27,7 +27,6 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -35,7 +34,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -51,6 +49,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerStatistics;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -60,7 +59,7 @@ public class RCUSearchStatistics implements Statistics {
 
   @Option(secure = true, name = "input", description = "name of a file that holds the Points-To "
       + "information")
-  @FileOption(Type.REQUIRED_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path input = Paths.get("PointsToMap");
 
   @Option(secure = true, name = "output", description = "name of a file to hold information about"
@@ -68,18 +67,25 @@ public class RCUSearchStatistics implements Statistics {
   @FileOption(Type.OUTPUT_FILE)
   private Path output = Paths.get("RCUPointers");
 
-  private LogManager logger;
+  private final LogManager logger;
+  private final RCUSearchTransfer transfer;
 
-  RCUSearchStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  RCUSearchStatistics(Configuration config, LogManager pLogger, RCUSearchTransfer pTransfer) throws
+                                                                 InvalidConfigurationException {
     logger = pLogger;
+    transfer = pTransfer;
     config.inject(this);
   }
 
   @Override
+  @SuppressWarnings("serial")
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    Map<MemoryLocation, Set<MemoryLocation>> pointsTo = parseFile(input, logger);
+    Map<MemoryLocation, Set<MemoryLocation>> pointsTo = transfer.getPointsTo();
     Map<MemoryLocation, Set<MemoryLocation>> aliases = getAliases(pointsTo);
+
+    /* ("PTS-TO: " + pointsTo);
+    ("ALIAS: " + aliases); */
 
     AbstractState state = reached.getLastState();
     RCUSearchState rcuSearchState = AbstractStates.extractStateByType(state, RCUSearchState.class);
@@ -96,15 +102,20 @@ public class RCUSearchStatistics implements Statistics {
           rcuAndAliases.addAll(aliases.get(pointer));
         }
       }
-
-      /*try (Writer writer = Files.newBufferedWriter(output, Charset.defaultCharset())) {
+      try (Writer writer = Files.newBufferedWriter(output, Charset.defaultCharset())) {
         Gson builder = new Gson();
-        java.lang.reflect.Type type = new TypeToken<Set<MemoryLocation>>() {
+        java.lang.reflect.Type type = new TypeToken<Set<MemoryLocation>>(){
         }.getType();
         builder.toJson(rcuAndAliases, type, writer);
+        logger.log(Level.INFO, "Ended dump of RCU-aliases in file " + output);
       } catch (IOException pE) {
         logger.log(Level.WARNING, pE.getMessage());
-      }*/
+      }
+      String info = "";
+      info += "Number of RCU pointers:        " + rcuPointers.size() + "\n";
+      info += "Number of RCU aliases:         " + (rcuAndAliases.size() - rcuPointers.size()) + "\n";
+      info += "Number of fictional pointers:  " + getFictionalPointersNumber(rcuAndAliases) + "\n";
+      out.append(info);
       logger.log(Level.ALL, "RCU with aliases: " + rcuAndAliases);
     }
 
@@ -125,9 +136,11 @@ public class RCUSearchStatistics implements Statistics {
       if (pointerPointTo.contains(PointerStatistics.getReplLocSetTop())) {
         // pointer can point anywhere
         aliases.put(pointer, new HashSet<>(pointsTo.keySet()));
+        aliases.get(pointer).remove(pointer);
         for (MemoryLocation other : pointsTo.keySet()) {
-          pointsTo.putIfAbsent(other, new HashSet<>());
-          pointsTo.get(other).add(pointer);
+          aliases.putIfAbsent(other, new HashSet<>());
+          logger.log(Level.ALL, "Adding ", pointer, " to ", other, " as an alias");
+          aliases.get(other).add(pointer);
         }
       } else if (!pointerPointTo.contains(PointerStatistics.getReplLocSetBot())) {
         Set<MemoryLocation> commonElems;
@@ -155,56 +168,68 @@ public class RCUSearchStatistics implements Statistics {
     aliases.get(one).add(other);
   }
 
+  private int getFictionalPointersNumber(Set<MemoryLocation> ptrs) {
+    int result = 0;
+    for (MemoryLocation iter : ptrs) {
+      if (PointerState.isFictionalPointer(iter)) {
+        ++result;
+      }
+    }
+    return result;
+  }
+  /*
   private Map<MemoryLocation, Set<MemoryLocation>> parseFile(Path input, LogManager logger) {
-    /*Map<MemoryLocation, Set<MemoryLocation>> result = new HashMap<>();
+    Map<MemoryLocation, Set<MemoryLocation>> result = new HashMap<>();
 
-    try (Reader reader = Files.newBufferedReader(input, Charset.defaultCharset())) {
-      Gson builder = new Gson();
-      Map<String, Map<String, List<Map<String, String>>>> map = (Map<String, Map<String,
-          List<Map<String, String>>>>) builder.fromJson(reader, Map
-          .class);
-      for (String key : map.keySet()) {
-        Map<String, List<Map<String, String>>> newMap = map.get(key);
+    JsonIterator.setMode(DecodingMode.REFLECTION_MODE);
+
+    try {
+      byte[] encoded = Files.readAllBytes(input);
+      String str = new String(encoded, Charset.defaultCharset());
+
+      JsonIterator iter = JsonIterator.parse(str);
+      Map<String, Any> contents = iter.readAny().asMap();
+
+      for (String key : contents.keySet()) {
+        List<Any> idList = contents.get(key).asList();
+        MemoryLocation loc;
+        String fname = null, id = null;
+        Long offset = null;
         Set<MemoryLocation> set = new HashSet<>();
-        for (String key2 : newMap.keySet()) {
-          for (Map<String, String> elem :  newMap.get(key2)) {
-            String fname = null;
-            String id = null;
-            Long offset = null;
-            MemoryLocation loc;
-            if (elem.containsKey("functionName")) {
-              fname = elem.get("functionName");
-            }
-            if (elem.containsKey("identifier")) {
-              id = elem.get("identifier");
-            }
-            if (elem.containsKey("offset")) {
-              offset = new Long(elem.get("offset"));
-            }
 
-            if (fname != null && offset != null) {
-              loc = MemoryLocation.valueOf(fname, id, offset);
-            } else if (offset != null) {
-              loc = MemoryLocation.valueOf(id, offset);
-            } else if (fname != null){
-              loc = MemoryLocation.valueOf(fname, id);
-            } else {
-              loc = MemoryLocation.valueOf(id);
-            }
-            set.add(loc);
+        for (Any elem : idList) {
+          Map<String, Any> mapElem = elem.asMap();
+          if (mapElem.containsKey("functionname")) {
+            fname = mapElem.get("functionname").toString();
           }
+          if (mapElem.containsKey("identifier")) {
+            id = mapElem.get("identifier").toString();
+          }
+          if (mapElem.containsKey("offset")) {
+            offset = mapElem.get("offset").toLong();
+          }
+
+          if (fname != null && offset != null) {
+            loc = MemoryLocation.valueOf(fname, id, offset);
+          } else if (offset != null) {
+            loc = MemoryLocation.valueOf(id, offset);
+          } else if (fname != null){
+            loc = MemoryLocation.valueOf(fname, id);
+          } else {
+            loc = MemoryLocation.valueOf(id);
+          }
+
+          set.add(loc);
         }
+
         MemoryLocation locKey = MemoryLocation.valueOf(key);
         result.put(locKey, set);
       }
-      //logger.log(Level.ALL, "GSON read: " + map);
-      //logger.log(Level.ALL, "Parsed: " + result);
+
     } catch (IOException pE) {
       logger.log(Level.WARNING, pE.getMessage());
     }
     return result;
-
-    */
-    return new HashMap<>();
   }
+  */
 }

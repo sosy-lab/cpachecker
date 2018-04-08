@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsagePoint;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageInfoSet, UsageInfoSet>>{
@@ -53,12 +53,8 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
 
   private Set<UsagePoint> toRemove = new HashSet<>();
 
-  public PointIterator(ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>> pWrapper, UsageContainer c) {
+  public PointIterator(ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>> pWrapper) {
     super(pWrapper);
-    if (c != null) {
-      container = c;
-      detector = c.getUnsafeDetector();
-    }
   }
 
   @Override
@@ -72,13 +68,11 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     secondPointIterator = currentUsagePointSet.getPointIterator();
     firstPoint = firstPointIterator.next();
     secondPoint = secondPointIterator.next();
-    //firstPoint = currentUsagePointSet.next(null);
     assert firstPoint != null;
     assert secondPoint == firstPoint;
     Pair<UsageInfoSet, UsageInfoSet> resultingPair = prepareIterationPair(firstPoint, secondPoint);
     //because the points are equal
     postpone(resultingPair);
-    toRemove.clear();
   }
 
   @Override
@@ -161,7 +155,6 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   }
 
   @Override
-  protected void printDetailedStatistics(PrintStream pOut) {
-    pOut.println("--PointIterator--");
+  protected void printDetailedStatistics(StatisticsWriter pOut) {
   }
 }

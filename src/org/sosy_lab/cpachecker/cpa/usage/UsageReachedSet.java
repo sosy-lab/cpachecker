@@ -23,24 +23,49 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class UsageReachedSet extends PartitionedReachedSet {
-  //public static Timer addTimer = new Timer();
 
-  public UsageReachedSet(WaitlistFactory waitlistFactory) {
+  public static class RaceProperty implements Property {
+    @Override
+    public String toString() {
+      return "Race condition";
+    }
+  }
+
+  private final static RaceProperty propertyInstance = new RaceProperty();
+
+  private final Configuration config;
+  private final LogManager logger;
+
+  private UsageContainer container = null;
+
+  public UsageReachedSet(WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
     super(waitlistFactory);
+    config = pConfig;
+    logger = pLogger;
   }
 
   @Override
   public void remove(AbstractState pState) {
     super.remove(pState);
-    UsageState ustate = AbstractStates.extractStateByType(pState, UsageState.class);
-    ustate.getContainer().removeState(ustate);
+    if (container != null) {
+      UsageState ustate = UsageState.get(pState);
+      container.removeState(ustate);
+    }
   }
 
   @Override
@@ -53,7 +78,41 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   @Override
   public void clear() {
-    AbstractStates.extractStateByType(getFirstState(), UsageState.class).getContainer().resetUnrefinedUnsafes();
+    if (container != null) {
+      container.resetUnrefinedUnsafes();
+    }
     super.clear();
+  }
+
+
+  @Override
+  public boolean hasTargetStates() {
+    UsageContainer container = getUsageContainer();
+    return container == null ? false : container.getTotalUnsafeSize() > 0;
+  }
+
+  @Override
+  public Set<Property> findViolatedProperties() {
+    if (hasTargetStates()) {
+      return Collections.singleton(propertyInstance);
+    } else {
+      return Collections.emptySet();
+    }
+  }
+
+  public UsageContainer getUsageContainer() {
+    try {
+      if (container == null) {
+        container = new UsageContainer(config, logger);
+      }
+      //TODO lastState = null
+      UsageState lastState = UsageState.get(getLastState());
+      container.initContainerIfNecessary(lastState.getFunctionContainer());
+      return container;
+
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.SEVERE, e.getMessage());
+      return null;
+    }
   }
 }

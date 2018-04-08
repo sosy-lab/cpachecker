@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock.effects;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 
@@ -47,4 +48,29 @@ public abstract class LockEffect implements AbstractLockEffect {
   public LockIdentifier getAffectedLock() {
     return target;
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Objects.hashCode(target);
+    result = prime * result + Objects.hashCode(getAction());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null ||
+        getClass() != obj.getClass()) {
+      return false;
+    }
+    LockEffect other = (LockEffect) obj;
+    return Objects.equals(target, other.target) &&
+           Objects.equals(getAction(), other.getAction());
+  }
+
+
 }

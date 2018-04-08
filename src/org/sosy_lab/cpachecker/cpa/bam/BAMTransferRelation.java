@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
@@ -586,13 +585,6 @@ public class BAMTransferRelation implements TransferRelation {
           returnStates.add(returnState);
         }
       }
-      Set<AbstractState> exitableStates = from(reached)
-          .filter(s -> s instanceof Exitable)
-          .filter(s -> ((Exitable)s).isExitState())
-          .toSet();
-      for (AbstractState returnState : exitableStates) {
-        returnStates.add(returnState);
-      }
       if (blockExitStates.isEmpty()) {
         //infinite loop
         AbstractState randomState = reached.getLastState();
@@ -607,7 +599,7 @@ public class BAMTransferRelation implements TransferRelation {
 
   public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(Function<ARGState, Integer> idExtractor) {
     final BAMMultipleCEXSubgraphComputer cexSubgraphComputer = new BAMMultipleCEXSubgraphComputer(bamCPA,
-        reducedToExpand, idExtractor);
+        multiReducedToExpand, idExtractor);
 
         return cexSubgraphComputer;
   }
@@ -684,10 +676,6 @@ public class BAMTransferRelation implements TransferRelation {
     Preconditions.checkNotNull(multipleARGRemover);
 
     return multipleARGRemover;
-  }
-
-  public Multimap<AbstractState, AbstractState> getMapFromReducedToExpand() {
-    return multiReducedToExpand;
   }
 
   private boolean updateExitState(AbstractState state) {

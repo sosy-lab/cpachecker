@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.GlobalVariableIdentifier;
@@ -68,7 +68,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   private Writer globalWriter;
 
-  public ETVErrorTracePrinter(Configuration pC, BAMTransferRelation pT, LogManager pL, LockTransferRelation t) throws InvalidConfigurationException {
+  public ETVErrorTracePrinter(Configuration pC, BAMMultipleCEXSubgraphComputer pT, LogManager pL, LockTransferRelation t) throws InvalidConfigurationException {
     super(pC, pT, pL, t);
   }
 
@@ -123,6 +123,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
       createVisualization(id, pPair.getFirst(), writer);
       createVisualization(id, pPair.getSecond(), writer);
+
+
+
       if (!singleFileOutput) {
         writer.close();
       }
@@ -132,7 +135,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void createVisualization(final SingleIdentifier id, final UsageInfo usage, final Writer writer) throws IOException {
-    LockState Locks = (LockState) usage.getState(LockState.class);
+    AbstractLockState Locks = usage.getLockState();
 
     writer.append("Line 0:     N0 -{/*_____________________*/}-> N0\n");
     if (Locks != null) {
@@ -141,6 +144,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     if (usage.isLooped()) {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
     }
+
+    logger.log(Level.ALL, "STATE: ", usage.getKeyState());
+
     List<CFAEdge> path = getPath(usage);
     if (path == null) {
       return;
@@ -153,7 +159,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     Iterator<CFAEdge> iterator = path.iterator();
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
-      if (edge instanceof CDeclarationEdge) {
+      if (edge instanceof CDeclarationEdge &&
+          ((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
         continue;
       }
       if (edge instanceof CFunctionCallEdge && iterator.hasNext()) {
@@ -169,7 +176,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         callstackDepth--;
       }
       String caption = getNoteFor(edge);
-      if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
+      if (caption != null && !caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       } else if (edge.getLineNumber() == usage.getLine().getLine() && edge.toString().contains(id.getName())) {
@@ -181,6 +188,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       writer.append("Line 0:     N0 -{return;}-> N0\n");
     }
     writer.write("\n");
+
+    logger.log(Level.ALL, "USAGE: ", usage);
   }
 
   private void printCountStatistics(final Writer writer, final Iterator<SingleIdentifier> idIterator) throws IOException {

@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
@@ -103,8 +104,13 @@ public class ReachedSetFactory {
       + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  final Configuration config;
+  final LogManager logger;
+
+  public ReachedSetFactory(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    config = pConfig;
+    logger = pLogger;
   }
 
   public ReachedSet create() {
@@ -150,7 +156,7 @@ public class ReachedSetFactory {
       return new LocationMappedReachedSet(waitlistFactory);
 
     case USAGESTATISTICS:
-      return new UsageReachedSet(waitlistFactory);
+      return new UsageReachedSet(waitlistFactory, config, logger);
 
     case NORMAL:
     default:

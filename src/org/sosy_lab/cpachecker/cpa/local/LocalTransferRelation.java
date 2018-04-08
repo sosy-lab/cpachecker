@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.local;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -158,12 +160,8 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
       List<CExpression> arguments = sEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
       List<CParameterDeclaration> parameterTypes = entry.getFunctionDefinition().getParameters();
 
-      List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> toProcess =
-          extractIdentifiers(arguments, paramNames, parameterTypes, funcName, getFunctionName());
-
-      for (Triple<AbstractIdentifier, LocalVariableIdentifier, Integer> pairId : toProcess) {
-        completeAssign(newElement, pairId.getFirst(), pairId.getThird(), pairId.getSecond());
-      }
+      extractIdentifiers(arguments, paramNames, parameterTypes, funcName, getFunctionName())
+        .forEach(p -> completeAssign(newElement, p.getFirst(), p.getThird(), p.getSecond()));
     }
     return newElement;
   }
@@ -406,11 +404,7 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
     if (allocate.contains(funcName)) {
       return true;
     }
-    for (String pattern : allocatePattern) {
-      if (funcName.contains(pattern)) {
-        return true;
-      }
-    }
-    return false;
+    return from(allocatePattern)
+           .anyMatch(funcName::contains);
   }
 }

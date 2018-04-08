@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
@@ -11,7 +12,8 @@ import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
-import org.sosy_lab.cpachecker.cpa.usage.UsageTreeNode;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class UsagePoint implements Comparable<UsagePoint> {
 
@@ -19,7 +21,7 @@ public class UsagePoint implements Comparable<UsagePoint> {
     //This usage is used to distinct usage points with empty lock sets with write access from each other
     public final UsageInfo keyUsage;
 
-    private UsagePointWithEmptyLockSet(List<UsageTreeNode> nodes, Access pAccess, UsageInfo pInfo) {
+    private UsagePointWithEmptyLockSet(List<CompatibleNode> nodes, Access pAccess, UsageInfo pInfo) {
       super(nodes, pAccess);
       keyUsage = Objects.requireNonNull(pInfo);
     }
@@ -82,10 +84,10 @@ public class UsagePoint implements Comparable<UsagePoint> {
   }
 
   public final Access access;
-  private final List<UsageTreeNode> compatibleNodes;
+  private final List<CompatibleNode> compatibleNodes;
   private final Set<UsagePoint> coveredUsages;
 
-  private UsagePoint(List<UsageTreeNode> nodes, Access pAccess) {
+  private UsagePoint(List<CompatibleNode> nodes, Access pAccess) {
     access = pAccess;
     coveredUsages = new TreeSet<>();
     compatibleNodes = nodes;
@@ -95,11 +97,11 @@ public class UsagePoint implements Comparable<UsagePoint> {
 
     Access accessType = info.getAccess();
 
-    FluentIterable<UsageTreeNode> nodes =
+    FluentIterable<CompatibleNode> nodes =
         from(info.getAllCompatibleStates())
         .transform(CompatibleState::getTreeNode);
 
-    if (nodes.allMatch(UsageTreeNode::hasEmptyLockSet)) {
+    if (nodes.allMatch(CompatibleNode::hasEmptyLockSet)) {
       return new UsagePointWithEmptyLockSet(nodes.toList(), accessType, info);
     } else {
       return new UsagePoint(nodes.toList(), accessType);
@@ -109,11 +111,13 @@ public class UsagePoint implements Comparable<UsagePoint> {
 
   public boolean addCoveredUsage(UsagePoint newChild) {
     if (!coveredUsages.contains(newChild)) {
-      for (UsagePoint usage : coveredUsages) {
-        if (usage.covers(newChild)) {
-          assert !usage.equals(newChild);
-          return usage.addCoveredUsage(newChild);
-        }
+
+      Optional<UsagePoint> usage = from(coveredUsages)
+                         .firstMatch(u -> u.covers(newChild));
+
+      if (usage.isPresent()) {
+        assert !usage.get().equals(newChild);
+        return usage.get().addCoveredUsage(newChild);
       }
       return coveredUsages.add(newChild);
     }
@@ -156,8 +160,8 @@ public class UsagePoint implements Comparable<UsagePoint> {
     }
     Preconditions.checkArgument(compatibleNodes.size() == o.compatibleNodes.size());
     for (int i = 0; i < compatibleNodes.size(); i++) {
-      UsageTreeNode currentNode = compatibleNodes.get(i);
-      UsageTreeNode otherNode = o.compatibleNodes.get(i);
+      CompatibleNode currentNode = compatibleNodes.get(i);
+      CompatibleNode otherNode = o.compatibleNodes.get(i);
       result = currentNode.compareTo(otherNode);
       if (result != 0) {
         return result;
@@ -172,27 +176,14 @@ public class UsagePoint implements Comparable<UsagePoint> {
     if (access.compareTo(o.access) > 0) {
       return false;
     }
-    Preconditions.checkArgument(compatibleNodes.size() == o.compatibleNodes.size());
-    for (int i = 0; i < compatibleNodes.size(); i++) {
-      UsageTreeNode currentNode = compatibleNodes.get(i);
-      UsageTreeNode otherNode = o.compatibleNodes.get(i);
-      if(!currentNode.cover(otherNode)) {
-        return false;
-      }
-    }
-    return true;
+
+    return from(Pair.zipList(compatibleNodes, o.compatibleNodes))
+           .allMatch(p -> p.getFirst().cover(p.getSecond()));
   }
 
   public boolean isCompatible(UsagePoint other) {
-    Preconditions.checkArgument(compatibleNodes.size() == other.compatibleNodes.size());
-    for (int i = 0; i < compatibleNodes.size(); i++) {
-      UsageTreeNode currentNode = compatibleNodes.get(i);
-      UsageTreeNode otherNode = other.compatibleNodes.get(i);
-      if(!currentNode.isCompatibleWith(otherNode)) {
-        return false;
-      }
-    }
-    return true;
+    return from(Pair.zipList(compatibleNodes, other.compatibleNodes))
+           .allMatch(p -> p.getFirst().isCompatibleWith(p.getSecond()));
   }
 
   public boolean isEmpty() {
@@ -203,5 +194,14 @@ public class UsagePoint implements Comparable<UsagePoint> {
   @Override
   public String toString() {
     return access + ":" + compatibleNodes;
+  }
+
+  public CompatibleNode get(Class<? extends CompatibleNode> pClass) {
+    for (CompatibleNode node : compatibleNodes) {
+      if (node.getClass() == pClass) {
+        return node;
+      }
+    }
+    return null;
   }
 }

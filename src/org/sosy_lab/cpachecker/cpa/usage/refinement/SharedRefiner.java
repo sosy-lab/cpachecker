@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -37,17 +36,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class SharedRefiner extends GenericSinglePathRefiner {
 
   private LocalTransferRelation transferRelation;
 
   //Debug counter
-  private int counter = 0;
-  private final StatInt totalFalseConditions = new StatInt(StatKind.COUNT, "Number of false conditions that were detected by SharedRefiner");
-  private int numOfFalseResults = 0;
+  private StatCounter counter = new StatCounter("Number of cases with empty successors");
+  //private final StatInt totalFalseConditions = new StatInt(StatKind.COUNT, "Number of false conditions that were detected by SharedRefiner");
+  private StatCounter numOfFalseResults = new StatCounter("Number of false results");
 
   public SharedRefiner(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper, LocalTransferRelation RelationForSharedRefiner) {
     super(pWrapper);
@@ -76,7 +75,7 @@ public class SharedRefiner extends GenericSinglePathRefiner {
 
         if (usageState.getType(usageId) == LocalState.DataType.LOCAL) {
           result = RefinementResult.createFalse();
-          numOfFalseResults++;
+          numOfFalseResults.inc();
         } else {
 
           result = RefinementResult.createTrue();
@@ -91,22 +90,22 @@ public class SharedRefiner extends GenericSinglePathRefiner {
               emptyPrecision, edge);
         } else {
           //Strange situation
-          counter++;
+          counter.inc();
           result = RefinementResult.createUnknown();
           break;
         }
       }
     }
 
-    totalFalseConditions.setNextValue(numOfFalseResults);
+    //totalFalseConditions.setNextValue(numOfFalseResults.getValue());
     return result;
   }
 
   @Override
-  public void printAdditionalStatistics(PrintStream pOut) {
-    pOut.println("--Shared Refiner--");
-    pOut.println("Number of cases with empty successors: " + counter);
-    pOut.println("Number of false results: " + numOfFalseResults);
-    pOut.println(totalFalseConditions);
+  public void printAdditionalStatistics(StatisticsWriter pOut) {
+    pOut.beginLevel()
+      .put(counter)
+      .put(numOfFalseResults);
+    //pOut.println(totalFalseConditions);
   }
 }

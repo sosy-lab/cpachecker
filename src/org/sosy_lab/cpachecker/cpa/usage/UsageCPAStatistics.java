@@ -31,15 +31,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.usage")
-public class UsageCPAStatistics implements Statistics {
+public class UsageCPAStatistics extends AbstractStatistics {
 
   public static enum OutputFileType {
     ETV,
@@ -59,7 +59,6 @@ public class UsageCPAStatistics implements Statistics {
 
   private final LogManager logger;
 
-  private BAMTransferRelation transfer;
   private final Configuration config;
   private final LockTransferRelation lockTransfer;
   private ErrorTracePrinter errPrinter;
@@ -84,24 +83,23 @@ public class UsageCPAStatistics implements Statistics {
     printUnsafesTimer.stop();
 
     printStatisticsTimer.start();
-    errPrinter.printStatistics(out);
-    UsageState.get(reached.getFirstState()).getStatistics().printStatistics(out);
-    //out.
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer);
     writer.put(printStatisticsTimer);
+    errPrinter.printStatistics(writer);
+    UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
+    //out.
     printStatisticsTimer.stop();
 
   }
 
-  public void setBAMTransfer(BAMTransferRelation t) throws InvalidConfigurationException {
-    transfer = t;
+  public void setBAMTransfer(BAMMultipleCEXSubgraphComputer t) throws InvalidConfigurationException {
     if (outputFileType == OutputFileType.KLEVER) {
-      errPrinter = new KleverErrorTracePrinter(config, transfer, logger, lockTransfer);
+      errPrinter = new KleverErrorTracePrinter(config, t, logger, lockTransfer);
     } else if (outputFileType == OutputFileType.KLEVER_OLD) {
-      errPrinter = new KleverErrorTracePrinterOld(config, transfer, logger, lockTransfer);
+      errPrinter = new KleverErrorTracePrinterOld(config, t, logger, lockTransfer);
     } else if (outputFileType == OutputFileType.ETV) {
-      errPrinter = new ETVErrorTracePrinter(config, transfer, logger, lockTransfer);
+      errPrinter = new ETVErrorTracePrinter(config, t, logger, lockTransfer);
     }
   }
 

@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public interface CompatibleState extends Comparable<CompatibleState>{
+public interface CompatibleState extends Comparable<CompatibleState> {
 
   public boolean isCompatibleWith(CompatibleState state);
-  public CompatibleState prepareToStore();
-  public UsageTreeNode getTreeNode();
+  default public CompatibleState prepareToStore() { return this; }
+  public CompatibleNode getTreeNode();
   default public boolean isRelevantFor(SingleIdentifier id) { return true; }
 }

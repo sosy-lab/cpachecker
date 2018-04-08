@@ -23,8 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -34,19 +38,21 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
 public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
-  private final Map<AbstractState, AbstractState> reducedToExpanded;
+  private final Multimap<AbstractState, AbstractState> reducedToExpanded;
   private Set<LinkedList<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
 
   BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA,
-      Map<AbstractState, AbstractState> pReduced,
+      Multimap<AbstractState, AbstractState> pReduced,
       Function<ARGState, Integer> idExtractor) {
     super(bamCPA);
     this.reducedToExpanded = pReduced;
@@ -54,7 +60,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
 
-  public ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates) throws InterruptedException, MissingBlockException {
+  private ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates) throws InterruptedException, MissingBlockException {
 
     Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
     final NavigableSet<ARGState> openElements = new TreeSet<>(); // for sorted IDs in ARGstates
@@ -95,14 +101,14 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       inCallstackFunction = false;
       if (currentState.getParents().isEmpty()) {
         //Find correct expanded state
-        ARGState expandedState = (ARGState) reducedToExpanded.get(currentState);
+        Collection<AbstractState> expandedStates = reducedToExpanded.get(currentState);
 
-        assert expandedState != null;
+        assert expandedStates != null;
 
 
         //Try to find path.
         //Exchange the reduced state by the expanded one
-        currentState = expandedState;
+        currentState = (ARGState) expandedStates.iterator().next();
         newCurrentElement = new BackwardARGState(currentState);
         elementsMap.put(currentState, newCurrentElement);
         inCallstackFunction = true;
@@ -167,6 +173,44 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     return false;
   }
 
+  ARGPath restorePathFrom(BackwardARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+    //Note pLastElement may not be the last indeed
+    //The path may be recomputed from the middle
+
+    assert (pLastElement != null && !pLastElement.isDestroyed());
+
+    try {
+      ARGState rootOfSubgraph = findPath(pLastElement, pRefinedStates);
+      assert (rootOfSubgraph != null);
+      if (rootOfSubgraph == BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE) {
+        return null;
+      }
+      ARGPath result = ARGUtils.getRandomPath(rootOfSubgraph);
+      if (result != null && checkThePathHasRepeatedStates(result, pRefinedStates)) {
+        return null;
+      }
+      return result;
+    } catch (MissingBlockException e) {
+      return null;
+    } catch (InterruptedException e) {
+      return null;
+    }
+  }
+
+  public ARGPath computePath(ARGState pLastElement) {
+    return restorePathFrom(new BackwardARGState(pLastElement), Collections.emptySet());
+  }
+
+  private boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
+    List<Integer> ids =
+        from(path.asStatesList())
+        .transform(getStateId)
+        .toList();
+
+    return from(pRefinedStates)
+        .anyMatch(ids::containsAll);
+  }
+
   /** This states is used for UsageStatisticsRefinement:
    *  If after some refinement iterations the path goes through already processed states,
    *  this marked state is returned.
@@ -176,4 +220,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
    * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval.
    * As the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
    */
+
+  public BAMSubgraphIterator iterator(ARGState target) {
+    return new BAMSubgraphIterator(target, this, reducedToExpanded);
+  }
 }

@@ -23,19 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -46,23 +41,22 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
-import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.usage")
 public abstract class ErrorTracePrinter {
@@ -80,23 +74,23 @@ public abstract class ErrorTracePrinter {
       secure = true)
   private boolean printFalseUnsafes = false;
 
-  private final BAMTransferRelation transfer;
+  //private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
-  private UnsafeDetector detector;
 
-  private final Timer preparationTimer = new Timer();
-  private final Timer unsafeDetectionTimer = new Timer();
-  private final Timer writingUnsafeTimer = new Timer();
+  private final StatTimer preparationTimer = new StatTimer("Time for preparation");
+  private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
+  private final StatTimer writingUnsafeTimer = new StatTimer("Time for dumping the unsafes");
 
   protected final Configuration config;
   protected UsageContainer container;
   protected final LogManager logger;
+  protected UnsafeDetector detector;
 
   protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
+  private BAMMultipleCEXSubgraphComputer subgraphComputer;
 
 
-  public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
-    transfer = t;
+  public ErrorTracePrinter(Configuration c, BAMMultipleCEXSubgraphComputer t, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
     logger = l;
     config = c;
     lockTransfer = lT;
@@ -110,24 +104,26 @@ public abstract class ErrorTracePrinter {
           e -> (Files.exists(Paths.get(e.getFileLocation().getFileName())))
           );
     }
+    subgraphComputer = t;
   }
 
   private void createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
-    Function<ARGState, Integer> dummyFunc = s -> s.getStateId();
-    BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(dummyFunc);
     ARGState target = (ARGState)usage.getKeyState();
-    BackwardARGState newTreeTarget = new BackwardARGState(target);
-    try {
-      ARGState root = subgraphComputer.findPath(newTreeTarget, Collections.emptySet());
-      ARGPath path = ARGUtils.getRandomPath(root);
-
-      //path is transformed internally
-      usage.setRefinedPath(path.getInnerEdges());
-    } catch (MissingBlockException | InterruptedException e) {
-      logger.log(Level.SEVERE, "Exception during creating path: " + e.getMessage());
+    ARGPath path;
+    if (subgraphComputer != null) {
+      //BAM: we need to update target state considering BAM caches
+      path = subgraphComputer.computePath(target);
+    } else {
+      path = ARGUtils.getOnePathTo(target);
     }
+    if (path == null) {
+      logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
+      return;
+    }
+    //path is transformed internally
+    usage.setRefinedPath(path.getInnerEdges());
   }
 
   protected String createUniqueName(SingleIdentifier id) {
@@ -138,23 +134,18 @@ public abstract class ErrorTracePrinter {
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
     preparationTimer.start();
-    ARGState firstState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-    //getLastState() returns not the correct last state
-    Collection<ARGState> children = firstState.getChildren();
-    if (!children.isEmpty()) {
-      //Analysis finished normally
-      ARGState lastState = firstState.getChildren().iterator().next();
-      UsageState USlastState = UsageState.get(lastState);
-      USlastState.updateContainerIfNecessary();
-      container = USlastState.getContainer();
+    ReachedSet reachedSet;
+    if (reached instanceof ForwardingReachedSet) {
+      reachedSet = ((ForwardingReachedSet)reached).getDelegate();
     } else {
-      container = UsageState.get(firstState).getContainer();
+      reachedSet = (ReachedSet) reached;
     }
+    UsageReachedSet uReached = (UsageReachedSet) reachedSet;
+    container = uReached.getUsageContainer();
     detector = container.getUnsafeDetector();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
-    Iterator<SingleIdentifier> unsafeIterator;
-    unsafeIterator = container.getUnsafeIterator();
+    Iterator<SingleIdentifier> unsafeIterator = container.getUnsafeIterator();
 
     init();
     preparationTimer.stop();
@@ -175,14 +166,13 @@ public abstract class ErrorTracePrinter {
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
       unsafeDetectionTimer.stop();
+
       writingUnsafeTimer.start();
       printUnsafe(id, tmpPair);
       writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {
-      Set<SingleIdentifier> currentUnsafes = container.getAllUnsafes();
-      Set<SingleIdentifier> initialUnsafes = container.getInitialUnsafes();
-      Set<SingleIdentifier> falseUnsafes = Sets.difference(initialUnsafes, currentUnsafes);
+      Set<SingleIdentifier> falseUnsafes = container.getFalseUnsafes();
 
       if (!falseUnsafes.isEmpty()) {
         try (Writer writer = Files.newBufferedWriter(Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
@@ -199,23 +189,18 @@ public abstract class ErrorTracePrinter {
     finish();
   }
 
-  public void printStatistics(final PrintStream out) {
+  public void printStatistics(StatisticsWriter out) {
+
+    out.spacer()
+       .put(preparationTimer)
+       .put(unsafeDetectionTimer)
+       .put(writingUnsafeTimer);
 
     container.printUsagesStatistics(out);
-
-    out.println("");
-    out.println("Time for preparation:          " + preparationTimer);
-    out.println("Time for unsafe detection:     " + unsafeDetectionTimer);
-    out.println("Time for dumping the unsafes:  " + writingUnsafeTimer);
-    out.println("Time for reseting unsafes:     " + container.resetTimer);
   }
 
   protected String getNoteFor(CFAEdge pEdge) {
-    if (lockTransfer != null) {
-      return lockTransfer.doesChangeTheState(pEdge);
-    } else {
-      return null;
-    }
+    return lockTransfer == null ? null : lockTransfer.doesChangeTheState(pEdge);
   }
 
   protected List<CFAEdge> getPath(UsageInfo usage) {
@@ -224,10 +209,7 @@ public abstract class ErrorTracePrinter {
     }
     List<CFAEdge> path = usage.getPath();
 
-    if (path.isEmpty()) {
-      return null;
-    }
-    return path;
+    return path.isEmpty() ? null : path;
   }
 
   protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);

@@ -23,70 +23,78 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class PointerReducer extends GenericReducer<PointerState, PointerPrecision> {
+public class PointerReducer implements Reducer {
+  final Timer reduceTime = new Timer();
+  final Timer expandTime = new Timer();
 
   @Override
-  protected PointerState getVariableReducedState0(
-      PointerState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
-    PointerState clonedState = PointerState.copyOf(pExpandedState);
+  public AbstractState getVariableReducedState(
+      AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
+    reduceTime.start();
+    PointerState clonedState = PointerState.copyOf((PointerState) expandedState);
     for (MemoryLocation ptr : clonedState.getTrackedMemoryLocations()) {
-      if (!pContext.getVariables().contains(ptr.getAsSimpleString())) {
+      if (!(PointerState.isFictionalPointer(ptr) || ptr.isGlobal()) &&
+          !context.getMemoryLocations().contains(ptr)) {
         clonedState.forget(ptr);
       }
     }
+    // ("RRR: " + callNode.describeFileLocation());
+    reduceTime.stop();
     return clonedState;
   }
 
   @Override
-  protected PointerState getVariableExpandedState0(
-      PointerState pRootState, Block pReducedContext, PointerState pReducedState)
+  public AbstractState getVariableExpandedState(
+      AbstractState rootState, Block reducedContext, AbstractState reducedState)
       throws InterruptedException {
-    PointerState clonedState = PointerState.copyOf(pReducedState);
-    for (MemoryLocation ptr : pRootState.getTrackedMemoryLocations()) {
-      if (!pReducedContext.getVariables().contains(ptr.getAsSimpleString())) {
-        clonedState = clonedState.addPointsToInformation(ptr, pRootState.getPointsToMap().get(ptr));
+    expandTime.start();
+    PointerState clonedState = PointerState.copyOf((PointerState) reducedState);
+    for (MemoryLocation ptr : ((PointerState) rootState).getTrackedMemoryLocations()) {
+      if (!reducedContext.getMemoryLocations().contains(ptr)) {
+        clonedState = clonedState.addPointsToInformation(ptr, ((PointerState) rootState)
+            .getPointsToMap().get(ptr));
       }
     }
+    // ("EEE: " + reducedContext.getCallNode().describeFileLocation());
+    expandTime.stop();
     return clonedState;
   }
 
   @Override
-  protected Object getHashCodeForState0(
-      PointerState pStateKey, PointerPrecision pPrecisionKey) {
-    return Pair.of(pStateKey, pPrecisionKey);
+  public Precision getVariableReducedPrecision(
+      Precision precision, Block context) {
+    return precision;
   }
 
   @Override
-  protected Precision getVariableReducedPrecision0(
-      PointerPrecision pPrecision, Block pContext) {
-    return pPrecision;
+  public Precision getVariableExpandedPrecision(
+      Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    return rootPrecision;
   }
 
   @Override
-  protected PointerPrecision getVariableExpandedPrecision0(
-      PointerPrecision pRootPrecision,
-      Block pRootContext,
-      PointerPrecision pReducedPrecision) {
-    return pRootPrecision;
+  public Object getHashCodeForState(
+      AbstractState stateKey, Precision precisionKey) {
+    return Pair.of(stateKey, precisionKey);
   }
 
   @Override
-  protected PointerState rebuildStateAfterFunctionCall0(
-      PointerState pRootState,
-      PointerState pEntryState,
-      PointerState pExpandedState,
-      FunctionExitNode pExitLocation) {
-    // TODO: no testing on files with recursion was conducted
-    return pRootState;
+  public AbstractState rebuildStateAfterFunctionCall(
+      AbstractState rootState,
+      AbstractState entryState,
+      AbstractState expandedState,
+      FunctionExitNode exitLocation) {
+    return rootState;
   }
 }

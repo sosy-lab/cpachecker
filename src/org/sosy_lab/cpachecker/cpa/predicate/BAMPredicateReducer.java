@@ -83,7 +83,7 @@ public class BAMPredicateReducer implements Reducer {
   @Option(description = "Enable/disable precision reduction using RelevantPredicateComputer", secure = true)
   private boolean reduceIrrelevantPrecision = true;
 
-  @Option (description="whether to reduce predicates, related to a function, when we leave it")
+  @Option (description="whether to reduce predicates, related to a function, when we leave it", secure = true)
   private boolean aggressiveReduce = false;
 
   public BAMPredicateReducer(

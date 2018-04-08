@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock.effects;
 
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 
 
 public class RestoreAllLockEffect implements AbstractLockEffect {
@@ -33,7 +33,7 @@ public class RestoreAllLockEffect implements AbstractLockEffect {
   private RestoreAllLockEffect() {}
 
   @Override
-  public void effect(LockStateBuilder pBuilder) {
+  public void effect(AbstractLockStateBuilder pBuilder) {
     pBuilder.restoreAll();
   }
 

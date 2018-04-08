@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import java.io.PrintStream;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -36,31 +33,30 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 public abstract class GenericFilter<P>  extends
 WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
-  Timer totalTimer = new Timer();
-
-  int filteredPairs = 0;
+  StatTimer totalTimer = new StatTimer("Time for generic filter");
+  StatCounter filteredPairs = new StatCounter("Number of filtered pairs");
 
   private String mainFunction = "ldv_main";
 
-  Predicate<ARGState> isFirstCall = new Predicate<ARGState>() {
-    @Override
-    public boolean apply(@Nullable ARGState pInput) {
-      CFANode location = AbstractStates.extractLocation(pInput);
+  Predicate<ARGState> isFirstCall = s -> {
+      CFANode location = AbstractStates.extractLocation(s);
       if (location instanceof CFunctionEntryNode) {
-        CallstackState callstack = AbstractStates.extractStateByType(pInput, CallstackState.class);
-        if (callstack.getPreviousState() != null && callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
+        CallstackState callstack = AbstractStates.extractStateByType(s, CallstackState.class);
+        if (callstack.getPreviousState() != null &&
+            callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
           return true;
         }
       }
       return false;
-    }
-
-  };
+    };
 
   Function<ARGState, String> getFunctionName = s -> AbstractStates.extractLocation(s).getFunctionName();
 
@@ -72,7 +68,7 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
   }
 
   @Override
-  public RefinementResult performRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
     totalTimer.start();
 
     try {
@@ -84,9 +80,9 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
       Boolean b = filter(firstPathCore, secondPathCore);
 
       if (b) {
-        return wrappedRefiner.performRefinement(pInput);
+        return wrappedRefiner.performBlockRefinement(pInput);
       }
-      filteredPairs++;
+      filteredPairs.inc();
       return RefinementResult.createFalse();
     } finally {
       totalTimer.stop();
@@ -98,14 +94,16 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
 
   protected abstract P getPathCore(ExtendedARGPath path);
 
-  protected void printAdditionalStatistics(PrintStream pOut) {}
+  protected void printAdditionalStatistics(StatisticsWriter pOut) {}
 
   @Override
-  public final void printStatistics(PrintStream pOut) {
-    pOut.println("--GenericFilter--");
-    pOut.println("Timer for block:           " + totalTimer);
-    pOut.println("Number of filtered pairs:  " + filteredPairs);
-    printAdditionalStatistics(pOut);
-    wrappedRefiner.printStatistics(pOut);
+  public final void printStatistics(StatisticsWriter pOut) {
+    StatisticsWriter newWriter =
+        pOut.spacer()
+        .put(totalTimer)
+        .put(filteredPairs);
+
+    printAdditionalStatistics(newWriter);
+    wrappedRefiner.printStatistics(newWriter);
   }
 }

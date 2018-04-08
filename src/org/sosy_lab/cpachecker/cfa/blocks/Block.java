@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -41,22 +42,25 @@ public class Block {
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
   private final ImmutableSet<LockIdentifier> capturedLocks;
+  private final Set<MemoryLocation> memoryLocations;
 
   public Block(ImmutableSet<ReferencedVariable> pReferencedVariables,
-      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes,
-      ImmutableSet<CFANode> allNodes, ImmutableSet<LockIdentifier> locks) {
+               Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes,
+               ImmutableSet<CFANode> allNodes, ImmutableSet<LockIdentifier> locks,
+               ImmutableSet<MemoryLocation> locations) {
 
     referencedVariables = pReferencedVariables;
     callNodes = ImmutableSet.copyOf(pCallNodes);
     returnNodes = ImmutableSet.copyOf(pReturnNodes);
     nodes = allNodes;
     capturedLocks = locks;
+    memoryLocations = locations;
   }
 
   public Block(ImmutableSet<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes,
       ImmutableSet<CFANode> allNodes) {
-    this(pReferencedVariables, pCallNodes, pReturnNodes, allNodes, ImmutableSet.of());
+    this(pReferencedVariables, pCallNodes, pReturnNodes, allNodes, ImmutableSet.of(), ImmutableSet.of());
   }
 
   public Block(Iterable<ReferencedVariable> pReferencedVariables,
@@ -117,5 +121,9 @@ public class Block {
             "(CallNodes: " + callNodes + ") " +
             "(Nodes: " + (nodes.size() < 10 ? nodes : "[#=" + nodes.size() + "]") + ") " +
             "(ReturnNodes: " + returnNodes + ")";
+  }
+
+  public Set<MemoryLocation> getMemoryLocations() {
+    return memoryLocations;
   }
 }

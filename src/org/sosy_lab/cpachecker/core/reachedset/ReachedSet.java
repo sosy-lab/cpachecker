@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Interface representing a set of reached states, including storing a
@@ -77,4 +77,8 @@ public interface ReachedSet extends UnmodifiableReachedSet {
   public void clear();
 
   public AbstractState popFromWaitlist();
+
+  public boolean hasTargetStates();
+
+  public Set<Property> findViolatedProperties();
 }

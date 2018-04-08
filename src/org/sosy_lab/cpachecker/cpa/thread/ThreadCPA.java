@@ -33,7 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -65,7 +65,7 @@ public class ThreadCPA implements WrapperCPA, ConfigurableProgramAnalysisWithBAM
     return AutomaticCPAFactory.forType(ThreadCPA.class);
   }
 
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
+  private final AbstractDomain abstractDomain = DelegateAbstractDomain.<ThreadState>getInstance();
   private final MergeOperator mergeOperator = MergeSepOperator.getInstance();
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
   private final LocationCPA locationCPA;

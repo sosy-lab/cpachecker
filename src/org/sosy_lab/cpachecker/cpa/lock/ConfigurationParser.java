@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +36,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.ResetLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
+import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.lock")
 public class ConfigurationParser {
@@ -55,51 +63,51 @@ public class ConfigurationParser {
   }
 
   @SuppressWarnings("deprecation")
-  public ImmutableSet<LockInfo> parseLockInfo() {
-    Set<LockInfo> tmpInfo = new HashSet<>();
-    Map<String, Integer> lockFunctions;
-    Map<String, Integer> unlockFunctions;
-    Map<String, Integer> resetFunctions;
+  public LockInfo parseLockInfo() {
+    Map<String, Integer> tmpInfo = new HashMap<>();
+    Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects = new HashMap<>();
+    Map<String, LockIdentifier> variableEffects = new HashMap<>();
     Set<String> variables;
-    LockInfo tmpLockInfo;
     String tmpString;
-    int num;
+
 
     for (String lockName : lockinfo) {
-      lockFunctions = createMap(lockName, "lock");
-
-      unlockFunctions = createMap(lockName, "unlock");
+      int num = getValue(lockName + ".maxDepth", 10);
+      functionEffects.putAll(createMap(lockName, "lock", AcquireLockEffect.getInstance()));
+      functionEffects.putAll(createMap(lockName, "unlock", ReleaseLockEffect.getInstance()));
+      functionEffects.putAll(createMap(lockName, "reset", ResetLockEffect.getInstance()));
 
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
         variables = new HashSet<>(Arrays.asList(tmpString.split(", *")));
+        variables.forEach(
+            k -> variableEffects.put(k, LockIdentifier.of(lockName)));
       } else {
         variables = new HashSet<>();
       }
 
-      resetFunctions = createMap(lockName, "reset");
-
       tmpString = config.getProperty(lockName + ".setlevel");
-      num = getValue(lockName + ".maxDepth", 10);
-      tmpLockInfo = new LockInfo(lockName, lockFunctions, unlockFunctions, resetFunctions, variables, tmpString, num);
-      tmpInfo.add(tmpLockInfo);
+      if (tmpString != null && !tmpString.isEmpty()) {
+        functionEffects.put(tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdUnprepared(lockName, 0)));
+      }
+      tmpInfo.put(lockName, num);
     }
-    return ImmutableSet.copyOf(tmpInfo);
+    return new LockInfo(functionEffects, variableEffects, tmpInfo);
   }
 
   @SuppressWarnings("deprecation")
-  private Map<String, Integer> createMap(String lockName, String target) {
-    Map<String, Integer> map = new HashMap<>();
+  private Map<String, Pair<LockEffect, LockIdUnprepared>> createMap(String lockName, String target, LockEffect effect) {
+
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {
-      int num;
-      Set<String> tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-      for (String funcName : tmpStringSet) {
-        num = getValue(lockName + "." + funcName + ".parameters", 0);
-        map.put(funcName, num);
-      }
+
+      return from(Arrays.asList(tmpString.split(", *")))
+            .toMap(f ->
+                Pair.of(effect,
+                    new LockIdUnprepared(lockName, getValue(lockName + "." + f + ".parameters", 0))
+                ));
     }
-    return map;
+    return Maps.newHashMap();
   }
 
   @SuppressWarnings("deprecation")
