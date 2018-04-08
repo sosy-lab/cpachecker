@@ -26,10 +26,14 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import java.io.PrintStream;
 import java.util.Collection;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -43,8 +47,9 @@ public class BAMCacheSynchronized implements BAMCache {
   private final BAMCache cache;
   private final StatTimer timer = new StatTimer("Time for cache-access");
 
-  public BAMCacheSynchronized(BAMCache pCache) {
-    cache = pCache;
+  public BAMCacheSynchronized(Configuration pConfig, Reducer pReducer, LogManager pLogger)
+      throws InvalidConfigurationException {
+    cache = new BAMCacheImpl(pConfig, pReducer, pLogger);
   }
 
   @Override

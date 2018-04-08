@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,8 +38,9 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
 
   private final BAMDataManager manager;
 
-  public BAMDataManagerSynchronized(BAMDataManager pManager) {
-    manager = pManager;
+  public BAMDataManagerSynchronized(
+      BAMCache pCache, ReachedSetFactory pReachedsetFactory, LogManager pLogger) {
+    manager = new BAMDataManagerImpl(pCache, pReachedsetFactory, pLogger);
   }
 
   @Override
