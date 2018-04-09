@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
-import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -56,7 +55,7 @@ public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
   @Test
   public void testAnonymousFunctionDeclaration() {
     final FunctionDeclaration declaration =
-        parseExpression(FunctionExpression.class, "(function () {})").getMethod();
+        parseStatement(FunctionDeclaration.class, "function () {}");
 
     builder.setStatementAppendable(mock(StatementAppendable.class));
 

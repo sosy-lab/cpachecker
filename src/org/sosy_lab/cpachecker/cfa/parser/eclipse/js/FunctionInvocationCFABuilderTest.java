@@ -30,9 +30,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
-import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
@@ -84,7 +84,8 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
             "__CPAChecker_ANONYMOUS_FUNCTION_0",
             functionDeclaration);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any(FunctionExpression.class))).thenReturn(functionId);
+    when(expressionAppendable.append(any(), any(ParenthesizedExpression.class)))
+        .thenReturn(functionId);
     builder.setExpressionAppendable(expressionAppendable);
     final FunctionDeclarationResolver functionDeclarationResolver =
         mock(FunctionDeclarationResolver.class);

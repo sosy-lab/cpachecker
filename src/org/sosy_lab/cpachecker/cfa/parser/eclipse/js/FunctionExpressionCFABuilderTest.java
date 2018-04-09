@@ -31,6 +31,7 @@ import com.google.common.truth.Truth;
 import java.util.Collections;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
+import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -43,7 +44,8 @@ public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
   @Test
   public void testAnonymousFunctionExpression() {
     final FunctionExpression functionExpression =
-        parseExpression(FunctionExpression.class, "(function () {})");
+        (FunctionExpression)
+            parseExpression(ParenthesizedExpression.class, "(function () {})").getExpression();
 
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
