@@ -27,6 +27,7 @@ final class StatementAppendableFactory {
   static StatementAppendable withAllFeatures() {
     final StatementCFABuilder builder = new StatementCFABuilder();
     builder.setBlockStatementAppendable(new BlockStatementCFABuilder());
+    builder.setEmptyStatementAppendable(new EmptyStatementCFABuilder());
     builder.setExpressionStatementAppendable(new ExpressionStatementCFABuilder());
     builder.setFunctionDeclarationStatementAppendable(new FunctionDeclarationStatementCFABuilder());
     builder.setIfStatementAppendable(new IfStatementCFABuilder());

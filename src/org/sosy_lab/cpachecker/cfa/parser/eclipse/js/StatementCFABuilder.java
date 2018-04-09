@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.Block;
+import org.eclipse.wst.jsdt.core.dom.EmptyStatement;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
@@ -34,6 +35,7 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 class StatementCFABuilder implements StatementAppendable {
 
   private BlockStatementAppendable blockStatementAppendable;
+  private EmptyStatementAppendable emptyStatementAppendable;
   private ExpressionStatementAppendable expressionStatementAppendable;
   private IfStatementAppendable ifStatementAppendable;
   private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
@@ -41,6 +43,11 @@ class StatementCFABuilder implements StatementAppendable {
 
   void setBlockStatementAppendable(final BlockStatementAppendable pBlockStatementAppendable) {
     blockStatementAppendable = pBlockStatementAppendable;
+  }
+
+  void setEmptyStatementAppendable(
+      final EmptyStatementAppendable pEmptyStatementAppendable) {
+    emptyStatementAppendable = pEmptyStatementAppendable;
   }
 
   void setExpressionStatementAppendable(
@@ -69,6 +76,8 @@ class StatementCFABuilder implements StatementAppendable {
     } else if (pStatement instanceof FunctionDeclarationStatement) {
       functionDeclarationStatementAppendable.append(
           pBuilder, (FunctionDeclarationStatement) pStatement);
+    } else if (pStatement instanceof EmptyStatement) {
+      emptyStatementAppendable.append(pBuilder, (EmptyStatement) pStatement);
     } else if (pStatement instanceof ExpressionStatement) {
       expressionStatementAppendable.append(pBuilder, (ExpressionStatement) pStatement);
     } else if (pStatement instanceof IfStatement) {
