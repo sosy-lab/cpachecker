@@ -294,7 +294,7 @@ private boolean classifyNodes = false;
     private final Timer exportTime = new Timer();
     private @Nullable VariableClassificationStatistics varClassificationStats;
     private Statistics dependenceGraphStats;
-    private final ArrayList<Statistics> statisticsCollection = new ArrayList<>();
+    private final List<Statistics> statisticsCollection = new ArrayList<>();
 
     @Override
     public String getName() {
