@@ -23,39 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.mockito.Mockito.*;
-
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class FunctionInvocationCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private JavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
+public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase<FunctionInvocation> {
 
   @Test
   public final void testFunctionInvocation() throws ParserException {
