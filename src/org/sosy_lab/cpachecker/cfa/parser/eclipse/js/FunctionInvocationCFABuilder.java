@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -39,15 +41,23 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
     final ASTConverter astConverter = pBuilder.getAstConverter();
+    final JSIdExpression function =
+        pNode.getName() != null
+            ? astConverter.convert(pNode.getName())
+            : (JSIdExpression) pBuilder.append(pNode.getExpression());
+    final JSFunctionDeclaration declaration =
+        pNode.getName() != null
+            ? astConverter.convert((FunctionBinding) pNode.getName().resolveBinding())
+            : pBuilder.resolveFunctionDeclaration(function);
     final JSFunctionCallStatement functionCallStatement =
         new JSFunctionCallStatement(
             astConverter.getFileLocation(pNode),
             new JSFunctionCallExpression(
                 astConverter.getFileLocation(pNode),
                 JSAnyType.ANY,
-                astConverter.convert(pNode.getName()),
+                function,
                 Collections.emptyList(),
-                astConverter.convert((FunctionBinding) pNode.getName().resolveBinding())));
+                declaration));
 
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->

@@ -23,22 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
+import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
   @Test
-  public final void testFunctionInvocation() throws ParserException {
+  public final void testFunctionInvocation() {
     final JavaScriptUnit ast = createAST("function foo() { /* stub */ }\nfoo()");
     final String expectedFunctionName = "foo";
     final FunctionDeclaration functionDeclaration = (FunctionDeclaration) ast.statements().get(0);
@@ -61,6 +68,40 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(
             ((JSIdExpression) functionCallExpression.getFunctionNameExpression()).getName())
         .isEqualTo(expectedFunctionName);
+    Truth.assertThat(functionInvocationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
+  }
+
+  @Test
+  public final void testImmediatelyInvokedFunctionExpression() {
+    final FunctionInvocation functionInvocation =
+        parseExpression(FunctionInvocation.class, "(function () {})()");
+
+    final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
+    final JSIdExpression functionId =
+        new JSIdExpression(
+            FileLocation.DUMMY,
+            JSAnyType.ANY,
+            "__CPAChecker_ANONYMOUS_FUNCTION_0",
+            functionDeclaration);
+    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
+    when(expressionAppendable.append(any(), any(FunctionExpression.class))).thenReturn(functionId);
+    builder.setExpressionAppendable(expressionAppendable);
+    final FunctionDeclarationResolver functionDeclarationResolver =
+        mock(FunctionDeclarationResolver.class);
+    when(functionDeclarationResolver.resolve(builder, functionId)).thenReturn(functionDeclaration);
+    builder.setFunctionDeclarationResolver(functionDeclarationResolver);
+
+    // TODO check return value
+    new FunctionInvocationCFABuilder().append(builder, functionInvocation);
+
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
+    final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
+    final JSFunctionCallStatement functionCallStatement =
+        (JSFunctionCallStatement) functionInvocationEdge.getStatement();
+    final JSFunctionCallExpression functionCallExpression =
+        functionCallStatement.getFunctionCallExpression();
+    Truth.assertThat(functionCallExpression.getFunctionNameExpression()).isEqualTo(functionId);
+    Truth.assertThat(functionCallExpression.getDeclaration()).isEqualTo(functionDeclaration);
     Truth.assertThat(functionInvocationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 }
