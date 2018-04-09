@@ -57,7 +57,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -94,7 +93,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -152,8 +150,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       Configuration pConfig,
       ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable final Specification stats)
-      throws InvalidConfigurationException {
+      @Nullable final Specification stats) throws InvalidConfigurationException {
     tigerConfig = new TigerAlgorithmConfiguration(pConfig);
     cfa = pCfa;
     cpa = pCpa;
@@ -259,18 +256,12 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
-    try {
-      if (!testGeneration(pGoalsToCover)) {
-        logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
-        wasSound = false;
-      }
-    } catch (InvalidConfigurationException e1) {
-      throw new CPAException("Invalid configuration!", e1);
+    if (!testGeneration(pGoalsToCover)) {
+      logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
+      wasSound = false;
     }
 
     writeTestsuite();
-
-
 
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -311,7 +302,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
   // TODO add the parameter to runreachabilityanalysis
   @SuppressWarnings("unchecked")
   private boolean testGeneration(LinkedList<Goal> pGoalsToCover)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException {
     boolean wasSound = true;
     boolean retry = false;
     int numberOfTestGoals = pGoalsToCover.size();
@@ -363,8 +354,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
         logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
-        ReachabilityAnalysisResult result =
-            runReachabilityAnalysis(goal, goalIndex, pGoalsToCover);
+        ReachabilityAnalysisResult result = runReachabilityAnalysis(goal, goalIndex, pGoalsToCover);
 
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -445,11 +435,8 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
   }
 
   private ReachabilityAnalysisResult
-      runReachabilityAnalysis(
-          Goal pGoal,
-          int goalIndex,
-          LinkedList<Goal> pGoalsToCover)
-          throws CPAException, InterruptedException, InvalidConfigurationException {
+      runReachabilityAnalysis(Goal pGoal, int goalIndex, LinkedList<Goal> pGoalsToCover)
+          throws CPAException, InterruptedException {
 
     // build CPAs for the goal
     ARGCPA lARTCPA = buildCPAs(pGoal);
@@ -489,10 +476,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
     // run analysis
     Region presenceConditionToCover =
-        BDDUtils.composeRemainingPresenceConditions(
-            pGoal,
-            testsuite,
-            bddCpaNamedRegionManager);
+        BDDUtils.composeRemainingPresenceConditions(pGoal, testsuite, bddCpaNamedRegionManager);
 
     Algorithm algorithm = buildAlgorithm(presenceConditionToCover, algNotifier, lARTCPA);
     Pair<Boolean, Boolean> analysisWasSound_hasTimedOut;
@@ -500,14 +484,11 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
       analysisWasSound_hasTimedOut = runAlgorithm(algorithm, algNotifier);
 
-
       // fully explored reachedset, therefore the last "testcase" was already added to the testsuite
       // in this case we break out of the loop, since the goal does not have more feasable goals
       if (!reachedSet.hasWaitingState()) {
         break;
       }
-
-
 
       if (analysisWasSound_hasTimedOut.getSecond()) {
         // timeout, do not retry for other goals
@@ -521,7 +502,6 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
         // goals are infeasible, do not continue
         break;
       }
-
 
       logger.logf(Level.INFO, "Test goal is feasible.");
       CFAEdge criticalEdge = pGoal.getCriticalEdge();
@@ -544,8 +524,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
         TestCase testcase =
             handleUnavailableCounterexample(criticalEdge, lastState, testCasePresenceCondition);
-        testsuite
-            .addTestCase(testcase, pGoal, testCasePresenceCondition, null);
+        testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition, null);
       } else {
         // test goal is feasible
         logger.logf(Level.INFO, "Counterexample is available.");
@@ -557,8 +536,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
           // for null goal get the presencecondition without the validProduct method
           testCasePresenceCondition = getPresenceConditionforGoal(cex, null);
 
-          Region simplifiedPresenceCondition =
-              getPresenceConditionforGoal(cex, pGoal);
+          Region simplifiedPresenceCondition = getPresenceConditionforGoal(cex, pGoal);
           TestCase testcase = createTestcase(cex, testCasePresenceCondition);
           // only add new Testcase and check for coverage if it does not already exist
           if (!testsuite.testSuiteAlreadyContainsTestCase(testcase, pGoal)) {
@@ -622,7 +600,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       pGoalsToCover.removeAll(testsuite.getTestGoals());
     }
 
-    if(analysisWasSound_hasTimedOut.getSecond() == true) {
+    if (analysisWasSound_hasTimedOut.getSecond() == true) {
       return ReachabilityAnalysisResult.TIMEDOUT;
     }
 
@@ -633,63 +611,58 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     }
   }
 
-
   public Region getPresenceConditionforGoal(CounterexampleInfo cex, Goal pGoal) {
     CFAEdge criticalEdge = null;
     if (pGoal != null) {
       criticalEdge = pGoal.getCriticalEdge();
     }
 
-    Region pred = null;
+    Region pc = null;
 
-    PathIterator iter = cex.getTargetPath().fullPathIterator();
-    CFANode lastNode = null;
-    while (iter.hasNext()) {
-      CFANode node = iter.getLocation();
-      if(!node.getFunctionName().contains(tigerConfig.getValidProductMethodName())) {
-        if (lastNode != null) {
-          CFAEdge edge = lastNode.getEdgeTo(node);
-          if (criticalEdge != null && edge == criticalEdge) {
-            break;
-          }
+    ARGPath targetPath = cex.getTargetPath();
+    List<CFAEdge> fullPath = targetPath.getFullPath();
 
-          if(edge instanceof CAssumeEdge) {
-            CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-            if(assumeEdge.getExpression() instanceof CBinaryExpression) {
+    String validFunc = tigerConfig.getValidProductMethodName();
 
-            CBinaryExpression expression = (CBinaryExpression)assumeEdge.getExpression();
-              String name = expression.getOperand1().toString() + "@0";
-              // transfer.evaluateVectorExpression(partition, expression,
-              // org.sosy_lab.cpachecker.cfa.types.c.CSimpleType, node)
-
-              if (name.contains(tigerConfig.getFeatureVariablePrefix())) {
-                Region predNew = bddCpaNamedRegionManager.createPredicate(name);
-                if (assumeEdge.getTruthAssumption()) {
-                  predNew = bddCpaNamedRegionManager.makeNot(predNew);
-                }
-                if (pred == null) {
-                  pred = predNew;
-                } else {
-                  pred = bddCpaNamedRegionManager.makeAnd(pred, predNew);
-                }
-
-            }
-            }
-          }
-
-        }
-
-
+    for (CFAEdge cfaEdge : fullPath) {
+      if (criticalEdge != null && cfaEdge == criticalEdge) {
+        break;
       }
-      lastNode = node;
-      iter.advance();
+
+      String predFun = cfaEdge.getPredecessor().getFunctionName();
+      String succFun = cfaEdge.getSuccessor().getFunctionName();
+      if (predFun.contains(validFunc)
+          && succFun.contains(tigerConfig.getValidProductMethodName())) {
+        continue;
+      }
+
+      if (cfaEdge instanceof CAssumeEdge) {
+        CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+        if (assumeEdge.getExpression() instanceof CBinaryExpression) {
+
+          CBinaryExpression expression = (CBinaryExpression) assumeEdge.getExpression();
+          String name = expression.getOperand1().toString() + "@0";
+
+          if (name.contains(tigerConfig.getFeatureVariablePrefix())) {
+            Region predNew = bddCpaNamedRegionManager.createPredicate(name);
+            if (assumeEdge.getTruthAssumption()) {
+              predNew = bddCpaNamedRegionManager.makeNot(predNew);
+            }
+            if (pc == null) {
+              pc = predNew;
+            } else {
+              pc = bddCpaNamedRegionManager.makeAnd(pc, predNew);
+            }
+          }
+        }
+      }
     }
 
-    if (pred == null && bddCpaNamedRegionManager != null) {
+    if (pc == null && bddCpaNamedRegionManager != null) {
       return bddCpaNamedRegionManager.makeTrue();
     }
 
-    return pred;
+    return pc;
 
   }
 
@@ -711,12 +684,11 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     return testcase;
   }
 
-  private void
-      checkGoalCoverage(
-          Set<Goal> pGoalsToCheckCoverage,
-          TestCase testCase,
-          boolean removeCoveredGoals,
-          CounterexampleInfo cex) {
+  private void checkGoalCoverage(
+      Set<Goal> pGoalsToCheckCoverage,
+      TestCase testCase,
+      boolean removeCoveredGoals,
+      CounterexampleInfo cex) {
     for (Goal goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
       // TODO add infeasiblitpropagaion to testsuite
       Region simplifiedPresenceCondition = getPresenceConditionforGoal(cex, goal);
@@ -864,8 +836,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
   private Algorithm buildAlgorithm(
       Region pRemainingPresenceCondition,
       ShutdownManager algNotifier,
-      ARGCPA lARTCPA)
-      throws CPAException {
+      ARGCPA lARTCPA) throws CPAException {
     Algorithm algorithm;
     try {
       Configuration internalConfiguration =
@@ -911,14 +882,14 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
   private void restrictBdd(Region pRemainingPresenceCondition) {
 
-      // inject goal Presence Condition in BDDCPA
-      BDDCPA bddcpa = null;
-      if (cpa instanceof WrapperCPA) {
-        // must be non-null, otherwise Exception in constructor of this class
-        bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
-      } else if (cpa instanceof BDDCPA) {
-        bddcpa = (BDDCPA) cpa;
-      }
+    // inject goal Presence Condition in BDDCPA
+    BDDCPA bddcpa = null;
+    if (cpa instanceof WrapperCPA) {
+      // must be non-null, otherwise Exception in constructor of this class
+      bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
+    } else if (cpa instanceof BDDCPA) {
+      bddcpa = (BDDCPA) cpa;
+    }
     if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
       BDDTransferRelation transferRelation = ((BDDTransferRelation) bddcpa.getTransferRelation());
       transferRelation.setGlobalConstraint(pRemainingPresenceCondition);

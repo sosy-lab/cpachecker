@@ -1,5 +1,4 @@
 extern int __VERIFIER_nondet_int();
-extern int input();
 
 int foobar(int x, int y, int z) {
 	int a;
@@ -25,9 +24,9 @@ int foobar(int x, int y, int z) {
 
 
 int main() {
-	int x = input();
-	int y = input();
-	int z = input();
+	int x = __VERIFIER_nondet_int();
+	int y = __VERIFIER_nondet_int();
+	int z = __VERIFIER_nondet_int();
 
 	foobar(x, y, z);
 	
