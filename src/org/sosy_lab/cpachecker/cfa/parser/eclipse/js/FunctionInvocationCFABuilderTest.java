@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase<FunctionInvocation> {
+public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testFunctionInvocation() throws ParserException {

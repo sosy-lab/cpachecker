@@ -27,11 +27,11 @@ import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.EmptyStatement;
 import org.junit.Test;
 
-public class EmptyStatementCFABuilderTest extends CFABuilderTestBase<EmptyStatement> {
+public class EmptyStatementCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testEmptyStatement() {
-    final EmptyStatement emptyStatement = parseStatement(";");
+    final EmptyStatement emptyStatement = parseStatement(EmptyStatement.class, ";");
     // expected CFA: <entryNode>
 
     new EmptyStatementCFABuilder().append(builder, emptyStatement);

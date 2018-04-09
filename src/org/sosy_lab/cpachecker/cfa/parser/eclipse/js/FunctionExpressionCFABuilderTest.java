@@ -38,11 +38,12 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
-public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase<FunctionExpression> {
+public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public void testAnonymousFunctionExpression() {
-    final FunctionExpression functionExpression = parseExpression("(function () {})");
+    final FunctionExpression functionExpression =
+        parseExpression(FunctionExpression.class, "(function () {})");
 
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(

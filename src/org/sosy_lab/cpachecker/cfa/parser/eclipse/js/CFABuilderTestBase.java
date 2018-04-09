@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-abstract class CFABuilderTestBase<S> {
+abstract class CFABuilderTestBase {
 
   protected EclipseJavaScriptParser parser;
   protected ConfigurableJavaScriptCFABuilder builder;
@@ -46,23 +46,23 @@ abstract class CFABuilderTestBase<S> {
     return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
   }
 
-  protected S parseStatement(final String pCode) {
-    return parseStatement(pCode, 0);
+  <S> S parseStatement(final Class<S> statementClass, final String pCode) {
+    return parseStatement(statementClass, pCode, 0);
   }
 
   @SuppressWarnings("unchecked")
-  protected S parseStatement(final String pCode, final int pIndex) {
+  <S> S parseStatement(final Class<S> statementClass, final String pCode, final int pIndex) {
     return (S) createAST(pCode).statements().get(pIndex);
   }
 
-  S parseExpression(final String pCode) {
-    return parseExpression(pCode, 0);
+  <E> E parseExpression(final Class<E> expressionClass, final String pCode) {
+    return parseExpression(expressionClass, pCode, 0);
   }
 
   @SuppressWarnings({"unchecked", "SameParameterValue"})
-  S parseExpression(final String pCode, final int pIndex) {
+  <E> E parseExpression(final Class<E> expressionClass, final String pCode, final int pIndex) {
     final ExpressionStatement expressionStatement =
         (ExpressionStatement) createAST(pCode).statements().get(pIndex);
-    return (S) expressionStatement.getExpression();
+    return (E) expressionStatement.getExpression();
   }
 }
