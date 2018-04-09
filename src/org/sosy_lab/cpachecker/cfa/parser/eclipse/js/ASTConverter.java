@@ -292,6 +292,8 @@ class ASTConverter {
   }
 
   public static String getFunctionName(final FunctionDeclaration node) {
-    return ((SimpleName) node.getMethodName()).getIdentifier();
+    return node.getMethodName() == null
+        ? "__CPAChecker_ANONYMOUS_FUNCTION_" + node.hashCode()
+        : ((SimpleName) node.getMethodName()).getIdentifier();
   }
 }
