@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 class ExpressionCFABuilder implements ExpressionAppendable {
 
   private ConditionalExpressionAppendable conditionalExpressionAppendable;
+  private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
@@ -48,6 +50,11 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   void setConditionalExpressionAppendable(
       final ConditionalExpressionAppendable pConditionalExpressionAppendable) {
     conditionalExpressionAppendable = pConditionalExpressionAppendable;
+  }
+
+  void setFunctionExpressionAppendable(
+      final FunctionExpressionAppendable pFunctionExpressionAppendable) {
+    functionExpressionAppendable = pFunctionExpressionAppendable;
   }
 
   void setFunctionInvocationAppendable(
@@ -73,6 +80,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof ConditionalExpression) {
       return conditionalExpressionAppendable.append(pBuilder, (ConditionalExpression) pExpression);
+    } else if (pExpression instanceof FunctionExpression) {
+      return functionExpressionAppendable.append(pBuilder, (FunctionExpression) pExpression);
     } else if (pExpression instanceof FunctionInvocation) {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
     }
