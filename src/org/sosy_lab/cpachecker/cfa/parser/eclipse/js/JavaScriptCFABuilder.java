@@ -29,6 +29,7 @@ import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuilder>, VariableNameGenerator {
@@ -45,7 +46,7 @@ interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuil
 
   JavaScriptCFABuilder append(Statement pStatement);
 
-  JavaScriptCFABuilder append(FunctionDeclaration pDeclaration);
+  JSFunctionDeclaration append(FunctionDeclaration pDeclaration);
 
   JavaScriptCFABuilder copyWith(CFABuilder pBuilder);
 

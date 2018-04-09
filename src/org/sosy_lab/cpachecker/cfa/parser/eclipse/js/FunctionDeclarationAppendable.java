@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 
 interface FunctionDeclarationAppendable {
-  void append(JavaScriptCFABuilder pBuilder, FunctionDeclaration pFunctionDeclaration);
+  JSFunctionDeclaration append(
+      JavaScriptCFABuilder pBuilder, FunctionDeclaration pFunctionDeclaration);
 }

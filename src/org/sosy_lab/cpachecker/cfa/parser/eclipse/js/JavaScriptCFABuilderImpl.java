@@ -28,6 +28,7 @@ import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder {
@@ -91,9 +92,8 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   }
 
   @Override
-  public JavaScriptCFABuilder append(final FunctionDeclaration pDeclaration) {
-    functionDeclarationAppendable.append(this, pDeclaration);
-    return this;
+  public JSFunctionDeclaration append(final FunctionDeclaration pDeclaration) {
+    return functionDeclarationAppendable.append(this, pDeclaration);
   }
 
   @Override

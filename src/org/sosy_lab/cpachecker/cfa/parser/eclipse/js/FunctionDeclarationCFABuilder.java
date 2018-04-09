@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
   @Override
-  public void append(
+  public JSFunctionDeclaration append(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
     final ASTConverter astConverter = pBuilder.getAstConverter();
     final JSFunctionDeclaration jsFunctionDeclaration = astConverter.convert(pFunctionDeclaration);
@@ -52,6 +52,8 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
         .append(pFunctionDeclaration.getBody())
         .appendEdge(exitNode, DummyEdge.withDescription("default return"))
         .appendTo(pBuilder.getBuilder());
+
+    return jsFunctionDeclaration;
   }
 
   /**
