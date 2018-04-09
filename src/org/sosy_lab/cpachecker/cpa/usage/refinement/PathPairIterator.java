@@ -27,7 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -241,7 +241,7 @@ public class PathPairIterator extends
     if (iterator == null && computedPathsForUsage.containsKey(info)) {
       // first call
       // Clone the set to avoid concurrent modification
-      iterator = Sets.newHashSet(computedPathsForUsage.get(info)).iterator();
+      iterator = Lists.newArrayList(computedPathsForUsage.get(info)).iterator();
       currentIterators.put(info, iterator);
     }
 
