@@ -66,12 +66,14 @@ public abstract class EdgeReplacer {
 
   private final MutableCFA cfa;
   private final LogManager logger;
+  private int instrumentedFunctions;
 
   public EdgeReplacer(MutableCFA pCfa, Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
     config.inject(this);
+    instrumentedFunctions = 0;
   }
 
   /** @category helper */
@@ -80,6 +82,10 @@ public abstract class EdgeReplacer {
     CFANode nextNode = new CFANode(functionName);
     cfa.addNode(nextNode);
     return nextNode;
+  }
+
+  int getNumberOfInstrumenetedFunctions() {
+    return instrumentedFunctions;
   }
 
   /**
@@ -152,6 +158,7 @@ public abstract class EdgeReplacer {
     if (funcs.isEmpty() || !shouldBeInstrumented(functionCall)) {
       return;
     }
+    instrumentedFunctions++;
 
     CFunctionCallExpression oldCallExpr = functionCall.getFunctionCallExpression();
     FileLocation fileLocation = statement.getFileLocation();

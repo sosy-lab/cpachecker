@@ -36,6 +36,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -293,6 +294,7 @@ private boolean classifyNodes = false;
     private final Timer exportTime = new Timer();
     private @Nullable VariableClassificationStatistics varClassificationStats;
     private Statistics dependenceGraphStats;
+    private final ArrayList<Statistics> statisticsCollection = new ArrayList<Statistics>();
 
     @Override
     public String getName() {
@@ -321,6 +323,10 @@ private boolean classifyNodes = false;
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
+      }
+
+      for (Statistics st : statisticsCollection) {
+        st.printStatistics(out, pResult, pReached);
       }
     }
 
@@ -677,6 +683,7 @@ private boolean classifyNodes = false;
     if (language == Language.C && fptrCallEdges) {
       CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, globalDeclarations, config, logger);
       fptrResolver.resolveFunctionPointers();
+      fptrResolver.collectStatistics(stats.statisticsCollection);
     }
 
     // Transform pthread_create(.., &func) -> func()

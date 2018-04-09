@@ -30,6 +30,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,6 +64,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -75,7 +80,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  * call statements. The edge in the "else" branch is optional and configurable.
  */
 @Options
-public class CFunctionPointerResolver {
+public class CFunctionPointerResolver implements StatisticsProvider {
 
   @Option(
     secure = true,
@@ -132,6 +137,33 @@ public class CFunctionPointerResolver {
   private Set<FunctionSet> functionParameterSets =
       ImmutableSet.of(
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
+
+  private static class CFunctionPointerResolverStatistics implements Statistics {
+    private int totalFPs;
+    private int instrumentedFPs;
+    private int totalFPsWithParameter;
+    private int instrumentedFPsWithParameter;
+
+    @Override
+    public String getName() {
+      return "";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+      out.println("  Function calls via function pointers:                           " + totalFPs);
+      out.println(
+          "  Instrumented function pointers with explicit function calls:    " + instrumentedFPs);
+      out.println(
+          "  Function calls with function pointer arguments:                 "
+              + totalFPsWithParameter);
+      out.println(
+          "  Instrumented function pointer arguments with explicit function: "
+              + instrumentedFPsWithParameter);
+    }
+  }
+
+  private final CFunctionPointerResolverStatistics stats = new CFunctionPointerResolverStatistics();
 
   private final TargetFunctionsProvider targetFunctionsProvider;
   private final TargetFunctionsProvider targetParameterFunctionsProvider;
@@ -256,6 +288,13 @@ public class CFunctionPointerResolver {
           getTargets(param, func, targetParameterFunctionsProvider);
       edgeReplacerParameterFunctionPointer.instrument(edge, funcs, param);
     }
+
+    stats.totalFPs = visitor.functionPointerCalls.size();
+    stats.instrumentedFPs =
+        edgeReplacerFunctionPointer.getNumberOfInstrumenetedFunctions();
+    stats.totalFPsWithParameter = visitor.functionParameterPointerCalls.size();
+    stats.instrumentedFPsWithParameter =
+        edgeReplacerParameterFunctionPointer.getNumberOfInstrumenetedFunctions();
   }
 
   private @Nullable CExpression getParameter(CFunctionCall call) {
@@ -378,5 +417,10 @@ public class CFunctionPointerResolver {
       }
       return false;
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
