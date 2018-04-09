@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.junit.Before;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,4 +55,14 @@ abstract class CFABuilderTestBase<S> {
     return (S) createAST(pCode).statements().get(pIndex);
   }
 
+  S parseExpression(final String pCode) {
+    return parseExpression(pCode, 0);
+  }
+
+  @SuppressWarnings({"unchecked", "SameParameterValue"})
+  S parseExpression(final String pCode, final int pIndex) {
+    final ExpressionStatement expressionStatement =
+        (ExpressionStatement) createAST(pCode).statements().get(pIndex);
+    return (S) expressionStatement.getExpression();
+  }
 }
