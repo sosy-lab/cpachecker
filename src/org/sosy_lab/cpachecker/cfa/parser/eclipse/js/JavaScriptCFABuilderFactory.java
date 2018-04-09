@@ -39,6 +39,7 @@ final class JavaScriptCFABuilderFactory {
     final JavaScriptCFABuilderImpl builder = new JavaScriptCFABuilderImpl(fileBuilder.getBuilder());
     builder.setExpressionAppendable(ExpressionAppendableFactory.withAllFeatures());
     builder.setFunctionDeclarationAppendable(new FunctionDeclarationCFABuilder());
+    builder.setFunctionDeclarationResolver(new FunctionDeclarationResolverImpl());
     builder.setJavaScriptUnitAppendable(fileBuilder);
     builder.setStatementAppendable(StatementAppendableFactory.withAllFeatures());
     return builder;

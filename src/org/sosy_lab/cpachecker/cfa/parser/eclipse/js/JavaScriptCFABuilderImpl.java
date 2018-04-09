@@ -29,6 +29,7 @@ import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder {
@@ -39,6 +40,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   // JavaScriptCFABuilderFactory.withAllFeatures
   private ExpressionAppendable expressionAppendable;
   private FunctionDeclarationAppendable functionDeclarationAppendable;
+  private FunctionDeclarationResolver functionDeclarationResolver;
   private JavaScriptUnitAppendable javaScriptUnitAppendable;
   private StatementAppendable statementAppendable;
   private VariableNameGenerator variableNameGenerator;
@@ -133,5 +135,16 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   @Override
   public String generateVariableName() {
     return variableNameGenerator.generateVariableName();
+  }
+
+  @Override
+  public void setFunctionDeclarationResolver(
+      final FunctionDeclarationResolver pFunctionDeclarationResolver) {
+    functionDeclarationResolver = pFunctionDeclarationResolver;
+  }
+
+  @Override
+  public JSFunctionDeclaration resolveFunctionDeclaration(final JSIdExpression pFunctionId) {
+    return functionDeclarationResolver.resolve(this, pFunctionId);
   }
 }
