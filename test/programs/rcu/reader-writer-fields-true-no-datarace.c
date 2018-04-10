@@ -10,11 +10,11 @@ void *reader(void * arg) {
     char * pReader = &b;
 
     ldv_rcu_read_lock();
-    char * p;
-    ldv_rlock_rcu();
-    p = ldv_rcu_dereference(pStruct -> gp);
-    ldv_runlock_rcu();
-    a = p;
+    a = ({typeof(pStruct -> gp) p;
+        ldv_rlock_rcu();
+        p = ldv_rcu_dereference(pStruct -> gp);
+        ldv_runlock_rcu();
+        p;});
     b = *a;
     ldv_rcu_read_unlock();
 

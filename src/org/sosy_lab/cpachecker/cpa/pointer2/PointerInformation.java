@@ -23,5 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 class PointerInformation {
+  private PersistentSortedMap<MemoryLocation, LocationSet> forgottenInfo;
+
+  PointerInformation(PersistentSortedMap<MemoryLocation, LocationSet> info) {
+    forgottenInfo = info;
+  }
+
+  PersistentSortedMap<MemoryLocation, LocationSet> getForgottenInfo() {
+    return forgottenInfo;
+  }
 }

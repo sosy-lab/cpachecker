@@ -44,11 +44,12 @@ public class RCUSearchReducer implements Reducer {
     pointerReducer = pPointerReducer;
   }
 
-
   @Override
   public AbstractState getVariableReducedState(
       AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
-    PointerState pointerState = (PointerState) pointerReducer.getVariableReducedState(expandedState,
+    PointerState wrappedState = (PointerState) ((RCUSearchState) expandedState)
+        .getWrappedStates().iterator().next();
+    PointerState pointerState = (PointerState) pointerReducer.getVariableReducedState(wrappedState,
                                                                                   context, callNode);
     return new RCUSearchState(new HashSet<>(), pointerState);
   }
@@ -59,12 +60,14 @@ public class RCUSearchReducer implements Reducer {
       throws InterruptedException {
     Set<MemoryLocation> expandedSet = new HashSet<>(((RCUSearchState) rootState).getRcuPointers());
     expandedSet.addAll(((RCUSearchState) reducedState).getRcuPointers());
-    PointerState rootPointerState = (PointerState) ((List<AbstractState>)((RCUSearchState) rootState)
-        .getWrappedStates()).get(0);
-    PointerState reducedPointerState = (PointerState) ((List<AbstractState>)((RCUSearchState) reducedState)
-        .getWrappedStates()).get(0);
+
+    PointerState rootPointerState = (PointerState) ((RCUSearchState) rootState)
+        .getWrappedStates().iterator().next();
+    PointerState reducedPointerState = (PointerState) ((RCUSearchState) reducedState)
+        .getWrappedStates().iterator().next();
     PointerState expandedPointerState = (PointerState) pointerReducer.getVariableExpandedState
         (rootPointerState, reducedContext, reducedPointerState);
+
     return new RCUSearchState(expandedSet, expandedPointerState);
   }
 
@@ -83,7 +86,7 @@ public class RCUSearchReducer implements Reducer {
   @Override
   public Object getHashCodeForState(
       AbstractState stateKey, Precision precisionKey) {
-    return Pair.of(stateKey, precisionKey);
+    return Pair.of((RCUSearchState) stateKey, precisionKey);
   }
 
   @Override

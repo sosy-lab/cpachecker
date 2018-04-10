@@ -68,12 +68,10 @@ public class RCUSearchStatistics implements Statistics {
   private Path output = Paths.get("RCUPointers");
 
   private final LogManager logger;
-  private final RCUSearchTransfer transfer;
 
-  RCUSearchStatistics(Configuration config, LogManager pLogger, RCUSearchTransfer pTransfer) throws
+  RCUSearchStatistics(Configuration config, LogManager pLogger) throws
                                                                  InvalidConfigurationException {
     logger = pLogger;
-    transfer = pTransfer;
     config.inject(this);
   }
 
@@ -81,16 +79,14 @@ public class RCUSearchStatistics implements Statistics {
   @SuppressWarnings("serial")
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    Map<MemoryLocation, Set<MemoryLocation>> pointsTo = transfer.getPointsTo();
-    Map<MemoryLocation, Set<MemoryLocation>> aliases = getAliases(pointsTo);
-
-    /* ("PTS-TO: " + pointsTo);
-    ("ALIAS: " + aliases); */
 
     AbstractState state = reached.getLastState();
     RCUSearchState rcuSearchState = AbstractStates.extractStateByType(state, RCUSearchState.class);
 
     if (rcuSearchState != null) {
+      Map<MemoryLocation, Set<MemoryLocation>> pointsTo = rcuSearchState.getPointsTo();
+      Map<MemoryLocation, Set<MemoryLocation>> aliases = getAliases(pointsTo);
+
       Set<MemoryLocation> rcuPointers = rcuSearchState.getRcuPointers();
 
       Set<MemoryLocation> rcuAndAliases = new HashSet<>(rcuPointers);

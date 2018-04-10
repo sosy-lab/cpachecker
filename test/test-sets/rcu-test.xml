@@ -9,7 +9,7 @@
 
   <tasks name="RCU-tests">
     <includesfile>../programs/rcu/rcu-test.set</includesfile>
-    <option name="-config">./config/rcurelated/full_stack.properties</option>
+    <option name="-rcucpa"/>
     <option name="-skipRecursion"/>
   </tasks>
 

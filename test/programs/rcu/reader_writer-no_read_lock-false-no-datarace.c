@@ -8,11 +8,11 @@ void *reader(void * arg) {
     char * p = &b;
 
     //ldv_rcu_read_lock();//BUG is here! No read lock
-    char * p__1;
+    a = ({typeof(gp) p__1;
     ldv_rlock_rcu();
     p__1 = ldv_rcu_dereference(gp);
     ldv_runlock_rcu();
-    a = p__1;
+    p__1;});
     b = *a;
     //ldv_rcu_read_unlock();
 

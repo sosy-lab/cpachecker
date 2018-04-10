@@ -15,10 +15,12 @@ void *reader(void * arg) {
     struct bar * p1 = calloc(1, sizeof(struct bar));
 
     ldv_rcu_read_lock();
-    ldv_rlock_rcu();
-    p1 -> ptr = ldv_rcu_dereference(pStruct -> gp);
-    ldv_runlock_rcu();
-    a = p1;
+    p1 -> ptr = ({typeof(pStruct -> gp) p;
+      ldv_rlock_rcu();
+      p = ldv_rcu_dereference(pStruct -> gp);
+      ldv_runlock_rcu();
+      p;});
+    a = p1 -> ptr;
     b = *a;
     ldv_rcu_read_unlock();
 

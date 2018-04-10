@@ -75,13 +75,10 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
   private String deref = "ldv_rcu_dereference";
 
   private LogManager logger;
-  private Set<MemoryLocation> knownLocations;
-  private PointerState pointerState;
   private PointerTransferRelation pointerTransfer;
 
   RCUSearchTransfer(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
-    knownLocations = new HashSet<>();
     config.inject(this);
   }
 
@@ -91,27 +88,28 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
 
     Set<MemoryLocation> result = ((RCUSearchState) state).getRcuPointers();
+    Set<MemoryLocation> buf = new HashSet<>();
     Set<MemoryLocation> old_res = new HashSet<>(result);
     logger.log(Level.ALL, "EDGE TYPE: " + cfaEdge.getEdgeType());
     logger.log(Level.ALL, "EDGE CONT: " + cfaEdge.getRawStatement());
     switch(cfaEdge.getEdgeType()) {
       case StatementEdge:
-        result = handleStatementEdge((CStatementEdge) cfaEdge,
+        buf = handleStatementEdge((CStatementEdge) cfaEdge,
                             cfaEdge.getPredecessor().getFunctionName(),
                             (RCUSearchState) state, logger);
         break;
       case FunctionCallEdge:
-        result = handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
+        buf = handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
                                 cfaEdge.getPredecessor().getFunctionName(),
                                 (RCUSearchState) state, logger);
         break;
       case FunctionReturnEdge:
         if (cfaEdge instanceof CFunctionCallEdge) {
-          result = handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
+          buf = handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
               cfaEdge.getSuccessor().getFunctionName(),
               (RCUSearchState) state, logger);
         } else {
-          result = handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge,
+          buf = handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge,
               cfaEdge.getSuccessor().getFunctionName(),
               (RCUSearchState) state, logger);
         }
@@ -119,12 +117,13 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
         break;
     }
 
+    result.addAll(buf);
     Set<MemoryLocation> new_res = new HashSet<>(result);
     new_res.removeAll(old_res);
-    pointerTransfer.setUseFakeLocs(!new_res.isEmpty());
+    // pointerTransfer.setUseFakeLocs(!new_res.isEmpty());
 
-    pointerState = getPointerAbstractSuccesor(PointerState.copyOf(pointerState), precision, cfaEdge);
-    addKnownLocations(cfaEdge);
+    PointerState oldPointerState = (PointerState) ((RCUSearchState) state).getWrappedStates().iterator().next();
+    PointerState pointerState = getPointerAbstractSuccesor(PointerState.copyOf(oldPointerState), precision, cfaEdge);
 
     return Collections.singleton(new RCUSearchState(result, PointerState.copyOf(pointerState)));
   }
@@ -155,7 +154,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
           (CFunctionCallAssignmentStatement) expr, pEdge);
     } else {
       pLogger.log(Level.ALL, "ORDINARY CALL: " + expr);
-      return state.getRcuPointers();
+      return Collections.emptySet();
     }
   }
 
@@ -173,23 +172,27 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
       RCUSearchState state,
       CFunctionCallExpression pFc) {
     CFunctionDeclaration fd = pFc.getDeclaration();
-    Set<MemoryLocation> pRcuPointers = new HashSet<>(state.getRcuPointers());
+    Set<MemoryLocation> pRcuPointers = new HashSet<>();
     if (fd.getName().contains(assign)) {
       logger.log(Level.ALL, "Handling rcu_assign_pointer");
       List<CExpression> params = pFc.getParameterExpressions();
+      PointerState pointerState = (PointerState) state.getWrappedStates().iterator().next();
 
-      addMemoryLocation(pFunctionName, pRcuPointers, params.get(0));
-      addMemoryLocation(pFunctionName, pRcuPointers, params.get(1));
+      addMemoryLocation(pFunctionName, pointerState, pRcuPointers, params.get(0));
+      addMemoryLocation(pFunctionName, pointerState, pRcuPointers, params.get(1));
     }
 
     return pRcuPointers;
   }
 
-  private void addMemoryLocation(String pFunctionName, Set<MemoryLocation> pRcuPointers,
+  private void addMemoryLocation(String pFunctionName,
+                                 PointerState pointerState,
+                                 Set<MemoryLocation> pRcuPointers,
                                  CExpression expression) {
     IdentifierCreator identifierCreator = new IdentifierCreator(pFunctionName);
     AbstractIdentifier id = expression.accept(identifierCreator);
     MemoryLocation location = LocationIdentifierConverter.toLocation(id);
+    Set<MemoryLocation> knownLocations = pointerState.getKnownLocations();
     if (knownLocations.contains(location)) {
       pRcuPointers.add(location);
     } else {
@@ -216,18 +219,7 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
       return handleFunctionCallExpression(pFunctionName, state, ((CFunctionCallStatement)
           statement).getFunctionCallExpression());
     }
-    return state.getRcuPointers();
-  }
-
-  private void addKnownLocations(CFAEdge pEdge)
-      throws CPATransferException, InterruptedException {
-    Set<MemoryLocation> old = pointerState.getKnownLocations();
-    knownLocations.addAll(pointerState.getKnownLocations());
-    Set<MemoryLocation> new_locs = new HashSet<>(knownLocations);
-    new_locs.removeAll(old);
-    logger.log(Level.ALL, "DECLARATIONS:\n" + knownLocations);
-    logger.log(Level.ALL, "DIFF:\n" + new_locs);
-    logger.log(Level.ALL, "MAP:\n" + pointerState.getPointsToMap());
+    return Collections.emptySet();
   }
 
   private Set<MemoryLocation> handleFunctionCallAssignmentStatement(
@@ -245,28 +237,26 @@ public class RCUSearchTransfer extends SingleEdgeTransferRelation {
 
       if (funcExpr.getFunctionNameExpression().toString().contains(deref)) {
         CExpression rcuPtr = funcExpr.getParameterExpressions().get(0);
+        PointerState pointerState = (PointerState) state.getWrappedStates().iterator().next();
 
-        addMemoryLocation(pFunctionName, pRcuPointers, rcuPtr);
+        addMemoryLocation(pFunctionName, pointerState, pRcuPointers, rcuPtr);
 
-        addMemoryLocation(pFunctionName, pRcuPointers, leftHandSide);
+        addMemoryLocation(pFunctionName, pointerState, pRcuPointers, leftHandSide);
       }
     }
     if (!pRcuPointers.equals(state.getRcuPointers())) {
       return pRcuPointers;
     } else {
-      return state.getRcuPointers();
+      return Collections.emptySet();
     }
   }
 
   void setPointerTransfer(TransferRelation pPointerTransfer) {
     pointerTransfer = (PointerTransferRelation) pPointerTransfer;
-    pointerState = PointerState.INITIAL_STATE;
   }
 
-  Map<MemoryLocation, Set<MemoryLocation>> getPointsTo() {
-    Map<MemoryLocation, Set<MemoryLocation>> result =
-        PointerStatistics.replaceTopsAndBots(pointerState.getPointsToMap());
-    logger.log(Level.ALL, "Requested Points-To map contains:\n", result);
-    return result;
+  TransferRelation getPointerTransfer() {
+    return pointerTransfer;
   }
+
 }
