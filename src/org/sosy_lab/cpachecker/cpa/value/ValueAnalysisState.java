@@ -256,8 +256,8 @@ public class ValueAnalysisState
    *     location
    * @return the type associated with the given memory location
    */
-  public Type getTypeForMemoryLocation(MemoryLocation memLoc) {
-    return checkNotNull(getValueAndTypeFor(memLoc).getType());
+  public @Nullable Type getTypeForMemoryLocation(MemoryLocation memLoc) {
+    return getValueAndTypeFor(memLoc).getType();
   }
 
   /**
