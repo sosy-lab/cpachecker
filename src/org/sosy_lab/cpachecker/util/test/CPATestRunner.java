@@ -44,6 +44,7 @@ public class CPATestRunner {
   public static TestResults run(
       Map<String, String> pProperties,
       String pSourceCodeFilePath) throws Exception {
+    pProperties.put("specification", "config/specification/default.spc");
 
     Configuration config = TestDataTools.configurationForTest()
         .setOptions(pProperties)

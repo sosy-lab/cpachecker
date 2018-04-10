@@ -34,6 +34,7 @@ import java.util.Map.Entry;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.GoalCondition;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
@@ -172,8 +173,8 @@ public class TigerVariabilityTest {
       Iterable<String> excludedFeatures) {
 
     boolean covers = false;
-    for (Entry<TestCase, List<TestSuite.GoalCondition>> entry : testsuite.getMapping().entrySet()) {
-      for (TestSuite.GoalCondition goalCondition : entry.getValue()) {
+    for (Entry<TestCase, List<GoalCondition>> entry : testsuite.getMapping().entrySet()) {
+      for (GoalCondition goalCondition : entry.getValue()) {
         covers =
             covers
                 || coversCondition(

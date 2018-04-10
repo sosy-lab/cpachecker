@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -31,37 +32,122 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class BDDUtils {
 
-  public static NamedRegionManager getBddCpaNamedRegionManagerFromCpa(
-      ConfigurableProgramAnalysis pCpa,
-      boolean pUseTigerAlgorithm_with_pc)
-      throws InvalidConfigurationException {
-    NamedRegionManager bddCpaNamedRegionManager = null;
+  private BDDCPA bddCpa;
+  private LogManager logger;
 
-    if (pUseTigerAlgorithm_with_pc) {
-      if (pCpa instanceof WrapperCPA) {
-        // TODO: This returns the *first* BDDCPA. Currently I cannot get/match which name the cpa
-        // has in the config. Might lead to problems when more than one BDDCPA is configured.
-        BDDCPA bddcpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BDDCPA.class);
-        if (bddcpa != null) {
-          bddCpaNamedRegionManager = bddcpa.getManager();
-        } else {
-          throw new InvalidConfigurationException(
-              "CPAtiger-variability-aware started without BDDCPA. We need BDDCPA!");
-        }
-      } else if (pCpa instanceof BDDCPA) {
-        bddCpaNamedRegionManager = ((BDDCPA) pCpa).getManager();
-      }
-    }
-
-    return bddCpaNamedRegionManager;
+  public BDDUtils(ConfigurableProgramAnalysis pCPA, LogManager pLogger) {
+    bddCpa = getBddCpa(pCPA);
+    logger = pLogger;
   }
 
-  public static Region getRegionFromWrappedBDDstate(AbstractState pAbstractState) {
+  public boolean isVariabilityAware() {
+    return bddCpa != null;
+  }
+
+  public BDDCPA getBddCpa(ConfigurableProgramAnalysis pCpa) {
+    if (pCpa instanceof WrapperCPA) {
+      // TODO: This returns the *first* BDDCPA. Currently I cannot get/match which name the cpa
+      // has in the config. Might lead to problems when more than one BDDCPA is configured.
+      BDDCPA bddCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BDDCPA.class);
+      return bddCpa;
+    } else if (pCpa instanceof BDDCPA) {
+      return ((BDDCPA) pCpa);
+    }
+
+    return null;
+  }
+
+  public String dumpRegion(Region pPresenceCondition) {
+    if (pPresenceCondition == null || bddCpa == null) {
+      return "";
+    }
+
+    return bddCpa.getManager().dumpRegion(pPresenceCondition).toString();
+  }
+
+  public Region makeTrue() {
+    if (bddCpa == null) {
+      return null;
+    }
+
+    return bddCpa.getManager().makeTrue();
+  }
+
+  public Region makeFalse() {
+    if (bddCpa == null) {
+      return null;
+    }
+
+    return bddCpa.getManager().makeFalse();
+  }
+
+  public Region makeNot(Region pRegion) {
+    if (pRegion == null || bddCpa == null) {
+      return null;
+    }
+
+    return bddCpa.getManager().makeNot(pRegion);
+  }
+
+  public Region makeOr(Region pRegion1, Region pRegion2) {
+    if (pRegion1 == null || pRegion2 == null || bddCpa == null) {
+      return null;
+    }
+
+    return bddCpa.getManager().makeOr(pRegion1, pRegion2);
+  }
+
+  public Region makeAnd(Region pRegion1, Region pRegion2) {
+    if (pRegion1 == null || pRegion2 == null || bddCpa == null) {
+      return null;
+    }
+
+    return bddCpa.getManager().makeAnd(pRegion1, pRegion2);
+  }
+
+  // public static NamedRegionManager getBddCpaNamedRegionManagerFromCpa(
+  // ConfigurableProgramAnalysis pCpa,
+  // boolean pUseTigerAlgorithm_with_pc)
+  // throws InvalidConfigurationException {
+  // NamedRegionManager bddCpaNamedRegionManager = null;
+  //
+  // if (pUseTigerAlgorithm_with_pc) {
+  // if (pCpa instanceof WrapperCPA) {
+  // // TODO: This returns the *first* BDDCPA. Currently I cannot get/match which name the cpa
+  // // has in the config. Might lead to problems when more than one BDDCPA is configured.
+  // BDDCPA bddcpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BDDCPA.class);
+  // if (bddcpa != null) {
+  // bddCpaNamedRegionManager = bddcpa.getManager();
+  // } else {
+  // throw new InvalidConfigurationException(
+  // "CPAtiger-variability-aware started without BDDCPA. We need BDDCPA!");
+  // }
+  // } else if (pCpa instanceof BDDCPA) {
+  // bddCpaNamedRegionManager = ((BDDCPA) pCpa).getManager();
+  // }
+  // }
+  //
+  // return bddCpaNamedRegionManager;
+  // }
+
+  public Region createPredicate(String pName) {
+    if (pName == null || bddCpa == null) {
+      return null;
+    }
+
+    return bddCpa.getManager().createPredicate(pName);
+  }
+
+  public Region getRegionFromWrappedBDDstate(AbstractState pAbstractState) {
+    if (!isVariabilityAware()) {
+      return null;
+    }
+
     // TODO: This returns the *first* BDDCPAState. Currently I cannot get/match which name the cpa
     // has in the config. Might lead to problems when more than one BDDCPA is configured.
     BDDState wrappedBDDState = getWrappedBDDState(pAbstractState);
@@ -75,7 +161,7 @@ public class BDDUtils {
     return bddStateRegion;
   }
 
-  private static BDDState getWrappedBDDState(AbstractState inState) {
+  private BDDState getWrappedBDDState(AbstractState inState) {
     if (inState instanceof BDDState) {
       return (BDDState) inState;
     } else if (inState instanceof AbstractWrapperState) {
@@ -94,22 +180,28 @@ public class BDDUtils {
     return null;
   }
 
-  public static Region composeRemainingPresenceConditions(
-      Goal pGoal,
-      TestSuite testsuite,
-      NamedRegionManager pBddCpaNamedRegionManager) {
-    if (pBddCpaNamedRegionManager == null) {
+  public Region composeRemainingPresenceConditions(Goal pGoal, TestSuite testsuite) {
+    if (bddCpa == null) {
       return null;
     }
 
-    Region presenceCondition = pBddCpaNamedRegionManager.makeFalse();
-      presenceCondition =
-          pBddCpaNamedRegionManager
-              .makeOr(
-                  presenceCondition,
-                testsuite.getRemainingPresenceCondition(pGoal, pBddCpaNamedRegionManager));
+    return makeOr(makeFalse(), testsuite.getRemainingPresenceCondition(pGoal));
+  }
 
-    return presenceCondition;
+  public void restrictBdd(Region pRemainingPresenceCondition) {
+    if (pRemainingPresenceCondition == null) {
+      return;
+    }
+
+    if (bddCpa.getTransferRelation() instanceof BDDTransferRelation) {
+      BDDTransferRelation transferRelation = ((BDDTransferRelation) bddCpa.getTransferRelation());
+      transferRelation.setGlobalConstraint(pRemainingPresenceCondition);
+      // logger.logf(Level.INFO, "Restrict global BDD.");
+      logger.logf(
+          Level.INFO,
+          "Restrict BDD to %s.",
+          dumpRegion(pRemainingPresenceCondition));
+    }
   }
 
 }

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
@@ -55,34 +54,31 @@ public class TestCase {
   private List<CFAEdge> errorPath;
   private Region presenceCondition;
   private ARGPath argPath;
-  NamedRegionManager bddCpaNamedRegionManager;
+  private BDDUtils bddUtils;
 
   public TestCase(int pI, Map<String, BigInteger> pInputs, Map<String, BigInteger> pOutputs,
       List<CFAEdge> pPath,
       List<CFAEdge> pShrinkedErrorPath,
       Region pPresenceCondition,
-      NamedRegionManager pBddCpaNamedRegionManager) {
+      BDDUtils pBddUtils) {
     inputs = pInputs;
     outputs = pOutputs;
     path = pPath;
     errorPath = pShrinkedErrorPath;
     presenceCondition = pPresenceCondition;
     id = pI;
-    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    bddUtils = pBddUtils;
   }
 
   public String dumpPresenceCondition() {
-    if (bddCpaNamedRegionManager == null || presenceCondition == null) {
-      return "";
-    }
-    String pc = bddCpaNamedRegionManager.dumpRegion(presenceCondition).toString();
+    String pc = bddUtils.dumpRegion(presenceCondition);
     return pc.replaceAll("@[0-9]+", "").replace(" & TRUE", "");
   }
 
   public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,
       ARGPath pTargetPath, List<CFAEdge> pList,
       Region pPresenceCondition,
-      @SuppressWarnings("unused") NamedRegionManager pBddCpaNamedRegionManager,
+      @SuppressWarnings("unused") BDDUtils pBddUtils,
       Map<String, BigInteger> pInputValues,
       @SuppressWarnings("unused") Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
     id = pI;
@@ -90,7 +86,7 @@ public class TestCase {
     errorPath = pList;
     presenceCondition = pPresenceCondition;
     inputs = pInputValues;
-    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    bddUtils = pBddUtils;
   }
 
   public int getId() {
@@ -179,11 +175,7 @@ public class TestCase {
         }
       }
 
-      lCurrentStates.clear();
-
-      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
-      lCurrentStates = lNextStates;
-      lNextStates = lTmp;
+      lCurrentStates.addAll(lNextStates);
     }
 
     for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
@@ -224,8 +216,7 @@ public class TestCase {
           "TestCase "
               + id
               + " with configurations "
-              + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition())
-                  .toString()
+              + bddUtils.dumpRegion(getPresenceCondition())
                   .replace("__SELECTED_FEATURE_", "")
                   .replace(" & TRUE", "");
     }

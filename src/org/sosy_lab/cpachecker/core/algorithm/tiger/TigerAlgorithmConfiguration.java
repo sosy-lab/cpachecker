@@ -178,10 +178,6 @@ public class TigerAlgorithmConfiguration {
     return useSingleFeatureGoalCoverage;
   }
 
-  public boolean shouldUseTigerAlgorithm_with_pc() {
-    return useTigerAlgorithm_with_pc;
-  }
-
   public String getOutputInterface() {
     return outputInterface;
   }

@@ -153,4 +153,29 @@ public class TestGoalUtils {
     return lGoalPatterns;
   }
 
+  public String preprocessFQL(String fqlString) {
+    String goals = "goals:";
+    if (!fqlString.trim().toLowerCase().startsWith(goals)) {
+      return fqlString;
+    }
+    try {
+      String fql = "COVER ";
+      String goalListString = fqlString.trim().substring(goals.length());
+      String[] goalList = goalListString.split(",");
+      boolean first = true;
+      for (String goal : goalList) {
+        if (!first) {
+          fql += "+";
+        }
+        fql += "(\"EDGES(ID)*\".(EDGES(@LABEL(" + goal.trim() + "))).\"EDGES(ID)*\")";
+        first = false;
+      }
+
+      return fql;
+    } catch (Exception ex) {
+      return fqlString;
+    }
+    /*-setprop tiger.fqlQuery="COVER (\"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G2))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G3))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G4))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G5))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G6))).\"EDGES(ID)*\")+(\"EDGES(ID)*\".(EDGES(@LABEL(G7))).\"EDGES(ID)*\")*/
+  }
+
 }
