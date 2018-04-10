@@ -481,7 +481,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
         TestCase testcase =
             handleUnavailableCounterexample(criticalEdge, lastState, testCasePresenceCondition);
-        testsuite.addTestCase(testcase, pGoal, testCasePresenceCondition, null);
+        testsuite.addTestCase(testcase, pGoal, null);
       } else {
         // test goal is feasible
         logger.logf(Level.INFO, "Counterexample is available.");
@@ -500,7 +500,6 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
             testsuite.addTestCase(
                 testcase,
                 pGoal,
-                testCasePresenceCondition,
                 simplifiedPresenceCondition);
 
             if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
@@ -613,7 +612,6 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
     Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
     Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
-    boolean lHasPredicates = false;
 
     lCurrentStates.add(lAutomaton.getInitialState());
 
@@ -652,14 +650,10 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
             .getOutgoingEdges(lCurrentState)) {
           GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
 
-          if (lLabel.hasGuards()) {
-            lHasPredicates = true;
-          } else {
-            if (lLabel.contains(cfaEdge)) {
-              lNextStates.add(lOutgoingEdge.getTarget());
-              if (lAutomaton.getFinalStates().contains(lOutgoingEdge.getTarget())) {
-                break outer;
-              }
+          if (!lLabel.hasGuards() && lLabel.contains(cfaEdge)) {
+            lNextStates.add(lOutgoingEdge.getTarget());
+            if (lAutomaton.getFinalStates().contains(lOutgoingEdge.getTarget())) {
+              break outer;
             }
           }
         }

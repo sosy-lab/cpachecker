@@ -110,6 +110,10 @@ public class TestSuite implements AlgorithmResult {
     return mapping;
   }
 
+  public int getNumberOfFeasibleGoals() {
+    return numberOfFeasibleGoals;
+  }
+
   public int getNumberOfInfeasibleTestGoals() {
     return infeasibleGoals.size();
   }
@@ -148,7 +152,6 @@ public class TestSuite implements AlgorithmResult {
   public boolean addTestCase(
       TestCase testcase,
       Goal goal,
-      Region pPresenceCondition,
       Region pSimplifiedPresenceCondition) {
     if (!isGoalPariallyCovered(goal)) {
       numberOfFeasibleGoals++;

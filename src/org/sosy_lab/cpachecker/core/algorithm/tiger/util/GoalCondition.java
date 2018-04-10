@@ -66,4 +66,9 @@ public class GoalCondition {
     return true;
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode() + goal.hashCode() + simplifiedPresenceCondition.hashCode();
+  }
+
 }

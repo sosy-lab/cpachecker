@@ -30,10 +30,6 @@ import com.google.common.collect.Lists;
 import java.util.Iterator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * A single edge which represents a sequence of several other simple edges of
@@ -45,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
 
+  private static final long serialVersionUID = -6990126923052621698L;
   private final ImmutableList<CFAEdge> edges;
 
   public MultiEdge(CFANode pPredecessor, CFANode pSuccessor, List<CFAEdge> pEdges) {

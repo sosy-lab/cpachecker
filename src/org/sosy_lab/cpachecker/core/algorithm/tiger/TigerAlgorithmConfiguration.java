@@ -131,12 +131,6 @@ public class TigerAlgorithmConfiguration {
 
   @Option(
     secure = true,
-    name = "tiger_with_presenceConditions",
-    description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions.")
-  private boolean useTigerAlgorithm_with_pc = false;
-
-  @Option(
-    secure = true,
     name = "useSingleFeatureGoalCoverage",
     description = "Only need one Testcase with a valid feature configuration for each goal")
   private boolean useSingleFeatureGoalCoverage = false;
