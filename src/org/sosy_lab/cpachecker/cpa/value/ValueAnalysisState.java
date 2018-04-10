@@ -210,6 +210,7 @@ public class ValueAnalysisState
    *
    * @param toRetain the names of the variables to retain
    */
+  @Deprecated
   public void retainAll(Set<MemoryLocation> toRetain) {
     Set<MemoryLocation> toRemove = new HashSet<>();
     for (MemoryLocation memoryLocation : constantsMap.keySet()) {
@@ -603,6 +604,7 @@ public class ValueAnalysisState
    * @param other the other state for which to get the difference
    * @return the set of variable names that differ
    */
+  @Deprecated
   public Set<MemoryLocation> getDifference(ValueAnalysisState other) {
     Set<MemoryLocation> difference = new HashSet<>();
 
@@ -623,6 +625,7 @@ public class ValueAnalysisState
    *
    * @return the set of tracked variables by this state
    */
+  @Deprecated
   public Set<String> getTrackedVariableNames() {
     Set<String> result = new HashSet<>();
 
@@ -633,6 +636,7 @@ public class ValueAnalysisState
     // no copy necessary, fresh instance of set
     return Collections.unmodifiableSet(result);
   }
+
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
@@ -656,7 +660,7 @@ public class ValueAnalysisState
     return new ValueAnalysisInformation(constantsMap);
   }
 
-
+  @Deprecated
   public Set<MemoryLocation> getMemoryLocationsOnStack(String pFunctionName) {
     Set<MemoryLocation> result = new HashSet<>();
 
@@ -670,6 +674,7 @@ public class ValueAnalysisState
     return Collections.unmodifiableSet(result);
   }
 
+  @Deprecated
   public Set<MemoryLocation> getGlobalMemoryLocations() {
     Set<MemoryLocation> result = new HashSet<>();
 
@@ -683,6 +688,7 @@ public class ValueAnalysisState
     return Collections.unmodifiableSet(result);
   }
 
+  @Deprecated
   public void forgetValuesWithIdentifier(String pIdentifier) {
     for (MemoryLocation memoryLocation : constantsMap.keySet()) {
       if (memoryLocation.getIdentifier().equals(pIdentifier)) {
