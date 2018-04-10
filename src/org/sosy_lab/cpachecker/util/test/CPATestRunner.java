@@ -41,14 +41,18 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
  */
 public class CPATestRunner {
 
-  public static TestResults run(
-      Map<String, String> pProperties,
-      String pSourceCodeFilePath) throws Exception {
+  public static TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath)
+      throws Exception {
     pProperties.put("specification", "config/specification/default.spc");
+    if (pProperties.containsKey("counterexample.checker.config")
+        && pProperties.get("counterexample.checker.config")
+            .contains("cex-checks/valueAnalysis-as-cex-check.properties")) {
+      pProperties.put(
+          "counterexample.checker.config",
+          "config/cex-checks/valueAnalysis-as-cex-check.properties");
+    }
 
-    Configuration config = TestDataTools.configurationForTest()
-        .setOptions(pProperties)
-        .build();
+    Configuration config = TestDataTools.configurationForTest().setOptions(pProperties).build();
     return run(config, pSourceCodeFilePath);
   }
 
