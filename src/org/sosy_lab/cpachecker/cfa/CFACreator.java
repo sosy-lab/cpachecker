@@ -45,7 +45,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -110,9 +109,9 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGBuilder;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -289,12 +288,14 @@ private boolean classifyNodes = false;
     private Timer conversionTime;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
-    private final Timer variableClassificationTime = new Timer();
-    private final Timer dependenceGraphConstructionTime = new Timer();
     private final Timer exportTime = new Timer();
-    private @Nullable VariableClassificationStatistics varClassificationStats;
-    private Statistics dependenceGraphStats;
-    private final List<Statistics> statisticsCollection = new ArrayList<>();
+    private final List<Statistics> statisticsCollection;
+    private final LogManager logger;
+
+    private CFACreatorStatistics(LogManager pLogger) {
+      logger = pLogger;
+      statisticsCollection = new ArrayList<>();
+    }
 
     @Override
     public String getName() {
@@ -309,36 +310,25 @@ private boolean classifyNodes = false;
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
-      if (variableClassificationTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for var class.:    " + variableClassificationTime);
-        if (varClassificationStats != null) {
-          varClassificationStats.printStatistics(out, pResult, pReached);
-        }
-      }
-      if (dependenceGraphConstructionTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for dep. graph:    " + dependenceGraphConstructionTime);
-        if (dependenceGraphStats != null) {
-          dependenceGraphStats.printStatistics(out, pResult, pReached);
-        }
-      }
+
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
       }
 
       for (Statistics st : statisticsCollection) {
-        st.printStatistics(out, pResult, pReached);
+        StatisticsUtils.printStatistics(st, out, logger, pResult, pReached);
       }
     }
 
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-      if (varClassificationStats != null) {
-        varClassificationStats.writeOutputFiles(pResult, pReached);
+      for (Statistics st : statisticsCollection) {
+        StatisticsUtils.writeOutputFiles(st, logger, pResult, pReached);
       }
     }
   }
 
-  private final CFACreatorStatistics stats = new CFACreatorStatistics();
+  private final CFACreatorStatistics stats;
   private final Configuration config;
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
@@ -349,6 +339,7 @@ private boolean classifyNodes = false;
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
+    this.stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
 
@@ -529,14 +520,11 @@ private boolean classifyNodes = false;
     final Optional<VariableClassification> varClassification;
     if (language == Language.C) {
       try {
-        stats.variableClassificationTime.start();
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
         varClassification = Optional.of(builder.build(cfa));
-        stats.varClassificationStats = builder.getStatistics();
+        builder.collectStatistics(stats.statisticsCollection);
       } catch (UnrecognizedCCodeException e) {
         throw new CParserException(e);
-      } finally {
-        stats.variableClassificationTime.stop();
       }
     } else {
       varClassification = Optional.empty();
@@ -554,14 +542,11 @@ private boolean classifyNodes = false;
     Optional<DependenceGraph> depGraph;
     if (createDependenceGraph) {
       try {
-        stats.dependenceGraphConstructionTime.start();
         DGBuilder depGraphBuilder = DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
-        stats.dependenceGraphStats = depGraphBuilder.getStatistics();
+        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       } catch (CPAException pE) {
         throw new CParserException(pE);
-      } finally {
-        stats.dependenceGraphConstructionTime.stop();
       }
     } else {
       depGraph = Optional.empty();

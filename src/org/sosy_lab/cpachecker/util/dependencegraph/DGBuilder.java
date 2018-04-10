@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -96,10 +97,11 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependenceGraph")
-public class DGBuilder {
+public class DGBuilder implements StatisticsProvider {
 
   private final CFA cfa;
   private final Configuration config;
@@ -108,6 +110,7 @@ public class DGBuilder {
   private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
   private Table<DGNode, DGNode, DependenceType> adjacencyMatrix;
 
+  private final StatTimer dependenceGraphConstructionTimer = new StatTimer("Time for dep. graph");
   private StatInt flowDependenceNumber = new StatInt(StatKind.SUM, "Number of flow dependences");
   private StatInt controlDependenceNumber =
       new StatInt(StatKind.SUM, "Number of control dependences");
@@ -137,6 +140,7 @@ public class DGBuilder {
 
   public DependenceGraph build()
       throws InvalidConfigurationException, InterruptedException, CPAException {
+    dependenceGraphConstructionTimer.start();
     nodes = HashBasedTable.create();
     adjacencyMatrix = HashBasedTable.create();
     addFlowDependences();
@@ -152,6 +156,7 @@ public class DGBuilder {
         " nodes and ",
         adjacencyMatrix.size(),
         " edges.");
+    dependenceGraphConstructionTimer.stop();
     return dg;
   }
 
@@ -344,25 +349,29 @@ public class DGBuilder {
     }
   }
 
-  public Statistics getStatistics() {
-    return new AbstractStatistics() {
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new AbstractStatistics() {
 
       @Override
       public void printStatistics(
           final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
         StatInt nodeNumber = new StatInt(StatKind.SUM, "Number of DG nodes");
         nodeNumber.setNextValue(nodes.size());
-        put(pOut, 4, nodeNumber);
-        put(pOut, 4, flowDependenceNumber);
-        put(pOut, 4, controlDependenceNumber);
-        put(pOut, 4, isolatedNodes);
+        if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
+          put(pOut, 3, dependenceGraphConstructionTimer);
+          put(pOut, 4, nodeNumber);
+          put(pOut, 4, flowDependenceNumber);
+          put(pOut, 4, controlDependenceNumber);
+          put(pOut, 4, isolatedNodes);
+        }
       }
 
       @Override
       public String getName() {
         return ""; // empty name for nice output under CFACreator statistics
       }
-    };
+    });
   }
 
   /**

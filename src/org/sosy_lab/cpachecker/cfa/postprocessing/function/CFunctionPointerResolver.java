@@ -70,6 +70,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /**
  * This class is responsible for replacing calls via function pointers like (*fp)() with code
@@ -138,11 +142,15 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       ImmutableSet.of(
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
 
-  private static class CFunctionPointerResolverStatistics implements Statistics {
-    private int totalFPs;
-    private int instrumentedFPs;
-    private int totalFPsWithParameter;
-    private int instrumentedFPsWithParameter;
+  private static class CFunctionPointerResolverStatistics extends AbstractStatistics {
+    private StatInt totalFPs = new StatInt(StatKind.SUM, "Function calls via function pointers");
+    private StatInt instrumentedFPs =
+        new StatInt(StatKind.SUM, "Instrumented function pointer calls");
+    private StatInt totalFPsWithParameter =
+        new StatInt(StatKind.SUM, "Function calls with function pointer arguments");
+    private StatInt instrumentedFPsWithParameter =
+        new StatInt(StatKind.SUM, "Instrumented function pointer arguments");
+    private StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
 
     @Override
     public String getName() {
@@ -151,15 +159,13 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      out.println("  Function calls via function pointers:                           " + totalFPs);
-      out.println(
-          "  Instrumented function pointers with explicit function calls:    " + instrumentedFPs);
-      out.println(
-          "  Function calls with function pointer arguments:                 "
-              + totalFPsWithParameter);
-      out.println(
-          "  Instrumented function pointer arguments with explicit function: "
-              + instrumentedFPsWithParameter);
+      if (totalTimer.getUpdateCount() > 0) {
+        put(out, 3, totalTimer);
+        put(out, 4, totalFPs);
+        put(out, 4, instrumentedFPs);
+        put(out, 4, totalFPsWithParameter);
+        put(out, 4, instrumentedFPsWithParameter);
+      }
     }
   }
 
@@ -247,6 +253,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
    */
   public void resolveFunctionPointers() throws InvalidConfigurationException {
 
+    stats.totalTimer.start();
     // 1.Step: get all function calls
     final FunctionPointerCallCollector visitor = new FunctionPointerCallCollector();
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
@@ -289,12 +296,13 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       edgeReplacerParameterFunctionPointer.instrument(edge, funcs, param);
     }
 
-    stats.totalFPs = visitor.functionPointerCalls.size();
-    stats.instrumentedFPs =
-        edgeReplacerFunctionPointer.getNumberOfInstrumenetedFunctions();
-    stats.totalFPsWithParameter = visitor.functionParameterPointerCalls.size();
-    stats.instrumentedFPsWithParameter =
-        edgeReplacerParameterFunctionPointer.getNumberOfInstrumenetedFunctions();
+    stats.totalFPs.setNextValue(visitor.functionPointerCalls.size());
+    stats.instrumentedFPs.setNextValue(
+        edgeReplacerFunctionPointer.getNumberOfInstrumenetedFunctions());
+    stats.totalFPsWithParameter.setNextValue(visitor.functionParameterPointerCalls.size());
+    stats.instrumentedFPsWithParameter.setNextValue(
+        edgeReplacerParameterFunctionPointer.getNumberOfInstrumenetedFunctions());
+    stats.totalTimer.stop();
   }
 
   private @Nullable CExpression getParameter(CFunctionCall call) {
