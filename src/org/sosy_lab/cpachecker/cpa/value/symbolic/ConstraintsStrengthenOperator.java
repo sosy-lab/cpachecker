@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -162,8 +165,9 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    for (Map.Entry<MemoryLocation, Value> e : pValueState.getConstantsMapView().entrySet()) {
-      Value currV = e.getValue();
+    for (Entry<MemoryLocation, ValueAndType> e : pValueState.getConstants()) {
+      Value currV = e.getValue().getValue();
+      Type valueType = e.getValue().getType();
 
       if (!(currV instanceof SymbolicValue) || isSimpleSymbolicValue((SymbolicValue) currV)) {
         continue;
@@ -174,10 +178,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
       if (isIndependentInValueState(castVal, currLoc, pValueState)
           && doesNotAppearInConstraints(castVal, pConstraints)) {
-
-        Type valueType = pValueState.getTypeForMemoryLocation(currLoc);
         SymbolicValue newIdentifier = factory.asConstant(factory.newIdentifier(), valueType);
-
         pValueState.assignConstant(currLoc, newIdentifier, valueType);
         replacedSymbolicExpressions++;
       }
@@ -264,7 +265,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
   private Collection<SymbolicIdentifier> getIdentifiersInState(final ValueAnalysisState pState) {
     Collection<SymbolicIdentifier> ret = new HashSet<>();
 
-    for (Value v : pState.getConstantsMapView().values()) {
+    for (Value v : Iterables.transform(pState.getConstants(), e -> e.getValue().getValue())) {
       if (v instanceof SymbolicValue) {
         ret.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
       }

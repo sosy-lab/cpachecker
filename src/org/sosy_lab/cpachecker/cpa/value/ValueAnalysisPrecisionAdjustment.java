@@ -29,6 +29,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
@@ -316,8 +318,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         || options.abstractAtFunction(location)
         || options.abstractAtLoop(location)) {
 
-      for (MemoryLocation memoryLocation : state.getTrackedMemoryLocations()) {
-        if (location!=null && !precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location.getLocationNode())) {
+      for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+        MemoryLocation memoryLocation = e.getKey();
+        if (location != null
+            && !precision.isTracking(
+                memoryLocation, e.getValue().getType(), location.getLocationNode())) {
           state.forget(memoryLocation);
         }
       }
@@ -338,8 +343,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold
-    for (MemoryLocation memoryLocation: state.getTrackedMemoryLocations()) {
-      assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
+    for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
+      MemoryLocation memoryLocation = e.getKey();
+      assignments.updateAssignmentInformation(memoryLocation, e.getValue().getValue());
 
       if (assignments.exceedsThreshold(memoryLocation)) {
         state.forget(memoryLocation);

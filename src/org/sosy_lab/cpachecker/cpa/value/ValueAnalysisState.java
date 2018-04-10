@@ -28,14 +28,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -553,7 +551,7 @@ public class ValueAnalysisState
 
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
-        Type type = getTypeForMemoryLocation(memoryLocation);
+        Type type = entry.getValue().getType();
         if (!memoryLocation.isReference() && type instanceof CSimpleType) {
           CSimpleType simpleType = (CSimpleType) type;
           if (simpleType.getType().isIntegerType()) {
@@ -635,20 +633,14 @@ public class ValueAnalysisState
     // no copy necessary, fresh instance of set
     return Collections.unmodifiableSet(result);
   }
-
-  /**
-   * This method returns the set of tracked variables by this state.
-   *
-   * @return the set of tracked variables by this state
-   */
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
     return constantsMap.keySet();
   }
 
-  public Map<MemoryLocation, Value> getConstantsMapView() {
-    return Collections.unmodifiableMap(Maps.transformValues(constantsMap, ValueAndType::getValue));
+  public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
+    return Collections.unmodifiableSet(constantsMap.entrySet());
   }
 
   /**
@@ -668,9 +660,7 @@ public class ValueAnalysisState
   public Set<MemoryLocation> getMemoryLocationsOnStack(String pFunctionName) {
     Set<MemoryLocation> result = new HashSet<>();
 
-    Set<MemoryLocation> memoryLocations = constantsMap.keySet();
-
-    for (MemoryLocation memoryLocation : memoryLocations) {
+    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
       if (memoryLocation.isOnFunctionStack() && memoryLocation.getFunctionName().equals(pFunctionName)) {
         result.add(memoryLocation);
       }
@@ -683,9 +673,7 @@ public class ValueAnalysisState
   public Set<MemoryLocation> getGlobalMemoryLocations() {
     Set<MemoryLocation> result = new HashSet<>();
 
-    Set<MemoryLocation> memoryLocations = constantsMap.keySet();
-
-    for (MemoryLocation memoryLocation : memoryLocations) {
+    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
       if (!memoryLocation.isOnFunctionStack()) {
         result.add(memoryLocation);
       }
@@ -724,17 +712,18 @@ public class ValueAnalysisState
     }
 
     // second: learn new information
-    for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
+    for (Entry<MemoryLocation, ValueAndType> e : this.getConstants()) {
+      final MemoryLocation trackedVar = e.getKey();
 
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
-        rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
+        rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
           functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
         /*assert (!rebuildState.contains(trackedVar)) :
                 "calling function should not contain return-variable of called function: " + trackedVar;*/
         if (this.contains(trackedVar)) {
-          rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
+          rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
         }
       }
     }

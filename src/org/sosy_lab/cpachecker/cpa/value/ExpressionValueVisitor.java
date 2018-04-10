@@ -123,8 +123,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       return Value.UnknownValue.getInstance();
     }
 
-    if (getState().contains(varLoc)) {
-
+    if (readableState.contains(varLoc)) {
       ValueAndType valueAndType = readableState.getValueAndTypeFor(varLoc);
       Type actualType = valueAndType.getType();
       CType readType = pLValue.getExpressionType();

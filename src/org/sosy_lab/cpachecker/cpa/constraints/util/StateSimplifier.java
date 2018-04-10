@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -43,8 +43,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Simplifier for {@link ConstraintsState}s.
@@ -258,10 +256,9 @@ public class StateSimplifier {
   }
 
   private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
-    final Collection<Value> valueStateConstants = pValueState.getConstantsMapView().values();
     Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
 
-    for (Value v : valueStateConstants) {
+    for (Value v : Iterables.transform(pValueState.getConstants(), e -> e.getValue().getValue())) {
       if (v instanceof SymbolicValue) {
         symbolicValues.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
       }
