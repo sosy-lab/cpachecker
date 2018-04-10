@@ -443,7 +443,7 @@ public class ValueAnalysisState
       if (parts.size() != 2) {
         ValueAndType value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
         if (value != null && value.getValue().isExplicitlyKnown()) {
-          return value;
+          return value.getValue();
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \""
               + pProperty + "\"");
