@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -159,17 +159,16 @@ public class UseDefBasedInterpolator {
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    Map<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
+    Map<MemoryLocation, ValueAndType> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
 
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
-        useDefInterpolant.put(memoryLocation, UnknownValue.getInstance());
+        useDefInterpolant.put(memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
       }
     }
 
-    return new ValueAnalysisInterpolant(
-        PathCopyingPersistentTreeMap.copyOf(useDefInterpolant), PathCopyingPersistentTreeMap.of());
+    return new ValueAnalysisInterpolant(PathCopyingPersistentTreeMap.copyOf(useDefInterpolant));
   }
 
   /**

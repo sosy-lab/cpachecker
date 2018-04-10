@@ -26,17 +26,16 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import static com.google.common.base.Verify.verify;
 
 import java.util.Collections;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -46,9 +45,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState> {
   /** the variable assignment of the interpolant */
-  private @Nullable PersistentMap<MemoryLocation, Value> assignment;
-
-  private @Nullable PersistentMap<MemoryLocation, Type> assignmentTypes;
+  private @Nullable PersistentMap<MemoryLocation, ValueAndType> assignment;
 
   /**
    * the interpolant representing "true"
@@ -56,14 +53,13 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
   public static final ValueAnalysisInterpolant TRUE  = new ValueAnalysisInterpolant();
 
   /** the interpolant representing "false" */
-  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null, null);
+  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null);
 
   /**
    * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
    */
   private ValueAnalysisInterpolant() {
     assignment = PathCopyingPersistentTreeMap.of();
-    assignmentTypes = PathCopyingPersistentTreeMap.of();
   }
 
   /**
@@ -71,11 +67,8 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    *
    * @param pAssignment the variable assignment to be represented by the interpolant
    */
-  public ValueAnalysisInterpolant(
-      PersistentMap<MemoryLocation, Value> pAssignment,
-      PersistentMap<MemoryLocation, Type> pAssignmentToType) {
+  public ValueAnalysisInterpolant(PersistentMap<MemoryLocation, ValueAndType> pAssignment) {
     assignment = pAssignment;
-    assignmentTypes = pAssignmentToType;
   }
 
   /**
@@ -116,30 +109,24 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
     // add other itp mapping - one by one for now, to check for correctness
     // newAssignment.putAll(other.assignment);
-    PersistentMap<MemoryLocation, Value> newAssignment = assignment;
-    PersistentMap<MemoryLocation, Type> newAssignmentTypes = assignmentTypes;
-    for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
+    PersistentMap<MemoryLocation, ValueAndType> newAssignment = assignment;
+    for (Entry<MemoryLocation, ValueAndType> entry : other.assignment.entrySet()) {
       if (newAssignment.containsKey(entry.getKey())) {
         assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
       }
       newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
 
-      if (newAssignmentTypes.containsKey(entry.getKey())) {
-        assert (assignmentTypes
-                .get(entry.getKey())
-                .equals(other.assignmentTypes.get(entry.getKey())))
-            : "interpolants mismatch in " + entry.getKey();
-      }
-      newAssignmentTypes =
-          newAssignmentTypes.putAndCopy(entry.getKey(), other.assignmentTypes.get(entry.getKey()));
+      assert Objects.equals(
+              entry.getValue().getType(), other.assignment.get(entry.getKey()).getType())
+          : "interpolants mismatch in " + entry.getKey();
     }
 
-    return new ValueAnalysisInterpolant(newAssignment, newAssignmentTypes);
+    return new ValueAnalysisInterpolant(newAssignment);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(assignment) + Objects.hashCode(assignmentTypes);
+    return Objects.hashCode(assignment);
   }
 
   @Override
@@ -157,8 +144,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
     }
 
     ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
-    return Objects.equals(assignment, other.assignment) && Objects.equals(
-        assignmentTypes, other.assignmentTypes);
+    return Objects.equals(assignment, other.assignment);
   }
 
   /**
@@ -198,11 +184,11 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    */
   @Override
   public ValueAnalysisState reconstructState() {
-    if (assignment == null || assignmentTypes == null) {
+    if (assignment == null) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
 
     } else {
-      return new ValueAnalysisState(Optional.empty(), assignment, assignmentTypes);
+      return new ValueAnalysisState(Optional.empty(), assignment);
     }
   }
 
@@ -226,15 +212,16 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
     boolean strengthened = false;
 
-    for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
+    for (Entry<MemoryLocation, ValueAndType> itp : assignment.entrySet()) {
       if (!valueState.contains(itp.getKey())) {
-        valueState.assignConstant(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
+        valueState.assignConstant(
+            itp.getKey(), itp.getValue().getValue(), itp.getValue().getType());
         strengthened = true;
 
       } else {
         verify(
             valueState.getValueFor(itp.getKey()).asNumericValue().longValue()
-                == itp.getValue().asNumericValue().longValue(),
+                == itp.getValue().getValue().asNumericValue().longValue(),
             "state and interpolant do not match in value for variable %s [state = %s != %s = itp] for state %s",
             itp.getKey(),
             valueState.getValueFor(itp.getKey()),
@@ -261,14 +248,14 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
       return this;
     }
 
-    PersistentMap<MemoryLocation, Value> weakenedAssignments = assignment;
+    PersistentMap<MemoryLocation, ValueAndType> weakenedAssignments = assignment;
     for (MemoryLocation current : assignment.keySet()) {
       if (!toRetain.contains(current.getAsSimpleString())) {
         weakenedAssignments = weakenedAssignments.removeAndCopy(current);
       }
     }
 
-    return new ValueAnalysisInterpolant(weakenedAssignments, assignmentTypes);
+    return new ValueAnalysisInterpolant(weakenedAssignments);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

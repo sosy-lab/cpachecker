@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -124,12 +125,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     if (getState().contains(varLoc)) {
 
-      Type actualType = readableState.getTypeForMemoryLocation(varLoc);
+      ValueAndType valueAndType = readableState.getValueAndTypeFor(varLoc);
+      Type actualType = valueAndType.getType();
       CType readType = pLValue.getExpressionType();
       MachineModel machineModel = getMachineModel();
       if (!(actualType instanceof CType)
           || machineModel.getSizeof(readType) == machineModel.getSizeof((CType) actualType)) {
-        return readableState.getValueFor(varLoc);
+        return valueAndType.getValue();
       }
     }
     return Value.UnknownValue.getInstance();
