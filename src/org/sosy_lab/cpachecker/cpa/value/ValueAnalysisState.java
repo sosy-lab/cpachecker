@@ -352,7 +352,23 @@ public class ValueAnalysisState
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this
     // element
-    return other.constantsMap.entrySet().containsAll(constantsMap.entrySet());
+
+    // the simple way
+    // if (other.constantsMap.entrySet().containsAll(constantsMap.entrySet())) {
+    //   return true;
+    // }
+
+    // the tolerant way: ignore all type information. TODO really correct?
+    for (Entry<MemoryLocation, ValueAndType> otherEntry : other.constantsMap.entrySet()) {
+      MemoryLocation key = otherEntry.getKey();
+      Value otherValue = otherEntry.getValue().getValue();
+      ValueAndType thisValueAndType = constantsMap.get(key);
+      if (thisValueAndType == null || !otherValue.equals(thisValueAndType.getValue())) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @Override
