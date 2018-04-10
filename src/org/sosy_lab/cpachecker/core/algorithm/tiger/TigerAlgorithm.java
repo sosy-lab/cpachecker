@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 @Options(prefix = "tiger")
@@ -489,9 +491,9 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
         } else {
           // HashMap<String, Boolean> features =
           // for null goal get the presencecondition without the validProduct method
-          testCasePresenceCondition = getPresenceConditionFromCex(cex, null);
+          testCasePresenceCondition = getPresenceConditionFromCex(cex);
 
-          Region simplifiedPresenceCondition = getPresenceConditionFromCex(cex, pGoal);
+          Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, pGoal);
           TestCase testcase = createTestcase(cex, testCasePresenceCondition);
           // only add new Testcase and check for coverage if it does not already exist
           if (!testsuite.testSuiteAlreadyContainsTestCase(testcase, pGoal)) {
@@ -560,29 +562,16 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     }
   }
 
-  public Region getPresenceConditionFromCex(CounterexampleInfo cex, Goal pGoal) {
-    pGoal = null;
+  public Region getPresenceConditionFromCex(CounterexampleInfo cex) {
     if (!bddUtils.isVariabilityAware()) {
       return null;
     }
 
-    CFAEdge criticalEdge = null;
-    if (pGoal != null) {
-      criticalEdge = pGoal.getCriticalEdge();
-    }
-
     Region pc = bddUtils.makeTrue();
-
-    ARGPath targetPath = cex.getTargetPath();
-    List<CFAEdge> fullPath = targetPath.getFullPath();
-
+    List<CFAEdge> cfaPath = cex.getTargetPath().getFullPath();
     String validFunc = tigerConfig.getValidProductMethodName();
 
-    for (CFAEdge cfaEdge : fullPath) {
-      if (criticalEdge != null && cfaEdge == criticalEdge) {
-        break;
-      }
-
+    for (CFAEdge cfaEdge : cfaPath) {
       String predFun = cfaEdge.getPredecessor().getFunctionName();
       String succFun = cfaEdge.getSuccessor().getFunctionName();
       if (predFun.contains(validFunc)
@@ -607,6 +596,76 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
           }
         }
       }
+    }
+
+    return pc;
+  }
+
+  public Region getPresenceConditionFromCexForGoal(CounterexampleInfo cex, Goal pGoal) {
+    if (!bddUtils.isVariabilityAware()) {
+      return null;
+    }
+
+    Region pc = bddUtils.makeTrue();
+    List<CFAEdge> cfaPath = cex.getTargetPath().getFullPath();
+    String validFunc = tigerConfig.getValidProductMethodName();
+
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
+    boolean lHasPredicates = false;
+
+    lCurrentStates.add(lAutomaton.getInitialState());
+
+    outer: for (CFAEdge cfaEdge : cfaPath) {
+      String predFun = cfaEdge.getPredecessor().getFunctionName();
+      String succFun = cfaEdge.getSuccessor().getFunctionName();
+
+      if (!(predFun.contains(validFunc)
+          && succFun.contains(tigerConfig.getValidProductMethodName()))) {
+        if (cfaEdge instanceof CAssumeEdge) {
+          CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+          if (assumeEdge.getExpression() instanceof CBinaryExpression) {
+
+            CBinaryExpression expression = (CBinaryExpression) assumeEdge.getExpression();
+            String name = expression.getOperand1().toString() + "@0";
+
+            if (name.contains(tigerConfig.getFeatureVariablePrefix())) {
+              Region predNew = bddUtils.createPredicate(name);
+              if (assumeEdge.getTruthAssumption()) {
+                predNew = bddUtils.makeNot(predNew);
+              }
+
+              pc = bddUtils.makeAnd(pc, predNew);
+            }
+          }
+        }
+      }
+
+      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+        // Automaton accepts as soon as it sees a final state (implicit self-loop)
+        if (lAutomaton.getFinalStates().contains(lCurrentState)) {
+          break outer;
+        }
+
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : lAutomaton
+            .getOutgoingEdges(lCurrentState)) {
+          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+
+          if (lLabel.hasGuards()) {
+            lHasPredicates = true;
+          } else {
+            if (lLabel.contains(cfaEdge)) {
+              lNextStates.add(lOutgoingEdge.getTarget());
+              if (lAutomaton.getFinalStates().contains(lOutgoingEdge.getTarget())) {
+                break outer;
+              }
+            }
+          }
+        }
+      }
+
+      lCurrentStates.addAll(lNextStates);
     }
 
     return pc;
@@ -637,7 +696,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       CounterexampleInfo cex) {
     for (Goal goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
       // TODO add infeasiblitpropagaion to testsuite
-      Region simplifiedPresenceCondition = getPresenceConditionFromCex(cex, goal);
+      Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, goal);
       testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCondition);
       String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
       if (removeCoveredGoals && !bddUtils.isVariabilityAware()) {
