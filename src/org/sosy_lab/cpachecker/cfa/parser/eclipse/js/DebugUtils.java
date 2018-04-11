@@ -34,10 +34,10 @@ final class DebugUtils {
     return (JSFunctionEntryNode) pBuilder.getParseResult().getFunctions().get("main");
   }
 
-  public static String getLeavingEdgesReport(final CFANode node) {
+  public static String getLeavingEdgesReport(final CFANode pNode) {
     final StringBuilder result = new StringBuilder();
     forEachLeavingEdge(
-        node,
+        pNode,
         (edge) ->
             result
                 .append(edge.toString())
@@ -46,9 +46,9 @@ final class DebugUtils {
     return result.toString();
   }
 
-  public static void forEachLeavingEdge(final CFANode node, final Consumer<CFAEdge> callback) {
-    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      callback.accept(node.getLeavingEdge(i));
+  public static void forEachLeavingEdge(final CFANode pNode, final Consumer<CFAEdge> pCallback) {
+    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
+      pCallback.accept(pNode.getLeavingEdge(i));
     }
   }
 }
