@@ -268,6 +268,15 @@ class ASTConverter {
   }
 
   public JSIdExpression convert(final SimpleName pSimpleName) {
+    // undefined is writable in ES3, but not writable in ES5.
+    // See https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/undefined#Description
+    // The used parser of Eclipse JSDT 3.9 does only support ES3.
+    // Thereby, it creates a SimpleName for undefined instead of an UndefinedLiteral.
+    // We like to be conformant to ES5.
+    // That's why we convert it to an JSUndefinedLiteralExpression if it is used as an Expression.
+    // This method is (should) only be called with SimpleName of "undefined" if "undefined" is used
+    // as a left hand side in an assignment (which is not supported).
+    assert !pSimpleName.getIdentifier().equals("undefined"); // unsupported use of undefined
     final IBinding binding = pSimpleName.resolveBinding();
     assert binding != null;
     return new JSIdExpression(
