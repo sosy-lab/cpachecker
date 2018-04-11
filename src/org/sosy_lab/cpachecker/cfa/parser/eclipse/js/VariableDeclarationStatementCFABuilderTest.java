@@ -33,12 +33,11 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBase {
 
   @Test
-  public final void testSingleVariableDeclaration() throws ParserException {
+  public final void testSingleVariableDeclaration() {
     final VariableDeclarationStatement variableDeclarationStatement =
         parseStatement(VariableDeclarationStatement.class, "var x = 42");
     final String expectedVariableName = "x";
@@ -61,7 +60,7 @@ public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBa
   }
 
   @Test
-  public final void testMultiVariableDeclaration() throws ParserException {
+  public final void testMultiVariableDeclaration() {
     final VariableDeclarationStatement variableDeclarationStatement =
         parseStatement(VariableDeclarationStatement.class, "var x = 123, y = 456");
     final String expectedFirstVariableName = "x";
