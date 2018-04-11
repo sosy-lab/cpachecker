@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
 
 interface IfStatementAppendable {
-  void append(JavaScriptCFABuilder builder, IfStatement node);
+  void append(JavaScriptCFABuilder pBuilder, IfStatement pNode);
 }
