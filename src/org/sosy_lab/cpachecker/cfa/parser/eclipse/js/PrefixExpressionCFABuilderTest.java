@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
@@ -41,12 +41,11 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
-  public final void testOperatorsWithoutSideEffect() throws ParserException {
+  public final void testOperatorsWithoutSideEffect() {
     testOperatorsWithoutSideEffect("!true", UnaryOperator.NOT);
     testOperatorsWithoutSideEffect("+1", UnaryOperator.PLUS);
     testOperatorsWithoutSideEffect("-1", UnaryOperator.MINUS);
@@ -54,8 +53,7 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
   }
 
   private void testOperatorsWithoutSideEffect(
-      final String pPrefixExpressionCode, final UnaryOperator pExpectedUnaryOperator)
-      throws ParserException {
+      final String pPrefixExpressionCode, final UnaryOperator pExpectedUnaryOperator) {
     final PrefixExpression prefixExpression =
         parseExpression(PrefixExpression.class, pPrefixExpressionCode);
 
@@ -76,18 +74,18 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
   }
 
   @Test
-  public void testIncrement() throws ParserException {
+  public void testIncrement() {
     testOperatorWithSideEffect("++x", BinaryOperator.PLUS);
   }
 
   @Test
-  public void testDecrement() throws ParserException {
+  public void testDecrement() {
     testOperatorWithSideEffect("--x", BinaryOperator.MINUS);
   }
 
   // shared code for increment and decrement
   private void testOperatorWithSideEffect(
-      final String pCode, final BinaryOperator pExpectedOperator) throws ParserException {
+      final String pCode, final BinaryOperator pExpectedOperator) {
     final PrefixExpression prefixExpression = parseExpression(PrefixExpression.class, pCode);
 
     final JSIdExpression variableId =
