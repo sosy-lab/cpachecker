@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
@@ -31,20 +33,18 @@ import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class StatementCFABuilderTest {
 
   private JavaScriptCFABuilder builder;
 
   @Before
-  public void init() throws InvalidConfigurationException {
+  public void init() {
     builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
   }
 
   @Test
-  public final void testExpressionStatement() throws ParserException {
+  public final void testExpressionStatement() {
     final ExpressionStatement expressionStatement = mock(ExpressionStatement.class);
     final ExpressionStatementAppendable expressionStatementAppendable =
         mock(ExpressionStatementAppendable.class);
@@ -57,7 +57,7 @@ public class StatementCFABuilderTest {
   }
 
   @Test
-  public final void testIfStatement() throws ParserException {
+  public final void testIfStatement() {
     final IfStatement ifStatement = mock(IfStatement.class);
     final IfStatementAppendable ifStatementAppendable = mock(IfStatementAppendable.class);
 
@@ -69,7 +69,7 @@ public class StatementCFABuilderTest {
   }
 
   @Test
-  public final void testVariableDeclarationStatement() throws ParserException {
+  public final void testVariableDeclarationStatement() {
     final VariableDeclarationStatement variableDeclarationStatement =
         mock(VariableDeclarationStatement.class);
     final VariableDeclarationStatementAppendable variableDeclarationStatementAppendable =
@@ -85,7 +85,7 @@ public class StatementCFABuilderTest {
   }
 
   @Test
-  public final void testFunctionDeclarationStatement() throws ParserException {
+  public final void testFunctionDeclarationStatement() {
     final FunctionDeclarationStatement functionDeclarationStatement =
         mock(FunctionDeclarationStatement.class);
     final FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable =
