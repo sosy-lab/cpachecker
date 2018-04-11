@@ -27,10 +27,7 @@ import static org.mockito.Mockito.*;
 
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -39,33 +36,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class IfStatementCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings("unchecked")
-  private IfStatement parseStatement(final String pCode) {
-    return (IfStatement) createAST(pCode).statements().get(0);
-  }
+public class IfStatementCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testIfWithoutElse() {
-    final IfStatement ifStatement = parseStatement("if (condition) { doSomething() }");
+    final IfStatement ifStatement =
+        parseStatement(IfStatement.class, "if (condition) { doSomething() }");
     // expected CFA: <entryNode> --[condition]--> () -{doSomething()}-> () --\
     //                    \                                                   }--> ()
     //                     \------[!condition]-------------------------------/
@@ -97,7 +74,7 @@ public class IfStatementCFABuilderTest {
   @Test
   public final void testIfWithElse() {
     final IfStatement ifStatement =
-        parseStatement("if (condition) var thenCase; else var elseCase;");
+        parseStatement(IfStatement.class, "if (condition) var thenCase; else var elseCase;");
     // expected CFA: <entryNode> --[condition]--> () -{var thenCase}-> () --\
     //                    \                                                  }--> ()
     //                     \------[!condition]--> () -{var elseCase}-> () --/
