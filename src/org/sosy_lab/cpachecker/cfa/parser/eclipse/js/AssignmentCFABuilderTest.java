@@ -28,48 +28,21 @@ import static org.mockito.Mockito.mock;
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
 import org.eclipse.wst.jsdt.core.dom.Assignment;
-import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
-public class AssignmentCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings("unchecked")
-  private Assignment parseAssignment(final String pCode) {
-    final ExpressionStatement expressionStatement =
-        (ExpressionStatement) createAST(pCode).statements().get(0);
-    return (Assignment) expressionStatement.getExpression();
-  }
+public class AssignmentCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public void testVariableAssignment() {
-    final Assignment assignmentExpression = parseAssignment("x = 42");
+    final Assignment assignmentExpression = parseExpression(Assignment.class, "x = 42");
 
     final String expectedVariableName = "x";
     final JSIdExpression variableId =
