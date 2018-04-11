@@ -84,16 +84,16 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return functionExpressionAppendable.append(pBuilder, (FunctionExpression) pExpression);
     } else if (pExpression instanceof FunctionInvocation) {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
+    } else if (pExpression instanceof InfixExpression) {
+      return infixExpressionAppendable.append(pBuilder, (InfixExpression) pExpression);
+    } else if (pExpression instanceof PostfixExpression) {
+      return postfixExpressionAppendable.append(pBuilder, (PostfixExpression) pExpression);
+    } else if (pExpression instanceof PrefixExpression) {
+      return prefixExpressionAppendable.append(pBuilder, (PrefixExpression) pExpression);
     }
     // TODO do without ASTConverter
     if (pExpression instanceof SimpleName) {
       return pBuilder.getAstConverter().convert((SimpleName) pExpression);
-    } else if (pExpression instanceof InfixExpression) {
-      return infixExpressionAppendable.append(pBuilder, (InfixExpression) pExpression);
-    } else if (pExpression instanceof PrefixExpression) {
-      return prefixExpressionAppendable.append(pBuilder, (PrefixExpression) pExpression);
-    } else if (pExpression instanceof PostfixExpression) {
-      return postfixExpressionAppendable.append(pBuilder, (PostfixExpression) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return pBuilder.getAstConverter().convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
