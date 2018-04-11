@@ -28,13 +28,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.truth.Truth;
-import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
@@ -49,29 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
-public class InfixExpressionCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings("unchecked")
-  private InfixExpression parseInfixExpression(final String pCode) {
-    final ExpressionStatement expressionStatement =
-        (ExpressionStatement) createAST(pCode).statements().get(0);
-    return (InfixExpression) expressionStatement.getExpression();
-  }
+public class InfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public void testAnd() {
@@ -80,7 +54,7 @@ public class InfixExpressionCFABuilderTest {
 
   @Test
   public void testConditionalAnd() {
-    final InfixExpression infixExpression = parseInfixExpression("lhs && rhs");
+    final InfixExpression infixExpression = parseExpression(InfixExpression.class, "lhs && rhs");
     // infix expression:
     //    left && right
     // expected side effect:
@@ -182,7 +156,7 @@ public class InfixExpressionCFABuilderTest {
 
   @Test
   public void testConditionalOr() {
-    final InfixExpression infixExpression = parseInfixExpression("lhs || rhs");
+    final InfixExpression infixExpression = parseExpression(InfixExpression.class, "lhs || rhs");
     // infix expression:
     //    left || right
     // expected side effect:
@@ -391,7 +365,7 @@ public class InfixExpressionCFABuilderTest {
     //    var tmpRight = right
     // expected result:
     //    tmpLeft + tmpRight
-    final InfixExpression infixExpression = parseInfixExpression(pCode);
+    final InfixExpression infixExpression = parseExpression(InfixExpression.class, pCode);
 
     final JSExpression left = mock(JSExpression.class);
     final JSExpression right = mock(JSExpression.class);
