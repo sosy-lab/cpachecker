@@ -50,7 +50,7 @@ abstract class CFABuilderTestBase {
     return parseStatement(statementClass, pCode, 0);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "unused"})
   <S> S parseStatement(final Class<S> pStatementClass, final String pCode, final int pIndex) {
     return (S) createAST(pCode).statements().get(pIndex);
   }
@@ -59,7 +59,7 @@ abstract class CFABuilderTestBase {
     return parseExpression(pExpressionClass, pCode, 0);
   }
 
-  @SuppressWarnings({"unchecked", "SameParameterValue"})
+  @SuppressWarnings({"unchecked", "unused", "SameParameterValue"})
   <E> E parseExpression(final Class<E> pExpressionClass, final String pCode, final int pIndex) {
     final ExpressionStatement expressionStatement =
         (ExpressionStatement) createAST(pCode).statements().get(pIndex);
