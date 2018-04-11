@@ -27,12 +27,8 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
-import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
@@ -41,35 +37,12 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class PostfixExpressionCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings("unchecked")
-  private PostfixExpression parsePostfixExpression(final String pCode) {
-    final ExpressionStatement expressionStatement =
-        (ExpressionStatement) createAST(pCode).statements().get(0);
-    return (PostfixExpression) expressionStatement.getExpression();
-  }
+public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public void testIncrement() throws ParserException {
@@ -84,7 +57,7 @@ public class PostfixExpressionCFABuilderTest {
   // shared code for increment and decrement
   private void testOperatorWithSideEffect(
       final String pCode, final BinaryOperator pExpectedOperator) throws ParserException {
-    final PostfixExpression postfixExpression = parsePostfixExpression(pCode);
+    final PostfixExpression postfixExpression = parseExpression(PostfixExpression.class, pCode);
 
     final JSIdExpression variableId =
         new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "x", mock(JSSimpleDeclaration.class));
