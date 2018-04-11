@@ -29,12 +29,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
-import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -46,34 +42,12 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
-public class ConditionalExpressionCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings({"unchecked", "SameParameterValue"})
-  private ConditionalExpression parseConditionalExpression(final String pCode) {
-    final ExpressionStatement expressionStatement =
-        (ExpressionStatement) createAST(pCode).statements().get(0);
-    return (ConditionalExpression) expressionStatement.getExpression();
-  }
+public class ConditionalExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public void testConditionalExpression() {
     final ConditionalExpression conditionalExpression =
-        parseConditionalExpression("condition ? thenExpr : elseExpr");
+        parseExpression(ConditionalExpression.class, "condition ? thenExpr : elseExpr");
     // conditional expression:
     //    condition ? thenExpr : elseExpr
     // expected side effect:
