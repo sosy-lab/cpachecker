@@ -134,7 +134,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
             numberOfrepeatedPaths.inc();
             logger.log(Level.WARNING, "Path is repeated, BAM is looped");
             pInput.getUsageInfo().setAsLooped();
-            result = RefinementResult.createUnknown();
+            result = RefinementResult.createTrue();
             potentialLoopTraces.remove(edgeSet);
           } else {
             result = performPredicateRefinement(pInput);

@@ -145,7 +145,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -169,7 +169,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -198,7 +198,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -217,7 +217,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -338,9 +338,8 @@ public final class ExpressionTrees {
                   new Function<ExpressionTree<LeafType>, ExpressionTree<LeafType>>() {
 
                     @Override
-                    public ExpressionTree<LeafType> apply(
-                        ExpressionTree<LeafType> pExpressionTree) {
-                      return toDNF(pExpressionTree);
+                    public ExpressionTree<LeafType> apply(ExpressionTree<LeafType> pExprTree) {
+                      return toDNF(pExprTree);
                     }
                   }));
     }
@@ -391,9 +390,8 @@ public final class ExpressionTrees {
                   new Function<ExpressionTree<LeafType>, ExpressionTree<LeafType>>() {
 
                     @Override
-                    public ExpressionTree<LeafType> apply(
-                        ExpressionTree<LeafType> pExpressionTree) {
-                      return toCNF(pExpressionTree);
+                    public ExpressionTree<LeafType> apply(ExpressionTree<LeafType> pExprTree) {
+                      return toCNF(pExprTree);
                     }
                   }));
     }
@@ -448,7 +446,7 @@ public final class ExpressionTrees {
 
               @Override
               protected Iterable<ExpressionTree<LeafType>> visitDefault(
-                  ExpressionTree<LeafType> pExpressionTree) {
+                  ExpressionTree<LeafType> pExprTree) {
                 return Collections.emptySet();
               }
 
@@ -743,12 +741,11 @@ public final class ExpressionTrees {
               return pFactory.or(operands);
             }
 
-            private Iterable<ExpressionTree<LeafType>> asFacts(
-                ExpressionTree<LeafType> pExpressionTree) {
-              if (isAnd(pExpressionTree)) {
-                return getChildren(pExpressionTree);
+            private Iterable<ExpressionTree<LeafType>> asFacts(ExpressionTree<LeafType> pExprTree) {
+              if (isAnd(pExprTree)) {
+                return getChildren(pExprTree);
               }
-              return Collections.singleton(pExpressionTree);
+              return Collections.singleton(pExprTree);
             }
 
             @Override

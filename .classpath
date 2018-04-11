@@ -50,7 +50,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/jna.jar"/>
-	<classpathentry kind="lib" path="lib/llvm-j.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/llvm-j.jar" sourcepath="lib/java-contrib/llvm-j-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-awt-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-constants.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-dom.jar" sourcepath="lib/java-contrib/batik-dom-sources.jar"/>

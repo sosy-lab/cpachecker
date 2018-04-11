@@ -772,7 +772,7 @@ public class InvariantsState implements AbstractState,
   }
 
   private Iterable<BooleanFormula<CompoundInterval>> getTypeInformationAsAssumptions() {
-    List<BooleanFormula<CompoundInterval>> assumptions = new ArrayList<>();
+    List<BooleanFormula<CompoundInterval>> assumptionsIntervals = new ArrayList<>();
     for (Map.Entry<? extends MemoryLocation, ? extends Type> typeEntry : variableTypes.entrySet()) {
       MemoryLocation memoryLocation = typeEntry.getKey();
       Type type = typeEntry.getValue();
@@ -787,14 +787,14 @@ public class InvariantsState implements AbstractState,
         if (value == null
             || value.accept(tools.evaluationVisitor, environment).containsAllPossibleValues()) {
           if (range.hasLowerBound()) {
-            assumptions.add(
+            assumptionsIntervals.add(
                 tools.compoundIntervalFormulaManager.greaterThanOrEqual(
                     variable,
                     InvariantsFormulaManager.INSTANCE.asConstant(
                         typeInfo, cim.singleton(range.getLowerBound()))));
           }
           if (range.hasUpperBound()) {
-            assumptions.add(
+            assumptionsIntervals.add(
                 tools.compoundIntervalFormulaManager.lessThanOrEqual(
                     variable,
                     InvariantsFormulaManager.INSTANCE.asConstant(
@@ -803,7 +803,7 @@ public class InvariantsState implements AbstractState,
         }
       }
     }
-    return assumptions;
+    return assumptionsIntervals;
   }
 
   private Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
@@ -1685,7 +1685,7 @@ public class InvariantsState implements AbstractState,
 
       AbstractionState abstractionState1 = determineAbstractionState(pPrecision);
       AbstractionState abstractionState2 = pState2.determineAbstractionState(pPrecision);
-      AbstractionState abstractionState = abstractionState1.join(abstractionState2);
+      AbstractionState joinedAbstractionState = abstractionState1.join(abstractionState2);
 
       result =
           new InvariantsState(
@@ -1693,7 +1693,7 @@ public class InvariantsState implements AbstractState,
               tools,
               machineModel,
               variableTypes,
-              abstractionState,
+              joinedAbstractionState,
               resultEnvironment,
               commonAssumptions,
               overflowDetected,

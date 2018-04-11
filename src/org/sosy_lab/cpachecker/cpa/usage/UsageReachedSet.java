@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
@@ -37,7 +39,10 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+@SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
+
+  private static final long serialVersionUID = 1L;
 
   public static class RaceProperty implements Property {
     @Override
@@ -114,5 +119,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
       logger.log(Level.SEVERE, e.getMessage());
       return null;
     }
+  }
+
+  private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
+    throw new UnsupportedOperationException("cannot serialize Loger and Configuration.");
   }
 }

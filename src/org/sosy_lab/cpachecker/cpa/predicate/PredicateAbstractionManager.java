@@ -1245,11 +1245,11 @@ public class PredicateAbstractionManager {
   public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
       Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap)
       throws InterruptedException {
-    RegionCreator rmgr = amgr.getRegionCreator();
+    RegionCreator rManager = amgr.getRegionCreator();
 
     Region newRegion = oldAbstraction.asRegion();
     for (AbstractionPredicate predicate : removePredicates) {
-      newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
+      newRegion = rManager.makeExists(newRegion, predicate.getAbstractVariable());
     }
 
     return makeAbstractionFormula(newRegion, ssaMap, oldAbstraction.getBlockFormula());
@@ -1267,14 +1267,13 @@ public class PredicateAbstractionManager {
   public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
       Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula)
       throws InterruptedException {
-    RegionCreator rmgr = amgr.getRegionCreator();
+    RegionCreator rManager = amgr.getRegionCreator();
 
     for (AbstractionPredicate predicate : relevantPredicates) {
-      sourceAbstraction = rmgr.makeExists(sourceAbstraction,
-          predicate.getAbstractVariable());
+      sourceAbstraction = rManager.makeExists(sourceAbstraction, predicate.getAbstractVariable());
     }
 
-    Region expandedRegion = rmgr.makeAnd(reducedAbstraction, sourceAbstraction);
+    Region expandedRegion = rManager.makeAnd(reducedAbstraction, sourceAbstraction);
 
     return makeAbstractionFormula(expandedRegion, newSSA, blockFormula);
   }

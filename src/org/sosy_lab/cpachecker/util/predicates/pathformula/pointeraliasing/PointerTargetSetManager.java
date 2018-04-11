@@ -255,7 +255,7 @@ class PointerTargetSetManager {
    * @param pts1 The first {@code PointerTargetSet}.
    * @param pts2 The second {@code PointerTargetSet}.
    * @param ssa The map of SSA indices.
-   * @param conv The converter for C code to SMT formulae.
+   * @param pConv The converter for C code to SMT formulae.
    * @return The merged {@code PointerTargetSet}s.
    * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
    */
@@ -263,7 +263,7 @@ class PointerTargetSetManager {
       final PointerTargetSet pts1,
       final PointerTargetSet pts2,
       final SSAMap ssa,
-      final CtoFormulaConverter conv)
+      final CtoFormulaConverter pConv)
       throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {

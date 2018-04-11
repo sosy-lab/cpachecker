@@ -487,7 +487,7 @@ public class ProofSlicer {
       final Collection<String> necessaryVars) {
     ValueAnalysisState returnState = ValueAnalysisState.copyOf(vState);
 
-    for (MemoryLocation ml : vState.getConstantsMapView().keySet()) {
+    for (MemoryLocation ml : vState.getTrackedMemoryLocations()) {
       if (!necessaryVars.contains(getVarName(ml))) {
         returnState.forget(ml);
       }

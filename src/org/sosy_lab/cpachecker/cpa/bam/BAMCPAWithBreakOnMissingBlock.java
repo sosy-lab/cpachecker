@@ -36,10 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
-import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheImpl;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheSynchronized;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
-import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerImpl;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerSynchronized;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -63,9 +61,8 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       throws InvalidConfigurationException, CPAException {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
 
-    cache = new BAMCacheSynchronized(new BAMCacheImpl(pConfig, getReducer(), pLogger));
-    data =
-        new BAMDataManagerSynchronized(new BAMDataManagerImpl(cache, reachedsetFactory, pLogger));
+    cache = new BAMCacheSynchronized(pConfig, getReducer(), pLogger);
+    data = new BAMDataManagerSynchronized(cache, reachedsetFactory, pLogger);
   }
 
   @Override

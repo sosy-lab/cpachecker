@@ -166,7 +166,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
           updatedPrecision = info;
         }
         precisionMap.put(currentId, updatedPrecision);
-        finalPrecision.add(updatedPrecision);
+        finalPrecision = finalPrecision.add(updatedPrecision);
         isPrecisionChanged = true;
       }
 

@@ -132,7 +132,10 @@ public class AssumptionStorageState implements AbstractState, Serializable {
   }
 
   private Object readResolve() {
-    FormulaManagerView fmgr = GlobalInfo.getInstance().getAssumptionStorageFormulaManager();
-    return new AssumptionStorageState(fmgr, fmgr.getBooleanFormulaManager().makeTrue(), fmgr.getBooleanFormulaManager().makeTrue());
+    FormulaManagerView fManager = GlobalInfo.getInstance().getAssumptionStorageFormulaManager();
+    return new AssumptionStorageState(
+        fManager,
+        fManager.getBooleanFormulaManager().makeTrue(),
+        fManager.getBooleanFormulaManager().makeTrue());
   }
 }

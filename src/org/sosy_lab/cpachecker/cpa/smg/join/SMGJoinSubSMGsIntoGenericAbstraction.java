@@ -325,15 +325,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     } else if (pNode.isObject() && pNodeTemplate.isObjectTemplate()) {
 
       SMGObject object = pNode.getObject();
-      SMGObjectTemplate template = pNodeTemplate.getObjectTemplate();
+      SMGObjectTemplate objectTemplate = pNodeTemplate.getObjectTemplate();
 
-      if (template instanceof GenericAbstractionCandidateTemplate) {
-        GenericAbstractionCandidateTemplate genAbsTmp = (GenericAbstractionCandidateTemplate) template;
+      if (objectTemplate instanceof GenericAbstractionCandidateTemplate) {
+        GenericAbstractionCandidateTemplate genAbsTmp =
+            (GenericAbstractionCandidateTemplate) objectTemplate;
 
         return matchGenericAbstractionTemplateWithGenericAbstraction(genAbsTmp, pInputSMG,
             pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
-      } else if (template instanceof SMGRegion) {
-        SMGRegion regionTemplate = (SMGRegion) template;
+      } else if (objectTemplate instanceof SMGRegion) {
+        SMGRegion regionTemplate = (SMGRegion) objectTemplate;
         return matchRegionTemplateWithObject(regionTemplate, object, pInputSMG,
             pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
       }
@@ -454,13 +455,14 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   private Set<SMGEdgeHasValue> getFieldsOfGenAbs(MatchResult pGenAbsMatchResult, SMG pInputSMG) {
 
-    GenericAbstractionCandidateTemplate template = pGenAbsMatchResult.getGenAbsTemplate();
+    GenericAbstractionCandidateTemplate abstractionTemplate =
+        pGenAbsMatchResult.getGenAbsTemplate();
 
     Map<Integer, Integer> abstractToConcreteMap =
         pGenAbsMatchResult.getAbstractToConcretePointerMapInputSMG();
 
     Set<SMGEdgeHasValueTemplate> pointerToThisAbstraction =
-        template.getMaterlisationSteps().iterator().next().getAbstractFieldsToOPointer();
+        abstractionTemplate.getMaterlisationSteps().iterator().next().getAbstractFieldsToOPointer();
 
     Set<SMGEdgeHasValue> result = new HashSet<>();
     for (SMGEdgeHasValueTemplate fieldTmp : pointerToThisAbstraction) {
@@ -475,13 +477,18 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   private Set<SMGEdgePointsTo> getPointerToThisAbstraction(MatchResult pGenAbsMatchResult,
       SMG pInputSMG) {
 
-    GenericAbstractionCandidateTemplate template = pGenAbsMatchResult.getGenAbsTemplate();
+    GenericAbstractionCandidateTemplate abstractionTemplate =
+        pGenAbsMatchResult.getGenAbsTemplate();
 
     Map<Integer, Integer> abstractToConcreteMap =
         pGenAbsMatchResult.getAbstractToConcretePointerMapInputSMG();
 
     Set<SMGEdgePointsToTemplate> pointerToThisAbstraction =
-        template.getMaterlisationSteps().iterator().next().getAbstractAdressesToOPointer();
+        abstractionTemplate
+            .getMaterlisationSteps()
+            .iterator()
+            .next()
+            .getAbstractAdressesToOPointer();
 
     Set<SMGEdgePointsTo> result = new HashSet<>();
     for (SMGEdgePointsToTemplate pointerTmp : pointerToThisAbstraction) {

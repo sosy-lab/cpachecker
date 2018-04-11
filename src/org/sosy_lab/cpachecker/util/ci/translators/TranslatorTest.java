@@ -36,7 +36,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
@@ -44,9 +43,9 @@ import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -70,19 +69,25 @@ public class TranslatorTest {
 
   @Test
   public void testValueTranslator() {
-    PersistentMap<MemoryLocation, Value> constantsMap = PathCopyingPersistentTreeMap.of();
-    PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ValueAndType> constantsMap = PathCopyingPersistentTreeMap.of();
 
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), NullValue.getInstance());
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(1.5));
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(-5));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("var1"), new ValueAndType(new NumericValue(3), null));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("var3"), new ValueAndType(NullValue.getInstance(), null));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("fun::var1"), new ValueAndType(new NumericValue(1.5), null));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("fun::varC"), new ValueAndType(new NumericValue(-5), null));
 
     Truth.assertThat(constantsMap).hasSize(4);
 
-    ValueAnalysisState vStateTest =
-        new ValueAnalysisState(Optional.of(machineModel), constantsMap, locToTypeMap);
-    Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
+    ValueAnalysisState vStateTest = new ValueAnalysisState(Optional.of(machineModel), constantsMap);
+    Truth.assertThat(vStateTest.getConstants()).isNotEmpty();
     ValueRequirementsTranslator vReqTransTest =
         new ValueRequirementsTranslator(LogManager.createTestLogManager());
 

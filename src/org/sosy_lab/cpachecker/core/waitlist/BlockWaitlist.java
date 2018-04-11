@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-
 public class BlockWaitlist implements Waitlist {
 
   private static CallstackState retreiveCallstack(AbstractState pState) {
@@ -429,14 +428,14 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private int countSize() {
-    int size = 0;
+    int completeSize = 0;
     for(Block b : activeBlocksMap.values()) {
-      size += b.size();
+      completeSize += b.size();
     }
     for(Block b : inactiveBlocksMap.values()) {
-      size += b.size();
+      completeSize += b.size();
     }
-    return size;
+    return completeSize;
   }
 
   @Override

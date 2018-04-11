@@ -218,9 +218,15 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    int pathFormulaCacheHits = this.pathFormulaCacheHits;
-    int totalPathFormulaComputations = this.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
-    out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
+    int cacheHits = this.pathFormulaCacheHits;
+    int totalPathFormulaComputations =
+        this.pathFormulaComputationTimer.getNumberOfIntervals() + cacheHits;
+    out.println(
+        "Number of path formula cache hits:   "
+            + cacheHits
+            + " ("
+            + toPercent(cacheHits, totalPathFormulaComputations)
+            + ")");
     out.println();
 
     out.println("Inside post operator:                  ");

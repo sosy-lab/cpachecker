@@ -111,6 +111,9 @@ public class LlvmParser implements Parser {
       if (cpacheckerDir != null) {
         Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
         libDirs.add(runtimeLibDir);
+      } else {
+        logger.log(Level.INFO,
+            "Base path % of CPAchecker seems to have no parent directory", decodedBasePath);
       }
 
     } catch (UnsupportedEncodingException e) {

@@ -256,10 +256,9 @@ public class StateSimplifier {
   }
 
   private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
-    final Collection<Value> valueStateConstants = pValueState.getConstantsMapView().values();
     Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
 
-    for (Value v : valueStateConstants) {
+    for (Value v : Iterables.transform(pValueState.getConstants(), e -> e.getValue().getValue())) {
       if (v instanceof SymbolicValue) {
         symbolicValues.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
       }

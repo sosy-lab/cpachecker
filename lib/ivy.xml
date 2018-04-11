@@ -31,14 +31,13 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-256-gd9a00de" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-262-g23bf767" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="24.0-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="24.1-jre" conf="runtime->default; contrib->sources"/>
 
-        <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
-        <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.2" conf="runtime->runtime; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -71,7 +70,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.17.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.18.0" conf="test->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
@@ -79,7 +78,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.40" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="24.0-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="24.1-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
