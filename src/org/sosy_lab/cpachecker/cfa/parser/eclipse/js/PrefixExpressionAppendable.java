@@ -27,5 +27,5 @@ import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
 interface PrefixExpressionAppendable {
-  JSExpression append(JavaScriptCFABuilder builder, PrefixExpression pPrefixExpression);
+  JSExpression append(JavaScriptCFABuilder pBuilder, PrefixExpression pPrefixExpression);
 }
