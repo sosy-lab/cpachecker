@@ -31,8 +31,8 @@ import org.eclipse.wst.jsdt.core.dom.Statement;
 class JavaScriptUnitCFABuilder implements JavaScriptUnitAppendable {
 
   @Override
-  public void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit unit) {
-    for (final ASTNode node : unit.statements()) {
+  public void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit pUnit) {
+    for (final ASTNode node : pUnit.statements()) {
       if (node instanceof Statement) {
         pBuilder.append((Statement) node);
       } else if (node instanceof FunctionDeclaration) {
