@@ -31,6 +31,7 @@ import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
+import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
@@ -44,6 +45,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
+  private ParenthesizedExpressionAppendable parenthesizedExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
   private PostfixExpressionAppendable postfixExpressionAppendable;
 
@@ -66,6 +68,11 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     infixExpressionAppendable = pInfixExpressionAppendable;
   }
 
+  void setParenthesizedExpressionAppendable(
+      final ParenthesizedExpressionAppendable pParenthesizedExpressionAppendable) {
+    parenthesizedExpressionAppendable = pParenthesizedExpressionAppendable;
+  }
+
   void setPrefixExpressionAppendable(
       final PrefixExpressionAppendable pPrefixExpressionAppendable) {
     prefixExpressionAppendable = pPrefixExpressionAppendable;
@@ -86,6 +93,9 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
     } else if (pExpression instanceof InfixExpression) {
       return infixExpressionAppendable.append(pBuilder, (InfixExpression) pExpression);
+    } else if (pExpression instanceof ParenthesizedExpression) {
+      return parenthesizedExpressionAppendable.append(
+          pBuilder, (ParenthesizedExpression) pExpression);
     } else if (pExpression instanceof PostfixExpression) {
       return postfixExpressionAppendable.append(pBuilder, (PostfixExpression) pExpression);
     } else if (pExpression instanceof PrefixExpression) {

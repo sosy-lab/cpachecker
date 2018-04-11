@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,17 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-final class ExpressionAppendableFactory {
+import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
-  static ExpressionAppendable withAllFeatures() {
-    final ExpressionCFABuilder builder = new ExpressionCFABuilder();
-    builder.setConditionalExpressionAppendable(new ConditionalExpressionCFABuilder());
-    builder.setFunctionExpressionAppendable(new FunctionExpressionCFABuilder());
-    builder.setFunctionInvocationAppendable(new FunctionInvocationCFABuilder());
-    builder.setInfixExpressionAppendable(new InfixExpressionCFABuilder());
-    builder.setParenthesizedExpressionAppendable(new ParenthesizedExpressionCFABuilder());
-    builder.setPrefixExpressionAppendable(new PrefixExpressionCFABuilder());
-    builder.setPostfixExpressionAppendable(new PostfixExpressionCFABuilder());
-    return builder;
+class ParenthesizedExpressionCFABuilder implements ParenthesizedExpressionAppendable {
+
+  @Override
+  public JSExpression append(
+      final JavaScriptCFABuilder pBuilder, final ParenthesizedExpression pParenthesizedExpression) {
+    return pBuilder.append(pParenthesizedExpression.getExpression());
   }
 }
