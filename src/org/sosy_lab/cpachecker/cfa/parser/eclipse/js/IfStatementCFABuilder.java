@@ -34,28 +34,28 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 class IfStatementCFABuilder implements IfStatementAppendable {
 
   @Override
-  public void append(final JavaScriptCFABuilder builder, final IfStatement node) {
-    final String conditionNodeDescription = builder.getExitNode().toString();
-    final CFANode exitNode = builder.createNode();
-    final JSExpression condition = builder.append(node.getExpression());
+  public void append(final JavaScriptCFABuilder pBuilder, final IfStatement pNode) {
+    final String conditionNodeDescription = pBuilder.getExitNode().toString();
+    final CFANode exitNode = pBuilder.createNode();
+    final JSExpression condition = pBuilder.append(pNode.getExpression());
 
-    builder.addParseResult(
+    pBuilder.addParseResult(
         buildConditionBranch(
-                builder,
+            pBuilder,
                 true,
                 condition,
-                node.getThenStatement(),
+                pNode.getThenStatement(),
                 "end if of node " + conditionNodeDescription,
                 exitNode)
             .getParseResult());
 
-    final Statement elseStatement = node.getElseStatement();
+    final Statement elseStatement = pNode.getElseStatement();
     if (elseStatement == null) {
-      builder.appendEdge(exitNode, assume(condition, false));
+      pBuilder.appendEdge(exitNode, assume(condition, false));
     } else {
-      builder.append(
+      pBuilder.append(
           buildConditionBranch(
-                  builder,
+              pBuilder,
                   false,
                   condition,
                   elseStatement,
@@ -74,16 +74,16 @@ class IfStatementCFABuilder implements IfStatementAppendable {
    * @param pStatement The then- or else-statement.
    * @param pExitEdgeDescription The description of the edge that will point to the exit node.
    * @param pExitNode The node after the if-statement, where then- and else-branch flow together.
-   * @return The builder that contains the parse result of the branch.
+   * @return The pBuilder that contains the parse result of the branch.
    */
   private JavaScriptCFABuilder buildConditionBranch(
-      final JavaScriptCFABuilder builder,
+      final JavaScriptCFABuilder pBuilder,
       final boolean pTruthAssumption,
       final JSExpression pCondition,
       final Statement pStatement,
       final String pExitEdgeDescription,
       final CFANode pExitNode) {
-    return builder
+    return pBuilder
         .copy()
         .appendEdge(assume(pCondition, pTruthAssumption))
         .append(pStatement)
