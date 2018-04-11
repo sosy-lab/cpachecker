@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 
 interface StatementAppendable {
-  void append(JavaScriptCFABuilder builder, Statement pStatement);
+  void append(JavaScriptCFABuilder pBuilder, Statement pStatement);
 }
