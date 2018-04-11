@@ -38,32 +38,32 @@ interface CFABuilderWrapperOfType<T extends CFABuilderWrapperOfType<T>> extends 
 
   @Override
   @SuppressWarnings("unchecked")
-  default T appendTo(final CFABuilder builder) {
-    return (T) CFABuilderWrapper.super.appendTo(builder);
+  default T appendTo(final CFABuilder pBuilder) {
+    return (T) CFABuilderWrapper.super.appendTo(pBuilder);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  default T append(final CFABuilder builder) {
-    return (T) CFABuilderWrapper.super.append(builder);
+  default T append(final CFABuilder pBuilder) {
+    return (T) CFABuilderWrapper.super.append(pBuilder);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  default T append(final CFABuilderWrapper builder) {
-    return (T) CFABuilderWrapper.super.append(builder);
+  default T append(final CFABuilderWrapper pBuilder) {
+    return (T) CFABuilderWrapper.super.append(pBuilder);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  default T appendEdge(final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
-    return (T) CFABuilderWrapper.super.appendEdge(createEdge);
+  default T appendEdge(final BiFunction<CFANode, CFANode, AbstractCFAEdge> pCreateEdge) {
+    return (T) CFABuilderWrapper.super.appendEdge(pCreateEdge);
   }
 
   @Override
   @SuppressWarnings("unchecked")
   default T appendEdge(
-      final CFANode nextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
-    return (T) CFABuilderWrapper.super.appendEdge(nextNode, createEdge);
+      final CFANode pNextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> pCreateEdge) {
+    return (T) CFABuilderWrapper.super.appendEdge(pNextNode, pCreateEdge);
   }
 }
