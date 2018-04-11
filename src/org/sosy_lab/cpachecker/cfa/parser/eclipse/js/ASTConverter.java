@@ -119,7 +119,16 @@ class ASTConverter {
 
   public JSExpression convert(final Expression pExpression) {
     if (pExpression instanceof SimpleName) {
-      return convert((SimpleName) pExpression);
+      // undefined is writable in ES3, but not writable in ES5.
+      // See https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/undefined#Description
+      // The used parser of Eclipse JSDT 3.9 does only support ES3.
+      // Thereby, it creates a SimpleName for undefined instead of an UndefinedLiteral.
+      // We like to be conformant to ES5.
+      // That's why we convert it to an JSUndefinedLiteralExpression.
+      final SimpleName simpleName = (SimpleName) pExpression;
+      return simpleName.getIdentifier().equals("undefined")
+          ? new JSUndefinedLiteralExpression(getFileLocation(simpleName))
+          : convert(simpleName);
     } else if (pExpression instanceof InfixExpression) {
       return convert((InfixExpression) pExpression);
     } else if (pExpression instanceof PrefixExpression) {
