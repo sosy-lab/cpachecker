@@ -27,5 +27,5 @@ import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
 interface ConditionalExpressionAppendable {
-  JSExpression append(JavaScriptCFABuilder builder, ConditionalExpression pConditionalExpression);
+  JSExpression append(JavaScriptCFABuilder pBuilder, ConditionalExpression pConditionalExpression);
 }
