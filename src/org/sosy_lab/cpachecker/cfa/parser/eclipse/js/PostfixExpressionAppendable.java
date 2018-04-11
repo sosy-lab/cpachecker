@@ -27,5 +27,5 @@ import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
 interface PostfixExpressionAppendable {
-  JSExpression append(JavaScriptCFABuilder builder, PostfixExpression pPostfixExpression);
+  JSExpression append(JavaScriptCFABuilder pBuilder, PostfixExpression pPostfixExpression);
 }
