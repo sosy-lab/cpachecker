@@ -86,7 +86,7 @@ public class InfixExpressionCFABuilderTest extends CFABuilderTestBase {
                 case "rhs":
                   return right;
               }
-              throw new RuntimeException("Unexpected SimpleName expression");
+              throw new CFAGenerationRuntimeException("Unexpected SimpleName expression");
             });
     builder.setExpressionAppendable(expressionAppendable);
 
@@ -188,7 +188,7 @@ public class InfixExpressionCFABuilderTest extends CFABuilderTestBase {
                 case "rhs":
                   return right;
               }
-              throw new RuntimeException("Unexpected SimpleName expression");
+              throw new CFAGenerationRuntimeException("Unexpected SimpleName expression");
             });
     builder.setExpressionAppendable(expressionAppendable);
 
