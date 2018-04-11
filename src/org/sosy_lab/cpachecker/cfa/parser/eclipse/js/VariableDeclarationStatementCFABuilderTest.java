@@ -25,45 +25,22 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class VariableDeclarationStatementCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings("unchecked")
-  private VariableDeclarationStatement parseStatement(final String pCode) {
-    return (VariableDeclarationStatement) createAST(pCode).statements().get(0);
-  }
+public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testSingleVariableDeclaration() throws ParserException {
-    final VariableDeclarationStatement variableDeclarationStatement = parseStatement("var x = 42");
+    final VariableDeclarationStatement variableDeclarationStatement =
+        parseStatement(VariableDeclarationStatement.class, "var x = 42");
     final String expectedVariableName = "x";
     final JSIntegerLiteralExpression expectedInitializerExpression =
         new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(42));
@@ -86,7 +63,7 @@ public class VariableDeclarationStatementCFABuilderTest {
   @Test
   public final void testMultiVariableDeclaration() throws ParserException {
     final VariableDeclarationStatement variableDeclarationStatement =
-        parseStatement("var x = 123, y = 456");
+        parseStatement(VariableDeclarationStatement.class, "var x = 123, y = 456");
     final String expectedFirstVariableName = "x";
     final int expectedFirstVariableValue = 123;
     final String expectedSecondVariableName = "y";
