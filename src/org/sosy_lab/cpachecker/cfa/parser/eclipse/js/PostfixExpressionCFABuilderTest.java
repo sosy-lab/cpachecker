@@ -40,23 +40,22 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
-  public void testIncrement() throws ParserException {
+  public void testIncrement() {
     testOperatorWithSideEffect("x++", BinaryOperator.PLUS);
   }
 
   @Test
-  public void testDecrement() throws ParserException {
+  public void testDecrement() {
     testOperatorWithSideEffect("x--", BinaryOperator.MINUS);
   }
 
   // shared code for increment and decrement
   private void testOperatorWithSideEffect(
-      final String pCode, final BinaryOperator pExpectedOperator) throws ParserException {
+      final String pCode, final BinaryOperator pExpectedOperator) {
     final PostfixExpression postfixExpression = parseExpression(PostfixExpression.class, pCode);
 
     final JSIdExpression variableId =
