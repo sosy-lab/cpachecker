@@ -37,29 +37,29 @@ interface CFABuilderWrapper {
     return this;
   }
 
-  default CFABuilderWrapper appendTo(final CFABuilder builder) {
-    builder.append(this.getBuilder());
+  default CFABuilderWrapper appendTo(final CFABuilder pBuilder) {
+    pBuilder.append(this.getBuilder());
     return this;
   }
 
-  default CFABuilderWrapper append(final CFABuilder builder) {
-    this.getBuilder().append(builder);
+  default CFABuilderWrapper append(final CFABuilder pBuilder) {
+    this.getBuilder().append(pBuilder);
     return this;
   }
 
-  default CFABuilderWrapper append(final CFABuilderWrapper builder) {
-    return this.append(builder.getBuilder());
+  default CFABuilderWrapper append(final CFABuilderWrapper pBuilder) {
+    return this.append(pBuilder.getBuilder());
   }
 
   default CFABuilderWrapper appendEdge(
-      final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
-    this.getBuilder().appendEdge(createEdge);
+      final BiFunction<CFANode, CFANode, AbstractCFAEdge> pCreateEdge) {
+    this.getBuilder().appendEdge(pCreateEdge);
     return this;
   }
 
   default CFABuilderWrapper appendEdge(
-      final CFANode nextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
-    this.getBuilder().appendEdge(nextNode, createEdge);
+      final CFANode pNextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> pCreateEdge) {
+    this.getBuilder().appendEdge(pNextNode, pCreateEdge);
     return this;
   }
 
