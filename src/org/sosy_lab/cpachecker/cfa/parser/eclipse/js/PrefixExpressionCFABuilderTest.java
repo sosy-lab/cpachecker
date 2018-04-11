@@ -27,12 +27,8 @@ import static org.mockito.Mockito.*;
 
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
-import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
-import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
@@ -43,34 +39,11 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class PrefixExpressionCFABuilderTest {
-
-  private EclipseJavaScriptParser parser;
-  private ConfigurableJavaScriptCFABuilder builder;
-  private CFANode entryNode;
-
-  @Before
-  public void init() throws InvalidConfigurationException {
-    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
-    parser = new EclipseJavaScriptParser(builder.getLogger());
-    entryNode = builder.getExitNode();
-  }
-
-  private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
-  }
-
-  @SuppressWarnings("unchecked")
-  private PrefixExpression parsePrefixExpression(final String pCode) {
-    final ExpressionStatement expressionStatement =
-        (ExpressionStatement) createAST(pCode).statements().get(0);
-    return (PrefixExpression) expressionStatement.getExpression();
-  }
+public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testOperatorsWithoutSideEffect() throws ParserException {
@@ -83,7 +56,8 @@ public class PrefixExpressionCFABuilderTest {
   private void testOperatorsWithoutSideEffect(
       final String pPrefixExpressionCode, final UnaryOperator pExpectedUnaryOperator)
       throws ParserException {
-    final PrefixExpression prefixExpression = parsePrefixExpression(pPrefixExpressionCode);
+    final PrefixExpression prefixExpression =
+        parseExpression(PrefixExpression.class, pPrefixExpressionCode);
 
     final JSExpression expectedOperand = mock(JSExpression.class);
     builder.setExpressionAppendable(
@@ -114,7 +88,7 @@ public class PrefixExpressionCFABuilderTest {
   // shared code for increment and decrement
   private void testOperatorWithSideEffect(
       final String pCode, final BinaryOperator pExpectedOperator) throws ParserException {
-    final PrefixExpression prefixExpression = parsePrefixExpression(pCode);
+    final PrefixExpression prefixExpression = parseExpression(PrefixExpression.class, pCode);
 
     final JSIdExpression variableId =
         new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "x", mock(JSSimpleDeclaration.class));
