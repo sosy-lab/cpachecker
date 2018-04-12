@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-import org.sosy_lab.cpachecker.cpa.usage.BinderFunctionInfo.LinkerInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
@@ -74,7 +73,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
@@ -315,20 +313,16 @@ public class UsageTransferRelation implements TransferRelation {
       BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
       List<CExpression> params = fcExpression.getParameterExpressions();
 
-      assert params.size() == currentInfo.parameters;
-
-      linkVariables(left, params, currentInfo.linkInfo);
+      linkVariables(left, params, currentInfo);
 
       AbstractIdentifier id;
 
       for (int i = 0; i < params.size(); i++) {
-        id =
-            Identifiers.createIdentifier(
-                params.get(i), currentInfo.pInfo.get(i).dereference, getCurrentFunction());
+        id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction());
         id = newState.getLinksIfNecessary(id);
         UsageInfo usage =
             UsageInfo.createUsageInfo(
-                currentInfo.pInfo.get(i).access,
+                currentInfo.getBindedAccess(i),
                 fcExpression.getFileLocation().getStartingLineNumber(),
                 newState,
                 id);
@@ -376,46 +370,24 @@ public class UsageTransferRelation implements TransferRelation {
   }
 
   private void linkVariables(
-      final CExpression left,
-      final List<CExpression> params,
-      final Pair<LinkerInfo, LinkerInfo> linkInfo) {
-    AbstractIdentifier leftId, rightId;
+      final CExpression left, final List<CExpression> params, final BinderFunctionInfo bInfo) {
 
-    if (linkInfo != null) {
+    if (bInfo.shouldBeLinked()) {
       // Sometimes these functions are used not only for linkings.
       // For example, sdlGetFirst also deletes element.
       // So, if we can't link (no left side), we skip it
-      leftId = getLinkedIdentifier(linkInfo.getFirst(), left, params);
-      rightId = getLinkedIdentifier(linkInfo.getSecond(), left, params);
-      linkId(leftId, rightId);
+      AbstractIdentifier idIn, idFrom;
+      idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
+      idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
+      if (idIn == null || idFrom == null) {
+        return;
+      }
+      if (newState.containsLinks(idFrom)) {
+        idFrom = newState.getLinksIfNecessary(idFrom);
+      }
+      logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
+      newState.put(idIn, idFrom);
     }
-  }
-
-  private AbstractIdentifier getLinkedIdentifier(
-      final LinkerInfo info, final CExpression left, final List<CExpression> params) {
-    CExpression expr;
-    if (info.num == 0 && left != null) {
-      expr = left;
-    } else if (info.num > 0) {
-      expr = params.get(info.num - 1);
-    } else {
-      /* f.e. sdlGetFirst(), which is used for deleting element
-       * we don't link, but it isn't an error
-       */
-      return null;
-    }
-    return Identifiers.createIdentifier(expr, info.dereference, getCurrentFunction());
-  }
-
-  private void linkId(final AbstractIdentifier idIn, AbstractIdentifier idFrom) {
-    if (idIn == null || idFrom == null) {
-      return;
-    }
-    if (newState.containsLinks(idFrom)) {
-      idFrom = newState.getLinksIfNecessary(idFrom);
-    }
-    logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
-    newState.put(idIn, idFrom);
   }
 
   private void visitStatement(final CExpression expression, final Access access) {
@@ -433,7 +405,6 @@ public class UsageTransferRelation implements TransferRelation {
   }
 
   private void addUsageIfNeccessary(UsageInfo usage) {
-
     // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
       return;
