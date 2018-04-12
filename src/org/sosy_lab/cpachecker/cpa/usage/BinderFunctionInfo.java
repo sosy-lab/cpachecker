@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 /** Information about special functions like sdlFirst() and sdlNext(); */
 public class BinderFunctionInfo {
 
-  private class LinkerInfo {
+  private static class LinkerInfo {
     private final int num;
     private final int dereference;
 
