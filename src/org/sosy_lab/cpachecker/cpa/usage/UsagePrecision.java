@@ -24,9 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -38,31 +37,21 @@ import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 
 public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
-  private HashMap<CFANode, Map<GeneralIdentifier, DataType>> localStatistics;
+  private final Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics;
   private final Precision wrappedPrecision;
 
   private UsagePrecision(
-      Precision pWrappedPrecision, HashMap<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
-    localStatistics = Maps.newHashMap(pMap);
+      Precision pWrappedPrecision, Map<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
+    localStatistics = pMap;
     wrappedPrecision = pWrappedPrecision;
   }
 
-  UsagePrecision(Precision pWrappedPrecision) {
-    this(pWrappedPrecision, new HashMap<>());
+  static UsagePrecision create(
+      Precision pWrappedPrecision, Map<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
+    return new UsagePrecision(pWrappedPrecision, ImmutableMap.copyOf(pMap));
   }
 
-  public boolean add(CFANode node, Map<GeneralIdentifier, DataType> info) {
-    if (!localStatistics.containsKey(node)) {
-      localStatistics.put(node, info);
-      return true;
-    } else {
-      // strange situation, we should know about it, because we consider, that nodes in file are
-      // unique
-      return false;
-    }
-  }
-
-  public Map<GeneralIdentifier, DataType> get(CFANode node) {
+  Map<GeneralIdentifier, DataType> get(CFANode node) {
     return localStatistics.get(node);
   }
 
@@ -71,9 +60,7 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
   }
 
   public UsagePrecision copy(Precision wrappedPrecision) {
-    UsagePrecision newPrecision = new UsagePrecision(wrappedPrecision);
-    newPrecision.localStatistics = this.localStatistics;
-    return newPrecision;
+    return new UsagePrecision(wrappedPrecision, localStatistics);
   }
 
   @Override
@@ -132,16 +119,11 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
     if (pReplaceType.apply(this)) {
       return pNewPrecision;
     } else if (pReplaceType.apply(wrappedPrecision)) {
-      UsagePrecision result = new UsagePrecision(pNewPrecision);
-      result.localStatistics = this.localStatistics;
-      return result;
+      return copy(pNewPrecision);
     } else if (wrappedPrecision instanceof WrapperPrecision) {
-      UsagePrecision result =
-          new UsagePrecision(
-              ((WrapperPrecision) wrappedPrecision)
-                  .replaceWrappedPrecision(pNewPrecision, pReplaceType));
-      result.localStatistics = this.localStatistics;
-      return result;
+      return copy(
+          ((WrapperPrecision) wrappedPrecision)
+              .replaceWrappedPrecision(pNewPrecision, pReplaceType));
 
     } else {
       return null;
@@ -180,6 +162,6 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
     AdjustablePrecision newWrappedPrecision =
         adjustFunction.apply(thisWrappedPrecision, wrappedOtherPrecision);
 
-    return new UsagePrecision(newWrappedPrecision, localStatistics);
+    return copy(newWrappedPrecision);
   }
 }

@@ -146,9 +146,10 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
       throws InterruptedException {
-    precision = new UsagePrecision(this.getWrappedCpa().getInitialPrecision(pNode, p));
-    PresisionParser parser = new PresisionParser(outputFileName.toString(), cfa, logger);
-    parser.parse(precision);
+    PresisionParser parser = new PresisionParser(cfa, logger);
+    precision =
+        UsagePrecision.create(
+            this.getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
     return precision;
   }
 
