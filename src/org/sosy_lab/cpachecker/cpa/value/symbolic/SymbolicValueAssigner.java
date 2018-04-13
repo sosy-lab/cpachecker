@@ -185,10 +185,12 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
        fillArrayWithSymbolicIdentifiers(pState, pVarLocation, (CArrayType) canonicalType, pValueVisitor);
 
     } else if (canonicalType instanceof CElaboratedType) {
+      // undefined enum, struct or union
       pState.forget(pVarLocation);
 
     } else {
-       assignSymbolicIdentifier(pState, pVarLocation, canonicalType);
+      // use original type for symbolic identifier, not canonical type
+      assignSymbolicIdentifier(pState, pVarLocation, pVarType);
     }
   }
 
