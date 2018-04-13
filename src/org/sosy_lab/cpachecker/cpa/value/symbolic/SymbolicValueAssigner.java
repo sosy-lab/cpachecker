@@ -124,10 +124,24 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
 
   /**
-   * Assigns a new symbolic identifier to the variable at the given memory location. If the variable
-   * is a struct, behaviour depends on {@link #handleStructs}. If <code>true</code>, all members
-   * of the struct will get a distinct {@link SymbolicIdentifier}. Otherwise, the variable will
+   * Assigns a new symbolic identifier to the variable at the given memory location.
+   *
+   * <p>
+   * If the variable
+   * is a struct, behaviour depends on {@link #handleStructs}.
+   * If <code>true</code>, all members of the struct will get a distinct
+   * {@link SymbolicIdentifier}. Otherwise, the variable will
    * not be handled.
+   *
+   * <p>
+   * If the variable
+   * is an array, behavior depends on {@link #handleArrays}.
+   * If <code>true</code>, and if the array size is known,
+   * all elements of the array will get a distinct
+   * {@link SymbolicIdentifier}. If <code>true</code>
+   * and the array size is not known,
+   * the first {@link #defaultArraySize} potential elements will be assigned a symbolic identifier.
+   * If <code>false</code>, the variable will not be handled.
    *
    * @param pState the state to use for assignments
    * @param pVarLocation the memory location of the variable
