@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import java.util.List;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -122,26 +121,18 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     }
   }
 
-
   /**
    * Assigns a new symbolic identifier to the variable at the given memory location.
    *
-   * <p>
-   * If the variable
-   * is a struct, behaviour depends on {@link #handleStructs}.
-   * If <code>true</code>, all members of the struct will get a distinct
-   * {@link SymbolicIdentifier}. Otherwise, the variable will
-   * not be handled.
+   * <p>If the variable is a struct, behaviour depends on {@link #handleStructs}. If <code>true
+   * </code>, all members of the struct will get a distinct {@link SymbolicIdentifier}. Otherwise,
+   * the variable will not be handled.
    *
-   * <p>
-   * If the variable
-   * is an array, behavior depends on {@link #handleArrays}.
-   * If <code>true</code>, and if the array size is known,
-   * all elements of the array will get a distinct
-   * {@link SymbolicIdentifier}. If <code>true</code>
-   * and the array size is not known,
-   * the first {@link #defaultArraySize} potential elements will be assigned a symbolic identifier.
-   * If <code>false</code>, the variable will not be handled.
+   * <p>If the variable is an array, behavior depends on {@link #handleArrays}. If <code>true</code>
+   * , and if the array size is known, all elements of the array will get a distinct {@link
+   * SymbolicIdentifier}. If <code>true</code> and the array size is not known, the first {@link
+   * #defaultArraySize} potential elements will be assigned a symbolic identifier. If <code>false
+   * </code>, the variable will not be handled.
    *
    * @param pState the state to use for assignments
    * @param pVarLocation the memory location of the variable
@@ -149,9 +140,12 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    * @param pValueVisitor value visitor for evaluating the memory location of struct members
    * @throws UnrecognizedCCodeException thrown if a memory location can't be evaluated
    */
-  private void assignNewSymbolicIdentifier(ValueAnalysisState pState,
+  private void assignNewSymbolicIdentifier(
+      ValueAnalysisState pState,
       MemoryLocation pVarLocation,
-      Type pVarType, ExpressionValueVisitor pValueVisitor) throws UnrecognizedCCodeException {
+      Type pVarType,
+      ExpressionValueVisitor pValueVisitor)
+      throws UnrecognizedCCodeException {
 
     if (pVarType instanceof JType) {
        addSymbolicTracking(pState, pVarLocation, (JType) pVarType);
