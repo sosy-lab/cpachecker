@@ -67,6 +67,8 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     private int statesStop = 0;
     private int statesPass = 0;
     private int statesMerge = 0;
+    private int compatiblePairs = 0;
+    private int incompatiblePairs = 0;
 
 
     @Override
@@ -84,7 +86,10 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       out.println("Number of passes for states:                " + statesPass);
       out.println("Number of merges for states:                " + statesMerge);
       out.println();
-      out.println("  Time for inference objects update:         " + inferenceObjectsAdd);
+      out.println("Number of compatible pairs:                 " + compatiblePairs);
+      out.println("Number of incompatible pairs:               " + incompatiblePairs);
+      out.println();
+      out.println("  Time for inference objects update:          " + inferenceObjectsAdd);
       out.println("  Time for states update: " + statesAdd);
     }
   }
@@ -118,8 +123,11 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       stats.statesAdd.start();
       for (AbstractState state : states) {
         if (compatibleCheck.compatible(state, (InferenceObject) pSuccessor)) {
+          stats.compatiblePairs++;
           Precision itsPrecision = pReached.getPrecision(state);
           pReached.reAddToWaitlist(new ThreadModularWaitlistElement(state, (InferenceObject) pSuccessor, itsPrecision));
+        } else {
+          stats.incompatiblePairs++;
         }
       }
       stats.statesAdd.stop();
@@ -129,7 +137,10 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       stats.inferenceObjectsAdd.start();
       for (InferenceObject object : objects) {
         if (compatibleCheck.compatible(pSuccessor, object)) {
+          stats.compatiblePairs++;
           pReached.reAddToWaitlist(new ThreadModularWaitlistElement(pSuccessor, object, pPrecision));
+        } else {
+          stats.incompatiblePairs++;
         }
       }
       stats.inferenceObjectsAdd.stop();

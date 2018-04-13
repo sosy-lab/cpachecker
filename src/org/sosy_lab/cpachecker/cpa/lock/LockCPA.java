@@ -128,6 +128,6 @@ public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisW
 
   @Override
   public StopOperator getStopForInferenceObject() {
-    return (s, r, p) -> r.contains(s);
+    return (s, r, p) -> true;
   }
 }
