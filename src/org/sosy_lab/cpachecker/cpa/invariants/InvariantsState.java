@@ -550,10 +550,24 @@ public class InvariantsState implements AbstractState,
     if (!assumptions.isEmpty()) {
       Set<BooleanFormula<CompoundInterval>> additionalAssumptions = new HashSet<>();
       for (BooleanFormula<CompoundInterval> assumption : assumptions) {
-        if (assumption.equals(instantiateMod2Template(variable))
-            && preservesMod2(variable, pValue)) {
-          additionalAssumptions.add(assumption);
-          result = result.assume(assumption);
+        BooleanFormula<CompoundInterval> evenTemplate = instantiateModTemplate(variable, 2, 0);
+        BooleanFormula<CompoundInterval> oddTemplate = instantiateModTemplate(variable, 2, 1);
+        BooleanFormula<CompoundInterval> complement = null;
+        if (assumption.equals(evenTemplate)) {
+          complement = oddTemplate;
+        } else if (assumption.equals(oddTemplate)) {
+          complement = evenTemplate;
+        }
+        if (complement != null) {
+          if (preservesOrSwitchesMod2(variable, pValue, true)) {
+            additionalAssumptions.add(assumption);
+            result = result.assume(assumption);
+          } else if (preservesOrSwitchesMod2(variable, pValue, false)) {
+            additionalAssumptions.add(complement);
+            result = result.assume(complement);
+          } else {
+            additionalAssumptions.add(assumption.accept(replaceVisitor));
+          }
         } else {
           additionalAssumptions.add(assumption.accept(replaceVisitor));
         }
@@ -564,26 +578,10 @@ public class InvariantsState implements AbstractState,
     return result;
   }
 
-  private InvariantsState addAssumptions(
-      Set<BooleanFormula<CompoundInterval>> pAdditionalAssumptions) {
-    if (assumptions.containsAll(pAdditionalAssumptions)) {
-      return this;
-    }
-    return new InvariantsState(
-        variableSelection,
-        tools,
-        machineModel,
-        variableTypes,
-        abstractionState,
-        environment,
-        Sets.union(assumptions, pAdditionalAssumptions),
-        overflowDetected,
-        includeTypeInformation,
-        overapproximatesUnsupportedFeature);
-  }
-
-  private boolean preservesMod2(
-      Variable<CompoundInterval> pVariable, NumeralFormula<CompoundInterval> pValue) {
+  private boolean preservesOrSwitchesMod2(
+      Variable<CompoundInterval> pVariable,
+      NumeralFormula<CompoundInterval> pValue,
+      boolean pPreserves) {
     TypeInfo typeInfo = pValue.getTypeInfo();
     CompoundIntervalManager cim = getCompoundIntervalManager(typeInfo);
     final Constant<CompoundInterval> constant;
@@ -611,7 +609,26 @@ public class InvariantsState implements AbstractState,
     } else {
       return false;
     }
-    return cim.modulo(constant.getValue(), cim.singleton(2)).equals(cim.singleton(0));
+    int remainder = pPreserves ? 0 : 1;
+    return cim.modulo(constant.getValue(), cim.singleton(2)).equals(cim.singleton(remainder));
+  }
+
+  private InvariantsState addAssumptions(
+      Set<BooleanFormula<CompoundInterval>> pAdditionalAssumptions) {
+    if (assumptions.containsAll(pAdditionalAssumptions)) {
+      return this;
+    }
+    return new InvariantsState(
+        variableSelection,
+        tools,
+        machineModel,
+        variableTypes,
+        abstractionState,
+        environment,
+        Sets.union(assumptions, pAdditionalAssumptions),
+        overflowDetected,
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   /**
@@ -993,6 +1010,13 @@ public class InvariantsState implements AbstractState,
     if (equalsState(result)) {
       return this;
     }
+    for (BooleanFormula<CompoundInterval> additionalAssumption : this.assumptions) {
+      if (result == null) {
+        return result;
+      }
+      result = result.assumeInternal(additionalAssumption, evaluator, newVariableSelection);
+    }
+
     return result;
   }
 
@@ -1489,8 +1513,8 @@ public class InvariantsState implements AbstractState,
       if (pPrecision.shouldUseMod2Template()) {
         Variable<CompoundInterval> variable =
             InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, memoryLocation);
-        BooleanFormula<CompoundInterval> hint = instantiateMod2Template(variable);
-        additionalHints.add(hint);
+        additionalHints.add(instantiateModTemplate(variable, 2, 0));
+        additionalHints.add(instantiateModTemplate(variable, 2, 1));
       }
 
       CompoundInterval simpleExactValue =
@@ -1578,17 +1602,25 @@ public class InvariantsState implements AbstractState,
     return result;
   }
 
-  private BooleanFormula<CompoundInterval> instantiateMod2Template(
-      Variable<CompoundInterval> pVariable) {
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pVariable.getTypeInfo());
+  private BooleanFormula<CompoundInterval> instantiateModTemplate(
+      Variable<CompoundInterval> pDividend, int pDivisor, int pRemainder) {
+    if (pDivisor < 2) {
+      throw new IllegalArgumentException("Divisor must be greater than 1.");
+    }
+    if (pRemainder < 0 || pRemainder >= pDivisor) {
+      throw new IllegalArgumentException(
+          String.format("The remainder must be between 0 and %d.", pDivisor - 1));
+    }
+    CompoundIntervalManager compoundIntervalManager =
+        getCompoundIntervalManager(pDividend.getTypeInfo());
     BooleanFormula<CompoundInterval> hint =
         InvariantsFormulaManager.INSTANCE.equal(
             InvariantsFormulaManager.INSTANCE.modulo(
-                pVariable,
+                pDividend,
                 InvariantsFormulaManager.INSTANCE.asConstant(
-                    pVariable.getTypeInfo(), compoundIntervalManager.singleton(2))),
+                    pDividend.getTypeInfo(), compoundIntervalManager.singleton(pDivisor))),
             InvariantsFormulaManager.INSTANCE.asConstant(
-                pVariable.getTypeInfo(), compoundIntervalManager.singleton(0)));
+                pDividend.getTypeInfo(), compoundIntervalManager.singleton(pRemainder)));
     return hint;
   }
 
