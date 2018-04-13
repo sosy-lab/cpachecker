@@ -2575,10 +2575,10 @@ cpa.usage.skippedvariables.byNamePrefix = no default value
 cpa.usage.skippedvariables.byType = no default value
 
 # clean all ARG or try to reuse some parts of it (memory consuming)
-cpa.usage.totalARGCleaning = false
+cpa.usage.totalARGCleaning = true
 
 # ignore unsafes only with empty callstacks
-cpa.usage.unsafedetector.ignoreEmptyLockset = false
+cpa.usage.unsafedetector.ignoreEmptyLockset = true
 
 # A name of interrupt lock for checking deadlock free
 cpa.usage.unsafedetector.intLock = no default value

@@ -90,10 +90,13 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       secure = true)
   private int precisionReset = Integer.MAX_VALUE;
 
-  //TODO Option is broken!!
-  @Option(name="totalARGCleaning", description="clean all ARG or try to reuse some parts of it (memory consuming)",
-      secure = true)
-  private boolean totalARGCleaning = false;
+  // TODO Option is broken!!
+  @Option(
+    name = "totalARGCleaning",
+    description = "clean all ARG or try to reuse some parts of it (memory consuming)",
+    secure = true
+  )
+  private boolean totalARGCleaning = true;
 
   private final BAMTransferRelation transfer;
 

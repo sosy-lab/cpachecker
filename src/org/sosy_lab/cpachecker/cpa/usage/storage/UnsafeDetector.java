@@ -45,9 +45,8 @@ public class UnsafeDetector {
     DEADLOCKDISPATCH
   }
 
-  @Option(description="ignore unsafes only with empty callstacks",
-      secure = true)
-  private boolean ignoreEmptyLockset = false;
+  @Option(description = "ignore unsafes only with empty callstacks", secure = true)
+  private boolean ignoreEmptyLockset = true;
 
   @Option(description="defines what is unsafe",
       secure = true)
