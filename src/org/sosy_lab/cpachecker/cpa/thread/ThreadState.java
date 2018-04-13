@@ -33,24 +33,14 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
-public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractStateWithLocation, Partitionable,
-    AbstractWrapperState, CompatibleNode {
+public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
 
   public static class ThreadStateBuilder {
     private List<ThreadLabel> tSet;
@@ -87,9 +77,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       tSet.add(label);
     }
 
-    public ThreadState build(LocationState l, CallstackState c) {
-      //May be called several times per one builder
-      return new ThreadState(l, c, tSet, rSet);
+    public ThreadState build() {
+      return new ThreadState(tSet, rSet);
     }
 
     public boolean joinThread(CThreadJoinStatement jCall) {
@@ -115,14 +104,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
     }
   }
 
-  private final LocationState location;
-  private final CallstackState callstack;
   private final ImmutableList<ThreadLabel> threadSet;
   private final ImmutableList<ThreadLabel> removedSet;
 
-  private ThreadState(LocationState l, CallstackState c, List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
-    location = l;
-    callstack = c;
+  private ThreadState(List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
     threadSet = ImmutableList.copyOf(Tset);
     removedSet = Rset == null ? null : ImmutableList.copyOf(Rset);
   }
@@ -142,7 +127,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public int hashCode() {
-    return Objects.hash(callstack, location, removedSet, threadSet);
+    return Objects.hash(removedSet, threadSet);
   }
 
   @Override
@@ -155,46 +140,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       return false;
     }
     ThreadState other = (ThreadState) obj;
-    return Objects.equals(callstack, other.callstack)
-        && Objects.equals(location, other.location)
-        && Objects.equals(removedSet, other.removedSet)
+    return Objects.equals(removedSet, other.removedSet)
         && Objects.equals(threadSet, other.threadSet);
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    List<Object> keys = new ArrayList<>(2);
-    keys.add(location.getPartitionKey());
-    keys.add(callstack.getPartitionKey());
-    return keys;
-  }
-
-  @Override
-  public CFANode getLocationNode() {
-    return location.getLocationNode();
-  }
-
-  @Override
-  public Iterable<CFANode> getLocationNodes() {
-    return location.getLocationNodes();
-  }
-
-  @Override
-  public Iterable<CFAEdge> getOutgoingEdges() {
-    return location.getOutgoingEdges();
-  }
-
-  @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
-    return location.getIngoingEdges();
-  }
-
-  @Override
-  public Iterable<AbstractState> getWrappedStates() {
-    List<AbstractState> states = new ArrayList<>(2);
-    states.add(location);
-    states.add(callstack);
-    return states;
   }
 
   public List<ThreadLabel> getThreadSet() {
@@ -203,14 +150,6 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   public List<ThreadLabel> getRemovedSet() {
     return removedSet;
-  }
-
-  public LocationState getLocationState() {
-    return location;
-  }
-
-  public CallstackState getCallstackState() {
-    return callstack;
   }
 
   @Override
@@ -231,8 +170,6 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
         return result;
       }
     }
-    //Use compare only for StoredThreadState
-    Preconditions.checkArgument(location == null && callstack == null);
     return 0;
   }
 
@@ -252,23 +189,21 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(null, null, this.threadSet, null);
+    return new ThreadState(this.threadSet, null);
   }
 
   public ThreadStateBuilder getBuilder() {
     return new ThreadStateBuilder(this);
   }
 
-  public static ThreadState emptyState(LocationState l, CallstackState c) {
+  public static ThreadState emptyState() {
     List<ThreadLabel> emptySet = new ArrayList<>();
-    return new ThreadState(l, c, emptySet, emptySet);
+    return new ThreadState(emptySet, emptySet);
   }
 
   @Override
   public String toString() {
-    return location.toString() + "\n"
-            + callstack.toString() + "\n"
-            + getCurrentThreadName();
+    return getCurrentThreadName();
   }
 
   @Override

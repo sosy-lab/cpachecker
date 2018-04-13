@@ -39,10 +39,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ThreadCPAStatistics extends AbstractStatistics {
 
   public final StatTimer transfer = new StatTimer("Time for transfer relation");
-  public final StatTimer tSetTimer = new StatTimer("Time for thread sets update");
-  public final StatTimer internalCPAtimer = new StatTimer("Time for internal CPAs");
-  public final StatTimer internalLocationTimer = new StatTimer("Time for Location CPA");
-  public final StatTimer internalCallstackTimer = new StatTimer("Time for Callstack CPA");
   public final StatCounter threadCreates = new StatCounter("Number of thread creates");
   public final StatCounter threadJoins = new StatCounter("Number of thread joins");
   public final StatInt maxNumberOfThreads = new StatInt(StatKind.COUNT, "Max number of threads");
@@ -52,10 +48,6 @@ public class ThreadCPAStatistics extends AbstractStatistics {
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
     writer.put(transfer)
-          .put(tSetTimer)
-          .put(internalCPAtimer)
-          .put(internalLocationTimer)
-          .put(internalCallstackTimer)
           .put(threadCreates)
           .put("Names of created threads:", createdThreads)
           .put(threadJoins)
