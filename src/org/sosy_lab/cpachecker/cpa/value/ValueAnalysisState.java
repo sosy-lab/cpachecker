@@ -344,13 +344,31 @@ public class ValueAnalysisState
   @Override
   public boolean isLessOrEqual(ValueAnalysisState other) {
 
-    // this state s is less or equal than the other state s', if s is a superset of s'.
-    if (constantsMap.size() >= other.constantsMap.size()
-        && other.constantsMap.entrySet().containsAll(constantsMap.entrySet())) {
-      return true;
-    } else {
+    // also, this element is not less or equal than the other element, if it contains less elements
+    if (constantsMap.size() < other.constantsMap.size()) {
       return false;
     }
+
+    // also, this element is not less or equal than the other element,
+    // if any one constant's value of the other element differs from the constant's value in this
+    // element
+
+    // the simple way
+    // if (other.constantsMap.entrySet().containsAll(constantsMap.entrySet())) {
+    //   return true;
+    // }
+
+    // the tolerant way: ignore all type information. TODO really correct?
+    for (Entry<MemoryLocation, ValueAndType> otherEntry : other.constantsMap.entrySet()) {
+      MemoryLocation key = otherEntry.getKey();
+      Value otherValue = otherEntry.getValue().getValue();
+      ValueAndType thisValueAndType = constantsMap.get(key);
+      if (thisValueAndType == null || !otherValue.equals(thisValueAndType.getValue())) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @Override
