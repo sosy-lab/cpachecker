@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicate;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -70,6 +71,10 @@ public class SlicingPrecision implements WrapperPrecision  {
   /** Returns whether the given {@link CFAEdge} is a relevant edge. */
   public boolean isRelevant(final CFAEdge pEdge) {
     return relevantEdges.contains(pEdge);
+  }
+
+  public Collection<CFAEdge> getRelevant() {
+    return relevantEdges;
   }
 
   /** Returns the wrapped precision. */
