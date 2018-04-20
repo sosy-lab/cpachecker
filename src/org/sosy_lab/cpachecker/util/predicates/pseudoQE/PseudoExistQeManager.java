@@ -112,7 +112,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
         "Specify whether to overapproximate quantified formula,"
             + " if one or more quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)"
   )
-  private boolean overapprox = true;
+  private boolean overapprox = false;
 
   /**
    * Create a new PseudoExistQuantifier elimination manager
