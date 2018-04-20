@@ -93,6 +93,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
   private final NewtonStatistics stats = new NewtonStatistics();
 
+
   @Option(
     secure = true,
     description =
@@ -100,7 +101,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
   )
   private boolean useUnsatCore = true;
 
-  //TODO: Make an option
+  @Option(
+    secure = true,
+    description =
+        "use live variables in order to abstract the predicates produced while NewtonRefinement"
+  )
   private boolean useLiveVariables = true;
 
   public NewtonRefinementManager(
@@ -230,12 +235,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
-   * @throws CPAException In case the Algorithm failed unexpected
    * @throws InterruptedException In case of interruption
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
       List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
-      throws CPAException, InterruptedException {
+      throws InterruptedException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();
     try {
@@ -330,11 +334,10 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *     basically havocs the assigned variable)
    * @return The postCondition as BooleanFormula
    * @throws InterruptedException When interrupted
-   * @throws CPAException When the Quantifier Elimination Step fails
    */
   private BooleanFormula calculatePostconditionForAssignment(
       BooleanFormula preCondition, PathFormula pathFormula, boolean abstractThisFormula)
-      throws InterruptedException, CPAException {
+      throws InterruptedException {
 
     BooleanFormula toExist;
 
@@ -380,9 +383,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
     } catch (Exception e) {
       // TODO Right now a plain Exception for testing, has to be exchanged against a
       // more meaningful Exception
-      throw new CPAException(
-          "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
-          e);
+      // throw new CPAException(
+      //    "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
+      //    e);
+      logger.log(
+          Level.FINE, "Quantifier elimination failed, keeping old assignements in predicate.");
+      // Take the strongest possible assertion, as the SSA differs from other potential future assertions
+      result = toExist;
     }
 
     return result;

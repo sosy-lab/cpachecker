@@ -1940,7 +1940,7 @@ cpa.predicate.predmap.predicateFormat = SMTLIB2
 
 # Specify whether to overapproximate quantified formula, if one or more
 # quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)
-cpa.predicate.pseudoExistQE.overapprox = true
+cpa.predicate.pseudoExistQE.overapprox = false
 
 # Which solver tactic to use for Quantifier Elimination(Only used if
 # useRealQuantifierElimination=true)
@@ -2017,6 +2017,10 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
+
+# use live variables in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
 
 # use unsatisfiable Core in order to abstract the predicates produced while
 # NewtonRefinement
