@@ -54,6 +54,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private PostfixExpressionAppendable postfixExpressionAppendable;
   private SimpleNameResolver simpleNameResolver;
   private StringLiteralConverter stringLiteralConverter;
+  private UndefinedLiteralConverter undefinedLiteralConverter;
 
   void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
     booleanLiteralConverter = pBooleanLiteralConverter;
@@ -110,6 +111,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     stringLiteralConverter = pStringLiteralConverter;
   }
 
+  void setUndefinedLiteralConverter(final UndefinedLiteralConverter pUndefinedLiteralConverter) {
+    undefinedLiteralConverter = pUndefinedLiteralConverter;
+  }
+
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof ConditionalExpression) {
@@ -146,10 +151,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return stringLiteralConverter.convert(pBuilder, (StringLiteral) pExpression);
     } else if (pExpression instanceof BooleanLiteral) {
       return booleanLiteralConverter.convert(pBuilder, (BooleanLiteral) pExpression);
-    }
-    // TODO do without ASTConverter
-    if (pExpression instanceof UndefinedLiteral) {
-      return pBuilder.getAstConverter().convert((UndefinedLiteral) pExpression);
+    } else if (pExpression instanceof UndefinedLiteral) {
+      return undefinedLiteralConverter.convert(pBuilder, (UndefinedLiteral) pExpression);
     } else if (pExpression == null) {
       // This might be caused by a bug in the eclipse parser,
       // for example: https://bugs.eclipse.org/bugs/show_bug.cgi?id=518324
