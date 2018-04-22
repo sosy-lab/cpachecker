@@ -32,6 +32,7 @@ final class ExpressionAppendableFactory {
     builder.setFunctionExpressionAppendable(new FunctionExpressionCFABuilder());
     builder.setFunctionInvocationAppendable(new FunctionInvocationCFABuilder());
     builder.setInfixExpressionAppendable(new InfixExpressionCFABuilder());
+    builder.setNullLiteralConverter(new NullLiteralConverterImpl());
     builder.setNumberLiteralConverter(new NumberLiteralConverterImpl());
     builder.setParenthesizedExpressionAppendable(new ParenthesizedExpressionCFABuilder());
     builder.setPrefixExpressionAppendable(new PrefixExpressionCFABuilder());

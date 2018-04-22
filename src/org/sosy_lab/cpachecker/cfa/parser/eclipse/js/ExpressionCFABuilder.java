@@ -47,6 +47,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
+  private NullLiteralConverter nullLiteralConverter;
   private NumberLiteralConverter numberLiteralConverter;
   private ParenthesizedExpressionAppendable parenthesizedExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
@@ -76,6 +77,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   void setInfixExpressionAppendable(
       final InfixExpressionAppendable pInfixExpressionAppendable) {
     infixExpressionAppendable = pInfixExpressionAppendable;
+  }
+
+  void setNullLiteralConverter(final NullLiteralConverter pNullLiteralConverter) {
+    nullLiteralConverter = pNullLiteralConverter;
   }
 
   void setNumberLiteralConverter(final NumberLiteralConverter pNumberLiteralConverter) {
@@ -115,6 +120,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
     } else if (pExpression instanceof InfixExpression) {
       return infixExpressionAppendable.append(pBuilder, (InfixExpression) pExpression);
+    } else if (pExpression instanceof NullLiteral) {
+      return nullLiteralConverter.convert(pBuilder, (NullLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
       return numberLiteralConverter.convert(pBuilder, (NumberLiteral) pExpression);
     } else if (pExpression instanceof ParenthesizedExpression) {
@@ -141,9 +148,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return booleanLiteralConverter.convert(pBuilder, (BooleanLiteral) pExpression);
     }
     // TODO do without ASTConverter
-    if (pExpression instanceof NullLiteral) {
-      return pBuilder.getAstConverter().convert((NullLiteral) pExpression);
-    } else if (pExpression instanceof UndefinedLiteral) {
+    if (pExpression instanceof UndefinedLiteral) {
       return pBuilder.getAstConverter().convert((UndefinedLiteral) pExpression);
     } else if (pExpression == null) {
       // This might be caused by a bug in the eclipse parser,
