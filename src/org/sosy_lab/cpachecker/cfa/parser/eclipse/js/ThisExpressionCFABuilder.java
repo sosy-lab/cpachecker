@@ -32,6 +32,6 @@ class ThisExpressionCFABuilder implements ThisExpressionAppendable {
   @Override
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final ThisExpression pThisExpression) {
-    return new JSThisExpression(pBuilder.getAstConverter().getFileLocation(pThisExpression));
+    return new JSThisExpression(pBuilder.getFileLocation(pThisExpression));
   }
 }

@@ -42,7 +42,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
-            pBuilder.getAstConverter().getFileLocation(pFunctionDeclaration),
+            pBuilder.getFileLocation(pFunctionDeclaration),
             new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
             getFunctionName(pFunctionDeclaration),
             Collections.emptyList());

@@ -60,7 +60,7 @@ class SimpleNameResolverImpl implements SimpleNameResolver {
     final IBinding binding = pSimpleName.resolveBinding();
     assert binding != null;
     return new JSIdExpression(
-        pBuilder.getAstConverter().getFileLocation(pSimpleName),
+        pBuilder.getFileLocation(pSimpleName),
         JSAnyType.ANY,
         pSimpleName.getIdentifier(),
         resolve(binding));

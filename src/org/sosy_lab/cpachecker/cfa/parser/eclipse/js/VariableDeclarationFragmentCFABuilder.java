@@ -42,7 +42,7 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
     final JSExpression expression = pBuilder.append(pVariableDeclarationFragment.getInitializer());
     final JSVariableDeclaration variableDeclaration =
         new JSVariableDeclaration(
-            pBuilder.getAstConverter().getFileLocation(pVariableDeclarationFragment),
+            pBuilder.getFileLocation(pVariableDeclarationFragment),
             false,
             JSAnyType.ANY,
             variableIdentifier,

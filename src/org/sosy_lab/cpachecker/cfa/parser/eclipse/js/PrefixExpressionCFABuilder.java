@@ -42,7 +42,6 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
   @Override
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final PrefixExpression pPrefixExpression) {
-    final ASTConverter converter = pBuilder.getAstConverter();
     final JSExpression operand = pBuilder.append(pPrefixExpression.getOperand());
     final UnaryOperator operator = convert(pPrefixExpression.getOperator());
     switch (operator) {
@@ -76,7 +75,7 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
       case MINUS:
       case COMPLEMENT:
         return new JSUnaryExpression(
-            converter.getFileLocation(pPrefixExpression), JSAnyType.ANY, operand, operator);
+            pBuilder.getFileLocation(pPrefixExpression), JSAnyType.ANY, operand, operator);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of unary operator (not handled yet): " + operator, pPrefixExpression);

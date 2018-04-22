@@ -145,7 +145,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       // That's why we convert it to an JSUndefinedLiteralExpression if it is used as an Expression.
       final SimpleName simpleName = (SimpleName) pExpression;
       return simpleName.getIdentifier().equals("undefined")
-          ? new JSUndefinedLiteralExpression(pBuilder.getAstConverter().getFileLocation(simpleName))
+          ? new JSUndefinedLiteralExpression(pBuilder.getFileLocation(simpleName))
           : simpleNameResolver.resolve(pBuilder, (SimpleName) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return stringLiteralConverter.convert(pBuilder, (StringLiteral) pExpression);

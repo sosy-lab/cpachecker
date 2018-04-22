@@ -39,7 +39,6 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
 
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
-    final ASTConverter astConverter = pBuilder.getAstConverter();
     final JSIdExpression function =
         pNode.getName() != null
             ? pBuilder.resolve(pNode.getName())
@@ -47,9 +46,9 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
     final JSFunctionDeclaration declaration = (JSFunctionDeclaration) function.getDeclaration();
     final JSFunctionCallStatement functionCallStatement =
         new JSFunctionCallStatement(
-            astConverter.getFileLocation(pNode),
+            pBuilder.getFileLocation(pNode),
             new JSFunctionCallExpression(
-                astConverter.getFileLocation(pNode),
+                pBuilder.getFileLocation(pNode),
                 JSAnyType.ANY,
                 function,
                 Collections.emptyList(),
