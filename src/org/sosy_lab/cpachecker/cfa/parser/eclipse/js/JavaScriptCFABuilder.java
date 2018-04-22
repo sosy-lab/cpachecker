@@ -46,11 +46,6 @@ interface JavaScriptCFABuilder
     return getBuilder().getParseResult();
   }
 
-  @Override
-  default ASTConverter getAstConverter() {
-    return getBuilder().getAstConverter();
-  }
-
   JavaScriptCFABuilder append(Statement pStatement);
 
   JSFunctionDeclaration append(FunctionDeclaration pDeclaration);

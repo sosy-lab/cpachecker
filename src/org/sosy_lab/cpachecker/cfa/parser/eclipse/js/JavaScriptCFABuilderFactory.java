@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.mockito.Mockito.spy;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -68,8 +66,7 @@ final class JavaScriptCFABuilderFactory {
         new BlankEdge("", FileLocation.DUMMY, dummyEntryNode, entryNode, "start dummy edge"));
     final LogManager logger = LogManager.createTestLogManager();
     final Scope scope = new Scope(filename);
-    return new CFABuilder(
-        scope, logger, spy(new ASTConverter(scope, logger)), functionName, entryNode);
+    return new CFABuilder(scope, logger, functionName, entryNode);
   }
 
   static ConfigurableJavaScriptCFABuilder createTestJavaScriptCFABuilder() {

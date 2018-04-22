@@ -66,16 +66,13 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
         new CFABuilder(
             builder.getScope(),
             builder.getLogger(),
-            builder.getAstConverter(),
             builder.getFunctionName(),
             builder.getExitNode()));
   }
 
   @Override
   public JavaScriptCFABuilder copyWith(final JSFunctionEntryNode pEntryNode) {
-    return copyWith(
-        new CFABuilder(
-            builder.getScope(), builder.getLogger(), builder.getAstConverter(), pEntryNode));
+    return copyWith(new CFABuilder(builder.getScope(), builder.getLogger(), pEntryNode));
   }
 
   @Override

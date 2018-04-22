@@ -71,10 +71,6 @@ interface CFABuilderWrapper {
     return this.getBuilder().getParseResult();
   }
 
-  default ASTConverter getAstConverter() {
-    return this.getBuilder().getAstConverter();
-  }
-
   default CFANode getExitNode() {
     return this.getBuilder().getExitNode();
   }

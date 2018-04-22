@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import java.util.Collections;
 import com.google.common.base.Optional;
+import java.util.Collections;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -57,7 +57,7 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
         new JSFunctionEntryNode(
             FileLocation.DUMMY, functionDeclaration, exitNode, Optional.absent());
     exitNode.setEntryNode(entryNode);
-    builder = new CFABuilder(pScope, pLogger, new ASTConverter(pScope, pLogger), entryNode);
+    builder = new CFABuilder(pScope, pLogger, entryNode);
   }
 
   @Override
