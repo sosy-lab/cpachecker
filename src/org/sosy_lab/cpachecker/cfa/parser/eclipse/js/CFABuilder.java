@@ -27,10 +27,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.TreeMultimap;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
+import org.eclipse.wst.jsdt.core.dom.ASTNode;
+import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -139,4 +142,29 @@ class CFABuilder {
     return getScope().getFileName();
   }
 
+  /**
+   * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
+   * doesnt't find such information, returns an empty FileLocation Object.
+   *
+   * @param pNode A Code piece wrapped in an ASTNode
+   * @return FileLocation with Placement Information of the Code Piece, or null if such Information
+   *     could not be obtained.
+   */
+  public FileLocation getFileLocation(final ASTNode pNode) {
+    if (pNode == null) {
+      return FileLocation.DUMMY;
+    } else if (pNode.getRoot().getNodeType() != ASTNode.JAVASCRIPT_UNIT) {
+      logger.log(Level.WARNING, "Can't find Placement Information for :" + pNode.toString());
+      return FileLocation.DUMMY;
+    }
+
+    final JavaScriptUnit javaScriptUnit = (JavaScriptUnit) pNode.getRoot();
+
+    return new FileLocation(
+        scope.getFileName(),
+        pNode.getStartPosition(),
+        pNode.getLength(),
+        javaScriptUnit.getLineNumber(pNode.getStartPosition()),
+        javaScriptUnit.getLineNumber(pNode.getLength() + pNode.getStartPosition()));
+  }
 }
