@@ -370,6 +370,8 @@ public class ConfigurationFileChecks {
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
+    } else if (options.language == Language.JAVASCRIPT) {
+      assertThat(spec).endsWith("specification/JavaScriptAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
       assertThat(spec).contains("specification/BDDCPAErrorLocation.spc");
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
@@ -424,7 +426,6 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
-    final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
@@ -441,9 +442,10 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result =
+          cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
-      if (isJava) {
+      if (options.language == Language.JAVA) {
         assume().fail("Java frontend has a bug and cannot be run twice");
       }
       throw e;
@@ -514,20 +516,25 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(boolean isJava) throws IOException {
-    String program;
-    if (isJava) {
-      IO.writeFile(
-          tempFolder.newFile("Main.java").toPath(),
-          StandardCharsets.US_ASCII,
-          "public class Main { public static void main(String... args) {} }");
-      program = "Main";
-    } else {
-      File cFile = tempFolder.newFile("program.i");
-      IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
-      program = cFile.toString();
+  private String createEmptyProgram(final Language pLanguage) throws IOException {
+    switch (pLanguage) {
+      case JAVA:
+        IO.writeFile(
+            tempFolder.newFile("Main.java").toPath(),
+            StandardCharsets.US_ASCII,
+            "public class Main { public static void main(String... args) {} }");
+        return "Main";
+      case JAVASCRIPT:
+        final File jsFile = tempFolder.newFile("empty.js");
+        IO.writeFile(jsFile.toPath(), StandardCharsets.US_ASCII, "");
+        return jsFile.toString();
+      case C:
+        File cFile = tempFolder.newFile("program.i");
+        IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
+        return cFile.toString();
+      default:
+        throw new RuntimeException("Unhandled language " + pLanguage);
     }
-    return program;
   }
 
   private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
