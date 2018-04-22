@@ -85,6 +85,19 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -99,6 +112,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -134,8 +148,9 @@ import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 public abstract class AbstractExpressionValueVisitor
     extends DefaultCExpressionVisitor<Value, UnrecognizedCCodeException>
     implements CRightHandSideVisitor<Value, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Value, RuntimeException>,
-    JExpressionVisitor<Value, RuntimeException> {
+        JRightHandSideVisitor<Value, RuntimeException>,
+        JSRightHandSideVisitor<Value, RuntimeException>,
+        JExpressionVisitor<Value, RuntimeException> {
 
   /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -2154,6 +2169,72 @@ public abstract class AbstractExpressionValueVisitor
     return UnknownValue.getInstance();
   }
 
+  @Override
+  public Value visit(final JSFunctionCallExpression pIastFunctionCallExpression)
+      throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSBinaryExpression pBinaryExpression) throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSStringLiteralExpression pStringLiteralExpression)
+      throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSFloatLiteralExpression pLiteral) throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSUnaryExpression pUnaryExpression) throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSIntegerLiteralExpression pIntegerLiteralExpression)
+      throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSBooleanLiteralExpression pBooleanLiteralExpression)
+      throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSNullLiteralExpression pNullLiteralExpression) throws RuntimeException {
+    return NullValue.getInstance();
+  }
+
+  @Override
+  public Value visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
+      throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSThisExpression pThisExpression) throws RuntimeException {
+    return null; // TODO implement
+  }
+
+  @Override
+  public Value visit(final JSIdExpression pIdExpression) throws RuntimeException {
+    ASimpleDeclaration decl = pIdExpression.getDeclaration();
+
+    // JavaScript IdExpression could not be resolved
+    if (decl == null) {
+      return UnknownValue.getInstance();
+    }
+
+    return evaluateJSIdExpression(pIdExpression);
+  }
   /* abstract methods */
 
   protected abstract Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
@@ -2161,6 +2242,8 @@ public abstract class AbstractExpressionValueVisitor
 
   protected abstract Value evaluateCIdExpression(CIdExpression pCIdExpression)
       throws UnrecognizedCCodeException;
+
+  protected abstract Value evaluateJSIdExpression(JSIdExpression varName);
 
   protected abstract Value evaluateJIdExpression(JIdExpression varName);
 
@@ -2227,6 +2310,12 @@ public abstract class AbstractExpressionValueVisitor
   public Value evaluate(final JRightHandSide pExp, final JType pTargetType) {
     return castJValue(pExp.accept(this), (JType) pExp.getExpressionType(), pTargetType, logger,
         pExp.getFileLocation());
+  }
+
+  // TODO comment
+  public Value evaluate(final JSRightHandSide pExp, final JSType pTargetType) {
+    // TODO cast?
+    return pExp.accept(this);
   }
 
   /**

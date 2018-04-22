@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -1254,6 +1255,11 @@ public class AssumptionToEdgeAllocator {
 
       @Override
       protected Value evaluateJIdExpression(JIdExpression pVarName) {
+        return Value.UnknownValue.getInstance();
+      }
+
+      @Override
+      protected Value evaluateJSIdExpression(JSIdExpression pVarName) {
         return Value.UnknownValue.getInstance();
       }
 

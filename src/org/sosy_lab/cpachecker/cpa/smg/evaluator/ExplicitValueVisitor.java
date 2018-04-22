@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -198,6 +199,11 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   @Override
   protected Value evaluateJIdExpression(JIdExpression pVarName) {
+    return null;
+  }
+
+  @Override
+  protected Value evaluateJSIdExpression(JSIdExpression pVarName) {
     return null;
   }
 

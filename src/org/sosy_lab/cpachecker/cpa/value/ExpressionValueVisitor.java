@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -92,6 +93,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   @Override
   protected Value evaluateJIdExpression(JIdExpression varName) {
+    return evaluateAIdExpression(varName);
+  }
+
+  @Override
+  protected Value evaluateJSIdExpression(JSIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
