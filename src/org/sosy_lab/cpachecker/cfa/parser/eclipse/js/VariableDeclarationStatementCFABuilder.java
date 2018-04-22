@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
+
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
@@ -59,7 +61,7 @@ class VariableDeclarationStatementCFABuilder implements VariableDeclarationState
             JSAnyType.ANY,
             variableIdentifier,
             variableIdentifier,
-            variableIdentifier,
+            qualifiedNameOf(pBuilder.getFunctionName(), variableIdentifier),
             new JSInitializerExpression(expression.getFileLocation(), expression));
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
