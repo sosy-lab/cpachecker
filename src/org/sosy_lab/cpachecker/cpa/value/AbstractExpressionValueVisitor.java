@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -1573,6 +1574,21 @@ public abstract class AbstractExpressionValueVisitor
     return UnknownValue.getInstance();
   }
 
+  private Value calculateBinaryOperation(
+      final JSBinaryExpression.BinaryOperator pOperator, final Value pLValue, final Value pRValue)
+      throws IllegalOperationException {
+
+    assert !pLValue.isUnknown() && !pRValue.isUnknown();
+
+    if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
+      // TODO implement binary expressions of SymbolicValue for JavaScript
+      throw new RuntimeException("SymbolicValue not implemented yet for JavaScript");
+    } else if (pOperator.isEqualityOperator()) {
+      return calculateComparison(pLValue, pRValue, pOperator);
+    }
+    return UnknownValue.getInstance();
+  }
+
   private Value createSymbolicExpression(Value pLeftValue, JType pLeftType, Value pRightValue,
       JType pRightType, JBinaryExpression.BinaryOperator pOperator, JType pExpressionType, JType pCalculationType) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
@@ -1899,6 +1915,20 @@ public abstract class AbstractExpressionValueVisitor
         ^ pLeftValue.equals(pRightValue));
   }
 
+  private Value calculateComparison(
+      final Value pLeftValue,
+      final Value pRightValue,
+      final JSBinaryExpression.BinaryOperator pOperator) {
+    assert pOperator.isEqualityOperator();
+    // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
+    // otherwise. This is equivalent to an XNOR.
+    // TODO non-strict equals works different than strict equals
+    final boolean isEqualOperator =
+        pOperator == JSBinaryExpression.BinaryOperator.EQUALS
+            || pOperator == JSBinaryExpression.BinaryOperator.EQUAL_EQUAL_EQUAL;
+    return BooleanValue.valueOf(!isEqualOperator ^ pLeftValue.equals(pRightValue));
+  }
+
   @Override
   public Value visit(JIdExpression idExp) {
 
@@ -2176,8 +2206,28 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(final JSBinaryExpression pBinaryExpression) throws RuntimeException {
-    return null; // TODO implement
+  public Value visit(final JSBinaryExpression pE) throws RuntimeException {
+    final JSBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
+    final JSExpression lVarInBinaryExp = pE.getOperand1();
+    final JSExpression rVarInBinaryExp = pE.getOperand2();
+
+    // Get the concrete values of the lefthandside and righthandside
+    final Value lValue = lVarInBinaryExp.accept(this);
+    if (lValue.isUnknown()) {
+      return UnknownValue.getInstance();
+    }
+
+    final Value rValue = rVarInBinaryExp.accept(this);
+    if (rValue.isUnknown()) {
+      return UnknownValue.getInstance();
+    }
+
+    try {
+      return calculateBinaryOperation(binaryOperator, lValue, rValue);
+    } catch (final IllegalOperationException e) {
+      logger.logUserException(Level.SEVERE, e, pE.getFileLocation().toString());
+      return UnknownValue.getInstance();
+    }
   }
 
   @Override
