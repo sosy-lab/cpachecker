@@ -40,4 +40,6 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
   R visit(JSNullLiteralExpression pJNullLiteralExpression) throws X;
 
   R visit(JSUndefinedLiteralExpression pJNullLiteralExpression) throws X;
+
+  R visit(JSThisExpression pThisExpression) throws X;
 }
