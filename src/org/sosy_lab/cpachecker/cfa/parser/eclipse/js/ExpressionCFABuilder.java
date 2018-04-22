@@ -47,13 +47,14 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
+  private NumberLiteralConverter numberLiteralConverter;
   private ParenthesizedExpressionAppendable parenthesizedExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
   private PostfixExpressionAppendable postfixExpressionAppendable;
   private SimpleNameResolver simpleNameResolver;
   private StringLiteralConverter stringLiteralConverter;
 
-  public void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
+  void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
     booleanLiteralConverter = pBooleanLiteralConverter;
   }
 
@@ -75,6 +76,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   void setInfixExpressionAppendable(
       final InfixExpressionAppendable pInfixExpressionAppendable) {
     infixExpressionAppendable = pInfixExpressionAppendable;
+  }
+
+  void setNumberLiteralConverter(final NumberLiteralConverter pNumberLiteralConverter) {
+    numberLiteralConverter = pNumberLiteralConverter;
   }
 
   void setParenthesizedExpressionAppendable(
@@ -110,6 +115,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
     } else if (pExpression instanceof InfixExpression) {
       return infixExpressionAppendable.append(pBuilder, (InfixExpression) pExpression);
+    } else if (pExpression instanceof NumberLiteral) {
+      return numberLiteralConverter.convert(pBuilder, (NumberLiteral) pExpression);
     } else if (pExpression instanceof ParenthesizedExpression) {
       return parenthesizedExpressionAppendable.append(
           pBuilder, (ParenthesizedExpression) pExpression);
@@ -134,9 +141,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return booleanLiteralConverter.convert(pBuilder, (BooleanLiteral) pExpression);
     }
     // TODO do without ASTConverter
-    if (pExpression instanceof NumberLiteral) {
-      return pBuilder.getAstConverter().convert((NumberLiteral) pExpression);
-    } else if (pExpression instanceof NullLiteral) {
+    if (pExpression instanceof NullLiteral) {
       return pBuilder.getAstConverter().convert((NullLiteral) pExpression);
     } else if (pExpression instanceof UndefinedLiteral) {
       return pBuilder.getAstConverter().convert((UndefinedLiteral) pExpression);
