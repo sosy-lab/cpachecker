@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -150,6 +152,11 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   @Override
   public JSIdExpression resolve(final SimpleName pSimpleName) {
     return (JSIdExpression) expressionAppendable.append(this, pSimpleName);
+  }
+
+  @Override
+  public FileLocation getFileLocation(final ASTNode pNode) {
+    return getBuilder().getFileLocation(pNode);
   }
 
   @Override

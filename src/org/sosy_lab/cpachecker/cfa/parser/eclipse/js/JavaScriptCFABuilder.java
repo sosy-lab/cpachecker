@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
@@ -30,6 +31,7 @@ import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -65,4 +67,14 @@ interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuil
   JSVariableDeclaration append(VariableDeclarationFragment pVariableDeclarationFragment);
 
   JSIdExpression resolve(final SimpleName pSimpleName);
+
+  /**
+   * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
+   * doesnt't find such information, returns an empty FileLocation Object.
+   *
+   * @param pNode A Code piece wrapped in an ASTNode
+   * @return FileLocation with Placement Information of the Code Piece, or null if such Information
+   * could not be obtained.
+   */
+  FileLocation getFileLocation(final ASTNode pNode);
 }
