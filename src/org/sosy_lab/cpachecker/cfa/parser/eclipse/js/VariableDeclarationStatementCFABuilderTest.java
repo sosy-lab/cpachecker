@@ -23,12 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
-import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -64,16 +69,20 @@ public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBa
   @Test
   public final void testMultiVariableDeclaration() {
     final VariableDeclarationStatement variableDeclarationStatement =
-        parseStatement(VariableDeclarationStatement.class, "var x = 123, y = 456");
-    final String expectedFirstVariableName = "x";
-    final int expectedFirstVariableValue = 123;
-    final String expectedSecondVariableName = "y";
-    final int expectedSecondVariableValue = 456;
-    // expected CFA: entryNode -{var x = 123}-> () -{var y = 456}-> ()
+        parseStatement(
+            VariableDeclarationStatement.class,
+            "var first = firstInitExpr, second = secondInitExpr");
+    final String expectedFirstVariableName = "first";
+    final String expectedSecondVariableName = "second";
+    // expected CFA: entryNode -{var x = firstInitExpr}-> () -{var y = secondInitExpr}-> ()
 
-    // TODO is there a better solution than relying on the ASTConverter.convert implementation?
-    builder.setExpressionAppendable(
-        (pBuilder, pExpression) -> pBuilder.getAstConverter().convert((NumberLiteral) pExpression));
+    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
+    final JSExpression firstInitExpr = mock(JSExpression.class, "firstInitExpr");
+    when(firstInitExpr.getFileLocation()).thenReturn(FileLocation.DUMMY);
+    final JSExpression secondInitExpr = mock(JSExpression.class, "secondInitExpr");
+    when(secondInitExpr.getFileLocation()).thenReturn(FileLocation.DUMMY);
+    when(expressionAppendable.append(eq(builder), any())).thenReturn(firstInitExpr, secondInitExpr);
+    builder.setExpressionAppendable(expressionAppendable);
 
     // TODO test VariableDeclarationFragmentCFABuilder and VariableDeclarationStatementCFABuilder separately
     builder.setVariableDeclarationFragmentAppendable(new VariableDeclarationFragmentCFABuilder());
@@ -83,25 +92,19 @@ public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBa
     final JSVariableDeclaration xVariableDeclaration =
         (JSVariableDeclaration) xDeclarationEdge.getDeclaration();
     Truth.assertThat(xVariableDeclaration.getName()).isEqualTo(expectedFirstVariableName);
-    Truth.assertThat(getInitializerExpressionValue(xVariableDeclaration))
-        .isEqualTo(BigInteger.valueOf(expectedFirstVariableValue));
+    Truth.assertThat(
+            ((JSInitializerExpression) xVariableDeclaration.getInitializer()).getExpression())
+        .isEqualTo(firstInitExpr);
 
     final JSDeclarationEdge yDeclarationEdge =
         (JSDeclarationEdge) xDeclarationEdge.getSuccessor().getLeavingEdge(0);
     final JSVariableDeclaration yVariableDeclaration =
         (JSVariableDeclaration) yDeclarationEdge.getDeclaration();
     Truth.assertThat(yVariableDeclaration.getName()).isEqualTo(expectedSecondVariableName);
-    Truth.assertThat(getInitializerExpressionValue(yVariableDeclaration))
-        .isEqualTo(BigInteger.valueOf(expectedSecondVariableValue));
+    Truth.assertThat(
+            ((JSInitializerExpression) yVariableDeclaration.getInitializer()).getExpression())
+        .isEqualTo(secondInitExpr);
     Truth.assertThat(yDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 
-  private BigInteger getInitializerExpressionValue(
-      final JSVariableDeclaration pVariableDeclaration) {
-    final JSInitializerExpression initializer =
-        (JSInitializerExpression) pVariableDeclaration.getInitializer();
-    final JSIntegerLiteralExpression initializerExpression =
-        (JSIntegerLiteralExpression) initializer.getExpression();
-    return initializerExpression.getValue();
-  }
 }
