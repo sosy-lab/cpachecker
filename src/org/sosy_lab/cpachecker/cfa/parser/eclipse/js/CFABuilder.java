@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
-class CFABuilder {
+class CFABuilder implements FileLocationProvider {
   private final Scope scope;
   private final LogManager logger;
   private final ASTConverter astConverter;
@@ -142,14 +142,7 @@ class CFABuilder {
     return getScope().getFileName();
   }
 
-  /**
-   * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
-   * doesnt't find such information, returns an empty FileLocation Object.
-   *
-   * @param pNode A Code piece wrapped in an ASTNode
-   * @return FileLocation with Placement Information of the Code Piece, or null if such Information
-   *     could not be obtained.
-   */
+  @Override
   public FileLocation getFileLocation(final ASTNode pNode) {
     if (pNode == null) {
       return FileLocation.DUMMY;
