@@ -2183,7 +2183,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSStringLiteralExpression pStringLiteralExpression)
       throws RuntimeException {
-    return null; // TODO implement
+    return UnknownValue.getInstance();
   }
 
   @Override
