@@ -146,10 +146,10 @@ public class NewtonRefinementManager implements StatisticsProvider {
         List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
 
         Optional<List<BooleanFormula>> unsatCore;
-
         // Only compute if unsatCoreOption is set
         if (useUnsatCore) {
           unsatCore = Optional.of(computeUnsatCore(pathLocations));
+
         } else {
           unsatCore = Optional.empty();
         }
@@ -157,7 +157,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
         // Calculate StrongestPost
         List<BooleanFormula> predicates =
             this.calculateStrongestPostCondition(pathLocations, unsatCore);
-
         if (useLiveVariables) {
           predicates = filterFutureLiveVariables(pathLocations, predicates);
         }
@@ -236,10 +235,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *     If no list of formulas is applied it computes the regular postCondition
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
    * @throws InterruptedException In case of interruption
+   * @throws CPAException In case an exception in the solver.
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
       List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();
     try {
@@ -261,13 +261,16 @@ public class NewtonRefinementManager implements StatisticsProvider {
         // Decide whether to abstract this Formula(Only true if unsatCore is present and does not
         // contain the formula
         boolean abstractThisFormula = false;
+        Optional<BooleanFormula> requiredPart = Optional.empty();
         if (pUnsatCore.isPresent()) {
           abstractThisFormula = true;
+
           // Split up any conjunction in the pathformula, to be able to identify if contained in
           // unsat core
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
             if (pUnsatCore.get().contains(pathFormulaElement)) {
               abstractThisFormula = false;
+              requiredPart = Optional.of(pathFormulaElement);
               break;
             }
           }
@@ -280,7 +283,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
             }
             // Else make the conjunction of the precondition and the pathFormula
             else {
-              postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+              assert requiredPart.isPresent();
+              postCondition = fmgr.makeAnd(preCondition, requiredPart.get());
             }
             break;
           case StatementEdge:
@@ -289,7 +293,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
           case ReturnStatementEdge:
           case FunctionReturnEdge:
             postCondition =
-                calculatePostconditionForAssignment(preCondition, pathFormula, abstractThisFormula);
+                calculatePostconditionForAssignment(
+                    preCondition, pathFormula, abstractThisFormula, requiredPart);
             break;
           default:
             if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
@@ -317,7 +322,15 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
       // Normally here would be the place for checking unsatisfiability. But reoccuring counterexamples
       // throw an exception so this check is not necessary.
-
+      try {
+        if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+          logger.log(
+              Level.SEVERE,
+              "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
+        }
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed while showing unsatisfiability of last predicate.");
+      }
       // Remove the last predicate as always false
       return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
     } finally {
@@ -336,7 +349,10 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @throws InterruptedException When interrupted
    */
   private BooleanFormula calculatePostconditionForAssignment(
-      BooleanFormula preCondition, PathFormula pathFormula, boolean abstractThisFormula)
+      BooleanFormula preCondition,
+      PathFormula pathFormula,
+      boolean abstractThisFormula,
+      Optional<BooleanFormula> requiredPart)
       throws InterruptedException {
 
     BooleanFormula toExist;
@@ -346,7 +362,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
     if (abstractThisFormula) {
       toExist = preCondition;
     } else {
-      toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+      assert requiredPart.isPresent();
+      toExist = fmgr.makeAnd(preCondition, requiredPart.get());
     }
     // If the toExist is true, the postCondition is True too.
     if (toExist == fmgr.getBooleanFormulaManager().makeTrue()) {
