@@ -107,14 +107,17 @@ class ASTConverter {
     final Expression initializer = pVariableDeclarationFragment.getInitializer();
     final JSInitializerExpression initializerExpression =
         new JSInitializerExpression(getFileLocation(initializer), convert(initializer));
-    return new JSVariableDeclaration(
-        getFileLocation(pVariableDeclarationFragment),
-        false,
-        JSAnyType.ANY,
-        variableIdentifier,
-        variableIdentifier,
-        variableIdentifier,
-        initializerExpression);
+    // TODO qualified name has to contain function name
+    throw new CFAGenerationRuntimeException(
+        "JSVariableDeclaration is not created with qualified name");
+//    return new JSVariableDeclaration(
+//        getFileLocation(pVariableDeclarationFragment),
+//        false,
+//        JSAnyType.ANY,
+//        variableIdentifier,
+//        variableIdentifier,
+//        variableIdentifier,
+//        initializerExpression);
   }
 
   public JSExpression convert(final Expression pExpression) {
