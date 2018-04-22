@@ -2205,7 +2205,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSBooleanLiteralExpression pBooleanLiteralExpression)
       throws RuntimeException {
-    return null; // TODO implement
+    return BooleanValue.valueOf(pBooleanLiteralExpression.getValue());
   }
 
   @Override
