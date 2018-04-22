@@ -112,6 +112,12 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     } else if (pExpression instanceof PrefixExpression) {
       return prefixExpressionAppendable.append(pBuilder, (PrefixExpression) pExpression);
     } else if (pExpression instanceof SimpleName) {
+      // undefined is writable in ES3, but not writable in ES5, see:
+      // https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/undefined#Description
+      // The used parser of Eclipse JSDT 3.9 does only support ES3.
+      // Thereby, it creates a SimpleName for undefined instead of an UndefinedLiteral.
+      // We like to be conformant to ES5.
+      // That's why we convert it to an JSUndefinedLiteralExpression if it is used as an Expression.
       final SimpleName simpleName = (SimpleName) pExpression;
       return simpleName.getIdentifier().equals("undefined")
           ? new JSUndefinedLiteralExpression(pBuilder.getAstConverter().getFileLocation(simpleName))
