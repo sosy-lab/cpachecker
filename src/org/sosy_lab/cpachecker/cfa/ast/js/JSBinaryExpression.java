@@ -163,6 +163,134 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
       }
     }
 
+    public boolean isEqualityOperator() {
+      switch (this) {
+        case AND:
+        case DIVIDE:
+        case LEFT_SHIFT:
+        case MINUS:
+        case OR:
+        case PLUS:
+        case REMAINDER:
+        case RIGHT_SHIFT_SIGNED:
+        case RIGHT_SHIFT_UNSIGNED:
+        case TIMES:
+        case XOR:
+        case CONDITIONAL_AND:
+        case CONDITIONAL_OR:
+        case GREATER:
+        case GREATER_EQUALS:
+        case IN:
+        case INSTANCEOF:
+        case LESS:
+        case LESS_EQUALS:
+          return false;
+        case EQUALS:
+        case EQUAL_EQUAL_EQUAL:
+        case NOT_EQUAL_EQUAL:
+        case NOT_EQUALS:
+          return true;
+        default:
+          throw new AssertionError("Unhandled case statement");
+      }
+    }
+
+    public boolean isMultiplicativeOperator() {
+      switch (this) {
+        case AND:
+        case LEFT_SHIFT:
+        case MINUS:
+        case OR:
+        case PLUS:
+        case RIGHT_SHIFT_SIGNED:
+        case RIGHT_SHIFT_UNSIGNED:
+        case XOR:
+        case CONDITIONAL_AND:
+        case CONDITIONAL_OR:
+        case GREATER:
+        case GREATER_EQUALS:
+        case IN:
+        case INSTANCEOF:
+        case LESS:
+        case LESS_EQUALS:
+        case EQUALS:
+        case EQUAL_EQUAL_EQUAL:
+        case NOT_EQUAL_EQUAL:
+        case NOT_EQUALS:
+          return false;
+        case TIMES:
+        case DIVIDE:
+        case REMAINDER:
+          return true;
+        default:
+          throw new AssertionError("Unhandled case statement");
+      }
+    }
+
+    public boolean isAdditiveOperator() {
+      switch (this) {
+        case AND:
+        case LEFT_SHIFT:
+        case OR:
+        case RIGHT_SHIFT_SIGNED:
+        case RIGHT_SHIFT_UNSIGNED:
+        case XOR:
+        case CONDITIONAL_AND:
+        case CONDITIONAL_OR:
+        case GREATER:
+        case GREATER_EQUALS:
+        case IN:
+        case INSTANCEOF:
+        case LESS:
+        case LESS_EQUALS:
+        case EQUALS:
+        case EQUAL_EQUAL_EQUAL:
+        case NOT_EQUAL_EQUAL:
+        case NOT_EQUALS:
+        case TIMES:
+        case DIVIDE:
+        case REMAINDER:
+          return false;
+        case MINUS:
+        case PLUS:
+          return true;
+        default:
+          throw new AssertionError("Unhandled case statement");
+      }
+    }
+
+    public boolean isBitwiseShiftOperator() {
+      switch (this) {
+        case AND:
+        case OR:
+        case XOR:
+        case CONDITIONAL_AND:
+        case CONDITIONAL_OR:
+        case GREATER:
+        case GREATER_EQUALS:
+        case IN:
+        case INSTANCEOF:
+        case LESS:
+        case LESS_EQUALS:
+        case EQUALS:
+        case EQUAL_EQUAL_EQUAL:
+        case NOT_EQUAL_EQUAL:
+        case NOT_EQUALS:
+        case TIMES:
+        case DIVIDE:
+        case REMAINDER:
+        case MINUS:
+        case PLUS:
+          return false;
+        case LEFT_SHIFT:
+        case RIGHT_SHIFT_SIGNED:
+        case RIGHT_SHIFT_UNSIGNED:
+          return true;
+        default:
+          throw new AssertionError("Unhandled case statement");
+      }
+    }
+
     public BinaryOperator getOppositLogicalOperator() {
       assert isLogicalOperator();
       switch (this) {
