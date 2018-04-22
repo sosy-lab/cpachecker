@@ -50,6 +50,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private PrefixExpressionAppendable prefixExpressionAppendable;
   private PostfixExpressionAppendable postfixExpressionAppendable;
   private SimpleNameResolver simpleNameResolver;
+  private StringLiteralConverter stringLiteralConverter;
 
   void setConditionalExpressionAppendable(
       final ConditionalExpressionAppendable pConditionalExpressionAppendable) {
@@ -89,6 +90,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     simpleNameResolver = pSimpleNameResolver;
   }
 
+  void setStringLiteralConverter(final StringLiteralConverter pStringLiteralConverter) {
+    stringLiteralConverter = pStringLiteralConverter;
+  }
+
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof ConditionalExpression) {
@@ -111,11 +116,11 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return simpleName.getIdentifier().equals("undefined")
           ? new JSUndefinedLiteralExpression(pBuilder.getAstConverter().getFileLocation(simpleName))
           : simpleNameResolver.resolve(pBuilder, (SimpleName) pExpression);
+    } else if (pExpression instanceof StringLiteral) {
+      return stringLiteralConverter.convert(pBuilder, (StringLiteral) pExpression);
     }
     // TODO do without ASTConverter
-    if (pExpression instanceof StringLiteral) {
-      return pBuilder.getAstConverter().convert((StringLiteral) pExpression);
-    } else if (pExpression instanceof NumberLiteral) {
+    if (pExpression instanceof NumberLiteral) {
       return pBuilder.getAstConverter().convert((NumberLiteral) pExpression);
     } else if (pExpression instanceof BooleanLiteral) {
       return pBuilder.getAstConverter().convert((BooleanLiteral) pExpression);

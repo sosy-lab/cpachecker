@@ -35,6 +35,7 @@ final class ExpressionAppendableFactory {
     builder.setPrefixExpressionAppendable(new PrefixExpressionCFABuilder());
     builder.setPostfixExpressionAppendable(new PostfixExpressionCFABuilder());
     builder.setSimpleNameResolver(pSimpleNameResolver);
+    builder.setStringLiteralConverter(new StringLiteralConverterImpl());
     return builder;
   }
 }
