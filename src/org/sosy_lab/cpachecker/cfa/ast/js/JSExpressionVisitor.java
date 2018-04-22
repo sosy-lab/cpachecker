@@ -25,21 +25,21 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 
 public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandSideVisitor<R, X> {
 
-  R visit(JSBinaryExpression pIastBinaryExpression) throws X;
+  R visit(JSBinaryExpression pBinaryExpression) throws X;
 
-  R visit(JSStringLiteralExpression pIastStringLiteralExpression) throws X;
+  R visit(JSStringLiteralExpression pStringLiteralExpression) throws X;
 
   R visit(JSFloatLiteralExpression pLiteral) throws X;
 
-  R visit(JSUnaryExpression pIastUnaryExpression) throws X;
+  R visit(JSUnaryExpression pUnaryExpression) throws X;
 
   R visit(JSIntegerLiteralExpression pIntegerLiteralExpression) throws X;
 
-  R visit(JSBooleanLiteralExpression pJBooleanLiteralExpression) throws X;
+  R visit(JSBooleanLiteralExpression pBooleanLiteralExpression) throws X;
 
-  R visit(JSNullLiteralExpression pJNullLiteralExpression) throws X;
+  R visit(JSNullLiteralExpression pNullLiteralExpression) throws X;
 
-  R visit(JSUndefinedLiteralExpression pJNullLiteralExpression) throws X;
+  R visit(JSUndefinedLiteralExpression pUndefinedLiteralExpression) throws X;
 
   R visit(JSThisExpression pThisExpression) throws X;
 }
