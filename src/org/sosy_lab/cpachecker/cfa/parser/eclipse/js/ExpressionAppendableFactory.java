@@ -27,6 +27,7 @@ final class ExpressionAppendableFactory {
 
   static ExpressionAppendable withAllFeatures(final SimpleNameResolver pSimpleNameResolver) {
     final ExpressionCFABuilder builder = new ExpressionCFABuilder();
+    builder.setBooleanLiteralConverter(new BooleanLiteralConverterImpl());
     builder.setConditionalExpressionAppendable(new ConditionalExpressionCFABuilder());
     builder.setFunctionExpressionAppendable(new FunctionExpressionCFABuilder());
     builder.setFunctionInvocationAppendable(new FunctionInvocationCFABuilder());

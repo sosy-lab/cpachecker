@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 
 class ExpressionCFABuilder implements ExpressionAppendable {
 
+  private BooleanLiteralConverter booleanLiteralConverter;
   private ConditionalExpressionAppendable conditionalExpressionAppendable;
   private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
@@ -51,6 +52,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private PostfixExpressionAppendable postfixExpressionAppendable;
   private SimpleNameResolver simpleNameResolver;
   private StringLiteralConverter stringLiteralConverter;
+
+  public void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
+    booleanLiteralConverter = pBooleanLiteralConverter;
+  }
 
   void setConditionalExpressionAppendable(
       final ConditionalExpressionAppendable pConditionalExpressionAppendable) {
@@ -66,6 +71,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       final FunctionInvocationAppendable pFunctionInvocationAppendable) {
     functionInvocationAppendable = pFunctionInvocationAppendable;
   }
+
   void setInfixExpressionAppendable(
       final InfixExpressionAppendable pInfixExpressionAppendable) {
     infixExpressionAppendable = pInfixExpressionAppendable;
@@ -124,12 +130,12 @@ class ExpressionCFABuilder implements ExpressionAppendable {
           : simpleNameResolver.resolve(pBuilder, (SimpleName) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return stringLiteralConverter.convert(pBuilder, (StringLiteral) pExpression);
+    } else if (pExpression instanceof BooleanLiteral) {
+      return booleanLiteralConverter.convert(pBuilder, (BooleanLiteral) pExpression);
     }
     // TODO do without ASTConverter
     if (pExpression instanceof NumberLiteral) {
       return pBuilder.getAstConverter().convert((NumberLiteral) pExpression);
-    } else if (pExpression instanceof BooleanLiteral) {
-      return pBuilder.getAstConverter().convert((BooleanLiteral) pExpression);
     } else if (pExpression instanceof NullLiteral) {
       return pBuilder.getAstConverter().convert((NullLiteral) pExpression);
     } else if (pExpression instanceof UndefinedLiteral) {
