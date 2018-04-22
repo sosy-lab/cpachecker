@@ -38,6 +38,7 @@ import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 
 class ExpressionCFABuilder implements ExpressionAppendable {
 
@@ -48,6 +49,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private ParenthesizedExpressionAppendable parenthesizedExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
   private PostfixExpressionAppendable postfixExpressionAppendable;
+  private SimpleNameResolver simpleNameResolver;
 
   void setConditionalExpressionAppendable(
       final ConditionalExpressionAppendable pConditionalExpressionAppendable) {
@@ -83,6 +85,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     postfixExpressionAppendable = pPostfixExpressionAppendable;
   }
 
+  void setSimpleNameResolver(final SimpleNameResolver pSimpleNameResolver) {
+    simpleNameResolver = pSimpleNameResolver;
+  }
+
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof ConditionalExpression) {
@@ -100,11 +106,14 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return postfixExpressionAppendable.append(pBuilder, (PostfixExpression) pExpression);
     } else if (pExpression instanceof PrefixExpression) {
       return prefixExpressionAppendable.append(pBuilder, (PrefixExpression) pExpression);
+    } else if (pExpression instanceof SimpleName) {
+      final SimpleName simpleName = (SimpleName) pExpression;
+      return simpleName.getIdentifier().equals("undefined")
+          ? new JSUndefinedLiteralExpression(pBuilder.getAstConverter().getFileLocation(simpleName))
+          : simpleNameResolver.resolve(pBuilder, (SimpleName) pExpression);
     }
     // TODO do without ASTConverter
-    if (pExpression instanceof SimpleName) {
-      return pBuilder.getAstConverter().convert((SimpleName) pExpression);
-    } else if (pExpression instanceof StringLiteral) {
+    if (pExpression instanceof StringLiteral) {
       return pBuilder.getAstConverter().convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
       return pBuilder.getAstConverter().convert((NumberLiteral) pExpression);

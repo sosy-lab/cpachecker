@@ -26,10 +26,13 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.Statement;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder {
@@ -40,10 +43,10 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   // JavaScriptCFABuilderFactory.withAllFeatures
   private ExpressionAppendable expressionAppendable;
   private FunctionDeclarationAppendable functionDeclarationAppendable;
-  private FunctionDeclarationResolver functionDeclarationResolver;
   private JavaScriptUnitAppendable javaScriptUnitAppendable;
   private StatementAppendable statementAppendable;
   private VariableNameGenerator variableNameGenerator;
+  private VariableDeclarationFragmentAppendable variableDeclarationFragmentAppendable;
 
   JavaScriptCFABuilderImpl(final CFABuilder pBuilder) {
     builder = pBuilder;
@@ -80,6 +83,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
     duplicate.setFunctionDeclarationAppendable(functionDeclarationAppendable);
     duplicate.setJavaScriptUnitAppendable(javaScriptUnitAppendable);
     duplicate.setStatementAppendable(statementAppendable);
+    duplicate.setVariableDeclarationFragmentAppendable(variableDeclarationFragmentAppendable);
     return duplicate;
   }
 
@@ -138,13 +142,19 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   }
 
   @Override
-  public void setFunctionDeclarationResolver(
-      final FunctionDeclarationResolver pFunctionDeclarationResolver) {
-    functionDeclarationResolver = pFunctionDeclarationResolver;
+  public JSVariableDeclaration append(
+      final VariableDeclarationFragment pVariableDeclarationFragment) {
+    return variableDeclarationFragmentAppendable.append(this, pVariableDeclarationFragment);
   }
 
   @Override
-  public JSFunctionDeclaration resolveFunctionDeclaration(final JSIdExpression pFunctionId) {
-    return functionDeclarationResolver.resolve(this, pFunctionId);
+  public JSIdExpression resolve(final SimpleName pSimpleName) {
+    return (JSIdExpression) expressionAppendable.append(this, pSimpleName);
+  }
+
+  @Override
+  public void setVariableDeclarationFragmentAppendable(
+      final VariableDeclarationFragmentAppendable pVariableDeclarationFragmentAppendable) {
+    variableDeclarationFragmentAppendable = pVariableDeclarationFragmentAppendable;
   }
 }

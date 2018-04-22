@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,23 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import java.util.List;
-import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
-import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 
-class VariableDeclarationStatementCFABuilder implements VariableDeclarationStatementAppendable {
-
-  @Override
-  public void append(
-      final JavaScriptCFABuilder pBuilder,
-      final VariableDeclarationStatement pVariableDeclarationStatement) {
-    @SuppressWarnings("unchecked")
-    final List<VariableDeclarationFragment> variableDeclarationFragments =
-        pVariableDeclarationStatement.fragments();
-    for (final VariableDeclarationFragment variableDeclarationFragment :
-        variableDeclarationFragments) {
-      pBuilder.append(variableDeclarationFragment);
-    }
-  }
-
+interface SimpleNameResolver {
+  JSIdExpression resolve(JavaScriptCFABuilder pBuilder, SimpleName pSimpleName);
 }

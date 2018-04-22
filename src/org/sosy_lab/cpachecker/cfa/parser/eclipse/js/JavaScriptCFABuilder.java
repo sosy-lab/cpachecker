@@ -26,11 +26,14 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.Statement;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuilder>, VariableNameGenerator {
@@ -59,5 +62,7 @@ interface JavaScriptCFABuilder extends CFABuilderWrapperOfType<JavaScriptCFABuil
 
   JSExpression append(Expression pExpression);
 
-  JSFunctionDeclaration resolveFunctionDeclaration(JSIdExpression pFunctionId);
+  JSVariableDeclaration append(VariableDeclarationFragment pVariableDeclarationFragment);
+
+  JSIdExpression resolve(final SimpleName pSimpleName);
 }

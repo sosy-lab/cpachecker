@@ -29,10 +29,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
-import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
@@ -48,10 +48,16 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
   public final void testFunctionInvocation() {
     final JavaScriptUnit ast = createAST("function foo() { /* stub */ }\nfoo()");
     final String expectedFunctionName = "foo";
-    final FunctionDeclaration functionDeclaration = (FunctionDeclaration) ast.statements().get(0);
     final FunctionInvocation functionInvocation =
         (FunctionInvocation) ((ExpressionStatement) ast.statements().get(1)).getExpression();
     // expected CFA: entryNode -{foo()}-> ()
+
+    final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
+    final JSIdExpression functionId =
+        new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "foo", functionDeclaration);
+    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
+    when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(functionId);
+    builder.setExpressionAppendable(expressionAppendable);
 
     // TODO check return value
     new FunctionInvocationCFABuilder().append(builder, functionInvocation);
@@ -87,10 +93,6 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     when(expressionAppendable.append(any(), any(ParenthesizedExpression.class)))
         .thenReturn(functionId);
     builder.setExpressionAppendable(expressionAppendable);
-    final FunctionDeclarationResolver functionDeclarationResolver =
-        mock(FunctionDeclarationResolver.class);
-    when(functionDeclarationResolver.resolve(builder, functionId)).thenReturn(functionDeclaration);
-    builder.setFunctionDeclarationResolver(functionDeclarationResolver);
 
     // TODO check return value
     new FunctionInvocationCFABuilder().append(builder, functionInvocation);

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.Collections;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
-import org.eclipse.wst.jsdt.internal.core.dom.binding.FunctionBinding;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
@@ -43,12 +42,9 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
     final ASTConverter astConverter = pBuilder.getAstConverter();
     final JSIdExpression function =
         pNode.getName() != null
-            ? astConverter.convert(pNode.getName())
+            ? pBuilder.resolve(pNode.getName())
             : (JSIdExpression) pBuilder.append(pNode.getExpression());
-    final JSFunctionDeclaration declaration =
-        pNode.getName() != null
-            ? astConverter.convert((FunctionBinding) pNode.getName().resolveBinding())
-            : pBuilder.resolveFunctionDeclaration(function);
+    final JSFunctionDeclaration declaration = (JSFunctionDeclaration) function.getDeclaration();
     final JSFunctionCallStatement functionCallStatement =
         new JSFunctionCallStatement(
             astConverter.getFileLocation(pNode),

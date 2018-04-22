@@ -37,11 +37,22 @@ final class JavaScriptCFABuilderFactory {
     final FileCFABuilder fileBuilder =
         new FileCFABuilder(pScope, pLogger, new JavaScriptUnitCFABuilder());
     final JavaScriptCFABuilderImpl builder = new JavaScriptCFABuilderImpl(fileBuilder.getBuilder());
-    builder.setExpressionAppendable(ExpressionAppendableFactory.withAllFeatures());
-    builder.setFunctionDeclarationAppendable(new FunctionDeclarationCFABuilder());
-    builder.setFunctionDeclarationResolver(new FunctionDeclarationResolverImpl());
+    final VariableDeclarationRegistryImpl variableDeclarationRegistry =
+        new VariableDeclarationRegistryImpl();
+    final FunctionDeclarationRegistryImpl functionDeclarationRegistry =
+        new FunctionDeclarationRegistryImpl();
+    final SimpleNameResolver simpleNameResolver =
+        new SimpleNameResolverImpl(variableDeclarationRegistry, functionDeclarationRegistry);
+    builder.setExpressionAppendable(
+        ExpressionAppendableFactory.withAllFeatures(simpleNameResolver));
+    builder.setFunctionDeclarationAppendable(
+        new RegisteredFunctionDeclarationCFABuilder(
+            functionDeclarationRegistry, new FunctionDeclarationCFABuilder()));
     builder.setJavaScriptUnitAppendable(fileBuilder);
     builder.setStatementAppendable(StatementAppendableFactory.withAllFeatures());
+    builder.setVariableDeclarationFragmentAppendable(
+        new RegisteredVariableDeclarationFragmentCFABuilder(
+            variableDeclarationRegistry, new VariableDeclarationFragmentCFABuilder()));
     return builder;
   }
 

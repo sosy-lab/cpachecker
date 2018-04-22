@@ -24,20 +24,28 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.base.Optional;
+import java.util.Collections;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
+import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
 class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
   @Override
   public JSFunctionDeclaration append(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
-    final ASTConverter astConverter = pBuilder.getAstConverter();
-    final JSFunctionDeclaration jsFunctionDeclaration = astConverter.convert(pFunctionDeclaration);
+    final JSFunctionDeclaration jsFunctionDeclaration =
+        new JSFunctionDeclaration(
+            pBuilder.getAstConverter().getFileLocation(pFunctionDeclaration),
+            new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
+            getFunctionName(pFunctionDeclaration),
+            Collections.emptyList());
     final String functionName = jsFunctionDeclaration.getName();
     final FunctionExitNode exitNode = new FunctionExitNode(functionName);
     final JSFunctionEntryNode entryNode =
@@ -67,4 +75,9 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     pBuilder.appendEdge(DummyEdge.withDescription("Function start dummy edge"));
   }
 
+  public static String getFunctionName(final FunctionDeclaration node) {
+    return node.getMethodName() == null
+        ? "__CPAChecker_ANONYMOUS_FUNCTION_" + node.hashCode()
+        : ((SimpleName) node.getMethodName()).getIdentifier();
+  }
 }

@@ -47,6 +47,8 @@ public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBa
 
     builder.setExpressionAppendable((pBuilder, pExpression) -> expectedInitializerExpression);
 
+    // TODO test VariableDeclarationFragmentCFABuilder and VariableDeclarationStatementCFABuilder separately
+    builder.setVariableDeclarationFragmentAppendable(new VariableDeclarationFragmentCFABuilder());
     new VariableDeclarationStatementCFABuilder().append(builder, variableDeclarationStatement);
 
     final JSDeclarationEdge declarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
@@ -73,6 +75,8 @@ public class VariableDeclarationStatementCFABuilderTest extends CFABuilderTestBa
     builder.setExpressionAppendable(
         (pBuilder, pExpression) -> pBuilder.getAstConverter().convert((NumberLiteral) pExpression));
 
+    // TODO test VariableDeclarationFragmentCFABuilder and VariableDeclarationStatementCFABuilder separately
+    builder.setVariableDeclarationFragmentAppendable(new VariableDeclarationFragmentCFABuilder());
     new VariableDeclarationStatementCFABuilder().append(builder, variableDeclarationStatement);
 
     final JSDeclarationEdge xDeclarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);

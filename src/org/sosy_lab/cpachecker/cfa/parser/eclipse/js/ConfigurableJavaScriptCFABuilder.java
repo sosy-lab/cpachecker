@@ -34,5 +34,6 @@ interface ConfigurableJavaScriptCFABuilder extends JavaScriptCFABuilder {
 
   void setJavaScriptUnitAppendable(JavaScriptUnitAppendable pJavaScriptUnitAppendable);
 
-  void setFunctionDeclarationResolver(FunctionDeclarationResolver pFunctionDeclarationResolver);
+  void setVariableDeclarationFragmentAppendable(
+      VariableDeclarationFragmentAppendable pVariableDeclarationFragmentAppendable);
 }
