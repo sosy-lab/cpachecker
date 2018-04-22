@@ -2188,7 +2188,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(final JSFloatLiteralExpression pLiteral) throws RuntimeException {
-    return null; // TODO implement
+    return new NumericValue(pLiteral.getValue());
   }
 
   @Override
@@ -2199,7 +2199,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSIntegerLiteralExpression pIntegerLiteralExpression)
       throws RuntimeException {
-    return null; // TODO implement
+    return new NumericValue(pIntegerLiteralExpression.asLong());
   }
 
   @Override
