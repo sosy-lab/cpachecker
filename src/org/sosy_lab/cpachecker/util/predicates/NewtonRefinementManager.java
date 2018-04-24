@@ -258,31 +258,28 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // Decide whether to abstract this Formula(Only true if unsatCore is present and does not
         // contain the formula
-        boolean abstractThisFormula = false;
         Optional<BooleanFormula> requiredPart = Optional.empty();
         if (pUnsatCore.isPresent()) {
-          abstractThisFormula = true;
 
           // Split up any conjunction in the pathformula, to be able to identify if contained in
           // unsat core
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
             if (pUnsatCore.get().contains(pathFormulaElement)) {
-              abstractThisFormula = false;
               requiredPart = Optional.of(pathFormulaElement);
               break;
             }
           }
+        } else {
+          requiredPart = Optional.of(pathFormula.getFormula());
         }
         switch (edge.getEdgeType()) {
           case AssumeEdge:
-            // If this formula should be abstracted it does not imply any additional atoms
-            if (abstractThisFormula) {
-              postCondition = preCondition;
-            }
-            // Else make the conjunction of the precondition and the pathFormula
-            else {
-              assert requiredPart.isPresent();
+            if (requiredPart.isPresent()) {
               postCondition = fmgr.makeAnd(preCondition, requiredPart.get());
+            }
+            // Else no additional assertions
+            else {
+              postCondition = preCondition;
             }
             break;
           case StatementEdge:
@@ -291,8 +288,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           case ReturnStatementEdge:
           case FunctionReturnEdge:
             postCondition =
-                calculatePostconditionForAssignment(
-                    preCondition, pathFormula, abstractThisFormula, requiredPart);
+                calculatePostconditionForAssignment(preCondition, pathFormula, requiredPart);
             break;
           default:
             if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
@@ -341,27 +337,22 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *
    * @param preCondition The condition prior to the assignment
    * @param pathFormula The PathFormula associated with the assignment
-   * @param abstractThisFormula Sets whether to abstract this assignment(when true, the assignment
-   *     basically havocs the assigned variable)
+   * @param requiredPart The part of the PathFormula that must be kept
    * @return The postCondition as BooleanFormula
    * @throws InterruptedException When interrupted
    */
   private BooleanFormula calculatePostconditionForAssignment(
-      BooleanFormula preCondition,
-      PathFormula pathFormula,
-      boolean abstractThisFormula,
-      Optional<BooleanFormula> requiredPart)
+      BooleanFormula preCondition, PathFormula pathFormula, Optional<BooleanFormula> requiredPart)
       throws InterruptedException {
 
     BooleanFormula toExist;
 
-    // If this formula should be abstracted, this statement havocs the leftHand variable
+    // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand variable
     // Therefore its previous values can be existentially quantified in the preCondition
-    if (abstractThisFormula) {
-      toExist = preCondition;
-    } else {
-      assert requiredPart.isPresent();
+    if (requiredPart.isPresent()) {
       toExist = fmgr.makeAnd(preCondition, requiredPart.get());
+    } else {
+      toExist = preCondition;
     }
     // If the toExist is true, the postCondition is True too.
     if (toExist == fmgr.getBooleanFormulaManager().makeTrue()) {
