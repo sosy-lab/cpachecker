@@ -69,8 +69,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
  * Class designed to perform a Newton-based refinement
@@ -375,7 +373,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     Map<String, Formula> intermediateVars =
         Maps.newHashMap(
             Maps.filterEntries(
-                extractVariables(toExist),
+                fmgr.extractVariables(toExist),
                 new Predicate<Entry<String, Formula>>() {
 
                   @Override
@@ -456,7 +454,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         // identify the variables that are not future live and can be existentially quantified
         Map<String, Formula> toQuantify =
             Maps.filterEntries(
-                extractVariables(pred),
+                fmgr.extractVariables(pred),
                 (e) -> {
                   return !futureLives.contains(e.getKey());
                 });
@@ -480,38 +478,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
     } finally {
       stats.futureLivesTimer.stop();
     }
-  }
-
-  /**
-   * Extract the Variables in a given Formula and store them in a Map, where its name is the key and
-   * its Formula is the value.
-   *
-   * <p>Has the advantage compared to extractVariableNames, that the Type information still is
-   * intact in the formula.
-   *
-   * @param formula The formula to extract the variables from
-   * @return A Map<String, Formula> where the Names are the keys are the formulas.
-   */
-  private Map<String, Formula> extractVariables(BooleanFormula formula) {
-    Map<String, Formula> result = new HashMap<>();
-    fmgr.visitRecursively(
-        formula,
-        new DefaultFormulaVisitor<TraversalProcess>() {
-
-          @Override
-          protected TraversalProcess visitDefault(Formula pF) {
-            return TraversalProcess.CONTINUE;
-          }
-
-          @Override
-          public TraversalProcess visitFreeVariable(Formula pF, String pName) {
-            result.put(pName, pF);
-            return TraversalProcess.CONTINUE;
-          }
-        });
-    assert result.size() == fmgr.extractVariableNames(formula).size()
-        : "Should have same number of elements as the extractVariableNames method";
-    return ImmutableMap.copyOf(result);
   }
 
   /**
