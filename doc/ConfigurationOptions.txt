@@ -1414,11 +1414,11 @@ cpa.invariants.usePointerAliasStrengthening = true
 cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 
 # functions, which allocate new free memory
-cpa.local.allocateFunctionPattern = Sets.newHashSet()
-cpa.local.allocatefunctions = no default value
+cpa.local.allocateFunctionPattern = {}
+cpa.local.allocatefunctions = {}
 
 # functions, which do not change sharedness of parameters
-cpa.local.conservativefunctions = no default value
+cpa.local.conservativefunctions = {}
 
 # variables, which are always local
 cpa.local.localvariables = Collections.emptySet()

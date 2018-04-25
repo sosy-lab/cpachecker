@@ -103,15 +103,9 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     return this.clone(rootState.previousState);
   }
 
-  public LocalState reduce() {
-    return this.clone(null);
-  }
-
   private boolean checkIsAlwaysLocal(AbstractIdentifier name) {
     if (name instanceof SingleIdentifier) {
-      if (alwaysLocalData.contains(((SingleIdentifier) name).getName())) {
-        return true;
-      }
+      return alwaysLocalData.contains(((SingleIdentifier) name).getName());
     }
     return false;
   }

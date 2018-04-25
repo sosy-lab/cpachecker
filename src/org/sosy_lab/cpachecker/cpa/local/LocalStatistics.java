@@ -60,10 +60,6 @@ public class LocalStatistics implements Statistics {
       throws InvalidConfigurationException {
     logger = pLogger;
     pConfig.inject(this);
-    /*String fName = pConfig.getProperty("precision.path");
-    if (fName != null) {
-      outputFileName = fName;
-    }*/
   }
 
   @Override
