@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.rcucpa.rcusearch;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,12 +39,12 @@ public class RCUSearchState implements AbstractWrapperState {
   private final PointerState pointerState;
 
   public RCUSearchState(Set<MemoryLocation> pointers, PointerState pPointerState) {
-    rcuPointers = pointers;
+    rcuPointers = ImmutableSet.copyOf(pointers);
     pointerState = pPointerState;
   }
 
   public RCUSearchState() {
-    rcuPointers = new HashSet<>();
+    rcuPointers = ImmutableSet.of();
     pointerState = PointerState.INITIAL_STATE;
   }
 
@@ -81,7 +82,8 @@ public class RCUSearchState implements AbstractWrapperState {
 
   @Override
   public String toString() {
-    return rcuPointers.toString() + " # " + pointerState.getPointsToMap();
+    return rcuPointers.toString() + (rcuPointers.isEmpty() ? " EMPTY" : " NOT EMPTY") + " # " +
+        pointerState.getPointsToMap();
   }
 
   @Override
@@ -90,7 +92,7 @@ public class RCUSearchState implements AbstractWrapperState {
   }
 
   public static RCUSearchState copyOf(RCUSearchState pState) {
-    return new RCUSearchState(new HashSet<>(pState.rcuPointers),
+    return new RCUSearchState(ImmutableSet.copyOf(pState.rcuPointers),
                               PointerState.copyOf(pState.pointerState));
   }
 

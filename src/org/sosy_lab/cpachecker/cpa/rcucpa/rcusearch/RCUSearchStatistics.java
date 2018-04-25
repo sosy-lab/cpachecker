@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.rcucpa.rcusearch;
 
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import java.io.IOException;
@@ -32,6 +36,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +55,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerStatistics;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -80,40 +87,50 @@ public class RCUSearchStatistics implements Statistics {
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-    AbstractState state = reached.getLastState();
-    RCUSearchState rcuSearchState = AbstractStates.extractStateByType(state, RCUSearchState.class);
-
-    if (rcuSearchState != null) {
-      Map<MemoryLocation, Set<MemoryLocation>> pointsTo = rcuSearchState.getPointsTo();
-      Map<MemoryLocation, Set<MemoryLocation>> aliases = getAliases(pointsTo);
-
-      Set<MemoryLocation> rcuPointers = rcuSearchState.getRcuPointers();
-
-      Set<MemoryLocation> rcuAndAliases = new HashSet<>(rcuPointers);
-
-      for (MemoryLocation pointer : rcuPointers) {
-        if (!aliases.containsKey(pointer)) {
-          logger.log(Level.WARNING, "No RCU pointer <" + pointer.toString() + "> in aliases");
-        } else {
-          rcuAndAliases.addAll(aliases.get(pointer));
+    Set<MemoryLocation> allRcuPointers = new HashSet<>();
+    Map<MemoryLocation, Set<MemoryLocation>> allPointsTo = new HashMap<>();
+    for (AbstractState state : reached) {
+      RCUSearchState searchState = AbstractStates.extractStateByType(state, RCUSearchState.class);
+      if (searchState != null) {
+        allRcuPointers.addAll(searchState.getRcuPointers());
+        Map<MemoryLocation, Set<MemoryLocation>> bufPT = searchState.getPointsTo();
+        for (MemoryLocation key : bufPT.keySet()) {
+          allPointsTo.putIfAbsent(key, new HashSet<>());
+          allPointsTo.get(key).addAll(bufPT.get(key));
         }
       }
-      try (Writer writer = Files.newBufferedWriter(output, Charset.defaultCharset())) {
-        Gson builder = new Gson();
-        java.lang.reflect.Type type = new TypeToken<Set<MemoryLocation>>(){
-        }.getType();
-        builder.toJson(rcuAndAliases, type, writer);
-        logger.log(Level.INFO, "Ended dump of RCU-aliases in file " + output);
-      } catch (IOException pE) {
-        logger.log(Level.WARNING, pE.getMessage());
-      }
-      String info = "";
-      info += "Number of RCU pointers:        " + rcuPointers.size() + "\n";
-      info += "Number of RCU aliases:         " + (rcuAndAliases.size() - rcuPointers.size()) + "\n";
-      info += "Number of fictional pointers:  " + getFictionalPointersNumber(rcuAndAliases) + "\n";
-      out.append(info);
-      logger.log(Level.ALL, "RCU with aliases: " + rcuAndAliases);
     }
+
+    Multimap<MemoryLocation, MemoryLocation> aliases = getAliases(allPointsTo);
+
+    logger.log(Level.ALL, "RCU pointers in the last state: " + allRcuPointers);
+
+    Set<MemoryLocation> rcuAndAliases = new HashSet<>(allRcuPointers);
+
+    for (MemoryLocation pointer : allRcuPointers) {
+      if (!aliases.containsKey(pointer)) {
+        logger.log(Level.WARNING, "No RCU pointer <" + pointer.toString() + "> in aliases");
+      } else {
+        Collection<MemoryLocation> buf = aliases.get(pointer);
+        logger.log(Level.ALL, "Aliases for RCU pointer " + pointer + ": " + buf);
+        rcuAndAliases.addAll(buf);
+      }
+    }
+    try (Writer writer = Files.newBufferedWriter(output, Charset.defaultCharset())) {
+      Gson builder = new Gson();
+      java.lang.reflect.Type type = new TypeToken<Set<MemoryLocation>>(){
+      }.getType();
+      builder.toJson(rcuAndAliases, type, writer);
+      logger.log(Level.INFO, "Ended dump of RCU-aliases in file " + output);
+    } catch (IOException pE) {
+      logger.log(Level.WARNING, pE.getMessage());
+    }
+    String info = "";
+    info += "Number of RCU pointers:        " + allRcuPointers.size() + "\n";
+    info += "Number of RCU aliases:         " + (rcuAndAliases.size() - allRcuPointers.size()) + "\n";
+    info += "Number of fictional pointers:  " + getFictionalPointersNumber(rcuAndAliases) + "\n";
+    out.append(info);
+    logger.log(Level.ALL, "RCU with aliases: " + rcuAndAliases);
 
   }
 
@@ -123,20 +140,17 @@ public class RCUSearchStatistics implements Statistics {
     return "RCU Search";
   }
 
-  private Map<MemoryLocation, Set<MemoryLocation>> getAliases(Map<MemoryLocation,
+  private Multimap<MemoryLocation, MemoryLocation> getAliases(Map<MemoryLocation,
                                                                      Set<MemoryLocation>> pointsTo) {
-    Map<MemoryLocation, Set<MemoryLocation>> aliases = new HashMap<>();
-    // TODO: maybe it's better to invert map
+    Multimap<MemoryLocation, MemoryLocation> aliases = HashMultimap.create();
     for (MemoryLocation pointer : pointsTo.keySet()) {
       Set<MemoryLocation> pointerPointTo = pointsTo.get(pointer);
       if (pointerPointTo.contains(PointerStatistics.getReplLocSetTop())) {
         // pointer can point anywhere
-        aliases.put(pointer, new HashSet<>(pointsTo.keySet()));
-        aliases.get(pointer).remove(pointer);
+        aliases.putAll(pointer, pointsTo.keySet());
         for (MemoryLocation other : pointsTo.keySet()) {
-          aliases.putIfAbsent(other, new HashSet<>());
-          logger.log(Level.ALL, "Adding ", pointer, " to ", other, " as an alias");
-          aliases.get(other).add(pointer);
+          // logger.log(Level.ALL, "Adding ", pointer, " to ", other, " as an alias");
+          aliases.put(other, pointer);
         }
       } else if (!pointerPointTo.contains(PointerStatistics.getReplLocSetBot())) {
         Set<MemoryLocation> commonElems;
@@ -145,23 +159,14 @@ public class RCUSearchStatistics implements Statistics {
             commonElems = new HashSet<>(pointsTo.get(other));
             commonElems.retainAll(pointerPointTo);
             if (!commonElems.isEmpty()) {
-              addAlias(aliases, pointer, other);
-              addAlias(aliases, other, pointer);
+              aliases.put(pointer, other);
+              aliases.put(other, pointer);
             }
           }
         }
       }
     }
     return aliases;
-  }
-
-  private void addAlias(Map<MemoryLocation, Set<MemoryLocation>> aliases,
-                               MemoryLocation one,
-                               MemoryLocation other) {
-    if (!aliases.containsKey(one)) {
-      aliases.put(one, new HashSet<>());
-    }
-    aliases.get(one).add(other);
   }
 
   private int getFictionalPointersNumber(Set<MemoryLocation> ptrs) {

@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
+import org.sosy_lab.cpachecker.cpa.rcucpa.RCUState;
 import org.sosy_lab.cpachecker.cpa.usage.BinderFunctionInfo.LinkerInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.AliasInfoProvider;
@@ -171,7 +172,7 @@ public class UsageTransferRelation implements TransferRelation {
       callstackTransfer.enableRecursiveContext();
       needToReset = true;
       currentEdge = ((FunctionCallEdge)pCfaEdge).getSummaryEdge();
-      currentEdge = currentEdge.getPredecessor().getEdgeTo(currentEdge.getSuccessor());
+      // currentEdge = currentEdge.getPredecessor().getEdgeTo(currentEdge.getSuccessor());
       Preconditions.checkNotNull(currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
       logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
     }
@@ -404,8 +405,10 @@ public class UsageTransferRelation implements TransferRelation {
 
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
+
       UsageBuilder builder = new UsageBuilder(pair.getSecond(),
           expression.getFileLocation().getStartingLineNumber(), newState);
+      logger.log(Level.ALL, "Creating usage for: " + id);
       addUsageIfNecessary(id, builder);
     }
   }
@@ -417,9 +420,23 @@ public class UsageTransferRelation implements TransferRelation {
       // Basically the same as returning irrelevant usage before the change
       return;
     }
-
     SingleIdentifier singleId = (SingleIdentifier) id;
-
+    if (singleId.getName().contains("CPAchecker_TMP")) {
+      RCUState rcuState = AbstractStates.extractStateByType(newState, RCUState.class);
+      AbstractIdentifier buf = null;
+      if (rcuState != null) {
+        logger.log(Level.ALL, "ASK: Asking RCUState for mapping of tmpVar");
+        buf = rcuState.getNonTemporaryId(singleId);
+      } else {
+        logger.log(Level.ALL, "ASK: RCUState is null");
+      }
+      if (buf != null) {
+        logger.log(Level.ALL, "SUBST: " + singleId + " with " + buf);
+        singleId = (SingleIdentifier) buf;
+      } else {
+        logger.log(Level.ALL, "NO SUBST: " + singleId);
+      }
+    }
     CFANode node = AbstractStates.extractLocation(newState);
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 

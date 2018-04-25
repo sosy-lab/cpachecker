@@ -98,9 +98,13 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       ThreadLabel result = null;
       for (ThreadLabel tmpLabel : tSet) {
         if (tmpLabel.getVarName().equals(pVarName)) {
-          assert result == null : "Found several threads with the same variable";
-          assert tmpLabel.isParentThread() : "Try to self-join";
-          result = tmpLabel;
+          if (!tmpLabel.isSelfParallel()) {
+            assert result == null : "Found several threads with the same variable";
+            assert tmpLabel.isParentThread() : "Try to self-join";
+            result = tmpLabel;
+          } else if (jCall.isSelfParallel()) {
+            result = tmpLabel;
+          }
         }
       }
       if (result == null) {

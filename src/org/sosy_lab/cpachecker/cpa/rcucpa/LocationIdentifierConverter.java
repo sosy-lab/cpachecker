@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.rcucpa;
 
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.BinaryIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GlobalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -37,14 +38,12 @@ public class LocationIdentifierConverter {
   }
 
   public static MemoryLocation toLocation(AbstractIdentifier id) {
-    MemoryLocation result = null;
-
     if (id instanceof LocalVariableIdentifier) {
       LocalVariableIdentifier lvid = (LocalVariableIdentifier) id;
-      result = MemoryLocation.valueOf(lvid.getFunction(), lvid.getName());
+      return MemoryLocation.valueOf(lvid.getFunction(), lvid.getName());
     } else if (id instanceof GlobalVariableIdentifier) {
       GlobalVariableIdentifier gvid = (GlobalVariableIdentifier) id;
-      result = MemoryLocation.valueOf(gvid.getName());
+      return MemoryLocation.valueOf(gvid.getName());
     } else if (id instanceof StructureFieldIdentifier) {
       StructureFieldIdentifier stfid = (StructureFieldIdentifier) id;
       AbstractIdentifier owner = stfid.getOwner();
@@ -53,8 +52,7 @@ public class LocationIdentifierConverter {
         if (ownerType.contains("(")) {
           ownerType = ownerType.substring(ownerType.indexOf("(") + 1, ownerType.indexOf(")"));
         }
-        return MemoryLocation.valueOf(ownerType + "." +
-            ((SingleIdentifier)stfid).getName());
+        return MemoryLocation.valueOf(ownerType + "." + stfid.getName());
       } else {
         return MemoryLocation.valueOf(stfid.toString());
       }
@@ -66,13 +64,18 @@ public class LocationIdentifierConverter {
         if (ownerType.contains("(")) {
           ownerType = ownerType.substring(ownerType.indexOf("(") + 1, ownerType.indexOf(")"));
         }
-        return MemoryLocation.valueOf(ownerType + "." +
-            ((SingleIdentifier)stid).getName());
+        return MemoryLocation.valueOf(ownerType + "." + stid.getName());
       } else {
         return MemoryLocation.valueOf(stid.toString());
       }
+    } else if (id instanceof BinaryIdentifier) {
+      BinaryIdentifier bid = (BinaryIdentifier) id;
+      for (AbstractIdentifier aid : bid.getComposedIdentifiers()) {
+        if (aid.isPointer()) {
+          return toLocation(aid);
+        }
+      }
     }
-
-    return result;
+    return null;
   }
 }

@@ -207,6 +207,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final CFA cfa;
   private final CompositeOptions options;
 
+  private final CompositeStatistics statistics;
+
   private CompositeCPA(
       CFA pCfa,
       MergeOperator mergeOperator,
@@ -220,6 +222,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
     this.options = pOptions;
+    this.statistics = new CompositeStatistics();
   }
 
   @Override
@@ -293,6 +296,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+
     for (ConfigurableProgramAnalysis cpa: cpas) {
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
