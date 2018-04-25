@@ -29,6 +29,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -43,8 +44,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
 
   public static class ThreadStateBuilder {
-    private List<ThreadLabel> tSet;
-    private List<ThreadLabel> rSet;
+    private final List<ThreadLabel> tSet;
+    private final List<ThreadLabel> rSet;
 
     private ThreadStateBuilder(ThreadState state) {
       tSet = new ArrayList<>(state.threadSet);
@@ -59,14 +60,16 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
       createThread(tCall, tCall.isSelfParallel() ? LabelStatus.SELF_PARALLEL_THREAD : LabelStatus.CREATED_THREAD);
     }
 
-    private void createThread(CThreadCreateStatement tCall, LabelStatus pParentThread) throws HandleCodeException {
+    private void createThread(CThreadCreateStatement tCall, LabelStatus pParentThread)
+        throws HandleCodeException {
       final String pVarName = tCall.getVariableName();
       //Just to info
       final String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
 
       if (from(tSet)
           .anyMatch(l -> l.getName().equals(pFunctionName) && l.getVarName().equals(pVarName))) {
-        throw new HandleCodeException("Can not create thread " + pFunctionName + ", it was already created");
+        throw new HandleCodeException(
+            "Can not create thread " + pFunctionName + ", it was already created");
       }
 
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);
@@ -82,19 +85,16 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     }
 
     public boolean joinThread(CThreadJoinStatement jCall) {
-      String pVarName = jCall.getVariableName();
-      ThreadLabel result = null;
-      for (ThreadLabel tmpLabel : tSet) {
-        if (tmpLabel.getVarName().equals(pVarName)) {
-          assert result == null : "Found several threads with the same variable";
-          assert tmpLabel.isParentThread() : "Try to self-join";
-          result = tmpLabel;
-        }
-      }
-      if (result == null) {
-        return false;
+      // If we found several labels for different functions
+      // it means, that there are several thread created for one thread variable.
+      // Not a good situation, but it is not forbidden, so join the last assigned thread
+      Optional<ThreadLabel> result =
+          from(tSet).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
+      // Do not self-join
+      if (result.isPresent() && !result.get().isCreatedThread()) {
+        return tSet.remove(result.get());
       } else {
-        return tSet.remove(result);
+        return false;
       }
     }
 
@@ -105,24 +105,13 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   private final ImmutableList<ThreadLabel> threadSet;
+  // The removedSet is useless now, but it will be used in futer in more complicated cases
+  // Do not remove it now
   private final ImmutableList<ThreadLabel> removedSet;
 
   private ThreadState(List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
     threadSet = ImmutableList.copyOf(Tset);
-    removedSet = Rset == null ? null : ImmutableList.copyOf(Rset);
-  }
-
-  public String getCurrentThreadName() {
-    //Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread =
-        from(threadSet)
-        .firstMatch(ThreadLabel::isCreatedThread);
-
-    if (createdThread.isPresent()) {
-      return createdThread.get().getName();
-    } else {
-      return "";
-    }
+    removedSet = ImmutableList.copyOf(Rset);
   }
 
   @Override
@@ -142,14 +131,6 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     ThreadState other = (ThreadState) obj;
     return Objects.equals(removedSet, other.removedSet)
         && Objects.equals(threadSet, other.threadSet);
-  }
-
-  public List<ThreadLabel> getThreadSet() {
-    return threadSet;
-  }
-
-  public List<ThreadLabel> getRemovedSet() {
-    return removedSet;
   }
 
   @Override
@@ -189,7 +170,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(this.threadSet, null);
+    return new ThreadState(this.threadSet, Collections.emptyList());
   }
 
   public ThreadStateBuilder getBuilder() {
@@ -197,13 +178,20 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   public static ThreadState emptyState() {
-    List<ThreadLabel> emptySet = new ArrayList<>();
-    return new ThreadState(emptySet, emptySet);
+    return new ThreadState(Collections.emptyList(), Collections.emptyList());
   }
 
   @Override
   public String toString() {
-    return getCurrentThreadName();
+    // Info method, in difficult cases may be wrong
+    Optional<ThreadLabel> createdThread =
+        from(threadSet).filter(ThreadLabel::isCreatedThread).last();
+
+    if (createdThread.isPresent()) {
+      return createdThread.get().getName();
+    } else {
+      return "";
+    }
   }
 
   @Override

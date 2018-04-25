@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -62,13 +60,7 @@ public class ThreadReducer implements Reducer {
 
   @Override
   public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
-    List<Object> result = new ArrayList<>(2);
-
-    ThreadState tState = (ThreadState) pStateKey;
-
-    result.add(tState.getThreadSet());
-    result.add(tState.getRemovedSet());
-    return result;
+    return pStateKey;
   }
 
   @Override
