@@ -156,6 +156,9 @@ class ReachedSetCoverageCollector {
         //Cover all edges from reached nodes
         //It is less precise, but without ARG it is impossible to know what path we chose
         CFANode node = AbstractStates.extractLocation(state);
+        if (node == null) {
+          continue;
+        }
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
           if (reachedNodes.contains(edge.getSuccessor())) {

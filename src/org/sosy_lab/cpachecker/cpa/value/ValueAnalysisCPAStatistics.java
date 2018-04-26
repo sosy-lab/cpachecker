@@ -80,6 +80,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     for (AbstractState currentAbstractState : reached) {
       ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
 
+      if (currentState == null) {
+        continue;
+      }
       numberOfVariables.setNextValue(currentState.getSize());
       numberOfGlobalVariables.setNextValue(currentState.getNumberOfGlobalVariables());
     }

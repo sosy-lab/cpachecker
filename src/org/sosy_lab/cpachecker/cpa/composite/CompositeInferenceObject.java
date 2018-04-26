@@ -67,7 +67,13 @@ public class CompositeInferenceObject implements InferenceObject {
         .anyMatch(s -> !s.hasEmptyAction());
 
     if (notEmpty) {
-      return new CompositeInferenceObject(elements);
+      boolean unsatGuard = from(elements).anyMatch(t -> !t.hasSatisfiableGuard());
+
+      if (unsatGuard) {
+        return EmptyInferenceObject.getInstance();
+      } else {
+        return new CompositeInferenceObject(elements);
+      }
     } else {
       return EmptyInferenceObject.getInstance();
     }

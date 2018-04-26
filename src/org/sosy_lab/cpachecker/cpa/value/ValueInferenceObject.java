@@ -51,31 +51,33 @@ public class ValueInferenceObject implements InferenceObject {
   public static InferenceObject create(ValueAnalysisState src, ValueAnalysisState dst) {
     ValueAnalysisState newSrc = ValueAnalysisState.copyOf(src);
 
-    Set<MemoryLocation> allMems = newSrc.getTrackedMemoryLocations();
+    Set<MemoryLocation> srcMems = newSrc.getTrackedMemoryLocations();
+    Set<MemoryLocation> dstMems = dst.getTrackedMemoryLocations();
 
-    for (MemoryLocation mem : allMems) {
+    PersistentMap<MemoryLocation, ValueAndType> newMap = PathCopyingPersistentTreeMap.of();
+
+    for (MemoryLocation mem : srcMems) {
       if (mem.isOnFunctionStack()) {
         newSrc.forget(mem);
       }
-    }
-
-    allMems = dst.getTrackedMemoryLocations();
-    PersistentMap<MemoryLocation, ValueAndType> newMap = PathCopyingPersistentTreeMap.of();
-
-    for (MemoryLocation mem : allMems) {
-      if (mem.isOnFunctionStack()) {
-
-      } else if (newSrc.contains(mem)) {
-        ValueAndType oldVal = newSrc.getValueAndTypeFor(mem);
-        ValueAndType newVal = dst.getValueAndTypeFor(mem);
-        if (!oldVal.equals(newVal)) {
-          newMap = newMap.putAndCopy(mem, newVal);
-        }
-      } else {
+      if (!dstMems.contains(mem)) {
         newMap =
             newMap.putAndCopy(
                 mem,
-                new ValueAndType(UnknownValue.getInstance(), dst.getTypeForMemoryLocation(mem)));
+                new ValueAndType(UnknownValue.getInstance(), src.getTypeForMemoryLocation(mem)));
+      }
+    }
+
+    for (MemoryLocation mem : dstMems) {
+      if (mem.isOnFunctionStack()) {
+
+      } else {
+        ValueAndType newVal = dst.getValueAndTypeFor(mem);
+        if (newSrc.contains(mem) && newSrc.getValueFor(mem).equals(newVal.getValue())) {
+
+        } else {
+          newMap = newMap.putAndCopy(mem, newVal);
+        }
       }
     }
 
@@ -159,6 +161,6 @@ public class ValueInferenceObject implements InferenceObject {
   @Override
   public boolean hasEmptyAction() {
     assert diff.getAssignments().size() > 0;
-    return true;
+    return false;
   }
 }

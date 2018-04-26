@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.EpsilonState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -53,6 +54,10 @@ public class ThreadModularPrecisionAdjustment implements PrecisionAdjustment {
       throws CPAException, InterruptedException {
 
     ThreadModularState state = (ThreadModularState) pState;
+
+    if (state.getWrappedState() == EpsilonState.getInstance()) {
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+    }
 
     Optional<PrecisionAdjustmentResult> optionalUnwrappedResult =
         wrappedPrec.prec(

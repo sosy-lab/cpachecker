@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.threadmodular;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.EpsilonState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
@@ -39,7 +40,12 @@ public class ThreadModularState extends AbstractSingleWrapperState {
 
   @Override
   public Object getPartitionKey() {
-    return super.getPartitionKey();
+    if (getWrappedState() == EpsilonState.getInstance()) {
+      //EpsilonState
+      return EpsilonState.getInstance();
+    } else {
+      return super.getPartitionKey();
+    }
   }
 
   @Override

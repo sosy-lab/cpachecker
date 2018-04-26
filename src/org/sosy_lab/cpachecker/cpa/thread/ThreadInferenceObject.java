@@ -51,6 +51,11 @@ public class ThreadInferenceObject implements InferenceObject {
   }
 
   @Override
+  public boolean hasSatisfiableGuard() {
+    return !state.equals(ThreadState.emptyState());
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;

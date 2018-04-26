@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.EpsilonState;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.IOStopOperator;
@@ -58,18 +59,29 @@ public class ThreadModularStopOperator implements StopOperator {
       return true;
     }
 
-    Collection<AbstractState> innerStates =
-        from(pReached).transform(s -> ((ThreadModularState) s).getWrappedState()).toSet();
+    if (targetState != EpsilonState.getInstance()) {
+      Collection<AbstractState> innerStates =
+          from(pReached)
+              .transform(s -> ((ThreadModularState) s).getWrappedState())
+              .filter(s -> s != EpsilonState.getInstance())
+              .toSet();
 
-    boolean result = stateStop.stop(targetState, innerStates, pPrecision);
+      boolean result = stateStop.stop(targetState, innerStates, pPrecision);
 
-    if (targetIO == TauInferenceObject.getInstance()) {
-      return result;
+      if (targetIO == TauInferenceObject.getInstance() || !result) {
+        return result;
+      }
     }
 
     Collection<InferenceObject> innerObjects =
-        from(pReached).transform(s -> ((ThreadModularState) s).getInferenceObject()).toSet();
+        from(pReached)
+            .transform(s -> ((ThreadModularState) s).getInferenceObject())
+            .filter(
+                s ->
+                    s != TauInferenceObject.getInstance()
+                        && s != EmptyInferenceObject.getInstance())
+            .toSet();
 
-    return result && ioStop.stop(targetIO, innerObjects, pPrecision);
+    return ioStop.stop(targetIO, innerObjects, pPrecision);
   }
 }

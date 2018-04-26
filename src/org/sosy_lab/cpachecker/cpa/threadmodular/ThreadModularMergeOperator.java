@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.threadmodular;
 
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.EpsilonState;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.IOMergeOperator;
@@ -48,6 +49,8 @@ public class ThreadModularMergeOperator implements MergeOperator {
     ThreadModularState tmState1 = (ThreadModularState) pState1;
     ThreadModularState tmState2 = (ThreadModularState) pState2;
 
+    AbstractState state1 = tmState1.getWrappedState();
+    AbstractState state2 = tmState2.getWrappedState();
     InferenceObject object1 = tmState1.getInferenceObject();
     InferenceObject object2 = tmState2.getInferenceObject();
 
@@ -65,12 +68,18 @@ public class ThreadModularMergeOperator implements MergeOperator {
       // Do not merge tau object and a real one
       return pState2;
     } else {
-      mergedIO =
-          ioMerge.merge(tmState1.getInferenceObject(), tmState2.getInferenceObject(), pPrecision);
+      mergedIO = ioMerge.merge(object1, object2, pPrecision);
     }
 
-    AbstractState mergedState =
-        stateMerge.merge(tmState1.getWrappedState(), tmState2.getWrappedState(), pPrecision);
+    AbstractState mergedState;
+    if (state1 == EpsilonState.getInstance() && state1 == EpsilonState.getInstance()) {
+      mergedState = state1;
+    } else if (object1 == EpsilonState.getInstance() || object2 == EpsilonState.getInstance()) {
+      // Do not merge tau object and a real one
+      return pState2;
+    } else {
+      mergedState = stateMerge.merge(state1, state2, pPrecision);
+    }
 
     if (mergedState == tmState2.getWrappedState() && mergedIO == tmState2.getInferenceObject()) {
       return pState2;

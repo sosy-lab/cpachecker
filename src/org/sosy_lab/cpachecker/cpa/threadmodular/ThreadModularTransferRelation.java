@@ -23,10 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.threadmodular;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.EpsilonState;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
@@ -55,24 +60,45 @@ public class ThreadModularTransferRelation implements TransferRelation {
 
     ThreadModularState tmState = (ThreadModularState) pState;
 
+    if (tmState.getWrappedState() == EpsilonState.getInstance()) {
+      return Collections.emptySet();
+    }
+
     Collection<Pair<AbstractState, InferenceObject>> pairs =
         transfer.getAbstractSuccessors(
             tmState.getWrappedState(), tmState.getInferenceObject(), pPrecision);
 
-    Collection<AbstractState> reached = pReached.asCollection();
+    FluentIterable<ThreadModularState> reached =
+        from(pReached.asCollection()).transform(s -> (ThreadModularState) s);
+
+    FluentIterable<AbstractState> states =
+        reached
+            .filter(s -> s.getInferenceObject() == TauInferenceObject.getInstance())
+            .transform(s -> s.getWrappedState());
+
+    FluentIterable<InferenceObject> objects =
+        reached
+            .filter(s -> s.getWrappedState() == EpsilonState.getInstance())
+            .transform(s -> s.getInferenceObject());
+
     Collection<ThreadModularState> result = new ArrayList<>();
 
     for (Pair<AbstractState, InferenceObject> pair : pairs) {
       AbstractState state = pair.getFirst();
       InferenceObject iObject = pair.getSecond();
       result.add(new ThreadModularState(state, TauInferenceObject.getInstance()));
-
-      for (AbstractState s : reached) {
-        ThreadModularState reachedTMState = (ThreadModularState) s;
-
-        checkStatesAndAdd(reachedTMState.getWrappedState(), iObject, result);
-        checkStatesAndAdd(state, reachedTMState.getInferenceObject(), result);
+      if (iObject != EmptyInferenceObject.getInstance()) {
+        // We need to add the object into reached set
+        result.add(new ThreadModularState(EpsilonState.getInstance(), iObject));
       }
+
+      for (AbstractState s : states) {
+        checkStatesAndAdd(s, iObject, result);
+      }
+      for (InferenceObject o : objects) {
+        checkStatesAndAdd(state, o, result);
+      }
+
     }
 
     return result;
@@ -81,7 +107,8 @@ public class ThreadModularTransferRelation implements TransferRelation {
   private void checkStatesAndAdd(
       AbstractState pState, InferenceObject pObject, Collection<ThreadModularState> pSet) {
     if (pObject != TauInferenceObject.getInstance()
-        && pObject != EmptyInferenceObject.getInstance()) {
+        && pObject != EmptyInferenceObject.getInstance()
+        && pState != EpsilonState.getInstance()) {
       if (compatible.compatible(pState, pObject)) {
         pSet.add(new ThreadModularState(pState, pObject));
       }
