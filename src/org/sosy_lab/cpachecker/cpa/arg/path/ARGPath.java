@@ -149,6 +149,12 @@ public class ARGPath extends AbstractAppender {
         CFANode curNode = extractLocation(prev);
         CFANode nextNode = extractLocation(succ);
 
+        if (curNode.equals(nextNode)) {
+          // environment
+          newFullPath.addAll(prev.getEdgesToChild(succ));
+          continue;
+        }
+
         do { // the chain must not be empty
           if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
             return Collections.emptyList();

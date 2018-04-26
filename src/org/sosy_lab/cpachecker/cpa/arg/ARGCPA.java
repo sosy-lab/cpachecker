@@ -49,22 +49,26 @@ import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.IOMergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.IOStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options
-public class ARGCPA extends AbstractSingleWrapperCPA implements
-    ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class ARGCPA extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysisWithBAM, ConfigurableProgramAnalysisTM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -123,7 +127,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public TransferRelationTM getTransferRelation() {
     return new ARGTransferRelation(getWrappedCpa().getTransferRelation());
   }
 
@@ -242,5 +246,23 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
+  }
+
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return new ARGCompatibilityCheck(((ConfigurableProgramAnalysisTM)getWrappedCpa()).getCompatibilityCheck());
+  }
+
+  @Override
+  public IOMergeOperator getMergeForInferenceObject() {
+    return new ARGMergeForInferenceObjects(
+        ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getMergeForInferenceObject());
+  }
+
+  @Override
+  public IOStopOperator getStopForInferenceObject() {
+    return new ARGStopForInferenceObjects(
+        ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getStopForInferenceObject());
   }
 }

@@ -72,7 +72,7 @@ public class ThreadModularMergeOperator implements MergeOperator {
     }
 
     AbstractState mergedState;
-    if (state1 == EpsilonState.getInstance() && state1 == EpsilonState.getInstance()) {
+    if (state1 == EpsilonState.getInstance() && state2 == EpsilonState.getInstance()) {
       mergedState = state1;
     } else if (object1 == EpsilonState.getInstance() || object2 == EpsilonState.getInstance()) {
       // Do not merge tau object and a real one

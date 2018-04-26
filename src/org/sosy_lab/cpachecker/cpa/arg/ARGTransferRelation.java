@@ -23,18 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public class ARGTransferRelation implements TransferRelation {
+public class ARGTransferRelation implements TransferRelationTM {
 
   private final TransferRelation transferRelation;
 
@@ -85,5 +89,71 @@ public class ARGTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "ARGCPA needs to be used as the outer-most CPA,"
         + " thus it does not support returning successors for a single edge.");
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(
+      AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    ARGState element = (ARGState) pState;
+
+    // covered elements may be in the reached set, but should always be ignored
+    if (element.isCovered()) {
+      return Collections.emptySet();
+    }
+
+    element.markExpanded();
+
+    AbstractState wrappedState = element.getWrappedState();
+    InferenceObject wrappedObject;
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      wrappedObject = pInferenceObject;
+    } else {
+      wrappedObject = ((ARGInferenceObject) pInferenceObject).getWrappedObject();
+    }
+    Collection<Pair<AbstractState, InferenceObject>> successors;
+    try {
+      successors =
+          ((TransferRelationTM) transferRelation)
+              .getAbstractSuccessors(wrappedState, wrappedObject, pPrecision);
+    } catch (UnsupportedCodeException e) {
+      // setting parent of this unsupported code part
+      e.setParentState(element);
+      throw e;
+    }
+
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
+    }
+
+    Collection<Pair<AbstractState, InferenceObject>> wrappedSuccessors = new ArrayList<>();
+    for (Pair<AbstractState, InferenceObject> absElement : successors) {
+      ARGState successorElem = new ARGState(absElement.getFirst(), element);
+      if (pInferenceObject != TauInferenceObject.getInstance()) {
+        successorElem.setAppliedEffect((ARGInferenceObject) pInferenceObject);
+      }
+      wrappedObject = absElement.getSecond();
+      InferenceObject inferenceObject;
+      if (wrappedObject == EmptyInferenceObject.getInstance()) {
+        inferenceObject = EmptyInferenceObject.getInstance();
+      } else {
+        inferenceObject = new ARGInferenceObject(wrappedObject, element);
+      }
+      wrappedSuccessors.add(Pair.of(successorElem, inferenceObject));
+    }
+
+    return wrappedSuccessors;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(
+      AbstractState pState,
+      InferenceObject pInferenceObject,
+      Precision pPrecision,
+      CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+    throw new UnsupportedOperationException(
+        "ARGCPA needs to be used as the outer-most CPA,"
+            + " thus it does not support returning successors for a single edge.");
   }
 }

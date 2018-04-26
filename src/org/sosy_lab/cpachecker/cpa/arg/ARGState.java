@@ -41,6 +41,8 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -52,7 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable{
+    implements Comparable<ARGState>, Graphable, Splitable {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -80,6 +82,8 @@ public class ARGState extends AbstractSingleWrapperState
   private transient CounterexampleInfo counterexample;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
+  private ARGInferenceObject appliedEffect = null;
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
@@ -205,6 +209,20 @@ public class ARGState extends AbstractSingleWrapperState
           allEdges.add(leavingEdge);
           currentLoc = leavingEdge.getSuccessor();
         }
+        ARGInferenceObject object = pChild.getAppliedEffect();
+        if (allEdges.isEmpty() && object != null) {
+          // environment
+          /*PredicateInferenceObject pO = AbstractStates.extractStateByType(object, PredicateInferenceObject.class);
+          Set<CAssignment> effects = pO.getAction();
+
+          for (CAssignment a : effects) {
+            CFAEdge dummyEdge = new CStatementEdge("environment: " + a, a, FileLocation.DUMMY, currentLoc, childLoc);
+            allEdges.add(dummyEdge);
+          }*/
+          allEdges.add(
+              new BlankEdge(
+                  "environment: ", FileLocation.DUMMY, currentLoc, childLoc, "environment: "));
+        }
       }
       return allEdges;
     } else {
@@ -273,6 +291,14 @@ public class ARGState extends AbstractSingleWrapperState
     hasCoveredParent = pHasCoveredParent;
   }
 
+  public void setAppliedEffect(ARGInferenceObject pObject) {
+    assert appliedEffect == null;
+    appliedEffect = pObject;
+  }
+
+  public ARGInferenceObject getAppliedEffect() {
+    return appliedEffect;
+  }
   // merged-with marker so that stop can return true for merged elements
 
   void setMergedWith(ARGState pMergedWith) {
