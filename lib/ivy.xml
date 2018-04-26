@@ -70,7 +70,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.18.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.18.3" conf="test->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
@@ -87,8 +87,8 @@
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.2.0" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.2.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.3.1" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.3.1" conf="build->default; contrib->sources" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -129,7 +129,7 @@
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.2.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.1"/>
 
     </dependencies>
 </ivy-module>
