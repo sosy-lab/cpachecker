@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.core.defaults;
 
-public interface StopOperator extends AbstractStopOperator<AbstractState> {}
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
+
+
+public class TauInferenceObject implements InferenceObject {
+
+  private final static TauInferenceObject instance = new TauInferenceObject();
+
+  public static TauInferenceObject getInstance() {
+    return instance;
+  }
+
+  @Override
+  public boolean hasEmptyAction() {
+    return true;
+  }
+}

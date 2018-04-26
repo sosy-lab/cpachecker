@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -103,5 +104,11 @@ public interface TransferRelation {
       Precision precision)
       throws CPATransferException, InterruptedException {
     return Collections.singleton(state);
+  }
+
+  default Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState state, ReachedSet pReached, Precision precision)
+      throws CPATransferException, InterruptedException {
+    return getAbstractSuccessors(state, precision);
   }
 }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -35,16 +37,21 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
-
-public class ThreadTransferRelation extends SingleEdgeTransferRelation {
+public class ThreadTransferRelation extends SingleEdgeTransferRelation
+    implements TransferRelationTM {
   private final ThreadCPAStatistics threadStatistics;
 
   public ThreadTransferRelation() {
@@ -122,5 +129,42 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
   public Statistics getStatistics() {
     return threadStatistics;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(
+      AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      return from(getAbstractSuccessors(pState, pPrecision))
+          .transform(
+              s ->
+                  Pair.of(
+                      (AbstractState) s,
+                      (InferenceObject) ThreadInferenceObject.create((ThreadState) s)))
+          .toSet();
+    } else {
+      return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
+    }
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(
+      AbstractState pState,
+      InferenceObject pInferenceObject,
+      Precision pPrecision,
+      CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+    if (pInferenceObject == TauInferenceObject.getInstance()) {
+      return from(getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge))
+          .transform(
+              s ->
+                  Pair.of(
+                      (AbstractState) s,
+                      (InferenceObject) ThreadInferenceObject.create((ThreadState) s)))
+          .toSet();
+    } else {
+      return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
+    }
   }
 }

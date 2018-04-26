@@ -36,15 +36,20 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 
 @Options(prefix = "cpa.lock")
 public class LockCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM,
+        ConfigurableProgramAnalysisTM,
+        StatisticsProvider {
 
   public static enum LockAnalysisMode {
     RACE,
@@ -109,5 +114,15 @@ public class LockCPA extends AbstractCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     LockTransferRelation transfer = (LockTransferRelation) getTransferRelation();
     pStatsCollection.add(transfer.getStatistics());
+  }
+
+  @Override
+  public TransferRelationTM getTransferRelation() {
+    return (TransferRelationTM) super.getTransferRelation();
+  }
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return new LockCompatibilityCheck();
   }
 }

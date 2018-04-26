@@ -35,15 +35,17 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class LocationCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
+    implements ConfigurableProgramAnalysisWithBAM, ConfigurableProgramAnalysisTM, ProofCheckerCPA {
 
   private final LocationStateFactory stateFactory;
 
@@ -76,5 +78,10 @@ public class LocationCPA extends AbstractCPA
     return pSuccessors.equals(
         getTransferRelation()
             .getAbstractSuccessorsForEdge(pElement, SingletonPrecision.getInstance(), pCfaEdge));
+  }
+
+  @Override
+  public TransferRelationTM getTransferRelation() {
+    return (TransferRelationTM) super.getTransferRelation();
   }
 }

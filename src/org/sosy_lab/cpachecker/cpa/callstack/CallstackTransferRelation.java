@@ -54,12 +54,14 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-@Options(prefix="cpa.callstack")
-public class CallstackTransferRelation extends SingleEdgeTransferRelation {
+@Options(prefix = "cpa.callstack")
+public class CallstackTransferRelation extends SingleEdgeTransferRelation
+    implements TransferRelationTM {
 
   // set of functions that may not appear in the source code
   @Option(secure=true, description = "unsupported functions cause an exception")

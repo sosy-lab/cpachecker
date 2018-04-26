@@ -42,10 +42,12 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -53,7 +55,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CallstackCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    implements ConfigurableProgramAnalysisWithBAM, ConfigurableProgramAnalysisTM, ProofChecker {
 
   private final CFA cfa;
 
@@ -71,6 +73,11 @@ public class CallstackCPA extends AbstractCPA
   @Override
   public Reducer getReducer() {
     return new CallstackReducer();
+  }
+
+  @Override
+  public TransferRelationTM getTransferRelation() {
+    return (TransferRelationTM) super.getTransferRelation();
   }
 
   @Override

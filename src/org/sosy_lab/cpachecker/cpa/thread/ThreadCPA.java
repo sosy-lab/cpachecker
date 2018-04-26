@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -40,9 +42,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 
 public class ThreadCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM,
+        ConfigurableProgramAnalysisTM,
+        StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);
@@ -83,5 +88,15 @@ public class ThreadCPA extends AbstractCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(((ThreadTransferRelation) getTransferRelation()).getStatistics());
+  }
+
+  @Override
+  public TransferRelationTM getTransferRelation() {
+    return (TransferRelationTM) super.getTransferRelation();
+  }
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return new ThreadCompatibilityCheck();
   }
 }

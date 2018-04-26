@@ -1438,6 +1438,9 @@ cpa.lock.analysisMode = RACE
 #  annotated functions, which are known to works right
 cpa.lock.annotate = no default value
 
+# Use non-trivial guards
+cpa.lock.emptyEffects = false
+
 # contains all lock names
 cpa.lock.lockinfo = Sets.newHashSet()
 
