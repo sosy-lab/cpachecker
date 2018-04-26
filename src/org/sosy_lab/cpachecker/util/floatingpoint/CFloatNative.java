@@ -27,17 +27,17 @@ import static com.google.common.primitives.Ints.max;
 
 @Deprecated
 public class CFloatNative implements CFloat {
-  private final CFloatWrapper WRAPPER;
-  private final int TYPE;
+  private final CFloatWrapper wrapper;
+  private final int type;
 
   public CFloatNative(String rep, int type) {
-    this.WRAPPER = CFloatNativeAPI.createFp(rep, type);
-    this.TYPE = type;
+    this.wrapper = CFloatNativeAPI.createFp(rep, type);
+    this.type = type;
   }
 
   public CFloatNative(CFloatWrapper wrapper, int type) {
-    this.WRAPPER = wrapper;
-    this.TYPE = type;
+    this.wrapper = wrapper;
+    this.type = type;
   }
 
   /* (non-Javadoc)
@@ -46,8 +46,8 @@ public class CFloatNative implements CFloat {
   @Override
   public CFloat add(CFloat summand) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.addFp(WRAPPER, TYPE, summand.copyWrapper(), summand.getType());
-    return new CFloatNative(newFloat, max(TYPE, summand.getType()));
+        CFloatNativeAPI.addFp(wrapper, type, summand.copyWrapper(), summand.getType());
+    return new CFloatNative(newFloat, max(type, summand.getType()));
   }
 
   /* (non-Javadoc)
@@ -69,7 +69,7 @@ public class CFloatNative implements CFloat {
 
     maxType = constructParametersForMultiOperation(index, maxType, wrappers, types, summands);
 
-    CFloatWrapper newFloat = CFloatNativeAPI.addManyFp(WRAPPER, types, wrappers);
+    CFloatWrapper newFloat = CFloatNativeAPI.addManyFp(wrapper, types, wrappers);
     return new CFloatNative(newFloat, maxType);
   }
 
@@ -79,8 +79,8 @@ public class CFloatNative implements CFloat {
   @Override
   public CFloat multiply(CFloat factor) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.multiplyFp(WRAPPER, TYPE, factor.copyWrapper(), factor.getType());
-    return new CFloatNative(newFloat, max(TYPE, factor.getType()));
+        CFloatNativeAPI.multiplyFp(wrapper, type, factor.copyWrapper(), factor.getType());
+    return new CFloatNative(newFloat, max(type, factor.getType()));
   }
 
   /* (non-Javadoc)
@@ -102,7 +102,7 @@ public class CFloatNative implements CFloat {
 
     maxType = constructParametersForMultiOperation(index, maxType, wrappers, types, factors);
 
-    CFloatWrapper newFloat = CFloatNativeAPI.multiplyManyFp(WRAPPER, types, wrappers);
+    CFloatWrapper newFloat = CFloatNativeAPI.multiplyManyFp(wrapper, types, wrappers);
     return new CFloatNative(newFloat, maxType);
   }
 
@@ -112,9 +112,9 @@ public class CFloatNative implements CFloat {
   @Override
   public CFloat subtract(CFloat subtrahend) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.subtractFp(WRAPPER, TYPE, subtrahend.copyWrapper(), subtrahend.getType());
+        CFloatNativeAPI.subtractFp(wrapper, type, subtrahend.copyWrapper(), subtrahend.getType());
 
-    return new CFloatNative(newFloat, max(TYPE, subtrahend.getType()));
+    return new CFloatNative(newFloat, max(type, subtrahend.getType()));
   }
 
   /* (non-Javadoc)
@@ -123,9 +123,9 @@ public class CFloatNative implements CFloat {
   @Override
   public CFloatNative divideBy(CFloat divisor) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.divideFp(WRAPPER, TYPE, divisor.copyWrapper(), divisor.getType());
+        CFloatNativeAPI.divideFp(wrapper, type, divisor.copyWrapper(), divisor.getType());
 
-    return new CFloatNative(newFloat, max(TYPE, divisor.getType()));
+    return new CFloatNative(newFloat, max(type, divisor.getType()));
   }
 
   /* (non-Javadoc)
@@ -134,9 +134,9 @@ public class CFloatNative implements CFloat {
   @Override
   public CFloat powTo(CFloat exponent) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.powFp(WRAPPER, TYPE, exponent.copyWrapper(), exponent.getType());
+        CFloatNativeAPI.powFp(wrapper, type, exponent.copyWrapper(), exponent.getType());
 
-    return new CFloatNative(newFloat, max(TYPE, exponent.getType()));
+    return new CFloatNative(newFloat, max(type, exponent.getType()));
   }
 
   /* (non-Javadoc)
@@ -144,9 +144,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat powToIntegral(int exponent) {
-    CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(WRAPPER, exponent, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(wrapper, exponent, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -154,9 +154,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat sqrt() {
-    CFloatWrapper newFloat = CFloatNativeAPI.sqrtFp(WRAPPER, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.sqrtFp(wrapper, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -164,9 +164,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat round() {
-    CFloatWrapper newFloat = CFloatNativeAPI.roundFp(WRAPPER, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.roundFp(wrapper, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -174,9 +174,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat trunc() {
-    CFloatWrapper newFloat = CFloatNativeAPI.truncFp(WRAPPER, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.truncFp(wrapper, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -184,9 +184,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat ceil() {
-    CFloatWrapper newFloat = CFloatNativeAPI.ceilFp(WRAPPER, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.ceilFp(wrapper, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -194,9 +194,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat floor() {
-    CFloatWrapper newFloat = CFloatNativeAPI.floorFp(WRAPPER, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.floorFp(wrapper, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -204,9 +204,9 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat abs() {
-    CFloatWrapper newFloat = CFloatNativeAPI.absFp(WRAPPER, TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.absFp(wrapper, type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -214,7 +214,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public boolean isZero() {
-    return CFloatNativeAPI.isZeroFp(WRAPPER, TYPE);
+    return CFloatNativeAPI.isZeroFp(wrapper, type);
   }
 
   /* (non-Javadoc)
@@ -222,7 +222,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public boolean isOne() {
-    return CFloatNativeAPI.isOneFp(WRAPPER, TYPE);
+    return CFloatNativeAPI.isOneFp(wrapper, type);
   }
 
   /* (non-Javadoc)
@@ -230,7 +230,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public boolean isNan() {
-    return CFloatNativeAPI.isNanFp(WRAPPER, TYPE);
+    return CFloatNativeAPI.isNanFp(wrapper, type);
   }
 
   /* (non-Javadoc)
@@ -238,7 +238,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public boolean isInfinity() {
-    return CFloatNativeAPI.isInfinityFp(WRAPPER, TYPE);
+    return CFloatNativeAPI.isInfinityFp(wrapper, type);
   }
 
   /* (non-Javadoc)
@@ -246,7 +246,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public boolean isNegative() {
-    return CFloatNativeAPI.isNegativeFp(WRAPPER, TYPE);
+    return CFloatNativeAPI.isNegativeFp(wrapper, type);
   }
 
   /* (non-Javadoc)
@@ -254,17 +254,17 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat copySignFrom(CFloat source) {
-    if (TYPE != source.getType()) {
+    if (type != source.getType()) {
       throw new IllegalArgumentException(
           "Type "
-              + TYPE
+              + type
               + " of first argument and type "
               + source.getType()
               + " of second argument must not be different.");
     }
-    CFloatWrapper newFloat = CFloatNativeAPI.copySignFp(WRAPPER, source.copyWrapper(), TYPE);
+    CFloatWrapper newFloat = CFloatNativeAPI.copySignFp(wrapper, source.copyWrapper(), type);
 
-    return new CFloatNative(newFloat, TYPE);
+    return new CFloatNative(newFloat, type);
   }
 
   /* (non-Javadoc)
@@ -272,7 +272,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloat castTo(int toType) {
-    CFloatWrapper newFloat = CFloatNativeAPI.castFpFromTo(WRAPPER, TYPE, toType);
+    CFloatWrapper newFloat = CFloatNativeAPI.castFpFromTo(wrapper, type, toType);
 
     return new CFloatNative(newFloat, toType);
   }
@@ -288,7 +288,7 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public Number castToOther(int toType) {
-    return CFloatNativeAPI.castFpToOther(WRAPPER, TYPE, toType);
+    return CFloatNativeAPI.castFpToOther(wrapper, type, toType);
   }
 
   private int constructParametersForMultiOperation(
@@ -297,7 +297,7 @@ public class CFloatNative implements CFloat {
       CFloatWrapper[] wrappers,
       int[] types,
       CFloat... summands) {
-    types[0] = TYPE;
+    types[0] = type;
     for (CFloat f : summands) {
       wrappers[index] = f.copyWrapper();
       maxType = max(maxType, f.getType());
@@ -308,7 +308,7 @@ public class CFloatNative implements CFloat {
 
   @Override
   public String toString() {
-    return CFloatNativeAPI.printFp(WRAPPER, TYPE).replaceAll("(\\.[0-9]+?)0*$", "$1");
+    return CFloatNativeAPI.printFp(wrapper, type).replaceAll("(\\.[0-9]+?)0*$", "$1");
   }
 
   /* (non-Javadoc)
@@ -316,11 +316,11 @@ public class CFloatNative implements CFloat {
    */
   @Override
   public CFloatWrapper copyWrapper() {
-    return WRAPPER.copy();
+    return wrapper.copy();
   }
 
   @Override
   public int getType() {
-    return TYPE;
+    return type;
   }
 }
