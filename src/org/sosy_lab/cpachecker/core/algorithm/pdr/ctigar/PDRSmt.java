@@ -96,8 +96,8 @@ public class PDRSmt {
    *
    * @param pFrameSet The frames relative to which the induction queries are formed.
    * @param pSolver The solver that is used in all queries.
-   * @param pFmgr The formula manager used for instantiating formulas.
-   * @param pPfmgr The path formula manager used for creating variables.
+   * @param pFormulaManager The formula manager used for instantiating formulas.
+   * @param pPathFormulaManager The path formula manager used for creating variables.
    * @param pAbstractionManager The component that handles predicate abstraction.
    * @param pTransition The transition system that defines the transition formula.
    * @param pCompStats The statistics delegator that this class should be registered at. It takes
@@ -110,8 +110,8 @@ public class PDRSmt {
   public PDRSmt(
       FrameSet pFrameSet,
       Solver pSolver,
-      FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       PredicatePrecisionManager pAbstractionManager,
       TransitionSystem pTransition,
       StatisticsDelegator pCompStats,
@@ -124,9 +124,9 @@ public class PDRSmt {
 
     this.frameSet = Objects.requireNonNull(pFrameSet);
     this.solver = Objects.requireNonNull(pSolver);
-    this.fmgr = Objects.requireNonNull(pFmgr);
+    this.fmgr = Objects.requireNonNull(pFormulaManager);
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.pfmgr = Objects.requireNonNull(pPfmgr);
+    this.pfmgr = Objects.requireNonNull(pPathFormulaManager);
     this.abstractionManager = Objects.requireNonNull(pAbstractionManager);
     this.transition = Objects.requireNonNull(pTransition);
     this.logger = Objects.requireNonNull(pLogger);

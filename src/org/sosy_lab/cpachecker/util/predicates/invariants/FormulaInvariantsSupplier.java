@@ -238,12 +238,12 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     public InvariantsCacheKey(
         CFANode pNode,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
-        FormulaManagerView pFmgr,
-        PathFormulaManager pPfmgr) {
+        FormulaManagerView pFormulaManager,
+        PathFormulaManager pPathFormulaManager) {
       node = pNode;
       callstackInformation = pCallstackInformation;
-      fmgr = pFmgr;
-      pfmgr = pPfmgr;
+      fmgr = pFormulaManager;
+      pfmgr = pPathFormulaManager;
     }
 
     @Override
