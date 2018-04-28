@@ -32,6 +32,7 @@ import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class StatementCFABuilder implements StatementAppendable {
 
   private BlockStatementAppendable blockStatementAppendable;

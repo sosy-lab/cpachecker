@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragmentAppendable {
 
   @Override

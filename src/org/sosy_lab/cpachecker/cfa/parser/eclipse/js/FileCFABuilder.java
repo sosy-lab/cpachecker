@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class FileCFABuilder implements JavaScriptUnitAppendable {
   private static final String functionName = "main";
 

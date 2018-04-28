@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class IfStatementCFABuilderTest extends CFABuilderTestBase {
 
   @Test

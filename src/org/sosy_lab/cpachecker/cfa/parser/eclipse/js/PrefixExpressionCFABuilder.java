@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
 
   @Override

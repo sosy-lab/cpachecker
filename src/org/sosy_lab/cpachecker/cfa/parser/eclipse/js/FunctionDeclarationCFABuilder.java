@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
   @Override

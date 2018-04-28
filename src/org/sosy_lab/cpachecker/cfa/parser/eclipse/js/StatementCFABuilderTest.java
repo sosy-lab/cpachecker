@@ -34,6 +34,7 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class StatementCFABuilderTest {
 
   private JavaScriptCFABuilder builder;

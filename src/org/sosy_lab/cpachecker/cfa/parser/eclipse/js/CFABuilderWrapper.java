@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 interface CFABuilderWrapper {
   CFABuilder getBuilder();
 

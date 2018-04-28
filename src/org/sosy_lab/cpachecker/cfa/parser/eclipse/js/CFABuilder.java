@@ -82,6 +82,7 @@ class CFABuilder implements FileLocationProvider {
     return this;
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   public CFABuilder append(final CFABuilder builder) {
     addParseResult(builder.getParseResult());
 

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class IfStatementCFABuilder implements IfStatementAppendable {
 
   @Override

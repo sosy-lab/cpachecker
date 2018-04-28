@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
   @Test

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import org.eclipse.wst.jsdt.core.dom.Block;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class BlockStatementCFABuilder implements BlockStatementAppendable {
 
   @Override

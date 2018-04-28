@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
+@SuppressWarnings({"ALL", "ResultOfMethodCallIgnored"})
 class InfixExpressionCFABuilder implements InfixExpressionAppendable {
 
   @Override

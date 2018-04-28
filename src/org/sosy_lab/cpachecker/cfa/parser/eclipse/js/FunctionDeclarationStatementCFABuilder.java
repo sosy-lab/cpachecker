@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionDeclarationStatementCFABuilder implements FunctionDeclarationStatementAppendable {
 
   @Override

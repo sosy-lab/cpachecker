@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class AssignmentCFABuilder implements AssignmentAppendable {
 
   @Override

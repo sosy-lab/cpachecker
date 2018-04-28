@@ -28,6 +28,7 @@ import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class JavaScriptUnitCFABuilder implements JavaScriptUnitAppendable {
 
   @Override

@@ -27,6 +27,7 @@ import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class VariableDeclarationStatementCFABuilder implements VariableDeclarationStatementAppendable {
 
   @Override
