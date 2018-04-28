@@ -96,7 +96,6 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
                               FileLocation.DUMMY,
                               new JSIdExpression(
                                   FileLocation.DUMMY,
-                                  JSAnyType.ANY,
                                   returnVariableName,
                                   returnVariableDeclaration),
                               returnValue))),

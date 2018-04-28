@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 public class AssignmentCFABuilderTest extends CFABuilderTestBase {
 
@@ -48,7 +47,6 @@ public class AssignmentCFABuilderTest extends CFABuilderTestBase {
     final JSIdExpression variableId =
         new JSIdExpression(
             FileLocation.DUMMY,
-            JSAnyType.ANY,
             expectedVariableName,
             mock(JSSimpleDeclaration.class));
 

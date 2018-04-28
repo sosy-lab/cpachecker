@@ -96,7 +96,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
                     pPredecessor,
                     pSuccessor));
     return new JSIdExpression(
-        FileLocation.DUMMY, JSAnyType.ANY, oldValueVariableName, oldValueVariableDeclaration);
+        FileLocation.DUMMY, oldValueVariableName, oldValueVariableDeclaration);
   }
 
   private BinaryOperator getBinaryOperator(final PostfixExpression pPostfixExpression) {

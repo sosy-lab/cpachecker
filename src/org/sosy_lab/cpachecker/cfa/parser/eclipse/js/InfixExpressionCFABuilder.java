@@ -99,7 +99,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
             null);
     final JSIdExpression resultVariableId =
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, resultVariableName, resultVariableDeclaration);
+            FileLocation.DUMMY, resultVariableName, resultVariableDeclaration);
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(
@@ -213,9 +213,9 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         JSAnyType.ANY,
         JSAnyType.ANY,
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, tmpLeftVariableName, tmpLeftVariableDeclaration),
+            FileLocation.DUMMY, tmpLeftVariableName, tmpLeftVariableDeclaration),
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, tmpRightVariableName, tmpRightVariableDeclaration),
+            FileLocation.DUMMY, tmpRightVariableName, tmpRightVariableDeclaration),
         pOperator);
   }
 

@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 class FunctionExpressionCFABuilder implements FunctionExpressionAppendable {
 
@@ -38,6 +37,6 @@ class FunctionExpressionCFABuilder implements FunctionExpressionAppendable {
     final JSFunctionDeclaration functionDeclaration =
         pBuilder.append(pFunctionExpression.getMethod());
     return new JSIdExpression(
-        FileLocation.DUMMY, JSAnyType.ANY, functionDeclaration.getName(), functionDeclaration);
+        FileLocation.DUMMY, functionDeclaration.getName(), functionDeclaration);
   }
 }

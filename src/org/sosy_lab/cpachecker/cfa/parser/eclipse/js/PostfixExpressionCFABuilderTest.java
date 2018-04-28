@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
@@ -59,7 +58,7 @@ public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
     final PostfixExpression postfixExpression = parseExpression(PostfixExpression.class, pCode);
 
     final JSIdExpression variableId =
-        new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "x", mock(JSSimpleDeclaration.class));
+        new JSIdExpression(FileLocation.DUMMY, "x", mock(JSSimpleDeclaration.class));
     builder.setExpressionAppendable(
         (pBuilder, pExpression) -> {
           Truth.assertThat(pBuilder).isEqualTo(builder);

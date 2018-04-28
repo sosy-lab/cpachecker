@@ -57,7 +57,7 @@ class ConditionalExpressionCFABuilder implements ConditionalExpressionAppendable
             null);
     final JSIdExpression resultVariableId =
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, resultVariableName, resultVariableDeclaration);
+            FileLocation.DUMMY, resultVariableName, resultVariableDeclaration);
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(

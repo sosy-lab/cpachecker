@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class IfStatementCFABuilderTest extends CFABuilderTestBase {
@@ -50,7 +49,7 @@ public class IfStatementCFABuilderTest extends CFABuilderTestBase {
 
     final JSExpression condition =
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, "condition", mock(JSSimpleDeclaration.class));
+            FileLocation.DUMMY, "condition", mock(JSSimpleDeclaration.class));
     final StatementAppendable statementAppendable =
         (builder, pStatement) ->
             builder.appendEdge(DummyEdge.withDescription("dummy statement edge"));
@@ -82,7 +81,7 @@ public class IfStatementCFABuilderTest extends CFABuilderTestBase {
 
     final JSExpression condition =
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, "condition", mock(JSSimpleDeclaration.class));
+            FileLocation.DUMMY, "condition", mock(JSSimpleDeclaration.class));
     final StatementAppendable statementAppendable =
         (builder, pStatement) ->
             builder.appendEdge(DummyEdge.withDescription(pStatement.toString()));

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
 
@@ -89,7 +88,7 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
     final PrefixExpression prefixExpression = parseExpression(PrefixExpression.class, pCode);
 
     final JSIdExpression variableId =
-        new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "x", mock(JSSimpleDeclaration.class));
+        new JSIdExpression(FileLocation.DUMMY, "x", mock(JSSimpleDeclaration.class));
     builder.setExpressionAppendable(
         (pBuilder, pExpression) -> {
           Truth.assertThat(pBuilder).isEqualTo(builder);

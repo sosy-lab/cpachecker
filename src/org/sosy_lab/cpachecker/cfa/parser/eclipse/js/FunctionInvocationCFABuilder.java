@@ -59,7 +59,7 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
             null);
     final JSIdExpression resultVariableId =
         new JSIdExpression(
-            FileLocation.DUMMY, JSAnyType.ANY, resultVariableName, resultVariableDeclaration);
+            FileLocation.DUMMY, resultVariableName, resultVariableDeclaration);
     final JSFunctionCallAssignmentStatement functionCallStatement =
         new JSFunctionCallAssignmentStatement(
             pBuilder.getFileLocation(pNode),

@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 class SimpleNameResolverImpl implements SimpleNameResolver {
   private final VariableDeclarationRegistry variableDeclarationRegistry;
@@ -61,7 +60,6 @@ class SimpleNameResolverImpl implements SimpleNameResolver {
     assert binding != null;
     return new JSIdExpression(
         pBuilder.getFileLocation(pSimpleName),
-        JSAnyType.ANY,
         pSimpleName.getIdentifier(),
         resolve(binding));
   }

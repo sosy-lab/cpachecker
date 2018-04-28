@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 /**
@@ -41,10 +42,9 @@ public class JSIdExpression extends AIdExpression implements JSLeftHandSide {
 
   public JSIdExpression(
       final FileLocation pFileLocation,
-      final JSType pType,
       final String pName,
       final JSSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType, pName, pDeclaration);
+    super(pFileLocation, JSAnyType.ANY, pName, pDeclaration);
     // TODO Refactor, so we do not need null for declaration.
     // (Insert extra classes or objects for unresolvable declarations)
     //assert pDeclaration != null;

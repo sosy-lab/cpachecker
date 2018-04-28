@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
@@ -55,7 +54,7 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
     final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
     final JSIdExpression functionId =
-        new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "foo", functionDeclaration);
+        new JSIdExpression(FileLocation.DUMMY, "foo", functionDeclaration);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
     when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(functionId);
     builder.setExpressionAppendable(expressionAppendable);
@@ -87,7 +86,6 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     final JSIdExpression functionId =
         new JSIdExpression(
             FileLocation.DUMMY,
-            JSAnyType.ANY,
             "__CPAChecker_ANONYMOUS_FUNCTION_0",
             functionDeclaration);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
