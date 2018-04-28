@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 /**
@@ -41,7 +42,6 @@ public final class JSVariableDeclaration extends AVariableDeclaration implements
   public JSVariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
-      JSType pType,
       String pName,
       String pOrigName,
       String pQualifiedName,
@@ -50,7 +50,7 @@ public final class JSVariableDeclaration extends AVariableDeclaration implements
     super(
         pFileLocation,
         pIsGlobal,
-        pType,
+        JSAnyType.ANY,
         checkNotNull(pName),
         pOrigName,
         pQualifiedName,

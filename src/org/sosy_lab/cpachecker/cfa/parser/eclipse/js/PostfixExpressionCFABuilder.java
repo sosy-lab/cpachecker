@@ -62,7 +62,6 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             oldValueVariableName,
             oldValueVariableName,
             qualifiedNameOf(pBuilder.getFunctionName(), oldValueVariableName),

@@ -52,7 +52,6 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             resultVariableName,
             resultVariableName,
             qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),

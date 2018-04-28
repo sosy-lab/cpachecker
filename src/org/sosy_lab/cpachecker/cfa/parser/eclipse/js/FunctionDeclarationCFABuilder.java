@@ -59,7 +59,6 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             returnVariableName,
             returnVariableName,
             returnVariableName,

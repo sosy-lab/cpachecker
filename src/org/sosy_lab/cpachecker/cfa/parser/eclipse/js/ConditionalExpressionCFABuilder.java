@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class ConditionalExpressionCFABuilder implements ConditionalExpressionAppendable {
@@ -50,7 +49,6 @@ class ConditionalExpressionCFABuilder implements ConditionalExpressionAppendable
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             resultVariableName,
             resultVariableName,
             qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),

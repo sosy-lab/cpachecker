@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragmentAppendable {
@@ -45,7 +44,6 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
         new JSVariableDeclaration(
             pBuilder.getFileLocation(pVariableDeclarationFragment),
             false,
-            JSAnyType.ANY,
             variableIdentifier,
             variableIdentifier,
             qualifiedNameOf(pBuilder.getFunctionName(), variableIdentifier),

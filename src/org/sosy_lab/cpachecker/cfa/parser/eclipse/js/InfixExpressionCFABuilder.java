@@ -92,7 +92,6 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             resultVariableName,
             resultVariableName,
             qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),
@@ -175,7 +174,6 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             tmpLeftVariableName,
             tmpLeftVariableName,
             qualifiedNameOf(pBuilder.getFunctionName(), tmpLeftVariableName),
@@ -186,7 +184,6 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         new JSVariableDeclaration(
             FileLocation.DUMMY,
             false,
-            JSAnyType.ANY,
             tmpRightVariableName,
             tmpRightVariableName,
             qualifiedNameOf(pBuilder.getFunctionName(), tmpRightVariableName),
