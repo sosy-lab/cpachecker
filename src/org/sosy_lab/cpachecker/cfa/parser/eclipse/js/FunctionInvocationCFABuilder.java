@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
+
 import java.util.Collections;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
@@ -44,9 +46,23 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
             ? pBuilder.resolve(pNode.getName())
             : (JSIdExpression) pBuilder.append(pNode.getExpression());
     final JSFunctionDeclaration declaration = (JSFunctionDeclaration) function.getDeclaration();
-    final JSFunctionCallStatement functionCallStatement =
-        new JSFunctionCallStatement(
+    final String resultVariableName = pBuilder.generateVariableName();
+    final JSVariableDeclaration resultVariableDeclaration =
+        new JSVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            JSAnyType.ANY,
+            resultVariableName,
+            resultVariableName,
+            qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),
+            null);
+    final JSIdExpression resultVariableId =
+        new JSIdExpression(
+            FileLocation.DUMMY, JSAnyType.ANY, resultVariableName, resultVariableDeclaration);
+    final JSFunctionCallAssignmentStatement functionCallStatement =
+        new JSFunctionCallAssignmentStatement(
             pBuilder.getFileLocation(pNode),
+            resultVariableId,
             new JSFunctionCallExpression(
                 pBuilder.getFileLocation(pNode),
                 JSAnyType.ANY,
@@ -63,8 +79,7 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
                 pPredecessor,
                 pSuccessor));
 
-    // TODO create tmp variable for return value of function invocation and return its identifier
-    return new JSUndefinedLiteralExpression(FileLocation.DUMMY);
+    return resultVariableId;
   }
 
 }
