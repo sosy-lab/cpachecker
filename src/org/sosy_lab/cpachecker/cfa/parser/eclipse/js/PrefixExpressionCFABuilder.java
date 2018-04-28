@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
@@ -74,7 +73,7 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
       case MINUS:
       case COMPLEMENT:
         return new JSUnaryExpression(
-            pBuilder.getFileLocation(pPrefixExpression), JSAnyType.ANY, operand, operator);
+            pBuilder.getFileLocation(pPrefixExpression), operand, operator);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of unary operator (not handled yet): " + operator, pPrefixExpression);

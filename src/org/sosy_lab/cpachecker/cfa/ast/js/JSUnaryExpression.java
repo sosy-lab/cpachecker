@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public class JSUnaryExpression extends AUnaryExpression implements JSExpression {
@@ -33,10 +34,9 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
 
   public JSUnaryExpression(
       final FileLocation pFileLocation,
-      final JSType pType,
       final JSExpression pOperand,
       final UnaryOperator pOperator) {
-    super(pFileLocation, pType, pOperand, pOperator);
+    super(pFileLocation, JSAnyType.ANY, pOperand, pOperator);
   }
 
   @Override
