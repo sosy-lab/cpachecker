@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
@@ -65,7 +64,6 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
             resultVariableId,
             new JSFunctionCallExpression(
                 pBuilder.getFileLocation(pNode),
-                JSAnyType.ANY,
                 function,
                 Collections.emptyList(),
                 declaration));

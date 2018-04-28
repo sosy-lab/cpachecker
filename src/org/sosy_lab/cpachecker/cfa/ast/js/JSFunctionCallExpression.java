@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public class JSFunctionCallExpression extends AFunctionCallExpression implements JSRightHandSide {
@@ -34,12 +35,11 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
 
   public JSFunctionCallExpression(
       final FileLocation pFileLocation,
-      final JSType pType,
       final JSExpression pFunctionName,
       final List<JSExpression> pParameters,
       final JSFunctionDeclaration pDeclaration) {
 
-    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
+    super(pFileLocation, JSAnyType.ANY, pFunctionName, pParameters, pDeclaration);
   }
 
   @Override
