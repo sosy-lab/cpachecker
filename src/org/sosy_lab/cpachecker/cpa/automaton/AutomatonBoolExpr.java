@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -643,9 +646,23 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       CFAEdge edge = pArgs.getCfaEdge();
       if (edge instanceof BlankEdge && edge.getDescription().equals("assert fail")) {
         return CONST_TRUE;
-      } else {
-        return CONST_FALSE;
+      } else if (edge instanceof JSFunctionCallEdge) {
+        final JSFunctionCallEdge functionCallEdge = (JSFunctionCallEdge) edge;
+        if (functionCallEdge.getRawAST().isPresent()) {
+          final JSExpression functionNameExpression =
+              functionCallEdge
+                  .getRawAST()
+                  .get()
+                  .getFunctionCallExpression()
+                  .getFunctionNameExpression();
+          if (functionNameExpression instanceof JSIdExpression
+              && Objects.equals(
+                  ((JSIdExpression) functionNameExpression).getName(), "__VERIFIER_error")) {
+            return CONST_TRUE;
+          }
+        }
       }
+      return CONST_FALSE;
     }
 
     @Override
