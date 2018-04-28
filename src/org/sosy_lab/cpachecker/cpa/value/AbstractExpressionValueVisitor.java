@@ -126,6 +126,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.js.JSUndefinedValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
@@ -2268,8 +2269,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
       throws RuntimeException {
-    // TODO implement evaluation of undefined literal
-    throw new RuntimeException("Evaluation of undefined literal not implemented yet");
+    return JSUndefinedValue.getInstance();
   }
 
   @Override
