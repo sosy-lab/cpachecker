@@ -74,7 +74,7 @@ class CFABuilder implements FileLocationProvider {
     parseResult.getCFANodes().put(functionName, pEntryNode);
   }
 
-  public CFABuilder addParseResult(final ParseResult pParseResult) {
+  CFABuilder addParseResult(final ParseResult pParseResult) {
     // TODO move to ParseResult?
     parseResult.getFunctions().putAll(pParseResult.getFunctions());
     parseResult.getCFANodes().putAll(pParseResult.getCFANodes());
