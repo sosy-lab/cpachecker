@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class FileCFABuilder implements JavaScriptUnitAppendable {
@@ -50,7 +48,6 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
     final JSFunctionDeclaration functionDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
-            new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
             functionName,
             Collections.emptyList());
     exitNode = new FunctionExitNode(functionName);

@@ -41,10 +41,9 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
 
   public JSFunctionDeclaration(
       FileLocation pFileLocation,
-      JSFunctionType pType,
       String pName,
       List<JSParameterDeclaration> parameters) {
-    super(pFileLocation, pType, checkNotNull(pName), parameters);
+    super(pFileLocation, JSFunctionType.instance, checkNotNull(pName), parameters);
   }
 
   @Override

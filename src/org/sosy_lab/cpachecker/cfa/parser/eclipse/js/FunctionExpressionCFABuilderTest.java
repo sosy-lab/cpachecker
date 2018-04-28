@@ -36,8 +36,6 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
 public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
 
@@ -50,7 +48,6 @@ public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
-            new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
             "",
             Collections.emptyList());
 

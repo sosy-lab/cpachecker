@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types.js;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
@@ -35,8 +36,14 @@ public class JSFunctionType extends AFunctionType implements JSType {
 
   private String name = null;
 
-  public JSFunctionType(JSType pReturnType, List<JSType> pParameters) {
-    super(pReturnType, pParameters, false);
+  /**
+   * Every JavaScript function has the same type since they can all take a dynamic count of
+   * arguments (of any type) and return anything.
+   */
+  public static final JSFunctionType instance = new JSFunctionType();
+
+  private JSFunctionType() {
+    super(JSAnyType.ANY, Collections.singletonList(JSAnyType.ANY), true);
   }
 
   @Override

@@ -39,8 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
@@ -51,7 +49,6 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
             pBuilder.getFileLocation(pFunctionDeclaration),
-            new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
             getFunctionName(pFunctionDeclaration),
             Collections.emptyList());
     final String returnVariableName = "__retval__";
