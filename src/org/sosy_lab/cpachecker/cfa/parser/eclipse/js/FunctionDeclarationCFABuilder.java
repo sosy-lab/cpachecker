@@ -29,9 +29,16 @@ import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
@@ -46,11 +53,26 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
             getFunctionName(pFunctionDeclaration),
             Collections.emptyList());
+    final String returnVariableName = "__retval__";
+    final JSVariableDeclaration returnVariableDeclaration =
+        new JSVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            JSAnyType.ANY,
+            returnVariableName,
+            returnVariableName,
+            returnVariableName,
+            new JSInitializerExpression(
+                FileLocation.DUMMY, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
+
     final String functionName = jsFunctionDeclaration.getName();
     final FunctionExitNode exitNode = new FunctionExitNode(functionName);
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(
-            FileLocation.DUMMY, jsFunctionDeclaration, exitNode, Optional.absent());
+            FileLocation.DUMMY,
+            jsFunctionDeclaration,
+            exitNode,
+            Optional.of(returnVariableDeclaration));
     exitNode.setEntryNode(entryNode);
     final JavaScriptCFABuilder functionCFABuilder = pBuilder.copyWith(entryNode);
 
@@ -58,7 +80,29 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
     functionCFABuilder
         .append(pFunctionDeclaration.getBody())
-        .appendEdge(exitNode, DummyEdge.withDescription("default return"))
+        .appendEdge(
+            exitNode,
+            (pPredecessor, pSuccessor) -> {
+              final JSUndefinedLiteralExpression returnValue =
+                  new JSUndefinedLiteralExpression(FileLocation.DUMMY);
+              return new JSReturnStatementEdge(
+                  "return;",
+                  new JSReturnStatement(
+                      FileLocation.DUMMY,
+                      Optional.of(returnValue),
+                      Optional.of(
+                          new JSExpressionAssignmentStatement(
+                              FileLocation.DUMMY,
+                              new JSIdExpression(
+                                  FileLocation.DUMMY,
+                                  JSAnyType.ANY,
+                                  returnVariableName,
+                                  returnVariableDeclaration),
+                              returnValue))),
+                  FileLocation.DUMMY,
+                  pPredecessor,
+                  exitNode);
+            })
         .appendTo(pBuilder.getBuilder());
 
     return jsFunctionDeclaration;
