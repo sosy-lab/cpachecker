@@ -1011,6 +1011,8 @@ public class ValueAnalysisTransferRelation
     Value value;
     if (exp instanceof JRightHandSide) {
        value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
+    } else if (exp instanceof JSRightHandSide) {
+       value = visitor.evaluate((JSRightHandSide) exp, (JSType) lType);
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -1407,6 +1409,8 @@ public class ValueAnalysisTransferRelation
             Value value;
             if (exp instanceof JRightHandSide) {
               value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
+            } else if (exp instanceof JSRightHandSide) {
+              value = evv.evaluate((JSRightHandSide) exp, (JSType) exp.getExpressionType());
             } else if (exp instanceof CRightHandSide) {
               value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
             } else {
