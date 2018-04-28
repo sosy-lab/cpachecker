@@ -1,11 +1,38 @@
-var x = 0;
-var y = 0;
-if (x) {
-  var t = 42
+function __VERIFIER_error() {}
+function __VERIFIER_success() {}
+
+var falsy = false;
+if (falsy) {
+  __VERIFIER_error();
+} else {
+  __VERIFIER_success();
 }
-else if (y) {
-  var ei = 31
+
+var truthy = true;
+if (truthy) {
+  __VERIFIER_success();
+} else {
+  __VERIFIER_error();
 }
-else {
-  var e = 123
+
+var zero = 0;
+if (zero !== 0) {
+  __VERIFIER_error();
+} else if (zero === 0) {
+  __VERIFIER_success();
+} else {
+  __VERIFIER_error();
+}
+
+if (zero) {
+  __VERIFIER_error();
+} else {
+  __VERIFIER_success();
+}
+
+var one = 1;
+if (one) {
+  __VERIFIER_success();
+} else {
+  __VERIFIER_error();
 }
