@@ -190,6 +190,9 @@ public class CFASecondPassBuilder {
       int actualParameters = functionCallExpression.getParameterExpressions().size();
 
       switch (language) {
+      case JAVASCRIPT:
+        // it is allowed to call JavaScript functions with more or less arguments
+        break;
       case JAVA:
         throw new JParserException("Function " + functionName + " takes "
             + declaredParameters + " parameter(s) but is called with "
