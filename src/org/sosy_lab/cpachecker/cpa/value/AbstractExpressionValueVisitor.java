@@ -2202,7 +2202,8 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSFunctionCallExpression pIastFunctionCallExpression)
       throws RuntimeException {
-    return null; // TODO implement
+    // TODO implement evaluation of function-call-expression
+    throw new RuntimeException("Evaluation of function-call-expression not implemented yet");
   }
 
   @Override
@@ -2243,7 +2244,8 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(final JSUnaryExpression pUnaryExpression) throws RuntimeException {
-    return null; // TODO implement
+    // TODO implement evaluation of unary-expression
+    throw new RuntimeException("Evaluation of unary-expression not implemented yet");
   }
 
   @Override
@@ -2266,12 +2268,14 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
       throws RuntimeException {
-    return null; // TODO implement
+    // TODO implement evaluation of undefined literal
+    throw new RuntimeException("Evaluation of undefined literal not implemented yet");
   }
 
   @Override
   public Value visit(final JSThisExpression pThisExpression) throws RuntimeException {
-    return null; // TODO implement
+    // TODO implement evaluation of this-expression
+    throw new RuntimeException("Evaluation of this-expression not implemented yet");
   }
 
   @Override
