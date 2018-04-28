@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -109,6 +110,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -639,6 +641,8 @@ public class ValueAnalysisTransferRelation
   private Type getBooleanType(AExpression pExpression) {
     if (pExpression instanceof JExpression) {
       return JSimpleType.getBoolean();
+    } else if (pExpression instanceof JSExpression) {
+      return JSAnyType.ANY;
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
 
