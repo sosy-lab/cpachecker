@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
@@ -72,8 +71,6 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
             variableToIncrement,
             new JSBinaryExpression(
                 FileLocation.DUMMY,
-                JSAnyType.ANY,
-                JSAnyType.ANY,
                 variableToIncrement,
                 new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
                 binaryOperator));

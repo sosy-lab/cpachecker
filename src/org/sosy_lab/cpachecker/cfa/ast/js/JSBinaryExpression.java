@@ -23,25 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public class JSBinaryExpression extends ABinaryExpression implements JSExpression {
 
   private static final long serialVersionUID = 7759096923080779112L;
-  private final JSType calculationType;
 
   public JSBinaryExpression(
       final FileLocation pFileLocation,
-      final JSType pExpressionType,
-      final JSType pCalculationType,
       final JSExpression pOperand1,
       final JSExpression pOperand2,
       final BinaryOperator pOperator) {
-    super(pFileLocation, pExpressionType, pOperand1, pOperand2, pOperator);
-    calculationType = pCalculationType;
+    super(pFileLocation, JSAnyType.ANY, pOperand1, pOperand2, pOperator);
   }
 
   @Override
@@ -75,7 +71,7 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
    * the result-type.
    */
   public JSType getCalculationType() {
-    return calculationType;
+    return JSAnyType.ANY;
   }
 
   @Override
@@ -320,7 +316,6 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(calculationType);
     return result * prime + super.hashCode();
   }
 
@@ -334,8 +329,6 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
       return false;
     }
 
-    final JSBinaryExpression other = (JSBinaryExpression) obj;
-
-    return Objects.equals(other.calculationType, calculationType) && super.equals(obj);
+    return super.equals(obj);
   }
 }

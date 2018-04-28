@@ -57,8 +57,6 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
                 variableToIncrement,
                 new JSBinaryExpression(
                     FileLocation.DUMMY,
-                    JSAnyType.ANY,
-                    JSAnyType.ANY,
                     variableToIncrement,
                     new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
                     binaryOperator));

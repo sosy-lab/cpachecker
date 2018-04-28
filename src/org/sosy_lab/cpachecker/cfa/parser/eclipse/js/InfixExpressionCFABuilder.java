@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 @SuppressWarnings({"ALL", "ResultOfMethodCallIgnored"})
 class InfixExpressionCFABuilder implements InfixExpressionAppendable {
@@ -207,8 +206,6 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
                     tmpRightVariableDeclaration));
     return new JSBinaryExpression(
         FileLocation.DUMMY,
-        JSAnyType.ANY,
-        JSAnyType.ANY,
         new JSIdExpression(
             FileLocation.DUMMY, tmpLeftVariableName, tmpLeftVariableDeclaration),
         new JSIdExpression(
