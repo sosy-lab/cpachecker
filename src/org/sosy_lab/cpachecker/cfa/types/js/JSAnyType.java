@@ -40,6 +40,11 @@ public class JSAnyType implements JSType {
 
   @Override
   public String toASTString(String declarator) {
+    return toString();
+  }
+
+  @Override
+  public String toString() {
     return "any";
   }
 }
