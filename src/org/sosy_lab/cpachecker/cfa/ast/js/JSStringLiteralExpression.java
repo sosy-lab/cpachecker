@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public final class JSStringLiteralExpression extends AStringLiteralExpression
@@ -32,8 +33,8 @@ public final class JSStringLiteralExpression extends AStringLiteralExpression
 
   private static final long serialVersionUID = -8981591181942355152L;
 
-  public JSStringLiteralExpression(FileLocation pFileLocation, JSType pType, String pValue) {
-    super(pFileLocation, pType, pValue);
+  public JSStringLiteralExpression(FileLocation pFileLocation, String pValue) {
+    super(pFileLocation, JSAnyType.ANY, pValue);
   }
 
   @Override

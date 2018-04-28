@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 public class StringLiteralConverterImpl implements StringLiteralConverter {
   @Override
@@ -33,7 +32,6 @@ public class StringLiteralConverterImpl implements StringLiteralConverter {
       final FileLocationProvider pFileLocationProvider, final StringLiteral pStringLiteral) {
     return new JSStringLiteralExpression(
         pFileLocationProvider.getFileLocation(pStringLiteral),
-        JSAnyType.ANY,
         pStringLiteral.getEscapedValue());
   }
 }
