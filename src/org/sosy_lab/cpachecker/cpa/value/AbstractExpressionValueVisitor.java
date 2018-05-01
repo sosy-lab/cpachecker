@@ -1575,21 +1575,6 @@ public abstract class AbstractExpressionValueVisitor
     return UnknownValue.getInstance();
   }
 
-  private Value calculateBinaryOperation(
-      final JSBinaryExpression.BinaryOperator pOperator, final Value pLValue, final Value pRValue)
-      throws IllegalOperationException {
-
-    assert !pLValue.isUnknown() && !pRValue.isUnknown();
-
-    if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
-      // TODO implement binary expressions of SymbolicValue for JavaScript
-      throw new RuntimeException("SymbolicValue not implemented yet for JavaScript");
-    } else if (pOperator.isEqualityOperator()) {
-      return calculateComparison(pLValue, pRValue, pOperator);
-    }
-    throw new IllegalOperationException("Unhandled operator " + pOperator);
-  }
-
   private Value createSymbolicExpression(Value pLeftValue, JType pLeftType, Value pRightValue,
       JType pRightType, JBinaryExpression.BinaryOperator pOperator, JType pExpressionType, JType pCalculationType) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
@@ -1916,20 +1901,6 @@ public abstract class AbstractExpressionValueVisitor
         ^ pLeftValue.equals(pRightValue));
   }
 
-  private Value calculateComparison(
-      final Value pLeftValue,
-      final Value pRightValue,
-      final JSBinaryExpression.BinaryOperator pOperator) {
-    assert pOperator.isEqualityOperator();
-    // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
-    // otherwise. This is equivalent to an XNOR.
-    // TODO non-strict equals works different than strict equals
-    final boolean isEqualOperator =
-        pOperator == JSBinaryExpression.BinaryOperator.EQUALS
-            || pOperator == JSBinaryExpression.BinaryOperator.EQUAL_EQUAL_EQUAL;
-    return BooleanValue.valueOf(!isEqualOperator ^ pLeftValue.equals(pRightValue));
-  }
-
   @Override
   public Value visit(JIdExpression idExp) {
 
@@ -2225,7 +2196,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     try {
-      return calculateBinaryOperation(binaryOperator, lValue, rValue);
+      return JSBinaryExpressionEvaluation.evaluate(binaryOperator, lValue, rValue);
     } catch (final IllegalOperationException e) {
       logger.logUserException(Level.SEVERE, e, pE.getFileLocation().toString());
       return UnknownValue.getInstance();
