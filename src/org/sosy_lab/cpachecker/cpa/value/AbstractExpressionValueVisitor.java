@@ -2216,8 +2216,13 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(final JSUnaryExpression pUnaryExpression) throws RuntimeException {
-    // TODO implement evaluation of unary-expression
-    throw new RuntimeException("Evaluation of unary-expression not implemented yet");
+    try {
+      return JSUnaryExpressionEvaluation.evaluate(
+          pUnaryExpression.getOperator(), pUnaryExpression.getOperand().accept(this));
+    } catch (final IllegalOperationException e) {
+      logger.logUserException(Level.SEVERE, e, pUnaryExpression.getFileLocation().toString());
+      return UnknownValue.getInstance();
+    }
   }
 
   @Override
