@@ -19,3 +19,6 @@ var notANumberPositive = +undefined; // undefined is converted to NaN
 if (notANumberPositive === notANumberPositive) { __VERIFIER_error(); }
 var notANumberNegative = -undefined; // undefined is converted to NaN
 if (notANumberNegative === notANumberNegative) { __VERIFIER_error(); }
+
+// void operator
+if (void 0 !== undefined) { __VERIFIER_error(); }

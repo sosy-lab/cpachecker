@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor.IllegalO
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.js.JSUndefinedValue;
 import org.sosy_lab.cpachecker.cpa.value.type.js.Type;
 
 final class JSUnaryExpressionEvaluation {
@@ -42,6 +43,7 @@ final class JSUnaryExpressionEvaluation {
     operatorEvaluation = new HashMap<>();
     operatorEvaluation.put(UnaryOperator.PLUS, new JSUnaryPlusOperatorEvaluation());
     operatorEvaluation.put(UnaryOperator.MINUS, new JSUnaryMinusOperatorEvaluation());
+    operatorEvaluation.put(UnaryOperator.VOID, (pOperand) -> JSUndefinedValue.getInstance());
   }
 
   public static Value evaluate(final UnaryOperator pOperator, final Value pOperand)
