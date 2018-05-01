@@ -61,16 +61,23 @@ final class JSBinaryExpressionEvaluation {
 final class JSStrictEqualityEvaluation implements BiFunction<Value, Value, Value> {
 
   @Override
-  public Value apply(final Value pLeft, final Value pRight) {
+  public BooleanValue apply(final Value pLeft, final Value pRight) {
+    if (pLeft instanceof NumericValue && pRight instanceof NumericValue) {
+      return apply((NumericValue) pLeft, (NumericValue) pRight);
+    }
     return BooleanValue.valueOf(pLeft.equals(pRight));
+  }
+
+  public BooleanValue apply(final NumericValue pLeft, final NumericValue pRight) {
+    return BooleanValue.valueOf(pLeft.bigDecimalValue().equals(pRight.bigDecimalValue()));
   }
 }
 
 final class JSStrictUnequalityEvaluation implements BiFunction<Value, Value, Value> {
 
   @Override
-  public Value apply(final Value pLeft, final Value pRight) {
-    return new JSStrictEqualityEvaluation().apply(pLeft, pRight);
+  public BooleanValue apply(final Value pLeft, final Value pRight) {
+    return new JSStrictEqualityEvaluation().apply(pLeft, pRight).negate();
   }
 }
 
