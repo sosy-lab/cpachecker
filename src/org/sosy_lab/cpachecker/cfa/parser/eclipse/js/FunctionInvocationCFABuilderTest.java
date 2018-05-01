@@ -35,6 +35,7 @@ import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -64,8 +65,8 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
     final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
-    final JSFunctionCallStatement functionCallStatement =
-        (JSFunctionCallStatement) functionInvocationEdge.getStatement();
+    final JSFunctionCallAssignmentStatement functionCallStatement =
+        (JSFunctionCallAssignmentStatement) functionInvocationEdge.getStatement();
     // TODO check function declaration of functionCallExpression
     final JSFunctionCallExpression functionCallExpression =
         functionCallStatement.getFunctionCallExpression();
@@ -98,8 +99,8 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
     final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
-    final JSFunctionCallStatement functionCallStatement =
-        (JSFunctionCallStatement) functionInvocationEdge.getStatement();
+    final JSFunctionCallAssignmentStatement functionCallStatement =
+        (JSFunctionCallAssignmentStatement) functionInvocationEdge.getStatement();
     final JSFunctionCallExpression functionCallExpression =
         functionCallStatement.getFunctionCallExpression();
     Truth.assertThat(functionCallExpression.getFunctionNameExpression()).isEqualTo(functionId);
