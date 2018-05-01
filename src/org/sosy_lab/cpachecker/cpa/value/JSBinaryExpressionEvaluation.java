@@ -108,6 +108,6 @@ final class JSSubtractionOperatorEvaluation extends JSNumericBinaryOperatorEvalu
 
   @Override
   public Value apply(final NumericValue pLeft, final NumericValue pRight) {
-    return new NumericValue(pLeft.bigDecimalValue().add(pRight.bigDecimalValue()));
+    return new NumericValue(pLeft.bigDecimalValue().subtract(pRight.bigDecimalValue()));
   }
 }
