@@ -10,6 +10,7 @@ if (+true !== 1) { __VERIFIER_error(); }
 if (-true !== -1) { __VERIFIER_error(); }
 if (+false !== 0) { __VERIFIER_error(); }
 if (-false !== -0) { __VERIFIER_error(); }
+// null is converted to number
 if (+null !== 0) { __VERIFIER_error(); }
 if (-null !== -0) { __VERIFIER_error(); }
 // A reliable way for ECMAScript code to test if a value X is a NaN is an expression of the form
