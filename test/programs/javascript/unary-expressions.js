@@ -12,3 +12,9 @@ if (+false !== 0) { __VERIFIER_error(); }
 if (-false !== -0) { __VERIFIER_error(); }
 if (+null !== 0) { __VERIFIER_error(); }
 if (-null !== -0) { __VERIFIER_error(); }
+// A reliable way for ECMAScript code to test if a value X is a NaN is an expression of the form
+// X !== X. The result will be true if and only if X is a NaN.
+var notANumberPositive = +undefined; // undefined is converted to NaN
+if (notANumberPositive === notANumberPositive) { __VERIFIER_error(); }
+var notANumberNegative = -undefined; // undefined is converted to NaN
+if (notANumberNegative === notANumberNegative) { __VERIFIER_error(); }
