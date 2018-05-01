@@ -2252,7 +2252,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSIntegerLiteralExpression pIntegerLiteralExpression)
       throws RuntimeException {
-    return new NumericValue(pIntegerLiteralExpression.asLong());
+    return new NumericValue(pIntegerLiteralExpression.getValue());
   }
 
   @Override
