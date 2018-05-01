@@ -64,4 +64,36 @@ public final class Type {
   public static NumericValue toNumber(final NumericValue pValue) {
     return pValue;
   }
+
+  public static BooleanValue toBoolean(final Value pValue) {
+    if (pValue instanceof JSUndefinedValue) {
+      return toBoolean((JSUndefinedValue) pValue);
+    } else if (pValue instanceof NullValue) {
+      return toBoolean((NullValue) pValue);
+    } else if (pValue instanceof BooleanValue) {
+      return toBoolean((BooleanValue) pValue);
+    } else if (pValue instanceof NumericValue) {
+      return toBoolean((NumericValue) pValue);
+    }
+    throw new AssertionError("Unhandled value type " + pValue.getClass());
+  }
+
+  @SuppressWarnings("unused")
+  public static BooleanValue toBoolean(final JSUndefinedValue pValue) {
+    return BooleanValue.valueOf(false);
+  }
+
+  @SuppressWarnings("unused")
+  public static BooleanValue toBoolean(final NullValue pValue) {
+    return BooleanValue.valueOf(false);
+  }
+
+  public static BooleanValue toBoolean(final BooleanValue pValue) {
+    return pValue;
+  }
+
+  public static BooleanValue toBoolean(final NumericValue pValue) {
+    final double doubleValue = pValue.doubleValue();
+    return BooleanValue.valueOf(!Double.isNaN(doubleValue) && doubleValue != 0.0);
+  }
 }
