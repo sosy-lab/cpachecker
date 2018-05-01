@@ -69,7 +69,7 @@ final class JSStrictEqualityEvaluation implements BiFunction<Value, Value, Value
   }
 
   public BooleanValue apply(final NumericValue pLeft, final NumericValue pRight) {
-    return BooleanValue.valueOf(pLeft.bigDecimalValue().equals(pRight.bigDecimalValue()));
+    return BooleanValue.valueOf(pLeft.doubleValue() == pRight.doubleValue());
   }
 }
 
