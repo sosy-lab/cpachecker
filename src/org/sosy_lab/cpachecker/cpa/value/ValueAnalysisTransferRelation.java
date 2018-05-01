@@ -608,7 +608,7 @@ public class ValueAnalysisTransferRelation
               logger,
               options);
 
-      if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
+      if (expression instanceof JExpression) {
 
         ((JExpression) expression).accept(avv);
 
@@ -617,8 +617,12 @@ public class ValueAnalysisTransferRelation
           missingAssumeInformation = true;
         }
 
-      } else {
+      } else if (expression instanceof JSExpression) {
+        ((JSExpression) expression).accept(avv);
+      } else if (expression instanceof CExpression) {
         ((CExpression) expression).accept(avv);
+      } else {
+        throw new AssertionError("Unhandled expression type " + expression.getClass());
       }
 
       if (isMissingCExpressionInformation(evv, expression)) {
