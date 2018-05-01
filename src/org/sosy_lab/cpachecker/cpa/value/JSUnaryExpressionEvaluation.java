@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor.IllegalO
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.js.Type;
 
 final class JSUnaryExpressionEvaluation {
   private JSUnaryExpressionEvaluation() {}
@@ -58,11 +59,7 @@ abstract class JSNumericUnaryOperatorEvaluation implements Function<Value, Value
 
   @Override
   public Value apply(final Value pOperand) {
-    final NumericValue pOperandNumeric = pOperand.asNumericValue();
-    if (pOperandNumeric != null) {
-      return apply(pOperandNumeric);
-    }
-    return UnknownValue.getInstance();
+    return pOperand.isUnknown() ? UnknownValue.getInstance() : apply(Type.toNumber(pOperand));
   }
 }
 

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.js.Type;
 
 final class JSBinaryExpressionEvaluation {
   private JSBinaryExpressionEvaluation() {}
@@ -87,12 +88,9 @@ abstract class JSNumericBinaryOperatorEvaluation implements BiFunction<Value, Va
 
   @Override
   public Value apply(final Value pLeft, final Value pRight) {
-    final NumericValue pLeftNumeric = pLeft.asNumericValue();
-    final NumericValue pRightNumeric = pRight.asNumericValue();
-    if (pLeftNumeric != null && pRightNumeric != null) {
-      return apply(pLeftNumeric, pRightNumeric);
-    }
-    return UnknownValue.getInstance();
+    return pLeft.isUnknown() || pRight.isUnknown()
+        ? UnknownValue.getInstance()
+        : apply(Type.toNumber(pLeft), Type.toNumber(pRight));
   }
 }
 
