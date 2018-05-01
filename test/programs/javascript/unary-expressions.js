@@ -10,3 +10,5 @@ if (+true !== 1) { __VERIFIER_error(); }
 if (-true !== -1) { __VERIFIER_error(); }
 if (+false !== 0) { __VERIFIER_error(); }
 if (-false !== -0) { __VERIFIER_error(); }
+if (+null !== 0) { __VERIFIER_error(); }
+if (-null !== -0) { __VERIFIER_error(); }
