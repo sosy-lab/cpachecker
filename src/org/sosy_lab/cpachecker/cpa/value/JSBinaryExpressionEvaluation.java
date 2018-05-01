@@ -58,7 +58,7 @@ final class JSBinaryExpressionEvaluation {
   }
 }
 
-class JSStrictEqualityEvaluation implements BiFunction<Value, Value, Value> {
+final class JSStrictEqualityEvaluation implements BiFunction<Value, Value, Value> {
 
   @Override
   public Value apply(final Value pLeft, final Value pRight) {
@@ -66,7 +66,7 @@ class JSStrictEqualityEvaluation implements BiFunction<Value, Value, Value> {
   }
 }
 
-class JSStrictUnequalityEvaluation implements BiFunction<Value, Value, Value> {
+final class JSStrictUnequalityEvaluation implements BiFunction<Value, Value, Value> {
 
   @Override
   public Value apply(final Value pLeft, final Value pRight) {
