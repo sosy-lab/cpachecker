@@ -30,7 +30,9 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor.IllegalOperationException;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 final class JSBinaryExpressionEvaluation {
   private JSBinaryExpressionEvaluation() {}
@@ -42,6 +44,8 @@ final class JSBinaryExpressionEvaluation {
     operatorEvaluation = new HashMap<>();
     operatorEvaluation.put(BinaryOperator.EQUAL_EQUAL_EQUAL, new JSStrictEqualityEvaluation());
     operatorEvaluation.put(BinaryOperator.NOT_EQUAL_EQUAL, new JSStrictUnequalityEvaluation());
+    operatorEvaluation.put(BinaryOperator.PLUS, new JSAdditionOperatorEvaluation());
+    operatorEvaluation.put(BinaryOperator.MINUS, new JSSubtractionOperatorEvaluation());
   }
 
   public static Value evaluate(
@@ -67,5 +71,36 @@ class JSStrictUnequalityEvaluation implements BiFunction<Value, Value, Value> {
   @Override
   public Value apply(final Value pLeft, final Value pRight) {
     return new JSStrictEqualityEvaluation().apply(pLeft, pRight);
+  }
+}
+
+abstract class JSNumericBinaryOperatorEvaluation implements BiFunction<Value, Value, Value> {
+
+  public abstract Value apply(final NumericValue pLeft, final NumericValue pRight);
+
+  @Override
+  public Value apply(final Value pLeft, final Value pRight) {
+    final NumericValue pLeftNumeric = pLeft.asNumericValue();
+    final NumericValue pRightNumeric = pRight.asNumericValue();
+    if (pLeftNumeric != null && pRightNumeric != null) {
+      return apply(pLeftNumeric, pRightNumeric);
+    }
+    return UnknownValue.getInstance();
+  }
+}
+
+final class JSAdditionOperatorEvaluation extends JSNumericBinaryOperatorEvaluation {
+
+  @Override
+  public Value apply(final NumericValue pLeft, final NumericValue pRight) {
+    return new NumericValue(pLeft.bigDecimalValue().add(pRight.bigDecimalValue()));
+  }
+}
+
+final class JSSubtractionOperatorEvaluation extends JSNumericBinaryOperatorEvaluation {
+
+  @Override
+  public Value apply(final NumericValue pLeft, final NumericValue pRight) {
+    return new NumericValue(pLeft.bigDecimalValue().add(pRight.bigDecimalValue()));
   }
 }
