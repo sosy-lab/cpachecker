@@ -1587,7 +1587,7 @@ public abstract class AbstractExpressionValueVisitor
     } else if (pOperator.isEqualityOperator()) {
       return calculateComparison(pLValue, pRValue, pOperator);
     }
-    return UnknownValue.getInstance();
+    throw new IllegalOperationException("Unhandled operator " + pOperator);
   }
 
   private Value createSymbolicExpression(Value pLeftValue, JType pLeftType, Value pRightValue,
