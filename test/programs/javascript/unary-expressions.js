@@ -22,3 +22,13 @@ if (notANumberNegative === notANumberNegative) { __VERIFIER_error(); }
 
 // void operator
 if (void 0 !== undefined) { __VERIFIER_error(); }
+
+// unary not operator
+if (!false !== true) { __VERIFIER_error(); }
+if (!true !== false) { __VERIFIER_error(); }
+if (!0 !== true) { __VERIFIER_error(); }
+if (!1 !== false) { __VERIFIER_error(); }
+if (!2 !== false) { __VERIFIER_error(); }
+if (!notANumberPositive !== true) { __VERIFIER_error(); }
+if (!null !== true) { __VERIFIER_error(); }
+if (!undefined !== true) { __VERIFIER_error(); }

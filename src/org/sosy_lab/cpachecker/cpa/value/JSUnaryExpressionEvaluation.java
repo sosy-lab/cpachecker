@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor.IllegalOperationException;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -43,6 +44,7 @@ final class JSUnaryExpressionEvaluation {
     operatorEvaluation = new HashMap<>();
     operatorEvaluation.put(UnaryOperator.PLUS, new JSUnaryPlusOperatorEvaluation());
     operatorEvaluation.put(UnaryOperator.MINUS, new JSUnaryMinusOperatorEvaluation());
+    operatorEvaluation.put(UnaryOperator.NOT, new JSNotOperatorEvaluation());
     operatorEvaluation.put(UnaryOperator.VOID, (pOperand) -> JSUndefinedValue.getInstance());
   }
 
@@ -77,5 +79,13 @@ final class JSUnaryMinusOperatorEvaluation extends JSNumericUnaryOperatorEvaluat
   @Override
   public Value apply(final NumericValue pOperand) {
     return pOperand.negate();
+  }
+}
+
+final class JSNotOperatorEvaluation implements Function<Value, Value> {
+
+  @Override
+  public BooleanValue apply(final Value pOperand) {
+    return Type.toBoolean(pOperand).negate();
   }
 }
