@@ -76,6 +76,9 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
     MINUS("-"),
     COMPLEMENT("~"),
     NOT("!"),
+    TYPE_OF("typeof"),
+    DELETE("delete"),
+    VOID("void"),
     ;
 
     private final String mOp;

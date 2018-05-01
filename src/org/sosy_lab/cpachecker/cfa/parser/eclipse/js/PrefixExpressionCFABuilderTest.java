@@ -49,6 +49,9 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
     testOperatorsWithoutSideEffect("+1", UnaryOperator.PLUS);
     testOperatorsWithoutSideEffect("-1", UnaryOperator.MINUS);
     testOperatorsWithoutSideEffect("~1", UnaryOperator.COMPLEMENT);
+    testOperatorsWithoutSideEffect("delete object.property", UnaryOperator.DELETE);
+    testOperatorsWithoutSideEffect("typeof 0", UnaryOperator.TYPE_OF);
+    testOperatorsWithoutSideEffect("void 0", UnaryOperator.VOID);
   }
 
   private void testOperatorsWithoutSideEffect(

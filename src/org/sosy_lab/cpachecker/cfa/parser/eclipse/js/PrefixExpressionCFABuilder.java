@@ -72,6 +72,9 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
       case PLUS:
       case MINUS:
       case COMPLEMENT:
+      case DELETE:
+      case TYPE_OF:
+      case VOID:
         return new JSUnaryExpression(
             pBuilder.getFileLocation(pPrefixExpression), operand, operator);
     }
@@ -92,8 +95,13 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
       return UnaryOperator.COMPLEMENT;
     } else if (PrefixExpression.Operator.NOT == pOperator) {
       return UnaryOperator.NOT;
+    } else if (PrefixExpression.Operator.DELETE == pOperator) {
+      return UnaryOperator.DELETE;
+    } else if (PrefixExpression.Operator.TYPE_OF == pOperator) {
+      return UnaryOperator.TYPE_OF;
+    } else if (PrefixExpression.Operator.VOID == pOperator) {
+      return UnaryOperator.VOID;
     }
-    // TODO implement operators TYPE_OF, DELETE, VOID
     throw new CFAGenerationRuntimeException(
         "Unknown kind of unary operator (not handled yet): " + pOperator);
   }
