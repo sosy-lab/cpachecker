@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.configuration.Configuration;
@@ -133,6 +134,16 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.noOfRefinements++;
     stats.totalTimer.start();
     try {
+      List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
+      List<BooleanFormula> pathformulas =
+          pathLocations
+              .stream()
+              .map(l -> l.getPathFormula().getFormula())
+              .collect(Collectors.toList());
+
+      // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
+      // Question: What was the ssa bug and how was it solved?
+      assert isFeasible(pFormulas.getFormulas()) == isFeasible(pathformulas);
       if (isFeasible(pFormulas.getFormulas())) {
         // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
@@ -141,7 +152,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
             ImmutableMap.<Integer, Boolean>of());
       } else {
         // Create the list of pathLocations(holding all relevant data)
-        List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
 
         Optional<List<BooleanFormula>> unsatCore;
         // Only compute if unsatCoreOption is set
