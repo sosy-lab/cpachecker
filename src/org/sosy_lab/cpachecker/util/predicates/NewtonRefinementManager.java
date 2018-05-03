@@ -422,27 +422,38 @@ public class NewtonRefinementManager implements StatisticsProvider {
       for (BooleanFormula pred : pPredicates) {
         variablesToTest.addAll(fmgr.extractVariableNames(pred));
       }
-      Map<String, Integer> lastOccurance = new HashMap<>();
 
-      // Map variables to the last location it occurs in the path
+      Map<String, Integer> lastOccurance = new HashMap<>(); // Last occurance of var
+      Map<Integer, BooleanFormula> predPosition = new HashMap<>(); // Pos of pred
+      int predCounter = 0;
+
       for (PathLocation location : pPathLocations) {
+        // Map variables to the last location it occurs in the path
         Set<String> localVars = fmgr.extractVariableNames(location.getPathFormula().getFormula());
         for (String var : variablesToTest) {
           if (localVars.contains(var)) {
             lastOccurance.put(var, location.getPathPosition());
           }
         }
+
+        // Map the abstraction state locations to the predicates
+        if (location.hasAbstractionState() && predCounter < pPredicates.size()) {
+          predPosition.put(location.getPathPosition(), pPredicates.get(predCounter));
+          predCounter++;
+        }
       }
+      assert predPosition.size() == pPredicates.size();
 
       List<BooleanFormula> newPredicates = new ArrayList<>();
 
-      // Map each predicate to the variables that are future live at its position
-      for (BooleanFormula pred : pPredicates) {
+      for (Entry<Integer, BooleanFormula> predEntry : predPosition.entrySet()) {
+        BooleanFormula pred = predEntry.getValue(); // The predicate
+        int predPos = predEntry.getKey(); // The position in the path
 
-        int predPos = 0; // TODO: This should be the position of the predicate
+        // Map predicate to the variables that are future live at its position
         Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
 
-        // identify the variables that are not future live and can be existentially quantified
+        // identify the variables that are not future live and can be quantified
         Map<String, Formula> toQuantify =
             Maps.filterEntries(
                 fmgr.extractVariables(pred),
@@ -464,7 +475,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           newPredicates.add(pred);
         }
       }
-
+      assert newPredicates.size() == pPredicates.size();
       return newPredicates;
     } finally {
       stats.futureLivesTimer.stop();
