@@ -30,6 +30,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.timeout.TimeoutCPA;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -43,15 +44,22 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
   private Throwable caughtThrowable = null;
   private ResourceLimitChecker limitChecker;
   private boolean timeoutOccured = false;
+  private TimeoutCPA timeoutCPA;
 
-  public WorkerRunnable(Algorithm pAlgorithm, ReachedSet pReachedSet, long pTimelimitInSeconds, ShutdownManager pShutdownNotifier) {
+  public WorkerRunnable(
+      Algorithm pAlgorithm,
+      ReachedSet pReachedSet,
+      long pTimelimitInSeconds,
+      ShutdownManager pShutdownNotifier,
+      TimeoutCPA pTimeoutCPA) {
     algorithm = pAlgorithm;
     localReachedSet = pReachedSet;
-
+    timeoutCPA = pTimeoutCPA;
     List<ResourceLimit> limits = new LinkedList<>();
     ProcessCpuTimeLimit limit;
     try {
-      limit = ProcessCpuTimeLimit.fromNowOn(pTimelimitInSeconds, java.util.concurrent.TimeUnit.SECONDS);
+      limit =
+          ProcessCpuTimeLimit.fromNowOn(pTimelimitInSeconds, java.util.concurrent.TimeUnit.SECONDS);
     } catch (JMException e) {
       throw new RuntimeException(e);
     }
@@ -62,12 +70,16 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
     limitChecker = new ResourceLimitChecker(pShutdownNotifier, limits);
   }
 
+
   @Override
   public void run() {
     try {
       limitChecker.start();
       soundAnalysis = algorithm.run(localReachedSet).isSound();
       limitChecker.cancel();
+
+      timeoutOccured = timeoutCPA.hasTimedout();
+
     } catch (InterruptedException e) {
       soundAnalysis = false;
       timeoutOccured = true;

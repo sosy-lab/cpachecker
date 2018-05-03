@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -100,6 +99,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.timeout.TimeoutCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -138,6 +138,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
   private TestGoalUtils testGoalUtils;
   private LinkedList<Goal> goalsToCover;
   private BDDUtils bddUtils;
+  private TimeoutCPA timeoutCPA;
 
   public TigerAlgorithm(
       LogManager pLogger,
@@ -739,12 +740,22 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       Specification goalAutomatonSpecification) {
     ARGCPA lARTCPA;
     try {
+
+      // create timeout CPA
+      CPAFactory toFactory = TimeoutCPA.factory();
+      toFactory.setConfiguration(startupConfig.getConfig());
+      toFactory.setLogger(logger);
+      timeoutCPA = (TimeoutCPA) toFactory.createInstance();
+      timeoutCPA.setWalltime(tigerConfig.getCpuTimelimitPerGoal());
+      lComponentAnalyses.add(timeoutCPA);
+
       // create composite CPA
       CPAFactory lCPAFactory = CompositeCPA.factory();
       lCPAFactory.setChildren(lComponentAnalyses);
       lCPAFactory.setConfiguration(startupConfig.getConfig());
       lCPAFactory.setLogger(logger);
       lCPAFactory.set(cfa, CFA.class);
+
 
       ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
@@ -883,36 +894,43 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     boolean analysisWasSound = false;
     boolean hasTimedOut = false;
 
-    if (tigerConfig.getCpuTimelimitPerGoal() < 0) {
-      // run algorithm without time limit
-      analysisWasSound = algorithm.run(reachedSet).isSound();
-    } else {
-      // run algorithm with time limit
-      WorkerRunnable workerRunnable =
-          new WorkerRunnable(
-              algorithm,
-              reachedSet,
-              tigerConfig.getCpuTimelimitPerGoal(),
-              algNotifier);
-
-      Thread workerThread = new Thread(workerRunnable);
-
-      workerThread.start();
-      workerThread.join();
-
-      if (workerRunnable.throwableWasCaught()) {
-        // TODO: handle exception
-        analysisWasSound = false;
-        // throw new RuntimeException(workerRunnable.getCaughtThrowable());
-      } else {
-        analysisWasSound = workerRunnable.analysisWasSound();
-
-        if (workerRunnable.hasTimeout()) {
-          logger.logf(Level.INFO, "Test goal timed out!");
-          hasTimedOut = true;
-        }
-      }
+    analysisWasSound = algorithm.run(reachedSet).isSound();
+    hasTimedOut = timeoutCPA.hasTimedout();
+    if (hasTimedOut) {
+      logger.logf(Level.INFO, "Test goal timed out!");
     }
+
+    // if (tigerConfig.getCpuTimelimitPerGoal() < 0) {
+//      // run algorithm without time limit
+//      analysisWasSound = algorithm.run(reachedSet).isSound();
+//    } else {
+//      // run algorithm with time limit
+//      WorkerRunnable workerRunnable =
+//          new WorkerRunnable(
+//              algorithm,
+//              reachedSet,
+//              tigerConfig.getCpuTimelimitPerGoal(),
+//              algNotifier,
+//              timeoutCPA);
+//
+//      Thread workerThread = new Thread(workerRunnable);
+//
+//      workerThread.start();
+//      workerThread.join();
+//
+//      if (workerRunnable.throwableWasCaught()) {
+//        // TODO: handle exception
+//        analysisWasSound = false;
+//        // throw new RuntimeException(workerRunnable.getCaughtThrowable());
+//      } else {
+//        analysisWasSound = workerRunnable.analysisWasSound();
+//
+//        if (workerRunnable.hasTimeout()) {
+//          logger.logf(Level.INFO, "Test goal timed out!");
+//          hasTimedOut = true;
+//        }
+//      }
+//    }
     return Pair.of(analysisWasSound, hasTimedOut);
   }
 

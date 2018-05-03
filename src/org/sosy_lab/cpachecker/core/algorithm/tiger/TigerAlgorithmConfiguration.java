@@ -71,9 +71,9 @@ public class TigerAlgorithmConfiguration {
   private boolean optimizeGoalAutomata = true;
 
   @Option(
-      secure = true,
-      name = "limitsPerGoal.time.cpu",
-      description = "Time limit per test goal in seconds (-1 for infinity).")
+    secure = true,
+    name = "limitsPerGoal.time.cpu",
+    description = "Time limit per test goal in seconds (-1 for infinity).")
   private long cpuTimelimitPerGoal = -1;
 
   @Option(
@@ -203,9 +203,10 @@ public class TigerAlgorithmConfiguration {
    public Path getAlgorithmConfigurationFile(){
     return algorithmConfigurationFile;
    }
-   public long getCpuTimelimitPerGoal(){
+
+  public long getCpuTimelimitPerGoal() {
     return cpuTimelimitPerGoal;
-   }
+  }
    public boolean shouldOptimizeGoalAutomata(){
     return optimizeGoalAutomata;
    }
