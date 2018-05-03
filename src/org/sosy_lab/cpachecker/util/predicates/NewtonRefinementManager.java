@@ -393,22 +393,16 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
     // Now we existentially quantify all intermediate Variables
     // and use quantifier elimination to obtain a quantifier free formula
-    BooleanFormula result;
-    try {
-      result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
-    } catch (Exception e) {
-      // TODO Right now a plain Exception for testing, has to be exchanged against a
-      // more meaningful Exception
-      // throw new CPAException(
-      //    "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
-      //    e);
+
+    Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
+    if (result.isPresent()) {
+      return result.get();
+    } else {
       logger.log(
           Level.FINE, "Quantifier elimination failed, keeping old assignements in predicate.");
       // Take the strongest possible assertion, as the SSA differs from other potential future assertions
-      result = toExist;
+      return toExist;
     }
-
-    return result;
   }
 
   /**
@@ -421,10 +415,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pPathLocations The path of the counterexample
    * @param pPredicates The predicates as derived in previous steps
    * @return The new predicates without variables that are not future live
-   * @throws CPAException In case of a failing Existential Quantification
+   * @throws InterruptedException If interrupted
    */
   private List<BooleanFormula> filterFutureLiveVariables(
-      List<PathLocation> pPathLocations, List<BooleanFormula> pPredicates) throws CPAException {
+      List<PathLocation> pPathLocations, List<BooleanFormula> pPredicates)
+      throws InterruptedException {
     stats.futureLivesTimer.start();
     try {
       // Only variables that are in the predicates need be considered
@@ -473,13 +468,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // quantify the previously identified variables
         if (!toQuantify.isEmpty()) {
-          try {
-            newPredicates.add(qeManager.eliminateQuantifiers(toQuantify, pred));
+          Optional<BooleanFormula> quantifiedPred = qeManager.eliminateQuantifiers(toQuantify, pred);
+          if (quantifiedPred.isPresent()) {
+            newPredicates.add(quantifiedPred.get());
             stats.noOfQuantifiedFutureLives += toQuantify.size();
-          } catch (Exception e) {
-            throw new CPAException(
-                "Newton Refinement failed because quantifier elimination was not possible while projecting predicate on future live variables.",
-                e);
+          } else {
+            // Keep the old predicate as QE is not possible
+            newPredicates.add(pred);
           }
         } else {
           newPredicates.add(pred);
