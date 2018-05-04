@@ -1,9 +1,13 @@
+function __VERIFIER_error() {}
+
+// verify return values of nested function declarations
 function foobar() {
   function bar() {
-    var nested = 1
+    return 1;
   }
 
-  bar();
+  if (bar() !== 1) { __VERIFIER_error(); }
+  return 0;
 }
 
-foobar();
+if (foobar() !== 0) { __VERIFIER_error(); }
