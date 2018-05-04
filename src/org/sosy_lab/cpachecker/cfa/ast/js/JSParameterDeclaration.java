@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 /** This is the declaration of a function parameter. It contains a type and a name. */
@@ -37,8 +38,8 @@ public final class JSParameterDeclaration extends AParameterDeclaration
   private static final long serialVersionUID = 4718050921269110062L;
   private String qualifiedName;
 
-  public JSParameterDeclaration(FileLocation pFileLocation, JSType pType, String pName) {
-    super(pFileLocation, pType, checkNotNull(pName));
+  public JSParameterDeclaration(FileLocation pFileLocation, String pName) {
+    super(pFileLocation, JSAnyType.ANY, checkNotNull(pName));
   }
 
   public void setQualifiedName(String pQualifiedName) {
