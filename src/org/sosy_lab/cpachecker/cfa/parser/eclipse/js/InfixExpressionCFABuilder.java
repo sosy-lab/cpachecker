@@ -160,56 +160,10 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
       final JavaScriptCFABuilder pBuilder,
       final InfixExpression pInfixExpression,
       final BinaryOperator pOperator) {
-    // infix expression:
-    //    left + right
-    // expected side effect:
-    //    var tmpLeft = left
-    //    var tmpRight = right
-    // expected result:
-    //    tmpLeft + tmpRight
-    final JSExpression leftOperand = pBuilder.append(pInfixExpression.getLeftOperand());
-    final String tmpLeftVariableName = pBuilder.generateVariableName();
-    final JSVariableDeclaration tmpLeftVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            tmpLeftVariableName,
-            tmpLeftVariableName,
-            qualifiedNameOf(pBuilder.getFunctionName(), tmpLeftVariableName),
-            new JSInitializerExpression(FileLocation.DUMMY, leftOperand));
-    final JSExpression rightOperand = pBuilder.append(pInfixExpression.getRightOperand());
-    final String tmpRightVariableName = pBuilder.generateVariableName();
-    final JSVariableDeclaration tmpRightVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            tmpRightVariableName,
-            tmpRightVariableName,
-            qualifiedNameOf(pBuilder.getFunctionName(), tmpRightVariableName),
-            new JSInitializerExpression(FileLocation.DUMMY, rightOperand));
-    pBuilder
-        .appendEdge(
-            (pPredecessor, pSuccessor) ->
-                new JSDeclarationEdge(
-                    tmpLeftVariableDeclaration.toASTString(),
-                    FileLocation.DUMMY,
-                    pPredecessor,
-                    pSuccessor,
-                    tmpLeftVariableDeclaration))
-        .appendEdge(
-            (pPredecessor, pSuccessor) ->
-                new JSDeclarationEdge(
-                    tmpRightVariableDeclaration.toASTString(),
-                    FileLocation.DUMMY,
-                    pPredecessor,
-                    pSuccessor,
-                    tmpRightVariableDeclaration));
     return new JSBinaryExpression(
         FileLocation.DUMMY,
-        new JSIdExpression(
-            FileLocation.DUMMY, tmpLeftVariableName, tmpLeftVariableDeclaration),
-        new JSIdExpression(
-            FileLocation.DUMMY, tmpRightVariableName, tmpRightVariableDeclaration),
+        pBuilder.append(pInfixExpression.getLeftOperand()),
+        pBuilder.append(pInfixExpression.getRightOperand()),
         pOperator);
   }
 

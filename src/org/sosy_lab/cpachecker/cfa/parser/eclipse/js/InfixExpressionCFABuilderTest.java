@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -358,46 +359,21 @@ public class InfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   // shared code for operators
   private void testOperator(final String pCode, final BinaryOperator pExpectedOperator) {
-    // infix expression:
-    //    left + right
-    // expected side effect:
-    //    var tmpLeft = left
-    //    var tmpRight = right
-    // expected result:
-    //    tmpLeft + tmpRight
     final InfixExpression infixExpression = parseExpression(InfixExpression.class, pCode);
 
     final JSExpression left = mock(JSExpression.class);
     final JSExpression right = mock(JSExpression.class);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any())).thenReturn(left, right);
+    when(expressionAppendable.append(eq(builder), any())).thenReturn(left, right);
     builder.setExpressionAppendable(expressionAppendable);
 
     final JSBinaryExpression result =
         (JSBinaryExpression) new InfixExpressionCFABuilder().append(builder, infixExpression);
 
     Truth.assertThat(result).isNotNull();
-    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
-    // assert expected side effect: var tmpLeft = left
-    final JSDeclarationEdge leftDeclarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
-    final JSVariableDeclaration leftDeclaration =
-        (JSVariableDeclaration) leftDeclarationEdge.getDeclaration();
-    Truth.assertThat(((JSInitializerExpression) leftDeclaration.getInitializer()).getExpression())
-        .isEqualTo(left);
-    // assert expected side effect: var tmpRight = right
-    Truth.assertThat(leftDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
-    final JSDeclarationEdge rightDeclarationEdge =
-        (JSDeclarationEdge) leftDeclarationEdge.getSuccessor().getLeavingEdge(0);
-    final JSVariableDeclaration rightDeclaration =
-        (JSVariableDeclaration) rightDeclarationEdge.getDeclaration();
-    Truth.assertThat(((JSInitializerExpression) rightDeclaration.getInitializer()).getExpression())
-        .isEqualTo(right);
-    Truth.assertThat(rightDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
-    // assert result: tmpLeft + tmpRight
-    Truth.assertThat(leftDeclaration.getName())
-        .isEqualTo(((JSIdExpression) result.getOperand1()).getName());
-    Truth.assertThat(rightDeclaration.getName())
-        .isEqualTo(((JSIdExpression) result.getOperand2()).getName());
+    Truth.assertThat(result.getOperand1()).isEqualTo(left);
+    Truth.assertThat(result.getOperand2()).isEqualTo(right);
     Truth.assertThat(result.getOperator()).isEqualTo(pExpectedOperator);
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(0);
   }
 }
