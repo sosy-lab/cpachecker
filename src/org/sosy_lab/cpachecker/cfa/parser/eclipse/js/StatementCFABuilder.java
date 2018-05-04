@@ -28,9 +28,9 @@ import org.eclipse.wst.jsdt.core.dom.EmptyStatement;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
+import org.eclipse.wst.jsdt.core.dom.ReturnStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
-
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class StatementCFABuilder implements StatementAppendable {
@@ -41,6 +41,7 @@ class StatementCFABuilder implements StatementAppendable {
   private IfStatementAppendable ifStatementAppendable;
   private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
   private FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable;
+  private ReturnStatementAppendable returnStatementAppendable;
 
   void setBlockStatementAppendable(final BlockStatementAppendable pBlockStatementAppendable) {
     blockStatementAppendable = pBlockStatementAppendable;
@@ -70,6 +71,10 @@ class StatementCFABuilder implements StatementAppendable {
     functionDeclarationStatementAppendable = pFunctionDeclarationStatementAppendable;
   }
 
+  void setReturnStatementAppendable(final ReturnStatementAppendable pReturnStatementAppendable) {
+    returnStatementAppendable = pReturnStatementAppendable;
+  }
+
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final Statement pStatement) {
     if (pStatement instanceof Block) {
@@ -83,6 +88,8 @@ class StatementCFABuilder implements StatementAppendable {
       expressionStatementAppendable.append(pBuilder, (ExpressionStatement) pStatement);
     } else if (pStatement instanceof IfStatement) {
       ifStatementAppendable.append(pBuilder, (IfStatement) pStatement);
+    } else if (pStatement instanceof ReturnStatement) {
+      returnStatementAppendable.append(pBuilder, (ReturnStatement) pStatement);
     } else if (pStatement instanceof VariableDeclarationStatement) {
       variableDeclarationStatementAppendable.append(
           pBuilder, (VariableDeclarationStatement) pStatement);

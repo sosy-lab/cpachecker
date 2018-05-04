@@ -31,6 +31,7 @@ final class StatementAppendableFactory {
     builder.setExpressionStatementAppendable(new ExpressionStatementCFABuilder());
     builder.setFunctionDeclarationStatementAppendable(new FunctionDeclarationStatementCFABuilder());
     builder.setIfStatementAppendable(new IfStatementCFABuilder());
+    builder.setReturnStatementAppendable(new ReturnStatementCFABuilder());
     builder.setVariableDeclarationStatementAppendable(new VariableDeclarationStatementCFABuilder());
     return builder;
   }
