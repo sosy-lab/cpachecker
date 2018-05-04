@@ -23,54 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 
 
 public class ThreadReducer implements Reducer {
 
-  private final Reducer lReducer;
-  private final Reducer cReducer;
-
-  public ThreadReducer(Reducer l, Reducer c) {
-    lReducer = l;
-    cReducer = c;
-  }
+  public ThreadReducer() {}
 
   @Override
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext,
       CFANode pCallNode) throws InterruptedException {
-    ThreadState expState = (ThreadState)pExpandedState;
-    LocationState expLocation = expState.getLocationState();
-    CallstackState expCallstackState = expState.getCallstackState();
-    ThreadStateBuilder builder = expState.getBuilder();
-    LocationState redLocation = (LocationState)lReducer.getVariableReducedState(expLocation, pContext, pCallNode);
-    CallstackState redCallstack = (CallstackState)cReducer.getVariableReducedState(expCallstackState, pContext, pCallNode);
-    return builder.build(redLocation, redCallstack);
+    return pExpandedState;
   }
 
   @Override
   public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) throws InterruptedException {
-    ThreadState rootState = (ThreadState)pRootState;
-    LocationState rootLocation = rootState.getLocationState();
-    CallstackState rootCallstack = rootState.getCallstackState();
-    ThreadState redState = (ThreadState)pReducedState;
-    LocationState redLocation = redState.getLocationState();
-    CallstackState redCallstack = redState.getCallstackState();
-    ThreadStateBuilder builder = redState.getBuilder();
-    LocationState expLocation = (LocationState)lReducer.getVariableExpandedState(rootLocation, pReducedContext, redLocation);
-    CallstackState expCallstack = (CallstackState)cReducer.getVariableExpandedState(rootCallstack, pReducedContext, redCallstack);
-    return builder.build(expLocation, expCallstack);
+    return pReducedState;
   }
 
   @Override
@@ -86,15 +60,7 @@ public class ThreadReducer implements Reducer {
 
   @Override
   public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
-    List<Object> result = new ArrayList<>(4);
-
-    ThreadState tState = (ThreadState) pStateKey;
-
-    result.add(lReducer.getHashCodeForState(tState.getLocationState(), pPrecisionKey));
-    result.add(cReducer.getHashCodeForState(tState.getCallstackState(), pPrecisionKey));
-    result.add(tState.getThreadSet());
-    result.add(tState.getRemovedSet());
-    return result;
+    return pStateKey;
   }
 
   @Override

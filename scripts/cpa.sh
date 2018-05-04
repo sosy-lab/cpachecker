@@ -86,6 +86,9 @@ while [ $# -gt 0 ]; do
    "-generateReport")
        echo "Option -generateReport is not necessary anymore. Please open the HTML files produced by CPAchecker in the output directory."
        ;;
+   -X*) # params starting with "-X" are used for JVM
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS $1"
+       ;;
    *) # other params are only for CPAchecker
        OPTIONS+=("$1")
        ;;
@@ -139,17 +142,18 @@ esac
 # Order of arguments for JVM:
 # - options hard-coded in this script (to allow overriding them)
 # - options specified in environment variable
-# - options specified on command-line to this script
+# - options specified on command-line via "-X..." (except stack/head/tmpdir)
+# - options specified on command-line to this script via direct token (stack/heap) and tmpdir
 # - CPAchecker class and options
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
 # PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
 exec "$JAVA" \
-	-Xss${JAVA_STACK_SIZE} \
-	-XX:+PerfDisableSharedMem \
-	-Djava.awt.headless=true \
-	$JAVA_VM_ARGUMENTS \
-	-Xmx${JAVA_HEAP_SIZE} \
-	$JAVA_ASSERTIONS \
-	org.sosy_lab.cpachecker.cmdline.CPAMain \
-	"${OPTIONS[@]}" \
-	$CPACHECKER_ARGUMENTS
+    -XX:+PerfDisableSharedMem \
+    -Djava.awt.headless=true \
+    $JAVA_VM_ARGUMENTS \
+    -Xss${JAVA_STACK_SIZE} \
+    -Xmx${JAVA_HEAP_SIZE} \
+    $JAVA_ASSERTIONS \
+    org.sosy_lab.cpachecker.cmdline.CPAMain \
+    "${OPTIONS[@]}" \
+    $CPACHECKER_ARGUMENTS

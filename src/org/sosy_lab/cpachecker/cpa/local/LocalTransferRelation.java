@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.cpa.local;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,7 +85,7 @@ public class LocalTransferRelation
     description = "functions, which allocate new free memory",
     secure = true
   )
-  private Set<String> allocate;
+  private Set<String> allocate = ImmutableSet.of();
 
   // Use it carefully: just alloc is not enough, because EMG generates
   // ldv_random_allocationless_scenario_callback_*
@@ -95,35 +94,29 @@ public class LocalTransferRelation
     description = "functions, which allocate new free memory",
     secure = true
   )
-  private Set<String> allocatePattern = Sets.newHashSet();
+  private Set<String> allocatePattern = ImmutableSet.of();
 
   @Option(
     name = "conservativefunctions",
     description = "functions, which do not change sharedness of parameters",
     secure = true
   )
-  private Set<String> conservationOfSharedness;
+  private Set<String> conservationOfSharedness = ImmutableSet.of();
 
   private Map<String, Integer> allocateInfo;
 
   public LocalTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    parseAllocatedFunctions(config);
+    allocateInfo = from(allocate).toMap(f -> getNumOrDefault(config, f));
   }
 
   @SuppressWarnings("deprecation")
-  private void parseAllocatedFunctions(Configuration config) {
-    String num;
-    allocateInfo = new HashMap<>();
-    if (allocate != null) {
-      for (String funcName : allocate) {
-        num = config.getProperty(funcName + ".parameter");
-        if (num == null) {
-          allocateInfo.put(funcName, 0);
-        } else {
-          allocateInfo.put(funcName, Integer.parseInt(num));
-        }
-      }
+  private int getNumOrDefault(Configuration config, String funcName) {
+    String num = config.getProperty(funcName + ".parameter");
+    if (num == null) {
+      return 0;
+    } else {
+      return Integer.parseInt(num);
     }
   }
 
@@ -268,8 +261,7 @@ public class LocalTransferRelation
       int dereference,
       CFunctionCallExpression right) {
     String funcName = right.getFunctionNameExpression().toASTString();
-    boolean isConservativeFunction =
-        (conservationOfSharedness == null ? false : conservationOfSharedness.contains(funcName));
+    boolean isConservativeFunction = conservationOfSharedness.contains(funcName);
 
     if (isAllocatedFunction(funcName)) {
       Integer num = allocateInfo.get(funcName);
@@ -445,9 +437,6 @@ public class LocalTransferRelation
   }
 
   private boolean isAllocatedFunction(String funcName) {
-    if (allocate.contains(funcName)) {
-      return true;
-    }
-    return from(allocatePattern).anyMatch(funcName::contains);
+    return allocate.contains(funcName) || from(allocatePattern).anyMatch(funcName::contains);
   }
 }

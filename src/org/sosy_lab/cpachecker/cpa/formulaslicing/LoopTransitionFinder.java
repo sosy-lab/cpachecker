@@ -104,15 +104,17 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
   public LoopTransitionFinder(
       Configuration config,
-      LoopStructure pLoopStructure, PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger,
+      LoopStructure pLoopStructure,
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     shutdownNotifier = pShutdownNotifier;
     config.inject(this);
     statistics = new Stats();
-    pfmgr = pPfmgr;
-    fmgr = pFmgr;
+    pfmgr = pPathFormulaManager;
+    fmgr = pFormulaManager;
     logger = pLogger;
     loopStructure = pLoopStructure;
 

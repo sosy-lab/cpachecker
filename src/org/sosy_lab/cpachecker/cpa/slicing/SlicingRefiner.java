@@ -110,6 +110,12 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   )
   private boolean takeEagerSlice = true;
 
+  @Option(
+    secure = true,
+    description = "Only use incremental slices, not the full slice per slicing criterion."
+  )
+  private boolean takeIncrementalSlice = true;
+
   private final PathExtractor pathExtractor;
   private final ARGCPA argCpa;
   private final DependenceGraph depGraph;
@@ -355,7 +361,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           // criterion!)
           if (!relevantEdges.contains(e)) {
             realSlices++;
-            Collection<CFAEdge> slice = getSlice(e);
+            Collection<CFAEdge> slice = getSlice(e, oldPrec);
             refinementRoots.add(getRefinementRoot(tp, slice));
             relevantEdges.addAll(slice);
           }
@@ -382,10 +388,16 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
-  Collection<CFAEdge> getSlice(final CFAEdge pCriterion) throws InterruptedException {
+  Collection<CFAEdge> getSlice(final CFAEdge pCriterion, final SlicingPrecision pCurrentPrec)
+      throws InterruptedException {
     try {
       slicingTime.start();
-      return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
+      if (takeIncrementalSlice) {
+        return depGraph.getReachable(
+            pCriterion, TraversalDirection.BACKWARD, pCurrentPrec.getRelevant());
+      } else {
+        return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
+      }
     } finally {
       slicingTime.stop();
     }

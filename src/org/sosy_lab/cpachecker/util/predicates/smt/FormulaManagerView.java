@@ -1346,6 +1346,19 @@ public class FormulaManagerView {
   }
 
   /**
+   * Extract the Variables in a given Formula
+   *
+   * <p>Has the advantage compared to extractVariableNames, that the Type information still is
+   * intact in the formula.
+   *
+   * @param pFormula The formula to extract the variables from
+   * @return A Map of the variable names to their corresponding formulas.
+   */
+  public Map<String, Formula> extractVariables(Formula pFormula) {
+    return manager.extractVariables(pFormula);
+  }
+
+  /**
    * Extract the names of all free variables in a formula.
    *
    * @param f   The input formula

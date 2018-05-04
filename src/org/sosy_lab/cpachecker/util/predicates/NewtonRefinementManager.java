@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,8 +70,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
  * Class designed to perform a Newton-based refinement
@@ -93,6 +92,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
   private final NewtonStatistics stats = new NewtonStatistics();
 
+
   @Option(
     secure = true,
     description =
@@ -100,7 +100,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
   )
   private boolean useUnsatCore = true;
 
-  //TODO: Make an option
+  @Option(
+    secure = true,
+    description =
+        "use live variables in order to abstract the predicates produced while NewtonRefinement"
+  )
   private boolean useLiveVariables = true;
 
   public NewtonRefinementManager(
@@ -130,6 +134,16 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.noOfRefinements++;
     stats.totalTimer.start();
     try {
+      List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
+      List<BooleanFormula> pathformulas =
+          pathLocations
+              .stream()
+              .map(l -> l.getPathFormula().getFormula())
+              .collect(Collectors.toList());
+
+      // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
+      // Question: What was the ssa bug and how was it solved?
+      assert isFeasible(pFormulas.getFormulas()) == isFeasible(pathformulas);
       if (isFeasible(pFormulas.getFormulas())) {
         // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
@@ -138,13 +152,12 @@ public class NewtonRefinementManager implements StatisticsProvider {
             ImmutableMap.<Integer, Boolean>of());
       } else {
         // Create the list of pathLocations(holding all relevant data)
-        List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
 
         Optional<List<BooleanFormula>> unsatCore;
-
         // Only compute if unsatCoreOption is set
         if (useUnsatCore) {
           unsatCore = Optional.of(computeUnsatCore(pathLocations));
+
         } else {
           unsatCore = Optional.empty();
         }
@@ -152,7 +165,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
         // Calculate StrongestPost
         List<BooleanFormula> predicates =
             this.calculateStrongestPostCondition(pathLocations, unsatCore);
-
         if (useLiveVariables) {
           predicates = filterFutureLiveVariables(pathLocations, predicates);
         }
@@ -230,12 +242,12 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
-   * @throws CPAException In case the Algorithm failed unexpected
    * @throws InterruptedException In case of interruption
+   * @throws CPAException In case an exception in the solver.
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
       List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
-      throws CPAException, InterruptedException {
+      throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();
     try {
@@ -256,27 +268,28 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // Decide whether to abstract this Formula(Only true if unsatCore is present and does not
         // contain the formula
-        boolean abstractThisFormula = false;
+        Optional<BooleanFormula> requiredPart = Optional.empty();
         if (pUnsatCore.isPresent()) {
-          abstractThisFormula = true;
+
           // Split up any conjunction in the pathformula, to be able to identify if contained in
           // unsat core
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
             if (pUnsatCore.get().contains(pathFormulaElement)) {
-              abstractThisFormula = false;
+              requiredPart = Optional.of(pathFormulaElement);
               break;
             }
           }
+        } else {
+          requiredPart = Optional.of(pathFormula.getFormula());
         }
         switch (edge.getEdgeType()) {
           case AssumeEdge:
-            // If this formula should be abstracted it does not imply any additional atoms
-            if (abstractThisFormula) {
-              postCondition = preCondition;
+            if (requiredPart.isPresent()) {
+              postCondition = fmgr.makeAnd(preCondition, requiredPart.get());
             }
-            // Else make the conjunction of the precondition and the pathFormula
+            // Else no additional assertions
             else {
-              postCondition = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+              postCondition = preCondition;
             }
             break;
           case StatementEdge:
@@ -285,7 +298,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           case ReturnStatementEdge:
           case FunctionReturnEdge:
             postCondition =
-                calculatePostconditionForAssignment(preCondition, pathFormula, abstractThisFormula);
+                calculatePostconditionForAssignment(preCondition, pathFormula, requiredPart);
             break;
           default:
             if (fmgr.getBooleanFormulaManager().isTrue(pathFormula.getFormula())) {
@@ -313,7 +326,15 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
       // Normally here would be the place for checking unsatisfiability. But reoccuring counterexamples
       // throw an exception so this check is not necessary.
-
+      try {
+        if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+          logger.log(
+              Level.SEVERE,
+              "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
+        }
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed while showing unsatisfiability of last predicate.");
+      }
       // Remove the last predicate as always false
       return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
     } finally {
@@ -326,24 +347,22 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *
    * @param preCondition The condition prior to the assignment
    * @param pathFormula The PathFormula associated with the assignment
-   * @param abstractThisFormula Sets whether to abstract this assignment(when true, the assignment
-   *     basically havocs the assigned variable)
+   * @param requiredPart The part of the PathFormula that must be kept
    * @return The postCondition as BooleanFormula
    * @throws InterruptedException When interrupted
-   * @throws CPAException When the Quantifier Elimination Step fails
    */
   private BooleanFormula calculatePostconditionForAssignment(
-      BooleanFormula preCondition, PathFormula pathFormula, boolean abstractThisFormula)
-      throws InterruptedException, CPAException {
+      BooleanFormula preCondition, PathFormula pathFormula, Optional<BooleanFormula> requiredPart)
+      throws InterruptedException {
 
     BooleanFormula toExist;
 
-    // If this formula should be abstracted, this statement havocs the leftHand variable
+    // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand variable
     // Therefore its previous values can be existentially quantified in the preCondition
-    if (abstractThisFormula) {
-      toExist = preCondition;
+    if (requiredPart.isPresent()) {
+      toExist = fmgr.makeAnd(preCondition, requiredPart.get());
     } else {
-      toExist = fmgr.makeAnd(preCondition, pathFormula.getFormula());
+      toExist = preCondition;
     }
     // If the toExist is true, the postCondition is True too.
     if (toExist == fmgr.getBooleanFormulaManager().makeTrue()) {
@@ -355,7 +374,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     Map<String, Formula> intermediateVars =
         Maps.newHashMap(
             Maps.filterEntries(
-                extractVariables(toExist),
+                fmgr.extractVariables(toExist),
                 new Predicate<Entry<String, Formula>>() {
 
                   @Override
@@ -374,18 +393,16 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
     // Now we existentially quantify all intermediate Variables
     // and use quantifier elimination to obtain a quantifier free formula
-    BooleanFormula result;
-    try {
-      result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
-    } catch (Exception e) {
-      // TODO Right now a plain Exception for testing, has to be exchanged against a
-      // more meaningful Exception
-      throw new CPAException(
-          "Newton Refinement failed because quantifier elimination was not possible in a refinement step.",
-          e);
-    }
 
-    return result;
+    Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
+    if (result.isPresent()) {
+      return result.get();
+    } else {
+      logger.log(
+          Level.FINE, "Quantifier elimination failed, keeping old assignements in predicate.");
+      // Take the strongest possible assertion, as the SSA differs from other potential future assertions
+      return toExist;
+    }
   }
 
   /**
@@ -398,10 +415,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pPathLocations The path of the counterexample
    * @param pPredicates The predicates as derived in previous steps
    * @return The new predicates without variables that are not future live
-   * @throws CPAException In case of a failing Existential Quantification
+   * @throws InterruptedException If interrupted
    */
   private List<BooleanFormula> filterFutureLiveVariables(
-      List<PathLocation> pPathLocations, List<BooleanFormula> pPredicates) throws CPAException {
+      List<PathLocation> pPathLocations, List<BooleanFormula> pPredicates)
+      throws InterruptedException {
     stats.futureLivesTimer.start();
     try {
       // Only variables that are in the predicates need be considered
@@ -409,85 +427,64 @@ public class NewtonRefinementManager implements StatisticsProvider {
       for (BooleanFormula pred : pPredicates) {
         variablesToTest.addAll(fmgr.extractVariableNames(pred));
       }
-      Map<String, Integer> lastOccurance = new HashMap<>();
 
-      // Map variables to the last location it occurs in the path
+      Map<String, Integer> lastOccurance = new HashMap<>(); // Last occurance of var
+      Map<Integer, BooleanFormula> predPosition = new HashMap<>(); // Pos of pred
+      int predCounter = 0;
+
       for (PathLocation location : pPathLocations) {
+        // Map variables to the last location it occurs in the path
         Set<String> localVars = fmgr.extractVariableNames(location.getPathFormula().getFormula());
         for (String var : variablesToTest) {
           if (localVars.contains(var)) {
             lastOccurance.put(var, location.getPathPosition());
           }
         }
+
+        // Map the abstraction state locations to the predicates
+        if (location.hasAbstractionState() && predCounter < pPredicates.size()) {
+          predPosition.put(location.getPathPosition(), pPredicates.get(predCounter));
+          predCounter++;
+        }
       }
+      assert predPosition.size() == pPredicates.size();
 
       List<BooleanFormula> newPredicates = new ArrayList<>();
 
-      // Map each predicate to the variables that are future live at its position
-      for (BooleanFormula pred : pPredicates) {
+      for (Entry<Integer, BooleanFormula> predEntry : predPosition.entrySet()) {
+        BooleanFormula pred = predEntry.getValue(); // The predicate
+        int predPos = predEntry.getKey(); // The position in the path
 
-        int predPos = 0; // TODO: This should be the position of the predicate
+        // Map predicate to the variables that are future live at its position
         Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
 
-        // identify the variables that are not future live and can be existentially quantified
+        // identify the variables that are not future live and can be quantified
         Map<String, Formula> toQuantify =
             Maps.filterEntries(
-                extractVariables(pred),
+                fmgr.extractVariables(pred),
                 (e) -> {
                   return !futureLives.contains(e.getKey());
                 });
 
         // quantify the previously identified variables
         if (!toQuantify.isEmpty()) {
-          try {
-            newPredicates.add(qeManager.eliminateQuantifiers(toQuantify, pred));
+          Optional<BooleanFormula> quantifiedPred = qeManager.eliminateQuantifiers(toQuantify, pred);
+          if (quantifiedPred.isPresent()) {
+            newPredicates.add(quantifiedPred.get());
             stats.noOfQuantifiedFutureLives += toQuantify.size();
-          } catch (Exception e) {
-            throw new CPAException(
-                "Newton Refinement failed because quantifier elimination was not possible while projecting predicate on future live variables.",
-                e);
+          } else {
+            // Keep the old predicate as QE is not possible
+            newPredicates.add(pred);
           }
         } else {
           newPredicates.add(pred);
         }
       }
-
+      assert newPredicates.size() == pPredicates.size();
       return newPredicates;
     } finally {
       stats.futureLivesTimer.stop();
     }
-  }
-
-  /**
-   * Extract the Variables in a given Formula and store them in a Map, where its name is the key and
-   * its Formula is the value.
-   *
-   * <p>Has the advantage compared to extractVariableNames, that the Type information still is
-   * intact in the formula.
-   *
-   * @param formula The formula to extract the variables from
-   * @return A Map<String, Formula> where the Names are the keys are the formulas.
-   */
-  private Map<String, Formula> extractVariables(BooleanFormula formula) {
-    Map<String, Formula> result = new HashMap<>();
-    fmgr.visitRecursively(
-        formula,
-        new DefaultFormulaVisitor<TraversalProcess>() {
-
-          @Override
-          protected TraversalProcess visitDefault(Formula pF) {
-            return TraversalProcess.CONTINUE;
-          }
-
-          @Override
-          public TraversalProcess visitFreeVariable(Formula pF, String pName) {
-            result.put(pName, pF);
-            return TraversalProcess.CONTINUE;
-          }
-        });
-    assert result.size() == fmgr.extractVariableNames(formula).size()
-        : "Should have same number of elements as the extractVariableNames method";
-    return ImmutableMap.copyOf(result);
   }
 
   /**

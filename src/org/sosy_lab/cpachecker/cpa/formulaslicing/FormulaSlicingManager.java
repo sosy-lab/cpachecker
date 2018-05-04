@@ -69,8 +69,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
   FormulaSlicingManager(
       Configuration config,
-      CachingPathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr,
+      CachingPathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
       RCNFManager pRcnfManager,
@@ -79,13 +79,13 @@ public class FormulaSlicingManager implements StatisticsProvider {
       throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
-    fmgr = pFmgr;
-    pfmgr = pPfmgr;
+    fmgr = pFormulaManager;
+    pfmgr = pPathFormulaManager;
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
-    bfmgr = pFmgr.getBooleanFormulaManager();
+    bfmgr = pFormulaManager.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics(pPfmgr, pSolver);
+    statistics = new FormulaSlicingStatistics(pPathFormulaManager, pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().get();

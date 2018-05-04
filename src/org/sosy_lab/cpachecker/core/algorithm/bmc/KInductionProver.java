@@ -263,13 +263,16 @@ class KInductionProver implements AutoCloseable {
   }
 
   public BooleanFormula getCurrentLocationInvariants(
-      CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+      CFANode pLocation,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
+      PathFormula pContext)
       throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
 
     return currentInvariantsSupplier.getInvariantFor(
-        pLocation, Optional.empty(), pFMGR, pPFMGR, pContext);
+        pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
   }
 
   public ExpressionTree<Object> getCurrentLocationInvariants(CFANode pLocation)

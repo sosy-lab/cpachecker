@@ -28,6 +28,7 @@ import com.google.common.collect.Table;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -103,6 +104,22 @@ public class DependenceGraph implements Serializable {
 
   public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
+    return getReachable(pStart, pDirection, Collections.emptySet());
+  }
+
+  /**
+   * Return the reachable dependences of the given {@link CFAEdge} ignoring a set of given edges.
+   *
+   * @param pStart edge to get reachable dependences for
+   * @param pDirection direction of the search for reachability
+   * @param pEdgesToIgnore edges to ignore on the search. Edges in this collection are ignored in
+   *     the search.
+   * @return the set of reachable CFA edges from the given edge, traversing through the graph in the
+   *     given direction
+   */
+  public Collection<CFAEdge> getReachable(
+      CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
+      throws InterruptedException {
     Collection<CFAEdge> reachable = new HashSet<>();
     Collection<DGNode> visited = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
@@ -114,7 +131,7 @@ public class DependenceGraph implements Serializable {
       }
       DGNode current = waitlist.poll();
 
-      if (!visited.contains(current)) {
+      if (!visited.contains(current) && !pEdgesToIgnore.contains(current.getCfaEdge())) {
         visited.add(current);
         reachable.add(current.getCfaEdge());
         Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);

@@ -64,7 +64,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       + "The value '-1' disables this option.")
   private int maximalDepthForExplicitRecursion = -1;
 
-  private final BAMCPA bamCPA;
+  private final BAMCPA bamCpa;
 
   // flags of the fixpoint-algorithm for recursion
   private boolean recursionSeen = false;
@@ -74,13 +74,13 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,
-      BAMCPA bamCpa,
+      BAMCPA pBamCpa,
       ProofChecker wrappedChecker,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super(pConfig, bamCpa, wrappedChecker, pShutdownNotifier);
+    super(pConfig, pBamCpa, wrappedChecker, pShutdownNotifier);
     pConfig.inject(this);
-    bamCPA = bamCpa;
+    bamCpa = pBamCpa;
   }
 
   @Override
@@ -212,7 +212,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       if (level.getThird() == currentLevel.getThird()
           // && level.getSecond().equals(currentLevel.getSecond())
-          && bamCPA
+          && bamCpa
               .getWrappedCpa()
               .isCoveredByRecursiveState(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
@@ -253,7 +253,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       return true;
     }
     for (final AbstractState coveringState : coveringStates) {
-      if (bamCPA.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
+      if (bamCpa.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
         return true;
       }
     }

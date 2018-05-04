@@ -1414,11 +1414,11 @@ cpa.invariants.usePointerAliasStrengthening = true
 cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 
 # functions, which allocate new free memory
-cpa.local.allocateFunctionPattern = Sets.newHashSet()
-cpa.local.allocatefunctions = no default value
+cpa.local.allocateFunctionPattern = {}
+cpa.local.allocatefunctions = {}
 
 # functions, which do not change sharedness of parameters
-cpa.local.conservativefunctions = no default value
+cpa.local.conservativefunctions = {}
 
 # variables, which are always local
 cpa.local.localvariables = Collections.emptySet()
@@ -1938,7 +1938,7 @@ cpa.predicate.predmap.predicateFormat = SMTLIB2
 
 # Specify whether to overapproximate quantified formula, if one or more
 # quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)
-cpa.predicate.pseudoExistQE.overapprox = true
+cpa.predicate.pseudoExistQE.overapprox = false
 
 # Which solver tactic to use for Quantifier Elimination(Only used if
 # useRealQuantifierElimination=true)
@@ -2015,6 +2015,10 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
+
+# use live variables in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
 
 # use unsatisfiable Core in order to abstract the predicates produced while
 # NewtonRefinement
@@ -2274,6 +2278,9 @@ cpa.slicing.refinement.counterexampleCheckOnSlice = false
 # to the target location. Always set this to `true` if you use
 # SlicingDelegatingRefiner.
 cpa.slicing.refinement.takeEagerSlice = true
+
+# Only use incremental slices, not the full slice per slicing criterion.
+cpa.slicing.refinement.takeIncrementalSlice = true
 
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
@@ -2573,10 +2580,10 @@ cpa.usage.skippedvariables.byNamePrefix = no default value
 cpa.usage.skippedvariables.byType = no default value
 
 # clean all ARG or try to reuse some parts of it (memory consuming)
-cpa.usage.totalARGCleaning = false
+cpa.usage.totalARGCleaning = true
 
 # ignore unsafes only with empty callstacks
-cpa.usage.unsafedetector.ignoreEmptyLockset = false
+cpa.usage.unsafedetector.ignoreEmptyLockset = true
 
 # A name of interrupt lock for checking deadlock free
 cpa.usage.unsafedetector.intLock = no default value

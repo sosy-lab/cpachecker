@@ -1537,7 +1537,7 @@ public class ValueAnalysisTransferRelation
             ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
             Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
             MemoryLocation otherVariableLocation = pointsToIterator.next();
-            if (!pointsToIterator.hasNext()) {
+            if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
 
               ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
               Type otherVariableType = valueAndType.getType();

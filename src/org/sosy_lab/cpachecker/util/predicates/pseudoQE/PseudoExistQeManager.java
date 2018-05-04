@@ -112,7 +112,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
         "Specify whether to overapproximate quantified formula,"
             + " if one or more quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)"
   )
-  private boolean overapprox = true;
+  private boolean overapprox = false;
 
   /**
    * Create a new PseudoExistQuantifier elimination manager
@@ -150,12 +150,14 @@ public class PseudoExistQeManager implements StatisticsProvider {
    *
    * @param pQuantifiedVars A map containing the names of the variables that would be quantified as
    *     keys and the corresponding Formulas as values
-   * @param pQuantifiedFormula The formula in which the
-   * @return The quantifier-free formula after performing the specified techniques
-   * @throws Exception TODO: Exchange against more fitting Exception
+   * @param pQuantifiedFormula The formula in which the variables are bound
+   * @return Either an optional containing quantifier-free formula after performing the specified
+   *     techniques or an empty optional if the quantifier elimination was not possible
+   * @throws InterruptedException If interrupted
    */
-  public BooleanFormula eliminateQuantifiers(
-      Map<String, Formula> pQuantifiedVars, BooleanFormula pQuantifiedFormula) throws Exception {
+  public Optional<BooleanFormula> eliminateQuantifiers(
+      Map<String, Formula> pQuantifiedVars, BooleanFormula pQuantifiedFormula)
+      throws InterruptedException {
     stats.qeTimer.start();
     try {
       stats.qeTotalCounter += pQuantifiedVars.size();
@@ -195,15 +197,13 @@ public class PseudoExistQeManager implements StatisticsProvider {
                   + "quantified variable(s), overapproximated formulas containing remaining "
                   + existFormula.getNumberOfQuantifiers()
                   + "quantified variable(s).");
-          return overapproximateFormula(existFormula);
+          return Optional.of(overapproximateFormula(existFormula));
         } else {
-          // TODO: Add some better fitting Exception, right now Exception as placeholder.
-          // IDEAs: QuantifierEliminationException, FailedQuantifierElimination
-          throw new Exception("Failed to eliminate Quantifiers!");
+          return Optional.empty();
         }
       } else {
         logger.log(Level.FINE, "Sucessfully eliminated all quantified Variables.");
-        return existFormula.getInnerFormula();
+        return Optional.of(existFormula.getInnerFormula());
       }
     } finally {
       stats.qeTimer.stop();

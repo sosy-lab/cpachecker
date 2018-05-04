@@ -31,13 +31,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 
 @Options(prefix = "cpa.lock")
-public class LockReducer implements Reducer {
+public class LockReducer extends GenericReducer<LockState, SingletonPrecision> {
 
   @Option(description = "reduce recursive locks to a single access", secure = true)
   private boolean aggressiveReduction = false;
@@ -53,10 +52,9 @@ public class LockReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedState(
-      AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
-    LockState lockState = (LockState) pExpandedElement;
-    LockStateBuilder builder = lockState.builder();
+  public LockState getVariableReducedState0(
+      LockState pExpandedElement, Block pContext, CFANode pCallNode) {
+    LockStateBuilder builder = pExpandedElement.builder();
     builder.reduce();
     if (reduceUselessLocks) {
       // builder.reduceLocks(pContext.getCapturedLocks());
@@ -67,53 +65,41 @@ public class LockReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedState(
-      AbstractState pRootElement, Block pReducedContext, AbstractState pReducedElement) {
+  public LockState getVariableExpandedState0(
+      LockState pRootElement, Block pReducedContext, LockState pReducedElement) {
 
-    LockState reducedState = (LockState) pReducedElement;
-    LockState rootState = (LockState) pRootElement;
-    LockStateBuilder builder = reducedState.builder();
-    builder.expand(rootState);
+    LockStateBuilder builder = pReducedElement.builder();
+    builder.expand(pRootElement);
     if (reduceUselessLocks) {
       // builder.expandLocks(rootState, pReducedContext.getCapturedLocks());
     } else if (aggressiveReduction) {
-      builder.expandLockCounters(rootState, new HashSet<>());
+      builder.expandLockCounters(pRootElement, new HashSet<>());
     }
     return builder.build();
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
+  public SingletonPrecision getVariableReducedPrecision0(
+      SingletonPrecision pPrecision, Block pContext) {
     return pPrecision;
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(
-      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
+  public SingletonPrecision getVariableExpandedPrecision0(
+      SingletonPrecision pRootPrecision, Block pRootContext, SingletonPrecision pReducedPrecision) {
     return pReducedPrecision;
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    return getHashCodeForState(pElementKey);
-  }
-
-  public Object getHashCodeForState(AbstractState pElementKey) {
-    LockState elementKey = (LockState) pElementKey;
-
-    return elementKey.getHashCodeForState();
+  public Object getHashCodeForState0(LockState pElementKey, SingletonPrecision pPrecisionKey) {
+    return pElementKey.getHashCodeForState();
   }
 
   @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
-  }
-
-  @Override
-  public AbstractState rebuildStateAfterFunctionCall(
-      AbstractState pRootState,
-      AbstractState pEntryState,
-      AbstractState pExpandedState,
+  public LockState rebuildStateAfterFunctionCall0(
+      LockState pRootState,
+      LockState pEntryState,
+      LockState pExpandedState,
       FunctionExitNode pExitLocation) {
     return pExpandedState;
   }
