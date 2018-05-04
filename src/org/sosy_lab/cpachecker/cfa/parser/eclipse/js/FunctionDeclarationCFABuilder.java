@@ -75,31 +75,30 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
     addFunctionEntryNode(pBuilder);
 
-    functionCFABuilder
-        .append(pFunctionDeclaration.getBody())
-        .appendEdge(
-            exitNode,
-            (pPredecessor, pSuccessor) -> {
-              final JSUndefinedLiteralExpression returnValue =
-                  new JSUndefinedLiteralExpression(FileLocation.DUMMY);
-              return new JSReturnStatementEdge(
-                  "return;",
-                  new JSReturnStatement(
-                      FileLocation.DUMMY,
-                      Optional.of(returnValue),
-                      Optional.of(
-                          new JSExpressionAssignmentStatement(
-                              FileLocation.DUMMY,
-                              new JSIdExpression(
-                                  FileLocation.DUMMY,
-                                  returnVariableName,
-                                  returnVariableDeclaration),
-                              returnValue))),
-                  FileLocation.DUMMY,
-                  pPredecessor,
-                  exitNode);
-            })
-        .appendTo(pBuilder.getBuilder());
+    functionCFABuilder.append(pFunctionDeclaration.getBody());
+    if (!functionCFABuilder.getExitNode().equals(exitNode)) {
+      functionCFABuilder.appendEdge(
+          exitNode,
+          (pPredecessor, pSuccessor) -> {
+            final JSUndefinedLiteralExpression returnValue =
+                new JSUndefinedLiteralExpression(FileLocation.DUMMY);
+            return new JSReturnStatementEdge(
+                "return;",
+                new JSReturnStatement(
+                    FileLocation.DUMMY,
+                    Optional.of(returnValue),
+                    Optional.of(
+                        new JSExpressionAssignmentStatement(
+                            FileLocation.DUMMY,
+                            new JSIdExpression(
+                                FileLocation.DUMMY, returnVariableName, returnVariableDeclaration),
+                            returnValue))),
+                FileLocation.DUMMY,
+                pPredecessor,
+                exitNode);
+          });
+    }
+    functionCFABuilder.appendTo(pBuilder.getBuilder());
 
     return jsFunctionDeclaration;
   }
