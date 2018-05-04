@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 interface JavaScriptCFABuilder
@@ -64,4 +65,7 @@ interface JavaScriptCFABuilder
 
   JSIdExpression resolve(final SimpleName pSimpleName);
 
+  FunctionExitNode getFunctionExitNode();
+
+  JSIdExpression getReturnVariableId();
 }

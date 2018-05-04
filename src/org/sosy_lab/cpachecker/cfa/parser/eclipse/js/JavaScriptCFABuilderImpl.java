@@ -35,11 +35,13 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder {
 
   private final CFABuilder builder;
+  private final JSFunctionEntryNode functionEntryNode;
 
   // When another appendable field is added, it has to be set in copyWith(CFABuilder) and
   // JavaScriptCFABuilderFactory.withAllFeatures
@@ -51,13 +53,16 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   private VariableDeclarationFragmentAppendable variableDeclarationFragmentAppendable;
 
   JavaScriptCFABuilderImpl(final CFABuilder pBuilder) {
-    builder = pBuilder;
-    variableNameGenerator = new VariableNameGeneratorImpl();
+    this(pBuilder, new VariableNameGeneratorImpl(), null);
   }
 
-  private JavaScriptCFABuilderImpl(final CFABuilder pBuilder, final VariableNameGenerator pVariableNameGenerator) {
+  private JavaScriptCFABuilderImpl(
+      final CFABuilder pBuilder,
+      final VariableNameGenerator pVariableNameGenerator,
+      final JSFunctionEntryNode pFunctionEntryNode) {
     builder = pBuilder;
     variableNameGenerator = pVariableNameGenerator;
+    functionEntryNode = pFunctionEntryNode;
   }
 
   @Override
@@ -72,12 +77,19 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
 
   @Override
   public JavaScriptCFABuilder copyWith(final JSFunctionEntryNode pEntryNode) {
-    return copyWith(new CFABuilder(builder.getScope(), builder.getLogger(), pEntryNode));
+    return copyWith(
+        new CFABuilder(builder.getScope(), builder.getLogger(), pEntryNode), pEntryNode);
   }
 
   @Override
   public JavaScriptCFABuilder copyWith(final CFABuilder pBuilder) {
-    final JavaScriptCFABuilderImpl duplicate = new JavaScriptCFABuilderImpl(pBuilder, variableNameGenerator);
+    return copyWith(pBuilder, functionEntryNode);
+  }
+
+  private JavaScriptCFABuilder copyWith(
+      final CFABuilder pBuilder, final JSFunctionEntryNode pFunctionEntryNode) {
+    final JavaScriptCFABuilderImpl duplicate =
+        new JavaScriptCFABuilderImpl(pBuilder, variableNameGenerator, pFunctionEntryNode);
     duplicate.setExpressionAppendable(expressionAppendable);
     duplicate.setFunctionDeclarationAppendable(functionDeclarationAppendable);
     duplicate.setJavaScriptUnitAppendable(javaScriptUnitAppendable);
@@ -149,6 +161,19 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   @Override
   public JSIdExpression resolve(final SimpleName pSimpleName) {
     return (JSIdExpression) expressionAppendable.append(this, pSimpleName);
+  }
+
+  @Override
+  public FunctionExitNode getFunctionExitNode() {
+    return functionEntryNode.getExitNode();
+  }
+
+  @Override
+  public JSIdExpression getReturnVariableId() {
+    final JSVariableDeclaration returnVariableDeclaration =
+        functionEntryNode.getReturnVariable().get();
+    return new JSIdExpression(
+        FileLocation.DUMMY, returnVariableDeclaration.getName(), returnVariableDeclaration);
   }
 
   @Override
