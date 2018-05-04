@@ -324,6 +324,8 @@ public class ValueAnalysisTransferRelation
 
       if (exp instanceof JExpression) {
         value = ((JExpression) exp).accept(visitor);
+      } else if (exp instanceof JSExpression) {
+        value = ((JSExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
