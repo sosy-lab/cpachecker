@@ -59,6 +59,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -350,11 +352,21 @@ public final class ErrorPathShrinker {
             isEqualOp = (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
                     || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
 
-          } else {
+          } else if (aLastExp instanceof JSBinaryExpression) {
+            final JSBinaryExpression.BinaryOperator op =
+                (JSBinaryExpression.BinaryOperator) aLastExp.getOperator();
+            isEqualOp =
+                (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                    || (op == BinaryOperator.EQUAL_EQUAL_EQUAL && lastAss.getTruthAssumption())
+                    || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption())
+                    || (op == BinaryOperator.NOT_EQUAL_EQUAL && !lastAss.getTruthAssumption());
+
+          } else if (aLastExp instanceof JBinaryExpression) {
             final JBinaryExpression.BinaryOperator op = (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
             isEqualOp = (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
                     || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
-
+          } else {
+            throw new AssertionError("Unhandled expression " + aLastExp);
           }
 
           return (isEqualVarName && isEqualOp);
