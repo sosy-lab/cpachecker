@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
@@ -1048,7 +1049,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   }
 
   /** Constant for true. */
-  static AutomatonBoolExpr TRUE =
+  static final AutomatonBoolExpr TRUE =
       new AutomatonBoolExpr() {
         @Override
         public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -1062,7 +1063,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       };
 
   /** Constant for false. */
-  static AutomatonBoolExpr FALSE =
+  static final AutomatonBoolExpr FALSE =
       new AutomatonBoolExpr() {
         @Override
         public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -1075,28 +1076,36 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         }
       };
 
-  /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}. */
-  static class IntEqTest implements AutomatonBoolExpr {
+  static class IntBinaryTest implements AutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
+    private final BiFunction<Integer, Integer, Boolean> op;
+    private final String repr;
 
-    public IntEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      this.a = pA;
-      this.b = pB;
+    private IntBinaryTest(
+        AutomatonIntExpr pA,
+        AutomatonIntExpr pB,
+        BiFunction<Integer, Integer, Boolean> pOp,
+        String pRepr) {
+      a = pA;
+      b = pB;
+      op = pOp;
+      repr = pRepr;
     }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
       ResultValue<Integer> resA = a.eval(pArgs);
-      ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) {
         return new ResultValue<>(resA);
       }
+      ResultValue<Integer> resB = b.eval(pArgs);
       if (resB.canNotEvaluate()) {
         return new ResultValue<>(resB);
       }
-      if (resA.getValue().equals(resB.getValue())) {
+      if (op.apply(resA.getValue(), resB.getValue())) {
         return CONST_TRUE;
       } else {
         return CONST_FALSE;
@@ -1105,41 +1114,21 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return a + " == " + b;
+      return String.format("(%s %s %s)", a, repr, b);
+    }
+  }
+
+  /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}. */
+  static class IntEqTest extends IntBinaryTest {
+    public IntEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
+      super(pA, pB, ((a, b) -> a.equals(b)), "==");
     }
   }
 
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers. */
-  static class IntNotEqTest implements AutomatonBoolExpr {
-
-    private final AutomatonIntExpr a;
-    private final AutomatonIntExpr b;
-
+  static class IntNotEqTest extends IntBinaryTest {
     public IntNotEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      this.a = pA;
-      this.b = pB;
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      ResultValue<Integer> resA = a.eval(pArgs);
-      ResultValue<Integer> resB = b.eval(pArgs);
-      if (resA.canNotEvaluate()) {
-        return new ResultValue<>(resA);
-      }
-      if (resB.canNotEvaluate()) {
-        return new ResultValue<>(resB);
-      }
-      if (!resA.getValue().equals(resB.getValue())) {
-        return CONST_TRUE;
-      } else {
-        return CONST_FALSE;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return a + " != " + b;
+      super(pA, pB, ((a, b) -> a.equals(b)), "!=");
     }
   }
 
@@ -1296,15 +1285,22 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  /** Boolean Equality */
-  static class BoolEqTest implements AutomatonBoolExpr {
+  static class BoolBinaryTest implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
+    private final BiFunction<Boolean, Boolean, Boolean> op;
+    private final String repr;
 
-    public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+    private BoolBinaryTest(
+        AutomatonBoolExpr pA,
+        AutomatonBoolExpr pB,
+        BiFunction<Boolean, Boolean, Boolean> pOp,
+        String pRepr) {
+      a = pA;
+      b = pB;
+      op = pOp;
+      repr = pRepr;
     }
 
     @Override
@@ -1318,7 +1314,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (resB.canNotEvaluate()) {
         return resB;
       }
-      if (resA.getValue().equals(resB.getValue())) {
+      if (op.apply(resA.getValue(), resB.getValue())) {
         return CONST_TRUE;
       } else {
         return CONST_FALSE;
@@ -1327,42 +1323,21 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return a + " == " + b;
+      return String.format("(%s %s %s)", a, repr, b);
+    }
+  }
+
+  /** Boolean Equality */
+  static class BoolEqTest extends BoolBinaryTest {
+    public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+      super(pA, pB, ((a, b) -> a.equals(b)), "==");
     }
   }
 
   /** Boolean != */
-  static class BoolNotEqTest implements AutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
-
+  static class BoolNotEqTest extends BoolBinaryTest {
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-        throws CPATransferException {
-      ResultValue<Boolean> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) {
-        return resA;
-      }
-      ResultValue<Boolean> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) {
-        return resB;
-      }
-      if (!resA.getValue().equals(resB.getValue())) {
-        return CONST_TRUE;
-      } else {
-        return CONST_FALSE;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return a + " != " + b;
+      super(pA, pB, ((a, b) -> !a.equals(b)), "!=");
     }
   }
 }
