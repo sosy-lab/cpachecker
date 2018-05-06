@@ -345,7 +345,7 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | MATCH ASSERT
-              {: RESULT = new AutomatonBoolExpr.MatchJavaAssert(); :}
+              {: RESULT = AutomatonBoolExpr.MatchJavaAssert.INSTANCE; :}
             | MATCH EXIT
               {: RESULT = AutomatonBoolExpr.MatchProgramExit.INSTANCE; :}
             | MATCH ENTRY
