@@ -275,7 +275,7 @@ class AutomatonTransition {
       }
       return null;
     }
-    return (String)violatedPropertyDescription.eval(pArgs).getValue();
+    return violatedPropertyDescription.eval(pArgs).getValue();
   }
 
   @Override

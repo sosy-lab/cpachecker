@@ -41,7 +41,7 @@ interface AutomatonExpression {
     }
 
     @Override
-    public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<String> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
       String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
