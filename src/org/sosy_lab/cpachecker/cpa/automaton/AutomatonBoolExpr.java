@@ -1133,14 +1133,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Computes the disjunction of two {@link AutomatonBoolExpr} (lazy evaluation). */
-  static class Or implements AutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
-
+  static class Or extends BoolBinaryTest {
     public Or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+      super(pA, pB, null, "||");
     }
 
     public @Override ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
@@ -1175,30 +1170,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         }
       }
     }
-
-    @Override
-    public String toString() {
-      return "(" + a + " || " + b + ")";
-    }
-
-    public AutomatonBoolExpr getA() {
-      return a;
-    }
-
-    public AutomatonBoolExpr getB() {
-      return b;
-    }
   }
 
   /** Computes the conjunction of two {@link AutomatonBoolExpr} (lazy evaluation). */
-  static class And implements AutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
-
+  static class And extends BoolBinaryTest {
     public And(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+      super(pA, pB, null, "&&");
     }
 
     @Override
@@ -1233,19 +1210,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           }
         }
       }
-    }
-
-    @Override
-    public String toString() {
-      return "(" + a + " && " + b + ")";
-    }
-
-    public AutomatonBoolExpr getA() {
-      return a;
-    }
-
-    public AutomatonBoolExpr getB() {
-      return b;
     }
   }
 
@@ -1287,8 +1251,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
   static class BoolBinaryTest implements AutomatonBoolExpr {
 
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
+    protected final AutomatonBoolExpr a;
+    protected final AutomatonBoolExpr b;
     private final BiFunction<Boolean, Boolean, Boolean> op;
     private final String repr;
 
