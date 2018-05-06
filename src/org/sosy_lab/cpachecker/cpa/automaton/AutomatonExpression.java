@@ -33,13 +33,13 @@ interface AutomatonExpression {
 
   ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-
   static class StringExpression implements AutomatonExpression {
     private String toPrint;
+
     public StringExpression(String pString) {
-      super();
       this.toPrint = pString;
     }
+
     @Override
     public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
@@ -62,7 +62,8 @@ interface AutomatonExpression {
     }
   }
   /**
-   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
+   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
+   * query-Result.
    */
   static class CPAQuery implements AutomatonExpression {
     private final String cpaName;
@@ -107,7 +108,6 @@ interface AutomatonExpression {
     }
   }
 
-
   // TODO: lift CPA Query here
 
   public static class ResultValue<resultType> {
@@ -133,24 +133,19 @@ interface AutomatonExpression {
       this.failureMessage = pRes.failureMessage;
       this.failureOrigin = pRes.failureOrigin;
     }
+
     boolean canNotEvaluate() {
       return this.canNotEvaluate;
     }
-    /**
-     * @returns null if cannotEvaluate() == false
-     */
+    /** @returns null if cannotEvaluate() == false */
     String getFailureMessage() {
       return failureMessage;
     }
-    /**
-     * @returns null if cannotEvaluate() == false
-     */
+    /** @returns null if cannotEvaluate() == false */
     String getFailureOrigin() {
       return failureOrigin;
     }
-    /**
-     * @returns null if cannotEvaluate() == true
-     */
+    /** @returns null if cannotEvaluate() == true */
     resultType getValue() {
       return value;
     }
