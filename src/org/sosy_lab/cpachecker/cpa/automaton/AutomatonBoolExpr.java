@@ -145,9 +145,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       CFANode predecessor = edge.getPredecessor();
       if (predecessor instanceof FunctionEntryNode
           && predecessor.getNumEnteringEdges() == 0) {
-        return AutomatonBoolExpr.CONST_TRUE;
+        return CONST_TRUE;
       }
-      return AutomatonBoolExpr.CONST_FALSE;
+      return CONST_FALSE;
     }
 
     @Override
@@ -167,9 +167,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       CFAEdge edge = pArgs.getCfaEdge();
       CFANode successor = edge.getSuccessor();
       if (successor.isLoopStart()) {
-        return AutomatonBoolExpr.CONST_TRUE;
+        return CONST_TRUE;
       }
-      return AutomatonBoolExpr.CONST_FALSE;
+      return CONST_FALSE;
     }
 
     @Override
@@ -192,9 +192,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       CFAEdge edge = pArgs.getCfaEdge();
       CFANode successor = edge.getSuccessor();
       if (acceptedNodes.contains(successor)) {
-        return AutomatonBoolExpr.CONST_TRUE;
+        return CONST_TRUE;
       }
-      return AutomatonBoolExpr.CONST_FALSE;
+      return CONST_FALSE;
     }
 
     @Override
