@@ -32,25 +32,34 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>eval()</code> is called.
- * The Expression can be evaluated multiple times.
+ * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>
+ * eval()</code> is called. The Expression can be evaluated multiple times.
  */
 interface AutomatonIntExpr extends AutomatonExpression {
 
   @Override
   abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
-  /** Stores a constant integer.
-   */
+  /** Stores a constant integer. */
   static class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
-    public Constant(int pI) {this.constantResult = new ResultValue<>(Integer.valueOf(pI)); }
-    public Constant(String pI) {this(Integer.parseInt(pI)); }
+
+    public Constant(int pI) {
+      this.constantResult = new ResultValue<>(Integer.valueOf(pI));
+    }
+
+    public Constant(String pI) {
+      this(Integer.parseInt(pI));
+    }
+
     public int getIntValue() {
       return constantResult.getValue().intValue();
     }
+
     @Override
-    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {return constantResult;}
+    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
+      return constantResult;
+    }
 
     @Override
     public String toString() {
@@ -58,9 +67,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
     }
   }
 
-
-  /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value.
-   */
+  /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value. */
   static class VarAccess implements AutomatonIntExpr {
 
     private final String varId;
@@ -112,7 +119,8 @@ interface AutomatonIntExpr extends AutomatonExpression {
   }
 
   /**
-   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
+   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
+   * query-Result.
    */
   static class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
@@ -122,6 +130,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
       cpaName = pCPAName;
       queryString = pQuery;
     }
+
     @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
