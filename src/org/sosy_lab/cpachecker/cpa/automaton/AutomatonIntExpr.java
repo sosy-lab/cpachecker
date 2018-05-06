@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -66,6 +67,17 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     @Override
     public String toString() {
       return constantResult.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return constantResult.getValue();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof Constant
+          && constantResult.getValue().equals(((Constant) o).constantResult.getValue());
     }
   }
 
@@ -123,6 +135,16 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     @Override
     public String toString() {
       return varId;
+    }
+
+    @Override
+    public int hashCode() {
+      return varId.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof VarAccess && varId.equals(((VarAccess) o).varId);
     }
   }
 
@@ -193,6 +215,20 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
       return new ResultValue<>(cpaNotAvailableMessage, "AutomatonIntExpr.CPAQuery");
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(cpaName, queryString);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof CPAQuery) {
+        CPAQuery other = (CPAQuery) o;
+        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
+      }
+      return false;
+    }
   }
 
   static class BinaryAutomatonIntExpr implements AutomatonIntExpr {
@@ -229,6 +265,23 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     @Override
     public String toString() {
       return String.format("(%s %s %s)", a, repr, b);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(a, b, repr);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o instanceof BinaryAutomatonIntExpr) {
+        BinaryAutomatonIntExpr other = (BinaryAutomatonIntExpr) o;
+        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
+      }
+      return false;
     }
   }
 

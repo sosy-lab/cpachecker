@@ -33,13 +33,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -131,6 +131,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "COVERS_LINES(" + Joiner.on(' ').join(linesToCover) + ")";
     }
+
+    @Override
+    public int hashCode() {
+      return linesToCover.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCoversLines
+          && linesToCover.equals(((CheckCoversLines) o).linesToCover);
+    }
   }
 
   static enum MatchProgramEntry implements AutomatonBoolExpr {
@@ -171,9 +182,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
   class MatchSuccessor implements AutomatonBoolExpr {
 
-    private final Set<CFANode> acceptedNodes;
+    private final ImmutableSet<CFANode> acceptedNodes;
 
-    private MatchSuccessor(Set<CFANode> pAcceptedNodes) {
+    private MatchSuccessor(ImmutableSet<CFANode> pAcceptedNodes) {
       this.acceptedNodes = pAcceptedNodes;
     }
 
@@ -190,8 +201,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return "SUCCESSOR IN " + acceptedNodes;
     }
 
+    @Override
+    public int hashCode() {
+      return acceptedNodes.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchSuccessor
+          && acceptedNodes.equals(((MatchSuccessor) o).acceptedNodes);
+    }
+
     static AutomatonBoolExpr of(CFANode pAcceptedNode) {
-      return new MatchSuccessor(Collections.singleton(pAcceptedNode));
+      return new MatchSuccessor(ImmutableSet.of(pAcceptedNode));
     }
 
     static AutomatonBoolExpr of(Set<CFANode> pAcceptedNodes) {
@@ -286,6 +308,22 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return (forward ? "~>>" : "<<~") + expr;
     }
 
+    @Override
+    public int hashCode() {
+      return Objects.hash(expr, forward, continueAtBranching);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof EpsilonMatch) {
+        EpsilonMatch other = (EpsilonMatch) o;
+        return expr.equals(other.expr)
+            && forward == other.forward
+            && continueAtBranching == other.continueAtBranching;
+      }
+      return false;
+    }
+
     static AutomatonBoolExpr forwardEpsilonMatch(
         AutomatonBoolExpr pExpr, boolean pContinueAtBranching) {
       return of(pExpr, true, pContinueAtBranching);
@@ -337,6 +375,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "MATCH FUNCTION CALL STATEMENT \"" + functionName + "\"";
     }
+
+    @Override
+    public int hashCode() {
+      return functionName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchFunctionCallStatement
+          && functionName.equals(((MatchFunctionCallStatement) o).functionName);
+    }
   }
 
   static class MatchFunctionCall implements AutomatonBoolExpr {
@@ -365,6 +414,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return "MATCH FUNCTION CALL \"" + functionName + "\"";
+    }
+
+    @Override
+    public int hashCode() {
+      return functionName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchFunctionCall
+          && functionName.equals(((MatchFunctionCall) o).functionName);
     }
   }
 
@@ -472,6 +532,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "MATCH FUNCTION EXIT \"" + functionName + "\"";
     }
+
+    @Override
+    public int hashCode() {
+      return functionName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchFunctionExit
+          && functionName.equals(((MatchFunctionExit) o).functionName);
+    }
   }
 
   /**
@@ -489,20 +560,27 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CLabelNode) {
-        if (label.equals(((CLabelNode) successorNode).getLabel())) {
+      if (successorNode instanceof CLabelNode
+          && label.equals(((CLabelNode) successorNode).getLabel())) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
         }
-      } else {
-        return CONST_FALSE;
-      }
     }
 
     @Override
     public String toString() {
       return "MATCH LABEL \"" + label + "\"";
+    }
+
+    @Override
+    public int hashCode() {
+      return label.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchLabelExact && label.equals(((MatchLabelExact) o).label);
     }
   }
 
@@ -538,6 +616,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return "MATCH LABEL [" + pattern + "]";
+    }
+
+    @Override
+    public int hashCode() {
+      return pattern.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchLabelRegEx && pattern.equals(((MatchLabelRegEx) o).pattern);
     }
   }
 
@@ -600,6 +688,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "MATCH [" + pattern + "]";
     }
+
+    @Override
+    public int hashCode() {
+      return pattern.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchCFAEdgeRegEx && pattern.equals(((MatchCFAEdgeRegEx) o).pattern);
+    }
   }
 
   static class MatchCFAEdgeExact implements AutomatonBoolExpr {
@@ -623,9 +721,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "MATCH \"" + pattern + "\"";
     }
+
+    @Override
+    public int hashCode() {
+      return pattern.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchCFAEdgeExact && pattern.equals(((MatchCFAEdgeExact) o).pattern);
+    }
   }
 
-  static class MatchJavaAssert implements AutomatonBoolExpr {
+  static enum MatchJavaAssert implements AutomatonBoolExpr {
+    INSTANCE;
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -681,6 +790,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "MATCH ASSUME CASE " + matchPositiveCase;
     }
+
+    @Override
+    public int hashCode() {
+      return matchPositiveCase ? 1 : 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchAssumeCase
+          && matchPositiveCase == ((MatchAssumeCase) o).matchPositiveCase;
+    }
   }
 
   static class MatchAllSuccessorEdgesBoolExpr implements AutomatonBoolExpr {
@@ -719,6 +839,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return String.format("MATCH FORALL SUCCESSOR EDGES (%s)", operandExpression);
+    }
+
+    @Override
+    public int hashCode() {
+      return operandExpression.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchAllSuccessorEdgesBoolExpr
+          && operandExpression.equals(((MatchAllSuccessorEdgesBoolExpr) o).operandExpression);
     }
   }
 
@@ -798,6 +929,17 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return String.format("MATCH EXISTS SUCCESSOR EDGE (%s)", operandExpression);
+    }
+
+    @Override
+    public int hashCode() {
+      return operandExpression.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof MatchAnySuccessorEdgesBoolExpr
+          && operandExpression.equals(((MatchAnySuccessorEdgesBoolExpr) o).operandExpression);
     }
   }
 
@@ -950,7 +1092,18 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "CHECK(\"" + queryString + "\")";
     }
+
+    @Override
+    public int hashCode() {
+      return queryString.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof ALLCPAQuery && queryString.equals(((ALLCPAQuery) o).queryString);
+    }
   }
+
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
@@ -1021,6 +1174,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(cpaName, queryString);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (pOther instanceof CPAQuery) {
+        CPAQuery other = (CPAQuery) pOther;
+        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
+      }
+      return false;
     }
   }
 
@@ -1115,6 +1282,23 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return String.format("(%s %s %s)", a, repr, b);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(a, b, repr);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o instanceof IntBinaryTest) {
+        IntBinaryTest other = (IntBinaryTest) o;
+        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
+      }
+      return false;
     }
   }
 
@@ -1247,14 +1431,26 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public AutomatonBoolExpr getA() {
       return a;
     }
+
+    @Override
+    public int hashCode() {
+      return a.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof Negation && a.equals(((Negation) o).a);
+    }
   }
 
   static class BoolBinaryTest implements AutomatonBoolExpr {
 
     protected final AutomatonBoolExpr a;
     protected final AutomatonBoolExpr b;
-    private final BiFunction<Boolean, Boolean, Boolean> op;
     private final String repr;
+
+    // Operator can be NULL if overridden in subclass
+    private final @Nullable BiFunction<Boolean, Boolean, Boolean> op;
 
     private BoolBinaryTest(
         AutomatonBoolExpr pA,
@@ -1288,6 +1484,23 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return String.format("(%s %s %s)", a, repr, b);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(a, b, repr);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o instanceof BoolBinaryTest) {
+        BoolBinaryTest other = (BoolBinaryTest) o;
+        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
+      }
+      return false;
     }
   }
 

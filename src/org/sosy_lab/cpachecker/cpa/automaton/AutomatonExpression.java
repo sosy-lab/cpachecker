@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,6 +60,21 @@ interface AutomatonExpression<T> {
       } else {
         return new ResultValue<>(str);
       }
+    }
+
+    @Override
+    public String toString() {
+      return toPrint; // TODO correct?
+    }
+
+    @Override
+    public int hashCode() {
+      return toPrint.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof StringExpression && toPrint.equals(((StringExpression) o).toPrint);
     }
   }
   /**
@@ -105,6 +121,20 @@ interface AutomatonExpression<T> {
     @Override
     public String toString() {
       return "EVAL(" + cpaName + "(\"" + queryString + "\"))";
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(cpaName, queryString);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof CPAQuery) {
+        CPAQuery other = (CPAQuery) o;
+        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
+      }
+      return false;
     }
   }
 
