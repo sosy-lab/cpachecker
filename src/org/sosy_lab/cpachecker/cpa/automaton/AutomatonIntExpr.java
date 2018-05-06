@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -180,17 +181,25 @@ interface AutomatonIntExpr extends AutomatonExpression {
           ".", "AutomatonIntExpr.CPAQuery");
     }
   }
-  /** Addition of {@link AutomatonIntExpr} instances.
-   */
-  static class Plus implements AutomatonIntExpr {
+
+  static class BinaryAutomatonIntExpr implements AutomatonIntExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
+    private final BiFunction<Integer, Integer, Integer> op;
+    private final String repr;
 
-    public Plus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      this.a = pA;
-      this.b = pB;
+    private BinaryAutomatonIntExpr(
+        AutomatonIntExpr pA,
+        AutomatonIntExpr pB,
+        BiFunction<Integer, Integer, Integer> pOp,
+        String pRepr) {
+      a = pA;
+      b = pB;
+      op = pOp;
+      repr = pRepr;
     }
+
     @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> resA = a.eval(pArgs);
@@ -201,42 +210,26 @@ interface AutomatonIntExpr extends AutomatonExpression {
       if (resB.canNotEvaluate()) {
         return resB;
       }
-      return new ResultValue<>(resA.getValue() + resB.getValue());
+      return new ResultValue<>(op.apply(resA.getValue(), resB.getValue()));
     }
 
     @Override
     public String toString() {
-      return "(" + a + " + " + b + ")";
+      return String.format("(%s %s %s)", a, repr, b);
     }
   }
 
-  /** Subtraction of {@link AutomatonIntExpr} instances.
-   */
-  static class Minus implements AutomatonIntExpr {
+  /** Addition of {@link AutomatonIntExpr} instances. */
+  static class Plus extends BinaryAutomatonIntExpr {
+    public Plus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
+      super(pA, pB, ((a, b) -> a + b), "+");
+    }
+  }
 
-    private final AutomatonIntExpr a;
-    private final AutomatonIntExpr b;
-
+  /** Subtraction of {@link AutomatonIntExpr} instances. */
+  static class Minus extends BinaryAutomatonIntExpr {
     public Minus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      this.a = pA;
-      this.b = pB;
-    }
-    @Override
-    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
-      ResultValue<Integer> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) {
-        return resA;
-      }
-      ResultValue<Integer> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) {
-        return resB;
-      }
-      return new ResultValue<>(resA.getValue() - resB.getValue());
-    }
-
-    @Override
-    public String toString() {
-      return "(" + a + " - " + b + ")";
+      super(pA, pB, ((a, b) -> a - b), "-");
     }
   }
 }
