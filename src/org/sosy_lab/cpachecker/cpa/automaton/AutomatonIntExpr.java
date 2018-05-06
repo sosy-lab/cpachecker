@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>
  * eval()</code> is called. The Expression can be evaluated multiple times.
  */
-interface AutomatonIntExpr extends AutomatonExpression {
+interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
   @Override
   abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);

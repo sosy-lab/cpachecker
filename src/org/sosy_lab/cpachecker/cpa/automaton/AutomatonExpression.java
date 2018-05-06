@@ -29,11 +29,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-interface AutomatonExpression {
+interface AutomatonExpression<T> {
 
-  ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
+  ResultValue<T> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-  static class StringExpression implements AutomatonExpression {
+  static class StringExpression implements AutomatonExpression<String> {
     private String toPrint;
 
     public StringExpression(String pString) {
@@ -65,7 +65,7 @@ interface AutomatonExpression {
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
    */
-  static class CPAQuery implements AutomatonExpression {
+  static class CPAQuery implements AutomatonExpression<String> {
     private final String cpaName;
     private final String queryString;
 
