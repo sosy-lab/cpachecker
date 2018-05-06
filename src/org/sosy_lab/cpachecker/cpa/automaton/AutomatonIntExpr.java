@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -89,15 +91,14 @@ interface AutomatonIntExpr extends AutomatonExpression {
         int key = Integer.parseInt(varId.substring(1));
         String val = pArgs.getTransitionVariable(key);
         if (val == null) {
-          pArgs.getLogger().log(Level.WARNING, "could not find the transition variable $" + key + ".");
-          return new ResultValue<>("could not find the transition variable $" + key + ".", "AutomatonIntExpr.VarAccess");
+          return logAndReturn(pArgs, "could not find the transition variable $%s.", key);
         }
         try {
           int value = Integer.parseInt(val);
           return new ResultValue<>(Integer.valueOf(value));
         } catch (NumberFormatException e) {
-          pArgs.getLogger().log(Level.WARNING, "could not parse the contents of transition variable $" + key + "=\"" + val +"\".");
-          return new ResultValue<>("could not parse the contents of transition variable $" + key + "=\"" + val +"\".", "AutomatonIntExpr.VarAccess");
+          return logAndReturn(
+              pArgs, "could not parse the contents of transition variable $%s=\"%s\".", key, val);
         }
       } else if (varId.equals("$line")) { // $line  line number in sourcecode
         return new ResultValue<>(Integer.valueOf(pArgs.getCfaEdge().getLineNumber()));
@@ -106,10 +107,17 @@ interface AutomatonIntExpr extends AutomatonExpression {
         if (variable != null) {
           return new ResultValue<>(Integer.valueOf(variable.getValue()));
         } else {
-          pArgs.getLogger().log(Level.WARNING, "could not find the automaton variable " + varId + ".");
-          return new ResultValue<>("could not find the automaton variable " + varId + ".", "AutomatonIntExpr.VarAccess");
+          return logAndReturn(pArgs, "could not find the automaton variable %s.", varId);
         }
       }
+    }
+
+    /** log a warning and return a failure value. */
+    @FormatMethod
+    private ResultValue<Integer> logAndReturn(
+        AutomatonExpressionArguments pArgs, @FormatString String message, Object... pObjects) {
+      pArgs.getLogger().logf(Level.WARNING, message, pObjects);
+      return new ResultValue<>(message, "AutomatonIntExpr.VarAccess");
     }
 
     @Override
@@ -136,7 +144,8 @@ interface AutomatonIntExpr extends AutomatonExpression {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
+        return new ResultValue<>(
+            "Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -148,46 +157,41 @@ interface AutomatonIntExpr extends AutomatonExpression {
               if (result instanceof NumericValue) {
                 result = ((NumericValue) result).getNumber();
               }
+              String message =
+                  String.format(
+                      "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
+                      modifiedQueryString, aqe.getCPAName(), aqe);
               if (result instanceof Integer) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                  aqe.toString() + "\"";
-                  pArgs.getLogger().log(Level.FINER, message);
-                  return new ResultValue<>((Integer)result);
-              } else if (result instanceof Long) {
-                String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                aqe.toString() + "\"";
                 pArgs.getLogger().log(Level.FINER, message);
-                return new ResultValue<>(((Long)result).intValue());
+                return new ResultValue<>((Integer) result);
+              } else if (result instanceof Long) {
+                pArgs.getLogger().log(Level.FINER, message);
+                return new ResultValue<>(((Long) result).intValue());
               } else {
-                pArgs.getLogger().log(Level.WARNING,
-                    "Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                    ".");
-                return new ResultValue<>("Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                    ".", "AutomatonIntExpr.CPAQuery");
+                String failureMessage =
+                    String.format(
+                        "Automaton got a non-Numeric value during Query of the %s CPA on Edge %s.",
+                        cpaName, pArgs.getCfaEdge().getDescription());
+                pArgs.getLogger().log(Level.WARNING, failureMessage);
+                return new ResultValue<>(failureMessage, "AutomatonIntExpr.CPAQuery");
               }
             } catch (InvalidQueryException e) {
-              pArgs.getLogger().logException(Level.WARNING, e,
-                  "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                ".");
-              return new ResultValue<>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                  ".", "AutomatonIntExpr.CPAQuery");
+              String errorMessage =
+                  String.format(
+                      "Automaton encountered an Exception during Query of the %s CPA on Edge %s.",
+                      cpaName, pArgs.getCfaEdge().getDescription());
+              pArgs.getLogger().logException(Level.WARNING, e, errorMessage);
+              return new ResultValue<>(errorMessage, "AutomatonIntExpr.CPAQuery");
             }
           }
         }
       }
-      pArgs.getLogger().log(Level.WARNING,
-          "Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-        ".");
-      return new ResultValue<>("Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-          ".", "AutomatonIntExpr.CPAQuery");
+      String cpaNotAvailableMessage =
+          String.format(
+              "Did not find the CPA to be queried %s CPA on Edge %s.",
+              cpaName, pArgs.getCfaEdge().getDescription());
+      pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
+      return new ResultValue<>(cpaNotAvailableMessage, "AutomatonIntExpr.CPAQuery");
     }
   }
 
