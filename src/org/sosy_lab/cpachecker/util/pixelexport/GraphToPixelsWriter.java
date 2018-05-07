@@ -141,7 +141,7 @@ public abstract class GraphToPixelsWriter<Node> {
     GraphStructure structure = new GraphStructure();
 
     Deque<Pair<Integer, Node>> worklist = new ArrayDeque<>();
-    Set<Node> processed = new HashSet<>();
+    Set<Node> reached = new HashSet<>();
 
     worklist.add(Pair.of(0, pRoot));
     int oldDistance = 0;
@@ -161,13 +161,10 @@ public abstract class GraphToPixelsWriter<Node> {
 
       levelBuilder.addMarkings(currentNode);
 
-      // add current state to set of processed states *before* checking candidates
-      // - in general, self edges may exist in the graph
-      processed.add(currentNode);
-
       for (Node s : getChildren(currentNode)) {
-        if (!processed.contains(s)) {
+        if (!reached.contains(s)) {
           worklist.add(Pair.of(currentDistance + 1, s));
+          reached.add(s);
         }
       }
     }
