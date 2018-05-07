@@ -192,16 +192,17 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.unsatCoreTimer.start();
 
     try {
-      // Compute the conjunction of the pathFormulas
-      BooleanFormula completePathFormula = fmgr.getBooleanFormulaManager().makeTrue();
-      for (PathLocation loc : pPathLocations) {
-        completePathFormula = fmgr.makeAnd(completePathFormula, loc.getPathFormula().getFormula());
-      }
-
+      // Prepare the PathFormulas
+      Set<BooleanFormula> pathFormulas =
+          pPathLocations
+              .stream()
+              .map(l -> l.getPathFormula().getFormula())
+              .collect(Collectors.toSet());
+      
       // Compute the unsat core
       List<BooleanFormula> unsatCore;
       try {
-        unsatCore = solver.unsatCore(completePathFormula);
+        unsatCore = solver.unsatCore(pathFormulas);
       } catch (SolverException e) {
         //Solver failed while computing unsat core
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
