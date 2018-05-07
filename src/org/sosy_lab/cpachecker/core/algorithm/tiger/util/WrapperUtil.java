@@ -37,7 +37,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -57,12 +59,17 @@ public class WrapperUtil {
   public static final String CPAtiger_MAIN = "__CPAtiger__main";
   public static final String CPAtiger_INPUT = "input";
 
-  public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
+  public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction, LogManager logger)
+      throws IOException {
 
     StringWriter lWrapperFunction = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lWrapperFunction);
 
     // TODO interpreter is not capable of handling initialization of global declarations
+    if (pMainFunction == null) {
+      logger.log(Level.SEVERE, "No Entry function given");
+      throw new NullPointerException("No Entry function given");
+    }
 
     lWriter.println(pMainFunction.getFunctionDefinition().toASTString());
     lWriter.println();
@@ -125,12 +132,17 @@ public class WrapperUtil {
     return new FileToParse(f.getAbsolutePath());
   }
 
-  public static ParseResult addWrapper(CParser cParser, ParseResult tmpParseResult, CSourceOriginMapping sourceOriginMapping) throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
+  public static ParseResult addWrapper(
+      CParser cParser,
+      ParseResult tmpParseResult,
+      CSourceOriginMapping sourceOriginMapping,
+      LogManager logger)
+      throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
     // create wrapper code
     CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
 
     List<FileToParse> tmpList = new ArrayList<>();
-    tmpList.add(WrapperUtil.getWrapperCFunction(entryNode));
+    tmpList.add(WrapperUtil.getWrapperCFunction(entryNode, logger));
 
     ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
 

@@ -422,7 +422,8 @@ public class CFACreator {
 
       if (useTiger) {
         parseResult =
-            WrapperUtil.addWrapper((CParser) parser, parseResult, new CSourceOriginMapping());
+            WrapperUtil
+                .addWrapper((CParser) parser, parseResult, new CSourceOriginMapping(), logger);
       }
 
       logger.log(Level.FINE, "Parser Finished");
