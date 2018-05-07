@@ -57,8 +57,9 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -128,9 +129,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pAllStatesTrace The error path
    * @param pFormulas The Block formulas computed in previous step
    * @return The Counterexample, containing pseudo-interpolants if successful
+   * @exception RefinementFailedException If the Newton refinement fails
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ARGPath pAllStatesTrace, BlockFormulas pFormulas) throws CPAException, InterruptedException {
+      ARGPath pAllStatesTrace, BlockFormulas pFormulas)
+      throws RefinementFailedException, InterruptedException {
     stats.noOfRefinements++;
     stats.totalTimer.start();
     try {
@@ -143,8 +146,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
       // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
       // Question: What was the ssa bug and how was it solved?
-      assert isFeasible(pFormulas.getFormulas()) == isFeasible(pathformulas);
-      if (isFeasible(pFormulas.getFormulas())) {
+      assert isFeasible(pFormulas.getFormulas(), pAllStatesTrace)
+          == isFeasible(pathformulas, pAllStatesTrace);
+      if (isFeasible(pFormulas.getFormulas(), pAllStatesTrace)) {
         // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
             pFormulas.getFormulas(),
@@ -156,15 +160,14 @@ public class NewtonRefinementManager implements StatisticsProvider {
         Optional<List<BooleanFormula>> unsatCore;
         // Only compute if unsatCoreOption is set
         if (useUnsatCore) {
-          unsatCore = Optional.of(computeUnsatCore(pathLocations));
-
+          unsatCore = Optional.of(computeUnsatCore(pathLocations, pAllStatesTrace));
         } else {
           unsatCore = Optional.empty();
         }
 
         // Calculate StrongestPost
         List<BooleanFormula> predicates =
-            this.calculateStrongestPostCondition(pathLocations, unsatCore);
+            this.calculateStrongestPostCondition(pathLocations, unsatCore, pAllStatesTrace);
         if (useLiveVariables) {
           predicates = filterFutureLiveVariables(pathLocations, predicates);
         }
@@ -181,11 +184,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *
    * @param pPathLocations The PathLocations on the infeasible trace
    * @return A List of BooleanFormulas
-   * @throws CPAException Thrown if the solver failed while calculating unsatisfiable core
+   * @throws RefinementFailedException If the solver fails while calculating unsatisfiable core
    * @throws InterruptedException If the Execution is interrupted
    */
-  private List<BooleanFormula> computeUnsatCore(List<PathLocation> pPathLocations)
-      throws CPAException, InterruptedException {
+  private List<BooleanFormula> computeUnsatCore(List<PathLocation> pPathLocations, ARGPath pPath)
+      throws RefinementFailedException, InterruptedException {
     stats.unsatCoreTimer.start();
 
     try {
@@ -200,8 +203,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
       try {
         unsatCore = solver.unsatCore(completePathFormula);
       } catch (SolverException e) {
-        throw new CPAException(
-            "Solver failed to compute the unsat core while Newton refinement.", e);
+        //Solver failed while computing unsat core
+        throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
       return ImmutableList.copyOf(unsatCore);
     } finally {
@@ -213,12 +216,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * Check the feasibility of the trace formula
    *
    * @param pFormulas The path formula
+   * @param pPath The path of the counterexample
    * @return <code>true</code> if the trace is feasible
-   * @throws CPAException Thrown if the solver failed while proving unsatisfiability
+   * @throws RefinementFailedException If the solver failed while proving unsatisfiability
    * @throws InterruptedException If the Execution is interrupted
    */
-  private boolean isFeasible(List<BooleanFormula> pFormulas)
-      throws CPAException, InterruptedException {
+  private boolean isFeasible(List<BooleanFormula> pFormulas, ARGPath pPath)
+      throws RefinementFailedException, InterruptedException {
     boolean isFeasible;
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       for (BooleanFormula formula : pFormulas) {
@@ -226,8 +230,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
       }
       isFeasible = !prover.isUnsat();
     } catch (SolverException e) {
-      throw new CPAException(
-          "Prover failed while proving unsatisfiability in Newtonrefinement.", e);
+      // Prover failed while proving unsatisfiability
+      throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
     }
     return isFeasible;
   }
@@ -243,11 +247,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *     If no list of formulas is applied it computes the regular postCondition
    * @return A list of BooleanFormulas holding the strongest postcondition of each edge on the path
    * @throws InterruptedException In case of interruption
-   * @throws CPAException In case an exception in the solver.
+   * @throws RefinementFailedException In case an exception in the solver.
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
-      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
-      throws InterruptedException, CPAException {
+      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore, ARGPath pPath)
+      throws InterruptedException, RefinementFailedException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();
     try {
@@ -333,7 +337,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
         }
       } catch (SolverException e) {
-        throw new CPAException("Solver failed while showing unsatisfiability of last predicate.");
+        // Solver failed while showing unsatisfiability of last predicate.
+        throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
       // Remove the last predicate as always false
       return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
@@ -494,11 +499,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *
    * @param pPath The Path to build the path locations for.
    * @return A list of PathLocations
-   * @throws CPAException if the calculation of a PathFormula fails
+   * @throws RefinementFailedException if the calculation of a PathFormula fails
    * @throws InterruptedException if interrupted
    */
   private List<PathLocation> buildPathLocationList(ARGPath pPath)
-      throws CPAException, InterruptedException {
+      throws RefinementFailedException, InterruptedException {
     List<PathLocation> pathLocationList = new ArrayList<>();
 
     // First state does not have an incoming edge. And it is not needed, as first predicate is
@@ -517,8 +522,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
       try {
         pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), lastEdge);
       } catch (CPATransferException e) {
-        throw new CPAException(
-            "Failed to compute the Pathformula for edge(" + lastEdge.toString() + ")", e);
+        // Failed to compute the Pathformula
+        throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
       pathLocationList.add(new PathLocation(pos, lastEdge, pathFormula, state));
       pos++;
