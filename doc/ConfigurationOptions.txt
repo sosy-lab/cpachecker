@@ -1006,6 +1006,9 @@ cpa.arg.witness.exportNodeLabel = false
 # Verification witness: Include the offset within the file?
 cpa.arg.witness.exportOffset = true
 
+# Always export source file name, even default
+cpa.arg.witness.exportSourceFileName = false
+
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = false
 

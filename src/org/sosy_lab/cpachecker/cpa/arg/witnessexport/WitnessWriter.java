@@ -541,7 +541,8 @@ class WitnessWriter implements EdgeAppender {
         .getMainFunction(), pAdditionalInfo);
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
@@ -553,7 +554,8 @@ class WitnessWriter implements EdgeAppender {
 
     if (witnessOptions.exportOffset() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
