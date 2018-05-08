@@ -148,6 +148,10 @@ public abstract class GraphToPixelsWriter<Node> {
     Builder<Node> levelBuilder = getLevelBuilder();
     while (!worklist.isEmpty()) {
       Pair<Integer, Node> current = checkNotNull(worklist.poll()); // FIFO for BFS order
+      if (reached.contains(current.getSecond())) {
+        continue;
+      }
+      reached.add(current.getSecond());
       int currentDistance = checkNotNull(current.getFirst());
 
       if (oldDistance != currentDistance) {
@@ -164,7 +168,6 @@ public abstract class GraphToPixelsWriter<Node> {
       for (Node s : getChildren(currentNode)) {
         if (!reached.contains(s)) {
           worklist.add(Pair.of(currentDistance + 1, s));
-          reached.add(s);
         }
       }
     }
