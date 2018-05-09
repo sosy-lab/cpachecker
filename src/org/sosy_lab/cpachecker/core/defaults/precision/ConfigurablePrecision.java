@@ -181,9 +181,21 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       // tracking variables and the rest of the variable classification is
       // the limiting factor
     } else {
+
       final boolean varIsBoolean = varClass.getIntBoolVars().contains(variableName);
+      if (trackBooleanVariables && varIsBoolean) {
+        return true;
+      }
+
       final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
+      if (trackIntEqualVariables && varIsIntEqual) {
+        return true;
+      }
+
       final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
+      if (trackIntAddVariables && varIsIntAdd) {
+        return true;
+      }
 
       // if the variable is not in a matching classification we have to check
       // if other variables should be tracked
@@ -191,11 +203,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         return trackVariablesBesidesEqAddBool;
       }
 
-      final boolean isTrackedBoolean = trackBooleanVariables && varIsBoolean;
-      final boolean isTrackedIntEqual = trackIntEqualVariables && varIsIntEqual;
-      final boolean isTrackedIntAdd = trackIntAddVariables && varIsIntAdd;
-
-      return isTrackedBoolean || isTrackedIntAdd || isTrackedIntEqual;
+      return false;
     }
   }
 
