@@ -94,7 +94,7 @@ class ReachedSetExecutor {
   private boolean targetStateFound = false;
 
   /** main reached-set is used for checking termination of the algorithm. */
-  private final ReachedSet mainReachedSet;
+  private final boolean isMainReachedSet;
 
   /** important central data structure, shared over all threads, need to be synchronized. */
   private final ConcurrentMap<ReachedSet, ReachedSetExecutor> reachedSetMapping;
@@ -137,7 +137,7 @@ class ReachedSetExecutor {
       BAMCPAWithBreakOnMissingBlock pBamCpa,
       ReachedSet pRs,
       Block pBlock,
-      ReachedSet pMainReachedSet,
+      boolean pIsMainReachedSet,
       ConcurrentMap<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       ExecutorService pPool,
       AlgorithmFactory pAlgorithmFactory,
@@ -149,7 +149,7 @@ class ReachedSetExecutor {
     bamcpa = pBamCpa;
     rs = pRs;
     block = pBlock;
-    mainReachedSet = pMainReachedSet;
+    isMainReachedSet = pIsMainReachedSet;
     reachedSetMapping = pReachedSetMapping;
     pool = pPool;
     algorithmFactory = pAlgorithmFactory;
@@ -326,7 +326,7 @@ class ReachedSetExecutor {
       }
       reAddStatesToDependingReachedSets();
 
-      if (rs == mainReachedSet) {
+      if (isMainReachedSet) {
         logger.logf(level, "%s :: mainRS finished, shutdown threadpool", this);
         pool.shutdown();
       }
@@ -343,7 +343,7 @@ class ReachedSetExecutor {
   }
 
   private void updateCache(boolean pEndsWithTargetState) {
-    if (rs == mainReachedSet) {
+    if (isMainReachedSet) {
       // we do not cache main reached set, because it should not be used internally
       return;
     }
@@ -509,7 +509,7 @@ class ReachedSetExecutor {
             bamcpa,
             newRs,
             pBsme.getBlock(),
-            mainReachedSet,
+            false, // mainReachedSet is never nested in another reached-set
             reachedSetMapping,
             pool,
             algorithmFactory,
