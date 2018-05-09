@@ -60,6 +60,10 @@ public class PersistentSet<K> implements Iterable<K> {
     return delegate.size();
   }
 
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
+
   public Set<K> asSet() {
     return delegate.keySet();
   }
