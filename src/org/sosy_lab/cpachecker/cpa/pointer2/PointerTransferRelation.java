@@ -172,7 +172,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
       return handleAssignment(pState, callAssignment.getLeftHandSide(), pointedTo);
     } else {
-      return null; // represents that state didn't change
+      return pState;
     }
   }
 
