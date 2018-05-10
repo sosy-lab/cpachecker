@@ -369,6 +369,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
     if (pCfaEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment) pCfaEdge.getStatement();
+
+      if (assignment instanceof CFunctionCallAssignmentStatement) {
+        // we don't consider summary edges, so if we encounter a function call assignment edge,
+        // this means that the called function is not defined
+        return handleAssignment(pState, assignment.getLeftHandSide(), LocationSetTop.INSTANCE);
+      }
+
       return handleAssignment(pState, assignment.getLeftHandSide(), assignment.getRightHandSide());
     }
     return pState;
