@@ -362,10 +362,10 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           if (!relevantEdges.contains(e)) {
             realSlices++;
             Collection<CFAEdge> slice = getSlice(e, oldPrec);
-            refinementRoots.add(getRefinementRoot(tp, slice));
             relevantEdges.addAll(slice);
           }
         }
+        refinementRoots.add(getRefinementRoot(tp, relevantEdges));
       }
     } finally {
       candidateSliceCount.setNextValue(candidateSlices);
