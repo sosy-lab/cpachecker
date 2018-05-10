@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -212,12 +213,18 @@ class FlowDependenceTransferRelation
         normalizeReachingDefinitions(pReachDefState);
 
     Multimap<MemoryLocation, ProgramDefinitionPoint> dependences = HashMultimap.create();
-    for (MemoryLocation memLoc : pUses) {
-      Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
-      if (definitionPoints != null && !definitionPoints.isEmpty()) {
-        dependences.putAll(memLoc, definitionPoints);
-      } else {
-        logger.log(Level.WARNING, "No definition point for use ", memLoc, " at ", pCfaEdge);
+    if (pUses == null) {
+      for (Entry<MemoryLocation, Collection<ProgramDefinitionPoint>> e : defs.entrySet()) {
+        dependences.putAll(e.getKey(), e.getValue());
+      }
+    } else {
+      for (MemoryLocation memLoc : pUses) {
+        Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
+        if (definitionPoints != null && !definitionPoints.isEmpty()) {
+          dependences.putAll(memLoc, definitionPoints);
+        } else {
+          logger.log(Level.WARNING, "No definition point for use ", memLoc, " at ", pCfaEdge);
+        }
       }
     }
     if (!dependences.isEmpty()) {
@@ -569,9 +576,14 @@ class FlowDependenceTransferRelation
 
     private Set<MemoryLocation> combine(
         final Set<MemoryLocation> pLhs, final Set<MemoryLocation> pRhs) {
-      Set<MemoryLocation> combined = new HashSet<>(pLhs);
-      combined.addAll(pRhs);
-      return combined;
+      if (pLhs == null || pRhs == null) {
+        return null;
+
+      } else {
+        Set<MemoryLocation> combined = new HashSet<>(pLhs);
+        combined.addAll(pRhs);
+        return combined;
+      }
     }
 
     @Override
@@ -663,11 +675,10 @@ class FlowDependenceTransferRelation
       Set<MemoryLocation> uses = pExp.getOperand().accept(this);
       Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pointerState);
       if (pointees == null) {
-        logger.logOnce(Level.WARNING, "Unhandled pointer dereference. Analysis may be unsound.");
+        return null;
       } else {
         return combine(uses, pointees);
       }
-      return uses;
     }
 
     @Override
