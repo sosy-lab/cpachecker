@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -206,7 +208,9 @@ public class DependenceGraph implements Serializable {
     return Objects.hash(nodes, adjacencyMatrix);
   }
 
-  private static class ImmutableNodeMap {
+  private static class ImmutableNodeMap implements Serializable {
+
+    private static final long serialVersionUID = 4311993821719514171L;
 
     private ImmutableMultimap<CFAEdge, DGNode> nodesForEdges;
     private ImmutableSet<DGNode> specialNodes;
@@ -216,7 +220,7 @@ public class DependenceGraph implements Serializable {
       ImmutableMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableMultimap.builder();
       for (Cell<CFAEdge, Optional<MemoryLocation>, DGNode> c :
           pNodeMap.getNodesForEdges().cellSet()) {
-        mapBuilder.put(c.getRowKey(), c.getValue());
+        mapBuilder.put(checkNotNull(c.getRowKey()), checkNotNull(c.getValue()));
       }
       nodesForEdges = mapBuilder.build();
       specialNodes = ImmutableSet.copyOf(pNodeMap.getSpecialNodes());
@@ -224,10 +228,6 @@ public class DependenceGraph implements Serializable {
 
     public Collection<DGNode> getNodesForEdge(CFAEdge pEdge) {
       return nodesForEdges.get(pEdge);
-    }
-
-    public Collection<DGNode> getSpecialNodes() {
-      return specialNodes;
     }
 
     public Collection<DGNode> getAllNodes() {

@@ -80,6 +80,10 @@ class FlowDependenceDomain implements AbstractDomain {
 
         CFAEdge g = e.getRowKey();
         Optional<MemoryLocation> m = e.getColumnKey();
+        assert g != null : "Null value for CFA edge in flow dependences: "
+            + ((FlowDependenceState) pState2).getAll();
+        assert m != null : "Null value for memory location in flow dependences: "
+            + ((FlowDependenceState) pState2).getAll();
 
         joinedFlowDeps.addDependence(g, m, checkNotNull(e.getValue()));
       }

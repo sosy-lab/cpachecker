@@ -236,7 +236,7 @@ class FlowDependenceTransferRelation
 
   private Set<MemoryLocation> getUsedVars(CAstNode pExpression, PointerState pPointerState)
       throws CPATransferException {
-    UsesCollector usesCollector = new UsesCollector(pPointerState, logger, varClassification);
+    UsesCollector usesCollector = new UsesCollector(pPointerState, varClassification);
     return pExpression.accept(usesCollector);
   }
 
@@ -273,7 +273,7 @@ class FlowDependenceTransferRelation
   private Set<MemoryLocation> getDef(CLeftHandSide pLeftHandSide, PointerState pPointerState)
       throws CPATransferException {
     Set<MemoryLocation> decls;
-    UsesCollector collector = new UsesCollector(pPointerState, logger, varClassification);
+    UsesCollector collector = new UsesCollector(pPointerState, varClassification);
     if (pLeftHandSide instanceof CPointerExpression) {
       return ReachingDefUtils.possiblePointees(pLeftHandSide, pPointerState);
 
@@ -562,15 +562,13 @@ class FlowDependenceTransferRelation
       implements CAstNodeVisitor<Set<MemoryLocation>, CPATransferException> {
 
     private final PointerState pointerState;
-    private final LogManagerWithoutDuplicates logger;
 
     private final Optional<VariableClassification> varClassification;
 
     public UsesCollector(
-        final PointerState pPointerState, final LogManagerWithoutDuplicates pLogger, final
-    Optional<VariableClassification> pVarClassification) {
+        final PointerState pPointerState,
+        final Optional<VariableClassification> pVarClassification) {
       pointerState = pPointerState;
-      logger = pLogger;
       varClassification = pVarClassification;
     }
 

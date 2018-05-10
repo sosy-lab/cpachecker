@@ -219,7 +219,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       if (previousTargetPaths.contains(targetPathId)) {
         throw new RefinementFailedException(Reason.RepeatedCounterexample, tp);
       }
-      if (isFeasible(tp, pReached)) {
+      if (isFeasible(tp)) {
         CounterexampleInfo cex = getCounterexample(tp);
         tp.getLastState().addCounterexampleInformation(cex);
         anyFeasible = true;
@@ -264,8 +264,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    * @throws CPAException if the wrapped transfer relation throws an Exception during the check
    * @throws InterruptedException if feasibility check got interrupted
    */
-  boolean isFeasible(final ARGPath pTargetPath, final ReachedSet pReached)
-      throws CPAException, InterruptedException {
+  boolean isFeasible(final ARGPath pTargetPath) throws CPAException, InterruptedException {
 
     PathIterator iterator = pTargetPath.fullPathIterator();
     CFAEdge outgoingEdge;
