@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -108,12 +109,15 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
     // -- this is, except for predicate analysis, equal to or lower in the ARG than the
     // refinement roots of slicing.
     // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
-    Pair<Set<ARGState>, SlicingPrecision> refRootsAndPrec =
+    Set<Pair<ARGState, SlicingPrecision>> refRootsAndPrec =
         slicingRefiner.computeNewPrecision(pReached);
-    boolean refinementResult = delegate.performRefinement(pReached);
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
-    argReached.updatePrecisionGlobally(
-        refRootsAndPrec.getSecond(), Predicates.instanceOf(SlicingPrecision.class));
+    SlicingPrecision fullPrec = Iterables.getLast(refRootsAndPrec).getSecond();
+    for (Pair<ARGState, SlicingPrecision> p : refRootsAndPrec) {
+      fullPrec = fullPrec.getNew(fullPrec.getWrappedPrec(), p.getSecond().getRelevant());
+    }
+    argReached.updatePrecisionGlobally(fullPrec, Predicates.instanceOf(SlicingPrecision.class));
+    boolean refinementResult = delegate.performRefinement(pReached);
     // Update counterexamples to be imprecise, because the program slice
     // may not reflect the real program semantics, but reflects the real program
     // syntax

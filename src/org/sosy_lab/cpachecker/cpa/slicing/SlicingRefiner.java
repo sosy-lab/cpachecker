@@ -27,7 +27,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -109,12 +110,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             + " location. Always set this to `true` if you use SlicingDelegatingRefiner."
   )
   private boolean takeEagerSlice = true;
-
-  @Option(
-    secure = true,
-    description = "Only use incremental slices, not the full slice per slicing criterion."
-  )
-  private boolean takeIncrementalSlice = true;
 
   @Option(secure = true, description = "What kind of restart to do after a successful refinement")
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
@@ -278,10 +273,17 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     AbstractState state = initialState;
     Precision precision;
     if (counterexampleCheckOnSlice) {
-      Precision fullSlice = getNewPrecision(pReached).getSecond();
+      Set<CFAEdge> sliceForTargetPath = getSlice(pTargetPath);
+      SlicingPrecision fullSlicingPrecision =
+          Precisions.extractPrecisionByType(fullPrecision, SlicingPrecision.class);
+      assert fullSlicingPrecision != null
+          : "No " + SlicingPrecision.class.getSimpleName() + " in precision: " + fullPrecision;
+
+      SlicingPrecision targetPathSlice =
+          new SlicingPrecision(fullSlicingPrecision.getWrappedPrec(), sliceForTargetPath);
       precision =
           currentPrecision.replaceWrappedPrecision(
-              fullSlice, Predicates.instanceOf(fullSlice.getClass()));
+              targetPathSlice, Predicates.instanceOf(SlicingPrecision.class));
     } else {
       precision = fullPrecision;
     }
@@ -323,91 +325,110 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    * @throws RefinementFailedException thrown if the given reached set does not contain target paths
    *     valid for refinement
    */
-  @CanIgnoreReturnValue
-  Pair<Set<ARGState>, SlicingPrecision> computeNewPrecision(final ReachedSet pReached)
+  Set<Pair<ARGState, SlicingPrecision>> computeNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
-    Pair<Set<ARGState>, SlicingPrecision> refinementRootsAndPrecision = getNewPrecision(pReached);
+    Set<Pair<ARGState, SlicingPrecision>> refinementRootsAndPrecision = getNewPrecision(pReached);
     refinementCount++;
     return refinementRootsAndPrecision;
   }
 
-  private Pair<Set<ARGState>, SlicingPrecision> getNewPrecision(final ReachedSet pReached)
+  private Set<Pair<ARGState, SlicingPrecision>> getNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    SlicingPrecision oldPrec = extractSlicingPrecision(pReached, pReached.getFirstState());
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
-    Set<CFAEdge> relevantEdges = new HashSet<>();
-    Set<ARGState> refinementRoots = new HashSet<>();
+    Set<Pair<ARGState, SlicingPrecision>> newPrecs = new HashSet<>();
+    for (ARGPath tp : targetPaths) {
+      // we have to add the refinement root even if no new edge was added,
+      // so that the precision of the corresponding ARG subtree is updated
+      Set<CFAEdge> relevantEdges = getSlice(tp);
+      ARGState refinementRoot = getRefinementRoot(tp, relevantEdges);
+      SlicingPrecision oldPrec = mergeOnSubgraph(refinementRoot, pReached);
+      SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
+      newPrecs.add(Pair.of(refinementRoot, newPrec));
+    }
+
+    return newPrecs;
+  }
+
+  private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
     int candidateSlices = 0;
     int realSlices = 0;
     try {
-      for (ARGPath tp : targetPaths) {
-        List<CFAEdge> innerEdges = tp.getInnerEdges();
-        List<CFAEdge> criteriaEdges = new ArrayList<>(1);
+      Set<CFAEdge> relevantEdges = new HashSet<>();
+      List<CFAEdge> innerEdges = pPath.getInnerEdges();
+      List<CFAEdge> criteriaEdges = new ArrayList<>(1);
 
-        if (takeEagerSlice) {
-          criteriaEdges =
-              innerEdges
-                  .stream()
-                  .filter(Predicates.instanceOf(CAssumeEdge.class))
-                  .collect(Collectors.toList());
-        }
-        CFANode finalNode = AbstractStates.extractLocation(tp.getLastState());
-        List<CFAEdge> edgesToTarget =
-            CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
-        criteriaEdges.addAll(edgesToTarget);
-
-        // Heuristic: Reverse to make states that are deeper in the path first - these
-        // have a higher chance of including earlier states in their dependences
-        criteriaEdges = Lists.reverse(criteriaEdges);
-
-        for (CFAEdge e : criteriaEdges) {
-          candidateSlices++;
-          // If the relevant edges contain e, then all dependences of e are also already included
-          // and we can skip it (this is only true as long as no function call/return edge is a
-          // criterion!)
-          if (!relevantEdges.contains(e)) {
-            realSlices++;
-            Collection<CFAEdge> slice = getSlice(e, oldPrec);
-            relevantEdges.addAll(slice);
-          }
-        }
-        refinementRoots.add(getRefinementRoot(tp, relevantEdges));
+      if (takeEagerSlice) {
+        criteriaEdges =
+            innerEdges
+                .stream()
+                .filter(Predicates.instanceOf(CAssumeEdge.class))
+                .collect(Collectors.toList());
       }
+      CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
+      List<CFAEdge> edgesToTarget =
+          CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
+      criteriaEdges.addAll(edgesToTarget);
+
+      // Heuristic: Reverse to make states that are deeper in the path first - these
+      // have a higher chance of including earlier states in their dependences
+      criteriaEdges = Lists.reverse(criteriaEdges);
+
+      for (CFAEdge e : criteriaEdges) {
+        candidateSlices++;
+        // If the relevant edges contain e, then all dependences of e are also already included
+        // and we can skip it (this is only true as long as no function call/return edge is a
+        // criterion!)
+        if (!relevantEdges.contains(e)) {
+          realSlices++;
+          Collection<CFAEdge> slice = getSlice(e);
+          relevantEdges.addAll(slice);
+        }
+      }
+      return relevantEdges;
     } finally {
       candidateSliceCount.setNextValue(candidateSlices);
       sliceCount.setNextValue(realSlices);
     }
+  }
 
-    SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
-    return Pair.of(refinementRoots, newPrec);
+  private SlicingPrecision mergeOnSubgraph(
+      final ARGState pRefinementRoot, final ReachedSet pReached) {
+    // get all unique precisions from the subtree
+    Set<SlicingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+      uniquePrecisions.add(extractSlicingPrecision(pReached, descendant));
+    }
+
+    // join all unique precisions into a single precision
+    SlicingPrecision start = Iterables.getLast(uniquePrecisions);
+    Set<CFAEdge> allRelevant = new HashSet<>(start.getRelevant());
+    for (SlicingPrecision precision : uniquePrecisions) {
+      allRelevant.addAll(precision.getRelevant());
+    }
+
+    return new SlicingPrecision(start.getWrappedPrec(), allRelevant);
   }
 
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    Pair<Set<ARGState>, SlicingPrecision> refRootsAndPrecision = computeNewPrecision(pReached);
-    for (ARGState r : refRootsAndPrecision.getFirst()) {
+    Set<Pair<ARGState, SlicingPrecision>> refRootsAndPrecision = computeNewPrecision(pReached);
+    for (Pair<ARGState, SlicingPrecision> p : refRootsAndPrecision) {
+      ARGState r = p.getFirst();
       if (!r.isDestroyed()) {
-        argReached.removeSubtree(
-            r, refRootsAndPrecision.getSecond(), Predicates.instanceOf(SlicingPrecision.class));
+        argReached.removeSubtree(r, p.getSecond(), Predicates.instanceOf(SlicingPrecision.class));
       }
     }
   }
 
   /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
-  Collection<CFAEdge> getSlice(final CFAEdge pCriterion, final SlicingPrecision pCurrentPrec)
-      throws InterruptedException {
+  Collection<CFAEdge> getSlice(final CFAEdge pCriterion) throws InterruptedException {
     try {
       slicingTime.start();
-      if (takeIncrementalSlice) {
-        return depGraph.getReachable(
-            pCriterion, TraversalDirection.BACKWARD, pCurrentPrec.getRelevant());
-      } else {
-        return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
-      }
+      return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
     } finally {
       slicingTime.stop();
     }

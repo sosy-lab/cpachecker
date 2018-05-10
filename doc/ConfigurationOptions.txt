@@ -2288,9 +2288,6 @@ cpa.slicing.refinement.restartStrategy = PIVOT
 # SlicingDelegatingRefiner.
 cpa.slicing.refinement.takeEagerSlice = true
 
-# Only use incremental slices, not the full slice per slicing criterion.
-cpa.slicing.refinement.takeIncrementalSlice = true
-
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
