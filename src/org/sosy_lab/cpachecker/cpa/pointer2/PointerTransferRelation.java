@@ -340,18 +340,21 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private PointerState handleAssignment(PointerState pState, CExpression pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
-    LocationSet locations = asLocations(pLeftHandSide, pState, 0);
-    return handleAssignment(pState, locations, pRightHandSide);
+    return handleAssignment(pState, pLeftHandSide, asLocations(pRightHandSide, pState, 1));
   }
 
-  private PointerState handleAssignment(PointerState pState, LocationSet pLocationSet, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
+  private PointerState handleAssignment(
+      PointerState pState, CExpression pLeftHandSide, LocationSet pRightHandSide)
+      throws UnrecognizedCCodeException {
+
+    LocationSet locationSet = asLocations(pLeftHandSide, pState);
     final Iterable<MemoryLocation> locations;
-    if (pLocationSet.isTop()) {
+    if (locationSet.isTop()) {
       locations = pState.getKnownLocations();
-    } else if (pLocationSet instanceof ExplicitLocationSet) {
-      locations = (ExplicitLocationSet) pLocationSet;
+    } else if (locationSet instanceof ExplicitLocationSet) {
+      locations = (ExplicitLocationSet) locationSet;
     } else {
-      locations = Collections.<MemoryLocation>emptySet();
+      locations = Collections.emptySet();
     }
     PointerState result = pState;
     for (MemoryLocation location : locations) {
@@ -361,7 +364,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private PointerState handleAssignment(PointerState pState, MemoryLocation pLhsLocation, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
-    return pState.addPointsToInformation(pLhsLocation, asLocations(pRightHandSide, pState, 1));
+    return handleAssignment(pState, pLhsLocation, asLocations(pRightHandSide, pState, 1));
   }
 
   private PointerState handleAssignment(PointerState pState, MemoryLocation pLeftHandSide, LocationSet pRightHandSide) {
