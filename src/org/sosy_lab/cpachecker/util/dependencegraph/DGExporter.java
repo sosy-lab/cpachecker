@@ -43,7 +43,7 @@ public class DGExporter {
     DGNodeDotFormatter nodeFormatter = new DGNodeDotFormatter();
     Table<DGNode, DGNode, DependenceType> adjacencyMatrix = pDg.getMatrix();
 
-    for (DGNode n : pDg.getNodes()) {
+    for (DGNode n : pDg.getAllNodes()) {
       nodes.add(nodeFormatter.getNodeString(n));
     }
 

@@ -29,8 +29,6 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -85,14 +83,16 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.dominator.DominatorState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
-import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -110,7 +110,7 @@ public class DGBuilder implements StatisticsProvider {
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
+  private NodeMap nodes;
   private Table<DGNode, DGNode, DependenceType> adjacencyMatrix;
 
   private final StatTimer dependenceGraphConstructionTimer = new StatTimer("Time for dep. graph");
@@ -146,7 +146,7 @@ public class DGBuilder implements StatisticsProvider {
   public DependenceGraph build()
       throws InvalidConfigurationException, InterruptedException, CPAException {
     dependenceGraphConstructionTimer.start();
-    nodes = HashBasedTable.create();
+    nodes = new NodeMap();
     adjacencyMatrix = HashBasedTable.create();
     addFlowDependences();
     addControlDependences();
@@ -171,8 +171,8 @@ public class DGBuilder implements StatisticsProvider {
     List<CFAEdge> allEdges = edgeCollector.getVisitedEdges();
 
     for (CFAEdge e : allEdges) {
-      if (!nodes.containsRow(e)) {
-        nodes.put(e, Optional.empty(), new DGNode(e));
+      if (!nodes.containsANodeForEdge(e)) {
+        nodes.getNodesForEdges().put(e, Optional.empty(), new DGNode(e));
         isolatedNodes.inc();
       }
     }
@@ -281,12 +281,11 @@ public class DGBuilder implements StatisticsProvider {
     FlowDependences flowDependences =
         FlowDependences.create(cfa, varClassification, config, logger, shutdownNotifier);
 
-    for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> c :
-        flowDependences.cellSet()) {
+    for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> c : flowDependences.cellSet()) {
 
       CFAEdge edgeDepending = checkNotNull(c.getRowKey());
       Optional<MemoryLocation> defOfEdge = checkNotNull(c.getColumnKey());
-      Multimap<MemoryLocation, CFAEdge> uses = checkNotNull(c.getValue());
+      FlowDependence uses = checkNotNull(c.getValue());
       DGNode nodeDepending;
       if (defOfEdge.isPresent()) {
         nodeDepending = getDGNode(edgeDepending, defOfEdge);
@@ -294,11 +293,17 @@ public class DGBuilder implements StatisticsProvider {
         nodeDepending = getDGNode(edgeDepending, Optional.empty());
       }
       int flowDepCount = 0;
-      for (Entry<MemoryLocation, CFAEdge> useAndDef : uses.entries()) {
-        MemoryLocation use = checkNotNull(useAndDef.getKey());
-        DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(use));
+      if (uses.isUnknownPointerDependence()) {
+        DGNode dependency = getDGNodeForUnknownPointer();
         addDependence(dependency, nodeDepending, DependenceType.FLOW);
         flowDepCount++;
+      } else {
+        for (Entry<MemoryLocation, CFAEdge> useAndDef : uses.entries()) {
+          MemoryLocation use = checkNotNull(useAndDef.getKey());
+          DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(use));
+          addDependence(dependency, nodeDepending, DependenceType.FLOW);
+          flowDepCount++;
+        }
       }
       flowDependenceNumber.setNextValue(flowDepCount);
     }
@@ -311,17 +316,25 @@ public class DGBuilder implements StatisticsProvider {
    * <p>Always use this method and never use {@link #createNode(CFAEdge, Optional)}!
    */
   private DGNode getDGNode(final CFAEdge pCfaEdge, final Optional<MemoryLocation> pCause) {
-    if (!nodes.contains(pCfaEdge, pCause)) {
-      nodes.put(pCfaEdge, pCause, createNode(pCfaEdge, pCause));
+    if (!nodes.getNodesForEdges().contains(pCfaEdge, pCause)) {
+      nodes.getNodesForEdges().put(pCfaEdge, pCause, createNode(pCfaEdge, pCause));
     }
-    return nodes.get(pCfaEdge, pCause);
+    return nodes.getNodesForEdges().get(pCfaEdge, pCause);
+  }
+
+  private DGNode getDGNodeForUnknownPointer() {
+    DGNode unk = UnknownPointerNode.getInstance();
+    nodes.getSpecialNodes().add(unk);
+    return unk;
   }
 
   private Collection<DGNode> getDGNodes(final CFAEdge pCfaEdge) {
-    if (!nodes.containsRow(pCfaEdge)) {
-      nodes.put(pCfaEdge, Optional.empty(), createNode(pCfaEdge, Optional.empty()));
+    if (!nodes.containsANodeForEdge(pCfaEdge)) {
+      nodes
+          .getNodesForEdges()
+          .put(pCfaEdge, Optional.empty(), createNode(pCfaEdge, Optional.empty()));
     }
-    return nodes.row(pCfaEdge).values();
+    return nodes.getNodesForEdges().row(pCfaEdge).values();
   }
 
   /**
@@ -388,8 +401,7 @@ public class DGBuilder implements StatisticsProvider {
    * relation.
    */
   private static class FlowDependences
-      extends ForwardingTable<
-          CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> {
+      extends ForwardingTable<CFAEdge, Optional<MemoryLocation>, FlowDependence> {
 
     @Options(prefix = "dependencegraph.flowdep")
     private static class FlowDependenceConfig {
@@ -402,17 +414,15 @@ public class DGBuilder implements StatisticsProvider {
     }
 
     // CFAEdge + defined memory location -> Edge defining the uses
-    private Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> dependences;
+    private Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> dependences;
 
     private FlowDependences(
-        final Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>>
-            pDependences) {
+        final Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> pDependences) {
       dependences = pDependences;
     }
 
     @Override
-    protected Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>>
-        delegate() {
+    protected Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> delegate() {
       return dependences;
     }
 
@@ -466,7 +476,7 @@ public class DGBuilder implements StatisticsProvider {
       assert !reached.hasWaitingState()
           : "CPA algorithm finished, but waitlist not empty: " + reached.getWaitlist();
 
-      Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> dependencyMap =
+      Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> dependencyMap =
           HashBasedTable.create();
       for (AbstractState s : reached) {
         assert s instanceof ARGState;
@@ -476,13 +486,11 @@ public class DGBuilder implements StatisticsProvider {
         for (CFAEdge g : flowDepState.getDependees()) {
           Set<Optional<MemoryLocation>> defs = flowDepState.getDefinitions(g);
           for (Optional<MemoryLocation> d : defs) {
-            Multimap<MemoryLocation, CFAEdge> memLocUsedAndDefiner =
-                getDependences(flowDepState, g, d);
+            FlowDependence memLocUsedAndDefiner = flowDepState.getDefsDependingOn(g, d);
             if (dependencyMap.contains(g, d)) {
-              dependencyMap.get(g, d).putAll(memLocUsedAndDefiner);
-            } else {
-              dependencyMap.put(g, d, memLocUsedAndDefiner);
+              memLocUsedAndDefiner = dependencyMap.get(g, d).union(memLocUsedAndDefiner);
             }
+            dependencyMap.put(g, d, memLocUsedAndDefiner);
           }
         }
       }
@@ -501,33 +509,6 @@ public class DGBuilder implements StatisticsProvider {
               + pState.toString();
 
       return s;
-    }
-
-    private static Multimap<MemoryLocation, CFAEdge> getDependences(
-        final FlowDependenceState pFlowDepState,
-        final CFAEdge pEdge,
-        final Optional<MemoryLocation> pDef) {
-      Multimap<MemoryLocation, CFAEdge> dependencies = HashMultimap.create();
-
-      Multimap<MemoryLocation, ProgramDefinitionPoint> dependentDefs =
-          pFlowDepState.getDependentDefs(pEdge, pDef);
-
-      for (Entry<MemoryLocation, ProgramDefinitionPoint> e : dependentDefs.entries()) {
-        ProgramDefinitionPoint defPoint = e.getValue();
-        CFANode start = defPoint.getDefinitionEntryLocation();
-        CFANode stop = defPoint.getDefinitionExitLocation();
-
-        boolean added = false;
-        for (CFAEdge g : CFAUtils.leavingEdges(start)) {
-          if (g.getSuccessor().equals(stop)) {
-            dependencies.put(e.getKey(), g);
-            added = true;
-          }
-        }
-        assert added : "No edge added for nodes " + start + " to " + stop;
-      }
-
-      return dependencies;
     }
   }
 

@@ -29,11 +29,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -99,6 +97,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.UnknownPointerDependence;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
@@ -130,20 +130,20 @@ class FlowDependenceTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
-  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalizeReachingDefinitions(
+  private Multimap<MemoryLocation, ProgramDefinitionPoint> normalizeReachingDefinitions(
       ReachingDefState pState) {
 
-    Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalized = new HashMap<>();
+    Multimap<MemoryLocation, ProgramDefinitionPoint> normalized = HashMultimap.create();
 
     normalized.putAll(normalize(pState.getLocalReachingDefinitions()));
     normalized.putAll(normalize(pState.getGlobalReachingDefinitions()));
     return normalized;
   }
 
-  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalize(
+  private Multimap<MemoryLocation, ProgramDefinitionPoint> normalize(
       Map<MemoryLocation, Set<DefinitionPoint>> pDefs) {
 
-    Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalized = new HashMap<>();
+    Multimap<MemoryLocation, ProgramDefinitionPoint> normalized = HashMultimap.create();
     for (Map.Entry<MemoryLocation, Set<DefinitionPoint>> e : pDefs.entrySet()) {
       MemoryLocation varName = e.getKey();
       Set<DefinitionPoint> points = e.getValue();
@@ -155,7 +155,7 @@ class FlowDependenceTransferRelation
               .map(p -> (ProgramDefinitionPoint) p)
               .collect(Collectors.toList());
 
-      normalized.put(varName, defPoints);
+      normalized.putAll(varName, defPoints);
     }
     return normalized;
   }
@@ -176,7 +176,7 @@ class FlowDependenceTransferRelation
 
     CInitializer maybeInitializer = pDecl.getInitializer();
 
-    if (maybeInitializer != null && maybeInitializer instanceof CInitializerExpression) {
+    if (maybeInitializer instanceof CInitializerExpression) {
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
@@ -209,25 +209,25 @@ class FlowDependenceTransferRelation
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState) {
 
-    Map<MemoryLocation, Collection<ProgramDefinitionPoint>> defs =
+    Multimap<MemoryLocation, ProgramDefinitionPoint> defs =
         normalizeReachingDefinitions(pReachDefState);
 
-    Multimap<MemoryLocation, ProgramDefinitionPoint> dependences = HashMultimap.create();
+    FlowDependence dependences;
     if (pUses == null) {
-      for (Entry<MemoryLocation, Collection<ProgramDefinitionPoint>> e : defs.entrySet()) {
-        dependences.putAll(e.getKey(), e.getValue());
-      }
+      dependences = UnknownPointerDependence.getInstance();
     } else {
-      for (MemoryLocation memLoc : pUses) {
-        Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
-        if (definitionPoints != null && !definitionPoints.isEmpty()) {
-          dependences.putAll(memLoc, definitionPoints);
-        } else {
-          logger.log(Level.WARNING, "No definition point for use ", memLoc, " at ", pCfaEdge);
-        }
+      // Keep only definitions of uses in the currently considered CFA edge
+      defs.keySet().retainAll(pUses);
+      if (defs.keySet().size() != pUses.size()) {
+        logger.log(
+            Level.WARNING,
+            "No definition point for at least one use in edge %s: %s",
+            pCfaEdge,
+            pReachDefState);
       }
+      dependences = FlowDependence.create(defs);
     }
-    if (!dependences.isEmpty()) {
+    if (dependences.isUnknownPointerDependence() || !dependences.isEmpty()) {
       pNextState.addDependence(pCfaEdge, pDef, dependences);
     }
 

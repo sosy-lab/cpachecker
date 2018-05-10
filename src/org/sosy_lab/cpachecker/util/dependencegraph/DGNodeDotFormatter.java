@@ -28,18 +28,22 @@ class DGNodeDotFormatter {
 
   public String getNodeString(final DGNode pNode) {
     String shape;
-    switch (pNode.getCfaEdge().getEdgeType()) {
-      case AssumeEdge:
-        shape = "diamond";
-        break;
-      case FunctionCallEdge:
-        shape = "ellipse\", peripheries=\"2";
-        break;
-      case BlankEdge:
-        shape = "box";
-        break;
-      default:
-        shape = "ellipse";
+    if (pNode.isUnknownPointerNode()) {
+      shape = "ellipse";
+    } else {
+      switch (pNode.getCfaEdge().getEdgeType()) {
+        case AssumeEdge:
+          shape = "diamond";
+          break;
+        case FunctionCallEdge:
+          shape = "ellipse\", peripheries=\"2";
+          break;
+        case BlankEdge:
+          shape = "box";
+          break;
+        default:
+          shape = "ellipse";
+      }
     }
 
     return format(pNode, shape);
