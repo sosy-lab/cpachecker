@@ -55,6 +55,15 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
 
+  /**
+   * Data-flow dependencies.
+   * Represented by a table with entries of the form (g, m, D).
+   * D is a set of tuples (d, g').
+   *
+   * <p>Read:
+   * A CFA edge g defines a memory location m, and since it uses d to do so, it is data-flow
+   * dependent on g'.
+   */
   private final Table<
           CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
       usedDefs;
