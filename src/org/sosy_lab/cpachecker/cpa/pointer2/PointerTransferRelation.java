@@ -106,6 +106,8 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -373,7 +375,12 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       if (assignment instanceof CFunctionCallAssignmentStatement) {
         // we don't consider summary edges, so if we encounter a function call assignment edge,
         // this means that the called function is not defined
-        if (assignment.getRightHandSide().getExpressionType() instanceof CPointerType) {
+        if (isMemoryAllocation(((CFunctionCallAssignmentStatement) assignment)
+            .getFunctionCallExpression().getFunctionNameExpression())) {
+          // Memory allocations return a pointer to new memory, so the pointer
+          // will point to no existing variables
+          return pState;
+        } else if (assignment.getRightHandSide().getExpressionType() instanceof CPointerType) {
           return handleAssignment(pState, assignment.getLeftHandSide(), LocationSetTop.INSTANCE);
         } else {
           return pState;
@@ -385,6 +392,16 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return pState;
+  }
+
+  private boolean isMemoryAllocation(CExpression pFunctionNameExpression) {
+    if (pFunctionNameExpression instanceof CIdExpression) {
+      String functionName = ((CIdExpression) pFunctionNameExpression).getName();
+      return functionName.equals("malloc") || functionName.equals("alloca") || functionName
+          .equals("kmalloc") || functionName.equals("__kmalloc");
+    } else {
+      return false;
+    }
   }
 
   private PointerState handleAssignment(PointerState pState, CExpression pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
