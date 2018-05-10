@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -44,7 +46,7 @@ final class CollectingLHSVisitor
   private final CFA cfa;
 
   private CollectingLHSVisitor(CFA pCfa) {
-    cfa = pCfa;
+    cfa = checkNotNull(pCfa);
   }
 
   public static CollectingLHSVisitor create(CFA pCfa) {

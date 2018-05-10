@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
@@ -34,6 +36,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -57,7 +60,7 @@ class Dependencies {
    * variable.
    */
   public Partition getPartitionForVar(String var) {
-    return varToPartition.get(var);
+    return varToPartition.get(checkNotNull(var));
   }
 
   /** This function creates a dependency between function1::var1 and function2::var2. */
@@ -107,7 +110,12 @@ class Dependencies {
    * @param edge where is the expression
    * @param index if an edge has several expressions, this index is the position ofthe expression
    */
-  public void addAll(Collection<String> vars, Set<BigInteger> values, CFAEdge edge, int index) {
+  public void addAll(
+      @Nullable Collection<String> vars,
+      @Nullable Set<BigInteger> values,
+      CFAEdge edge,
+      int index) {
+    checkNotNull(edge);
     if (vars == null || vars.isEmpty()) {
       return;
     }
@@ -150,6 +158,7 @@ class Dependencies {
    * boolean.
    */
   public void solve(final Set<String> vars) {
+    checkNotNull(vars);
     for (Partition partition : partitions) {
 
       // is at least one var from the partition part of vars

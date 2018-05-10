@@ -23,24 +23,24 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.Iterators;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
   private final UnmodifiableReachedSet delegate;
 
   public UnmodifiableReachedSetWrapper(UnmodifiableReachedSet pDelegate) {
-    delegate = pDelegate;
+    delegate = checkNotNull(pDelegate);
   }
 
   @Override

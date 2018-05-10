@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -149,18 +151,21 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   }
 
   private static Comparable<?> getPseudoPartitionKey(AbstractState pState) {
+    checkNotNull(pState);
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoPartitionKey();
   }
 
   private static Object getPseudoHashCode(AbstractState pState) {
+    checkNotNull(pState);
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoHashCode();
   }
 
   private static Optional<Object> getPartitionKey(AbstractState pState) {
+    checkNotNull(pState);
     assert pState instanceof Partitionable
         : "Partitionable states necessary for PartitionedReachedSet";
     return Optional.ofNullable(((Partitionable) pState).getPartitionKey());

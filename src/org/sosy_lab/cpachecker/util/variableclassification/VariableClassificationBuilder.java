@@ -785,11 +785,12 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   static String scopeVar(@Nullable final String function, final String var) {
+    checkNotNull(var);
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
   static boolean isGlobal(CExpression exp) {
-    if (exp instanceof CIdExpression) {
+    if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
@@ -799,6 +800,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   /** returns the value of a (nested) IntegerLiteralExpression
    * or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
+    checkNotNull(exp);
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 

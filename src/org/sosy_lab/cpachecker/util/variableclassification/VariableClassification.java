@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -307,6 +308,7 @@ public class VariableClassification implements Serializable {
    * where it is the position of the param.
    * For the left-hand-side of the assignment of external functionCalls use -1. */
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
+    checkNotNull(edge);
     return edgeToPartitions.get(edge, index);
   }
 
@@ -326,6 +328,7 @@ public class VariableClassification implements Serializable {
     final int INTEQUAL_VAR = 2;
     final int UNKNOWN_VAR = 4;
 
+    checkNotNull(loopStructure);
     if(variableNames.isEmpty()) {
       return UNKNOWN_VAR;
     }

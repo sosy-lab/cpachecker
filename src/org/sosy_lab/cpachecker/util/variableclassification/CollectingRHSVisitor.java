@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -52,8 +54,8 @@ final class CollectingRHSVisitor
   private final boolean addressed;
 
   private CollectingRHSVisitor(final CFA pCfa, final VariableOrField lhs, final boolean addressed) {
-    this.cfa = pCfa;
-    this.lhs = lhs;
+    this.cfa = checkNotNull(pCfa);
+    this.lhs = checkNotNull(lhs);
     this.addressed = addressed;
   }
 
@@ -156,6 +158,7 @@ final class CollectingRHSVisitor
 
   @Override
   protected VarFieldDependencies visitDefault(final CExpression e) {
+    checkNotNull(e);
     return VarFieldDependencies.emptyDependencies();
   }
 }

@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 /**
  * Implementation of ReachedSet that forwards all calls to another instance.
@@ -58,7 +57,7 @@ public class HistoryForwardingReachedSet extends ForwardingReachedSet {
   }
 
   public void saveCPA(ConfigurableProgramAnalysis pCurrentCpa) {
-    Preconditions.checkArgument(pCurrentCpa != null);
+    checkNotNull(pCurrentCpa);
     cpas.add(pCurrentCpa);
   }
 

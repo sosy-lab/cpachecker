@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 /**
@@ -58,6 +60,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
       } else if (other instanceof Field) {
         return -1;
       } else {
+        checkNotNull(other);
         throw new AssertionError("Should not happen: all cases are covered above");
       }
     }
@@ -72,7 +75,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
   static final class Variable extends VariableOrField {
     private Variable(final String scopedName) {
-      this.scopedName = scopedName;
+      this.scopedName = checkNotNull(scopedName);
     }
 
     public String getScopedName() {
@@ -107,6 +110,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
       } else if (other instanceof Variable) {
         return scopedName.compareTo(((Variable) other).scopedName);
       } else {
+        checkNotNull(other);
         throw new AssertionError("Should not happen: all cases are covered above");
       }
     }
@@ -121,8 +125,8 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
   static final class Field extends VariableOrField {
     private Field(final CCompositeType composite, final String name) {
-      this.composite = composite;
-      this.name = name;
+      this.composite = checkNotNull(composite);
+      this.name = checkNotNull(name);
     }
 
     public CCompositeType getCompositeType() {
@@ -163,6 +167,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         final int result = composite.getQualifiedName().compareTo(o.composite.getQualifiedName());
         return result != 0 ? result : name.compareTo(o.name);
       } else {
+        checkNotNull(other);
         throw new AssertionError("Should not happen: all cases are covered above");
       }
     }

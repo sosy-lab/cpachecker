@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -64,8 +66,8 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   Partition(
       Map<String, Partition> varToPartition, Table<CFAEdge, Integer, Partition> edgeToPartition) {
-    this.varToPartition = varToPartition;
-    this.edgeToPartition = edgeToPartition;
+    this.varToPartition = checkNotNull(varToPartition);
+    this.edgeToPartition = checkNotNull(edgeToPartition);
     index = idGenerator.getFreshId();
   }
 

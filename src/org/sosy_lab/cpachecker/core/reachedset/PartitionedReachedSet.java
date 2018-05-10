@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -104,11 +107,12 @@ public class PartitionedReachedSet extends DefaultReachedSet {
   }
 
   protected Object getPartitionKey(AbstractState pState) {
+    checkNotNull(pState);
     assert pState instanceof Partitionable : "Partitionable states necessary for PartitionedReachedSet";
     return ((Partitionable)pState).getPartitionKey();
   }
 
-  protected Collection<AbstractState> getReachedForKey(Object key) {
+  protected Collection<AbstractState> getReachedForKey(@Nullable Object key) {
     return Collections.unmodifiableCollection(partitionedReached.get(key));
   }
 
