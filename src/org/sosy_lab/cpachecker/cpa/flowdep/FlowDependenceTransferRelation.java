@@ -676,10 +676,20 @@ class FlowDependenceTransferRelation
       Set<MemoryLocation> uses = pExp.getOperand().accept(this);
       Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pointerState);
       if (pointees == null) {
-        return null;
-      } else {
-        return combine(uses, pointees);
+        pointees = new HashSet<>();
+        if (varClassification.isPresent()) {
+          Set<String> addressedVars = varClassification.get().getAddressedVariables();
+          for (String v : addressedVars) {
+            MemoryLocation m = MemoryLocation.valueOf(v);
+            pointees.add(m);
+          }
+        } else {
+          // if pointees are unknown and we can't derive them through the variable classification,
+          // any variable could be used.
+          return null;
+        }
       }
+      return combine(uses, pointees);
     }
 
     @Override
