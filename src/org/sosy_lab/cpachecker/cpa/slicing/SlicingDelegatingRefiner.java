@@ -108,7 +108,7 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
       for (ARGPath targetPath : slicingRefiner.getTargetPaths(pReached)) {
         if (slicingRefiner.isFeasible(targetPath, pReached)) {
           CounterexampleInfo cex = slicingRefiner.getCounterexample(targetPath);
-          targetPath.getLastState().addCounterexampleInformation(cex);
+          targetPath.getLastState().replaceCounterexampleInformation(cex);
         }
       }
     }
