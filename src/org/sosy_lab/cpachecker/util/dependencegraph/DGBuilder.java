@@ -118,6 +118,8 @@ public class DGBuilder implements StatisticsProvider {
   private StatInt controlDependenceNumber =
       new StatInt(StatKind.SUM, "Number of control dependences");
   private StatCounter isolatedNodes = new StatCounter("Number of isolated nodes");
+  private final StatTimer flowDependenceTimer = new StatTimer("Time for flow deps.");
+  private final StatTimer controlDependenceTimer = new StatTimer("Time for control deps.");
 
   @Option(
     secure = true,
@@ -148,8 +150,18 @@ public class DGBuilder implements StatisticsProvider {
     dependenceGraphConstructionTimer.start();
     nodes = new NodeMap();
     adjacencyMatrix = HashBasedTable.create();
-    addFlowDependences();
-    addControlDependences();
+    flowDependenceTimer.start();
+    try {
+      addFlowDependences();
+    } finally {
+      flowDependenceTimer.stop();
+    }
+    controlDependenceTimer.start();
+    try {
+      addControlDependences();
+    } finally {
+      controlDependenceTimer.stop();
+    }
     addMissingNodes();
 
     DependenceGraph dg = new DependenceGraph(nodes, adjacencyMatrix, shutdownNotifier);
@@ -379,6 +391,8 @@ public class DGBuilder implements StatisticsProvider {
         nodeNumber.setNextValue(nodes.size());
         if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
           put(pOut, 3, dependenceGraphConstructionTimer);
+          put(pOut, 4, flowDependenceTimer);
+          put(pOut, 4, controlDependenceTimer);
           put(pOut, 4, nodeNumber);
           put(pOut, 4, flowDependenceNumber);
           put(pOut, 4, controlDependenceNumber);
