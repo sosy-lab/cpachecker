@@ -373,10 +373,16 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       if (assignment instanceof CFunctionCallAssignmentStatement) {
         // we don't consider summary edges, so if we encounter a function call assignment edge,
         // this means that the called function is not defined
-        return handleAssignment(pState, assignment.getLeftHandSide(), LocationSetTop.INSTANCE);
-      }
+        if (assignment.getRightHandSide().getExpressionType() instanceof CPointerType) {
+          return handleAssignment(pState, assignment.getLeftHandSide(), LocationSetTop.INSTANCE);
+        } else {
+          return pState;
+        }
 
-      return handleAssignment(pState, assignment.getLeftHandSide(), assignment.getRightHandSide());
+      } else {
+        return handleAssignment(
+            pState, assignment.getLeftHandSide(), assignment.getRightHandSide());
+      }
     }
     return pState;
   }
