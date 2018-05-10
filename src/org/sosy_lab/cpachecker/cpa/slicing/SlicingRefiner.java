@@ -116,6 +116,18 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   )
   private boolean takeIncrementalSlice = true;
 
+  @Option(secure = true, description = "What kind of restart to do after a successful refinement")
+  private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
+
+  private enum RestartStrategy {
+    /**
+     * Restart at the pivot element, i.e., the first abstract state for which the precision changes.
+     */
+    PIVOT,
+    /** Restart at the root, i.e., the initial abstract state. * */
+    ROOT
+  }
+
   private final PathExtractor pathExtractor;
   private final ARGCPA argCpa;
   private final DependenceGraph depGraph;
@@ -312,14 +324,11 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    *     valid for refinement
    */
   @CanIgnoreReturnValue
-  Set<ARGState> updatePrecision(final ReachedSet pReached)
+  Pair<Set<ARGState>, SlicingPrecision> computeNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     Pair<Set<ARGState>, SlicingPrecision> refinementRootsAndPrecision = getNewPrecision(pReached);
-    Precision newPrec = refinementRootsAndPrecision.getSecond();
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    argReached.updatePrecisionGlobally(newPrec, Predicates.instanceOf(SlicingPrecision.class));
     refinementCount++;
-    return refinementRootsAndPrecision.getFirst();
+    return refinementRootsAndPrecision;
   }
 
   private Pair<Set<ARGState>, SlicingPrecision> getNewPrecision(final ReachedSet pReached)
@@ -379,10 +388,11 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    Set<ARGState> refinementRoots = updatePrecision(pReached);
-    for (ARGState r : refinementRoots) {
+    Pair<Set<ARGState>, SlicingPrecision> refRootsAndPrecision = computeNewPrecision(pReached);
+    for (ARGState r : refRootsAndPrecision.getFirst()) {
       if (!r.isDestroyed()) {
-        argReached.removeSubtree(r);
+        argReached.removeSubtree(
+            r, refRootsAndPrecision.getSecond(), Predicates.instanceOf(SlicingPrecision.class));
       }
     }
   }
@@ -404,14 +414,22 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   private ARGState getRefinementRoot(final ARGPath pPath, final Collection<CFAEdge> relevantEdges) {
-    PathIterator iterator = pPath.fullPathIterator();
-    while (iterator.hasNext()) {
-      if (relevantEdges.contains(iterator.getOutgoingEdge())) {
-        return iterator.getNextAbstractState();
-      }
-      iterator.advance();
+    switch (restartStrategy) {
+      case PIVOT:
+        PathIterator iterator = pPath.fullPathIterator();
+        while (iterator.hasNext()) {
+          if (relevantEdges.contains(iterator.getOutgoingEdge())) {
+            return iterator.getNextAbstractState();
+          }
+          iterator.advance();
+        }
+        throw new AssertionError("Infeasible target path has empty program slice");
+      case ROOT:
+        // use first state after ARG root as refinement root
+        return pPath.asStatesList().get(1);
+      default:
+        throw new AssertionError("Unhandled restart strategy: " + restartStrategy);
     }
-    throw new AssertionError("Infeasible target path has empty program slice");
   }
 
   private static SlicingPrecision extractSlicingPrecision(

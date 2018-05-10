@@ -2279,6 +2279,10 @@ cpa.slicing.preRunSyntacticWeakening = true
 # (in general), so you have to turn it off.
 cpa.slicing.refinement.counterexampleCheckOnSlice = false
 
+# What kind of restart to do after a successful refinement
+cpa.slicing.refinement.restartStrategy = PIVOT
+  enum:     [PIVOT, ROOT]
+
 # Use all assumptions of a target path as counterexamples, not just the edge
 # to the target location. Always set this to `true` if you use
 # SlicingDelegatingRefiner.

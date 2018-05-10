@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.slicing;
 
+import com.google.common.base.Predicates;
 import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,9 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Refiner for {@link SlicingCPA} that works in tandem with another precision refinement procedure.
@@ -50,6 +56,7 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
 
   private final Refiner delegate;
   private final SlicingRefiner slicingRefiner;
+  private final ARGCPA argCpa;
 
   @Options(prefix = "SlicingDelegatingRefiner")
   private static class SlicingDelegatingRefinerOptions {
@@ -81,13 +88,16 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
     Refiner delegate = options.delegate.create(pCpa);
     SlicingRefiner slicingRefiner = SlicingRefiner.create(pCpa);
 
-    return new SlicingDelegatingRefiner(delegate, slicingRefiner);
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingDelegatingRefiner.class);
+
+    return new SlicingDelegatingRefiner(delegate, slicingRefiner, argCpa);
   }
 
   private SlicingDelegatingRefiner(
-      final Refiner pDelegateRefiner, final SlicingRefiner pSlicingRefiner) {
+      final Refiner pDelegateRefiner, final SlicingRefiner pSlicingRefiner, final ARGCPA pArgCpa) {
     delegate = pDelegateRefiner;
     slicingRefiner = pSlicingRefiner;
+    argCpa = pArgCpa;
   }
 
   @Override
@@ -98,9 +108,12 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
     // -- this is, except for predicate analysis, equal to or lower in the ARG than the
     // refinement roots of slicing.
     // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
-    slicingRefiner.updatePrecision(pReached);
+    Pair<Set<ARGState>, SlicingPrecision> refRootsAndPrec =
+        slicingRefiner.computeNewPrecision(pReached);
     boolean refinementResult = delegate.performRefinement(pReached);
-
+    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
+    argReached.updatePrecisionGlobally(
+        refRootsAndPrec.getSecond(), Predicates.instanceOf(SlicingPrecision.class));
     // Update counterexamples to be imprecise, because the program slice
     // may not reflect the real program semantics, but reflects the real program
     // syntax
