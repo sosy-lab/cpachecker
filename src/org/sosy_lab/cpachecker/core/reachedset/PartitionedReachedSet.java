@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -56,6 +57,7 @@ public class PartitionedReachedSet extends DefaultReachedSet {
 
   private static final long serialVersionUID = 1L;
 
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<Object, AbstractState> partitionedReached = LinkedHashMultimap.create(100, 1);
 
   public PartitionedReachedSet(WaitlistFactory waitlistFactory) {

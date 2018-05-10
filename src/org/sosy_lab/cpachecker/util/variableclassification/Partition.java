@@ -57,6 +57,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   private final SortedSet<String> vars = new TreeSet<>();
   private final SortedSet<BigInteger> values = new TreeSet<>();
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
