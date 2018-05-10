@@ -106,8 +106,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
