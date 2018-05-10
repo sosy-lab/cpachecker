@@ -580,6 +580,7 @@ class FlowDependenceTransferRelation
         return null;
 
       } else {
+        // FIXME: Change to immutable sets for performance
         Set<MemoryLocation> combined = new HashSet<>(pLhs);
         combined.addAll(pRhs);
         return combined;
@@ -622,7 +623,7 @@ class FlowDependenceTransferRelation
     public Set<MemoryLocation> visit(CFunctionCallStatement pStmt) throws CPATransferException {
       Set<MemoryLocation> paramDecls = new HashSet<>();
      for (CExpression p : pStmt.getFunctionCallExpression().getParameterExpressions()) {
-       paramDecls.addAll(p.accept(this));
+       paramDecls = combine(paramDecls, p.accept(this));
      }
      return paramDecls;
     }
@@ -696,17 +697,16 @@ class FlowDependenceTransferRelation
         throws CPATransferException {
       Set<MemoryLocation> uses = new HashSet<>();
       for (CInitializer i : pInitializerList.getInitializers()) {
-        uses.addAll(i.accept(this));
+        uses = combine(uses, i.accept(this));
       }
       return uses;
     }
 
     @Override
     public Set<MemoryLocation> visit(CDesignatedInitializer pExp) throws CPATransferException {
-      Set<MemoryLocation> used = new HashSet<>();
-      used.addAll(pExp.getRightHandSide().accept(this));
+      Set<MemoryLocation> used = pExp.getRightHandSide().accept(this);
       for (CDesignator d : pExp.getDesignators()) {
-        used.addAll(d.accept(this));
+        used = combine(used, d.accept(this));
       }
 
       return used;
@@ -714,10 +714,9 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CFunctionCallExpression pExp) throws CPATransferException {
-      Set<MemoryLocation> uses = new HashSet<>();
-      uses.addAll(pExp.getFunctionNameExpression().accept(this));
+      Set<MemoryLocation> uses = pExp.getFunctionNameExpression().accept(this);
       for (CExpression p : pExp.getParameterExpressions()) {
-        uses.addAll(p.accept(this));
+        uses = combine(uses, p.accept(this));
       }
       return uses;
     }
