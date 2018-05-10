@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -275,7 +276,8 @@ class FlowDependenceTransferRelation
     Set<MemoryLocation> decls;
     UsesCollector collector = new UsesCollector(pPointerState, varClassification);
     if (pLeftHandSide instanceof CPointerExpression) {
-      return ReachingDefUtils.possiblePointees(pLeftHandSide, pPointerState);
+      return getPossibePointees(
+          (CPointerExpression) pLeftHandSide, pPointerState, varClassification);
 
     } else if (pLeftHandSide instanceof CArraySubscriptExpression) {
       decls = ((CArraySubscriptExpression) pLeftHandSide).getArrayExpression().accept(collector);
@@ -283,6 +285,28 @@ class FlowDependenceTransferRelation
       decls = pLeftHandSide.accept(collector);
     }
     return decls;
+  }
+
+  private static @Nullable Set<MemoryLocation> getPossibePointees(
+      CPointerExpression pExp,
+      PointerState pPointerState,
+      Optional<VariableClassification> pVarClassification) {
+    Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pPointerState);
+    if (pointees == null) {
+      pointees = new HashSet<>();
+      if (pVarClassification.isPresent()) {
+        Set<String> addressedVars = pVarClassification.get().getAddressedVariables();
+        for (String v : addressedVars) {
+          MemoryLocation m = MemoryLocation.valueOf(v);
+          pointees.add(m);
+        }
+      } else {
+        // if pointees are unknown and we can't derive them through the variable classification,
+        // any variable could be used.
+        return null;
+      }
+    }
+    return pointees;
   }
 
   protected FlowDependenceState handleAssumption(
@@ -672,21 +696,7 @@ class FlowDependenceTransferRelation
     @Override
     public Set<MemoryLocation> visit(CPointerExpression pExp) throws CPATransferException {
       Set<MemoryLocation> uses = pExp.getOperand().accept(this);
-      Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pointerState);
-      if (pointees == null) {
-        pointees = new HashSet<>();
-        if (varClassification.isPresent()) {
-          Set<String> addressedVars = varClassification.get().getAddressedVariables();
-          for (String v : addressedVars) {
-            MemoryLocation m = MemoryLocation.valueOf(v);
-            pointees.add(m);
-          }
-        } else {
-          // if pointees are unknown and we can't derive them through the variable classification,
-          // any variable could be used.
-          return null;
-        }
-      }
+      Set<MemoryLocation> pointees = getPossibePointees(pExp, pointerState, varClassification);
       return combine(uses, pointees);
     }
 
