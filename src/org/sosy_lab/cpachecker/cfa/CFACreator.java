@@ -541,8 +541,15 @@ private boolean classifyNodes = false;
 
     Optional<DependenceGraph> depGraph;
     if (createDependenceGraph) {
+      if (!varClassification.isPresent()) {
+        logger.log(
+            Level.WARNING,
+            "Variable Classification not present. Consider turning this on "
+                + "to improve dependence graph construction.");
+      }
       try {
-        DGBuilder depGraphBuilder = DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
+        DGBuilder depGraphBuilder =
+            DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
         depGraphBuilder.collectStatistics(stats.statisticsCollection);
       } catch (CPAException pE) {

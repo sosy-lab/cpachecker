@@ -40,9 +40,10 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Dependence graph that describes flow dependence and control dependence between expressions and
@@ -82,12 +83,13 @@ public class DependenceGraph implements Serializable {
   }
 
   public static DGBuilder builder(
-      final CFA pCfa,
+      final MutableCFA pCfa,
+      final Optional<VariableClassification> pVarClassification,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new DGBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
+    return new DGBuilder(pCfa, pVarClassification, pConfig, pLogger, pShutdownNotifier);
   }
 
   public boolean contains(final CFAEdge pNode, final Optional<MemoryLocation> pCause) {

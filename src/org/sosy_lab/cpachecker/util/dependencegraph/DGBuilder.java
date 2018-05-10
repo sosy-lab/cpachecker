@@ -61,6 +61,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -98,12 +99,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependenceGraph")
 public class DGBuilder implements StatisticsProvider {
 
-  private final CFA cfa;
+  private final MutableCFA cfa;
+  private final Optional<VariableClassification> varClassification;
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -126,7 +129,8 @@ public class DGBuilder implements StatisticsProvider {
   private Path exportDot = Paths.get("DependenceGraph.dot");
 
   public DGBuilder(
-      final CFA pCfa,
+      final MutableCFA pCfa,
+      final Optional<VariableClassification> pVarClassification,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
@@ -136,6 +140,7 @@ public class DGBuilder implements StatisticsProvider {
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    varClassification = pVarClassification;
   }
 
   public DependenceGraph build()
@@ -273,7 +278,8 @@ public class DGBuilder implements StatisticsProvider {
 
   private void addFlowDependences()
       throws InvalidConfigurationException, InterruptedException, CPAException {
-    FlowDependences flowDependences = FlowDependences.create(cfa, config, logger, shutdownNotifier);
+    FlowDependences flowDependences =
+        FlowDependences.create(cfa, varClassification, config, logger, shutdownNotifier);
 
     for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, CFAEdge>> c :
         flowDependences.cellSet()) {
@@ -411,6 +417,21 @@ public class DGBuilder implements StatisticsProvider {
     }
 
     public static FlowDependences create(
+        final MutableCFA pCfa,
+        final Optional<VariableClassification> pVariableClassification,
+        final Configuration pConfig,
+        final LogManager pLogger,
+        final ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException, CPAException, InterruptedException {
+      CFA cfa = pCfa;
+      if (pVariableClassification.isPresent()) {
+        cfa = pCfa.makeImmutableCFA(pVariableClassification, Optional.empty());
+      }
+
+      return createDependences(cfa, pConfig, pLogger, pShutdownNotifier);
+    }
+
+    private static FlowDependences createDependences(
         final CFA pCfa,
         final Configuration pConfig,
         final LogManager pLogger,

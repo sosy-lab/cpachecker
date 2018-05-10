@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Transfer relation of {@link FlowDependenceCPA}.
@@ -114,11 +115,16 @@ class FlowDependenceTransferRelation
     extends SingleEdgeTransferRelation {
 
   private final TransferRelation delegate;
+  private final Optional<VariableClassification> varClassification;
 
   private final LogManagerWithoutDuplicates logger;
 
-  FlowDependenceTransferRelation(final TransferRelation pDelegate, final LogManager pLogger) {
+  FlowDependenceTransferRelation(
+      final TransferRelation pDelegate,
+      final Optional<VariableClassification> pVarClassification,
+      final LogManager pLogger) {
     delegate = pDelegate;
+    varClassification = pVarClassification;
 
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
@@ -223,7 +229,7 @@ class FlowDependenceTransferRelation
 
   private Set<MemoryLocation> getUsedVars(CAstNode pExpression, PointerState pPointerState)
       throws CPATransferException {
-    UsesCollector usesCollector = new UsesCollector(pPointerState, logger);
+    UsesCollector usesCollector = new UsesCollector(pPointerState, logger, varClassification);
     return pExpression.accept(usesCollector);
   }
 
@@ -260,7 +266,7 @@ class FlowDependenceTransferRelation
   private Set<MemoryLocation> getDef(CLeftHandSide pLeftHandSide, PointerState pPointerState)
       throws CPATransferException {
     Set<MemoryLocation> decls;
-    UsesCollector collector = new UsesCollector(pPointerState, logger);
+    UsesCollector collector = new UsesCollector(pPointerState, logger, varClassification);
     if (pLeftHandSide instanceof CPointerExpression) {
       return ReachingDefUtils.possiblePointees(pLeftHandSide, pPointerState);
 
@@ -551,10 +557,14 @@ class FlowDependenceTransferRelation
     private final PointerState pointerState;
     private final LogManagerWithoutDuplicates logger;
 
+    private final Optional<VariableClassification> varClassification;
+
     public UsesCollector(
-        final PointerState pPointerState, final LogManagerWithoutDuplicates pLogger) {
+        final PointerState pPointerState, final LogManagerWithoutDuplicates pLogger, final
+    Optional<VariableClassification> pVarClassification) {
       pointerState = pPointerState;
       logger = pLogger;
+      varClassification = pVarClassification;
     }
 
     private Set<MemoryLocation> combine(
