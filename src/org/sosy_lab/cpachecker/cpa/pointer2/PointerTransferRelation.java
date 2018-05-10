@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -78,9 +80,12 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -136,7 +141,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
       break;
     case FunctionReturnEdge:
-      break;
+        resultState = handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
+        break;
     case ReturnStatementEdge:
       resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
       break;
@@ -147,6 +153,27 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       throw new UnrecognizedCCodeException("Unrecognized CFA edge.", pCfaEdge);
     }
     return resultState;
+  }
+
+  private PointerState handleFunctionReturnEdge(PointerState pState, CFunctionReturnEdge pCfaEdge)
+      throws UnrecognizedCCodeException {
+    CFunctionSummaryEdge summaryEdge = pCfaEdge.getSummaryEdge();
+    CFunctionCall callEdge = summaryEdge.getExpression();
+
+    if (callEdge instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement callAssignment = (CFunctionCallAssignmentStatement) callEdge;
+      Optional<MemoryLocation> returnVar =
+          getFunctionReturnVariable(summaryEdge.getFunctionEntry());
+
+      assert returnVar.isPresent()
+          : "Return edge with assignment, but no return variable: " + summaryEdge;
+
+      LocationSet pointedTo = pState.getPointsToSet(returnVar.get());
+
+      return handleAssignment(pState, callAssignment.getLeftHandSide(), pointedTo);
+    } else {
+      return null; // represents that state didn't change
+    }
   }
 
   private PointerState handleAssumeEdge(PointerState pState, AssumeEdge pAssumeEdge)
@@ -263,14 +290,22 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!pCfaEdge.getExpression().isPresent()) {
       return pState;
     }
-    com.google.common.base.Optional<? extends AVariableDeclaration> returnVariable =
-        pCfaEdge.getSuccessor().getEntryNode().getReturnVariable();
+    Optional<MemoryLocation> returnVariable =
+        getFunctionReturnVariable(pCfaEdge.getSuccessor().getEntryNode());
     if (!returnVariable.isPresent()) {
       return pState;
     }
-    return handleAssignment(pState,
-        MemoryLocation.valueOf(returnVariable.get().getQualifiedName()),
-        pCfaEdge.getExpression().get());
+    return handleAssignment(pState, returnVariable.get(), pCfaEdge.getExpression().get());
+  }
+
+  private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {
+    com.google.common.base.Optional<? extends AVariableDeclaration> returnVariable =
+        pFunctionEntryNode.getReturnVariable();
+    if (!returnVariable.isPresent()) {
+      return Optional.empty();
+    } else {
+      return Optional.of(MemoryLocation.valueOf(returnVariable.get().getQualifiedName()));
+    }
   }
 
   private PointerState handleFunctionCallEdge(PointerState pState, CFunctionCallEdge pCFunctionCallEdge) throws UnrecognizedCCodeException {
