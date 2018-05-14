@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -41,11 +43,18 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerSynchronized;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options(prefix = "cpa.bam")
 public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMCPAWithBreakOnMissingBlock.class);
   }
+
+  @Option(
+    secure = true,
+    description = "abort current analysis when finding a missing block abstraction"
+  )
+  private boolean breakForMissingBlock = true;
 
   private final BAMCache cache;
   private final BAMDataManager data;
@@ -60,6 +69,7 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       CFA pCfa)
       throws InvalidConfigurationException, CPAException {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    pConfig.inject(this);
 
     cache = new BAMCacheSynchronized(pConfig, getReducer(), pLogger);
     data = new BAMDataManagerSynchronized(cache, reachedsetFactory, pLogger);
@@ -73,7 +83,11 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
     return new BAMPrecisionAdjustmentWithBreakOnMissingBlock(
-        getWrappedCpa().getPrecisionAdjustment(), data, logger, blockPartitioning);
+        getWrappedCpa().getPrecisionAdjustment(),
+        data,
+        logger,
+        blockPartitioning,
+        breakForMissingBlock);
   }
 
   @Override
@@ -88,5 +102,9 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
   @Override
   public BAMDataManager getData() {
     return data;
+  }
+
+  public boolean doesBreakForMissingBlock() {
+    return breakForMissingBlock;
   }
 }
