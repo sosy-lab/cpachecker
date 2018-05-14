@@ -326,6 +326,10 @@ public class AutomatonGraphmlCommon {
     public String toString() {
       return text;
     }
+
+    public static GraphMLTag parse(String pElementType) {
+      return GraphMLTag.valueOf(pElementType.toUpperCase());
+    }
   }
 
   public static String computeHash(Path pPath) throws IOException {
@@ -514,6 +518,9 @@ public class AutomatonGraphmlCommon {
       }
     }
 
+    public Element getGraph() {
+      return graph;
+    }
   }
 
   public static boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo
