@@ -482,6 +482,18 @@ text {
 	fill: #fff;
 }
 
+.witness-edge.true-edge path {
+	stroke: #00ff00 !important;
+}
+
+.witness-edge.false-edge path {
+	stroke: #ff0000 !important;
+}
+
+.arrowloophead {
+	fill: black !important;
+}
+
 .cfa-node rect {
 	stroke: #999;
 	fill: #fff;

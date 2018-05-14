@@ -32,7 +32,12 @@
 	            "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
 	            "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
 	            "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p>";
+	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p>" +
+	            "<p><b>Witness</b> Shows an automaton that acts as witness for the verification result. In case of a correctness proof, its nodes contain the invariants that were important for proving the specified properties</p>" +
+	            "<p><span style=\"background-color:cornflowerblue;\">&#9645;</span> state containing an invariant</p>" +
+				"<p><span style=\"color:green;\">&#8702;</span> edge of a branching that is taken if the condition evaluates to true</p>" +
+				"<p><span style=\"color:red;\">&#8702;</span> edge of a branching that is taken if the condition evaluates to false</p>" +
+				"<p><span>&#129058;</span> arrow with filled head represents an edge that enters a loop head</p>";
 		        $scope.help_errorpath = "<p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>\n" +
 	            "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>\n" +
 	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>\n" +
@@ -848,7 +853,8 @@ function init() {
 		$("#witness-modal").text("0/" + witnessTotalGraphCount);
 	} else { // No ARG data -> happens if the AbstractStates are not ARGStates
 		$("#witness-modal").text("0/0");
-		$("#set-tab-7").parent().addClass("disabled");
+		$("#witness-modal").parent().addClass("hidden");
+		$("#set-tab-7").parent().addClass("hidden");
 		witnessTabDisabled = true;
 	}
 	var cfaTotalGraphCount = 0;
@@ -1749,9 +1755,13 @@ function init() {
     	// Set nodes for the graph contained in the json nodes
     	function setGraphNodes(graph, nodesToSet) {
     		nodesToSet.forEach(function(n) {
+    			var cls = "";
+    			if (n.invariant) {
+    				cls = "highlighted"
+    			}
     			graph.setNode(n.id, {
-    				label : n.id + (n.invariant||""),
-    				class : "witness-node " + "",
+    				label : n.id,
+    				class : "witness-node " + cls,
     				id : nodeIdDecider(n)
     			});
     		});
@@ -1759,21 +1769,32 @@ function init() {
 
         function nodeIdDecider(node) {
             if (errorGraphMap === undefined)
-                return "witness-node" + node.index;
+                return "witness-node" + node.id;
             else
-                return "witness-error-node" + node.index;
+                return "witness-error-node" + node.id;
         }
     	
     	// Set the graph edges
     	function setGraphEdges(graph, edgesToSet, multigraph) {
         	edgesToSet.forEach(function(e) {
         		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
+        			var l;
+        			if (e.startline != undefined && e.endline != undefined) {
+        			    if (e.startline == e.endline) {
+        			      l = "L:" + e.startline;
+        			    } else {
+        			      l = "L:" + e.startline+"-"+e.endline;
+        			    }
+        			} else {
+        				l="L:?";
+        			}
             		graph.setEdge(e.source, e.target, {
-            			label: e.control,
+            			label: l,
             			lineInterpolate: "basis",
             			class: edgeClassDecider(e),
             			id: "witness-edge"+ e.source + e.target,
-            			weight: edgeWeightDecider(e)
+            			weight: edgeWeightDecider(e),
+            			arrowheadClass: arrowClassDecider(e)
             		});
         		}
         	});
@@ -1781,16 +1802,31 @@ function init() {
     	
     	// Set class for passed edge
     	function edgeClassDecider(edge) {
+    		cls = "witness-edge";
     		if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
-                return "witness-edge error-edge";
-    		} else {
-                return "witness-edge";
+                cls += " error-edge";
     		}
+    		if (edge.control) {
+    			if (edge.control=="condition-true") {
+    				cls += " true-edge";
+    			} else if (edge.control == "condition-false") {
+    				cls += " false-edge";
+    			}
+    		}
+    		return cls;
     	}
     	
     	// Decide the weight for the edges based on type
     	function edgeWeightDecider(edge) {
     		return 1;
+    	}
+
+    	function arrowClassDecider(edge) {
+    		if (edge.enterLoopHead) {
+    			return "arrowloophead";
+    		} else {
+    			return "arrowhead";
+    	    }
     	}
     	
     }
@@ -2197,13 +2233,13 @@ function init() {
 		d3.selectAll(".witness-node")
 		.on("mouseover", function(d) {
 			var node = witnessJson.nodes.find(function(it) {
-				return it.index === parseInt(d);
+				return it.id === d;
 			})
-			var message = "function: " + node.func + "<br>";
-			if (node.type) {
-				message += "type: " + node.type + "<br>";
-			}
-			message += "dblclick: jump to CFA node";
+			var message = "";
+			Object.keys(node).forEach(function(key,index) {
+				message += key+": "+node[key]+"<br>";
+			});
+			//message += "dblclick: jump to CFA node";
 			showToolTipBox(d3.event, message);
 		}).on("mouseout", function() {
 			hideToolTipBox();
@@ -2235,14 +2271,18 @@ function init() {
 				var boundingRect = selection.node().getBoundingClientRect();
 				$("#witness-container").scrollTop(boundingRect.top + $("#witness-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#witness-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
-		d3.selectAll(".witness-edge")
+		d3.selectAll(".witness-edge,.witness-svg .edgeLabel")
 			.on("mouseover", function(d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
 				var edge = witnessJson.edges.find(function(it) {
-					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
+					return it.source == d.v && it.target == d.w;
 				})
+				var message = "";
+			    Object.keys(edge).forEach(function(key,index) {
+				    message += key+": "+edge[key]+"<br>";
+			    });
 				if (edge) {
-					showToolTipBox(d3.event, "type: " + edge.type);
+					showToolTipBox(d3.event, message);
 				} else {
 					showToolTipBox(d3.event, "type: graph connecting edge")
 				}
