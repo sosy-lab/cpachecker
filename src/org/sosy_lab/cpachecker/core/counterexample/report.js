@@ -2289,6 +2289,15 @@ function init() {
 			}).on("mouseout", function() {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
+			}).on("dblclick", function(d) {
+				$("#set-tab-3").click();
+				var line = witnessJson.edges.find(function(e) {return e.source==d.v&& e.target==d.w}).startline;
+				if (!d3.select(".marked-source-line").empty()) {
+					d3.select(".marked-source-line").classed("marked-source-line", false);
+				}
+				var selection = d3.select("#source-" + line + " td pre.prettyprint");
+				selection.classed("marked-source-line", true);
+				$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
 			});
 		d3.selectAll(".witness-split-edge")
 			.on("mouseover", function(d) {
