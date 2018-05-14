@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html ng-app='report'>
 <head>
 <meta charset="UTF-8">
@@ -41,6 +41,8 @@
           			<p class="loader">Rendered CFA graphs &nbsp; <span id="cfa-modal"></span></p>
           			<p class="loader">Rendered ARG graphs &nbsp; <span id="arg-modal"></span></p>
           			<p id="arg-modal-error" class="loader" style="display: none;"> Render ARG Error Graph </p>
+          			<p class="loader">Rendered witness graphs &nbsp; <span id="witness-modal"></span></p>
+          			<p id="witness-modal-error" class="loader" style="display: none;"> Render Witness Error Graph </p>
         		</div>
       		</div>
     	</div>
@@ -104,6 +106,10 @@
         <li ng-class="{active: tabIsSet(2)}">
           <a href ng-click="setTab(2)" id="set-tab-2">ARG</a>
         </li>
+        <li ng-class="{active: tabIsSet(7)}">
+          <a href ng-click="setTab(7)" id="set-tab-7">Witness</a>
+        </li>
+
         <li ng-class="{active: tabIsSet(3)}">
           <a href ng-click="setTab(3)" id="set-tab-3">Source</a>
         </li>
@@ -164,6 +170,27 @@
     
     <div id="arg-container" ng-class="{active: tabIsSet(2)}">
     </div>
+
+    <div id="witness-toolbar" ng-controller="WitnessToolbarController">
+        <label>Displayed Witness</label>
+        <select class="btn btn-default selectpicker"
+                ng-options="s as s for s in witnessSelections" ng-model="$root.displayedWitness" ng-change="displayWitness()"></select>
+        <label>Mouse Wheel Zoom</label>
+                <span class="button-checkbox">
+                        <button class="btn btn-default" id="witness-zoom-button" type="button" data-color="primary"
+                                ng-click="witnessZoomControl()">
+                                <i class="glyphicon glyphicon-unchecked"></i></button>
+                </span>
+                <label>Split Threshold</label>
+        <input type="text" id="witness-split-threshold">
+        <button class="btn btn-default" type="button" ng-click="witnessRedraw()">
+                <i class="glyphicon glyphicon-refresh"></i>
+        </button>
+    </div>
+
+    <div id="witness-container" ng-class="{active:tabIsSet(7)}">
+    </div>
+
     <div class="fileContent content" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
          ng-controller="SourceController">
       <div class="edit-line">

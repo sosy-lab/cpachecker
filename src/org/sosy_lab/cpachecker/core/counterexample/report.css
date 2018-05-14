@@ -180,6 +180,16 @@ body {
 	stroke-width: 3px !important;
 }
 
+.marked-witness-edge path {
+	stroke: #8B008B !important;
+	stroke-width: 3px !important;
+}
+
+.marked-witness-edge path {
+	stroke: #8B008B !important;
+	stroke-width: 3px !important;
+}
+
 .marked-cfa-node > rect {
 	outline: #8B008B solid thick !important;
 }
@@ -199,6 +209,10 @@ body {
 }
 
 .marked-arg-node > rect {
+	outline: #8B008B solid thick !important;
+}
+
+.marked-witness-node > rect {
 	outline: #8B008B solid thick !important;
 }
 
@@ -251,6 +265,15 @@ body {
 	bottom: 5px;
 	left: 5px;
 	right: 5px;	
+}
+
+#externalFiles_section div.witness-content {
+	overflow: scroll;
+	position: absolute;
+	top: 100px;
+	bottom: 5px;
+	left: 5px;
+	right: 5px;
 }
 
 table {
@@ -320,6 +343,10 @@ div pre {
 	visibility: hidden;
 }
 
+.witness-graph {
+	visibility: hidden;
+}
+
 .loader {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
 	font-size: 20px;
@@ -378,6 +405,27 @@ input[type=text] {
 	font-size: 11px;
 }
 
+#witness-toolbar {
+    width: 95%;
+    background-color: white;
+    left: 20px;
+    top: 60px;
+    padding: 5px;
+    position: absolute;
+    display: inline-block;
+	visibility: hidden;
+}
+
+#witness-toolbar label {
+	margin-left: 20px;
+	margin-right: 5px;
+}
+
+#witness-toolbar text {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 11px;
+}
+
 text {
 	font-weight: bold;
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
@@ -409,6 +457,31 @@ text {
 	fill: #fff;
 }
 
+.witness-node.target > rect {
+	fill: red;
+}
+
+.witness-node.not-expanded > rect {
+	fill: orange;
+}
+
+.witness-node.highlighted > rect {
+	fill: cornflowerblue;
+}
+
+.witness-node.covered > rect {
+	fill: green;
+}
+
+.witness-node text {
+	text-anchor: middle;
+	font-family: "Times New Roman", serif;
+}
+
+.witness-node rect {
+	fill: #fff;
+}
+
 .cfa-node rect {
 	stroke: #999;
 	fill: #fff;
@@ -434,6 +507,12 @@ text {
 }
 
 .arg-dummy rect {
+	fill: #fff;
+	stroke: #c0c0c0;
+	stroke-width: 0.5px;
+}
+
+.witness-dummy rect {
 	fill: #fff;
 	stroke: #c0c0c0;
 	stroke-width: 0.5px;

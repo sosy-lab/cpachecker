@@ -237,6 +237,8 @@ public class ReportGenerator {
           insertCfaJson(writer, cfa, dotBuilder, counterExample);
         } else if (line.contains("ARG_JSON_INPUT")) {
           insertArgJson(writer);
+        } else if (line.contains("WITNESS_JSON_INPUT")) {
+          insertWitnessJson(writer);
         } else if (line.contains("SOURCE_FILES")) {
           insertSourceFileNames(writer);
         } else {
@@ -273,6 +275,22 @@ public class ReportGenerator {
   private void insertArgJson(Writer writer) {
     try {
       writer.write("var argJson = {");
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        writer.write("\n\"nodes\":");
+        JSON.writeJSONString(argNodes.values(), writer);
+        writer.write(",\n\"edges\":");
+        JSON.writeJSONString(argEdges.values(), writer);
+        writer.write("\n");
+      }
+      writer.write("}\n");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+    }
+  }
+
+  private void insertWitnessJson(Writer writer) {
+    try {
+      writer.write("var witnessJson = {");
       if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
         writer.write("\n\"nodes\":");
         JSON.writeJSONString(argNodes.values(), writer);
