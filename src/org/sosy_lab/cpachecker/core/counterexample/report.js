@@ -1749,12 +1749,9 @@ function init() {
     	// Set nodes for the graph contained in the json nodes
     	function setGraphNodes(graph, nodesToSet) {
     		nodesToSet.forEach(function(n) {
-    			if (n.type === "target" && errorPath !== undefined && !errorPath.includes(n.index)) {
-    				errorPath.push(n.index);
-    			}
-    			graph.setNode(n.index, {
-    				label : n.label,
-    				class : "witness-node " + n.type,
+    			graph.setNode(n.id, {
+    				label : n.id + (n.invariant||""),
+    				class : "witness-node " + "",
     				id : nodeIdDecider(n)
     			});
     		});
@@ -1772,7 +1769,7 @@ function init() {
         	edgesToSet.forEach(function(e) {
         		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
             		graph.setEdge(e.source, e.target, {
-            			label: e.label,
+            			label: e.control,
             			lineInterpolate: "basis",
             			class: edgeClassDecider(e),
             			id: "witness-edge"+ e.source + e.target,
@@ -1793,7 +1790,6 @@ function init() {
     	
     	// Decide the weight for the edges based on type
     	function edgeWeightDecider(edge) {
-    		if (edge.type === "covered") return 0;
     		return 1;
     	}
     	

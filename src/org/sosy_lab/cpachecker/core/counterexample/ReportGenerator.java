@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -48,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -72,9 +74,19 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 @Options
 public class ReportGenerator {
@@ -113,6 +125,8 @@ public class ReportGenerator {
   private final ImmutableList<String> sourceFiles;
   private final Map<Integer, Object> argNodes;
   private final Map<String, Object> argEdges;
+  private final Map<Integer, Object> witnessNodes;
+  private final Map<String, Object> witnessEdges;
 
   public ReportGenerator(
       Configuration pConfig,
@@ -127,12 +141,16 @@ public class ReportGenerator {
     sourceFiles = pSourceFiles;
     argNodes = new HashMap<>();
     argEdges = new HashMap<>();
+    witnessNodes = new HashMap<>();
+    witnessEdges = new HashMap<>();
   }
 
-  public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+  public void generate(
+      CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics, Specification pSpecification) {
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
+    checkNotNull(pSpecification);
 
     if (!generateReport || (reportFile == null && counterExampleFiles == null)) {
       return;
@@ -150,6 +168,8 @@ public class ReportGenerator {
     }
 
     buildArgGraphData(pReached);
+    buildWitnessGraphData(pCfa, pReached, pStatistics, pSpecification);
+
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
@@ -291,16 +311,17 @@ public class ReportGenerator {
   private void insertWitnessJson(Writer writer) {
     try {
       writer.write("var witnessJson = {");
-      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+      if (!witnessNodes.isEmpty() && !witnessEdges.isEmpty()) {
         writer.write("\n\"nodes\":");
-        JSON.writeJSONString(argNodes.values(), writer);
+        JSON.writeJSONString(witnessNodes.values(), writer);
         writer.write(",\n\"edges\":");
-        JSON.writeJSONString(argEdges.values(), writer);
+        JSON.writeJSONString(witnessEdges.values(), writer);
         writer.write("\n");
       }
       writer.write("}\n");
     } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+      logger.logUserException(
+          WARNING, e, "Could not create report: Inserting witness Json failed.");
     }
   }
 
@@ -538,6 +559,86 @@ public class ReportGenerator {
                   }
                 }
               });
+    }
+  }
+
+  private void buildWitnessGraphData(
+      CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics, Specification pSpecification) {
+
+    // Code for finding root copied from ARGStatistics::exportARG
+    // The state space might be partitioned ...
+    // ... so we would export a separate ARG for each partition ...
+    boolean partitionedArg =
+        pReached.isEmpty()
+            || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
+                != null;
+
+    final Set<ARGState> rootStates =
+        partitionedArg
+            ? ARGUtils.getRootStates(pReached)
+            : Collections.singleton(
+                AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
+    if (rootStates.size() != 1) {
+      logger.log(
+          WARNING,
+          "root state for building witness in report could not be determined!"
+              + "No witness data will be added to the html report");
+      return;
+    }
+    try {
+      final WitnessExporter witnessExporter =
+          new WitnessExporter(config, logger, pSpecification, pCfa);
+      GraphMlBuilder graphMlBuilder =
+          witnessExporter.getProofWitnessGraphMlBuilder(
+              rootStates.iterator().next(), Predicates.alwaysTrue(), Predicates.alwaysTrue());
+      Element graph = graphMlBuilder.getGraph();
+
+      NodeList children = graph.getChildNodes();
+      for (int i = 0; i < children.getLength(); i++) {
+        Node child = children.item(i);
+        Map<String, Object> map = new HashMap<>();
+        NamedNodeMap nnMap = child.getAttributes();
+        // get attributes of chid node:
+        for (int j = 0; j < nnMap.getLength(); j++) {
+          Node attr = nnMap.item(j);
+          map.put(attr.getNodeName(), attr.getNodeValue());
+
+        }
+
+        // get data entries inside the child node:
+        NodeList grandChildren = child.getChildNodes();
+        for (int j =0; j<grandChildren.getLength(); j++) {
+          Node grandChild= grandChildren.item(j);
+          NamedNodeMap grandChildAttributes =grandChild.getAttributes();
+          if (grandChildAttributes == null || grandChildAttributes.getLength() != 1) {
+            continue;
+          }
+          Node grandChildAttribute = grandChild.getAttributes().item(0);
+          map.put(grandChildAttribute.getNodeValue(), grandChild.getTextContent());
+        }
+        switch (AutomatonGraphmlCommon.GraphMLTag.parse(child.getNodeName())) {
+          case DATA:
+            break;
+          case DEFAULT:
+            break;
+          case EDGE:
+            witnessEdges.put(map.get("source") + "->" + map.get("target"), map);
+            break;
+          case GRAPH:
+            break;
+          case KEY:
+            break;
+          case NODE:
+            witnessNodes.put(Integer.valueOf(map.get("id").toString().substring(1)), map);
+            break;
+          default:
+            break;
+        }
+      }
+
+    } catch (InvalidConfigurationException | IOException e) {
+      logger.logUserException(
+          WARNING, e, "Exception occurred while generating witness data for the html report");
     }
   }
 
