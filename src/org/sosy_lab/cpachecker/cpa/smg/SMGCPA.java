@@ -281,6 +281,7 @@ public class SMGCPA
     SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
     invalidChain.addAll(state.getInvalidChain());
     String description = state.getErrorDescription();
+    boolean isMemoryLeakError = state.hasMemoryLeaks();
     SMGState prevSMGState = state;
     Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
@@ -291,11 +292,13 @@ public class SMGCPA
       SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
           CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
-      if (description != null && !description.isEmpty()) {
+      // Move memory leak on return edge
+      if (!isMemoryLeakError && description != null && !description.isEmpty()) {
         edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
         description = null;
       }
 
+      isMemoryLeakError = false;
       Set<Object> toCheck = new HashSet<>();
       for (Object elem : invalidChain) {
         if (!visitedElems.contains(elem)) {
