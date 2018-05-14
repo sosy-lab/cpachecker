@@ -168,11 +168,11 @@ public class ReportGenerator {
     }
 
     buildArgGraphData(pReached);
-    buildWitnessGraphData(pCfa, pReached, pStatistics, pSpecification);
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
+      buildProofWitnessGraphData(pCfa, pReached, pSpecification);
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
@@ -562,8 +562,8 @@ public class ReportGenerator {
     }
   }
 
-  private void buildWitnessGraphData(
-      CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics, Specification pSpecification) {
+  private void buildProofWitnessGraphData(
+      CFA pCfa, UnmodifiableReachedSet pReached, Specification pSpecification) {
 
     // Code for finding root copied from ARGStatistics::exportARG
     // The state space might be partitioned ...
