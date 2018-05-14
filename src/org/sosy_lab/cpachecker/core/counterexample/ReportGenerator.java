@@ -109,6 +109,13 @@ public class ReportGenerator {
   )
   private boolean generateReport = true;
 
+  @Option(
+    secure = true,
+    name = "report.witness",
+    description = "Add witness information to the HTML report."
+  )
+  private boolean reportWitness = false;
+
   @Option(secure = true, name = "report.file", description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Paths.get("Report.html");
@@ -172,7 +179,9 @@ public class ReportGenerator {
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
-      buildProofWitnessGraphData(pCfa, pReached, pSpecification);
+      if (reportWitness) {
+        buildProofWitnessGraphData(pCfa, pReached, pSpecification);
+      }
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");

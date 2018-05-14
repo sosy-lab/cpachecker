@@ -3316,6 +3316,9 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
+# Add witness information to the HTML report.
+report.witness = false
+
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
 
