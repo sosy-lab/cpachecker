@@ -85,8 +85,4 @@
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--rtc--rtc-v3020.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--staging--serqt_usb2--serqt_usb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout -->
   </tasks>
-  <tasks name="pointerDeref">
-      <include>../programs/simple/pointerDereference*.c</include>
-      <propertyfile>../programs/simple/ALL.prp</propertyfile>
-  </tasks>
 </benchmark>
