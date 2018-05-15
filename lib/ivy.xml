@@ -72,6 +72,10 @@
              Mocking framework for tests. -->
         <dependency org="org.mockito" name="mockito-core" rev="2.18.3" conf="test->default"/>
 
+        <!-- Antlr
+             Parser generator. -->
+        <dependency org="org.antlr" name="antlr4" rev="4.7.1" conf="runtime->default"/>
+
         <!-- Truth
              Library for writing literal assertions. -->
         <dependency org="com.google.truth" name="truth" rev="0.40" conf="test->default; contrib->sources"/>
