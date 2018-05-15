@@ -32,12 +32,7 @@
 	            "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
 	            "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
 	            "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p>" +
-	            "<p><b>Witness</b> Shows an automaton that acts as witness for the verification result. In case of a correctness proof, its nodes contain the invariants that were important for proving the specified properties</p>" +
-	            "<p><span style=\"background-color:cornflowerblue;\">&#9645;</span> state containing an invariant</p>" +
-				"<p><span style=\"color:green;\">&#8702;</span> edge of a branching that is taken if the condition evaluates to true</p>" +
-				"<p><span style=\"color:red;\">&#8702;</span> edge of a branching that is taken if the condition evaluates to false</p>" +
-				"<p><span>&#129058;</span> arrow with filled head represents an edge that enters a loop head</p>";
+	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p>";
 		        $scope.help_errorpath = "<p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>\n" +
 	            "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>\n" +
 	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>\n" +
@@ -59,14 +54,6 @@
 								d3.select("#arg-container").classed("arg-content", false);
 							}
 						}
-					    if (d3.select("#witness-toolbar").style("visibility") !== "hidden") {
-							d3.select("#witness-toolbar").style("visibility", "hidden");
-							d3.selectAll(".witness-graph").style("visibility", "hidden");
-							d3.selectAll(".witness-error-graph").style("visibility", "hidden");
-							if (d3.select("#witness-container").classed("witness-content")) {
-								d3.select("#witness-container").classed("witness-content", false);
-							}
-						}
 						d3.select("#cfa-toolbar").style("visibility", "visible");
 						if (!d3.select("#cfa-container").classed("cfa-content")) {
 							d3.select("#cfa-container").classed("cfa-content", true);
@@ -79,14 +66,6 @@
 							d3.selectAll(".cfa-graph").style("visibility", "hidden");
 							if (d3.select("#cfa-container").classed("cfa-content")) {
 								d3.select("#cfa-container").classed("cfa-content", false);
-							}
-						}
-						if (d3.select("#witness-toolbar").style("visibility") !== "hidden") {
-							d3.select("#witness-toolbar").style("visibility", "hidden");
-							d3.selectAll(".witness-graph").style("visibility", "hidden");
-							d3.selectAll(".witness-error-graph").style("visibility", "hidden");
-							if (d3.select("#witness-container").classed("witness-content")) {
-								d3.select("#witness-container").classed("witness-content", false);
 							}
 						}
 						d3.select("#arg-toolbar").style("visibility", "visible");
@@ -105,39 +84,6 @@
 								$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 500);
 							}
 						}
-                    } else if (tabIndex === 7) {
-                            if (witnessTabDisabled) return;
-                            if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
-                                    d3.select("#cfa-toolbar").style("visibility", "hidden");
-                                    d3.selectAll(".cfa-graph").style("visibility", "hidden");
-                                    if (d3.select("#cfa-container").classed("cfa-content")) {
-                                            d3.select("#cfa-container").classed("cfa-content", false);
-                                    }
-                            }
-                            if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
-                                d3.select("#arg-toolbar").style("visibility", "hidden");
-                                d3.selectAll(".arg-graph").style("visibility", "hidden");
-                                d3.selectAll(".arg-error-graph").style("visibility", "hidden");
-                                if (d3.select("#arg-container").classed("arg-content")) {
-                                    d3.select("#arg-container").classed("arg-content", false);
-                                }
-                            }
-                            d3.select("#witness-toolbar").style("visibility", "visible");
-                            if (!d3.select("#witness-container").classed("witness-content")) { 
-                                    d3.select("#witness-container").classed("witness-content", true);
-                            }
-                            if ($rootScope.displayedWitness.indexOf("error") !== -1) {
-                                    d3.selectAll(".witness-error-graph").style("visibility", "visible");
-                                    if ($("#witness-container").scrollTop() === 0) {
-                                            $("#witness-container").scrollTop(0).scrollLeft(0);
-                                    }
-                            } else {
-                                    d3.selectAll(".witness-graph").style("visibility", "visible");
-                                    if ($("#witness-container").scrollTop() === 0) {
-                                            var boundingRect = d3.select(".witness-node").node().getBoundingClientRect();
-                                            $("#witness-container").scrollTop(boundingRect.top + $("#witness-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#witness-container").scrollLeft() - 500);
-                                    }
-                            }
 					} else {
 						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
 							d3.select("#cfa-toolbar").style("visibility", "hidden");
@@ -153,15 +99,7 @@
 							if (d3.select("#arg-container").classed("arg-content")) {
 								d3.select("#arg-container").classed("arg-content", false);
 							}
-						}
-						if (d3.select("#witness-toolbar").style("visibility") !== "hidden") {
-							d3.select("#witness-toolbar").style("visibility", "hidden");
-							d3.selectAll(".witness-graph").style("visibility", "hidden");
-							d3.selectAll(".witness-error-graph").style("visibility", "hidden");
-							if (d3.select("#witness-container").classed("witness-content")) {
-								d3.select("#witness-container").classed("witness-content", false);
-							}
-						}
+						}						
 					}
 					$scope.tab = tabIndex;
 				};
@@ -716,89 +654,6 @@
     		}    		
 	}]);
 
-	var witnessToolbarController = app.controller('WitnessToolbarController', ['$rootScope', '$scope',
-            function($rootScope, $scope) {
-                    $scope.zoomEnabled = false;
-                    $scope.witnessSelections = ["complete"];
-                    if (errorPath !== undefined) {
-                            $scope.witnessSelections.push("error path");
-                    }
-                    $rootScope.displayedWitness = $scope.witnessSelections[0];
-
-                    $scope.displayWitness = function() {
-                            if ($scope.witnessSelections.length > 1) {
-                                    if ($rootScope.displayedWitness.indexOf("error") !== -1) {
-                                            d3.selectAll(".witness-graph").style("display", "none");
-                                            $("#witness-container").scrollTop(0).scrollLeft(0);
-                                            if (d3.select(".witness-error-graph").empty()) {
-                                                    witnessWorker.postMessage({"errorGraph": true});
-                                            } else {
-                                                    d3.selectAll(".witness-error-graph").style("display", "inline-block").style("visibility", "visible");
-                                            }
-                                    } else {
-                                            if (!d3.select(".witness-error-graph").empty()) {
-                                                    d3.selectAll(".witness-error-graph").style("display", "none");
-                                            }
-                                            d3.selectAll(".witness-graph").style("display", "inline-block").style("visibility", "visible");
-                                            $("#witness-container").scrollLeft(d3.select(".witness-svg").attr("width")/4);
-                                    }
-                            }
-                    };
-
-            $scope.witnessZoomControl = function() {
-                    if ($scope.zoomEnabled) {
-                            $scope.zoomEnabled = false;
-                            d3.select("#witness-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
-                            // revert zoom and remove listeners
-                            d3.selectAll(".witness-svg").each(function(d, i) {
-                                    d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
-                            });
-                    } else {
-                            $scope.zoomEnabled = true;
-                            d3.select("#witness-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
-                            d3.selectAll(".witness-svg").each(function(d, i) {
-                                    var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
-                                    var zoom = d3.behavior.zoom().on("zoom", function() {
-                                            svgGroup.attr("transform", "translate("
-                                                            + d3.event.translate + ")" + "scale("
-                                                            + d3.event.scale + ")");
-                                    });
-                                    svg.call(zoom);
-                                    svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
-                            });
-                    }
-            };
-
-            $scope.witnessRedraw = function() {
-                    var input = $("#witness-split-threshold").val();
-                    if (!$scope.validateInput(input)) {
-                            alert("Invalid input!");
-                            return;
-                    }
-                    d3.selectAll(".witness-graph").remove();
-                    d3.selectAll(".witness-error-graph").remove();
-                    if ($scope.zoomEnabled) {
-                            $scope.witnessZoomControl();
-                    }
-                    var graphCount = Math.ceil(witnessJson.nodes.length/input);
-                    $("#witness-modal").text("0/" + graphCount);
-                    graphCount = null;
-                    $("#renderStateModal").modal("show");
-                    if (witnessWorker === undefined) {
-                            witnessWorker = new Worker(URL.createObjectURL(new Blob(["("+witnessWorker_function.toString()+")()"], {type: "text/javascript"})));
-                    }
-                    witnessWorker.postMessage({"split" : input});
-                    witnessWorker.postMessage({"renderer" : "ready"});
-            };
-
-            $scope.validateInput = function(input) {
-                    if (input % 1 !== 0) return false;
-                    if (input < 500 || input > 900) return false;
-                    return true;
-            }
-    }]);
-
-
 	var sourceController = app.controller('SourceController', [ '$rootScope', '$scope', '$location',
 			'$anchorScroll',
 			function($rootScope, $scope, $location, $anchorScroll) {
@@ -819,7 +674,6 @@ var argJson={};//ARG_JSON_INPUT
 
 var sourceFiles = []; //SOURCE_FILES
 var cfaJson={};//CFA_JSON_INPUT
-var witnessJson{}; //WITNESS_JSON_INPUT
 
 // CFA graph variable declarations
 var functions = cfaJson.functionNames;
@@ -834,7 +688,7 @@ var zoomEnabled = false;
 var render = new dagreD3.render();
 const margin = 20;
 var cfaWorker, argWorker;
-var cfaSplit = false, argTabDisabled = false, witnessTabDisabled = false;
+var cfaSplit = false, argTabDisabled = false;
 
 function init() {
 	
@@ -847,15 +701,6 @@ function init() {
 		$("#arg-modal").text("0/0");
 		$("#set-tab-2").parent().addClass("disabled");
 		argTabDisabled = true;
-	}
-	if (witnessJson.nodes) {
-		witnessTotalGraphCount = Math.ceil(witnessJson.nodes.length/graphSplitThreshold);
-		$("#witness-modal").text("0/" + witnessTotalGraphCount);
-	} else { // No ARG data -> happens if the AbstractStates are not ARGStates
-		$("#witness-modal").text("0/0");
-		$("#witness-modal").parent().addClass("hidden");
-		$("#set-tab-7").parent().addClass("hidden");
-		witnessTabDisabled = true;
 	}
 	var cfaTotalGraphCount = 0;
 	cfaJson.functionNames.forEach(function(f) {
@@ -1264,7 +1109,9 @@ function init() {
 	/**
 	 * The ARG Worker. Contains the logic for creating a single or multi ARG graph.
 	 * Once the graph(s) is/are created they are returned to the main script.
+	 * ONLY if ARG data is available!
 	 */
+    if (argJson.nodes) {
     	function argWorker_function() {
     		self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
     		var json, nodes, edges, errorPath, errorGraphMap;
@@ -1275,7 +1122,7 @@ function init() {
     				json = JSON.parse(m.data.json);
     				nodes = json.nodes;
     				edges = json.edges;
-    				buildGraphsAndPrepareResults();
+    				buildGraphsAndPrepareResults()
     			} else if (m.data.errorPath !== undefined) {
     				errorPath = [];
     				JSON.parse(m.data.errorPath).forEach(function(d) {
@@ -1532,306 +1379,9 @@ function init() {
         	}
     		
     	}
-    
-    	/**
-    	 * The Witness Worker. Contains the logic for creating a single or multi witness graphs.
-    	 * Once the graph(s) is/are created they are returned to the main script.
-    	 */
-    function witnessWorker_function() {
-    	self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
-    	var json, nodes, edges, errorPath, errorGraphMap;
-    	var graphSplitThreshold = 700;
-    	var graphMap = [], graphCounter = 0;
-    	self.addEventListener("message", function(m) {
-    		if (m.data.json !== undefined) {
-    			json = JSON.parse(m.data.json);
-    			nodes = json.nodes;
-    			edges = json.edges;
-    			buildGraphsAndPrepareResults();
-    		} else if (m.data.errorPath !== undefined) {
-    			errorPath = [];
-    			JSON.parse(m.data.errorPath).forEach(function(d) {
-    				if (d.witnesselem !== undefined) {
-    					errorPath.push(d.witnesselem);
-    				}
-    			});
-    		} else if (m.data.renderer !== undefined) {
-    			if (graphMap.length > 0) {
-                    self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : graphCounter});
-                    graphMap.shift();
-                    graphCounter++;
-                } else {
-                    self.postMessage({"status": "done"});
-                    if (errorPath !== undefined) {
-                    	errorGraphMap = [];
-                    	graphCounter = 0;
-                    	prepareErrorGraph();
-                    }
-                }
-    		} else if (m.data.errorGraph !== undefined) {
-    			if (errorGraphMap.length > 0) {
-    				self.postMessage({"graph" : JSON.stringify(errorGraphMap[0]), "id": graphCounter, "errorGraph": true});
-    				errorGraphMap.shift();
-    				graphCounter++;
-    			}
-    		} else if (m.data.split !== undefined) {
-    			graphSplitThreshold = m.data.split;
-    			if (errorGraphMap !== undefined && errorGraphMap.length > 0) {
-    				errorGraphMap = [];
-    			}
-    			buildGraphsAndPrepareResults();
-    		}
-    	}, false);
-    	
-    	function buildGraphsAndPrepareResults() {
-    		if (nodes.length > graphSplitThreshold) {
-    			buildMultipleGraphs();
-    		} else {
-    			buildSingleGraph();
-    		}
-    	}
-    	
-        // After the initial witness graph has been send to the master script, prepare witness containing only error path
-    	function prepareErrorGraph() {
-    		var errorNodes = [], errorEdges = [];
-    		nodes.forEach(function(n) {
-    			if (errorPath.includes(n.index)) {
-    				errorNodes.push(n);
-    			}
-    		});
-    		edges.forEach(function(e) {
-    			if (errorPath.includes(e.source) && errorPath.includes(e.target)) {
-    				errorEdges.push(e);
-    			}
-    		});
-    		if (errorNodes.length > graphSplitThreshold) {
-    			buildMultipleErrorGraphs(errorNodes, errorEdges);
-    		} else {
-    			var g = createGraph();
-    			setGraphNodes(g, errorNodes);
-    			setGraphEdges(g, errorEdges, false);
-    			errorGraphMap.push(g);
-    		}
-    	}
-    	
-    	function buildSingleGraph() {
-    		var g = createGraph();
-    		setGraphNodes(g, nodes);
-    		setGraphEdges(g, edges, false);
-            graphMap.push(g);
-    	}
-    	
-    	// Split the witness graph honoring the split threshold
-    	function buildMultipleGraphs() {
-    		nodes.sort(function(firstNode, secondNode) {
-    			return firstNode.index - secondNode.index;
-    		})
-    		var requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
-    		var firstGraphBuild = false;
-    		var nodesPerGraph = [];
-    		for (var i = 1; i <= requiredGraphs; i++) {
-    			if (!firstGraphBuild) {
-    				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
-    				firstGraphBuild = true;
-    			} else {
-    				if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-    				} else {
-    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
-    				}
-    			}
-    			var graph = createGraph();
-    			graphMap.push(graph);
-    			setGraphNodes(graph, nodesPerGraph);
-    			var nodesIndices = []
-    			nodesPerGraph.forEach(function(n) {
-    				nodesIndices.push(n.index);
-    			});
-    			var graphEdges = edges.filter(function(e) {
-    				if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
-    					return e;
-    				}
-    			});
-    			setGraphEdges(graph, graphEdges, true);
-    		}
-    		buildCrossgraphEdges(edges, false);
-    	}
-    	
-    	// Split the witness error graph honoring the split threshold
-        function buildMultipleErrorGraphs(errorNodes, errorEdges) {
-    		errorNodes.sort(function(firstNode, secondNode) {
-    			return firstNode.index - secondNode.index;
-    		})
-            var requiredGraphs = Math.ceil(errorNodes.length/graphSplitThreshold);
-            var firstGraphBuild = false;
-            var nodesPerGraph = [];
-            for (var i = 1; i <= requiredGraphs; i++) {
-                if (!firstGraphBuild) {
-                    nodesPerGraph = errorNodes.slice(0, graphSplitThreshold);
-                    firstGraphBuild = true;
-                } else {
-                    if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-                        nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-                    } else {
-                        nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1));
-                    }
-                }
-                var graph = createGraph();
-                errorGraphMap.push(graph);
-                setGraphNodes(graph, nodesPerGraph);
-                var nodesIndices = []
-                nodesPerGraph.forEach(function(n) {
-                    nodesIndices.push(n.index);
-                });
-                var graphEdges = errorEdges.filter(function(e) {
-                    if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
-                        return e;
-                    }
-                });
-                setGraphEdges(graph, graphEdges, true);
-            }
-            buildCrossgraphEdges(errorEdges, true);
-        }
-    	
-    	// Handle graph connecting edges
-    	function buildCrossgraphEdges(edges, errorGraph) {
-    		edges.forEach(function(edge) {
-    			var sourceGraph, targetGraph;
-    			if (errorGraph) {
-    				sourceGraph = getGraphForErrorNode(edge.source);
-    				targetGraph = getGraphForErrorNode(edge.target);
-        			if (sourceGraph < targetGraph) {
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "witness-dummy", id: "dummy-" + edge.target});
-        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "witness-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "witness-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "witness-split-edge"});
-        			} else if (sourceGraph > targetGraph) {
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "witness-dummy", id: "dummy-" + edge.target});
-        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "witness-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "witness-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "witness-split-edge"});
-        			}
-    			} else {
-        			sourceGraph = getGraphForNode(edge.source);
-        			targetGraph = getGraphForNode(edge.target);
-        			if (sourceGraph < targetGraph) {
-            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "witness-dummy", id: "dummy-" + edge.target});
-            			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "witness-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "witness-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "witness-split-edge"});
-        			} else if (sourceGraph > targetGraph) {
-        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "witness-dummy", id: "dummy-" + edge.target});
-        				graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "witness-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-        				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "witness-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "witness-split-edge"});
-        			}
-    			}
-    		});
-    	}
-    	
-    	// Return the graph in which the nodeNumber is present
-    	function getGraphForNode(nodeNumber) {
-    		return graphMap.findIndex(function(graph) {
-    			return graph.nodes().includes("" + nodeNumber);
-    		})
-    	}
-    	
-    	// Return the graph in which the nodeNumber is present for an error node
-    	function getGraphForErrorNode(nodeNumber) {
-    		return errorGraphMap.findIndex(function(graph) {
-    			return graph.nodes().includes("" + nodeNumber);
-    		})
-    	}
-    	
-    	// create and return a graph element with a set transition
-    	function createGraph() {
-    		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
-    				function() {
-    					return {};
-    				});
-    		return g;
-    	}
-    	
-    	// Set nodes for the graph contained in the json nodes
-    	function setGraphNodes(graph, nodesToSet) {
-    		nodesToSet.forEach(function(n) {
-    			var cls = "";
-    			if (n.invariant) {
-    				cls = "highlighted"
-    			}
-    			graph.setNode(n.id, {
-    				label : n.id,
-    				class : "witness-node " + cls,
-    				id : nodeIdDecider(n)
-    			});
-    		});
-    	}
-
-        function nodeIdDecider(node) {
-            if (errorGraphMap === undefined)
-                return "witness-node" + node.id;
-            else
-                return "witness-error-node" + node.id;
-        }
-    	
-    	// Set the graph edges
-    	function setGraphEdges(graph, edgesToSet, multigraph) {
-        	edgesToSet.forEach(function(e) {
-        		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
-        			var l;
-        			if (e.startline != undefined && e.endline != undefined) {
-        			    if (e.startline == e.endline) {
-        			      l = "L:" + e.startline;
-        			    } else {
-        			      l = "L:" + e.startline+"-"+e.endline;
-        			    }
-        			} else {
-        				l="L:?";
-        			}
-            		graph.setEdge(e.source, e.target, {
-            			label: l,
-            			lineInterpolate: "basis",
-            			class: edgeClassDecider(e),
-            			id: "witness-edge"+ e.source + e.target,
-            			weight: edgeWeightDecider(e),
-            			arrowheadClass: arrowClassDecider(e)
-            		});
-        		}
-        	});
-    	}
-    	
-    	// Set class for passed edge
-    	function edgeClassDecider(edge) {
-    		cls = "witness-edge";
-    		if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
-                cls += " error-edge";
-    		}
-    		if (edge.control) {
-    			if (edge.control=="condition-true") {
-    				cls += " true-edge";
-    			} else if (edge.control == "condition-false") {
-    				cls += " false-edge";
-    			}
-    		}
-    		return cls;
-    	}
-    	
-    	// Decide the weight for the edges based on type
-    	function edgeWeightDecider(edge) {
-    		return 1;
-    	}
-
-    	function arrowClassDecider(edge) {
-    		if (edge.enterLoopHead) {
-    			return "arrowloophead";
-    		} else {
-    			return "arrowhead";
-    	    }
-    	}
-    	
     }
 
-	// ======================= Create CFA, ARG and Witness Workers and  Listeners =======================
+	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
 	 * Create workers using blobs due to Chrome's default security policy and 
 	 * the need of having a single file at the end that can be send i.e. via e-mail
@@ -1839,9 +1389,6 @@ function init() {
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: 'text/javascript'})));
 	if (argJson.nodes) {
 		argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
-	}
-	if (witnessJson.nodes) {
-		witnessWorker = new Worker(URL.createObjectURL(new Blob(["("+witnessWorker_function.toString()+")()"], {type: "text/javascript"})));
 	}
 
 	cfaWorker.addEventListener("message", function(m) {
@@ -1940,11 +1487,7 @@ function init() {
 						PR.prettyPrint();
 					}
 				}
-				if (!witnessTabDisabled) {
-					witnessWorker.postMessage({"renderer" : "ready"});
-				} else {
-					$("#renderStateModal").modal("hide");
-				}
+				$("#renderStateModal").modal("hide");
 			}
 		}, false);
 		
@@ -1957,70 +1500,6 @@ function init() {
 			argWorker.postMessage({"errorPath" : JSON.stringify(errorPath)});
 		}
 		argWorker.postMessage({"json" : JSON.stringify(argJson)});
-	}
-	
-	// ONLY if witness data is available
-	if (witnessJson.nodes) {
-		witnessWorker.addEventListener('message', function(m) {
-			if (m.data.graph !== undefined) {
-				var id = "witness-graph" + m.data.id;
-				var witnessClass = "witness-graph";
-				if (m.data.errorGraph !== undefined) {
-					id = "witness-error-graph" + m.data.id;
-					witnessClass = "witness-error-graph";
-					d3.select("#witness-modal-error").style("display", "inline");
-					$("#renderStateModal").modal("show");
-				}
-				var g = createGraph();
-				g = Object.assign(g, JSON.parse(m.data.graph));
-				d3.select("#witness-container").append("div").attr("id", id).attr("class", witnessClass);
-				var svg = d3.select("#" + id).append("svg").attr("id", "witness-svg" + id).attr("class", "witness-svg");
-				var svgGroup = svg.append("g");
-				render(d3.select("#witness-svg" + id + " g"), g);
-				// Center the graph - calculate svg.attributes
-				svg.attr("height", g.graph().height + margin * 2);
-				svg.attr("width", g.graph().width + margin * 10);
-				svgGroup.attr("transform", "translate(" + margin * 2 + ", " + margin + ")");
-				// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
-				d3.selectAll(".witness-node tspan").each(function(d,i) {
-					d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
-				})
-				if (m.data.errorGraph !== undefined) {
-					addEventsToWitness();
-					$("#renderStateModal").modal("hide");
-					witnessWorker.postMessage({"errorGraph": true});
-				} else {
-					$("#witness-modal").text(parseInt($("#witness-modal").text().split("/")[0]) + 1 + "/" + $("#witness-modal").text().split("/")[1]);
-					witnessWorker.postMessage({"renderer" : "ready"});
-				}
-			} else if (m.data.status !== undefined) {
-				if ($("#report-controller").scope().getTabSet() === 2) {
-					d3.select("#witness-toolbar").style("visibility", "visible");
-					d3.select("#witness-container").classed("witness-content", true);
-					d3.selectAll(".witness-graph").style("visibility", "visible");
-					$("#witness-container").scrollLeft(d3.select(".witness-svg").attr("width")/4);
-				}
-				addEventsToWitness();
-				if (errorPath !== undefined) {
-					d3.selectAll("td.disabled").classed("disabled", false);
-					if (!d3.select(".make-pretty").classed("prettyprint")) {
-						d3.selectAll(".make-pretty").classed("prettyprint", true);
-						PR.prettyPrint();
-					}
-				}
-				$("#renderStateModal").modal("hide");
-			}
-		}, false);
-		
-		witnessWorker.addEventListener("error", function(e) {
-			alert("Witness Worker failed in line " + e.lineno + " with message " + e.message)
-		}, false);
-		
-		// Initial postMessage to the witness worker to trigger witness graph(s) creation
-		if (errorPath !== undefined) {
-			witnessWorker.postMessage({"errorPath" : JSON.stringify(errorPath)});
-		}
-		witnessWorker.postMessage({"json" : JSON.stringify(witnessJson)});
 	}
 	
 	// create and return a graph element with a set transition
@@ -2227,97 +1706,6 @@ function init() {
 			});
 	}
 	
-	// Add desired events to witness the nodes
-	function addEventsToWitness() {
-		addPanEvent(".witness-svg");
-		d3.selectAll(".witness-node")
-		.on("mouseover", function(d) {
-			var node = witnessJson.nodes.find(function(it) {
-				return it.id === d;
-			})
-			var message = "";
-			Object.keys(node).forEach(function(key,index) {
-				message += key+": "+node[key]+"<br>";
-			});
-			//message += "dblclick: jump to CFA node";
-			showToolTipBox(d3.event, message);
-		}).on("mouseout", function() {
-			hideToolTipBox();
-		}).on("dblclick", function() {
-			$("#set-tab-1").click();
-			if (!d3.select(".marked-cfa-node").empty()) {
-				d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
-			}
-			var nodeId = d3.select(this).select("tspan").text().split("N")[1];
-			if (cfaJson.mergedNodes.includes(parseInt(nodeId))) {
-				nodeId = getMergingNode(parseInt(nodeId));
-			}
-			var selection = d3.select("#cfa-node" + nodeId);
-			selection.classed("marked-cfa-node", true);
-			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
-		});
-		d3.selectAll(".witness-dummy")
-			.on("mouseover", function(d) {
-				showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
-			}).on("mouseout", function() {
-				hideToolTipBox();
-			}).on("dblclick", function() {
-				if (!d3.select(".marked-witness-node").empty()) {
-					d3.select(".marked-witness-node").classed("marked-witness-node", false);
-				}
-				var selection = d3.select("#witness-node" + d3.select(this).attr("id").split("-")[1]);
-				selection.classed("marked-witness-node", true);
-				var boundingRect = selection.node().getBoundingClientRect();
-				$("#witness-container").scrollTop(boundingRect.top + $("#witness-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#witness-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
-			});
-		d3.selectAll(".witness-edge,.witness-svg .edgeLabel")
-			.on("mouseover", function(d) {
-				d3.select(this).select("path").style("stroke-width", "3px");
-				var edge = witnessJson.edges.find(function(it) {
-					return it.source == d.v && it.target == d.w;
-				})
-				var message = "";
-			    Object.keys(edge).forEach(function(key,index) {
-				    message += key+": "+edge[key]+"<br>";
-			    });
-				if (edge) {
-					showToolTipBox(d3.event, message);
-				} else {
-					showToolTipBox(d3.event, "type: graph connecting edge")
-				}
-			}).on("mouseout", function() {
-				d3.select(this).select("path").style("stroke-width", "1.5px");
-				hideToolTipBox();
-			}).on("dblclick", function(d) {
-				$("#set-tab-3").click();
-				var line = witnessJson.edges.find(function(e) {return e.source==d.v&& e.target==d.w}).startline;
-				if (!d3.select(".marked-source-line").empty()) {
-					d3.select(".marked-source-line").classed("marked-source-line", false);
-				}
-				var selection = d3.select("#source-" + line + " td pre.prettyprint");
-				selection.classed("marked-source-line", true);
-				$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
-			});
-		d3.selectAll(".witness-split-edge")
-			.on("mouseover", function(d) {
-				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "type: place holder <br> dblclick: jump to Original edge");
-			}).on("mouseout", function() {
-				d3.select(this).select("path").style("stroke-width", "1.5px");
-				hideToolTipBox();
-			}).on("dblclick", function() {
-				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
-				if (!d3.select(".marked-witness-edge").empty()) {
-					d3.select(".marked-witness-edge").classed("marked-witness-edge", false);
-				}
-				var selection = d3.select("#witness-edge" + edgeSourceTarget.split("-")[0] + edgeSourceTarget.split("-")[1]);
-				selection.classed("marked-witness-edge", true);
-				var boundingRect = selection.node().getBoundingClientRect();
-				$("#witness-container").scrollTop(boundingRect.top + $("#witness-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#witness-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
-			});
-	}
-
 	// Use D3 zoom behavior to add pan event
 	function addPanEvent(itemsToSelect) {
 		d3.selectAll(itemsToSelect).each(function(d, i) {
