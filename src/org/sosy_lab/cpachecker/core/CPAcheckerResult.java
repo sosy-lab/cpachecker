@@ -55,8 +55,6 @@ public class CPAcheckerResult {
 
   private final @Nullable Statistics stats;
 
-  private final Specification specification;
-
   private @Nullable Statistics proofGeneratorStats = null;
 
   CPAcheckerResult(
@@ -64,14 +62,12 @@ public class CPAcheckerResult {
       String violatedPropertyDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
-      @Nullable Statistics stats,
-      @Nullable Specification specification) {
+      @Nullable Statistics stats) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.cfa = cfa;
     this.stats = stats;
-    this.specification = specification;
   }
 
   /**
@@ -96,8 +92,8 @@ public class CPAcheckerResult {
   }
 
   /** Return the specification. */
-  public @Nullable Specification getSpecification() {
-    return specification;
+  public @Nullable Statistics getStats() {
+    return stats;
   }
 
   public void addProofGeneratorStatistics(Statistics pProofGeneratorStatistics) {

@@ -45,7 +45,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
   }
 
   @Override
-  public void writeErrorWitness(
+  public WitnessInformation writeErrorWitness(
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
@@ -64,7 +64,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
+    return writer.writePath(
         pTarget,
         pRootState,
         pIsRelevantState,

@@ -612,7 +612,7 @@ public class CPAMain {
           mResult.getCfa(),
           mResult.getReached(),
           statistics.toString(),
-          mResult.getSpecification());
+          mResult.getStats());
     }
   }
 

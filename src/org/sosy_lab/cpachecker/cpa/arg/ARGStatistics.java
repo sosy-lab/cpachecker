@@ -41,6 +41,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -65,18 +66,20 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WitnessProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessInformation;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
-@Options(prefix="cpa.arg")
-public class ARGStatistics implements Statistics {
+@Options(prefix = "cpa.arg")
+public class ARGStatistics implements Statistics, WitnessProvider {
 
   @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
@@ -140,6 +143,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
+  private final Collection<WitnessInformation> argWitnesses;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private final ARGToPixelsWriter argToBitmapExporter;
@@ -161,6 +165,7 @@ public class ARGStatistics implements Statistics {
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
     extendedWitnessExporter = new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
+    argWitnesses = new ArrayList<>();
     cexExporter =
         new CEXExporter(config, logger, cfa, cpa, argWitnessExporter, extendedWitnessExporter);
 
@@ -231,6 +236,7 @@ public class ARGStatistics implements Statistics {
     if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
+        argWitnesses.addAll(cexExporter.getWitnessInformation());
       }
     }
 
@@ -304,8 +310,11 @@ public class ARGStatistics implements Statistics {
     if (proofWitness != null && pResult != Result.FALSE) {
       try {
         Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-        Appender content = pAppendable -> argWitnessExporter.writeProofWitness(pAppendable, rootState, Predicates.alwaysTrue(),
-            Predicates.alwaysTrue());
+        Appender content =
+            pAppendable ->
+                argWitnesses.add(
+                    argWitnessExporter.writeProofWitness(
+                        pAppendable, rootState, Predicates.alwaysTrue(), Predicates.alwaysTrue()));
         if (!compressWitness) {
           IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
         } else {
@@ -398,5 +407,10 @@ public class ARGStatistics implements Statistics {
     if (dumpArgInEachCpaIteration) {
       exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);
     }
+  }
+
+  @Override
+  public Collection<WitnessInformation> getWitnessInformation() {
+    return argWitnesses;
   }
 }

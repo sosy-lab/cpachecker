@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathA
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -202,7 +201,7 @@ public class WitnessExporter {
     this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
-  public void writeErrorWitness(
+  public WitnessInformation writeErrorWitness(
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
@@ -221,7 +220,7 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
+    return writer.writePath(
         pTarget,
         pRootState,
         pIsRelevantState,
@@ -262,21 +261,17 @@ public class WitnessExporter {
         GraphBuilder.ARG_PATH);
   }
 
-  public void writeProofWitness(
+  public WitnessInformation writeProofWitness(
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
       throws IOException {
-    writeProofWitness(
-        pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        new DefaultInvariantProvider());
+    return writeProofWitness(
+        pTarget, pRootState, pIsRelevantState, pIsRelevantEdge, new DefaultInvariantProvider());
   }
 
-  public void writeProofWitness(
+  public WitnessInformation writeProofWitness(
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
@@ -300,34 +295,8 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.CORRECTNESS_WITNESS,
             pInvariantProvider);
-    writer.writePath(
+    return writer.writePath(
         pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        Predicates.alwaysFalse(),
-        Optional.empty(),
-        Optional.empty(),
-        GraphBuilder.CFA_FULL);
-  }
-
-  public GraphMlBuilder getProofWitnessGraphMlBuilder(
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
-      throws IOException {
-    String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new WitnessWriter(
-            options,
-            cfa,
-            verificationTaskMetaData,
-            factory,
-            simplifier,
-            defaultFileName,
-            WitnessType.CORRECTNESS_WITNESS,
-            new DefaultInvariantProvider());
-    return writer.buildGraphMlBuilder(
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,

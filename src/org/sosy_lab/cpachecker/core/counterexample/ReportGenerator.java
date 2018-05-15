@@ -27,12 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.nio.file.Files.isReadable;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -49,7 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -74,12 +74,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WitnessProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
-import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessInformation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
@@ -153,11 +152,13 @@ public class ReportGenerator {
   }
 
   public void generate(
-      CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics, Specification pSpecification) {
+      CFA pCfa,
+      UnmodifiableReachedSet pReached,
+      String pStatistics,
+      Statistics pStats) {
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
-    checkNotNull(pSpecification);
 
     if (!generateReport || (reportFile == null && counterExampleFiles == null)) {
       return;
@@ -175,13 +176,14 @@ public class ReportGenerator {
     }
 
     buildArgGraphData(pReached);
+    if (reportWitness && pStats instanceof WitnessProvider) {
+      Collection<WitnessInformation> witnesses = ((WitnessProvider) pStats).getWitnessInformation();
+      buildWitnessGraphData(witnesses);
+    }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
-      if (reportWitness) {
-        buildProofWitnessGraphData(pCfa, pReached, pSpecification);
-      }
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
@@ -571,35 +573,14 @@ public class ReportGenerator {
     }
   }
 
-  private void buildProofWitnessGraphData(
-      CFA pCfa, UnmodifiableReachedSet pReached, Specification pSpecification) {
+  private void buildWitnessGraphData(Collection<WitnessInformation> witnesses) {
 
-    // Code for finding root copied from ARGStatistics::exportARG
-    // The state space might be partitioned ...
-    // ... so we would export a separate ARG for each partition ...
-    boolean partitionedArg =
-        pReached.isEmpty()
-            || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
-                != null;
-
-    final Set<ARGState> rootStates =
-        partitionedArg
-            ? ARGUtils.getRootStates(pReached)
-            : Collections.singleton(
-                AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
-    if (rootStates.size() != 1) {
+    if (witnesses.size() > 1) {
       logger.log(
-          WARNING,
-          "root state for building witness in report could not be determined!"
-              + "No witness data will be added to the html report");
-      return;
+          INFO, "More than one witness available for report. Only the first one will be shown!");
     }
-    try {
-      final WitnessExporter witnessExporter =
-          new WitnessExporter(config, logger, pSpecification, pCfa);
-      GraphMlBuilder graphMlBuilder =
-          witnessExporter.getProofWitnessGraphMlBuilder(
-              rootStates.iterator().next(), Predicates.alwaysTrue(), Predicates.alwaysTrue());
+    for (WitnessInformation witnessInfo : witnesses) {
+      GraphMlBuilder graphMlBuilder = witnessInfo.getBuilder();
       Element graph = graphMlBuilder.getGraph();
 
       NodeList children = graph.getChildNodes();
@@ -607,7 +588,7 @@ public class ReportGenerator {
         Node child = children.item(i);
         Map<String, Object> map = new HashMap<>();
         NamedNodeMap nnMap = child.getAttributes();
-        // get attributes of chid node:
+        // get attributes of child node:
         for (int j = 0; j < nnMap.getLength(); j++) {
           Node attr = nnMap.item(j);
           map.put(attr.getNodeName(), attr.getNodeValue());
@@ -644,10 +625,8 @@ public class ReportGenerator {
             break;
         }
       }
-
-    } catch (InvalidConfigurationException | IOException e) {
-      logger.logUserException(
-          WARNING, e, "Exception occurred while generating witness data for the html report");
+      // currently more than one witness is not supported => break after the first one:
+      break;
     }
   }
 

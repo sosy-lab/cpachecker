@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.WitnessProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -61,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessInformation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -68,8 +72,8 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 
-@Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
-public class CEXExporter {
+@Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
+public class CEXExporter implements WitnessProvider {
 
   enum CounterexampleExportType {
     CBMC, CONCRETE_EXECUTION;
@@ -183,6 +187,7 @@ public class CEXExporter {
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
+  private final Collection<WitnessInformation> witnesses;
   private final HarnessExporter harnessExporter;
 
   public CEXExporter(
@@ -200,6 +205,7 @@ public class CEXExporter {
         CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
+    witnesses = new ArrayList<>();
     harnessExporter = new HarnessExporter(config, pLogger, cfa);
 
     if (!exportSource) {
@@ -361,12 +367,13 @@ public class CEXExporter {
         uniqueId,
         (Appender)
             pAppendable ->
-                witnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+                witnesses.add(
+                    witnessExporter.writeErrorWitness(
+                        pAppendable,
+                        rootState,
+                        Predicates.in(pathElements),
+                        isTargetPathEdge,
+                        counterexample)),
         compressWitness);
 
     if (exportExtendedWitness) {
@@ -431,5 +438,10 @@ public class CEXExporter {
                 "Could not write information about the error path to file");
       }
     }
+  }
+
+  @Override
+  public Collection<WitnessInformation> getWitnessInformation() {
+    return witnesses;
   }
 }

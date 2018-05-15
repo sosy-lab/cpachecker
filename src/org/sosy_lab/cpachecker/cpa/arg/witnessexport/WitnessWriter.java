@@ -1029,7 +1029,7 @@ class WitnessWriter implements EdgeAppender {
     };
   }
 
-  public void writePath(
+  public WitnessInformation writePath(
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
@@ -1050,6 +1050,7 @@ class WitnessWriter implements EdgeAppender {
             pCounterExample,
             pGraphBuilder);
     graphMlBuilder.appendTo(pTarget);
+    return new WitnessInformation(graphMlBuilder, defaultSourcefileName);
   }
 
   public GraphMlBuilder buildGraphMlBuilder(

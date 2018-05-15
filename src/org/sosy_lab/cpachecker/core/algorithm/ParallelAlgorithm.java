@@ -72,12 +72,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WitnessProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessInformation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -565,10 +567,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class ParallelAlgorithmStatistics implements Statistics {
+  private static class ParallelAlgorithmStatistics implements Statistics, WitnessProvider {
 
     private final LogManager logger;
     private final List<StatisticsEntry> allAnalysesStats = Lists.newCopyOnWriteArrayList();
+    private final Collection<WitnessInformation> witnesses = new ArrayList<>();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
 
@@ -651,6 +654,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         Result result = determineAnalysisResult(pResult, pSubStats.name);
         for (Statistics s : pSubStats.subStatistics) {
           StatisticsUtils.writeOutputFiles(s, logger, result, pSubStats.reachedSet);
+          if (s instanceof WitnessProvider) {
+            witnesses.addAll(((WitnessProvider) s).getWitnessInformation());
+          }
         }
       }
     }
@@ -664,6 +670,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         return Result.UNKNOWN;
       }
       return pResult;
+    }
+
+    @Override
+    public Collection<WitnessInformation> getWitnessInformation() {
+      return witnesses;
     }
   }
 

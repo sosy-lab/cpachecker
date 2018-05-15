@@ -75,11 +75,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WitnessProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessInformation;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -94,7 +96,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options
-class MainCPAStatistics implements Statistics {
+class MainCPAStatistics implements Statistics, WitnessProvider {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
@@ -148,6 +150,7 @@ class MainCPAStatistics implements Statistics {
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
+  private final Collection<WitnessInformation> witnesses;
   private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
@@ -170,6 +173,7 @@ class MainCPAStatistics implements Statistics {
     pConfig.inject(this);
 
     subStats = new ArrayList<>();
+    witnesses = new ArrayList<>();
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
@@ -417,6 +421,9 @@ class MainCPAStatistics implements Statistics {
     for (Statistics s : subStats) {
       StatisticsUtils.printStatistics(s, out, logger, result, reached);
       StatisticsUtils.writeOutputFiles(s, logger, result, reached);
+      if (s instanceof WitnessProvider) {
+        witnesses.addAll(((WitnessProvider) s).getWitnessInformation());
+      }
     }
   }
 
@@ -572,5 +579,10 @@ class MainCPAStatistics implements Statistics {
   public void setCPA(ConfigurableProgramAnalysis pCpa) {
     Preconditions.checkState(cpa == null);
     cpa = pCpa;
+  }
+
+  @Override
+  public Collection<WitnessInformation> getWitnessInformation() {
+    return witnesses;
   }
 }
