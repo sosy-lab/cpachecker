@@ -1052,7 +1052,7 @@ class WitnessWriter implements EdgeAppender {
     graphMlBuilder.appendTo(pTarget);
   }
 
-  public GraphMlBuilder buildGraphMlBuilder(
+  private GraphMlBuilder buildGraphMlBuilder(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
@@ -1076,13 +1076,6 @@ class WitnessWriter implements EdgeAppender {
       } else {
         isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
       }
-    }
-
-    final GraphMlBuilder doc;
-    try {
-      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
     }
 
     final String entryStateNodeId = pGraphBuilder.getId(pRootState);
@@ -1137,6 +1130,12 @@ class WitnessWriter implements EdgeAppender {
     mergeRedundantSinkEdges();
 
     // Write elements
+    final GraphMlBuilder doc;
+    try {
+      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
     writeElementsOfGraphToDoc(doc, entryStateNodeId);
     return doc;
   }
