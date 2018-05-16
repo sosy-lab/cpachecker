@@ -108,6 +108,21 @@ public class NewtonRefinementManager implements StatisticsProvider {
   )
   private boolean useLiveVariables = true;
 
+  @Option(
+    secure = true,
+    description =
+        "sets the level of the pathformulas to use for abstraction. \n"
+            + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
+            + "  BLOCK: Based on Pathformulas at Abstractionstates"
+  )
+  private PathFormulaAbstractionLevel pathFormulAbstractionLevel = PathFormulaAbstractionLevel.EDGE;
+
+  public enum PathFormulaAbstractionLevel {
+    BLOCK, //Abstracts the whole Block(between abstraction states) at once
+    EDGE //Abstracts every edge of the ARGPath
+  }
+
+
   public NewtonRefinementManager(
       LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
       throws InvalidConfigurationException {
@@ -138,16 +153,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.totalTimer.start();
     try {
       List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
-      List<BooleanFormula> pathformulas =
-          pathLocations
-              .stream()
-              .map(l -> l.getPathFormula().getFormula())
-              .collect(Collectors.toList());
-
-      // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
-      // Question: What was the ssa bug and how was it solved?
-      assert isFeasible(pFormulas.getFormulas(), pAllStatesTrace)
-          == isFeasible(pathformulas, pAllStatesTrace);
       if (isFeasible(pFormulas.getFormulas(), pAllStatesTrace)) {
         // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
@@ -155,19 +160,40 @@ public class NewtonRefinementManager implements StatisticsProvider {
             ImmutableList.<ValueAssignment>of(),
             ImmutableMap.<Integer, Boolean>of());
       } else {
-        // Create the list of pathLocations(holding all relevant data)
+        List<BooleanFormula> predicates;
+        switch (pathFormulAbstractionLevel) {
+          case EDGE:
+            List<BooleanFormula> pathformulas =
+                pathLocations
+                    .stream()
+                    .map(l -> l.getPathFormula().getFormula())
+                    .collect(Collectors.toList());
+            //
+            // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
+            // Question: What was the ssa bug and how was it solved?
+            assert isFeasible(pFormulas.getFormulas(), pAllStatesTrace)
+                == isFeasible(pathformulas, pAllStatesTrace);
 
-        Optional<List<BooleanFormula>> unsatCore;
-        // Only compute if unsatCoreOption is set
-        if (useUnsatCore) {
-          unsatCore = Optional.of(computeUnsatCore(pathLocations, pAllStatesTrace));
-        } else {
-          unsatCore = Optional.empty();
+            // Create the list of pathLocations(holding all relevant data)
+            Optional<List<BooleanFormula>> unsatCore;
+            // Only compute if unsatCoreOption is set
+            if (useUnsatCore) {
+              unsatCore = Optional.of(computeUnsatCore(pathLocations, pAllStatesTrace));
+            } else {
+              unsatCore = Optional.empty();
+            }
+
+            // Calculate StrongestPost
+            predicates =
+                this.calculateStrongestPostCondition(pathLocations, unsatCore, pAllStatesTrace);
+            break;
+          case BLOCK:
+            predicates = experimentalUnsatCoreWithoutNewtonRefinement(pAllStatesTrace, pFormulas);
+            break;
+          default:
+            throw new UnsupportedOperationException(
+                "The selected PathFormulaAbstractionLevel is not implemented.");
         }
-
-        // Calculate StrongestPost
-        List<BooleanFormula> predicates =
-            this.calculateStrongestPostCondition(pathLocations, unsatCore, pAllStatesTrace);
         if (useLiveVariables) {
           predicates = filterFutureLiveVariables(pathLocations, predicates);
         }
@@ -531,7 +557,32 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
     return pathLocationList;
   }
+  private List<BooleanFormula> experimentalUnsatCoreWithoutNewtonRefinement(
+      ARGPath pPath, BlockFormulas pFormulas)
+      throws InterruptedException, RefinementFailedException {
 
+    List<BooleanFormula> unsatCore;
+    try {
+      unsatCore = solver.unsatCore(new HashSet<>(pFormulas.getFormulas()));
+    } catch (SolverException e) {
+      throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath);
+    }
+    List<BooleanFormula> predicates = new ArrayList<>();
+
+    BooleanFormula pred = fmgr.getBooleanFormulaManager().makeTrue();
+
+    for (BooleanFormula pathFormula : pFormulas.getFormulas()) {
+      if (unsatCore.contains(pathFormula)) {
+        pred = fmgr.getBooleanFormulaManager().and(pred, pathFormula);
+
+        //Try QE-here?
+        pred = fmgr.simplify(pred);
+      }
+      predicates.add(pred);
+    }
+
+    return predicates.subList(0, predicates.size() - 1);
+  }
   /**
    * Class holding the information of a location on program path. Each Location is associated to its
    * incoming CFAEdge.
