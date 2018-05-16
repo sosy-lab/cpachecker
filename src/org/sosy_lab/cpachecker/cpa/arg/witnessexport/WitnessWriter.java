@@ -1040,28 +1040,6 @@ class WitnessWriter implements EdgeAppender {
       GraphBuilder pGraphBuilder)
       throws IOException {
 
-    GraphMlBuilder graphMlBuilder =
-        buildGraphMlBuilder(
-            pRootState,
-            pIsRelevantState,
-            pIsRelevantEdge,
-            pIsCyclehead,
-            cycleHeadToQuasiInvariant,
-            pCounterExample,
-            pGraphBuilder);
-    graphMlBuilder.appendTo(pTarget);
-  }
-
-  public GraphMlBuilder buildGraphMlBuilder(
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-      final Predicate<? super ARGState> pIsCyclehead,
-      final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
-      Optional<CounterexampleInfo> pCounterExample,
-      GraphBuilder pGraphBuilder)
-      throws IOException {
-
     Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
@@ -1076,13 +1054,6 @@ class WitnessWriter implements EdgeAppender {
       } else {
         isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
       }
-    }
-
-    final GraphMlBuilder doc;
-    try {
-      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
     }
 
     final String entryStateNodeId = pGraphBuilder.getId(pRootState);
@@ -1116,7 +1087,6 @@ class WitnessWriter implements EdgeAppender {
         isRelevantEdge,
         valueMap,
         additionalInfo,
-        doc,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
@@ -1138,8 +1108,14 @@ class WitnessWriter implements EdgeAppender {
     mergeRedundantSinkEdges();
 
     // Write elements
+    final GraphMlBuilder doc;
+    try {
+      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
     writeElementsOfGraphToDoc(doc, entryStateNodeId);
-    return doc;
+    doc.appendTo(pTarget);
   }
 
   /**

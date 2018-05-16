@@ -388,11 +388,12 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
       Iterator<AlgorithmContext> algorithmContextCycle =
           Iterables.cycle(algorithmContexts).iterator();
+      AlgorithmContext currentContext = null;
 
       while (!shutdownNotifier.shouldShutdown() && algorithmContextCycle.hasNext()) {
 
         // retrieve context from last execution of current algorithm
-        AlgorithmContext currentContext = algorithmContextCycle.next();
+        currentContext = algorithmContextCycle.next();
         boolean analysisFinishedWithResult = false;
 
         currentContext.timer.start();
@@ -493,15 +494,17 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             currentContext.localShutdownManager.getNotifier().unregister(logShutdownListener);
             currentContext.localShutdownManager.requestShutdown("Analysis terminated.");
 
-            if (!analysisFinishedWithResult && !shutdownNotifier.shouldShutdown()) {
+            if (!analysisFinishedWithResult
+                && !shutdownNotifier.shouldShutdown()
+                && algorithmContextCycle.hasNext()) {
               stats.resetSubStatistics();
-            }
 
-            if (!currentContext.reuseCPA()) {
-              CPAs.closeCpaIfPossible(currentContext.cpa, logger);
-            }
+              if (!currentContext.reuseCPA() && currentContext.cpa != null) {
+                CPAs.closeCpaIfPossible(currentContext.cpa, logger);
+              }
 
-            CPAs.closeIfPossible(currentContext.algorithm, logger);
+              CPAs.closeIfPossible(currentContext.algorithm, logger);
+            }
           }
 
           currentContext.timer.stop();
@@ -509,7 +512,9 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       for (AlgorithmContext context : algorithmContexts) {
-        CPAs.closeCpaIfPossible(context.cpa, logger);
+        if (context != currentContext && context != null && context.cpa != null) {
+          CPAs.closeCpaIfPossible(context.cpa, logger);
+        }
       }
 
       logger.log(Level.INFO, "Shutdown of interleaved algorithm, analysis not finished yet.");

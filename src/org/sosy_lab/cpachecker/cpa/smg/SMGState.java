@@ -2092,6 +2092,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return invalidFree || invalidRead || invalidWrite || heap.hasMemoryLeaks();
   }
 
+  public boolean hasMemoryLeaks() {
+    return heap.hasMemoryLeaks();
+  }
+
   public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {
 
     if (pValue1.isUnknown() || pValue2.isUnknown()) {

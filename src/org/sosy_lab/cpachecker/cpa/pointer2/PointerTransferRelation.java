@@ -372,13 +372,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
       if (assignment instanceof CFunctionCallAssignmentStatement) {
         // we don't consider summary edges, so if we encounter a function call assignment edge,
-        // this means that the called function is not defined
-        if (isMemoryAllocation(((CFunctionCallAssignmentStatement) assignment)
+        // this means that the called function is not defined.
+        // If the function returns a non-deterministic pointer,
+        // handle it that way. Otherwise, assume that no existing variable is pointed to.
+        if (isNondetPointerReturn(((CFunctionCallAssignmentStatement) assignment)
             .getFunctionCallExpression().getFunctionNameExpression())) {
-          // Memory allocations return a pointer to new memory, so the pointer
-          // will point to no existing variables
-          return pState;
-        } else if (assignment.getRightHandSide().getExpressionType() instanceof CPointerType) {
           return handleAssignment(pState, assignment.getLeftHandSide(), LocationSetTop.INSTANCE);
         } else {
           return pState;
@@ -392,11 +390,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return pState;
   }
 
-  private boolean isMemoryAllocation(CExpression pFunctionNameExpression) {
+  private boolean isNondetPointerReturn(CExpression pFunctionNameExpression) {
     if (pFunctionNameExpression instanceof CIdExpression) {
       String functionName = ((CIdExpression) pFunctionNameExpression).getName();
-      return functionName.equals("malloc") || functionName.equals("alloca") || functionName
-          .equals("kmalloc") || functionName.equals("__kmalloc");
+      return functionName.equals("__VERIFIER_nondet_pointer");
     } else {
       return false;
     }

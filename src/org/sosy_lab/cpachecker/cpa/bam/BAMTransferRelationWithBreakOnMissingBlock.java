@@ -51,6 +51,16 @@ public class BAMTransferRelationWithBreakOnMissingBlock
     super(bamCPA, pShutdownNotifier);
   }
 
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      final AbstractState pState, final Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    if (pState instanceof MissingBlockAbstractionState) {
+      return Collections.emptySet();
+    }
+    return super.getAbstractSuccessors(pState, pPrecision);
+  }
+
   /**
    * Enters a new block and returns a cached result from {@link BAMCache} if possible.
    *

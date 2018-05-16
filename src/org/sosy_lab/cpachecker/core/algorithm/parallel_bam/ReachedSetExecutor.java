@@ -32,6 +32,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.graph.Traverser;
 import java.util.ArrayList;
@@ -234,9 +235,18 @@ class ReachedSetExecutor {
         @SuppressWarnings("unused")
         AlgorithmStatus tmpStatus = algorithm.run(rs);
 
-        AbstractState lastState = rs.getLastState();
-        if (lastState instanceof MissingBlockAbstractionState) {
-          handleMissingBlock((MissingBlockAbstractionState) lastState);
+        if (bamcpa.doesBreakForMissingBlock()) {
+          AbstractState lastState = rs.getLastState();
+          if (lastState instanceof MissingBlockAbstractionState) {
+            handleMissingBlock((MissingBlockAbstractionState) lastState);
+          }
+        } else {
+          // create local copy of important states, because RS will be modified later.
+          Collection<MissingBlockAbstractionState> missingBlockAbstractionStates =
+              Lists.newArrayList(Iterables.filter(rs, MissingBlockAbstractionState.class));
+          for (MissingBlockAbstractionState state : missingBlockAbstractionStates) {
+            handleMissingBlock(state);
+          }
         }
 
         assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()

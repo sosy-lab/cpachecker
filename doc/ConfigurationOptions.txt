@@ -1081,6 +1081,9 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 
+# abort current analysis when finding a missing block abstraction
+cpa.bam.breakForMissingBlock = true
+
 # This flag determines which precisions should be updated during refinement.
 # We can choose between the minimum number of states and all states that are
 # necessary to re-explore the program along the error-path.
@@ -3315,9 +3318,6 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
-
-# Add witness information to the HTML report.
-report.witness = false
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
