@@ -163,22 +163,22 @@ public class NewtonRefinementManager implements StatisticsProvider {
         List<BooleanFormula> predicates;
         switch (pathFormulAbstractionLevel) {
           case EDGE:
-            List<BooleanFormula> pathformulas =
+            List<BooleanFormula> pathFormulas =
                 pathLocations
                     .stream()
                     .map(l -> l.getPathFormula().getFormula())
                     .collect(Collectors.toList());
-            //
+
             // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
             // Question: What was the ssa bug and how was it solved?
             assert isFeasible(pFormulas.getFormulas(), pAllStatesTrace)
-                == isFeasible(pathformulas, pAllStatesTrace);
+                == isFeasible(pathFormulas, pAllStatesTrace);
 
             // Create the list of pathLocations(holding all relevant data)
             Optional<List<BooleanFormula>> unsatCore;
             // Only compute if unsatCoreOption is set
             if (useUnsatCore) {
-              unsatCore = Optional.of(computeUnsatCore(pathLocations, pAllStatesTrace));
+              unsatCore = Optional.of(computeUnsatCore(pathFormulas, pAllStatesTrace));
             } else {
               unsatCore = Optional.empty();
             }
@@ -208,27 +208,20 @@ public class NewtonRefinementManager implements StatisticsProvider {
   /**
    * Compute the Unsatisfiable core as a list of BooleanFormulas
    *
-   * @param pPathLocations The PathLocations on the infeasible trace
-   * @return A List of BooleanFormulas
+   * @param pFormulas The List of Formulas to compute the unsatisfiable core for
+   * @return The unsatisfiable core of the list of formulas
    * @throws RefinementFailedException If the solver fails while calculating unsatisfiable core
    * @throws InterruptedException If the Execution is interrupted
    */
-  private List<BooleanFormula> computeUnsatCore(List<PathLocation> pPathLocations, ARGPath pPath)
+  private List<BooleanFormula> computeUnsatCore(List<BooleanFormula> pFormulas, ARGPath pPath)
       throws RefinementFailedException, InterruptedException {
     stats.unsatCoreTimer.start();
 
     try {
-      // Prepare the PathFormulas
-      Set<BooleanFormula> pathFormulas =
-          pPathLocations
-              .stream()
-              .map(l -> l.getPathFormula().getFormula())
-              .collect(Collectors.toSet());
-      
       // Compute the unsat core
       List<BooleanFormula> unsatCore;
       try {
-        unsatCore = solver.unsatCore(pathFormulas);
+        unsatCore = solver.unsatCore(new HashSet<>(pFormulas));
       } catch (SolverException e) {
         //Solver failed while computing unsat core
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
@@ -557,20 +550,15 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
     return pathLocationList;
   }
+
   private List<BooleanFormula> experimentalUnsatCoreWithoutNewtonRefinement(
       ARGPath pPath, BlockFormulas pFormulas)
       throws InterruptedException, RefinementFailedException {
 
-    List<BooleanFormula> unsatCore;
-    try {
-      unsatCore = solver.unsatCore(new HashSet<>(pFormulas.getFormulas()));
-    } catch (SolverException e) {
-      throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath);
-    }
+    List<BooleanFormula> unsatCore = computeUnsatCore(pFormulas.getFormulas(), pPath);
     List<BooleanFormula> predicates = new ArrayList<>();
 
     BooleanFormula pred = fmgr.getBooleanFormulaManager().makeTrue();
-
     for (BooleanFormula pathFormula : pFormulas.getFormulas()) {
       if (unsatCore.contains(pathFormula)) {
         pred = fmgr.getBooleanFormulaManager().and(pred, pathFormula);
@@ -583,6 +571,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     return predicates.subList(0, predicates.size() - 1);
   }
+
   /**
    * Class holding the information of a location on program path. Each Location is associated to its
    * incoming CFAEdge.
