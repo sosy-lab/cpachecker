@@ -97,6 +97,7 @@ public class BAMCacheSynchronized implements BAMCache {
   }
 
   @Override
+  @Deprecated
   public ARGState getLastAnalyzedBlock() {
     synchronized (this) {
       try {

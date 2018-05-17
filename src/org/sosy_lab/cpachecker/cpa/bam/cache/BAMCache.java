@@ -60,6 +60,7 @@ public interface BAMCache extends Statistics {
   BAMCacheEntry get(AbstractState stateKey, Precision precisionKey, Block context);
 
   /** Return the root-state of the last analyzed block, based on the last cache-access. */
+  @Deprecated // reason: last block is not deterministic in parallel context
   ARGState getLastAnalyzedBlock();
 
   /** Check whether a cache entry exists for a given key. */

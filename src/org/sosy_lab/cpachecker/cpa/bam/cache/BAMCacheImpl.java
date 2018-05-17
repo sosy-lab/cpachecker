@@ -151,6 +151,7 @@ public class BAMCacheImpl implements BAMCache {
   }
 
   @Override
+  @Deprecated
   public ARGState getLastAnalyzedBlock() {
     return lastAnalyzedEntry.getRootOfBlock();
   }
