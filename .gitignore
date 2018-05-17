@@ -47,14 +47,7 @@ a.out
 /src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaSymbols.java
 
 # /src/org/sosy_lab/cpachecker/util/ltl/generated/
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammar.interp
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammar.tokens
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammarBaseVisitor.java
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammarLexer.interp
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammarLexer.tokens
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammarLexer.java
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammarParser.java
-/src/org/sosy_lab/cpachecker/util/ltl/generated/LtlGrammarVisitor.java
+/src/org/sosy_lab/cpachecker/util/ltl/generated/
 
 # /test/programs/
 /test/programs/benchmarks
