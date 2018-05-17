@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam.cache;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -31,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * The BAMCache is the central storage for BAM. It is a map of a triple (state, precision, context)
@@ -44,39 +46,18 @@ import org.sosy_lab.cpachecker.util.Pair;
 public interface BAMCache extends Statistics {
 
   /**
-   * Store a reached-set in the cache. Does not yet register the result-states for the reached-set.
+   * Store a reached-set in the cache. Returns an entry where the result-states for the reached-set
+   * can be registered.
    *
    * @param item reached-set to be inserted into the cache
    */
-  void put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item);
+  BAMCacheEntry put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item);
 
   /**
-   * Store the result-states for the reached-set in the cache. Does not yet register the
-   * result-states for the reached-set.
-   *
-   * @param item result-states to be inserted into the cache
-   * @param rootOfBlock optional, can be {@code null}, only used for PCC
+   * Return the entry for the given key. The entry is NULL, if there is a cache miss. For a partial
+   * cache hit we return an entry with the partly computed reached-set and NULL as exitStates.
    */
-  void put(
-      AbstractState stateKey,
-      Precision precisionKey,
-      Block context,
-      Collection<AbstractState> item,
-      @Nullable ARGState rootOfBlock);
-
-  /**
-   * Invalidate the result-states of the given key. Does not remove the reached-set, thus it can be
-   * used for re-exploration.
-   */
-  void remove(AbstractState stateKey, Precision precisionKey, Block context);
-
-  /**
-   * Return a Pair of the reached-set and the result-states for the given key. Both members of the
-   * returned Pair are NULL, if there is a cache miss. For a partial cache hit we return the partly
-   * computed reached-set and NULL as returnStates.
-   */
-  Pair<ReachedSet, Collection<AbstractState>> get(
-      AbstractState stateKey, Precision precisionKey, Block context);
+  BAMCacheEntry get(AbstractState stateKey, Precision precisionKey, Block context);
 
   /** Return the root-state of the last analyzed block, based on the last cache-access. */
   ARGState getLastAnalyzedBlock();
@@ -91,4 +72,67 @@ public interface BAMCache extends Statistics {
    *  all intermediate cache entries can not be stored due to large memory consumption,
    *  then there is a way to clear all caches and to restore ARG completely. */
   void clear();
+
+  public class BAMCacheEntry {
+    private final ReachedSet rs;
+    private Collection<AbstractState> exitStates;
+    private ARGState rootOfBlock;
+
+    protected BAMCacheEntry(ReachedSet pRs) {
+      rs = Preconditions.checkNotNull(pRs);
+    }
+
+    public ReachedSet getReachedSet() {
+      return rs;
+    }
+
+    public void setExitStates(Collection<AbstractState> pExitStates) {
+      exitStates = Preconditions.checkNotNull(pExitStates);
+      check();
+    }
+
+    @Nullable
+    public Collection<AbstractState> getExitStates() {
+      return exitStates;
+    }
+
+    private void check() {
+      Preconditions.checkArgument(
+          Iterables.all(exitStates, s -> !((ARGState) s).isDestroyed()),
+          "do not use destroyed states: %s.",
+          Collections2.transform(exitStates, this::id));
+      Preconditions.checkArgument(
+          rs.asCollection().containsAll(exitStates),
+          "exit-states %s not available in reached-set with root %s and last state %s.",
+          Collections2.transform(exitStates, this::id),
+          id(rs.getFirstState()),
+          id(rs.getLastState()));
+    }
+
+    public void setRootOfBlock(ARGState pRootOfBlock) {
+      rootOfBlock = pRootOfBlock;
+    }
+
+    @Nullable
+    public ARGState getRootOfBlock() {
+      return rootOfBlock;
+    }
+
+    public void deleteInfo() {
+      exitStates = null;
+      rootOfBlock = null;
+    }
+
+    private String id(AbstractState s) {
+      return "" + (s instanceof ARGState ? ((ARGState) s).getStateId() : s);
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "CacheEntry {root=%s, exits=%s}",
+          id(rs.getFirstState()),
+          (exitStates == null ? null : Collections2.transform(exitStates, this::id)));
+    }
+  }
 }

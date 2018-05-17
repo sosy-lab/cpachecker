@@ -26,11 +26,9 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -48,7 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 
 @Options(prefix = "cpa.bam")
@@ -70,11 +67,9 @@ public class BAMCacheImpl implements BAMCache {
   private int noSimilarCausedMisses = 0;
 
   // we use LinkedHashMaps to avoid non-determinism
-  protected final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new LinkedHashMap<>();
-  protected final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
-  private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();
+  protected final Map<AbstractStateHash, BAMCacheEntry> preciseReachedCache = new LinkedHashMap<>();
 
-  protected AbstractStateHash lastAnalyzedBlockCache = null;
+  protected BAMCacheEntry lastAnalyzedEntry = null;
   protected final Reducer reducer;
   protected final LogManager logger;
 
@@ -92,21 +87,13 @@ public class BAMCacheImpl implements BAMCache {
   }
 
   @Override
-  public void put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item) {
+  public BAMCacheEntry put(
+      AbstractState stateKey, Precision precisionKey, Block context, ReachedSet rs) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
+    BAMCacheEntry entry = new BAMCacheEntry(rs);
     // assert !preciseReachedCache.containsKey(hash);
-    preciseReachedCache.put(hash, item);
-  }
-
-  @Override
-  public void put(AbstractState stateKey, Precision precisionKey, Block context, Collection<AbstractState> item,
-                   ARGState rootOfBlock) {
-    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    assert preciseReachedCache.get(hash) != null : "key not found in cache: " + hash;
-    assert allStatesContainedInReachedSet(item, preciseReachedCache.get(hash)) : "output-states must be in reached-set";
-    returnCache.put(hash, item);
-    blockARGCache.put(hash, rootOfBlock);
-    lastAnalyzedBlockCache = hash;
+    preciseReachedCache.put(hash, entry);
+    return entry;
   }
 
   protected static boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
@@ -114,78 +101,58 @@ public class BAMCacheImpl implements BAMCache {
   }
 
   @Override
-  public void remove(AbstractState stateKey, Precision precisionKey, Block context) {
-    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    blockARGCache.remove(hash);
-    returnCache.remove(hash);
-  }
+  public BAMCacheEntry get(
+      final AbstractState stateKey, final Precision precisionKey, final Block context) {
 
-  @Override
-  public Pair<ReachedSet, Collection<AbstractState>> get(
-      final AbstractState stateKey,
-      final Precision precisionKey,
-      final Block context) {
-
-    final Pair<ReachedSet, Collection<AbstractState>> pair = get0(stateKey, precisionKey, context);
-    Preconditions.checkNotNull(pair);
+    final BAMCacheEntry entry = get0(stateKey, precisionKey, context);
 
     // get some statistics
-    final ReachedSet reached = pair.getFirst();
-    final Collection<AbstractState> returnStates = pair.getSecond();
-
-    if (reached != null && returnStates != null) { // we have reached-set and elements
-      assert Iterables.all(returnStates, s -> !((ARGState) s).isDestroyed())
-          : "do not use destroyed states: " + returnStates;
-      assert allStatesContainedInReachedSet(returnStates, reached)
-          : "output-states must be in reached-set: "
-              + returnStates
-              + " not available in reachedset with root "
-              + reached.getFirstState()
-              + " and last state "
-              + reached.getLastState();
-      fullCacheHits++;
-    } else if (reached != null) { // we have cached a partly computed reached-set
-      partialCacheHits++;
-    } else if (returnStates == null) {
+    if (entry == null) {
       cacheMisses++;
       if (gatherCacheMissStatistics) {
         findCacheMissCause(stateKey, precisionKey, context);
       }
     } else {
-      throw new AssertionError("invalid return-value for BAMCache.get(): " + pair);
+      if (entry.getExitStates() == null) {
+        // we have cached a partly computed reached-set
+        partialCacheHits++;
+      } else {
+        // we have a full cache hit
+        fullCacheHits++;
+      }
     }
 
-    return pair;
+    return entry;
   }
 
-  protected Pair<ReachedSet, Collection<AbstractState>> get0(
+  protected BAMCacheEntry get0(
       final AbstractState stateKey, final Precision precisionKey, final Block context) {
 
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    ReachedSet result = preciseReachedCache.get(hash);
+    BAMCacheEntry result = preciseReachedCache.get(hash);
     if (result != null) {
-      lastAnalyzedBlockCache = hash;
+      lastAnalyzedEntry = result;
       logger.log(Level.FINEST, "CACHE_ACCESS: precise entry");
-      return Pair.of(result, returnCache.get(hash));
+      return result;
     }
 
     return getIfNotExistant(stateKey, precisionKey, context, hash);
   }
 
   @SuppressWarnings("unused") /* parameters used in subclass */
-  protected Pair<ReachedSet, Collection<AbstractState>> getIfNotExistant(
+  protected BAMCacheEntry getIfNotExistant(
       final AbstractState stateKey,
       final Precision precisionKey,
       final Block context,
       AbstractStateHash hash) {
-    lastAnalyzedBlockCache = null;
+    lastAnalyzedEntry = null;
     logger.log(Level.FINEST, "CACHE_ACCESS: entry not available");
-    return Pair.of(null, null);
+    return null;
   }
 
   @Override
   public ARGState getLastAnalyzedBlock() {
-    return blockARGCache.get(lastAnalyzedBlockCache);
+    return lastAnalyzedEntry.getRootOfBlock();
   }
 
   private void findCacheMissCause(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
@@ -219,7 +186,7 @@ public class BAMCacheImpl implements BAMCache {
 
   @Override
   public Collection<ReachedSet> getAllCachedReachedStates() {
-    return preciseReachedCache.values();
+    return Collections2.transform(preciseReachedCache.values(), BAMCacheEntry::getReachedSet);
   }
 
   class AbstractStateHash {
@@ -311,8 +278,6 @@ public class BAMCacheImpl implements BAMCache {
   @Override
   public void clear() {
     preciseReachedCache.clear();
-    returnCache.clear();
-    blockARGCache.clear();
-    lastAnalyzedBlockCache = null;
+    lastAnalyzedEntry = null;
   }
 }

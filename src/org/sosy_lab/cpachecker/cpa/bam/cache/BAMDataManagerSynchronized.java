@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 
 public class BAMDataManagerSynchronized implements BAMDataManager {
 
@@ -52,7 +53,7 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   }
 
   @Override
-  public ReachedSet createAndRegisterNewReachedSet(
+  public BAMCacheEntry createAndRegisterNewReachedSet(
       AbstractState pInitialState, Precision pInitialPrecision, Block pContext) {
     synchronized (this) {
       return manager.createAndRegisterNewReachedSet(pInitialState, pInitialPrecision, pContext);

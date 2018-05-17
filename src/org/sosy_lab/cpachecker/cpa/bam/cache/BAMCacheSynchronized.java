@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** A wrapper for a fully synchronized cache access. */
@@ -73,37 +72,20 @@ public class BAMCacheSynchronized implements BAMCache {
   }
 
   @Override
-  public void put(AbstractState pStateKey, Precision pPrecisionKey, Block pContext,
-      ReachedSet pItem) {
+  public BAMCacheEntry put(
+      AbstractState pStateKey, Precision pPrecisionKey, Block pContext, ReachedSet pItem) {
     synchronized (this) {
       timer.start();
-      cache.put(pStateKey, pPrecisionKey, pContext, pItem);
-      timer.stop();
+      try {
+        return cache.put(pStateKey, pPrecisionKey, pContext, pItem);
+      } finally {
+        timer.stop();
+      }
     }
   }
 
   @Override
-  public void put(AbstractState pStateKey, Precision pPrecisionKey, Block pContext,
-      Collection<AbstractState> pItem, @Nullable ARGState pRootOfBlock) {
-    synchronized (this) {
-      timer.start();
-      cache.put(pStateKey, pPrecisionKey, pContext, pItem, pRootOfBlock);
-      timer.stop();
-    }
-  }
-
-  @Override
-  public void remove(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
-    synchronized (this) {
-      timer.start();
-      cache.remove(pStateKey, pPrecisionKey, pContext);
-      timer.stop();
-    }
-  }
-
-  @Override
-  public Pair<ReachedSet, Collection<AbstractState>> get(AbstractState pStateKey,
-      Precision pPrecisionKey, Block pContext) {
+  public BAMCacheEntry get(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
     synchronized (this) {
       try {
         timer.start();
