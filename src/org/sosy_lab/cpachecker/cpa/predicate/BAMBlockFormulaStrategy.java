@@ -49,11 +49,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
+public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
   private final PathFormulaManager pfmgr;
 
-  BAMBlockFormulaStrategy(PathFormulaManager pPfmgr) {
+  public BAMBlockFormulaStrategy(PathFormulaManager pPfmgr) {
     pfmgr = pPfmgr;
   }
 

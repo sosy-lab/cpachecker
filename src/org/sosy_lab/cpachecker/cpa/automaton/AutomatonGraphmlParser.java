@@ -649,24 +649,24 @@ public class AutomatonGraphmlParser {
       GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitAssumptionScope =
           getFunction(pGraphMLParserState, thread, pTransition.getExplicitAssumptionScope());
-      Scope scope =
+      Scope assumptionScope =
           determineScope(
               explicitAssumptionScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
           getFunction(
               pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> assumptionResultFunction =
-          determineResultFunction(explicitAssumptionResultFunction, scope);
+          determineResultFunction(explicitAssumptionResultFunction, assumptionScope);
       try {
-        return
-            CParserUtils.convertStatementsToAssumptions(
-                CParserUtils.parseStatements(
-                    pTransition.getAssumptions(),
-                    assumptionResultFunction,
-                    pCParser,
-                    scope, parserTools),
-                cfa.getMachineModel(),
-                logger);
+        return CParserUtils.convertStatementsToAssumptions(
+            CParserUtils.parseStatements(
+                pTransition.getAssumptions(),
+                assumptionResultFunction,
+                pCParser,
+                assumptionScope,
+                parserTools),
+            cfa.getMachineModel(),
+            logger);
       } catch (InvalidAutomatonException e) {
         String reason = e.getMessage();
         if (e.getCause() instanceof ParserException) {
@@ -1506,9 +1506,9 @@ public class AutomatonGraphmlParser {
       return pResultFunction;
     }
     if (pScope instanceof CProgramScope) {
-      CProgramScope scope = (CProgramScope) pScope;
-      if (!scope.isGlobalScope()) {
-        return Optional.of(scope.getCurrentFunctionName());
+      CProgramScope functionScope = (CProgramScope) pScope;
+      if (!functionScope.isGlobalScope()) {
+        return Optional.of(functionScope.getCurrentFunctionName());
       }
     }
     return Optional.empty();

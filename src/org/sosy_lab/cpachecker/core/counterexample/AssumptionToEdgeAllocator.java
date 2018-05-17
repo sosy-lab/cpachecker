@@ -1639,13 +1639,7 @@ public class AssumptionToEdgeAllocator {
       @Override
       public @Nullable Void visit(CCompositeType compType) {
 
-        if (compType.getKind() == ComplexTypeKind.ENUM) {
-          // TODO Enum
-        }
-
-        if (compType.getKind() == ComplexTypeKind.UNION) {
-          //TODO Union
-        }
+        // TODO handle enums and unions
 
         if (compType.getKind() == ComplexTypeKind.STRUCT) {
           handleStruct(compType);

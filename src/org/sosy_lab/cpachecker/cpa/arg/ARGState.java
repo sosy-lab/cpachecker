@@ -318,6 +318,13 @@ public class ARGState extends AbstractSingleWrapperState
     counterexample = pCounterexample;
   }
 
+  public void replaceCounterexampleInformation(CounterexampleInfo pCounterexample) {
+    checkArgument(isTarget());
+    checkArgument(!pCounterexample.isSpurious());
+    checkArgument(pCounterexample.getTargetState().isTarget());
+    counterexample = pCounterexample;
+  }
+
   /**
    * Get additional information about the counterexample that is associated with this target state,
    * if present.

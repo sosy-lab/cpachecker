@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -129,6 +130,17 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(secure = true, description = "Export extended witness in addition to regular witness")
+  private boolean exportExtendedWitness = false;
+
+  @Option(
+    secure = true,
+    description = "Extended witness with specific analysis information file"
+  )
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate extendedWitnessFile =
+      PathTemplate.ofFormatString("extendedWitness.%d.graphml");
+
   @Option(secure = true, name = "exportHarness", description = "export test harness")
   private boolean exportHarness = false;
 
@@ -170,22 +182,25 @@ public class CEXExporter {
 
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
+  private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
 
   public CEXExporter(
       Configuration config,
-      LogManager logger,
+      LogManager pLogger,
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
-      WitnessExporter pWitnessExporter)
+      WitnessExporter pWitnessExporter,
+      ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.logger = logger;
+    this.logger = pLogger;
 
     cexFilter =
-        CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
+        CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
     witnessExporter = checkNotNull(pWitnessExporter);
-    harnessExporter = new HarnessExporter(config, logger, cfa);
+    extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
+    harnessExporter = new HarnessExporter(config, pLogger, cfa);
 
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -353,6 +368,21 @@ public class CEXExporter {
                     isTargetPathEdge,
                     counterexample),
         compressWitness);
+
+    if (exportExtendedWitness) {
+      writeErrorPathFile(
+          extendedWitnessFile,
+          uniqueId,
+          (Appender)
+              pAppendable ->
+                  extendedWitnessExporter.writeErrorWitness(
+                      pAppendable,
+                      rootState,
+                      Predicates.in(pathElements),
+                      isTargetPathEdge,
+                      counterexample),
+          compressWitness);
+    }
 
     if (exportHarness) {
       writeErrorPathFile(

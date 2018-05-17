@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import java.util.Collection;
@@ -102,7 +104,7 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
 
   @Override
   public Precision getPrecision(AbstractState state) {
-    return precisionGetter.apply(state);
+    return checkNotNull(precisionGetter.apply(state));
   }
 
   @Override

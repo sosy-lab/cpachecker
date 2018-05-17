@@ -263,13 +263,16 @@ class KInductionProver implements AutoCloseable {
   }
 
   public BooleanFormula getCurrentLocationInvariants(
-      CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+      CFANode pLocation,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
+      PathFormula pContext)
       throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
 
     return currentInvariantsSupplier.getInvariantFor(
-        pLocation, Optional.empty(), pFMGR, pPFMGR, pContext);
+        pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
   }
 
   public ExpressionTree<Object> getCurrentLocationInvariants(CFANode pLocation)
@@ -747,8 +750,9 @@ class KInductionProver implements AutoCloseable {
             OptionalInt index = pair.getSecond();
             Object value = valueAssignment.getValue();
             if (index.isPresent()
-                && ssaMap.containsVariable(actualName)
-                && ssaMap.getIndex(actualName) == index.getAsInt()
+                && (ssaMap.containsVariable(actualName)
+                    ? ssaMap.getIndex(actualName) == index.getAsInt()
+                    : index.getAsInt() == 1)
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =

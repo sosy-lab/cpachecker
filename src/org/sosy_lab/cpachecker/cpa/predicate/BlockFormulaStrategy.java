@@ -79,6 +79,11 @@ public class BlockFormulaStrategy {
     public boolean hasBranchingFormula() {
       return branchingFormula != null;
     }
+
+    @Override
+    public String toString() {
+      return "BlockFormulas " + getFormulas();
+    }
   }
 
   static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =

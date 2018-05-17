@@ -101,9 +101,7 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+    return super.hashCode();
   }
 
   @Override

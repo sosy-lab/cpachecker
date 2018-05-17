@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 abstract class FullPathIterator extends PathIterator {
   protected final List<CFAEdge> fullPath;
   protected boolean currentPositionHasState = true;
+
+  /* The position with respect to fullPath */
   protected int overallOffset;
 
   protected FullPathIterator(ARGPath pPath, int pPos, int pOverallOffset) {
@@ -68,7 +70,7 @@ abstract class FullPathIterator extends PathIterator {
 
   @Override
   public @Nullable CFAEdge getIncomingEdge() {
-    checkState(pos > 0, "First state in ARGPath has no incoming edge.");
+    checkState(overallOffset > 0, "First state in ARGPath has no incoming edge.");
     return fullPath.get(overallOffset - 1);
   }
 
@@ -85,7 +87,7 @@ abstract class FullPathIterator extends PathIterator {
    */
   @Override
   public ARGState getPreviousAbstractState() {
-    checkState(pos - 1 >= 0);
+    checkState(overallOffset > 0);
     if (currentPositionHasState) {
       return path.asStatesList().get(pos - 1);
     } else {

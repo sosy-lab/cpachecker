@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
@@ -51,7 +53,7 @@ class BoolCollectingVisitor extends VariablesCollectingVisitor {
 
   public BoolCollectingVisitor(CFANode pre, Set<String> pNonIntBoolVars) {
     super(pre);
-    nonIntBoolVars = pNonIntBoolVars;
+    nonIntBoolVars = checkNotNull(pNonIntBoolVars);
   }
 
   @Override

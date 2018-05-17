@@ -29,6 +29,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-core.jar" sourcepath="lib/java-contrib/ultimate-core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/checker-compat-qual.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/byte-buddy.jar"/>
@@ -49,7 +50,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/jna.jar"/>
-	<classpathentry kind="lib" path="lib/llvm-j.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/llvm-j.jar" sourcepath="lib/java-contrib/llvm-j-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-awt-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-constants.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-dom.jar" sourcepath="lib/java-contrib/batik-dom-sources.jar"/>

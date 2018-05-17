@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -43,23 +42,18 @@ public class SyntacticWeakeningManager {
   }
 
   /**
-   * Syntactic formula weakening: slices away all atoms which have variables
-   * which were changed (== SSA index changed) by the transition relation.
-   * In that case, \phi is exactly the same as \phi',
+   * Syntactic formula weakening: slices away all atoms which have variables which were changed (==
+   * SSA index changed) by the transition relation. In that case, \phi is exactly the same as \phi',
    * and the formula should be unsatisfiable.
    *
-   *
    * @param selectionInfo selection variable -> corresponding (uninstantiated) lemma
-   * @param transition Transition with respect to which the weakening must be inductive.
-   *
    * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
-   * @return Set of selectors which correspond to atoms which *should*
-   *         be abstracted.
+   * @return Set of selectors which correspond to atoms which *should* be abstracted.
    */
   public Set<BooleanFormula> performWeakening(
       SSAMap pFromSSA,
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      PathFormula transition,
+      SSAMap pToSSA,
       Set<BooleanFormula> pFromStateLemmas) {
     Set<BooleanFormula> out = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionInfo.entrySet()) {
@@ -67,8 +61,7 @@ public class SyntacticWeakeningManager {
       BooleanFormula lemma = e.getValue();
 
       BooleanFormula instantiatedFrom = fmgr.instantiate(lemma, pFromSSA);
-      BooleanFormula instantiatedTo =
-          fmgr.instantiate(lemma, transition.getSsa());
+      BooleanFormula instantiatedTo = fmgr.instantiate(lemma, pToSSA);
 
       if (!pFromStateLemmas.contains(lemma) ||
             !instantiatedFrom.equals(instantiatedTo)) {

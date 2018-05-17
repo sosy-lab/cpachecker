@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.io.Serializable;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
-public class SingletonPrecision implements AdjustablePrecision {
+public class SingletonPrecision implements AdjustablePrecision, Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   private final static SingletonPrecision mInstance = new SingletonPrecision();
 
@@ -50,5 +53,9 @@ public class SingletonPrecision implements AdjustablePrecision {
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     return this;
+  }
+
+  protected Object readResolve() {
+    return getInstance();
   }
 }

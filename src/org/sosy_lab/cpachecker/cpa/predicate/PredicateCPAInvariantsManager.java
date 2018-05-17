@@ -308,21 +308,22 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   public BooleanFormula getInvariantFor(
       CFANode pNode,
       Optional<CallstackStateEqualsWrapper> pCallstackInformation,
-      FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       PathFormula pContext)
       throws InterruptedException {
-    BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+    BooleanFormulaManager bfManager = pFormulaManager.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
-    BooleanFormula globalInvariant = bfmgr.makeTrue();
+    BooleanFormula globalInvariant = bfManager.makeTrue();
 
     if (useGlobalInvariants) {
-      globalInvariant = globalInvariants.getInvariantFor(
-          pNode, pCallstackInformation, pFmgr, pPfmgr, pContext);
+      globalInvariant =
+          globalInvariants.getInvariantFor(
+              pNode, pCallstackInformation, pFormulaManager, pPathFormulaManager, pContext);
     }
 
-    return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
+    return bfManager.and(globalInvariant, bfManager.and(localInvariants));
   }
 
   /**
@@ -1088,13 +1089,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
             .beginLevel()
             .put(terminatingInvGenTries)
             .put(successfulInvGenTries)
-            .put(
-                "Used strategies per generation try",
-                String.format(
-                    "%11.2f (max: %d, min: %d)",
-                    usedStrategiesPerTrie.getAverage(),
-                    usedStrategiesPerTrie.getMax(),
-                    usedStrategiesPerTrie.getMin()))
+            .put(usedStrategiesPerTrie)
             .endLevel()
             .spacer()
             .put(invgenTime)

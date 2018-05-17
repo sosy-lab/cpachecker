@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransferException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -104,6 +105,13 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     } catch (InvalidConfigurationException e) {
       // Supplied configuration should not fail.
       throw new AssertionError("Configuration of TargetLocationProviderImpl failed", e);
+
+    } catch (AutomatonTransferException e) {
+      logManager.logUserException(
+          Level.INFO,
+          e,
+          "Unable to find precise set of target locations. Defaulting to selecting all locations as potential target locations.");
+      return allNodes;
 
     } catch (CPAException e) {
       if (!e.toString().toLowerCase().contains("recursion")) {

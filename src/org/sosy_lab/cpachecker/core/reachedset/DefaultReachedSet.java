@@ -30,6 +30,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,14 +53,13 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
-/**
- * Basic implementation of ReachedSet.
- * It does not group states by location or any other key.
- */
-class DefaultReachedSet implements ReachedSet {
+/** Basic implementation of ReachedSet. It does not group states by location or any other key. */
+class DefaultReachedSet implements ReachedSet, Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   private final LinkedHashMap<AbstractState, Precision> reached;
-  private final Set<AbstractState> unmodifiableReached;
+  private transient Set<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
@@ -195,11 +197,13 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public Collection<AbstractState> getReached(AbstractState state) {
+    checkNotNull(state);
     return asCollection();
   }
 
   @Override
   public Collection<AbstractState> getReached(CFANode location) {
+    checkNotNull(location);
     return asCollection();
   }
 
@@ -313,5 +317,10 @@ class DefaultReachedSet implements ReachedSet {
         .filter(Targetable.class)
         .transformAndConcat(Targetable::getViolatedProperties)
         .toSet();
+  }
+
+  private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+    s.defaultReadObject();
+    unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
   }
 }

@@ -125,4 +125,10 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
   }
+
+  public void clearAllCaches() {
+    getPredicateManager().clear();
+    relevantPredicatesComputer.clear();
+    getPathFormulaManager().clearCaches();
+  }
 }

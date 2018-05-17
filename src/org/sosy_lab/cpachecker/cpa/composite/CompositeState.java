@@ -200,7 +200,9 @@ public class CompositeState
     return pseudoHashCode;
   }
 
-  private static final class CompositePartitionKey {
+  private static final class CompositePartitionKey implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Object[] keys;
 
@@ -234,7 +236,9 @@ public class CompositeState
 
   @SuppressWarnings("rawtypes")
   private static final class CompositePseudoPartitionKey
-      implements Comparable<CompositePseudoPartitionKey> {
+      implements Comparable<CompositePseudoPartitionKey>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Comparable<?>[] keys;
 

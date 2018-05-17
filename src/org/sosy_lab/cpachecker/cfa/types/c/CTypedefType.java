@@ -95,13 +95,7 @@ public final class CTypedefType implements CType, Serializable {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(name);
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(realType);
-      hashCache = result;
+      hashCache = Objects.hash(name, isConst, isVolatile, realType);
     }
     return hashCache;
   }

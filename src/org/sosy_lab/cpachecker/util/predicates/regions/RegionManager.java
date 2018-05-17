@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import com.google.common.base.Function;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * A RegionManager encapsulates all operations for creating, inspecting,

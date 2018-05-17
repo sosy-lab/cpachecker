@@ -157,10 +157,20 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
-    return performRefinement(new ARGReachedSet(pReached, argCpa)).isSpurious();
+    CounterexampleInfo cex = performRefinementAndGetCex(pReached);
+
+    if (!cex.isSpurious()) {
+      cex.getTargetPath().getLastState().addCounterexampleInformation(cex);
+    }
+    return cex.isSpurious();
   }
 
-  private CounterexampleInfo performRefinement(final ARGReachedSet pReached)
+  protected CounterexampleInfo performRefinementAndGetCex(final ReachedSet pReached)
+      throws CPAException, InterruptedException {
+    return performRefinement(new ARGReachedSet(pReached, argCpa));
+  }
+
+  protected CounterexampleInfo performRefinement(final ARGReachedSet pReached)
       throws CPAException, InterruptedException {
 
     Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
@@ -372,7 +382,9 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    * @throws InterruptedException may be thrown in subclass
    * @throws CPAException may be thrown in subclass
    */
-  protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+  @ForOverride
+  protected CFAPathWithAssumptions createModel(ARGPath errorPath)
+      throws InterruptedException, CPAException {
     return CFAPathWithAssumptions.empty();
   }
 

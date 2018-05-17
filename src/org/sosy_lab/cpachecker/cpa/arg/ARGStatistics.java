@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -138,6 +139,7 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
+  private final ExtendedWitnessExporter extendedWitnessExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private final ARGToPixelsWriter argToBitmapExporter;
@@ -158,7 +160,9 @@ public class ARGStatistics implements Statistics {
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
-    cexExporter = new CEXExporter(config, logger, cfa, cpa, argWitnessExporter);
+    extendedWitnessExporter = new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
+    cexExporter =
+        new CEXExporter(config, logger, cfa, cpa, argWitnessExporter, extendedWitnessExporter);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null
         && proofWitness == null && pixelGraphicFile == null) {
@@ -363,7 +367,8 @@ public class ARGStatistics implements Statistics {
     }
   }
 
-  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
+  public Map<ARGState, CounterexampleInfo> getAllCounterexamples(
+      final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {

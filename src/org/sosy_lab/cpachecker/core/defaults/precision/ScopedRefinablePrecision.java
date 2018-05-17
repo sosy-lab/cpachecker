@@ -29,19 +29,20 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
+
+  private static final long serialVersionUID = 1L;
+
   /**
    * the collection that determines which variables are tracked within a specific scope
    */

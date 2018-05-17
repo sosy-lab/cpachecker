@@ -248,13 +248,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
   private void visitOutsideSuccessors(final Set<Integer> pNodeSet, final NodeVisitor pVisitor) {
     try {
-      Predicate<Integer> isOutsideSet = new Predicate<Integer>() {
-
-        @Override
-        public boolean apply(@Nullable Integer pNode) {
-          return !pNodeSet.contains(pNode);
-        }
-      };
+      Predicate<Integer> isOutsideSet = pNode -> !pNodeSet.contains(pNode);
       for (int predecessor : pNodeSet) {
         visitOutsideSuccessorsOf(predecessor, pVisitor, isOutsideSet);
       }
@@ -281,13 +275,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
   private void visitSuccessorsInOtherSet(final Set<Integer> pNodeSet,
       final Set<Integer> pOtherNodeSet,
       final NodeVisitor pVisitor) {
-    Predicate<Integer> isInOtherSet = new Predicate<Integer>() {
-
-      @Override
-      public boolean apply(@Nullable Integer pNode) {
-        return pOtherNodeSet.contains(pNode);
-      }
-    };
+    Predicate<Integer> isInOtherSet = pOtherNodeSet::contains;
     for (int predecessor : pNodeSet) {
       visitOutsideSuccessorsOf(predecessor, pVisitor, isInOtherSet);
     }

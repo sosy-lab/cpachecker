@@ -258,7 +258,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     switch (weakeningStrategy) {
       case SYNTACTIC:
         return syntacticWeakeningManager.performWeakening(
-                fromSSA, selectionVarsInfo, transition, pFromStateLemmas);
+            fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);
 
       case DESTRUCTIVE:
         return destructiveWeakeningManager.performWeakening(

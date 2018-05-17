@@ -59,9 +59,7 @@ public class CCharLiteralExpression extends ACharLiteralExpression implements CL
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    return result * prime + super.hashCode();
+    return super.hashCode();
   }
 
   @Override

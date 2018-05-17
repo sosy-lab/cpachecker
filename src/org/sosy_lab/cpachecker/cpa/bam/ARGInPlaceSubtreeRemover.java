@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheAggressiveImpl;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -235,7 +236,11 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
 
     AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
     Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-    bamCache.remove(reducedRootState, reducedRootPrecision, rootSubtree);
+    BAMCacheEntry entry = bamCache.get(reducedRootState, reducedRootPrecision, rootSubtree);
+    if (entry != null) {
+      // TODO do we need this check? Maybe there is a bug, if the entry is not available?
+      entry.deleteInfo();
+    }
 
     ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
     if (pNewPrecisions.isEmpty()) {

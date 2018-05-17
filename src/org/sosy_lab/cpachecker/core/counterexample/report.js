@@ -8,7 +8,7 @@
 
 	var app = angular.module('report', []);
 
-	app.controller('ReportController', [ '$rootScope', '$scope',
+	reportController = app.controller('ReportController', [ '$rootScope', '$scope',
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" + 
@@ -112,7 +112,7 @@
 				};
 			}]);
 	
-	app.controller("ErrorpathController", ['$rootScope', '$scope', function($rootScope, $scope) {
+	var errorpathController = app.controller("ErrorpathController", ['$rootScope', '$scope', function($rootScope, $scope) {
 		$rootScope.errorPath = [];
 		
 		function getValues(val, prevValDict) {
@@ -375,7 +375,7 @@
 		
 	}]);
 	
-	app.controller("SearchController", ['$rootScope', '$scope', function($rootScope, $scope) {
+	var searchController = app.controller("SearchController", ['$rootScope', '$scope', function($rootScope, $scope) {
         $scope.numOfValueMatches = 0;
         $scope.numOfDescriptionMatches = 0;
 
@@ -459,7 +459,7 @@
         }
 	}]);
 	
-	app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope) {
+	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope) {
 		$scope.showValues = function($event){
             var element = $event.currentTarget;
             if (element.classList.contains("markedTableElement")) {
@@ -470,7 +470,7 @@
 		};
 	}]);
 	
-	app.controller('CFAToolbarController', ['$scope', 
+	cfaToolbarController = app.controller('CFAToolbarController', ['$scope',
 		function($scope) {
 			if (functions.length > 1) {
 	    		$scope.functions = ["all"].concat(functions);
@@ -572,7 +572,7 @@
     		}
 	}]);
 	
-	app.controller('ARGToolbarController', ['$rootScope', '$scope',
+	var argToolbarController = app.controller('ARGToolbarController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
 			$scope.zoomEnabled = false;
 			$scope.argSelections = ["complete"];
@@ -654,7 +654,7 @@
     		}    		
 	}]);
 
-	app.controller('SourceController', [ '$rootScope', '$scope', '$location',
+	var sourceController = app.controller('SourceController', [ '$rootScope', '$scope', '$location',
 			'$anchorScroll',
 			function($rootScope, $scope, $location, $anchorScroll) {
 				// available sourcefiles

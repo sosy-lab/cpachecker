@@ -45,11 +45,13 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
@@ -125,6 +127,14 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="algorithm.impact",
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
+
+  @Option(secure = true, name = "useInterleavedAnalyses",
+      description = "start different analyses interleaved and continue after unknown result")
+    private boolean useInterleavedAlgorithm = false;
+
+  @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
+      description = "generate test cases for covered test targets")
+    private boolean useTestCaseGeneratorAlgorithm = false;
 
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
@@ -320,9 +330,12 @@ public class CoreComponentsFactory {
     } else if (asConditionalVerifier) {
       logger.log(Level.INFO, "Using Conditional Verifier");
       algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
-    }else if (useRestartingAlgorithm) {
+    } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useInterleavedAlgorithm) {
+      logger.log(Level.INFO, "Using Interleaved Algorithm");
+      algorithm = new InterleavedAlgorithm(config, logger, shutdownNotifier, specification, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -374,7 +387,8 @@ public class CoreComponentsFactory {
                 reachedSetFactory,
                 shutdownNotifier,
                 cfa,
-                specification);
+                specification,
+                aggregatedReachedSets);
       }
 
       if (useBMC) {
@@ -410,6 +424,11 @@ public class CoreComponentsFactory {
 
       if (checkCounterexamplesWithBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (useTestCaseGeneratorAlgorithm) {
+        algorithm =
+            new TestCaseGeneratorAlgorithm(algorithm, cfa, config, cpa, logger, shutdownNotifier);
       }
 
       if (collectAssumptions) {
@@ -471,7 +490,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useParallelAlgorithm || asConditionalVerifier) {
+    if (useInterleavedAlgorithm || useRestartingAlgorithm || useParallelAlgorithm || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -488,7 +507,8 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm
+    if (useInterleavedAlgorithm
+        || useRestartingAlgorithm
         || useParallelAlgorithm
         || useProofCheckAlgorithmWithStoredConfig
         || useProofCheckWithARGCMCStrategy

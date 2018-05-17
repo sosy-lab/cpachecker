@@ -31,16 +31,17 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -49,6 +50,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -84,9 +87,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
@@ -212,6 +215,16 @@ public class CPAchecker {
     description = "use CBMC as an external tool from CPAchecker"
   )
   private boolean runCBMCasExternalTool = false;
+
+  @Option(
+    secure = true,
+    name = "analysis.serializedCfaFile",
+    description =
+        "if this option is used, the CFA will be loaded from the given file "
+            + "instead of parsed from sourcefile."
+  )
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path serializedCfaFile = null;
 
   @Option(
     secure = true,
@@ -379,7 +392,7 @@ public class CPAchecker {
       } catch (CPAException e) {
         // Dirty hack necessary until broken exception handling in parallel algorithm is fixed
         Throwable cause = e.getCause();
-        if (cause != null && e.getMessage().equals(ParallelAlgorithm.UNEXPECTED_EXCEPTION_MSG)) {
+        if (cause != null && ParallelAlgorithm.UNEXPECTED_EXCEPTION_MSG.equals(e.getMessage())) {
           Throwables.throwIfInstanceOf(cause, IOException.class);
           Throwables.throwIfInstanceOf(cause, ParserException.class);
           Throwables.throwIfInstanceOf(cause, InvalidConfigurationException.class);
@@ -401,6 +414,9 @@ public class CPAchecker {
       }
       msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
+
+    } catch (ClassNotFoundException e) {
+      logger.logUserException(Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
 
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
@@ -440,12 +456,25 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-    // parse file and create CFA
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator);
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      ClassNotFoundException {
 
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+    final CFA cfa;
+    if (serializedCfaFile == null) {
+      // parse file and create CFA
+      CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+      stats.setCFACreator(cfaCreator);
+      cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+
+    } else {
+      // load CFA from serialization file
+      try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
+          InputStream gzipInputStream = new GZIPInputStream(inputStream);
+          ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
+        cfa = (CFA) ois.readObject();
+      }
+    }
+
     stats.setCFA(cfa);
     return cfa;
   }
@@ -564,11 +593,13 @@ public class CPAchecker {
                                                           .build();
         break;
       case PROGRAM_SINKS:
-        Builder<CFANode> builder = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().get()));
-        if (pCfa.getAllNodes().contains(pAnalysisEntryFunction.getExitNode())) {
-          builder.add(pAnalysisEntryFunction.getExitNode());
-        }
-         initialLocations = builder.build();
+          initialLocations =
+              ImmutableSet.<CFANode>builder()
+                  .addAll(
+                      CFAUtils.getProgramSinks(
+                          pCfa, pCfa.getLoopStructure().get(), pAnalysisEntryFunction))
+                  .build();
+
         break;
         case TARGET:
           TargetLocationProvider tlp =
@@ -610,18 +641,7 @@ public class CPAchecker {
     return functionExitNodes;
   }
 
-  private Set<CFANode> getAllEndlessLoopHeads(LoopStructure structure) {
-    ImmutableCollection<Loop> loops = structure.getAllLoops();
-    Set<CFANode> loopHeads = new HashSet<>();
-
-    for (Loop l : loops) {
-      if (l.getOutgoingEdges().isEmpty()) {
-        // one loopHead per loop should be enough for finding all locations
-        for (CFANode head : l.getLoopHeads()) {
-          loopHeads.add(head);
-        }
-      }
-    }
-    return loopHeads;
+  private Collection<CFANode> getAllEndlessLoopHeads(LoopStructure structure) {
+    return CFAUtils.getEndlessLoopHeads(structure);
   }
 }

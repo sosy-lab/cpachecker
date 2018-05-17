@@ -71,11 +71,7 @@ public class CAddressOfLabelExpression extends AbstractExpression implements CEx
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + label.hashCode();
-    result = prime * result + super.hashCode();
-    return result;
+    return label.hashCode() * 31 + super.hashCode();
   }
 
   @Override

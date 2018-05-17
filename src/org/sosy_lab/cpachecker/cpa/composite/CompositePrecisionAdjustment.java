@@ -44,12 +44,12 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
   CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
 
-    ImmutableList.Builder<Function<AbstractState, AbstractState>> stateProjectionFunctions =
+    ImmutableList.Builder<Function<AbstractState, AbstractState>> stateProjections =
         ImmutableList.builder();
     for (int i = 0; i < precisionAdjustments.size(); i++) {
-      stateProjectionFunctions.add(getStateProjectionFunction(i));
+      stateProjections.add(getStateProjectionFunction(i));
     }
-    this.stateProjectionFunctions = stateProjectionFunctions.build();
+    this.stateProjectionFunctions = stateProjections.build();
   }
 
   private Function<AbstractState, AbstractState> getStateProjectionFunction(int i) {

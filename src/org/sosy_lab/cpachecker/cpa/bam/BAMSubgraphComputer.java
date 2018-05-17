@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -55,7 +56,7 @@ public class BAMSubgraphComputer {
 
   private final BlockPartitioning partitioning;
   private final Reducer reducer;
-  private final BAMDataManager data;
+  protected final BAMDataManager data;
   private final LogManager logger;
   private final boolean useCopyOnWriteRefinement;
 
@@ -207,7 +208,7 @@ public class BAMSubgraphComputer {
    *                     newExpandedTarget has only children, that are all part of the Pseudo-ARG
    *                     (these children are copies of states from reachedSets of other blocks)
    */
-  private void computeCounterexampleSubgraphForBlock(
+  protected void computeCounterexampleSubgraphForBlock(
           final BackwardARGState newExpandedRoot,
           final Set<BackwardARGState> newExpandedTargets)
       throws MissingBlockException, InterruptedException {
@@ -267,9 +268,16 @@ public class BAMSubgraphComputer {
         final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
         final AbstractState reducedRootState =
             reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-        data.getCache()
-            .remove(
-                reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+        BAMCacheEntry cacheEntry =
+            data.getCache()
+                .get(
+                    reducedRootState,
+                    reachedSet.getPrecision(reachedSet.getFirstState()),
+                    rootBlock);
+        if (cacheEntry != null) {
+          // TODO do we need this check? Maybe there is a bug, if the entry is not available?
+          cacheEntry.deleteInfo();
+        }
         throw new MissingBlockException();
       }
 
@@ -296,11 +304,12 @@ public class BAMSubgraphComputer {
     // is inserted between newCurrentState and child.
   }
 
-
-  /** This ARGState is used to build the Pseudo-ARG for CEX-retrieval.
+  /**
+   * This ARGState is used to build the Pseudo-ARG for CEX-retrieval.
    *
-   * TODO we could replace the BackwardARGState completely by a normal ARGState,
-   * we just keep it for debugging. */
+   * <p>TODO we could replace the BackwardARGState completely by a normal ARGState, we just keep it
+   * for debugging.
+   */
   static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
@@ -311,6 +320,10 @@ public class BAMSubgraphComputer {
 
     public ARGState getARGState() {
       return (ARGState) getWrappedState();
+    }
+
+    public BackwardARGState copy() {
+      return new BackwardARGState(getARGState());
     }
 
     @Override

@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -73,17 +74,17 @@ public class WitnessExporter {
 
   private static final String FUNCTION_DELIMITER = "::";
 
-  private final WitnessOptions options;
+  protected final WitnessOptions options;
 
-  private final CFA cfa;
+  protected final CFA cfa;
   private final FormulaManagerView fmgr;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
-  private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  private final VerificationTaskMetaData verificationTaskMetaData;
+  protected final VerificationTaskMetaData verificationTaskMetaData;
 
   public WitnessExporter(
       final Configuration pConfig,
@@ -247,6 +248,7 @@ public class WitnessExporter {
             return stateInvariant;
           }
 
+          @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
           private ExpressionTree<Object> extractValueAnalysisInvariants(
               CFAEdge pEdge, ARGState state, ExpressionTree<Object> stateInvariant) {
             ValueAnalysisState valueAnalysisState =
@@ -307,7 +309,7 @@ public class WitnessExporter {
         GraphBuilder.CFA_FULL);
   }
 
-  private String getInitialFileName(ARGState pRootState) {
+  protected String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
     while (!worklist.isEmpty()) {

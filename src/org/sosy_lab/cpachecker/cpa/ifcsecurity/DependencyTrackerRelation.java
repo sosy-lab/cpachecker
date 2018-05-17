@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -57,15 +65,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 /**
  * CPA-Transfer-Relation for tracking which variables/functions are depends on which other variables/functions
@@ -313,8 +312,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     assert pState instanceof DependencyTrackerState;
-    DependencyTrackerState state=(DependencyTrackerState)pState;
-
+    DependencyTrackerState trackerState = (DependencyTrackerState) pState;
 
     /*
      * ControlDependancyTrackerState => Statement
@@ -323,7 +321,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
      * }
      *
      */
-    strengthenExpressionAssignementStatement(state,pOtherStates,pCfaEdge,pPrecision);
+    strengthenExpressionAssignementStatement(trackerState, pOtherStates, pCfaEdge, pPrecision);
     /*
      * ControlDependancyTrackerState => CFunctionCallAssignmentStatement
      * if(h){
@@ -331,7 +329,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
      * }
      *
      */
-    strengthenFunctionCallAssignmentStatement(state, pOtherStates, pCfaEdge, pPrecision);
+    strengthenFunctionCallAssignmentStatement(trackerState, pOtherStates, pCfaEdge, pPrecision);
     /*
      * ControlDependancyTrackerState => CFunctionCallStatement
      * if(h){
@@ -339,14 +337,14 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
      * }
      *
      */
-    strengthenFunctionCallStatement(state, pOtherStates, pCfaEdge, pPrecision);
+    strengthenFunctionCallStatement(trackerState, pOtherStates, pCfaEdge, pPrecision);
     /*
      * CallstackState => CReturnStatementEdge
      * func(s){
      *  return val;       Dep(func)=[Dep(val)]
      * }
      */
-    strengthenReturnStatementEdge(state, pOtherStates, pCfaEdge, pPrecision);
+    strengthenReturnStatementEdge(trackerState, pOtherStates, pCfaEdge, pPrecision);
     //PointerCPA
     for(AbstractState astate: pOtherStates){
       if(astate instanceof PointerState){
@@ -356,13 +354,13 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           String varname=memloc.getKey().getIdentifier();
           Variable var=new Variable(varname);
           LocationSet lset=memloc.getValue();
-          for(Variable var2: state.getDependencies().keySet()){
+          for (Variable var2 : trackerState.getDependencies().keySet()) {
             if(lset.mayPointTo(MemoryLocation.valueOf(var2.toString()))){
-              SortedSet<Variable> varset1=state.getDependencies().get(var);
-              SortedSet<Variable> varset2=state.getDependencies().get(var2);
+              SortedSet<Variable> varset1 = trackerState.getDependencies().get(var);
+              SortedSet<Variable> varset2 = trackerState.getDependencies().get(var2);
               if(!(varset1.equals(varset2))){
                 SortedSet<Variable> newvarset1=new TreeSet<>(varset2);
-                state.getDependencies().put(var, newvarset1);
+                trackerState.getDependencies().put(var, newvarset1);
               }
             }
           }

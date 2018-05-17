@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -49,6 +51,16 @@ public class BAMTransferRelationWithBreakOnMissingBlock
   public BAMTransferRelationWithBreakOnMissingBlock(
       AbstractBAMCPA bamCPA, ShutdownNotifier pShutdownNotifier) {
     super(bamCPA, pShutdownNotifier);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      final AbstractState pState, final Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    if (pState instanceof MissingBlockAbstractionState) {
+      return Collections.emptySet();
+    }
+    return super.getAbstractSuccessors(pState, pPrecision);
   }
 
   /**
@@ -110,10 +122,10 @@ public class BAMTransferRelationWithBreakOnMissingBlock
 
     // Try to get an element from cache. A previously computed element consists of
     // a reached set associated with the recursive call.
-    final Pair<ReachedSet, Collection<AbstractState>> pair =
+    final BAMCacheEntry entry =
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
-    final ReachedSet cachedReached = pair.getFirst();
-    final Collection<AbstractState> cachedReturnStates = pair.getSecond();
+    final ReachedSet cachedReached = entry == null ? null : entry.getReachedSet();
+    final Collection<AbstractState> cachedReturnStates = entry == null ? null : entry.getExitStates();
 
     assert cachedReturnStates == null || cachedReached != null
         : "there cannot be result-states without reached-states";
@@ -130,13 +142,14 @@ public class BAMTransferRelationWithBreakOnMissingBlock
       return Pair.of(Collections.singleton(mbas), cachedReached);
     }
 
-    assert cachedReached != null;
+    Preconditions.checkNotNull(entry);
+    Preconditions.checkNotNull(cachedReached);
     registerInitalAndExitStates(initialState, cachedReturnStates, cachedReached);
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
-    data.getCache().put(
-        reducedInitialState, reducedInitialPrecision, innerSubtree, cachedReturnStates, null);
+    entry.setExitStates(cachedReturnStates);
+    entry.setRootOfBlock(null);
 
     return Pair.of(cachedReturnStates, cachedReached);
   }

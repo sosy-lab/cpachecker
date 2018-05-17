@@ -26,14 +26,17 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import java.io.PrintStream;
 import java.util.Collection;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** A wrapper for a fully synchronized cache access. */
@@ -43,8 +46,9 @@ public class BAMCacheSynchronized implements BAMCache {
   private final BAMCache cache;
   private final StatTimer timer = new StatTimer("Time for cache-access");
 
-  public BAMCacheSynchronized(BAMCache pCache) {
-    cache = pCache;
+  public BAMCacheSynchronized(Configuration pConfig, Reducer pReducer, LogManager pLogger)
+      throws InvalidConfigurationException {
+    cache = new BAMCacheImpl(pConfig, pReducer, pLogger);
   }
 
   @Override
@@ -68,37 +72,20 @@ public class BAMCacheSynchronized implements BAMCache {
   }
 
   @Override
-  public void put(AbstractState pStateKey, Precision pPrecisionKey, Block pContext,
-      ReachedSet pItem) {
+  public BAMCacheEntry put(
+      AbstractState pStateKey, Precision pPrecisionKey, Block pContext, ReachedSet pItem) {
     synchronized (this) {
       timer.start();
-      cache.put(pStateKey, pPrecisionKey, pContext, pItem);
-      timer.stop();
+      try {
+        return cache.put(pStateKey, pPrecisionKey, pContext, pItem);
+      } finally {
+        timer.stop();
+      }
     }
   }
 
   @Override
-  public void put(AbstractState pStateKey, Precision pPrecisionKey, Block pContext,
-      Collection<AbstractState> pItem, @Nullable ARGState pRootOfBlock) {
-    synchronized (this) {
-      timer.start();
-      cache.put(pStateKey, pPrecisionKey, pContext, pItem, pRootOfBlock);
-      timer.stop();
-    }
-  }
-
-  @Override
-  public void remove(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
-    synchronized (this) {
-      timer.start();
-      cache.remove(pStateKey, pPrecisionKey, pContext);
-      timer.stop();
-    }
-  }
-
-  @Override
-  public Pair<ReachedSet, Collection<AbstractState>> get(AbstractState pStateKey,
-      Precision pPrecisionKey, Block pContext) {
+  public BAMCacheEntry get(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
     synchronized (this) {
       try {
         timer.start();
@@ -110,6 +97,7 @@ public class BAMCacheSynchronized implements BAMCache {
   }
 
   @Override
+  @Deprecated
   public ARGState getLastAnalyzedBlock() {
     synchronized (this) {
       try {

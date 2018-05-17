@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">1500M</option>
+
+  <rundefinition/>
+
+  <!--<propertyfile>../programs/benchmarks/ConcurrencySafety.prp</propertyfile>-->
+
+  <!--Very simple tests, which do not use thread creation functions -->
+  <tasks name="very-simple-tests">
+    <option name="-config">config/includes/lockator/lockStatistics-linux.properties</option>
+    <option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.lock.LockCPA, cpa.predicate.BAMPredicateCPA</option>
+    <option name="-setprop">cpa.usage.unsafedetector.ignoreEmptyLockset=false</option>
+    <option name="-skipRecursion"/>
+    <include>../programs/cpalockator/*.c</include>
+  </tasks>
+
+</benchmark>

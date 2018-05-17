@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class CompoundIntervalFormulaManager {
 
   private static final Map<MemoryLocation, NumeralFormula<CompoundInterval>> EMPTY_ENVIRONMENT = Collections.emptyMap();
@@ -232,7 +231,8 @@ public class CompoundIntervalFormulaManager {
     return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula, false);
   }
 
-  private boolean definitelyImplies(final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
+  public boolean definitelyImplies(
+      final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
       final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
       final BooleanFormula<CompoundInterval> pFormula,
       final boolean pDisableOverflowCheck) {
@@ -259,13 +259,14 @@ public class CompoundIntervalFormulaManager {
      * so we can only decide the truth if we know that the sets do not overlap or are both singletons.
      */
 
-    FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getEvaluationVisitor(pDisableOverflowCheck);
+    FormulaEvaluationVisitor<CompoundInterval> evalVisitor =
+        getEvaluationVisitor(pDisableOverflowCheck);
     PartialEvaluator variableResolver = new PartialEvaluator(compoundIntervalManagerFactory, pCompleteEnvironment);
     Builder impliedEnvironment = NonRecursiveEnvironment.Builder.of(compoundIntervalManagerFactory, EMPTY_ENVIRONMENT);
 
     outer:
     for (BooleanFormula<CompoundInterval> f : pFormula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
-      BooleanFormula<CompoundInterval> formulaAtom = f.accept(partialEvaluator, evaluationVisitor);
+      BooleanFormula<CompoundInterval> formulaAtom = f.accept(partialEvaluator, evalVisitor);
       if (!pExtendedFormulas.contains(formulaAtom)) {
         Collection<BooleanFormula<CompoundInterval>> disjunctions = formulaAtom.accept(SPLIT_DISJUNCTIONS_VISITOR);
         if (disjunctions.size() > 1) {
@@ -276,7 +277,8 @@ public class CompoundIntervalFormulaManager {
           }
         }
 
-        BooleanConstant<CompoundInterval> evaluated = pFormula.accept(evaluationVisitor, pCompleteEnvironment);
+        BooleanConstant<CompoundInterval> evaluated =
+            pFormula.accept(evalVisitor, pCompleteEnvironment);
         if (BooleanConstant.isTrue(evaluated)) {
           continue;
         }
@@ -284,9 +286,12 @@ public class CompoundIntervalFormulaManager {
           return false;
         }
 
-        BooleanFormula<CompoundInterval> resolved = formulaAtom.accept(variableResolver, evaluationVisitor);
+        BooleanFormula<CompoundInterval> resolved =
+            formulaAtom.accept(variableResolver, evalVisitor);
 
-        StateEqualsVisitor stateEqualsVisitor = new StateEqualsVisitor(evaluationVisitor, pCompleteEnvironment, compoundIntervalManagerFactory);
+        StateEqualsVisitor stateEqualsVisitor =
+            new StateEqualsVisitor(
+                evalVisitor, pCompleteEnvironment, compoundIntervalManagerFactory);
 
         if (resolved instanceof Equal) {
           Equal<CompoundInterval> equation = (Equal<CompoundInterval>) resolved;
@@ -297,8 +302,8 @@ public class CompoundIntervalFormulaManager {
           }
           CompoundIntervalManager cim =
               compoundIntervalManagerFactory.createCompoundIntervalManager(op1.getTypeInfo());
-          CompoundInterval leftEval = op1.accept(evaluationVisitor, pCompleteEnvironment);
-          CompoundInterval rightEval = op2.accept(evaluationVisitor, pCompleteEnvironment);
+          CompoundInterval leftEval = op1.accept(evalVisitor, pCompleteEnvironment);
+          CompoundInterval rightEval = op2.accept(evalVisitor, pCompleteEnvironment);
           if (!cim.doIntersect(leftEval, rightEval)) {
             return false;
           }
@@ -314,8 +319,8 @@ public class CompoundIntervalFormulaManager {
             }
             CompoundIntervalManager cim =
                 compoundIntervalManagerFactory.createCompoundIntervalManager(op1.getTypeInfo());
-            CompoundInterval leftEval = op1.accept(evaluationVisitor, pCompleteEnvironment);
-            CompoundInterval rightEval = op2.accept(evaluationVisitor, pCompleteEnvironment);
+            CompoundInterval leftEval = op1.accept(evalVisitor, pCompleteEnvironment);
+            CompoundInterval rightEval = op2.accept(evalVisitor, pCompleteEnvironment);
             if (!cim.doIntersect(leftEval, rightEval)) {
               continue;
             }
@@ -329,7 +334,9 @@ public class CompoundIntervalFormulaManager {
           if (!pCompleteEnvironment.keySet().containsAll(memoryLocations)) {
             return false;
           }
-          PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, impliedEnvironment);
+          PushAssumptionToEnvironmentVisitor patev =
+              new PushAssumptionToEnvironmentVisitor(
+                  compoundIntervalManagerFactory, evalVisitor, impliedEnvironment);
           formulaAtom.accept(patev, BooleanConstant.<CompoundInterval>getTrue());
           for (MemoryLocation memoryLocation : memoryLocations) {
             NumeralFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(memoryLocation);
@@ -343,8 +350,8 @@ public class CompoundIntervalFormulaManager {
             if (rightFormula.equals(leftFormula)) {
               continue;
             }
-            rightFormula = rightFormula.accept(partialEvaluator, evaluationVisitor);
-            leftFormula = leftFormula.accept(partialEvaluator, evaluationVisitor);
+            rightFormula = rightFormula.accept(partialEvaluator, evalVisitor);
+            leftFormula = leftFormula.accept(partialEvaluator, evalVisitor);
             if (rightFormula.equals(leftFormula)) {
               continue;
             }
@@ -352,8 +359,11 @@ public class CompoundIntervalFormulaManager {
               TypeInfo typeInfo = rightFormula.getTypeInfo();
               CompoundIntervalManager cim =
                   compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
-              CompoundInterval leftValue = leftFormula == null ? cim.allPossibleValues() : leftFormula.accept(evaluationVisitor, pCompleteEnvironment);
-              CompoundInterval rightValue = rightFormula.accept(evaluationVisitor, impliedEnvironment);
+              CompoundInterval leftValue =
+                  leftFormula == null
+                      ? cim.allPossibleValues()
+                      : leftFormula.accept(evalVisitor, pCompleteEnvironment);
+              CompoundInterval rightValue = rightFormula.accept(evalVisitor, impliedEnvironment);
               if (cim.contains(rightValue, leftValue)) {
                 continue;
               }

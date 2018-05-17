@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,12 +47,13 @@ import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
+import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
 
   private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED
+    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
   }
 
   @Option(
@@ -184,15 +187,14 @@ public class ReachedSetFactory {
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   private final Configuration config;
-  private final @Nullable BlockConfiguration blockConfig;
+  private @Nullable BlockConfiguration blockConfig;
   private final LogManager logger;
 
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-
     this.config = pConfig;
-    this.logger = pLogger;
+    this.logger = checkNotNull(pLogger);
 
     if (useBlocks) {
       blockConfig = new BlockConfiguration(pConfig);
@@ -259,6 +261,9 @@ public class ReachedSetFactory {
 
     case LOCATIONMAPPED:
       return new LocationMappedReachedSet(waitlistFactory);
+
+    case USAGE:
+      return new UsageReachedSet(waitlistFactory, config, logger);
 
     case NORMAL:
     default:

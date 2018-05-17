@@ -74,9 +74,9 @@ public class CongruenceManager implements
       Configuration config,
       Solver pSolver,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
-      FormulaManagerView pFmgr,
+      FormulaManagerView pFormulaManager,
       CongruenceStatistics pStatistics,
-      PathFormulaManager pPfmgr,
+      PathFormulaManager pPathFormulaManager,
       LogManager logger,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
@@ -87,11 +87,11 @@ public class CongruenceManager implements
     logManager = logger;
     configuration = config;
     solver = pSolver;
-    fmgr = pFmgr;
+    fmgr = pFormulaManager;
     bfmgr = fmgr.getBooleanFormulaManager();
     statistics = pStatistics;
     bvfmgr = fmgr.getBitvectorFormulaManager();
-    pfmgr = pPfmgr;
+    pfmgr = pPathFormulaManager;
     precision = new TemplatePrecision(logger, config, cfa,
         pTemplateToFormulaConversionManager);
     shutdownNotifier = pShutdownNotifier;
@@ -211,30 +211,39 @@ public class CongruenceManager implements
     ));
   }
 
-  public BooleanFormula toFormulaUninstantiated(CongruenceState state, FormulaManagerView pFmgr) {
+  public BooleanFormula toFormulaUninstantiated(
+      CongruenceState state, FormulaManagerView pFormulaManager) {
     PathFormulaManager pfmgrv;
     try {
       pfmgrv =
           new PathFormulaManagerImpl(
-              pFmgr, configuration, logManager, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+              pFormulaManager,
+              configuration,
+              logManager,
+              shutdownNotifier,
+              cfa,
+              AnalysisDirection.FORWARD);
     } catch (InvalidConfigurationException pE) {
       throw new UnsupportedOperationException("Could not construct path "
           + "formula manager", pE);
     }
-    return pFmgr.uninstantiate(
+    return pFormulaManager.uninstantiate(
         toFormula(
             pfmgrv,
-            pFmgr,
+            pFormulaManager,
             state,
             new PathFormula(
-                pFmgr.getBooleanFormulaManager().makeTrue(),
+                pFormulaManager.getBooleanFormulaManager().makeTrue(),
                 state.getSSAMap(),
                 state.getPointerTargetSet(),
                 1)));
   }
 
   public BooleanFormula toFormula(
-      PathFormulaManager pPfmgr, FormulaManagerView pFmgr, CongruenceState state, PathFormula ref) {
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
+      CongruenceState state,
+      PathFormula ref) {
     Map<Template, Congruence> abstraction = state.getAbstraction();
 
     List<BooleanFormula> constraints = new ArrayList<>(abstraction.size());
@@ -243,22 +252,25 @@ public class CongruenceManager implements
       Template template = entry.getKey();
       Congruence congruence = entry.getValue();
 
-      Formula formula = templateToFormulaConversionManager.toFormula(pPfmgr, pFmgr, template, ref);
+      Formula formula =
+          templateToFormulaConversionManager.toFormula(
+              pPathFormulaManager, pFormulaManager, template, ref);
       Formula remainder;
       switch (congruence) {
         case ODD:
-          remainder = makeBv(pFmgr.getBitvectorFormulaManager(), formula, 1);
+          remainder = makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
           break;
         case EVEN:
-          remainder = makeBv(pFmgr.getBitvectorFormulaManager(), formula, 0);
+          remainder = makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
           break;
         default:
           throw new AssertionError("Unexpected case");
       }
 
-      constraints.add(pFmgr.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
+      constraints.add(
+          pFormulaManager.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
     }
-    return pFmgr.getBooleanFormulaManager().and(constraints);
+    return pFormulaManager.getBooleanFormulaManager().and(constraints);
   }
 
   private boolean shouldUseTemplate(Template template) {

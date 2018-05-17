@@ -38,11 +38,7 @@
   </tasks>
 
   <rundefinition>
-    <option name="-bmc-induction"/>
-    <!-- TODO: use these options?
-    <option name="-setprop">cfa.useMultiEdges=true</option>
-    <option name="-setprop">bmc.addInvariantsByInduction=false</option>
-    -->
+    <option name="-kInduction"/>
   </rundefinition>
 
   <columns>

@@ -39,6 +39,7 @@ public class RefinementFailedException extends CPAException {
     InterpolationFailed("Interpolation failed"),
     InvariantRefinementFailed("Could not find invariant"),
     StaticRefinementFailed("Static refinement failed"),
+    NewtonRefinementFailed("Newton refinement failed"),
     RepeatedCounterexample("Counterexample could not be ruled out and was found again"),
     RepeatedPathPrefix("Error path prefix could not be ruled out and was used again"),
     TooMuchUnrolling("Too much unrolling"),

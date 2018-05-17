@@ -87,12 +87,7 @@ public class FormulaSlicingTest {
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
-    String fullPath;
-    if (filename.contains("test/programs/benchmarks")) {
-      fullPath = filename;
-    } else {
-      fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
-    }
+    String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {

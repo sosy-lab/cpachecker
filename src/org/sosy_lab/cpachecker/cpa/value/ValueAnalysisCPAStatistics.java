@@ -73,8 +73,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatInt numberOfVariables       = new StatInt(StatKind.COUNT, "Number of variables");
-    StatInt numberOfGlobalVariables = new StatInt(StatKind.COUNT, "Number of global variables");
+    StatInt numberOfVariables = new StatInt(StatKind.AVG, "Number of variables per state");
+    StatInt numberOfGlobalVariables =
+        new StatInt(StatKind.AVG, "Number of global variables per state");
 
     for (AbstractState currentAbstractState : reached) {
       ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);

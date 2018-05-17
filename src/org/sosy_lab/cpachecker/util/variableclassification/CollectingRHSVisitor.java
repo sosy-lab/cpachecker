@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -46,20 +49,22 @@ final class CollectingRHSVisitor
     extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
     implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
 
+  private final CFA cfa;
   private final VariableOrField lhs;
   private final boolean addressed;
 
-  private CollectingRHSVisitor(final VariableOrField lhs, final boolean addressed) {
-    this.lhs = lhs;
+  private CollectingRHSVisitor(final CFA pCfa, final VariableOrField lhs, final boolean addressed) {
+    this.cfa = checkNotNull(pCfa);
+    this.lhs = checkNotNull(lhs);
     this.addressed = addressed;
   }
 
-  public static CollectingRHSVisitor create(final VariableOrField lhs) {
-    return new CollectingRHSVisitor(lhs, false);
+  public static CollectingRHSVisitor create(final CFA pCfa, final VariableOrField lhs) {
+    return new CollectingRHSVisitor(pCfa, lhs, false);
   }
 
   private CollectingRHSVisitor createAddressed() {
-    return new CollectingRHSVisitor(lhs, true);
+    return new CollectingRHSVisitor(cfa, lhs, true);
   }
 
   @Override
@@ -135,7 +140,16 @@ final class CollectingRHSVisitor
 
   @Override
   public VarFieldDependencies visit(CFunctionCallExpression e) {
-    VarFieldDependencies result = e.getFunctionNameExpression().accept(this);
+    VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
+    CExpression functionNameExpression = e.getFunctionNameExpression();
+    if (functionNameExpression instanceof CIdExpression) {
+      CIdExpression idExpression = (CIdExpression) functionNameExpression;
+      if (cfa.getAllFunctionNames().contains(idExpression.getName())) {
+        result = functionNameExpression.accept(this);
+      }
+    } else {
+      result = functionNameExpression.accept(this);
+    }
     for (CExpression param : e.getParameterExpressions()) {
       result = result.withDependencies(param.accept(this));
     }
@@ -144,6 +158,7 @@ final class CollectingRHSVisitor
 
   @Override
   protected VarFieldDependencies visitDefault(final CExpression e) {
+    checkNotNull(e);
     return VarFieldDependencies.emptyDependencies();
   }
 }

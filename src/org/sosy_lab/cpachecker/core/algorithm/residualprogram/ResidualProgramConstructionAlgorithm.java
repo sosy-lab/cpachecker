@@ -363,7 +363,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       return false;
     }
     String mainFunction = AbstractStates.extractLocation(pArgRoot).getFunctionName();
-    assert (isValidResidualProgram(mainFunction));
+    if (!translator.addsIncludeDirectives()) {
+      assert (isValidResidualProgram(mainFunction));
+    }
     return true;
   }
 
@@ -372,7 +374,6 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       CFACreator cfaCreator = new CFACreator(
           Configuration.builder()
               .setOption("analysis.entryFunction", mainFunction)
-              .setOption("parser.usePreprocessor", "true")
               .setOption("analysis.useLoopStructure", "false")
               .build(),
           logger, shutdown);

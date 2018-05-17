@@ -122,14 +122,17 @@ class FunctionCloner implements CFAVisitor {
   private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
 
-  private final String oldFunctionname;
-  private final String newFunctionname;
+  private final String oldFunctionName;
+  private final String newFunctionName;
   private final boolean replaceFunctionOnly; // needed to replace functioncalls, where args stay equal, but functionname changes
 
   /** FunctionCloner clones a function of the cfa and uses a new functionName. */
-  public FunctionCloner(final String oldFunctionname, final String newFunctionname, final boolean replaceFunctionOnly) {
-    this.oldFunctionname = oldFunctionname;
-    this.newFunctionname = newFunctionname;
+  public FunctionCloner(
+      final String oldFunctionName,
+      final String newFunctionName,
+      final boolean replaceFunctionOnly) {
+    this.oldFunctionName = oldFunctionName;
+    this.newFunctionName = newFunctionName;
     this.replaceFunctionOnly = replaceFunctionOnly;
   }
 
@@ -295,13 +298,13 @@ class FunctionCloner implements CFAVisitor {
     // clone correct type of node
     final CFANode newNode;
     if (node instanceof CLabelNode) {
-      newNode = new CLabelNode(newFunctionname, ((CLabelNode) node).getLabel());
+      newNode = new CLabelNode(newFunctionName, ((CLabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(newFunctionname);
+      newNode = new CFATerminationNode(newFunctionName);
 
     } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(newFunctionname);
+      newNode = new FunctionExitNode(newFunctionName);
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
@@ -326,7 +329,7 @@ class FunctionCloner implements CFAVisitor {
 
     } else {
       assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(newFunctionname);
+      newNode = new CFANode(newFunctionName);
     }
 
     // copy information from original node
@@ -669,13 +672,13 @@ class FunctionCloner implements CFAVisitor {
 
   /** replace old functionname with new one. */
   private String changeName(final String name) {
-    return oldFunctionname.equals(name) ? newFunctionname : name;
+    return oldFunctionName.equals(name) ? newFunctionName : name;
   }
 
   /** if qualifiedName ist in current scope, replace old functionname with new one. */
   private String changeQualifiedName(final String qualifiedName) {
-    if (!replaceFunctionOnly && qualifiedName.startsWith(oldFunctionname + "::")) {
-      return newFunctionname + qualifiedName.substring(oldFunctionname.length());
+    if (!replaceFunctionOnly && qualifiedName.startsWith(oldFunctionName + "::")) {
+      return newFunctionName + qualifiedName.substring(oldFunctionName.length());
     }
     return qualifiedName;
   }

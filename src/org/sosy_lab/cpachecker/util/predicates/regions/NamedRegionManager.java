@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -37,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;

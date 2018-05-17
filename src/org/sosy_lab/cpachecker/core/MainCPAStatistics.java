@@ -88,7 +88,10 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -500,22 +503,25 @@ class MainCPAStatistics implements Statistics {
 
   private void printCfaStatistics(PrintStream out) {
     if (cfa != null) {
-      int edges = 0;
-      for (CFANode n : cfa.getAllNodes()) {
-        edges += n.getNumEnteringEdges();
-      }
-
-      out.println("Number of program locations:     " + cfa.getAllNodes().size());
-      out.println("Number of CFA edges:             " + edges);
-      if (cfa.getVarClassification().isPresent()) {
-        out.println("Number of relevant variables:    " + cfa.getVarClassification().get().getRelevantVariables().size());
-      }
-      out.println("Number of functions:             " + cfa.getNumberOfFunctions());
-
-      if (cfa.getLoopStructure().isPresent()) {
-        int loops = cfa.getLoopStructure().get().getCount();
-        out.println("Number of loops:                 " + loops);
-      }
+      StatisticsWriter.writingStatisticsTo(out)
+          .put("Number of program locations", cfa.getAllNodes().size())
+          .put(
+              StatInt.forStream(
+                  StatKind.SUM,
+                  "Number of CFA edges (per node)",
+                  cfa.getAllNodes().stream().mapToInt(CFANode::getNumLeavingEdges)))
+          .putIfPresent(
+              cfa.getVarClassification(),
+              "Number of relevant variables",
+              vc -> vc.getRelevantVariables().size())
+          .put("Number of functions", cfa.getNumberOfFunctions())
+          .putIfPresent(
+              cfa.getLoopStructure(),
+              loops ->
+                  StatInt.forStream(
+                      StatKind.COUNT,
+                      "Number of loops (and loop nodes)",
+                      loops.getAllLoops().stream().mapToInt(loop -> loop.getLoopNodes().size())));
     }
   }
 
@@ -538,19 +544,17 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void printMemoryStatistics(PrintStream out) {
-    if (monitorMemoryUsage) {
-      MemoryStatistics.printGcStatistics(out);
+    MemoryStatistics.printGcStatistics(out);
 
-      if (memStats != null) {
-        try {
-          memStatsThread.join(); // thread should have terminated already,
-                                 // but wait for it to ensure memory visibility
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        if (!memStatsThread.isAlive()) {
-          memStats.printStatistics(out);
-        }
+    if (monitorMemoryUsage && memStats != null) {
+      try {
+        memStatsThread.join(); // thread should have terminated already,
+        // but wait for it to ensure memory visibility
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      if (!memStatsThread.isAlive()) {
+        memStats.printStatistics(out);
       }
     }
   }

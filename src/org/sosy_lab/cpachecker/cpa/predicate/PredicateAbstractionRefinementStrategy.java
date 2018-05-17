@@ -337,7 +337,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   }
 
   @Override
-  protected final void finishRefinementOfPath(
+  protected void finishRefinementOfPath(
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
@@ -416,6 +416,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PredicatePrecision newPrecision = addPredicatesToPrecision(basePrecision);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
+    logger.log(Level.ALL, "Difference of predicates is", newPrecision.subtract(basePrecision));
 
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0
         : "We forgot predicates during refinement!";
@@ -481,7 +482,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     return basePrecision;
   }
 
-  private PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
+  protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
     PredicatePrecision newPrecision;
     switch (predicateSharing) {
     case GLOBAL:

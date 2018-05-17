@@ -191,6 +191,11 @@ public class NumericValue implements Value, Serializable {
     }
   }
 
+  @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
   /**
    * Always returns <code>false</code> as each <code>NumericValue</code> holds
    * one specific value.

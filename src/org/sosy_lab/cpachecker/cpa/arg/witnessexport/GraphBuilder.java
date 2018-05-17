@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -40,12 +41,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
 enum GraphBuilder {
 
@@ -70,7 +71,7 @@ enum GraphBuilder {
         Predicate<? super ARGState> pPathStates,
         Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-        GraphMlBuilder pDocument,
+        Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
       int multiEdgeCount = 0;
@@ -114,7 +115,13 @@ enum GraphBuilder {
                   Iterables.isEmpty(assumptions)
                       ? Optional.empty()
                       : Optional.of(Collections.singleton(s));
-              pEdgeAppender.appendNewEdge(prevStateId, pseudoStateId, innerEdge, absentStates, pValueMap);
+              pEdgeAppender.appendNewEdge(
+                  prevStateId,
+                  pseudoStateId,
+                  innerEdge,
+                  absentStates,
+                  pValueMap,
+                  CFAEdgeWithAdditionalInfo.of(innerEdge));
               prevStateId = pseudoStateId;
             }
 
@@ -129,7 +136,12 @@ enum GraphBuilder {
           if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(
-                prevStateId, childStateId, edgeToNextState, state, pValueMap);
+                prevStateId,
+                childStateId,
+                edgeToNextState,
+                state,
+                pValueMap,
+                pAdditionalInfo.get(s));
             // For branchings, it is important to have both branches explicitly in the witness
             if (edgeToNextState instanceof AssumeEdge) {
               AssumeEdge assumeEdge = (AssumeEdge) edgeToNextState;
@@ -146,13 +158,13 @@ enum GraphBuilder {
               if (addArtificialSinkEdge) {
                 // Child does not belong to the path --> add a branch to the SINK node!
                 pEdgeAppender.appendNewEdgeToSink(
-                    prevStateId, siblingEdge, state, pValueMap);
+                    prevStateId, siblingEdge, state, pValueMap, pAdditionalInfo.get(s));
               }
             }
           } else {
             // Child does not belong to the path --> add a branch to the SINK node!
             pEdgeAppender.appendNewEdgeToSink(
-                prevStateId, edgeToNextState, state, pValueMap);
+                prevStateId, edgeToNextState, state, pValueMap, pAdditionalInfo.get(s));
           }
         }
       }
@@ -173,7 +185,7 @@ enum GraphBuilder {
         final Predicate<? super ARGState> pPathStates,
         final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-        GraphMlBuilder pDocument,
+        Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
 
@@ -236,7 +248,7 @@ enum GraphBuilder {
         final Predicate<? super ARGState> pPathStates,
         final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-        GraphMlBuilder pDocument,
+        Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
 
@@ -312,7 +324,8 @@ enum GraphBuilder {
     String sourceId = pEdge.getPredecessor().toString();
     String targetId = pEdge.getSuccessor().toString();
     if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
-      pEdgeAppender.appendNewEdge(sourceId, targetId, pEdge, pStates, pValueMap);
+      pEdgeAppender.appendNewEdge(
+          sourceId, targetId, pEdge, pStates, pValueMap, CFAEdgeWithAdditionalInfo.of(pEdge));
       return true;
     }
     return false;
@@ -325,8 +338,7 @@ enum GraphBuilder {
       Predicate<? super ARGState> pPathStates,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      GraphMlBuilder pDocument,
+      Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
       EdgeAppender pEdgeAppender);
-
 }

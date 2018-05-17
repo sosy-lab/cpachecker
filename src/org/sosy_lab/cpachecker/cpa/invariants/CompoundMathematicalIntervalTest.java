@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
 import java.util.List;
-
 import org.junit.Test;
-
 
 public class CompoundMathematicalIntervalTest {
 
@@ -145,8 +145,9 @@ public class CompoundMathematicalIntervalTest {
     SimpleInterval zeroToThreeInterval = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(3));
     CompoundMathematicalInterval zeroToThree = CompoundMathematicalInterval.of(zeroToThreeInterval);
     CompoundMathematicalInterval six = CompoundMathematicalInterval.singleton(6);
-    SimpleInterval sixToTenInterval = SimpleInterval.of(BigInteger.valueOf(6), BigInteger.valueOf(10));
-    CompoundMathematicalInterval sixToTen = CompoundMathematicalInterval.of(sixToTenInterval);
+    SimpleInterval sixToTenSimpleInterval =
+        SimpleInterval.of(BigInteger.valueOf(6), BigInteger.valueOf(10));
+    CompoundMathematicalInterval sixToTen = CompoundMathematicalInterval.of(sixToTenSimpleInterval);
     assertEquals(zeroToThree.unionWith(six), sixToTen.modulo(BigInteger.valueOf(7)));
     assertEquals(zeroToThree.unionWith(six).negate(), sixToTen.negate().modulo(BigInteger.valueOf(7)));
     assertEquals(zeroToThree.unionWith(six), sixToTen.modulo(BigInteger.valueOf(7).negate()));

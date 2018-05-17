@@ -414,9 +414,10 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
       return false;
     }
 
-    OctagonSimpleCoefficients oct = (OctagonSimpleCoefficients) other;
+    OctagonSimpleCoefficients octCoefficients = (OctagonSimpleCoefficients) other;
 
-    return Arrays.equals(coefficients, oct.coefficients) && size == oct.size;
+    return Arrays.equals(coefficients, octCoefficients.coefficients)
+        && size == octCoefficients.size;
   }
 
   @Override
