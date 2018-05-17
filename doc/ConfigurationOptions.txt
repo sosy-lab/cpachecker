@@ -2712,6 +2712,10 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
+# File to which path constraints should be written. If null, no path
+# constraints are written
+cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
+
 # whether or not to perform path slicing before interpolation
 cpa.value.refinement.pathSlicing = true
 
