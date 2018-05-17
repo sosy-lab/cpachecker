@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-public final class BooleanConstant implements Formula {
+public final class BooleanConstant implements LtlFormula {
 
   public static final BooleanConstant FALSE = new BooleanConstant(false);
   public static final BooleanConstant TRUE = new BooleanConstant(true);

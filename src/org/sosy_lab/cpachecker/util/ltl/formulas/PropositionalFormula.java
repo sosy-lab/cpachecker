@@ -26,17 +26,17 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public abstract class PropositionalFormula implements Formula {
+public abstract class PropositionalFormula implements LtlFormula {
 
-  public ImmutableList<? extends Formula> children;
+  public ImmutableList<? extends LtlFormula> children;
 
-  PropositionalFormula(Iterable<? extends Formula> children) {
-    ImmutableList<? extends Formula> list = ImmutableList.copyOf(children);
+  PropositionalFormula(Iterable<? extends LtlFormula> children) {
+    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(children);
     this.children = list;
   }
 
-  PropositionalFormula(Formula... children) {
-    ImmutableList<? extends Formula> list = ImmutableList.copyOf(children);
+  PropositionalFormula(LtlFormula... children) {
+    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(children);
     this.children = list;
   }
 

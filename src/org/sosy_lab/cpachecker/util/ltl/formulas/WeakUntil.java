@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 /** Weak Until. */
 public final class WeakUntil extends BinaryFormula {
 
-  public WeakUntil(Formula left, Formula right) {
+  public WeakUntil(LtlFormula left, LtlFormula right) {
     super(left, right);
   }
 
-  public static Formula of(Formula left, Formula right) {
+  public static LtlFormula of(LtlFormula left, LtlFormula right) {
     if (left == BooleanConstant.TRUE || right == BooleanConstant.TRUE) {
       return BooleanConstant.TRUE;
     }

@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-public abstract class BinaryFormula implements Formula {
+public abstract class BinaryFormula implements LtlFormula {
 
-  public final Formula left;
-  public final Formula right;
+  public final LtlFormula left;
+  public final LtlFormula right;
 
-  BinaryFormula(Formula left, Formula right) {
+  BinaryFormula(LtlFormula left, LtlFormula right) {
     this.left = left;
     this.right = right;
   }

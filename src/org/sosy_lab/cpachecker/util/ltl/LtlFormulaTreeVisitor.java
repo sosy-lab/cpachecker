@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Conjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Disjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Finally;
-import org.sosy_lab.cpachecker.util.ltl.formulas.Formula;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Globally;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Next;
@@ -55,10 +55,10 @@ import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.UnaryOpContex
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.UnaryOperationContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.VariableContext;
 
-public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
+public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
-  public Formula visitProperty(PropertyContext ctx) {
+  public LtlFormula visitProperty(PropertyContext ctx) {
     // Contains: CHECK LPAREN initFunction COMMA ltlProperty RPAREN EOF
     assert ctx.getChildCount() == 7 : ctx.getChildCount();
 
@@ -67,31 +67,31 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
   }
 
   @Override
-  public Formula visitLtlProperty(LtlPropertyContext ctx) {
+  public LtlFormula visitLtlProperty(LtlPropertyContext ctx) {
     assert ctx.getChildCount() == 4 : ctx.getChildCount();
     return visit(ctx.getChild(2));
   }
 
   @Override
-  public Formula visitFormula(FormulaContext ctx) {
+  public LtlFormula visitFormula(FormulaContext ctx) {
     // Contains formula + EOF
     assert ctx.getChildCount() == 2 : ctx.getChildCount();
     return visit(ctx.getChild(0));
   }
 
   @Override
-  public Formula visitExpression(ExpressionContext ctx) {
+  public LtlFormula visitExpression(ExpressionContext ctx) {
     // Contains an orExpression only
     assert ctx.getChildCount() == 1;
     return visit(ctx.getChild(0));
   }
 
   @Override
-  public Formula visitOrExpression(OrExpressionContext ctx) {
+  public LtlFormula visitOrExpression(OrExpressionContext ctx) {
     // Contains a disjunction of conjunctions
     assert ctx.getChildCount() > 0;
 
-    ImmutableList.Builder<Formula> builder = ImmutableList.builder();
+    ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
     for (int i = 0; i < ctx.getChildCount(); i++) {
       if (i % 2 == 0) {
         builder.add(visit(ctx.getChild(i)));
@@ -100,16 +100,16 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
       }
     }
 
-    ImmutableList<Formula> list = builder.build();
+    ImmutableList<LtlFormula> list = builder.build();
     return Disjunction.of(list);
   }
 
   @Override
-  public Formula visitAndExpression(AndExpressionContext ctx) {
+  public LtlFormula visitAndExpression(AndExpressionContext ctx) {
     // Contains a conjunction of binaryExpressions
     assert ctx.getChildCount() > 0;
 
-    ImmutableList.Builder<Formula> builder = ImmutableList.builder();
+    ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
     for (int i = 0; i < ctx.getChildCount(); i++) {
       if (i % 2 == 0) {
         builder.add(visit(ctx.getChild(i)));
@@ -118,18 +118,18 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
       }
     }
 
-    ImmutableList<Formula> list = builder.build();
+    ImmutableList<LtlFormula> list = builder.build();
     return Conjunction.of(list);
   }
 
   @Override
-  public Formula visitBinaryOperation(BinaryOperationContext ctx) {
+  public LtlFormula visitBinaryOperation(BinaryOperationContext ctx) {
     assert ctx.getChildCount() == 3;
     assert ctx.left != null && ctx.right != null;
 
     BinaryOpContext binaryOp = ctx.binaryOp();
-    Formula left = visit(ctx.left);
-    Formula right = visit(ctx.right);
+    LtlFormula left = visit(ctx.left);
+    LtlFormula right = visit(ctx.right);
 
     if (binaryOp.EQUIV() != null) {
       return Disjunction.of(Conjunction.of(left, right), Conjunction.of(left.not(), right.not()));
@@ -163,11 +163,11 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
   }
 
   @Override
-  public Formula visitUnaryOperation(UnaryOperationContext ctx) {
+  public LtlFormula visitUnaryOperation(UnaryOperationContext ctx) {
     assert ctx.getChildCount() == 2;
 
     UnaryOpContext unaryOp = ctx.unaryOp();
-    Formula operand = visit(ctx.inner);
+    LtlFormula operand = visit(ctx.inner);
 
     if (unaryOp.NOT() != null) {
       return operand.not();
@@ -189,7 +189,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
   }
 
   @Override
-  public Formula visitBoolean(BooleanContext ctx) {
+  public LtlFormula visitBoolean(BooleanContext ctx) {
     assert ctx.getChildCount() == 1;
     BoolContext constant = ctx.bool();
 
@@ -205,7 +205,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
   }
 
   @Override
-  public Formula visitQuotedVariable(QuotedVariableContext ctx) {
+  public LtlFormula visitQuotedVariable(QuotedVariableContext ctx) {
     // Contains: QUOTATIONMARK var EQUALS val QUOTATIONMARK
     assert ctx.getChildCount() == 5;
 
@@ -214,13 +214,13 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<Formula> {
   }
 
   @Override
-  public Formula visitVariable(VariableContext ctx) {
+  public LtlFormula visitVariable(VariableContext ctx) {
     assert ctx.getChildCount() == 1;
     return Literal.of(ctx.getText(), false);
   }
 
   @Override
-  public Formula visitNested(NestedContext ctx) {
+  public LtlFormula visitNested(NestedContext ctx) {
     assert ctx.getChildCount() == 3;
     return visit(ctx.nested);
   }

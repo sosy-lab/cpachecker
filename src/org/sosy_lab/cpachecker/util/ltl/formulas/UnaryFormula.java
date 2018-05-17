@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-public abstract class UnaryFormula implements Formula {
+public abstract class UnaryFormula implements LtlFormula {
 
-  public final Formula operand;
+  public final LtlFormula operand;
 
-  UnaryFormula(Formula operand) {
+  UnaryFormula(LtlFormula operand) {
     this.operand = operand;
   }
 
-  public Formula getOperand() {
+  public LtlFormula getOperand() {
     return operand;
   }
 

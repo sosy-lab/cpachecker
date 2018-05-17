@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-public final class Literal implements Formula {
+public final class Literal implements LtlFormula {
 
   private final String atom;
   private final boolean negated;

@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableList;
 /** Globally. */
 public final class Globally extends UnaryFormula {
 
-  public Globally(Formula f) {
+  public Globally(LtlFormula f) {
     super(f);
   }
 
-  public static Formula of(Formula operand) {
+  public static LtlFormula of(LtlFormula operand) {
     if (operand instanceof BooleanConstant) {
       return operand;
     }
@@ -50,13 +50,13 @@ public final class Globally extends UnaryFormula {
     }
 
     if (operand instanceof Conjunction) {
-      ImmutableList.Builder<Formula> builder = ImmutableList.builder();
+      ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
 
-      for (Formula child : ((Conjunction) operand).children) {
+      for (LtlFormula child : ((Conjunction) operand).children) {
         builder.add(Globally.of(child));
       }
 
-      ImmutableList<Formula> list = builder.build();
+      ImmutableList<LtlFormula> list = builder.build();
 
       return new Conjunction(list);
     }

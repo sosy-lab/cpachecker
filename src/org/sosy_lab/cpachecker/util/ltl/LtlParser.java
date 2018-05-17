@@ -27,12 +27,12 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.sosy_lab.cpachecker.util.ltl.formulas.Formula;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarLexer;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser;
 
-abstract class LtlParser extends LtlGrammarBaseVisitor<Formula> {
+abstract class LtlParser extends LtlGrammarBaseVisitor<LtlFormula> {
 
   private final CharStream input;
 
@@ -42,7 +42,7 @@ abstract class LtlParser extends LtlGrammarBaseVisitor<Formula> {
 
   abstract ParseTree getParseTree(LtlGrammarParser parser);
 
-  Formula doParse() {
+  LtlFormula doParse() {
     // Tokenize the stream
     LtlGrammarLexer lexer = new LtlGrammarLexer(input);
     // Raise an exception instead of printing long error messages on the console

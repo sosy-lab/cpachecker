@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 /** Strong Release. */
 public final class StrongRelease extends BinaryFormula {
 
-  public StrongRelease(Formula left, Formula right) {
+  public StrongRelease(LtlFormula left, LtlFormula right) {
     super(left, right);
   }
 
-  public static Formula of(Formula left, Formula right) {
+  public static LtlFormula of(LtlFormula left, LtlFormula right) {
     if (left == BooleanConstant.FALSE || right == BooleanConstant.FALSE) {
       return BooleanConstant.FALSE;
     }

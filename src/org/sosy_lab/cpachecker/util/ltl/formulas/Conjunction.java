@@ -28,26 +28,26 @@ import java.util.Arrays;
 
 public final class Conjunction extends PropositionalFormula {
 
-  public Conjunction(Iterable<? extends Formula> conjuncts) {
+  public Conjunction(Iterable<? extends LtlFormula> conjuncts) {
     super(conjuncts);
   }
 
-  public Conjunction(Formula... conjuncts) {
+  public Conjunction(LtlFormula... conjuncts) {
     super(conjuncts);
   }
 
-  public static Formula of(Formula left, Formula right) {
+  public static LtlFormula of(LtlFormula left, LtlFormula right) {
     return of(Arrays.asList(left, right));
   }
 
-  public static Formula of(Formula... formulas) {
+  public static LtlFormula of(LtlFormula... formulas) {
     return of(Arrays.asList(formulas));
   }
 
-  public static Formula of(Iterable<? extends Formula> iterable) {
-    ImmutableSet.Builder<Formula> builder = ImmutableSet.builder();
+  public static LtlFormula of(Iterable<? extends LtlFormula> iterable) {
+    ImmutableSet.Builder<LtlFormula> builder = ImmutableSet.builder();
 
-    for (Formula child : iterable) {
+    for (LtlFormula child : iterable) {
 
       if (child == BooleanConstant.FALSE) {
         return BooleanConstant.FALSE;
@@ -64,7 +64,7 @@ public final class Conjunction extends PropositionalFormula {
       }
     }
 
-    ImmutableSet<Formula> set = builder.build();
+    ImmutableSet<LtlFormula> set = builder.build();
 
     if (set.isEmpty()) {
       return BooleanConstant.TRUE;
@@ -82,14 +82,14 @@ public final class Conjunction extends PropositionalFormula {
   }
 
   @Override
-  public Formula not() {
-    ImmutableSet.Builder<Formula> builder = ImmutableSet.builder();
+  public LtlFormula not() {
+    ImmutableSet.Builder<LtlFormula> builder = ImmutableSet.builder();
 
-    for (Formula child : children) {
+    for (LtlFormula child : children) {
       builder.add(child.not());
     }
 
-    ImmutableSet<Formula> set = builder.build();
+    ImmutableSet<LtlFormula> set = builder.build();
     return new Disjunction(set);
   }
 

@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-public interface Formula {
+public interface LtlFormula {
 
   /**
    * Syntactically negate this formula.
    *
    * @return The negation of this formula in NNF.
    */
-  Formula not();
+  LtlFormula not();
 
   @Override
   int hashCode();

@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableList;
 /** Finally. */
 public final class Finally extends UnaryFormula {
 
-  public Finally(Formula f) {
+  public Finally(LtlFormula f) {
     super(f);
   }
 
-  public static Formula of(Formula operand) {
+  public static LtlFormula of(LtlFormula operand) {
     if (operand instanceof BooleanConstant) {
       return operand;
     }
@@ -50,13 +50,13 @@ public final class Finally extends UnaryFormula {
     }
 
     if (operand instanceof Disjunction) {
-      ImmutableList.Builder<Formula> builder = ImmutableList.builder();
+      ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
 
-      for (Formula child : ((Disjunction) operand).children) {
+      for (LtlFormula child : ((Disjunction) operand).children) {
         builder.add(Finally.of(child));
       }
 
-      ImmutableList<Formula> list = builder.build();
+      ImmutableList<LtlFormula> list = builder.build();
 
       return new Disjunction(list);
     }
