@@ -199,6 +199,10 @@ public class ReachingDefUtils {
     return possiblePointees;
   }
 
+  /**
+   * Visitor that returns the {@link MemoryLocation} representation of each {@link CIdExpression}
+   * occurring in a visited expression.
+   */
   public static class VariableExtractor
       extends DefaultCExpressionVisitor<MemoryLocation, UnsupportedCCodeException> {
 
