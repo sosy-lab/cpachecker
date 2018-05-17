@@ -274,7 +274,10 @@ public class BAMSubgraphComputer {
                     reducedRootState,
                     reachedSet.getPrecision(reachedSet.getFirstState()),
                     rootBlock);
-        cacheEntry.deleteInfo();
+        if (cacheEntry != null) {
+          // TODO do we need this check? Maybe there is a bug, if the entry is not available?
+          cacheEntry.deleteInfo();
+        }
         throw new MissingBlockException();
       }
 
