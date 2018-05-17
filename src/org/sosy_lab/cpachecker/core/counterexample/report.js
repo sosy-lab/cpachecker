@@ -525,10 +525,8 @@
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
     				d3.selectAll(".cfa-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
-    					var zoom = d3.behavior.zoom().on("zoom", function() {
-    						svgGroup.attr("transform", "translate("
-    								+ d3.event.translate + ")" + "scale("
-    								+ d3.event.scale + ")");
+    					var zoom = d3.zoom().on("zoom", function() {
+    						svgGroup.attr("transform", d3.event.transform);
     					});        			
     					svg.call(zoom);
     					svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
@@ -614,10 +612,8 @@
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
     				d3.selectAll(".arg-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
-    					var zoom = d3.behavior.zoom().on("zoom", function() {
-    						svgGroup.attr("transform", "translate("
-    								+ d3.event.translate + ")" + "scale("
-    								+ d3.event.scale + ")");
+    					var zoom = d3.zoom().on("zoom", function() {
+    						svgGroup.attr("transform", d3.event.transform);
     					});        			
     					svg.call(zoom);
     					svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
@@ -1462,7 +1458,8 @@ function init() {
 				svgGroup.attr("transform", "translate(" + margin * 2 + ", " + margin + ")");
 				// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
 				d3.selectAll(".arg-node tspan").each(function(d,i) {
-					d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
+					var transformation = d3.select(this.parentNode.parentNode).attr("transform")
+					d3.select(this).attr("dx", Math.abs(getTransformation(transformation).translateX));
 				})
 				if (m.data.errorGraph !== undefined) {
 					addEventsToArg();
@@ -1502,6 +1499,40 @@ function init() {
 		argWorker.postMessage({"json" : JSON.stringify(argJson)});
 	}
 	
+	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed 
+	function getTransformation(transform) {
+		// Create a dummy g for calculation purposes only. This will never
+		// be appended to the DOM and will be discarded once this function 
+		// returns.
+		var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+		
+		// Set the transform attribute to the provided string value.
+		g.setAttributeNS(null, "transform", transform);
+		
+		// consolidate the SVGTransformList containing all transformations
+		// to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
+		// its SVGMatrix. 
+		var matrix = g.transform.baseVal.consolidate().matrix;
+		
+		// Below calculations are taken and adapted from the private function
+		// transform/decompose.js of D3's module d3-interpolate.
+		var {a, b, c, d, e, f} = matrix;   // ES6, if this doesn't work, use below assignment
+		// var a=matrix.a, b=matrix.b, c=matrix.c, d=matrix.d, e=matrix.e, f=matrix.f; // ES5
+		var scaleX, scaleY, skewX;
+		if (scaleX = Math.sqrt(a * a + b * b)) a /= scaleX, b /= scaleX;
+		if (skewX = a * c + b * d) c -= a * skewX, d -= b * skewX;
+		if (scaleY = Math.sqrt(c * c + d * d)) c /= scaleY, d /= scaleY, skewX /= scaleY;
+		if (a * d < b * c) a = -a, b = -b, skewX = -skewX, scaleX = -scaleX;
+		return {
+		  translateX: e,
+		  translateY: f,
+		  rotate: Math.atan2(b, a) * 180 / Math.PI,
+		  skewX: Math.atan(skewX) * 180 / Math.PI,
+		  scaleX: scaleX,
+		  scaleY: scaleY
+		};
+	  }
+	  
 	// create and return a graph element with a set transition
 	function createGraph() {
 		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
@@ -1710,10 +1741,8 @@ function init() {
 	function addPanEvent(itemsToSelect) {
 		d3.selectAll(itemsToSelect).each(function(d, i) {
 			var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
-			var zoom = d3.behavior.zoom().on("zoom", function() {
-				svgGroup.attr("transform", "translate("
-						+ d3.event.translate + ")" + "scale("
-						+ d3.event.scale + ")");
+			var zoom = d3.zoom().on("zoom", function() {
+				svgGroup.attr("transform", d3.event.transform)
 			});        			
 			svg.call(zoom);
 			svg.on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
