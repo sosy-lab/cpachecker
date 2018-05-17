@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -558,9 +557,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return Collections.singleton(pElement);
   }
 
-  private Collection<? extends AbstractState> pointerAliasStrengthening(AbstractState pElement,
-      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, InvariantsState state)
-      throws UnrecognizedCCodeException {
+  private Collection<? extends AbstractState> pointerAliasStrengthening(
+      AbstractState pElement,
+      List<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      InvariantsState state)
+      throws UnrecognizedCodeException {
     CFAEdge edge = pCfaEdge;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression
@@ -570,8 +572,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (pointerStates.isEmpty()) {
         return Collections.singleton(state.clear());
       }
+
+
       InvariantsState result = state;
       for (PointerState pointerState : pointerStates) {
+        ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(edge, result);
+        NumeralFormula<CompoundInterval> rhs = CFAEdgeUtils.getRightHandSide(edge).accept(etfv);
+
         LocationSet locationSet =
             PointerTransferRelation.asLocations((CExpression) leftHandSide, pointerState);
         if (locationSet.isTop()) {
@@ -605,12 +612,18 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                   result = result.assign(variableName, allPossibleValues(type));
                 }
               }
+            } else {
+              for (MemoryLocation variableName : targets) {
+                result = result.assign(variableName, rhs);
+              }
             }
           } else if (moreThanOneLocation) {
             Type type = result.getType(location);
             if (type != null) {
               result = result.assign(location, allPossibleValues(type));
             }
+          } else {
+            result = result.assign(location, rhs);
           }
         }
       }
