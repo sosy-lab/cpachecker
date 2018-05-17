@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.util.ltl;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -35,24 +35,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.sosy_lab.cpachecker.util.ltl.formulas.Formula;
+import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 
-public class LTL2BuechiConverter {
+public class Ltl2BuechiConverter {
 
-  // ltl3ba can be found at https://sourceforge.net/projects/ltl3ba/
-  // and requires the 'BuDDy'-library (http://sourceforge.net/projects/buddy/) in order
-  // to compile successfully
-
-  // TODO @PW - the following three variables are only temporary, and will be updated to
-  // relative paths soon
-  private static final String EXECUTABLE_DIR =
-      System.getProperty("user.home") + "/SoSy-Lab/ltl-buechi-rltd/ltl3ba-1.1.3";
-
-  private static final String LD_LIBRARY_PATH = "LD_LIBRARY_PATH";
-
-  private static final String USR_LOCAL_LIB = "/usr/local/lib/";
-
-  private static final String LTL3BA = "./ltl3bas";
+  private static final String LTL3BA = "./ltl3ba";
 
   private static class StreamGobbler implements Runnable {
 
@@ -72,36 +60,39 @@ public class LTL2BuechiConverter {
     }
   }
 
-  public static InputStream convertFormula(Formula f) throws InterruptedException, IOException {
+  public static InputStream convertFormula(LtlFormula f) throws InterruptedException, IOException {
     if (!System.getProperty("os.name").equals("Linux")) {
       throw new UnsupportedOperationException("Only Linux is currently supported as OS");
     }
-
     Objects.requireNonNull(f);
-    return new LTL2BuechiConverter(f).runLtlExec();
+    return new Ltl2BuechiConverter(f).runLtlExec();
   }
 
-  private final Formula formula;
+  private final LtlFormula ltlFormula;
   private final ProcessBuilder builder;
 
-  private LTL2BuechiConverter(Formula f) {
-    formula = f;
+  private Ltl2BuechiConverter(LtlFormula f) {
+    ltlFormula = f;
     builder = new ProcessBuilder();
 
-    builder.directory(new File(EXECUTABLE_DIR));
-    builder.environment().put(LD_LIBRARY_PATH, USR_LOCAL_LIB);
-    builder.redirectErrorStream(true);
-    builder.command(LTL3BA, "-H", "-f", formula.toString());
+    Path nativeLibraryPath = NativeLibraries.getNativeLibraryPath();
+    builder.directory(nativeLibraryPath.toFile());
+
+    /*
+     * '-H' to build and output the buechi-automaton in HOA format
+     * '-f "formula"' to translate the LTL formula into a never claim
+     */
+    builder.command(LTL3BA, "-H", "-f", ltlFormula.toString());
   }
 
   private InputStream runLtlExec() throws IOException, InterruptedException {
-    // TODO check that ltl3ba tool exists
-
     Process process = builder.start();
     InputStream is = process.getInputStream();
 
     int exitvalue = process.waitFor();
-    assert exitvalue == 0 : "Tool 'ltl3ba' exited with error code: " + exitvalue;
+    if (exitvalue != 0) {
+      //    Verify.verify(exitvalue == 0, "Tool 'ltl3ba' exited with error code: %s", exitvalue);
+    }
 
     return is;
   }
