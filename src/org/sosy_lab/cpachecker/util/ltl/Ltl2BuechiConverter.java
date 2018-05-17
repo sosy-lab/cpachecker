@@ -27,10 +27,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -54,7 +56,7 @@ public class Ltl2BuechiConverter {
 
     @Override
     public void run() {
-      InputStreamReader inputStreamReader = new InputStreamReader(input);
+      InputStreamReader inputStreamReader = new InputStreamReader(input, Charset.defaultCharset());
       BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
       bufferedReader.lines().forEach(consumer);
     }
@@ -91,19 +93,20 @@ public class Ltl2BuechiConverter {
 
     int exitvalue = process.waitFor();
     if (exitvalue != 0) {
-      //    Verify.verify(exitvalue == 0, "Tool 'ltl3ba' exited with error code: %s", exitvalue);
+      // TODO: throw exception -- "Tool 'ltl3ba' exited with error code: exitvalue"
     }
 
     return is;
   }
 
-  public static Stream<String> convertProcessToStream(InputStream is) {
+  public static Stream<String> convertProcessToStream(InputStream is)
+      throws InterruptedException, ExecutionException {
     List<String> list = new ArrayList<>();
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
     StreamGobbler gobbler = new StreamGobbler(is, (x) -> list.add(x));
 
-    executor.submit(gobbler);
+    executor.submit(gobbler).get();
     executor.shutdown();
 
     return list.stream();
