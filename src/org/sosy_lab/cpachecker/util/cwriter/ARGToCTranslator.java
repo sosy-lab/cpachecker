@@ -287,13 +287,19 @@ public class ARGToCTranslator {
 
   private void startMainFunction(ARGState firstFunctionElement) {
     CFunctionEntryNode functionStartNode = (CFunctionEntryNode) AbstractStates.extractStateByType(firstFunctionElement, LocationState.class).getLocationNode();
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().toASTString().replace(";", "");
+    String lFunctionHeader =
+        functionStartNode.getFunctionDefinition().toQualifiedASTString().replace(";", "");
     mainFunctionBody = new FunctionBody(lFunctionHeader, new CompoundStatement());
     CType returnType = functionStartNode.getFunctionDefinition().getType().getReturnType();
     isVoidMain = returnType instanceof CVoidType;
     if (!isVoidMain) {
       mainReturnVar = "__return_main";
-      globalDefinitionsList.add(returnType.toASTString(mainReturnVar) + ";");
+      if (returnType instanceof CArrayType) {
+        globalDefinitionsList.add(
+            ((CArrayType) returnType).toQualifiedASTString(mainReturnVar) + ";");
+      } else {
+        globalDefinitionsList.add(returnType.toASTString(mainReturnVar) + ";");
+      }
     }
   }
 
@@ -338,7 +344,8 @@ public class ARGToCTranslator {
         boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
         CompoundStatement newBlock =
-            addIfStatement(currentBlock, "if (" + assumeEdge.getExpression().toASTString() + ")");
+            addIfStatement(
+                currentBlock, "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")");
 
         if (truthAssumption) {
           ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
@@ -402,7 +409,7 @@ public class ARGToCTranslator {
         String cond = "";
 
         if (truthAssumption) {
-          cond = "if (" + assumeEdge.getExpression().toASTString() + ")";
+          cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
         } else {
           cond = "else ";
         }
@@ -502,9 +509,7 @@ public class ARGToCTranslator {
 
       if(returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
-
-
-        String retval = returnEdge.getExpression().get().toASTString();
+        String retval = returnEdge.getExpression().get().toQualifiedASTString();
         String returnVar;
 
         if (childElement.isCovered()) {
@@ -535,7 +540,7 @@ public class ARGToCTranslator {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
           CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
 
-          String retval = returnEdge.getExpression().get().toASTString();
+          String retval = returnEdge.getExpression().get().toQualifiedASTString();
           String returnVar;
 
           if (childElement.isCovered()) {
@@ -603,7 +608,12 @@ public class ARGToCTranslator {
       assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
       CFunctionCallEdge callEdge = (CFunctionCallEdge)functionDefNode.getLeavingEdge(0);
       CFunctionEntryNode fn = callEdge.getSuccessor();
-      returnType = fn.getFunctionDefinition().getType().getReturnType().toASTString(varName);
+      CType retType = fn.getFunctionDefinition().getType().getReturnType();
+      if (retType instanceof CArrayType) {
+        returnType = ((CArrayType) retType).toQualifiedASTString(varName);
+      } else {
+        returnType = retType.toASTString(varName);
+      }
       globalDefinitionsList.add(returnType + ";");
     }
 
@@ -614,7 +624,11 @@ public class ARGToCTranslator {
     CType returnType = pFunDecl.getType().getReturnType();
     if(!(returnType instanceof CVoidType)) {
       String varName = "__return_" + pElementId;
-      globalDefinitionsList.add(returnType.toASTString(varName) + ";");
+      if (returnType instanceof CArrayType) {
+        globalDefinitionsList.add(((CArrayType) returnType).toQualifiedASTString(varName) + ";");
+      } else {
+        globalDefinitionsList.add(returnType.toASTString(varName) + ";");
+      }
     }
 
   }
@@ -633,12 +647,15 @@ public class ARGToCTranslator {
         break;
       }
 
-      case StatementEdge: {
-        CStatementEdge lStatementEdge = (CStatementEdge) pCFAEdge;
-        String statementText = lStatementEdge.getStatement().toASTString();
-        if (deleteAssertFail && statementText.startsWith(ASSERTFAIL)) { return ""; }
-        return statementText + (statementText.endsWith(";") ? "" : ";");
-      }
+      case StatementEdge:
+        {
+          CStatementEdge lStatementEdge = (CStatementEdge) pCFAEdge;
+          String statementText = lStatementEdge.getStatement().toQualifiedASTString();
+          if (deleteAssertFail && statementText.startsWith(ASSERTFAIL)) {
+            return "";
+          }
+          return statementText + (statementText.endsWith(";") ? "" : ";");
+        }
 
       case DeclarationEdge:
         {
@@ -646,12 +663,14 @@ public class ARGToCTranslator {
           String declaration;
           // TODO adapt if String in
           // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-          if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
-            declaration = lDeclarationEdge.getDeclaration().toASTString();
+          if (lDeclarationEdge
+              .getDeclaration()
+              .toQualifiedASTString()
+              .contains("__CPAchecker_TMP_")) {
+            declaration = lDeclarationEdge.getDeclaration().toQualifiedASTString();
           } else {
-            declaration =
-                lDeclarationEdge
-                    .getCode(); // TODO check if works without lDeclarationEdge.getRawStatement();
+            // TODO check if works without lDeclarationEdge.getRawStatement();
+            declaration = lDeclarationEdge.getDeclaration().toQualifiedASTString();
 
             if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
               CVariableDeclaration varDecl =
@@ -669,7 +688,9 @@ public class ARGToCTranslator {
 
             if (declaration.contains(",")) {
               for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
-                if (predEdge.getRawStatement().equals(declaration)) {
+                if (predEdge
+                    .getRawStatement()
+                    .equals(lDeclarationEdge.getDeclaration().toASTString())) {
                   declaration = "";
                   break;
                 }
@@ -727,8 +748,8 @@ public class ARGToCTranslator {
     int i = 0;
     for (CParameterDeclaration formalParam : formalParams) {
       // get formal parameter name
-      String formalParamSignature = formalParam.toASTString();
-      String actualParamSignature = actualParams.get(i++).toASTString();
+      String formalParamSignature = formalParam.toQualifiedASTString();
+      String actualParamSignature = actualParams.get(i++).toQualifiedASTString();
 
       // create temp variable to avoid name clashes
       String tempVariableName = "__tmp_" + getFreshIndex();
@@ -763,7 +784,7 @@ public class ARGToCTranslator {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
 
       String returnVar = "__return_" + id;
-      String leftHandSide = exp.getLeftHandSide().toASTString();
+      String leftHandSide = exp.getLeftHandSide().toQualifiedASTString();
 
       pCurrentBlock = getBlockAfterEndOfFunction(pCurrentBlock);
       pCurrentBlock.addStatement(new SimpleStatement(leftHandSide + " = " + returnVar + ";"));
