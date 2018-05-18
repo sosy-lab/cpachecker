@@ -30,8 +30,6 @@
 	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/checker-compat-qual.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/antlr-runtime.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/ST4.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/byte-buddy.jar"/>
@@ -62,7 +60,6 @@
 	<classpathentry kind="lib" path="lib/java/runtime/batik-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess_2.12.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/antlr4.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
