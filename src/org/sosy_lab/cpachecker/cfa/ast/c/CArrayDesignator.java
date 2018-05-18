@@ -44,13 +44,13 @@ public class CArrayDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString() {
-    return "[" + getSubscriptExpression().toASTString() + "]";
+  public String toASTString(boolean pQualified) {
+    return "[" + getSubscriptExpression().toASTString(pQualified) + "]";
   }
 
   @Override
-  public String toParenthesizedASTString() {
-    return toASTString();
+  public String toParenthesizedASTString(boolean pQualified) {
+    return toASTString(pQualified);
   }
 
   @Override

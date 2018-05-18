@@ -53,23 +53,22 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toParenthesizedASTString() {
-    return toASTString();
+  public String toParenthesizedASTString(boolean pQualified) {
+    return toASTString(pQualified);
   }
 
   @Override
-  public String toASTString() {
-    ASimpleDeclaration decl = getDeclaration();
-    if (decl != null) {
-      String qualName = decl.getQualifiedName();
-      if (qualName != null) {
-        return qualName.replace("::", "__");
-      } else {
-        return name;
+  public String toASTString(boolean pQualified) {
+    if (pQualified) {
+      ASimpleDeclaration decl = getDeclaration();
+      if (decl != null) {
+        String qualName = decl.getQualifiedName();
+        if (qualName != null) {
+          return qualName.replace("::", "__");
+        }
       }
-    } else {
-      return name;
     }
+    return name;
   }
 
   public ASimpleDeclaration getDeclaration() {

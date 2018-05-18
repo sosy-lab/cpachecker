@@ -50,6 +50,11 @@ public class CAddressOfLabelExpression extends AbstractExpression implements CEx
   }
 
   @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
+  }
+
+  @Override
   public String toASTString() {
     return "&&" + label;
   }
