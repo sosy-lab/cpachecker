@@ -367,6 +367,7 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
+    final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -400,6 +401,8 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/sv-comp-reachability.spc");
       }
+    } else if (isTestGenerationConfig) {
+      assertThat(spec).isAnyOf(null, "");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
