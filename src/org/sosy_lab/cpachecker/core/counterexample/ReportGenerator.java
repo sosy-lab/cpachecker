@@ -131,7 +131,7 @@ public class ReportGenerator {
   private final ImmutableList<String> sourceFiles;
   private final Map<Integer, Object> argNodes;
   private final Map<String, Object> argEdges;
-  private final Map<Integer, Object> witnessNodes;
+  private final Map<String, Object> witnessNodes;
   private final Map<String, Object> witnessEdges;
 
   public ReportGenerator(
@@ -619,7 +619,7 @@ public class ReportGenerator {
           case KEY:
             break;
           case NODE:
-            witnessNodes.put(Integer.valueOf(map.get("id").toString().substring(1)), map);
+            witnessNodes.put(map.get("id").toString(), map);
             break;
           default:
             break;

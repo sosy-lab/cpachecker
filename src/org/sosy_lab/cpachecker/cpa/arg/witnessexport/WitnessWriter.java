@@ -1053,7 +1053,7 @@ class WitnessWriter implements EdgeAppender {
     return new WitnessInformation(graphMlBuilder, defaultSourcefileName);
   }
 
-  public GraphMlBuilder buildGraphMlBuilder(
+  private GraphMlBuilder buildGraphMlBuilder(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
