@@ -113,7 +113,7 @@ public class ReportGenerator {
     name = "report.witness",
     description = "Add witness information to the HTML report."
   )
-  private boolean reportWitness = false;
+  private boolean reportWitness = true;
 
   @Option(secure = true, name = "report.file", description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)

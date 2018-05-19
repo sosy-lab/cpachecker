@@ -3317,7 +3317,7 @@ report.export = true
 report.file = "Report.html"
 
 # Add witness information to the HTML report.
-report.witness = false
+report.witness = true
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
