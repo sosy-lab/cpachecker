@@ -1,3 +1,6 @@
+/* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
+with considerably less effort */
+
 (function () {
 	// initialize all popovers
 	$(function () {
