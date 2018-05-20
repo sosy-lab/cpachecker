@@ -15,15 +15,15 @@ HTML/CSS guide
 
 - Indent by 2 spaces at a time.Don’t use tabs or mix tabs and spaces for indentation.
 
-- Use only lowercase.All code has to be lowercase: This applies to HTML element names, attributes, attribute values (unless text/CDATA), CSS selectors, properties, and property values (with the exception of strings).
+- Use only lowercase. All code has to be lowercase: This applies to HTML element names, attributes, attribute values (unless text/CDATA), CSS selectors, properties, and property values (with the exception of strings).
 
-- Remove trailing white spaces.Trailing white spaces are unnecessary and can complicate diffs.
+- Remove trailing white spaces. Trailing white spaces are unnecessary and can complicate diffs.
 
-- Use UTF-8 (no BOM).Make sure your editor uses UTF-8 as character encoding, without a byte order mark.Specify the encoding in HTML templates and documents via <meta charset="utf-8">. Do not specify the encoding of style sheets as these assume UTF-8.
+- Use UTF-8 (no BOM). Make sure your editor uses UTF-8 as character encoding, without a byte order mark.Specify the encoding in HTML templates and documents via <meta charset="utf-8">. Do not specify the encoding of style sheets as these assume UTF-8.
 
-- Explain code as needed, where possible.Use comments to explain code.
+- Explain code as needed, where possible. Use comments to explain code.
 
-- Use HTML5.HTML5 (HTML syntax) is preferred for all HTML documents: <!DOCTYPE html> 
+- Use HTML5. HTML5 (HTML syntax) is preferred for all HTML documents: <!DOCTYPE html> 
 
 - Use valid HTML code unless that is not possible due to otherwise unattainable performance goals regarding file size.
 
@@ -35,13 +35,13 @@ HTML/CSS guide
 
 - Do not use entity references. There is no need to use entity references like &mdash;, &rdquo;, or &#x263a;, assuming the same encoding (UTF-8) is used for files and editors as well as among teams.
 
-- Use a new line for every block, list, or table element, and indent every such child element.Independent of the styling of an element (as CSS allows elements to assume a different role per display property), put every block, list, or table element on a new line.Also, indent them if they are child elements of a block, list, or table element.
+- Use a new line for every block, list, or table element, and indent every such child element. Independent of the styling of an element (as CSS allows elements to assume a different role per display property), put every block, list, or table element on a new line.Also, indent them if they are child elements of a block, list, or table element.
 
-- Break long lines (optional).While there is no column limit recommendation for HTML, you may consider wrapping long lines if it significantly improves readability.
+- Break long lines (optional). While there is no column limit recommendation for HTML, you may consider wrapping long lines if it significantly improves readability.
 
-- When quoting attributes values, use double quotation marks.Use double ("") rather than single quotation marks ('') around attribute values.
+- When quoting attributes values, use double quotation marks. Use double ("") rather than single quotation marks ('') around attribute values.
 
-- Use valid CSS where possible.Unless dealing with CSS validator bugs or requiring proprietary syntax, use valid CSS code.
+- Use valid CSS where possible. Unless dealing with CSS validator bugs or requiring proprietary syntax, use valid CSS code.
 
 - Use meaningful or generic ID and class names. Instead of presentational or cryptic names, always use ID and class names that reflect the purpose of the element in question, or that are otherwise generic.
 
@@ -51,7 +51,7 @@ HTML/CSS guide
 
 - Use shorthand properties where possible. CSS offers a variety of shorthand properties (like font) that should be used whenever possible, even in cases where only one value is explicitly set.
 
-- Omit unit specification after “0” values, unless required. Do not use units after 0 values unless they are require
+- Omit unit specification after “0” values, unless required. Do not use units after 0 values unless they are required.
 
 - Omit leading “0”s in values. Do not put 0s in front of values or lengths between -1 and 1.
 
@@ -113,7 +113,7 @@ JavaScript guide
 
 - Use Array and Object literals instead of Array and Object constructors. Array constructors are error-prone due to their arguments.
 
-- Modifying builtins like Object.prototype and Array.prototype are strictly forbidden. Modifying other builtins like Function.prototype is less dangerous but still leads to hard to debug issues in production and should be avoided.
+- Modifying builtins like `Object.prototype` and `Array.prototype` are strictly forbidden. Modifying other builtins like `Function.prototype` is less dangerous but still leads to hard to debug issues in production and should be avoided.
 
 - Private properties and methods should be named with a trailing underscore. Protected properties and methods should be named without a trailing underscore (like public ones).
 
