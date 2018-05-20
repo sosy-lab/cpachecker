@@ -1089,16 +1089,14 @@ public class SMGTransferRelation
 
     if (newInitializer != null) {
       return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);
-    } else if (pVarDecl.isGlobal()) {
-      // Don't nullify extern variables
-      if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
-        if (options.isHandleExternVariableAsExternalAllocation()) {
-          pState.setExternallyAllocatedFlag(pObject);
-        }
-      } else {
-        // Global variables without initializer are nullified in C
-        pState = writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+    } else if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+      if (options.isHandleExternVariableAsExternalAllocation()) {
+        // Don't nullify extern variables
+        pState.setExternallyAllocatedFlag(pObject);
       }
+    } else if (pVarDecl.isGlobal()) {
+      // Global variables without initializer are nullified in C
+      pState = writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
     }
 
     return ImmutableList.of(pState);

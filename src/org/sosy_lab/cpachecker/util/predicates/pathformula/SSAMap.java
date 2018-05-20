@@ -35,6 +35,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -70,11 +71,20 @@ public class SSAMap implements Serializable {
               type1 instanceof CFunctionType
                   || type2 instanceof CFunctionType
                   || (isEnumPointerType(type1) && isEnumPointerType(type2))
-                  || type1.equals(type2),
+                  || type1.equals(type2)
+                  || (type1 instanceof CArrayType && type2 instanceof CArrayType),
               "Cannot change type of variable %s in SSAMap from %s to %s",
               name,
               type1,
               type2);
+
+          if ((type2 instanceof CArrayType) && ((CArrayType) type2).getLength() != null) {
+            // If type2 is an array with initialization and it contains
+            // members, return it. Otherwise return type1.
+            // There are previous checks to make sure only one of type1 and
+            // type2 can be initialized.
+            return type2;
+          }
 
           return type1;
         }

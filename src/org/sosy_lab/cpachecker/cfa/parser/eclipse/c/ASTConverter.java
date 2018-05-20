@@ -1667,9 +1667,10 @@ class ASTConverter {
       }
 
       if (!isGlobal && cStorageClass == CStorageClass.EXTERN) {
-        // TODO: implement this, it "imports" the externally declared variable
-        // into the scope of this block.
-        throw parseContext.parseError("Local variable declared extern is unsupported", d);
+        // TODO: EXTERN variables without global scope can be viewed as
+        // global if they are only accessed in the local scope. But this is
+        // only a work around.
+        isGlobal = true;
       }
 
       if (!isGlobal && scope.variableNameInUse(name)) {
