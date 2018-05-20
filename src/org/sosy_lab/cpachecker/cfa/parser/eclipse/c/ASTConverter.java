@@ -460,6 +460,9 @@ class ASTConverter {
   /** Computes the condition kind of an IASTExpression, logical ors and logical ands are resolved
    * the rest works as with the condition kind method for CExpressions */
   private CONDITION getConditionKind(IASTExpression exp) {
+    while (exp instanceof IASTUnaryExpression) {
+      exp = ((IASTUnaryExpression)exp).getOperand();
+    }
     if (exp instanceof IASTBinaryExpression
         && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
            || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
