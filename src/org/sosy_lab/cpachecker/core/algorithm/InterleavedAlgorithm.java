@@ -49,6 +49,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import javax.management.JMException;
+import javax.xml.transform.TransformerException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -520,6 +521,14 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Shutdown of interleaved algorithm, analysis not finished yet.");
       return status;
 
+    } catch (RuntimeException e2) {
+      if (e2.getCause() instanceof TransformerException || e2 instanceof IllegalStateException) {
+        logger.logUserException(
+            Level.FINE, e2, "Problem with one one the analysis, try to save result");
+        return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+      } else {
+        throw e2;
+      }
     } finally {
       stats.totalTimer.stop();
     }

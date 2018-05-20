@@ -312,4 +312,9 @@ public class ArrayValue implements Value {
   public Long asLong(CType type) {
     return null;
   }
+
+  @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
 }

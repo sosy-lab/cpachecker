@@ -155,14 +155,20 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         status = algorithm.run(pReached);
 
       } catch (CPAException e) {
-        if (e instanceof CounterexampleAnalysisFailed
-            || e instanceof RefinementFailedException
-            || e instanceof InfeasibleCounterexampleException) {
-          status = status.withPrecise(false);
-        }
-
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        status = status.withPrecise(false);
         logger.logUserException(Level.WARNING, e, "Analysis not completed.");
-
+        if (!(e instanceof CounterexampleAnalysisFailed
+            || e instanceof RefinementFailedException
+            || e instanceof InfeasibleCounterexampleException)) {
+          throw e;
+        }
+      } catch (Exception e2) {
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        status = status.withPrecise(false);
+        throw e2;
       } finally {
 
         assert ARGUtils.checkARG(pReached);

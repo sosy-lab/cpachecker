@@ -45,8 +45,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
  *
  * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions might not reflect the
- * programs correct concrete states.</p>
+ * correct concrete states of the program.</p>
  *
+ * @see org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer
  */
 public class ExpressionTransformer {
 

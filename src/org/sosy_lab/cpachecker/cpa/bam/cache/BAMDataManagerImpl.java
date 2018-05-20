@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 
 /**
  * Data structures required for BAM.
@@ -131,16 +132,13 @@ public class BAMDataManagerImpl implements BAMDataManager {
     }
   }
 
-  /**
-   * Create a new reached-set with the given state as root and register it in the cache.
-   **/
+  /** Create a new reached-set with the given state as root and register it in the cache. */
   @Override
-  public ReachedSet createAndRegisterNewReachedSet(
+  public BAMCacheEntry createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context) {
     final ReachedSet reached = reachedSetFactory.create();
     reached.add(initialState, initialPrecision);
-    bamCache.put(initialState, initialPrecision, context, reached);
-    return reached;
+    return bamCache.put(initialState, initialPrecision, context, reached);
   }
 
   @Override

@@ -65,10 +65,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
@@ -363,22 +363,21 @@ class ReachedSetExecutor {
     Block innerBlock = getBlockForState(reducedInitialState);
     final Collection<AbstractState> exitStates =
         extractExitStates(pEndsWithTargetState, innerBlock);
-    Pair<ReachedSet, Collection<AbstractState>> check =
+    BAMCacheEntry entry =
         bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
-    assert check.getFirst() == rs
+    assert entry.getReachedSet() == rs
         : String.format(
             "reached-set for initial state should be unique: current rs = %s, cached entry = %s",
-            id(rs), check.getFirst());
-    if (!exitStates.equals(check.getSecond())) {
-      assert check.getSecond() == null
+            id(rs), entry.getReachedSet());
+    if (!exitStates.equals(entry.getExitStates())) {
+      assert entry.getExitStates() == null
           : String.format(
               "result-states already registered for reached-set %s: current = %s, cached = %s",
               id(rs),
               Collections2.transform(exitStates, s -> id(s)),
-              Collections2.transform(check.getSecond(), s -> id(s)));
-      bamcpa
-          .getCache()
-          .put(reducedInitialState, reducedInitialPrecision, innerBlock, exitStates, null);
+              Collections2.transform(entry.getExitStates(), s -> id(s)));
+      entry.setExitStates(exitStates);
+      entry.setRootOfBlock(null);
     }
   }
 
@@ -498,19 +497,20 @@ class ReachedSetExecutor {
       if (newRs == null) {
         // We are only synchronized in the current method. Thus, we need to check
         // the cache again, maybe another thread already created the needed reached-set.
-        final Pair<ReachedSet, Collection<AbstractState>> pair =
+        final BAMCacheEntry entry =
             data.getCache()
                 .get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
-        newRs = pair.getFirst(); // @Nullable
+        newRs = entry == null ? null : entry.getReachedSet();
       }
 
       // now we can be sure, whether the sub-reached-set exists or not.
       if (newRs == null) {
         // we have not even cached a partly computed reached-set,
         // so we must compute the subgraph specification from scratch
-        newRs =
+        BAMCacheEntry entry =
             data.createAndRegisterNewReachedSet(
                 pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+        newRs = entry.getReachedSet();
       }
     }
 

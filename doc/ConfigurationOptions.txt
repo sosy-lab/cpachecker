@@ -2024,6 +2024,12 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# sets the level of the pathformulas to use for abstraction. 
+#   EDGE : Based on Pathformulas of every edge in ARGPath
+#   BLOCK: Based on Pathformulas at Abstractionstates
+cpa.predicate.refinement.newtonrefinement.pathFormulAbstractionLevel = EDGE
+  enum:     [BLOCK, EDGE]
+
 # use live variables in order to abstract the predicates produced while
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
@@ -2705,6 +2711,10 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # heuristic to sort targets based on the quality of interpolants derivable
 # from them
 cpa.value.refinement.itpSortedTargets = false
+
+# File to which path constraints should be written. If null, no path
+# constraints are written
+cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
 
 # whether or not to perform path slicing before interpolation
 cpa.value.refinement.pathSlicing = true

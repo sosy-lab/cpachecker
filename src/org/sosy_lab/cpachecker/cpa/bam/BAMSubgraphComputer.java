@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -267,9 +268,16 @@ public class BAMSubgraphComputer {
         final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
         final AbstractState reducedRootState =
             reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-        data.getCache()
-            .remove(
-                reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+        BAMCacheEntry cacheEntry =
+            data.getCache()
+                .get(
+                    reducedRootState,
+                    reachedSet.getPrecision(reachedSet.getFirstState()),
+                    rootBlock);
+        if (cacheEntry != null) {
+          // TODO do we need this check? Maybe there is a bug, if the entry is not available?
+          cacheEntry.deleteInfo();
+        }
         throw new MissingBlockException();
       }
 

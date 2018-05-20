@@ -78,6 +78,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
+ *
+ * @see org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer
  */
 public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression> {
 
