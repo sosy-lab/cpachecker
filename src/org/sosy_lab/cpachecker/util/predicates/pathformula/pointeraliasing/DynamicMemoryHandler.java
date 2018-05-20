@@ -331,8 +331,10 @@ class DynamicMemoryHandler {
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
       final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
-    final List<CExpression> parameters = e.getParameterExpressions();
-    if (parameters.size() != 1) {
+    List<CExpression> parameters = e.getParameterExpressions();
+    if (parameters.size() > 1) {
+      parameters = Collections.singletonList(parameters.get(0));
+    } else {
       throw new UnrecognizedCCodeException(
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }

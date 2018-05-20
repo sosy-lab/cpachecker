@@ -36,7 +36,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   @Option(secure=true, description = "Memory allocation functions of which all parameters but the first should be ignored.")
   private ImmutableSet<String> memoryAllocationFunctionsWithSuperfluousParameters = ImmutableSet.of(
-      "__kmalloc", "kmalloc", "kzalloc");
+      "__kmalloc", "kmalloc", "kzalloc", "malloc");
 
   @Option(secure=true, description = "The function used to model successful heap object allocation. " +
                         "This is only used, when pointer analysis with UFs is enabled.")
