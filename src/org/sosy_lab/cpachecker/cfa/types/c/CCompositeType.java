@@ -256,7 +256,11 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    return Objects.hash(isConst, isVolatile, kind, name);
+    if (name.isEmpty()) {
+      return Objects.hash(isConst, isVolatile, kind, name, members);
+    } else {
+      return Objects.hash(isConst, isVolatile, kind, name);
+    }
   }
 
   /**
@@ -275,9 +279,13 @@ public final class CCompositeType implements CComplexType {
     }
 
     CCompositeType other = (CCompositeType) obj;
-
-    return isConst == other.isConst && isVolatile == other.isVolatile
-           && kind == other.kind && Objects.equals(name, other.name);
+    if (name.isEmpty() && other.name.isEmpty()) {
+      return isConst == other.isConst && isVolatile == other.isVolatile
+          && kind == other.kind && Objects.equals(members, other.members);
+    } else {
+      return isConst == other.isConst && isVolatile == other.isVolatile
+          && kind == other.kind && Objects.equals(name, other.name);
+    }
   }
 
   @Override
