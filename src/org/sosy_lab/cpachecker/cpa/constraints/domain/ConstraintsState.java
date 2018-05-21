@@ -26,6 +26,17 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
@@ -39,24 +50,13 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
@@ -84,6 +84,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   private SymbolicIdentifierLocator locator;
 
   private IdentifierAssignment definiteAssignment;
+  private ImmutableList<ValueAssignment> lastModel;
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
@@ -127,6 +128,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
     lastAddedConstraint = pState.lastAddedConstraint;
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
+    lastModel = pState.lastModel;
   }
 
   /**
@@ -274,25 +276,39 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
   public boolean isUnsat() throws SolverException, InterruptedException, UnrecognizedCCodeException {
-    boolean unsat = false;
+    boolean unsat = true;
 
     try {
       if (!constraints.isEmpty()) {
-        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         BooleanFormula constraintsAsFormula = getFullFormula();
-
+        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         prover.push(constraintsAsFormula);
-        unsat = prover.isUnsat();
 
-        if (!unsat) {
-          // doing this while the complete formula is still on the prover environment stack is
-          // cheaper than performing another complete SAT check when the assignment is really requested
-          resolveDefiniteAssignments();
-
-        } else {
-          definiteAssignment = null;
+        if (lastModel != null) {
+          List<BooleanFormula> modelAssignments = new ArrayList<>(lastModel.size());
+          for (ValueAssignment a : lastModel) {
+            modelAssignments.add(a.getAssignmentAsFormula());
+          }
+          prover.push(formulaManager.getBooleanFormulaManager().and(modelAssignments));
+          unsat = prover.isUnsat();
         }
 
+        if (unsat) {
+          prover.pop(); // Remove model assignments
+          unsat = prover.isUnsat();
+          if (!unsat) {
+            lastModel = prover.getModelAssignments();
+            // doing this while the complete formula is still on the prover environment stack is
+            // cheaper than performing another complete SAT check when the assignment is really
+            // requested
+            resolveDefiniteAssignments();
+          }
+        }
+
+        if (unsat) {
+          definiteAssignment = null;
+          lastModel = null;
+        }
       }
     } finally {
       closeProver();
