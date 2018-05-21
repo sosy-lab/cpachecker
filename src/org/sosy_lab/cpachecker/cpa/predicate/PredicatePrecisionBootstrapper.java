@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -42,11 +42,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
-
-import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 
 @Options(prefix="cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
@@ -66,8 +63,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final LogManager logger;
   private final CFA cfa;
 
-  private static class PrecisionBootstrapStatistics extends AbstractStatistics {}
-  private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
+  private final KeyValueStatistics statistics = new KeyValueStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
       AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
@@ -86,7 +82,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = PredicatePrecision.empty();
 
     if (checkBlockFeasibility) {
-      result = result.addGlobalPredicates(Collections.<AbstractionPredicate>singleton(abstractionManager.makeFalsePredicate()));
+      result = result
+          .addGlobalPredicates(Collections.singleton(abstractionManager.makeFalsePredicate()));
     }
 
     if (!predicatesFiles.isEmpty()) {

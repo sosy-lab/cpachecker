@@ -30,13 +30,10 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-
 /**
- * Abstract implementation of Statistics that
- * provides some functions for more convenience and cleaner code
- * when dealing with CPAchecker statistics.
+ * Simple Key-Value statistics implementation.
  */
-public abstract class AbstractStatistics implements Statistics {
+public class KeyValueStatistics implements Statistics {
 
   private final Map<String, Object> keyValueStats = new TreeMap<>();
 
@@ -45,7 +42,8 @@ public abstract class AbstractStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+  public final void printStatistics(
+      PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     for (Map.Entry<String, Object> item : keyValueStats.entrySet()) {
       put(pOut, item.getKey(), item.getValue());
     }
