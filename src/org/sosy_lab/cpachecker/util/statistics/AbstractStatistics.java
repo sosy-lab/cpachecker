@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,29 +38,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  */
 public abstract class AbstractStatistics implements Statistics {
 
-  protected int outputNameColWidth = 50;
-
   private final Map<String, Object> keyValueStats = new TreeMap<>();
-
-  /**
-   * Print a statistics line in a "pretty" fashion.
-   *
-   * @param target      Write to this stream
-   * @param indentLevel Indentation level (0 = no indentation)
-   * @param name        Left hand side (name/description)
-   * @param value       Right hand side (value)
-   */
-  protected void put(PrintStream target, int indentLevel, String name, Object value) {
-    StatisticsUtils.write(target, indentLevel, outputNameColWidth, name, value);
-  }
-
-  protected void put(PrintStream target, int indentLevel, AbstractStatValue stat) {
-    StatisticsUtils.write(target, indentLevel, outputNameColWidth, stat);
-  }
-
-  protected void put(PrintStream pTarget, String pName, Object pValue) {
-    put(pTarget, 0, pName, pValue);
-  }
 
   public void addKeyValueStatistic(final String pName, final Object pValue) {
     keyValueStats.put(pName, pValue);
