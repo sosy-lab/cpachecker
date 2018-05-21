@@ -291,10 +291,10 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
           }
           prover.push(formulaManager.getBooleanFormulaManager().and(modelAssignments));
           unsat = prover.isUnsat();
+          prover.pop(); // Remove model assignment from prover
         }
 
         if (unsat) {
-          prover.pop(); // Remove model assignments
           unsat = prover.isUnsat();
           if (!unsat) {
             lastModel = prover.getModelAssignments();
