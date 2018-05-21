@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,13 +27,13 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 /**
  * Prints some BAM related statistics
  */
-class BAMCPAStatistics extends AbstractStatistics {
+class BAMCPAStatistics implements Statistics {
 
   private final AbstractBAMCPA cpa;
   private List<BAMBasedRefiner> refiners = new ArrayList<>();

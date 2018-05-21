@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -103,7 +102,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
   )
   private boolean ignoreUnknownAssignments = false;
 
-  static enum FunctionSet {
+  enum FunctionSet {
     // The items here need to be declared in the order they should be used when checking function.
     ALL, // all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
     USED_IN_CODE, // includes only functions which address is taken in the code
@@ -142,7 +141,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       ImmutableSet.of(
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
 
-  private static class CFunctionPointerResolverStatistics extends AbstractStatistics {
+  private static class CFunctionPointerResolverStatistics implements Statistics {
     private StatInt totalFPs = new StatInt(StatKind.SUM, "Function calls via function pointers");
     private StatInt instrumentedFPs =
         new StatInt(StatKind.SUM, "Instrumented function pointer calls");
