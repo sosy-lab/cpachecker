@@ -1170,6 +1170,11 @@ public class PredicateAbstractionManager {
     BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
 
+    return unsat(f);
+  }
+
+  public boolean unsat(BooleanFormula f) throws SolverException, InterruptedException {
+
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     return solver.isUnsat(f);
