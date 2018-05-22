@@ -72,6 +72,7 @@ public class ARGState extends AbstractSingleWrapperState
   private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
+  private ARGState replacedWith = null;
   private boolean hasCoveredParent = false;
 
   private ARGState mergedWith = null;
@@ -363,6 +364,10 @@ public class ARGState extends AbstractSingleWrapperState
     return destroyed;
   }
 
+  public ARGState getReplacedWith() {
+    return replacedWith;
+  }
+
   /**
    * The ordering of this class is the chronological creation order.
    */
@@ -555,6 +560,7 @@ public class ARGState extends AbstractSingleWrapperState
       mCoveredByThis = null;
     }
 
+    replacedWith = replacement;
     destroyed = true;
   }
 

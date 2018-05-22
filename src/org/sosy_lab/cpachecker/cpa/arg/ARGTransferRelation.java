@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -63,6 +64,42 @@ public class ARGTransferRelation implements TransferRelationTM {
     Collection<? extends AbstractState> successors;
     try {
       successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
+    } catch (UnsupportedCodeException e) {
+      // setting parent of this unsupported code part
+      e.setParentState(element);
+      throw e;
+    }
+
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
+    }
+
+    Collection<ARGState> wrappedSuccessors = new ArrayList<>();
+    for (AbstractState absElement : successors) {
+      ARGState successorElem = new ARGState(absElement, element);
+      wrappedSuccessors.add(successorElem);
+    }
+
+    return wrappedSuccessors;
+  }
+
+  @Override
+  public Collection<ARGState> getAbstractSuccessors(
+      AbstractState pElement, ReachedSet pReached, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    ARGState element = (ARGState) pElement;
+
+    // covered elements may be in the reached set, but should always be ignored
+    if (element.isCovered()) {
+      return Collections.emptySet();
+    }
+
+    element.markExpanded();
+
+    AbstractState wrappedState = element.getWrappedState();
+    Collection<? extends AbstractState> successors;
+    try {
+      successors = transferRelation.getAbstractSuccessors(wrappedState, pReached, pPrecision);
     } catch (UnsupportedCodeException e) {
       // setting parent of this unsupported code part
       e.setParentState(element);

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
@@ -97,7 +98,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
-    final ARGState lastElement = (ARGState)pReached.getLastState();
+    final ARGState lastElement =
+        AbstractStates.extractStateByType(pReached.getLastState(), ARGState.class);
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 

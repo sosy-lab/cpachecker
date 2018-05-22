@@ -61,7 +61,10 @@ public class ARGMergeJoin implements MergeOperator {
     ARGState argElement1 = (ARGState)pElement1;
     ARGState argElement2 = (ARGState)pElement2;
 
-    assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
+    if (argElement1.isCovered()) {
+      return pElement2;
+    }
+    // assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
 
     if (!argElement2.mayCover()) {
       // elements that may not cover should also not be used for merge

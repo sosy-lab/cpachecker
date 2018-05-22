@@ -36,6 +36,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
@@ -675,29 +676,37 @@ public class ARGUtils {
   public static boolean checkARG(ReachedSet pReached) {
     // Not all states in ARG might be reachable from a single root state
     // in case of multiple initial states and disjoint ARGs.
+    FluentIterable<ARGState> reachedARG = from(pReached).transform(toState(ARGState.class));
+    Collection<ARGState> waitlistARG =
+        from(pReached.getWaitlist()).transform(toState(ARGState.class)).toSet();
 
-    for (ARGState e : from(pReached).transform(toState(ARGState.class))) {
-      assert e != null : "Reached set contains abstract state without ARGState.";
-      assert !e.isDestroyed() : "Reached set contains destroyed ARGState, which should have been removed.";
+    for (ARGState e : reachedARG) {
+      // assert e != null : "Reached set contains abstract state without ARGState.";
+      if (e == null) {
+        continue;
+      }
+      assert !e.isDestroyed()
+          : "Reached set contains destroyed ARGState, which should have been removed.";
 
       for (ARGState parent : e.getParents()) {
         assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
-        assert pReached.contains(parent) : "Referenced parent is missing in reached";
+        assert reachedARG.contains(parent) : "Referenced parent is missing in reached";
       }
 
       for (ARGState child : e.getChildren()) {
         assert child.getParents().contains(e) : "Reference from child to parent is missing in ARG";
 
         // Usually, all children should be in reached set, with two exceptions.
-        // 1) Covered states need not be in the reached set (this depends on cpa.arg.keepCoveredStatesInReached),
+        // 1) Covered states need not be in the reached set (this depends on
+        // cpa.arg.keepCoveredStatesInReached),
         // but if they are not in the reached set, they may not have children.
         // 2) If the state is the sibling of the target state, it might have not
         // been added to the reached set if CPAAlgorithm stopped before.
         // But in this case its parent is in the waitlist.
 
-        if (!pReached.contains(child)) {
+        if (!reachedARG.contains(child)) {
           assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
-              || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+                  || waitlistARG.containsAll(child.getParents()) // 2)
               : "Referenced child is missing in reached set.";
         }
       }
