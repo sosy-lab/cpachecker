@@ -157,6 +157,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate dumpPredicatesFile = PathTemplate.ofFormatString("refinement%04d-predicates.prec");
 
+  @Option(secure = true, description = "ignore repeated counterexamples")
+  private boolean ignoreRepeatedCounterexamples = false;
+
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private boolean atomicPredicates = false;
@@ -566,7 +569,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
     ARGState firstInterpolationPoint = pAffectedStates.get(0);
     if (!newPredicatesFound) {
-      if (pRepeatedCounterexample) {
+      if (!ignoreRepeatedCounterexamples && pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
       numberOfRefinementsWithStrategy2.inc();
