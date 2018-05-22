@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
@@ -39,8 +39,9 @@ class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
-  // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
-  private Map<Integer, String> transitionVariables = new HashMap<>();
+  // these will be set in a MATCH statement, and are erased when the transitions actions are
+  // executed.
+  private Map<Integer, AAstNode> transitionVariables = new HashMap<>();
   private List<AbstractState> abstractStates;
   private AutomatonState state;
   private CFAEdge cfaEdge;
@@ -113,12 +114,13 @@ class AutomatonExpressionArguments {
   void clearTransitionVariables() {
     this.transitionVariables.clear();
   }
-  String getTransitionVariable(int key) {
+
+  AAstNode getTransitionVariable(int key) {
     // this is the variable adressed with $<key> in the automaton definition
     return this.transitionVariables.get(Integer.valueOf(key));
   }
 
-  void putTransitionVariable(int key, String value) {
+  void putTransitionVariable(int key, AAstNode value) {
     this.transitionVariables.put(key, value);
   }
 
@@ -139,13 +141,13 @@ class AutomatonExpressionArguments {
       String key = matcher.group().substring(1); // matched string startswith $
       try {
         int varKey = Integer.parseInt(key);
-        String var = this.getTransitionVariable(varKey);
+        AAstNode var = this.getTransitionVariable(varKey);
         if (var == null) {
           // this variable has not been set.
           this.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
           return null;
         } else {
-          result.append(var);
+          result.append(var.toASTString());
         }
       } catch (NumberFormatException e) {
         this.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
@@ -177,11 +179,11 @@ class AutomatonExpressionArguments {
     return state;
   }
 
-  public Map<Integer, String> getTransitionVariables() {
+  public Map<Integer, AAstNode> getTransitionVariables() {
     return this.transitionVariables;
   }
 
-  public void putTransitionVariables(Map<Integer, String> pTransitionVariables) {
+  public void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 }
