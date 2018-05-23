@@ -9,12 +9,15 @@ with considerably less effort -->
   <!-- METATAGS -->
   <title>CPAchecker Report</title>
   <!-- REPORT_CSS -->
-
-  <link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w="
+  <link rel="stylesheet" href="https://www.sosy-lab.org/lib/fontawesome-free/css/fontawesome-all.min.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp"
+    crossorigin="anonymous">
+  <link rel="stylesheet" href="https://www.sosy-lab.org/lib/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB"
     crossorigin="anonymous">
   <script src="https://www.sosy-lab.org/lib/jquery/3.3.1/jquery.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
     crossorigin="anonymous"></script>
-  <script src="https://www.sosy-lab.org/lib/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8="
+  <script src="https://www.sosy-lab.org/lib/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+  <script src="https://www.sosy-lab.org/lib/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
     crossorigin="anonymous"></script>
   <script src="https://www.sosy-lab.org/lib/angularjs/1.6.5/angular.min.js" integrity="sha256-zBy1l2WBAh2vPF8rnjFMUXujsfkKjya0Jy5j6yKj0+Q="
     crossorigin="anonymous"></script>
@@ -73,13 +76,13 @@ with considerably less effort -->
         </div>
         <a tabindex="0" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="{{help_errorpath}}"
           class="btn btn-default btn-lg help_button">
-          <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+          <i class="fas fa-question-circle"></i>
         </a>
         <div class="input-group input-group-sm">
           <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
           <span class="input-group-btn">
             <button ng-click="searchFor()" class="btn btn-default" type="button">
-              <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+              <i class="fas fa-search"></i>
             </button>
           </span>
         </div>
@@ -108,32 +111,35 @@ with considerably less effort -->
     </section>
 
     <section id="externalFiles_section">
-      <nav>
+     
         <ul class="nav nav-pills">
-          <li ng-class="{active: tabIsSet(1)}">
-            <a href ng-click="setTab(1)" id="set-tab-1">CFA</a>
+          <li class="nav-item" ng-class="{active: tabIsSet(1)}">
+            <a class="nav-link active" data-toggle="pill" href ng-click="setTab(1)" id="set-tab-1">CFA</a>
           </li>
-          <li ng-class="{active: tabIsSet(2)}">
-            <a href ng-click="setTab(2)" id="set-tab-2">ARG</a>
+          <li class="nav-item" ng-class="{active: tabIsSet(2)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(2)" id="set-tab-2">ARG</a>
           </li>
-          <li ng-class="{active: tabIsSet(3)}">
-            <a href ng-click="setTab(3)" id="set-tab-3">Source</a>
+          <li class="nav-item" ng-class="{active: tabIsSet(3)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(3)" id="set-tab-3">Source</a>
           </li>
-          <li ng-class="{active: tabIsSet(4)}">
-            <a href ng-click="setTab(4)">Log</a>
+          <li class="nav-item" ng-class="{active: tabIsSet(4)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(4)">Log</a>
           </li>
-          <li ng-class="{active: tabIsSet(5)}">
-            <a href ng-click="setTab(5)">Statistics</a>
+          <li class="nav-item" ng-class="{active: tabIsSet(5)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(5)">Statistics</a>
           </li>
-          <li ng-class="{active: tabIsSet(6)}">
-            <a href ng-click="setTab(6)">Configurations</a>
+          <li class="nav-item" ng-class="{active: tabIsSet(6)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(6)">Configurations</a>
           </li>
           <a tabindex="0" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="{{help_content}}"
             class="btn btn-default btn-lg help_button">
-            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+
+            <i class="fas fa-question-circle"></i>
+
+            <!-- <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> -->
           </a>
         </ul>
-      </nav>
+      
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
         <label>Displayed CFA</label>
@@ -142,13 +148,13 @@ with considerably less effort -->
         <label>Mouse Wheel Zoom</label>
         <span class="button-checkbox">
           <button class="btn btn-default" id="cfa-zoom-button" type="button" data-color="primary" ng-click="zoomControl()">
-            <i class="glyphicon glyphicon-unchecked"></i>
+            <i class="far fa-square"></i>
           </button>
         </span>
         <label>Split Threshold</label>
         <input type="text" id="cfa-split-threshold">
         <button class="btn btn-default" type="button" ng-click="redraw()">
-          <i class="glyphicon glyphicon-refresh"></i>
+          <i class="fas fa-sync"></i>
         </button>
       </div>
 
@@ -161,13 +167,13 @@ with considerably less effort -->
         <label>Mouse Wheel Zoom</label>
         <span class="button-checkbox">
           <button class="btn btn-default" id="arg-zoom-button" type="button" data-color="primary" ng-click="argZoomControl()">
-            <i class="glyphicon glyphicon-unchecked"></i>
+            <i class="far fa-square"></i>
           </button>
         </span>
         <label>Split Threshold</label>
         <input type="text" id="arg-split-threshold">
         <button class="btn btn-default" type="button" ng-click="argRedraw()">
-          <i class="glyphicon glyphicon-refresh"></i>
+          <i class="fas fa-sync"></i>
         </button>
       </div>
 

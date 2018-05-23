@@ -519,14 +519,14 @@ with considerably less effort */
 			$scope.zoomControl = function () {
 				if ($scope.zoomEnabled) {
 					$scope.zoomEnabled = false;
-					d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
+					d3.select("#cfa-zoom-button").html("<i class='far fa-square'></i>");
 					// revert zoom and remove listeners
 					d3.selectAll(".cfa-svg").each(function (d, i) {
 						d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
 					});
 				} else {
 					$scope.zoomEnabled = true;
-					d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
+					d3.select("#cfa-zoom-button").html("<i class='far fa-check-square'></i>");
 					d3.selectAll(".cfa-svg").each(function (d, i) {
 						var svg = d3.select(this),
 							svgGroup = d3.select(this.firstChild);
@@ -616,14 +616,14 @@ with considerably less effort */
 			$scope.argZoomControl = function () {
 				if ($scope.zoomEnabled) {
 					$scope.zoomEnabled = false;
-					d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
+					d3.select("#arg-zoom-button").html("<i class='far fa-square'></i>");
 					// revert zoom and remove listeners
 					d3.selectAll(".arg-svg").each(function (d, i) {
 						d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
 					});
 				} else {
 					$scope.zoomEnabled = true;
-					d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
+					d3.select("#arg-zoom-button").html("<i class='far fa-check-square'></i>");
 					d3.selectAll(".arg-svg").each(function (d, i) {
 						var svg = d3.select(this),
 							svgGroup = d3.select(this.firstChild);
@@ -749,7 +749,7 @@ function init() {
 	 * The graph(s) is/are returned to the main script once created
 	 */
 	function cfaWorker_function() {
-		self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
+		self.importScripts("https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js");
 		var json, nodes, mainNodes, edges, functions, combinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
 		var graphSplitThreshold = 700; // default value
 		var graphMap = [];
@@ -1210,7 +1210,7 @@ function init() {
 	 */
 	if (argJson.nodes) {
 		function argWorker_function() {
-			self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
+			self.importScripts("https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js");
 			var json, nodes, edges, errorPath, errorGraphMap;
 			var graphSplitThreshold = 700;
 			var graphMap = [],
