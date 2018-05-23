@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -45,6 +46,7 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -247,12 +249,16 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
         }
 
+        logger.log(Level.ALL, "Replace variables in automata assumptions");
+        ImmutableList<AExpression> instantiatedAssumes =
+            exprArgs.instantiateAssumtions(t.getAssumptions(edge, this.logger, this.machineModel));
+
         AutomatonState lSuccessor =
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
                 state.getAutomatonCPA(),
-                t.getAssumptions(edge, logger, machineModel),
+                instantiatedAssumes,
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),

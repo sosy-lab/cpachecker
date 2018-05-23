@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +34,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 class AutomatonExpressionArguments {
@@ -185,5 +194,55 @@ class AutomatonExpressionArguments {
 
   public void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
     this.transitionVariables.putAll(pTransitionVariables);
+  }
+
+  public ImmutableList<AExpression> instantiateAssumtions(ImmutableList<AExpression> pAssumptions) {
+    ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
+    SubstitutingCAstNodeVisitor visitor =
+        new SubstitutingCAstNodeVisitor(
+            new SubstitutingCAstNodeVisitor.SubstituteProvider() {
+              @Override
+              public CAstNode findSubstitute(CAstNode pNode) {
+                if ((pNode instanceof CIdExpression)) {
+                  CIdExpression exp = (CIdExpression) pNode;
+                  String name = exp.getName();
+                  Matcher matcher =
+                      AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(name);
+                  if (matcher.find()) {
+                    // Take value of internal automata variable ($$<variable>).
+                    String varName = matcher.group().substring(2);
+                    AutomatonVariable variable = automatonVariables.get(varName);
+                    if (variable != null) {
+                      return new CIntegerLiteralExpression(
+                          pNode.getFileLocation(),
+                          CNumericTypes.INT,
+                          BigInteger.valueOf(variable.getValue()));
+                    }
+                  }
+                  matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(name);
+                  if (matcher.find()) {
+                    // Take name of variable, which was referenced in transition assumption ($<id>).
+                    String varId = matcher.group().substring(1);
+                    try {
+                      return (CAstNode) transitionVariables.get(Integer.parseInt(varId));
+                    } catch (NumberFormatException e) {
+                      logger.log(
+                          Level.WARNING, "could not parse the int in transition variable " + varId);
+                    }
+                  }
+                }
+                return null;
+              }
+            });
+    for (AExpression expr : pAssumptions) {
+      if ((expr instanceof CExpression)) {
+        CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);
+        builder.add(substitutedExpr);
+      } else {
+        logger.log(Level.WARNING, "could not instantiate transition assumption");
+        builder.add(expr);
+      }
+    }
+    return builder.build();
   }
 }
