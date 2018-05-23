@@ -42,10 +42,10 @@
 			<arg value="-no-listener" />
 			<arg value="${grammar.source}.g4" />
 			<classpath>
-				<pathelement location="./lib/build/runtime/antlr4.jar" />
-				<pathelement location="./lib/build/runtime/antlr-runtime.jar" />
-				<pathelement location="./lib/build/runtime/antlr4-runtime.jar" />
-				<pathelement location="./lib/build/runtime/ST4.jar" />
+				<pathelement location="./lib/java/build/antlr4.jar" />
+				<pathelement location="./lib/java/build/antlr-runtime.jar" />
+				<pathelement location="./lib/java/build/antlr4-runtime.jar" />
+				<pathelement location="./lib/java/build/ST4.jar" />
 			</classpath>
 		</java>
 		<echo message="Generated files in ${ltl.generated.dir}/*" level="info" />
