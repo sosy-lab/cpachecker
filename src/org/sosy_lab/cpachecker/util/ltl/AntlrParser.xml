@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="Antlr4 parser generation" default="generate-antlr4-parser" basedir="./../../../../../../">
+	<!-- basedir should be the "CPAchecker" directory -->
+
+	<property name="ltl.dir" location="src/org/sosy_lab/cpachecker/util/ltl/" />
+	<property name="ltl.generated.dir" location="src/org/sosy_lab/cpachecker/util/ltl/generated/" />
+
+	<property name="grammar.source" value="LtlGrammar" />
+
+	<target name="echos">
+		<echo>${dir.src}</echo>
+		<echo>${ltl.generated.dir}</echo>
+		<echo>is antlr4 up to date? ${is.antlr4.uptodate}</echo>
+	</target>
+
+	<target name="clean" description="Delete generated files">
+		<delete dir="${ltl.generated.dir}" />
+	</target>
+
+	<uptodate srcfile="${ltl.dir}/${grammar.source}.g4" property="is.antlr4.uptodate">
+		<compositemapper>
+			<mergemapper to="${ltl.generated.dir}" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}BaseVisitor.java" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}Lexer.java" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}Parser.java" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}Visitor.java" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}.interp" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}.tokens" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}Lexer.interp" />
+			<mergemapper to="${ltl.generated.dir}/${grammar.source}Lexer.tokens" />
+		</compositemapper>
+	</uptodate>
+
+	<target name="generate-antlr4-parser" unless="is.antlr4.uptodate" description="Generate antlr4 parser">
+		<java classname="org.antlr.v4.Tool" fork="true" failonerror="true" dir="${ltl.dir}">
+			<arg value="-o" />
+			<arg value="generated" />
+			<arg value="-package" />
+			<arg value="org.sosy_lab.cpachecker.util.ltl.generated" />
+			<arg value="-visitor" />
+			<arg value="-no-listener" />
+			<arg value="${grammar.source}.g4" />
+			<classpath>
+				<pathelement location="./lib/java/runtime/antlr4.jar" />
+				<pathelement location="./lib/java/runtime/antlr-runtime.jar" />
+				<pathelement location="./lib/java/runtime/antlr4-runtime.jar" />
+				<pathelement location="./lib/java/runtime/ST4.jar" />
+			</classpath>
+		</java>
+		<echo message="Generated files in ${ltl.generated.dir}/*" level="info" />
+	</target>
+
+</project>
