@@ -2529,7 +2529,7 @@ cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
 # functions, which stops analysis
-cpa.usage.abortfunctions = no default value
+cpa.usage.abortfunctions = {}
 
 # functions, which are used to bind variables (like list elements are binded
 # to list variable)
