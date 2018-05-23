@@ -74,7 +74,8 @@
 
         <!-- Antlr
              Parser generator. -->
-        <dependency org="org.antlr" name="antlr4" rev="4.7.1" conf="runtime->default"/>
+        <dependency org="org.antlr" name="antlr4" rev="4.7.1" conf="build->default; contrib->sources"/>
+        <dependency org="org.antlr" name="antlr4-runtime" rev="4.7.1" conf="runtime->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
