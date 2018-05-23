@@ -196,44 +196,38 @@ class AutomatonExpressionArguments {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 
-  public ImmutableList<AExpression> instantiateAssumtions(ImmutableList<AExpression> pAssumptions) {
+  private CAstNode findSubstitute(CAstNode pNode) {
+    if ((pNode instanceof CIdExpression)) {
+      CIdExpression exp = (CIdExpression) pNode;
+      String name = exp.getName();
+      Matcher matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(name);
+      if (matcher.find()) {
+        // Take value of internal automata variable ($$<variable>).
+        String varName = matcher.group().substring(2);
+        AutomatonVariable variable = automatonVariables.get(varName);
+        if (variable != null) {
+          return new CIntegerLiteralExpression(
+              pNode.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(variable.getValue()));
+        }
+      }
+      matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(name);
+      if (matcher.find()) {
+        // Take name of variable, which was referenced in transition assumption ($<id>).
+        String varId = matcher.group().substring(1);
+        try {
+          return (CAstNode) transitionVariables.get(Integer.parseInt(varId));
+        } catch (NumberFormatException e) {
+          logger.log(Level.WARNING, "could not parse the int in transition variable " + varId);
+        }
+      }
+    }
+    return null;
+  }
+
+  public ImmutableList<AExpression> instantiateAssumptions(
+      ImmutableList<AExpression> pAssumptions) {
     ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
-    SubstitutingCAstNodeVisitor visitor =
-        new SubstitutingCAstNodeVisitor(
-            new SubstitutingCAstNodeVisitor.SubstituteProvider() {
-              @Override
-              public CAstNode findSubstitute(CAstNode pNode) {
-                if ((pNode instanceof CIdExpression)) {
-                  CIdExpression exp = (CIdExpression) pNode;
-                  String name = exp.getName();
-                  Matcher matcher =
-                      AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(name);
-                  if (matcher.find()) {
-                    // Take value of internal automata variable ($$<variable>).
-                    String varName = matcher.group().substring(2);
-                    AutomatonVariable variable = automatonVariables.get(varName);
-                    if (variable != null) {
-                      return new CIntegerLiteralExpression(
-                          pNode.getFileLocation(),
-                          CNumericTypes.INT,
-                          BigInteger.valueOf(variable.getValue()));
-                    }
-                  }
-                  matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(name);
-                  if (matcher.find()) {
-                    // Take name of variable, which was referenced in transition assumption ($<id>).
-                    String varId = matcher.group().substring(1);
-                    try {
-                      return (CAstNode) transitionVariables.get(Integer.parseInt(varId));
-                    } catch (NumberFormatException e) {
-                      logger.log(
-                          Level.WARNING, "could not parse the int in transition variable " + varId);
-                    }
-                  }
-                }
-                return null;
-              }
-            });
+    SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(this::findSubstitute);
     for (AExpression expr : pAssumptions) {
       if ((expr instanceof CExpression)) {
         CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);

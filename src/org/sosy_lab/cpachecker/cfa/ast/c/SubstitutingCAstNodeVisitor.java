@@ -23,22 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import java.util.List;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 
 public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, RuntimeException> {
-  private SubstituteProvider sp;
 
-  public SubstitutingCAstNodeVisitor(SubstituteProvider pSubstituteProvider) {
-    this.sp = (Preconditions.checkNotNull(pSubstituteProvider));
-  }
+  private final Function<CAstNode, CAstNode> findSubstitute;
 
-  @Nullable
-  private CAstNode findSubstitute(CAstNode pNode) {
-    return this.sp.findSubstitute(pNode);
+  public SubstitutingCAstNodeVisitor(Function<CAstNode, CAstNode> function) {
+    this.findSubstitute = function;
   }
 
   private <T> T firstNotNull(T pExpr1, T pExpr2) {
@@ -53,7 +48,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CArrayDesignator pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -67,7 +62,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CArrayRangeDesignator pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -87,7 +82,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CFieldDesignator pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -96,7 +91,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CInitializerList pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -138,7 +133,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CBinaryExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -161,7 +156,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CCastExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -175,7 +170,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CTypeIdExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -184,7 +179,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CUnaryExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -202,7 +197,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CArraySubscriptExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -228,7 +223,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CFieldReference pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -237,7 +232,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CIdExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -246,7 +241,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CPointerExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -261,7 +256,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CCharLiteralExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -270,7 +265,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CFloatLiteralExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -279,7 +274,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CImaginaryLiteralExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -288,7 +283,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CIntegerLiteralExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -297,7 +292,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CStringLiteralExpression pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -336,7 +331,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CExpressionAssignmentStatement pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -356,7 +351,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CExpressionStatement pNode) throws RuntimeException {
-    CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute.apply(pNode);
     if (result != null) {
       return result;
     }
@@ -381,10 +376,5 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   @Override
   public CAstNode visit(CEnumType.CEnumerator pCEnumerator) {
     throw new RuntimeException("Not yet implemented");
-  }
-
-  public abstract static interface SubstituteProvider {
-    @Nullable
-    public abstract CAstNode findSubstitute(CAstNode paramCAstNode);
   }
 }

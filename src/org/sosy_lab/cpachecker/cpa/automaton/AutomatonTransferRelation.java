@@ -251,7 +251,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
         logger.log(Level.ALL, "Replace variables in automata assumptions");
         ImmutableList<AExpression> instantiatedAssumes =
-            exprArgs.instantiateAssumtions(t.getAssumptions(edge, this.logger, this.machineModel));
+            exprArgs.instantiateAssumptions(t.getAssumptions(edge, this.logger, this.machineModel));
 
         AutomatonState lSuccessor =
             AutomatonState.automatonStateFactory(
