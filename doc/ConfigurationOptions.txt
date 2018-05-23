@@ -1799,9 +1799,6 @@ cpa.predicate.ignoreIrrelevantFields = true
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
 
-# ignore repeated counterexamples
-cpa.predicate.ignoreRepeatedCounterexamples = false
-
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
@@ -2707,9 +2704,6 @@ cpa.value.refinement.doLazyAbstraction = true
 # multiple times per refinement
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
-
-# ignore repeated counterexamples
-cpa.value.refinement.ignoreRepeatedCounterexamples = false
 
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"

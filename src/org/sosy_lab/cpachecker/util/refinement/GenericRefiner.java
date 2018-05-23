@@ -100,9 +100,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Option(secure = true, description="store all refined paths")
   private boolean storeAllRefinedPaths = false;
 
-  @Option(secure = true, description = "ignore repeated counterexamples")
-  private boolean ignoreRepeatedCounterexamples = false;
-
   @Option(secure = true, description="whether or not to add assumptions to counterexamples,"
       + " e.g., for supporting counterexample checks")
   private boolean addAssumptionsToCex = true;
@@ -174,7 +171,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
 
-    if (!ignoreRepeatedCounterexamples && !madeProgress(targetPaths.get(0))) {
+    if (!madeProgress(targetPaths.get(0))) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample,
           targetPaths.get(0));
     }
@@ -233,7 +230,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       }
     }
 
-    if (!ignoreRepeatedCounterexamples && repeatingCEX) {
+    if (repeatingCEX) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
