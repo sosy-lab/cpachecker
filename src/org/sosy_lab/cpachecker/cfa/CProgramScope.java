@@ -344,6 +344,9 @@ public class CProgramScope implements Scope {
     Iterator<CSimpleDeclaration> resultIt = results.iterator();
     if (resultIt.hasNext()) {
       result = resultIt.next();
+      if (resultIt.hasNext()) {
+        result = null;
+      }
     }
     return result;
   }
