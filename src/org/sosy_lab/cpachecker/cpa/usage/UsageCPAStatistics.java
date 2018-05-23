@@ -92,16 +92,16 @@ public class UsageCPAStatistics implements Statistics {
       final PrintStream out, final Result result, final UnmodifiableReachedSet reached) {
     try {
       printUnsafesTimer.start();
-      if (errPrinter == null) {
-        BAMMultipleCEXSubgraphComputer computer =
-            bamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
-        if (outputFileType == OutputFileType.KLEVER) {
-          errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-        } else if (outputFileType == OutputFileType.KLEVER_OLD) {
-          errPrinter = new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
-        } else if (outputFileType == OutputFileType.ETV) {
-          errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-        }
+      BAMMultipleCEXSubgraphComputer computer = null;
+      if (bamCpa != null) {
+        computer = bamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
+      }
+      if (outputFileType == OutputFileType.KLEVER) {
+        errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+      } else if (outputFileType == OutputFileType.KLEVER_OLD) {
+        errPrinter = new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
+      } else if (outputFileType == OutputFileType.ETV) {
+        errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
       }
       errPrinter.printErrorTraces(reached);
       printUnsafesTimer.stop();

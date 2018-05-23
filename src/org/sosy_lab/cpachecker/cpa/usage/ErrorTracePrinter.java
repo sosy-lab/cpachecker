@@ -104,7 +104,11 @@ public abstract class ErrorTracePrinter {
     lockTransfer = lT;
     config.inject(this, ErrorTracePrinter.class);
     FILTER_EMPTY_FILE_LOCATIONS =
-        e -> (e.getFileLocation() != null && !e.getFileLocation().getFileName().equals("<none>"));
+        Predicates.and(
+            e -> e != null,
+            e ->
+                (e.getFileLocation() != null
+                    && !e.getFileLocation().getFileName().equals("<none>")));
 
     if (filterMissedFiles) {
       FILTER_EMPTY_FILE_LOCATIONS =

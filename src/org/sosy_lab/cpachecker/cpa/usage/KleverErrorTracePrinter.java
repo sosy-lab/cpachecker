@@ -237,6 +237,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     CFAEdge warning = null;
 
     for (CFAEdge edge : path) {
+      if (edge == null) {
+        // Means we have problems with BAM (it is likely absent)
+        continue;
+      }
       if (edge.getPredecessor() == usage.getLine().getNode()) {
         if (edge.toString().contains(pId.getName())) {
           warning = edge;
