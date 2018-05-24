@@ -76,6 +76,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
 
+  private static final String WARNING_MESSAGE = "Access was not found";
+
   private static class ThreadIterator implements Iterator<Integer> {
     private Set<Integer> usedThreadIds;
     private int currentThread;
@@ -232,50 +234,23 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
-    SingleIdentifier pId = usage.getId();
-    List<CFAEdge> path = usage.getPath();
-    CFAEdge warning = null;
-
-    for (CFAEdge edge : path) {
-      if (edge == null) {
-        // Means we have problems with BAM (it is likely absent)
-        continue;
-      }
-      if (edge.getPredecessor() == usage.getLine().getNode()) {
-        if (edge.toString().contains(pId.getName())) {
-          warning = edge;
-          break;
-        } else if (edge instanceof CFunctionCallEdge) {
-          // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
-          if (((CFunctionCallEdge) edge)
-              .getSummaryEdge()
-              .getRawStatement()
-              .contains(pId.getName())) {
-            warning = edge;
-            break;
-          }
-        }
-      }
-    }
-
-    if (warning == null) {
-      logger.log(Level.WARNING, "Can not determine an unsafe edge");
-    }
-
-    Element lastWarningEdge = null;
+    String pIdName = usage.getId().getName();
+    boolean warningIsPrinted = false;
 
     while (iterator.hasNext()) {
       CFAEdge pEdge = iterator.next();
 
       Element edge = printEdge(builder, pEdge);
 
-      if (pEdge == warning) {
-        lastWarningEdge = edge;
+      if (!warningIsPrinted
+          && pEdge.getPredecessor() == usage.getLine().getNode()
+          && containsId(pEdge, pIdName)) {
+        warningIsPrinted = true;
+        builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());
+      } else if (!warningIsPrinted && !iterator.hasNext()) {
+        logger.log(Level.WARNING, "Can not determine an unsafe edge");
+        builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE);
       }
-    }
-
-    if (lastWarningEdge != null) {
-      builder.addDataElementChild(lastWarningEdge, KeyDef.WARNING, usage.getWarningMessage());
     }
   }
 
@@ -355,5 +330,17 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       }
     }
     return null;
+  }
+
+  private boolean containsId(CFAEdge edge, String pIdName) {
+    if (edge.toString().contains(pIdName)) {
+      return true;
+    } else if (edge instanceof CFunctionCallEdge) {
+      // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
+      if (((CFunctionCallEdge) edge).getSummaryEdge().getRawStatement().contains(pIdName)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

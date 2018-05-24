@@ -105,7 +105,7 @@ public class UsageTransferRelation implements TransferRelation {
   private final CallstackTransferRelation callstackTransfer;
   private final VariableSkipper varSkipper;
 
-  private Map<String, BinderFunctionInfo> binderFunctionInfo;
+  private final Map<String, BinderFunctionInfo> binderFunctionInfo;
 
   private final LogManager logger;
 
@@ -138,8 +138,7 @@ public class UsageTransferRelation implements TransferRelation {
     binderFunctionInfo = binderFunctionInfoBuilder.build();
 
     // BindedFunctions should not be analysed
-    skippedfunctions =
-        skippedfunctions == null ? binderFunctions : Sets.union(skippedfunctions, binderFunctions);
+    skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
 
     varSkipper = new VariableSkipper(config);
   }
