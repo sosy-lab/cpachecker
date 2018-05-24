@@ -30,12 +30,12 @@ public final class BooleanConstant implements LtlFormula {
 
   public final boolean value;
 
-  public static BooleanConstant of(boolean value) {
-    return value ? TRUE : FALSE;
+  public static BooleanConstant of(boolean pValue) {
+    return pValue ? TRUE : FALSE;
   }
 
-  private BooleanConstant(boolean value) {
-    this.value = value;
+  private BooleanConstant(boolean pValue) {
+    this.value = pValue;
   }
 
   @Override
@@ -52,6 +52,9 @@ public final class BooleanConstant implements LtlFormula {
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
+    }
+    if (obj == null) {
+      return false;
     }
 
     if (getClass() != obj.getClass()) {

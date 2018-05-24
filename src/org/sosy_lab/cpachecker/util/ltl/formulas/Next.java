@@ -26,22 +26,22 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 /** Next. */
 public final class Next extends UnaryFormula {
 
-  public Next(LtlFormula f) {
-    super(f);
+  public Next(LtlFormula pFormula) {
+    super(pFormula);
   }
 
-  public static LtlFormula of(LtlFormula operand) {
-    return of(operand, 1);
+  public static LtlFormula of(LtlFormula pOperand) {
+    return of(pOperand, 1);
   }
 
-  public static LtlFormula of(LtlFormula operand, int n) {
-    if (operand instanceof BooleanConstant) {
-      return operand;
+  public static LtlFormula of(LtlFormula pOperand, int pCount) {
+    if (pOperand instanceof BooleanConstant) {
+      return pOperand;
     }
 
-    LtlFormula ltlFormula = operand;
+    LtlFormula ltlFormula = pOperand;
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < pCount; i++) {
       ltlFormula = new Next(ltlFormula);
     }
 
@@ -49,8 +49,8 @@ public final class Next extends UnaryFormula {
   }
 
   @Override
-  public char getSymbol() {
-    return 'X';
+  public String getSymbol() {
+    return "X";
   }
 
   @Override

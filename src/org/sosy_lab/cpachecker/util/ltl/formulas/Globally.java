@@ -32,27 +32,27 @@ public final class Globally extends UnaryFormula {
     super(f);
   }
 
-  public static LtlFormula of(LtlFormula operand) {
-    if (operand instanceof BooleanConstant) {
-      return operand;
+  public static LtlFormula of(LtlFormula pOperand) {
+    if (pOperand instanceof BooleanConstant) {
+      return pOperand;
     }
 
-    if (operand instanceof Globally) {
-      return operand;
+    if (pOperand instanceof Globally) {
+      return pOperand;
     }
 
-    if (operand instanceof Finally && ((Finally) operand).operand instanceof Globally) {
-      return operand;
+    if (pOperand instanceof Finally && ((Finally) pOperand).operand instanceof Globally) {
+      return pOperand;
     }
 
-    if (operand instanceof Release) {
-      return of(((Release) operand).right);
+    if (pOperand instanceof Release) {
+      return of(((Release) pOperand).right);
     }
 
-    if (operand instanceof Conjunction) {
+    if (pOperand instanceof Conjunction) {
       ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
 
-      for (LtlFormula child : ((Conjunction) operand).children) {
+      for (LtlFormula child : ((Conjunction) pOperand).children) {
         builder.add(Globally.of(child));
       }
 
@@ -61,12 +61,12 @@ public final class Globally extends UnaryFormula {
       return new Conjunction(list);
     }
 
-    return new Globally(operand);
+    return new Globally(pOperand);
   }
 
   @Override
-  public char getSymbol() {
-    return 'G';
+  public String getSymbol() {
+    return "G";
   }
 
   @Override

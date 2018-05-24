@@ -23,23 +23,25 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import static java.util.Objects.requireNonNull;
+
 public abstract class BinaryFormula implements LtlFormula {
 
   public final LtlFormula left;
   public final LtlFormula right;
 
-  BinaryFormula(LtlFormula left, LtlFormula right) {
-    this.left = left;
-    this.right = right;
+  BinaryFormula(LtlFormula pLeft, LtlFormula pRight) {
+    this.left = requireNonNull(pLeft);
+    this.right = requireNonNull(pRight);
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + left.hashCode();
-    result = prime * result + getSymbol();
-    result = prime * result + right.hashCode();
+    result = prime * result + ((left == null) ? 0 : left.hashCode());
+    result = prime * result + ((right == null) ? 0 : right.hashCode());
+    result = prime * result + ((getSymbol() == null) ? 0 : getSymbol().hashCode());
     return result;
   }
 
@@ -48,24 +50,38 @@ public abstract class BinaryFormula implements LtlFormula {
     if (this == obj) {
       return true;
     }
-
+    if (obj == null) {
+      return false;
+    }
     if (getClass() != obj.getClass()) {
       return false;
     }
     BinaryFormula other = (BinaryFormula) obj;
-    if (!left.equals(other.left)) {
+    if (left == null) {
+      if (other.left != null) {
+        return false;
+      }
+    } else if (!left.equals(other.left)) {
       return false;
     }
-    if (getSymbol() != other.getSymbol()) {
+    if (right == null) {
+      if (other.right != null) {
+        return false;
+      }
+    } else if (!right.equals(other.right)) {
       return false;
     }
-    if (!right.equals(other.right)) {
+    if (getSymbol() == null) {
+      if (other.getSymbol() != null) {
+        return false;
+      }
+    } else if (!getSymbol().equals(other.getSymbol())) {
       return false;
     }
     return true;
   }
 
-  public abstract char getSymbol();
+  public abstract String getSymbol();
 
   @Override
   public String toString() {

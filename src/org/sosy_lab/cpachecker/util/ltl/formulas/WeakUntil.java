@@ -26,37 +26,37 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 /** Weak Until. */
 public final class WeakUntil extends BinaryFormula {
 
-  public WeakUntil(LtlFormula left, LtlFormula right) {
-    super(left, right);
+  public WeakUntil(LtlFormula pLeft, LtlFormula pRight) {
+    super(pLeft, pRight);
   }
 
-  public static LtlFormula of(LtlFormula left, LtlFormula right) {
-    if (left == BooleanConstant.TRUE || right == BooleanConstant.TRUE) {
+  public static LtlFormula of(LtlFormula pLeft, LtlFormula pRight) {
+    if (pLeft == BooleanConstant.TRUE || pRight == BooleanConstant.TRUE) {
       return BooleanConstant.TRUE;
     }
 
-    if (left == BooleanConstant.FALSE) {
-      return right;
+    if (pLeft == BooleanConstant.FALSE) {
+      return pRight;
     }
 
-    if (left.equals(right)) {
-      return left;
+    if (pLeft.equals(pRight)) {
+      return pLeft;
     }
 
-    if (right == BooleanConstant.FALSE) {
-      return Globally.of(left);
+    if (pRight == BooleanConstant.FALSE) {
+      return Globally.of(pLeft);
     }
 
-    if (left instanceof Globally) {
-      return Disjunction.of(left, right);
+    if (pLeft instanceof Globally) {
+      return Disjunction.of(pLeft, pRight);
     }
 
-    return new WeakUntil(left, right);
+    return new WeakUntil(pLeft, pRight);
   }
 
   @Override
-  public char getSymbol() {
-    return 'W';
+  public String getSymbol() {
+    return "W";
   }
 
   @Override

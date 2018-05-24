@@ -28,26 +28,26 @@ import java.util.Arrays;
 
 public final class Disjunction extends PropositionalFormula {
 
-  public Disjunction(Iterable<? extends LtlFormula> disjuncts) {
-    super(disjuncts);
+  public Disjunction(Iterable<? extends LtlFormula> pDisjuncts) {
+    super(pDisjuncts);
   }
 
-  public Disjunction(LtlFormula... disjuncts) {
-    super(disjuncts);
+  public Disjunction(LtlFormula... pDisjuncts) {
+    super(pDisjuncts);
   }
 
-  public static LtlFormula of(LtlFormula left, LtlFormula right) {
-    return of(Arrays.asList(left, right));
+  public static LtlFormula of(LtlFormula pLeft, LtlFormula pRight) {
+    return of(Arrays.asList(pLeft, pRight));
   }
 
-  public static LtlFormula of(LtlFormula... formulas) {
-    return of(Arrays.asList(formulas));
+  public static LtlFormula of(LtlFormula... pFormulas) {
+    return of(Arrays.asList(pFormulas));
   }
 
-  public static LtlFormula of(Iterable<? extends LtlFormula> iterable) {
+  public static LtlFormula of(Iterable<? extends LtlFormula> pIterable) {
     ImmutableSet.Builder<LtlFormula> builder = ImmutableSet.builder();
 
-    for (LtlFormula child : iterable) {
+    for (LtlFormula child : pIterable) {
 
       if (child == BooleanConstant.TRUE) {
         return BooleanConstant.TRUE;

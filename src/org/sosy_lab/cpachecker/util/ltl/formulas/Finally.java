@@ -32,27 +32,27 @@ public final class Finally extends UnaryFormula {
     super(f);
   }
 
-  public static LtlFormula of(LtlFormula operand) {
-    if (operand instanceof BooleanConstant) {
-      return operand;
+  public static LtlFormula of(LtlFormula pOperand) {
+    if (pOperand instanceof BooleanConstant) {
+      return pOperand;
     }
 
-    if (operand instanceof Finally) {
-      return operand;
+    if (pOperand instanceof Finally) {
+      return pOperand;
     }
 
-    if (operand instanceof Globally && ((Globally) operand).operand instanceof Finally) {
-      return operand;
+    if (pOperand instanceof Globally && ((Globally) pOperand).operand instanceof Finally) {
+      return pOperand;
     }
 
-    if (operand instanceof Until) {
-      return of(((Until) operand).right);
+    if (pOperand instanceof Until) {
+      return of(((Until) pOperand).right);
     }
 
-    if (operand instanceof Disjunction) {
+    if (pOperand instanceof Disjunction) {
       ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
 
-      for (LtlFormula child : ((Disjunction) operand).children) {
+      for (LtlFormula child : ((Disjunction) pOperand).children) {
         builder.add(Finally.of(child));
       }
 
@@ -61,12 +61,12 @@ public final class Finally extends UnaryFormula {
       return new Disjunction(list);
     }
 
-    return new Finally(operand);
+    return new Finally(pOperand);
   }
 
   @Override
-  public char getSymbol() {
-    return 'F';
+  public String getSymbol() {
+    return "F";
   }
 
   @Override

@@ -23,29 +23,34 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import static java.util.Objects.requireNonNull;
+
 public final class Literal implements LtlFormula {
 
   private final String atom;
   private final boolean negated;
   private final Literal negation;
 
-  public static Literal of(String name, boolean negated) {
-    return new Literal(name, negated);
+  public static Literal of(String pName, boolean pNegated) {
+    return new Literal(pName, pNegated);
   }
 
-  private Literal(Literal other) {
-    this.atom = other.atom;
-    this.negated = !other.negated;
-    this.negation = other;
+  private Literal(Literal pOther) {
+    requireNonNull(pOther);
+    this.atom = pOther.atom;
+    this.negated = !pOther.negated;
+    this.negation = pOther;
   }
 
-  public Literal(String name) {
-    this(name, false);
+  public Literal(String pName) {
+    this(pName, false);
   }
 
-  public Literal(String name, boolean negated) {
-    this.atom = name;
-    this.negated = negated;
+  public Literal(String pName, boolean pNegated) {
+    requireNonNull(pName);
+
+    this.atom = pName;
+    this.negated = pNegated;
     this.negation = new Literal(this);
   }
 
@@ -53,7 +58,7 @@ public final class Literal implements LtlFormula {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + atom.hashCode();
+    result = prime * result + ((atom == null) ? 0 : atom.hashCode());
     result = prime * result + (negated ? 1231 : 1237);
     return result;
   }
@@ -63,12 +68,18 @@ public final class Literal implements LtlFormula {
     if (this == obj) {
       return true;
     }
-
+    if (obj == null) {
+      return false;
+    }
     if (getClass() != obj.getClass()) {
       return false;
     }
     Literal other = (Literal) obj;
-    if (!atom.equals(other.atom)) {
+    if (atom == null) {
+      if (other.atom != null) {
+        return false;
+      }
+    } else if (!atom.equals(other.atom)) {
       return false;
     }
     if (negated != other.negated) {

@@ -26,33 +26,33 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 /** Strong Release. */
 public final class StrongRelease extends BinaryFormula {
 
-  public StrongRelease(LtlFormula left, LtlFormula right) {
-    super(left, right);
+  public StrongRelease(LtlFormula pLeft, LtlFormula pRight) {
+    super(pLeft, pRight);
   }
 
-  public static LtlFormula of(LtlFormula left, LtlFormula right) {
-    if (left == BooleanConstant.FALSE || right == BooleanConstant.FALSE) {
+  public static LtlFormula of(LtlFormula pLeft, LtlFormula pRight) {
+    if (pLeft == BooleanConstant.FALSE || pRight == BooleanConstant.FALSE) {
       return BooleanConstant.FALSE;
     }
 
-    if (left == BooleanConstant.TRUE) {
-      return right;
+    if (pLeft == BooleanConstant.TRUE) {
+      return pRight;
     }
 
-    if (left.equals(right)) {
-      return left;
+    if (pLeft.equals(pRight)) {
+      return pLeft;
     }
 
-    if (right == BooleanConstant.TRUE) {
-      return Finally.of(left);
+    if (pRight == BooleanConstant.TRUE) {
+      return Finally.of(pLeft);
     }
 
-    return new StrongRelease(left, right);
+    return new StrongRelease(pLeft, pRight);
   }
 
   @Override
-  public char getSymbol() {
-    return 'S';
+  public String getSymbol() {
+    return "S";
   }
 
   @Override

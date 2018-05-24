@@ -30,13 +30,13 @@ public abstract class PropositionalFormula implements LtlFormula {
 
   public ImmutableList<? extends LtlFormula> children;
 
-  PropositionalFormula(Iterable<? extends LtlFormula> children) {
-    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(children);
+  PropositionalFormula(Iterable<? extends LtlFormula> pChildren) {
+    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(pChildren);
     this.children = list;
   }
 
-  PropositionalFormula(LtlFormula... children) {
-    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(children);
+  PropositionalFormula(LtlFormula... pChildren) {
+    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(pChildren);
     this.children = list;
   }
 
@@ -58,7 +58,14 @@ public abstract class PropositionalFormula implements LtlFormula {
       return false;
     }
     PropositionalFormula other = (PropositionalFormula) obj;
-    return children.equals(other.children);
+    if (children == null) {
+      if (other.children != null) {
+        return false;
+      }
+    } else if (!children.equals(other.children)) {
+      return false;
+    }
+    return true;
   }
 
   protected abstract String getSymbol();

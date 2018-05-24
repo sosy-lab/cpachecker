@@ -26,29 +26,29 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 /** Strong Until. */
 public final class Until extends BinaryFormula {
 
-  public Until(LtlFormula left, LtlFormula right) {
-    super(left, right);
+  public Until(LtlFormula pLeft, LtlFormula pRight) {
+    super(pLeft, pRight);
   }
 
-  public static LtlFormula of(LtlFormula left, LtlFormula right) {
-    if (left == BooleanConstant.FALSE || right instanceof BooleanConstant) {
-      return right;
+  public static LtlFormula of(LtlFormula pLeft, LtlFormula pRight) {
+    if (pLeft == BooleanConstant.FALSE || pRight instanceof BooleanConstant) {
+      return pRight;
     }
 
-    if (left.equals(right)) {
-      return left;
+    if (pLeft.equals(pRight)) {
+      return pLeft;
     }
 
-    if (left == BooleanConstant.TRUE) {
-      return Finally.of(right);
+    if (pLeft == BooleanConstant.TRUE) {
+      return Finally.of(pRight);
     }
 
-    return new Until(left, right);
+    return new Until(pLeft, pRight);
   }
 
   @Override
-  public char getSymbol() {
-    return 'U';
+  public String getSymbol() {
+    return "U";
   }
 
   @Override

@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import static java.util.Objects.requireNonNull;
+
 public abstract class UnaryFormula implements LtlFormula {
 
   public final LtlFormula operand;
 
-  UnaryFormula(LtlFormula operand) {
-    this.operand = operand;
+  UnaryFormula(LtlFormula pOperand) {
+    this.operand = requireNonNull(pOperand);
   }
 
   public LtlFormula getOperand() {
@@ -39,8 +41,8 @@ public abstract class UnaryFormula implements LtlFormula {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + operand.hashCode();
-    result = prime * result + getSymbol();
+    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+    result = prime * result + ((getSymbol() == null) ? 0 : getSymbol().hashCode());
     return result;
   }
 
@@ -49,21 +51,31 @@ public abstract class UnaryFormula implements LtlFormula {
     if (this == obj) {
       return true;
     }
-
+    if (obj == null) {
+      return false;
+    }
     if (getClass() != obj.getClass()) {
       return false;
     }
     UnaryFormula other = (UnaryFormula) obj;
-    if (!operand.equals(other.operand)) {
+    if (operand == null) {
+      if (other.operand != null) {
+        return false;
+      }
+    } else if (!operand.equals(other.operand)) {
       return false;
     }
-    if (getSymbol() != other.getSymbol()) {
+    if (getSymbol() == null) {
+      if (other.getSymbol() != null) {
+        return false;
+      }
+    } else if (!getSymbol().equals(other.getSymbol())) {
       return false;
     }
     return true;
   }
 
-  public abstract char getSymbol();
+  public abstract String getSymbol();
 
   @Override
   public String toString() {
