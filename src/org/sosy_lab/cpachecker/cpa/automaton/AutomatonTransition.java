@@ -291,7 +291,8 @@ class AutomatonTransition {
     }
     if (!assumptions.isEmpty()) {
       sb.append("ASSUME {");
-      sb.append(Joiner.on(", ").join(Collections2.transform(assumptions, AExpression::toASTString)));
+      sb.append(
+          Joiner.on("; ").join(Collections2.transform(assumptions, AExpression::toASTString)));
       sb.append("} ");
     }
     if (!actions.isEmpty()) {
