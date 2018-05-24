@@ -159,6 +159,7 @@ public class UsageState extends AbstractSingleWrapperState
     final int prime = 31;
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
+    result = prime * result + Objects.hashCode(recentUsages);
     result = prime * super.hashCode();
     return result;
   }
@@ -173,6 +174,7 @@ public class UsageState extends AbstractSingleWrapperState
     }
     UsageState other = (UsageState) obj;
     return Objects.equals(variableBindingRelation, other.variableBindingRelation)
+        && Objects.equals(recentUsages, other.recentUsages)
         && super.equals(other);
   }
 
@@ -210,6 +212,9 @@ public class UsageState extends AbstractSingleWrapperState
         other.addUsage(id, usage);
       }
     }*/
+    if (!this.recentUsages.isSubsetOf(other.recentUsages)) {
+      return false;
+    }
     return true;
   }
 
@@ -225,6 +230,12 @@ public class UsageState extends AbstractSingleWrapperState
   public void joinContainerFrom(final UsageState reducedState) {
     stats.joinTimer.start();
     functionContainer.join(reducedState.functionContainer);
+    stats.joinTimer.stop();
+  }
+
+  public void joinRecentUsagesFrom(final UsageState pState) {
+    stats.joinTimer.start();
+    recentUsages.copyUsagesFrom(pState.recentUsages);
     stats.joinTimer.stop();
   }
 
@@ -331,7 +342,22 @@ public class UsageState extends AbstractSingleWrapperState
 
   @Override
   public UsageState join(UsageState pOther) {
-    throw new UnsupportedOperationException("Join is not permitted for UsageCPA");
+    if (!getWrappedState().equals(pOther.getWrappedState())) {
+      throw new UnsupportedOperationException("Join is not permitted for different wrapped states");
+    }
+    // Function containers must be equal
+    if (functionContainer != pOther.getFunctionContainer()) {
+      throw new UnsupportedOperationException("Join is not permitted for different funtions");
+    }
+    if (this.isLessOrEqual(pOther)) {
+      return pOther;
+    } else if (pOther.isLessOrEqual(this)) {
+      return this;
+    }
+    UsageState mergedState = this.copy();
+    mergedState.joinRecentUsagesFrom(pOther);
+    mergedState.variableBindingRelation.putAll(pOther.variableBindingRelation);
+    return mergedState;
   }
 
   protected Object readResolve() {

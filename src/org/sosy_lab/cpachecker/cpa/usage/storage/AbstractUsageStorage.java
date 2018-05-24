@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -66,6 +67,10 @@ public abstract class AbstractUsageStorage extends TreeMap<SingleIdentifier, Sor
     deeplyCloned.clear();
   }
 
+  public void copyUsagesFrom(AbstractUsageStorage pStorage) {
+    pStorage.forEach(this::addUsages);
+  }
+
   public void addUsages(SingleIdentifier id, SortedSet<UsageInfo> usages) {
     if (containsKey(id)) {
       SortedSet<UsageInfo> currentStorage = getStorageForId(id);
@@ -78,5 +83,21 @@ public abstract class AbstractUsageStorage extends TreeMap<SingleIdentifier, Sor
   public boolean add(SingleIdentifier id, UsageInfo info) {
     SortedSet<UsageInfo> currentStorage = getStorageForId(id);
     return currentStorage.add(info);
+  }
+
+  public boolean isSubsetOf(AbstractUsageStorage pOther) {
+    for (Map.Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : this.entrySet()) {
+      SingleIdentifier id = entry.getKey();
+      if (pOther.containsKey(id)) {
+        SortedSet<UsageInfo> currentSet = entry.getValue();
+        SortedSet<UsageInfo> otherSet = pOther.get(id);
+        if (!otherSet.containsAll(currentSet)) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+    return true;
   }
 }
