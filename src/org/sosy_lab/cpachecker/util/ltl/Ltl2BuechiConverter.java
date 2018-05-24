@@ -34,6 +34,7 @@ import jhoafparser.parser.generated.ParseException;
 import jhoafparser.storage.StoredAutomaton;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.LtlParserUtils;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 
 public class Ltl2BuechiConverter {
@@ -64,8 +65,7 @@ public class Ltl2BuechiConverter {
           e);
     }
 
-    //    return LtlParserUtils.transform(storedAutomaton);
-    return null;
+    return LtlParserUtils.transform(storedAutomaton);
   }
 
   private Ltl2BuechiConverter(LtlFormula pFormula) {
