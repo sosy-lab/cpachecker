@@ -169,7 +169,7 @@ public class LockState extends AbstractLockState {
         mutableToRestore = mutableToRestore.toRestore;
       }
       if (locks.equals(mutableLocks) && mutableToRestore == toRestore) {
-        return getParentLink();
+        return LockState.this;
       } else {
         return new LockState(mutableLocks, (LockState) mutableToRestore);
       }
@@ -177,7 +177,7 @@ public class LockState extends AbstractLockState {
 
     @Override
     public LockState getOldState() {
-      return getParentLink();
+      return LockState.this;
     }
 
     @Override
@@ -245,7 +245,7 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void setRestoreState() {
-      mutableToRestore = getParentLink();
+      mutableToRestore = LockState.this;
     }
 
     @Override
@@ -344,10 +344,6 @@ public class LockState extends AbstractLockState {
   @Override
   public LockStateBuilder builder() {
     return new LockStateBuilder(this);
-  }
-
-  private LockState getParentLink() {
-    return this;
   }
 
   @Override

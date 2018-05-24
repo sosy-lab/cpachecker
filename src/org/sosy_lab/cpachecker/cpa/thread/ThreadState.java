@@ -105,7 +105,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   private final ImmutableList<ThreadLabel> threadSet;
-  // The removedSet is useless now, but it will be used in futer in more complicated cases
+  // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
   private final ImmutableList<ThreadLabel> removedSet;
 

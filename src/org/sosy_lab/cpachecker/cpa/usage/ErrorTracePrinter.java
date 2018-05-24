@@ -187,8 +187,7 @@ public abstract class ErrorTracePrinter {
 
       if (!falseUnsafes.isEmpty()) {
         try (Writer writer =
-            Files.newBufferedWriter(
-                Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
+            Files.newBufferedWriter(outputFalseUnsafes, Charset.defaultCharset())) {
           logger.log(Level.FINE, "Print statistics about false unsafes");
 
           for (SingleIdentifier id : falseUnsafes) {
