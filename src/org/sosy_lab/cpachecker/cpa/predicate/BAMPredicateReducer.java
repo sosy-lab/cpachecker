@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashSet;
@@ -239,32 +240,32 @@ public class BAMPredicateReducer implements Reducer {
       // create reduced precision
 
       // we only need global predicates with used variables
-      final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(getRelevantPredicates(
-          context, expandedPredicatePrecision.getGlobalPredicates()));
+      final Collection<AbstractionPredicate> globalPredicates =
+          getRelevantPredicates(context, expandedPredicatePrecision.getGlobalPredicates());
 
       // we only need function predicates with used variables
-      final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
+      final Builder<String, AbstractionPredicate> functionPredicates = ImmutableSetMultimap.builder();
       for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
-        // TODO only add vars if functionname is used in block?
-        functionPredicatesBuilder.putAll(functionname, getRelevantPredicates(
+        functionPredicates.putAll(functionname, getRelevantPredicates(
             context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
       }
-      final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
 
       // we only need local predicates with used variables and with nodes from the block
-      final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder = ImmutableSetMultimap.builder();
+      final Builder<CFANode, AbstractionPredicate> localPredicates = ImmutableSetMultimap.builder();
       for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates
           // Without support for them, we can just pass 0 as locInstance parameter
-          localPredicatesBuilder.putAll(node, getRelevantPredicates(
+          localPredicates.putAll(node, getRelevantPredicates(
               context, expandedPredicatePrecision.getPredicates(node, 0)));
         }
       }
-      final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();
 
       return new PredicatePrecision(
-          ImmutableSetMultimap.of(), localPredicates, functionPredicates, globalPredicates);
+              ImmutableSetMultimap.of(),
+              localPredicates.build(),
+              functionPredicates.build(),
+              globalPredicates);
     } else {
       return pPrecision;
     }
