@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -107,12 +107,11 @@ public class BAMPredicateReducer implements Reducer {
 
       Region oldRegion = oldAbstraction.asRegion();
 
-      Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
-      Collection<AbstractionPredicate> removePredicates =
+      Set<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
+      Set<AbstractionPredicate> removePredicates =
           Sets.difference(
-              new HashSet<>(predicates),
-              new HashSet<>(
-                  cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates)));
+              predicates,
+              cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates));
 
       PathFormula pathFormula = predicateElement.getPathFormula();
 
