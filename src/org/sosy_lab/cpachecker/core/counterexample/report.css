@@ -161,8 +161,8 @@ body {
     border: none;
 }
 
-#err-table tr:nth-child(odd) td pre.make-pretty {
-    background-color: #f3f3f3;
+#err-table tr td pre.make-pretty {
+    background-color: #696969;
 }
 
 #err-table tr.clickedErrPathElement {
@@ -272,7 +272,11 @@ td:first-child {
 }
 
 .sourceContent tr:nth-child(odd) td pre.prettyprint {
-	background-color: #f3f3f3;
+	background-color: #36486b;
+}
+
+.sourceContent tr:nth-child(even) td pre.prettyprint {
+	background-color: #618685;
 }
 
 .edit-line {
