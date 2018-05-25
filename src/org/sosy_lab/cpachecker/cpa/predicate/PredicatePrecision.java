@@ -58,7 +58,7 @@ import java.util.Set;
  *
  * All instances of this class are immutable.
  */
-public class PredicatePrecision implements AdjustablePrecision {
+public final class PredicatePrecision implements AdjustablePrecision {
 
   /**
    * This class identifies a position in the ARG where predicates can be applied.
@@ -148,7 +148,7 @@ public class PredicatePrecision implements AdjustablePrecision {
         pGlobalPredicates);
   }
 
-  public PredicatePrecision(
+  private PredicatePrecision(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> pLocationInstancePredicates,
       Iterable<Map.Entry<CFANode, AbstractionPredicate>> pLocalPredicates,
       Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates,

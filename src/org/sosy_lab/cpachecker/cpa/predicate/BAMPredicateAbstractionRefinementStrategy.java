@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateReducer.ReducedPredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -156,13 +155,6 @@ public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstract
     Precision oldPrecision = reached.getPrecision(reached.getLastState());
     PredicatePrecision oldPredicatePrecision =
         Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-
-    // we have to use the old root-precision, because the direct precision might have been reduced.
-    // the root-precision should contain "all" predicates generated in the last refinement.
-    if (oldPredicatePrecision instanceof ReducedPredicatePrecision) {
-      oldPredicatePrecision =
-          ((ReducedPredicatePrecision) oldPredicatePrecision).getRootPredicatePrecision();
-    }
 
     BlockPartitioning partitioning = predicateCpa.getPartitioning();
     Deque<Block> openBlocks = new ArrayDeque<>();

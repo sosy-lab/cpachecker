@@ -215,19 +215,8 @@ public class BAMPredicateReducer implements Reducer {
     if (usePrecisionReduction) {
       PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
       PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
-
-      if (rootPrecision instanceof ReducedPredicatePrecision) {
-        rootPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
-      }
-      if (reducedPrecision instanceof ReducedPredicatePrecision) {
-        reducedPrecision = ((ReducedPredicatePrecision) reducedPrecision).getRootPredicatePrecision();
-      }
-
       if (rootPrecision == reducedPrecision) { return pRootPrecision; }
-
-      PredicatePrecision mergedPrecision = rootPrecision.mergeWith(reducedPrecision);
-
-      return getVariableReducedPrecision(mergedPrecision, pRootContext);
+      return rootPrecision.mergeWith(reducedPrecision);
     } else {
       return pReducedPrecision;
     }
@@ -274,17 +263,8 @@ public class BAMPredicateReducer implements Reducer {
       }
       final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();
 
-      PredicatePrecision rootPredicatePrecision = expandedPredicatePrecision;
-      if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
-        rootPredicatePrecision = ((ReducedPredicatePrecision)expandedPredicatePrecision).getRootPredicatePrecision();
-      }
-
-      return new ReducedPredicatePrecision(
-          rootPredicatePrecision,
-          ImmutableSetMultimap.of(),
-          localPredicates,
-          functionPredicates,
-          globalPredicates);
+      return new PredicatePrecision(
+          ImmutableSetMultimap.of(), localPredicates, functionPredicates, globalPredicates);
     } else {
       return pPrecision;
     }
@@ -295,39 +275,6 @@ public class BAMPredicateReducer implements Reducer {
       return cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
     } else {
       return predicates;
-    }
-  }
-
-  static class ReducedPredicatePrecision extends PredicatePrecision {
-
-    /* the top-level-precision of the main-block */
-    private final PredicatePrecision rootPredicatePrecision;
-
-    private ReducedPredicatePrecision(
-        PredicatePrecision pRootPredicatePrecision,
-        ImmutableSetMultimap<LocationInstance, AbstractionPredicate> pLocalInstPredicates,
-        ImmutableSetMultimap<CFANode, AbstractionPredicate> pLocalPredicates,
-        ImmutableSetMultimap<String, AbstractionPredicate> pFunctionPredicates,
-        ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
-      super(pLocalInstPredicates, pLocalPredicates, pFunctionPredicates, pGlobalPredicates);
-      assert !(pRootPredicatePrecision instanceof ReducedPredicatePrecision);
-      this.rootPredicatePrecision = pRootPredicatePrecision;
-    }
-
-    PredicatePrecision getRootPredicatePrecision() {
-      return rootPredicatePrecision;
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      return super.equals(pObj)
-          && pObj instanceof ReducedPredicatePrecision
-          && rootPredicatePrecision.equals(((ReducedPredicatePrecision)pObj).getRootPredicatePrecision());
-    }
-
-    @Override
-    public int hashCode() {
-      return super.hashCode() + 17 * rootPredicatePrecision.hashCode();
     }
   }
 
