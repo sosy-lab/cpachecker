@@ -164,6 +164,7 @@ public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstract
       Integer currentNodeInstance =
           getPredicateState(pathElement).getAbstractionLocationsOnPath().get(currentNode);
 
+      // get predicates for node, in most cases nodeInstance is irrelevant and will be ignored.
       Set<AbstractionPredicate> localPreds =
           oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
       for (Block block : openBlocks) {

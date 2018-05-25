@@ -86,10 +86,9 @@ public class BAMSubgraphComputer {
    *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
    * @param pMainReachedSet most outer reached set, contains the target-state.
-   *
-   * @return root of a subgraph, that contains all states on all paths to newTreeTarget.
-   *         The subgraph contains only copies of the real ARG states,
-   *         because one real state can be used multiple times in one path.
+   * @return root and target of a subgraph, that contains all states on all paths to newTreeTarget.
+   *     The subgraph contains only copies of the real ARG states, because one real state can be
+   *     used multiple times in one path.
    * @throws MissingBlockException for re-computing some blocks
    */
   Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(

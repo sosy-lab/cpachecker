@@ -122,7 +122,7 @@ public interface BAMDataManager {
    *  then there is a way to clear all caches and to restore ARG completely. */
   void clear();
 
-  /** return a matching precision for the given state, or Null if state is not found. */
+  /** return a matching precision for the given expanded state, or Null if state is not found. */
   @Nullable
   Precision getExpandedPrecisionForState(AbstractState pState);
 
