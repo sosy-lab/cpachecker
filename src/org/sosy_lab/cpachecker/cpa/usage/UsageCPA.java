@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -64,14 +63,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public class UsageCPA extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
-  private final AbstractDomain abstractDomain;
-  private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final UsageCPAStatistics statistics;
-  private UsagePrecision precision;
   private final CFA cfa;
   private final LogManager logger;
 
@@ -89,11 +85,9 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     super(pCpa);
     pConfig.inject(this);
     this.cfa = pCfa;
-    this.abstractDomain = DelegateAbstractDomain.<UsageState>getInstance();
-    this.mergeOperator = MergeSepOperator.getInstance();
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
 
-    LockCPA LockCPA = (CPAs.retrieveCPA(this, LockCPA.class));
+    LockCPA LockCPA = CPAs.retrieveCPA(this, LockCPA.class);
     this.statistics =
         new UsageCPAStatistics(
             pConfig,
@@ -120,7 +114,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    return DelegateAbstractDomain.<UsageState>getInstance();
   }
 
   @Override
@@ -130,7 +124,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return new UsageMergeOperator();
   }
 
   @Override
@@ -147,10 +141,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
       throws InterruptedException {
     PresisionParser parser = new PresisionParser(cfa, logger);
-    precision =
-        UsagePrecision.create(
-            this.getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
-    return precision;
+    return UsagePrecision.create(
+        this.getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
   }
 
   @Override

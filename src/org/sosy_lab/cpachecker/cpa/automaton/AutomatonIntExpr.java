@@ -101,7 +101,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       if (TRANSITION_VARS_PATTERN.matcher(varId).matches()) { // $1  AutomatonTransitionVariables
         // no exception here (would have come in the constructor)
         int key = Integer.parseInt(varId.substring(1));
-        String val = pArgs.getTransitionVariable(key);
+        String val = pArgs.getTransitionVariable(key).toASTString();
         if (val == null) {
           return logAndReturn(pArgs, "could not find the transition variable $%s.", key);
         }

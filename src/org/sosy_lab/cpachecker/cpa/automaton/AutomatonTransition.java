@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
@@ -287,6 +288,12 @@ class AutomatonTransition {
       sb.append("ASSERT ");
       sb.append(assertion);
       sb.append(" ");
+    }
+    if (!assumptions.isEmpty()) {
+      sb.append("ASSUME {");
+      sb.append(
+          Joiner.on("; ").join(Collections2.transform(assumptions, AExpression::toASTString)));
+      sb.append("} ");
     }
     if (!actions.isEmpty()) {
       Joiner.on(" ").appendTo(sb, actions);

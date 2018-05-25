@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -52,6 +55,12 @@ public class TemporaryUsageStorage extends AbstractUsageStorage {
   public TemporaryUsageStorage() {
     withoutARGState = new ArrayList<>();
     previousStorage = null;
+  }
+
+  @Override
+  public void addUsages(SingleIdentifier id, SortedSet<UsageInfo> usages) {
+    from(usages).filter(u -> u.getKeyState() == null).forEach(withoutARGState::add);
+    super.addUsages(id, usages);
   }
 
   @Override

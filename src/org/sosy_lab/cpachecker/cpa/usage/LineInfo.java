@@ -37,7 +37,7 @@ public class LineInfo implements Comparable<LineInfo> {
 
   @Override
   public String toString() {
-    return "#" + Integer.toString(line) + "#";
+    return "line: " + Integer.toString(line);
   }
 
   public int getLine() {

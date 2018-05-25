@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,10 +115,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -131,7 +129,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
 class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
 
-  private static enum InvariantGenerationStrategy {
+  private enum InvariantGenerationStrategy {
     /**
      * Applies inductive weakening on the pathformula (which is converted to a CNF like form)
      * to filter out the invariant part.
@@ -360,7 +358,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
-                invariantShutdown, Collections.<ResourceLimit>singletonList(l));
+                invariantShutdown, Collections.singletonList(l));
         limits.start();
       }
 
@@ -456,7 +454,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
-                invariantShutdown, Collections.<ResourceLimit>singletonList(l));
+                invariantShutdown, Collections.singletonList(l));
         limits.start();
       }
 
@@ -638,12 +636,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           new StaticCandidateProvider(
               from(conjuncts)
                   .transform(
-                      (Function<BooleanFormula, CandidateInvariant>)
-                          pInput -> {
-                            String dumpedFormula = fmgr.dumpFormula(pInput).toString();
-                            formulaToRegion.put(dumpedFormula, pInput);
-                            return makeLocationInvariant(pLocation, dumpedFormula);
-                          }));
+                      pInput -> {
+                        String dumpedFormula = fmgr.dumpFormula(pInput).toString();
+                        formulaToRegion.put(dumpedFormula, pInput);
+                        return makeLocationInvariant(pLocation, dumpedFormula);
+                      }));
 
       new KInductionInvariantChecker(
               config,
@@ -942,7 +939,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     @Override
     public Iterator<CandidateInvariant> iterator() {
       if (trieNum == 0) {
-        return Collections.<CandidateInvariant>emptyIterator();
+        return Collections.emptyIterator();
       }
       return candidates.iterator();
     }
@@ -1061,7 +1058,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
   }
 
-  private class Stats extends AbstractStatistics {
+  private class Stats implements Statistics {
     private final StatTimer invgenTime = new StatTimer("Total time for invariant generation");
     private final StatTimer rfKindTime =
         new StatTimer("Time for checking interpolants with k-induction");

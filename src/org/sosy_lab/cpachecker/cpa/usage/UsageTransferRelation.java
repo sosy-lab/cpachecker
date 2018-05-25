@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -84,22 +86,27 @@ public class UsageTransferRelation implements TransferRelation {
   private final UsageCPAStatistics statistics;
 
   @Option(description = "functions, which we don't analize", secure = true)
-  private Set<String> skippedfunctions = null;
+  private Set<String> skippedfunctions = ImmutableSet.of();
 
   @Option(
     description =
         "functions, which are used to bind variables (like list elements are binded to list variable)",
     secure = true
   )
-  private Set<String> binderFunctions = null;
+  private Set<String> binderFunctions = ImmutableSet.of();
+
+  @Option(description = "functions, which are marked as write access",
+      secure = true)
+  private Set<String> writeAccessFunctions = ImmutableSet.of();
 
   @Option(name = "abortfunctions", description = "functions, which stops analysis", secure = true)
-  private Set<String> abortfunctions;
+  private Set<String> abortFunctions = ImmutableSet.of();
 
   private final CallstackTransferRelation callstackTransfer;
   private final VariableSkipper varSkipper;
 
-  private Map<String, BinderFunctionInfo> binderFunctionInfo;
+  private final Map<String, BinderFunctionInfo> binderFunctionInfo;
+
   private final LogManager logger;
 
   private UsageState newState;
@@ -116,17 +123,22 @@ public class UsageTransferRelation implements TransferRelation {
     wrappedTransfer = pWrappedTransfer;
     callstackTransfer = transfer;
     statistics = s;
-
     logger = pLogger;
-    if (binderFunctions != null) {
-      binderFunctionInfo =
-          from(binderFunctions).toMap(name -> new BinderFunctionInfo(name, config, logger));
-      // BindedFunctions should not be analysed
-      skippedfunctions =
-          skippedfunctions == null
-              ? binderFunctions
-              : Sets.union(skippedfunctions, binderFunctions);
-    }
+
+    ImmutableMap.Builder<String, BinderFunctionInfo> binderFunctionInfoBuilder =
+        ImmutableMap.builder();
+
+    from(binderFunctions)
+        .forEach(
+            name ->
+                binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
+
+    BinderFunctionInfo dummy = new BinderFunctionInfo();
+    from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));
+    binderFunctionInfo = binderFunctionInfoBuilder.build();
+
+    // BindedFunctions should not be analysed
+    skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
 
     varSkipper = new VariableSkipper(config);
   }
@@ -309,7 +321,7 @@ public class UsageTransferRelation implements TransferRelation {
       final CExpression left, final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
-    if (binderFunctions != null && binderFunctions.contains(functionCallName)) {
+    if (binderFunctionInfo.containsKey(functionCallName)) {
       BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
       List<CExpression> params = fcExpression.getParameterExpressions();
 
@@ -329,7 +341,7 @@ public class UsageTransferRelation implements TransferRelation {
         addUsageIfNeccessary(usage);
       }
 
-    } else if (abortfunctions.contains(functionCallName)) {
+    } else if (abortFunctions.contains(functionCallName)) {
       newState.asExitable();
     } else {
       fcExpression.getParameterExpressions().forEach(p -> visitStatement(p, Access.READ));

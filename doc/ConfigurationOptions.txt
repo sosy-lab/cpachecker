@@ -2529,11 +2529,11 @@ cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
 # functions, which stops analysis
-cpa.usage.abortfunctions = no default value
+cpa.usage.abortfunctions = {}
 
 # functions, which are used to bind variables (like list elements are binded
 # to list variable)
-cpa.usage.binderFunctions = no default value
+cpa.usage.binderFunctions = {}
 
 # export counterexample core as text file
 cpa.usage.export.witnessTemplate = "witness.%s.graphml"
@@ -2577,22 +2577,22 @@ cpa.usage.singleFileOutput = false
 cpa.usage.singleThreadFunctions = new HashSet<>()
 
 # functions, which we don't analize
-cpa.usage.skippedfunctions = no default value
+cpa.usage.skippedfunctions = {}
 
 # variables, which will be filtered by function location
-cpa.usage.skippedvariables.byFunction = no default value
+cpa.usage.skippedvariables.byFunction = {}
 
 # variables, which will be filtered by function prefix
-cpa.usage.skippedvariables.byFunctionPrefix = no default value
+cpa.usage.skippedvariables.byFunctionPrefix = {}
 
 # variables, which will be filtered by its name
-cpa.usage.skippedvariables.byName = no default value
+cpa.usage.skippedvariables.byName = {}
 
 # variables, which will be filtered by its name prefix
-cpa.usage.skippedvariables.byNamePrefix = no default value
+cpa.usage.skippedvariables.byNamePrefix = {}
 
 # variables, which will be filtered by its type
-cpa.usage.skippedvariables.byType = no default value
+cpa.usage.skippedvariables.byType = {}
 
 # clean all ARG or try to reuse some parts of it (memory consuming)
 cpa.usage.totalARGCleaning = true
@@ -2606,6 +2606,9 @@ cpa.usage.unsafedetector.intLock = no default value
 # defines what is unsafe
 cpa.usage.unsafedetector.unsafeMode = RACE
   enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
+
+# functions, which are marked as write access
+cpa.usage.writeAccessFunctions = {}
 
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
