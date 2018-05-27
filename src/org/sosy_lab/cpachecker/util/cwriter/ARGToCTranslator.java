@@ -24,7 +24,13 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +38,8 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -40,6 +48,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -68,11 +77,13 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
   private static String ASSERTFAIL = "__assert_fail";
   private static String DEFAULTRETURN = "default return";
+  private static String TMPVARPREFIX = "__tmp_";
 
   private static abstract class Statement {
     public abstract void translateToCode(StringBuilder buffer, int indent);
@@ -217,7 +228,7 @@ public class ARGToCTranslator {
   // private static Collection<AbstractState> reached;
 
   private @Nullable Set<ARGState> addPragmaAfter;
-
+  private Map<ARGState, List<CDeclaration>> copyValuesForGoto;
 
   @Option(secure=true, name="header", description="write include directives")
   private boolean includeHeader = true;
@@ -239,20 +250,28 @@ public class ARGToCTranslator {
     return includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE;
   }
 
-  public String translateARG(ARGState argRoot) throws CPAException {
+  public String translateARG(ARGState argRoot, boolean hasGotoDecProblem) throws CPAException {
 
-    return translateARG(argRoot, null);
+    return translateARG(argRoot, null, hasGotoDecProblem);
   }
 
-  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma)
+  public String translateARG(
+      ARGState argRoot, @Nullable Set<ARGState> pAddPragma, boolean hasGotoDecProblem)
       throws CPAException {
 
     addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
 
+    if (hasGotoDecProblem) {
+      copyValuesForGoto = identifyDeclarationProblems(argRoot);
+    } else {
+      copyValuesForGoto = Collections.emptyMap();
+    }
     translate(argRoot);
 
     return generateCCode();
   }
+
+
 
   private String generateCCode() {
     StringBuilder buffer = new StringBuilder();
@@ -471,8 +490,55 @@ public class ARGToCTranslator {
 
   private void generateLabel(ARGState currentElement, CompoundStatement block) {
     if(!currentElement.getCoveredByThis().isEmpty() || mergeElements.contains(currentElement)) {
-      //this element covers others; they may want to jump to it
-      block.addStatement(new SimpleStatement("label_" + currentElement.getStateId() + ":; "));
+      // this element covers others; they may want to jump to it
+      if (copyValuesForGoto.containsKey(currentElement)) {
+        addTmpAssignments(
+            block, copyValuesForGoto.get(currentElement), currentElement.getStateId(), true);
+        addLabel(block, currentElement);
+        reassignTmpValues(
+            block, copyValuesForGoto.get(currentElement), currentElement.getStateId());
+
+      } else {
+        addLabel(block, currentElement);
+      }
+    }
+  }
+
+  private void reassignTmpValues(
+      final CompoundStatement block, final List<CDeclaration> varDecList, final int pId) {
+    CVariableDeclaration varDec;
+    String tmpVarName;
+
+    for (int i = 0; i < varDecList.size(); i++) {
+      varDec = (CVariableDeclaration) varDecList.get(i);
+      tmpVarName = TMPVARPREFIX + pId + "_" + i;
+
+      block.addStatement(
+          new SimpleStatement(
+              varDec.getQualifiedName().replace("::", "__") + " = " + tmpVarName + ";"));
+    }
+  }
+
+  private void addLabel(final CompoundStatement pBlock, final ARGState pCurrentElement) {
+    pBlock.addStatement(new SimpleStatement("label_" + pCurrentElement.getStateId() + ":; "));
+  }
+
+  private void addTmpAssignments(
+      final CompoundStatement block,
+      final List<CDeclaration> varDecList,
+      final int pId,
+      final boolean addToGlobalList) {
+    CVariableDeclaration varDec;
+    String tmpVarName;
+    for (int i = 0; i < varDecList.size(); i++) {
+      varDec = (CVariableDeclaration) varDecList.get(i);
+      tmpVarName = TMPVARPREFIX + pId + "_" + i;
+      if (addToGlobalList) {
+        globalDefinitionsList.add(varDec.getType().toASTString(tmpVarName) + ";");
+      }
+      block.addStatement(
+          new SimpleStatement(
+              tmpVarName + " = " + varDec.getQualifiedName().replace("::", "__") + ";"));
     }
   }
 
@@ -492,8 +558,13 @@ public class ARGToCTranslator {
       // this element was not already processed; find children of it
       getRelevantChildrenOfElement(childElement, waitlist, currentBlock);
     } else {
-      //this element was already processed and code generated somewhere; jump to it
-      currentBlock.addStatement(new SimpleStatement("goto label_" + childElement.getStateId() + ";"));
+      // this element was already processed and code generated somewhere; jump to it
+      if (copyValuesForGoto.containsKey(childElement)) {
+        addTmpAssignments(
+            currentBlock, copyValuesForGoto.get(childElement), childElement.getStateId(), false);
+      }
+      currentBlock.addStatement(
+          new SimpleStatement("goto label_" + childElement.getStateId() + ";"));
     }
   }
 
@@ -752,7 +823,7 @@ public class ARGToCTranslator {
       String actualParamSignature = actualParams.get(i++).toQualifiedASTString();
 
       // create temp variable to avoid name clashes
-      String tempVariableName = "__tmp_" + getFreshIndex();
+      String tempVariableName = TMPVARPREFIX + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
 
       actualParamAssignStatements.add(new SimpleStatement(tempVariableType + ";"));
@@ -776,6 +847,8 @@ public class ARGToCTranslator {
 
   private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge,
       CompoundStatement pCurrentBlock, int id) {
+    // TODO getBlockAfterEndOfFunction problematic when using CLOSEFUNCTIONBLOCK and goto statement
+    // caused due to multiple parents or covering of successor
     CFunctionCall retExp = pEdge.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
@@ -842,4 +915,150 @@ public class ARGToCTranslator {
     return ++freshIndex;
   }
 
+  private Map<ARGState, List<CDeclaration>> identifyDeclarationProblems(final ARGState root) {
+    ARGState parent;
+    Pair<ARGState, DeclarationInfo> current;
+    DeclarationInfo decInfo;
+    CFAEdge edge;
+    Set<ARGState> visited = new HashSet<>();
+    Deque<Pair<ARGState, DeclarationInfo>> waitlist = new ArrayDeque<>();
+
+    Multimap<ARGState, Map<CDeclaration, String>> decProblems = HashMultimap.create();
+
+    visited.add(root);
+    waitlist.push(Pair.of(root, new DeclarationInfo(ImmutableMap.of(), ImmutableList.of())));
+
+    while (!waitlist.isEmpty()) {
+      current = waitlist.pop();
+      parent = current.getFirst();
+
+      for (ARGState child : parent.getChildren()) {
+        edge = parent.getEdgeToChild(child);
+
+        if (edge == null) {
+          // assume dynamic multi-edge case
+          decInfo = current.getSecond();
+          for (CFAEdge edgeM : parent.getEdgesToChild(child)) {
+            decInfo = handleDecInfoForEdge(edgeM, parent, child, decInfo);
+          }
+        } else {
+          // checkEdge(edge, parent, child, listPerFunction.getLast());
+          decInfo = handleDecInfoForEdge(edge, parent, child, current.getSecond());
+        }
+
+        child = getCovering(child);
+
+        if (visited.add(child)) {
+          waitlist.push(Pair.of(child, decInfo));
+        }
+
+        if (child.getCoveredByThis() != null || child.getParents().size() > 0) {
+          decProblems.put(child, decInfo.currentFuncDecInfo);
+        }
+      }
+    }
+
+    List<Map<CDeclaration, String>> probs;
+    List<CDeclaration> probVars;
+
+    Map<ARGState, List<CDeclaration>> probVarDec =
+        Maps.newHashMapWithExpectedSize(decProblems.keySet().size());
+
+    boolean containAll, different;
+    for (ARGState key : decProblems.keySet()) {
+      probs = new ArrayList<>(decProblems.get(key));
+      probVars = new ArrayList<>();
+
+      for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
+        containAll = true;
+        different = false;
+        for (int i = 1; i < probs.size(); i++) {
+          if (!probs.get(i).containsKey(prob.getKey())) {
+            containAll = false;
+            break;
+          }
+          if (!probs.get(i).get(prob.getKey()).equals(prob.getValue())) {
+            different = true;
+          }
+        }
+
+        if (containAll && different) {
+          probVars.add(prob.getKey());
+        }
+      }
+
+      if (probVars.size() > 0) {
+        probVarDec.put(key, probVars);
+      }
+    }
+    return probVarDec;
+  }
+
+  private DeclarationInfo handleDecInfoForEdge(
+      final CFAEdge edge, final ARGState pred, final ARGState succ, final DeclarationInfo decInfo) {
+    if (edge instanceof CFunctionCallEdge) {
+      return decInfo.fromFunctionCall();
+    }
+
+    if (edge instanceof CFunctionReturnEdge) {
+      return decInfo.fromFunctionReturn();
+    }
+    if (edge instanceof CDeclarationEdge
+        && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
+        && !((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).isGlobal()) {
+      return decInfo.addNewDeclarationInfo(
+          ((CDeclarationEdge) edge).getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
+    }
+
+    return decInfo;
+  }
+
+  private static class DeclarationInfo {
+    private final ImmutableMap<CDeclaration, String> currentFuncDecInfo;
+    private final ImmutableList<ImmutableMap<CDeclaration, String>> calleeFunDecInfos;
+
+    public DeclarationInfo(
+        final ImmutableMap<CDeclaration, String> funDec,
+        final ImmutableList<ImmutableMap<CDeclaration, String>> calleesFunInfo) {
+      currentFuncDecInfo = funDec;
+      calleeFunDecInfos = calleesFunInfo;
+    }
+
+    public DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
+      ImmutableMap<CDeclaration, String> newFunDecInfo;
+      if (currentFuncDecInfo.containsKey(dec)) {
+        Builder<CDeclaration, String> builder = ImmutableMap.<CDeclaration, String>builder();
+        builder.put(dec, decId);
+        for (Entry<CDeclaration, String> entry : currentFuncDecInfo.entrySet()) {
+          if (!entry.getKey().equals(dec)) {
+            builder.put(entry);
+          }
+        }
+        newFunDecInfo = builder.build();
+      } else {
+        newFunDecInfo =
+            ImmutableMap.<CDeclaration, String>builder()
+                .putAll(currentFuncDecInfo)
+                .put(dec, decId)
+                .build();
+      }
+
+      return new DeclarationInfo(newFunDecInfo, calleeFunDecInfos);
+    }
+
+    public DeclarationInfo fromFunctionCall() {
+      return new DeclarationInfo(
+          ImmutableMap.<CDeclaration, String>of(),
+          ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
+              .addAll(calleeFunDecInfos)
+              .add(currentFuncDecInfo)
+              .build());
+    }
+
+    public DeclarationInfo fromFunctionReturn() {
+      return new DeclarationInfo(
+          calleeFunDecInfos.get(calleeFunDecInfos.size() - 1),
+          calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
+    }
+  }
 }
