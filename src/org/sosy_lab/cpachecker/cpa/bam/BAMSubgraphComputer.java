@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
@@ -85,10 +86,9 @@ public class BAMSubgraphComputer {
    *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
    * @param pMainReachedSet most outer reached set, contains the target-state.
-   *
-   * @return root of a subgraph, that contains all states on all paths to newTreeTarget.
-   *         The subgraph contains only copies of the real ARG states,
-   *         because one real state can be used multiple times in one path.
+   * @return root and target of a subgraph, that contains all states on all paths to newTreeTarget.
+   *     The subgraph contains only copies of the real ARG states, because one real state can be
+   *     used multiple times in one path.
    * @throws MissingBlockException for re-computing some blocks
    */
   Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(
@@ -102,13 +102,14 @@ public class BAMSubgraphComputer {
   Pair<BackwardARGState, Collection<BackwardARGState>> computeCounterexampleSubgraph(
       final Collection<ARGState> targets, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets)
+    UnmodifiableReachedSet mainRs = pMainReachedSet.asReachedSet();
+    assert mainRs.asCollection().containsAll(targets)
       : "target states should be contained in reached-set. The following states are not contained: "
-        + Iterables.filter(targets, s -> !pMainReachedSet.asReachedSet().contains(s));
+        + Iterables.filter(targets, s -> !mainRs.contains(s));
     assert !targets.isEmpty() : "cannot compute subgraph without target states";
     Collection<BackwardARGState> newTargets = from(targets).transform(BackwardARGState::new).toList();
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, newTargets);
-    assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
+    assert mainRs.getFirstState() == root.getARGState();
     return Pair.of(root, newTargets);
   }
 
@@ -119,6 +120,7 @@ public class BAMSubgraphComputer {
   private BackwardARGState computeCounterexampleSubgraph(
       final ARGReachedSet reachedSet, final Collection<BackwardARGState> newTreeTargets)
       throws MissingBlockException, InterruptedException {
+    final UnmodifiableReachedSet rs = reachedSet.asReachedSet();
 
     // start by creating ARGElements for each node needed in the tree
     final Map<ARGState, BackwardARGState> finishedStates = new HashMap<>();
@@ -127,14 +129,14 @@ public class BAMSubgraphComputer {
 
     for (BackwardARGState newTreeTarget : newTreeTargets) {
       ARGState target = newTreeTarget.getARGState();
-      assert reachedSet.asReachedSet().contains(target);
+      assert rs.contains(target);
       finishedStates.put(target, newTreeTarget);
       waitlist.addAll(target.getParents()); // add parent for further processing
     }
 
     while (!waitlist.isEmpty()) {
       final ARGState currentState = waitlist.pollLast(); // get state with biggest ID
-      assert reachedSet.asReachedSet().contains(currentState);
+      assert rs.contains(currentState);
 
       if (finishedStates.containsKey(currentState)) {
         continue; // state already done
