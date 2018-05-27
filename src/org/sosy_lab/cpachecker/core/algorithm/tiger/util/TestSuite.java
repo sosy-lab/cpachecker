@@ -547,4 +547,8 @@ public class TestSuite implements AlgorithmResult {
         ? ""
         : bddUtils.dumpRegion(goalCondition.getSimplifiedPresenceCondition());
   }
+
+  public BDDUtils getBddUtils() {
+    return bddUtils;
+  }
 }
