@@ -65,9 +65,12 @@ public abstract class ABinaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString() {
-    return operand1.toParenthesizedASTString() + " "
-        + operator.getOperator() + " " + operand2.toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    return operand1.toParenthesizedASTString(pQualified)
+        + " "
+        + operator.getOperator()
+        + " "
+        + operand2.toParenthesizedASTString(pQualified);
   }
 
   /* (non-Javadoc)

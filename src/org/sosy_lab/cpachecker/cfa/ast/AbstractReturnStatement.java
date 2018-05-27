@@ -43,9 +43,9 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     return "return"
-        + (expression.isPresent() ? " " + expression.get().toASTString() : "")
+        + (expression.isPresent() ? " " + expression.get().toASTString(pQualified) : "")
         + ";";
   }
 

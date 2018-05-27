@@ -27,19 +27,32 @@ import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
+@SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface AAstNode extends Serializable {
 
   public FileLocation getFileLocation();
 
-  public String toASTString();
+  public String toASTString(boolean pQualified);
 
-  public String toParenthesizedASTString() ;
+  public String toParenthesizedASTString(boolean pQualified);
+
+  default String toASTString() {
+    return toASTString(false);
+  }
+
+  default String toParenthesizedASTString() {
+    return toParenthesizedASTString(false);
+  }
+
+  default String toQualifiedASTString() {
+    return toASTString(true);
+  }
 
   /**
-   * Accept methods for visitors that works with AST nodes of all languages.
-   * It requires a visitor that implements the respective visitor interfaces
-   * for all languages.
-   * If you can, do not call this method but one of the normal "accept" methods.
+   * Accept methods for visitors that works with AST nodes of all languages. It requires a visitor
+   * that implements the respective visitor interfaces for all languages. If you can, do not call
+   * this method but one of the normal "accept" methods.
+   *
    * @param v The visitor.
    * @return Returns the object returned by the visit method.
    */
