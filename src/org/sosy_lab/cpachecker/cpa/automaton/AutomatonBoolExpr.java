@@ -1173,7 +1173,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
+      return "CHECK(" + cpaName + ", \"" + queryString + "\")";
     }
 
     @Override
