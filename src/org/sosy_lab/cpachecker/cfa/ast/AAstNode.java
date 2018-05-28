@@ -36,8 +36,8 @@ public interface AAstNode extends Serializable {
    * Constructs a String representation of the AST represented by this node. Depending on the
    * parameter value different representations for local variables are used. Typically, you want to
    * call this method with a fixed value for the parameter. In these cases, we highly recommend to
-   * either use {@link toASTString()} (fixed parameter value false) or {@link
-   * toQualifiedASTString()} (fixed parameter value true).
+   * either use {@link #toASTString()} (fixed parameter value false) or {@link
+   * #toQualifiedASTString()} (fixed parameter value true).
    *
    * @param pQualified - if true use qualified variable names, i.e., add prefix functionname__ to
    *     local variable names, where functionname is the name of the function that declared the
