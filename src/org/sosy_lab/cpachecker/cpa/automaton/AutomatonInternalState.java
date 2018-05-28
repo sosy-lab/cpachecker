@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +85,9 @@ public class AutomatonInternalState {
 
   /** Name of this State.  */
   private final String name;
-  /** Outgoing transitions of this state.  */
-  private final List<AutomatonTransition> transitions;
+
+  /** Outgoing transitions of this state. */
+  private final ImmutableList<AutomatonTransition> transitions;
 
   private final boolean mIsTarget;
 
@@ -103,7 +105,7 @@ public class AutomatonInternalState {
       boolean pAllTransitions,
       boolean pIsCycleStart) {
     this.name = pName;
-    this.transitions = pTransitions;
+    this.transitions = ImmutableList.copyOf(pTransitions);
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
     this.isCycleStart = pIsCycleStart;
@@ -170,7 +172,7 @@ public class AutomatonInternalState {
     return mAllTransitions;
   }
 
-  public List<AutomatonTransition> getTransitions() {
+  public ImmutableList<AutomatonTransition> getTransitions() {
     return transitions;
   }
 
