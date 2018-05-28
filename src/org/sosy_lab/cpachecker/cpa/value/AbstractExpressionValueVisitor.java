@@ -1793,8 +1793,9 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(lVal % rVal);
 
       default:
-        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString() + " on double values");
-      }
+              throw new AssertionError(
+                  "Unsupported binary operation " + pBinaryOperator + " on double values");
+          }
     }
 
     case EQUALS:
@@ -2428,8 +2429,8 @@ public abstract class AbstractExpressionValueVisitor
         return createValue(doubleValue, st.getType());
 
       } else {
-        throw new AssertionError("Cast from " + sourceType.toString() + " to "
-            + targetType.toString() + " not possible.");
+        throw new AssertionError(
+            "Cast from " + sourceType + " to " + targetType + " not possible.");
       }
     } else {
       return value; // TODO handle casts between object types

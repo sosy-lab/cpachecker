@@ -260,7 +260,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   @Override
   public String toString() {
     return from(DataInfo.keySet())
-        .transform(id -> id.toString() + " - " + getDataInfo(id))
+        .transform(id -> id + " - " + getDataInfo(id))
         .join(Joiner.on("\n"));
   }
 }

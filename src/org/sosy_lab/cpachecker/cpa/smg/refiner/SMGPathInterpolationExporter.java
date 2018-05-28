@@ -131,7 +131,7 @@ public class SMGPathInterpolationExporter {
     for (SMGState state : states) {
       String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + (counter++) + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
-      String location = pIncomingEdge.toString() + " on N" + pCurrentLocation.getNodeNumber();
+      String location = pIncomingEdge + " on N" + pCurrentLocation.getNodeNumber();
       SMGUtils.dumpSMGPlot(logger, state, location, path);
     }
   }

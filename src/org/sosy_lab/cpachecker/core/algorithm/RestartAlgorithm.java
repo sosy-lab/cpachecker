@@ -326,7 +326,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           currentReached = currentAlg.getThird();
           provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Skipping one analysis because the configuration file "
+                  + singleConfigFileName
+                  + " is invalid");
           continue;
         } catch (IOException e) {
           String message =

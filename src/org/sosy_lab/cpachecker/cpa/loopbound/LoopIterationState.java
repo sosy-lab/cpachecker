@@ -297,7 +297,7 @@ interface LoopIterationState {
 
     @Override
     public String toString() {
-      return loopEntry.toString() + " in iteration " + getMaxIterationCount();
+      return loopEntry + " in iteration " + getMaxIterationCount();
     }
 
     @Override

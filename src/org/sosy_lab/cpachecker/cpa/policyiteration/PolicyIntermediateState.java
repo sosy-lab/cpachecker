@@ -118,7 +118,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toString() {
-    return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
+    return pathFormula + "\nLength: " + pathFormula.getLength();
   }
 
   @Override

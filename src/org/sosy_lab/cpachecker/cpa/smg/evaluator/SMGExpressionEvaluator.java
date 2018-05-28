@@ -206,7 +206,7 @@ public class SMGExpressionEvaluator {
       // Field does not fit size of declared Memory
       logger.log(Level.WARNING, pEdge.getFileLocation() + ":", "Field " + "("
           + fieldOffset + ", " + pType.toASTString("") + ")"
-          + " does not fit object " + pObject.toString() + ".");
+          + " does not fit object " + pObject + ".");
 
       return SMGValueAndState.of(pSmgState);
     }
@@ -757,7 +757,7 @@ public class SMGExpressionEvaluator {
       SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal.valueOf(0, pTarget, pOffset.getAsInt()));
       return SMGAddressValueAndStateList.of(result);
     } else {
-      throw new AssertionError("Abstraction " + pTarget.toString() + " was not materialised.");
+      throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
     }
 
     Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());

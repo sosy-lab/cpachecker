@@ -78,7 +78,7 @@ public class DGNode implements Serializable {
 
   @Override
   public String toString() {
-    return "(" + cfaEdge.toString() + ", " + cause + ")";
+    return "(" + cfaEdge + ", " + cause + ")";
   }
 
   /** {@link DGNode} that signalizes the dependency on an unknown memory location. * */

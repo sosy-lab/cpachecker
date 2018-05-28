@@ -106,6 +106,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public String toString(){
-    return "BAMReachedSet {{" + asReachedSet().asCollection().toString() + "}}";
+    return "BAMReachedSet {{" + asReachedSet().asCollection() + "}}";
   }
 }

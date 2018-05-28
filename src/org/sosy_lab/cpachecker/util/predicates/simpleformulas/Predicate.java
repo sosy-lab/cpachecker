@@ -57,7 +57,7 @@ public class Predicate {
     mComparison = Preconditions.checkNotNull(pComparison);
     mRightTerm = Preconditions.checkNotNull(pRightTerm);
 
-    mString = mLeftTerm.toString() + " " + mComparison.operatorSymbol() + " " + mRightTerm.toString();
+    mString = mLeftTerm + " " + mComparison.operatorSymbol() + " " + mRightTerm;
   }
 
   public Predicate negate() {

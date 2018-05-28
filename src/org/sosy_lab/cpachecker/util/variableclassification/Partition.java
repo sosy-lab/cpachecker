@@ -130,7 +130,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   @Override
   public String toString() {
-    return vars.toString() + " --> " + Arrays.toString(values.toArray());
+    return vars + " --> " + Arrays.toString(values.toArray());
   }
 
   @Override

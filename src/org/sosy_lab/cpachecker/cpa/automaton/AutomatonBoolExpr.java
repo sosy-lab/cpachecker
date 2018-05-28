@@ -1140,7 +1140,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
                   if (logger.wouldBeLogged(Level.FINER)) {
                     String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                     modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                    aqe.toString() + "\"";
+                    aqe + "\"";
                     logger.log(Level.FINER, message);
                   }
                   return CONST_TRUE;
@@ -1148,7 +1148,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
                   if (logger.wouldBeLogged(Level.FINER)) {
                     String message = "CPA-Check failed: ModifiedCheckString: \"" +
                     modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                    aqe.toString() + "\"";
+                    aqe + "\"";
                     logger.log(Level.FINER, message);
                   }
                   return CONST_FALSE;

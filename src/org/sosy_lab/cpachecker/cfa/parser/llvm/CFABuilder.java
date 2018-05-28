@@ -645,7 +645,7 @@ public class CFABuilder {
 
     @Override
     public String toString() {
-      return "BasicBlock " + entryNode.toString() + " -> " + exitNode.toString();
+      return "BasicBlock " + entryNode + " -> " + exitNode;
     }
   }
 
