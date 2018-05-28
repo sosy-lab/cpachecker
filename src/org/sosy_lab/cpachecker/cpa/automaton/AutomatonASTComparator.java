@@ -71,7 +71,7 @@ class AutomatonASTComparator {
    * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
    * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.
    */
-  private static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard";
+  static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard";
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern JOKER_PATTERN = Pattern.compile("\\$(\\d+|\\?)");
 

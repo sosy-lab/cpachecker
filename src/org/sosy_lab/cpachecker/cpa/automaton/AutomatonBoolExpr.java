@@ -663,7 +663,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH {" + patternAST + "}";
+      return "MATCH {"
+          + patternAST.toString().replaceAll(AutomatonASTComparator.JOKER_EXPR + "\\d+", "\\$?")
+          + "}";
     }
   }
 
