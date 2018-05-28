@@ -299,8 +299,6 @@ class AutomatonTransition {
       Joiner.on(" ").appendTo(sb, actions);
       sb.append(" ");
     }
-    sb.append(followState);
-    sb.append(";");
     return sb.toString();
   }
 
