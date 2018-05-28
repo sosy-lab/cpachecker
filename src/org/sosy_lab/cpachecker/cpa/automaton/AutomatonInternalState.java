@@ -38,7 +38,12 @@ public class AutomatonInternalState {
 
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM =
-      new AutomatonInternalState("_predefinedState_BOTTOM", Collections.emptyList());
+      new AutomatonInternalState("_predefinedState_BOTTOM", Collections.emptyList()) {
+        @Override
+        public String toString() {
+          return "STOP";
+        }
+      };
 
   /** Error State */
   static final AutomatonInternalState ERROR =
@@ -54,7 +59,12 @@ public class AutomatonInternalState {
                   new StringExpression(""))),
           true,
           false,
-          false);
+          false) {
+        @Override
+        public String toString() {
+          return "ERROR";
+        }
+      };
 
   /** Break state, used to halt the analysis without being a target state */
   static final AutomatonInternalState BREAK =
