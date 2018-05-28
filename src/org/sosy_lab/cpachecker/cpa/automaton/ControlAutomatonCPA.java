@@ -170,7 +170,7 @@ public class ControlAutomatonCPA
           IO.writeFile(
               spcExportFile.getPath(automaton.getName()), Charset.defaultCharset(), automaton);
         } catch (IOException e) {
-          pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+          pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to SPC file");
         }
       }
     }
