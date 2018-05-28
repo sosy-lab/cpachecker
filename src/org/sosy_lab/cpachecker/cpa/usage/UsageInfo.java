@@ -173,7 +173,9 @@ public class UsageInfo implements Comparable<UsageInfo> {
     sb.append(" access to ");
     sb.append(id);
     AbstractLockState locks = getLockState();
-    if (locks.getSize() == 0) {
+    if (locks == null) {
+      // Lock analysis is disabled
+    } else if (locks.getSize() == 0) {
       sb.append(" without locks");
     } else {
       sb.append(" with ");

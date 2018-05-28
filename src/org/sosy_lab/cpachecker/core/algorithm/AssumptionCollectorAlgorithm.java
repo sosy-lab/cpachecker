@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -535,7 +534,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }
 
-  private class AssumptionCollectionStatistics extends AbstractStatistics {
+  private class AssumptionCollectionStatistics implements Statistics {
     @Override
     public String getName() {
       return "Assumption Collection algorithm";

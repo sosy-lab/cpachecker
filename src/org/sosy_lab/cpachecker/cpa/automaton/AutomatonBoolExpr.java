@@ -663,7 +663,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH {" + patternAST + "}";
+      return "MATCH {"
+          + patternAST.toString().replaceAll(AutomatonASTComparator.JOKER_EXPR + "\\d+", "\\$?")
+          + "}";
     }
   }
 
@@ -1173,7 +1175,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
+      return "CHECK(" + cpaName + ", \"" + queryString + "\")";
     }
 
     @Override
@@ -1243,7 +1245,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         }
       };
 
-  static class IntBinaryTest implements AutomatonBoolExpr {
+  abstract static class IntBinaryTest implements AutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -1443,7 +1445,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class BoolBinaryTest implements AutomatonBoolExpr {
+  abstract static class BoolBinaryTest implements AutomatonBoolExpr {
 
     protected final AutomatonBoolExpr a;
     protected final AutomatonBoolExpr b;

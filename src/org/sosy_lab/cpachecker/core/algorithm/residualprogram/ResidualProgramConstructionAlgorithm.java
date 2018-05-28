@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FOLDER_TYPE;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -344,10 +345,15 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
     try {
       statistic.translationTimer.start();
-      return translator.translateARG(root, pAddPragma);
+      return translator.translateARG(root, pAddPragma, hasDeclarationGotoProblem());
     } finally {
       statistic.translationTimer.stop();
     }
+  }
+
+  private boolean hasDeclarationGotoProblem() {
+    return constructionStrategy != ResidualGenStrategy.CONDITION_PLUS_FOLD
+        || folder.getType() != FOLDER_TYPE.CFA;
   }
 
   protected boolean writeResidualProgram(final ARGState pArgRoot,

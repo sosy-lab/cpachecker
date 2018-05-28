@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -106,7 +105,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();
       stats.emptyJoin.inc();
-      funcContainer.forEach(this::addUsages);
+      copyUsagesFrom(funcContainer);
       stats.copyTimer.stop();
     } else {
       Map<LockState, LockState> reduceToExpand = new HashMap<>();
@@ -118,7 +117,6 @@ public class FunctionContainer extends AbstractUsageStorage {
 
         stats.effectTimer.start();
         stats.effectJoin.inc();
-        SortedSet<UsageInfo> result = new TreeSet<>();
         LockState locks, expandedLocks;
         for (UsageInfo uinfo : usages) {
           locks = (LockState) uinfo.getLockState();
@@ -131,9 +129,8 @@ public class FunctionContainer extends AbstractUsageStorage {
             expandedLocks = builder.build();
             reduceToExpand.put(locks, expandedLocks);
           }
-          result.add(uinfo.expand(expandedLocks));
+          add(id, uinfo.expand(expandedLocks));
         }
-        addUsages(id, result);
         stats.effectTimer.stop();
       }
     }
@@ -141,7 +138,7 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   public void join(TemporaryUsageStorage pRecentUsages) {
     stats.copyTimer.start();
-    pRecentUsages.forEach((id, set) -> this.addUsages(id, set));
+    copyUsagesFrom(pRecentUsages);
     stats.copyTimer.stop();
   }
 

@@ -83,7 +83,7 @@ public class UsagePoint implements Comparable<UsagePoint> {
     }
   }
 
-  public final Access access;
+  protected final Access access;
   private final List<CompatibleNode> compatibleNodes;
   private final Set<UsagePoint> coveredUsages;
 

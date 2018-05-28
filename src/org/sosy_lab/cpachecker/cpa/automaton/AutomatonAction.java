@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Joiner;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -76,7 +77,9 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
       for (AutomatonExpression<?> expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -88,6 +91,11 @@ abstract class AutomatonAction {
       }
       pArgs.appendToLogMessage(sb.toString());
       return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "PRINT \"" + Joiner.on("\" \"").join(toPrint) + "\"";
     }
   }
 

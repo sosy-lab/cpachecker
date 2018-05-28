@@ -284,7 +284,6 @@ public class BAMDataManagerImpl implements BAMDataManager {
     return bamCache;
   }
 
-  /** return a matching precision for the given state, or Null if state is not found. */
   @Override
   public @Nullable Precision getExpandedPrecisionForState(AbstractState pState) {
     final BlockExitData data = expandedStateToBlockExit.get(pState);

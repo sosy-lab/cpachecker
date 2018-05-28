@@ -40,7 +40,15 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final ARGPath path;
   private final StatTimer removeCachedSubtreeTimer;
 
-  public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+  /**
+   * Constructor for a ReachedSet containing all states, from where the last state of the path is
+   * reachable. The ReachedSet might contain multiple paths to the same last state. We do not
+   * guarantee that branches that do not lead to the last state are part of the ReachedSet.
+   */
+  public BAMReachedSet(
+      AbstractBAMCPA cpa,
+      ARGReachedSet pMainReachedSet,
+      ARGPath pPath,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;

@@ -64,6 +64,11 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
   }
 
   @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
+  }
+
+  @Override
   public String toASTString() {
     StringBuilder astString = new StringBuilder("(");
     astString.append(getRunTimeTypeExpression().toASTString());

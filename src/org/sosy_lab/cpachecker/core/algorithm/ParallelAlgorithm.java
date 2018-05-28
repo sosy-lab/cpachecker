@@ -30,6 +30,7 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -604,7 +605,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         pOut.println();
         String title = "Statistics for: " + subStats.name;
         pOut.println(title);
-        pOut.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
+        pOut.println(Strings.repeat("=", title.length()));
         if (subStats.rLimit != null) {
           pOut.println(
               "Time spent in analysis thread "

@@ -1,5 +1,5 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2018  Dirk Beyer
@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -382,7 +381,7 @@ public class DGBuilder implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new AbstractStatistics() {
+    pStatsCollection.add(new Statistics() {
 
       @Override
       public void printStatistics(

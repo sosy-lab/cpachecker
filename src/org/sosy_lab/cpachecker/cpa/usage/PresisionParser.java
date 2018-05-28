@@ -64,7 +64,7 @@ public class PresisionParser {
       String line;
       CFANode node = null;
       Map<GeneralIdentifier, DataType> info = null;
-      Pattern nodePattern = Pattern.compile("N[0-9]*");
+      Pattern nodePattern = Pattern.compile("N[0-9]*$");
 
       while ((line = reader.readLine()) != null) {
         Matcher matcher = nodePattern.matcher(line);

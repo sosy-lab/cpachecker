@@ -124,6 +124,11 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
   }
 
   @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
+  }
+
+  @Override
   public String toASTString() {
     String name = Strings.nullToEmpty(getName());
     StringBuilder modifier = new StringBuilder() ;

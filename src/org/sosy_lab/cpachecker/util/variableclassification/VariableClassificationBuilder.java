@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
@@ -149,7 +148,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
 
-  public static class VariableClassificationStatistics extends AbstractStatistics {
+  public static class VariableClassificationStatistics implements Statistics {
 
     private final StatTimer variableClassificationTimer = new StatTimer("Time for var class.");
     private final StatTimer collectTimer = new StatTimer("Time for collecting variables");

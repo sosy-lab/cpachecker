@@ -41,8 +41,8 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString() {
-      return "*" + operand.toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    return "*" + operand.toParenthesizedASTString(pQualified);
   }
 
   /* (non-Javadoc)

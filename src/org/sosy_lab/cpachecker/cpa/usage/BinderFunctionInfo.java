@@ -58,6 +58,12 @@ public class BinderFunctionInfo {
    */
   private final Pair<LinkerInfo, LinkerInfo> linkInfo;
 
+  BinderFunctionInfo() {
+    // Default constructor for free functions
+    linkInfo = null;
+    parameterInfo = ImmutableList.of(Pair.of(Access.WRITE, 1));
+  }
+
   @SuppressWarnings("deprecation")
   BinderFunctionInfo(String name, Configuration pConfig, LogManager pLogger) {
     try {

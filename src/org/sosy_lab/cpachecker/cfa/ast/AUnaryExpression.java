@@ -48,8 +48,8 @@ public abstract class AUnaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString() {
-    return operator.getOperator() + operand.toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    return operator.getOperator() + operand.toParenthesizedASTString(pQualified);
   }
 
   /* (non-Javadoc)
