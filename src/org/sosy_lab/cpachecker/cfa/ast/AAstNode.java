@@ -32,6 +32,18 @@ public interface AAstNode extends Serializable {
 
   public FileLocation getFileLocation();
 
+  /**
+   * Constructs a String representation of the AST represented by this node. Depending on the
+   * parameter value different representations for local variables are used. Typically, you want to
+   * call this method with a fixed value for the parameter. In these cases, we highly recommend to
+   * either use {@link toASTString()} (fixed parameter value false) or {@link
+   * toQualifiedASTString()} (fixed parameter value true).
+   *
+   * @param pQualified - if true use qualified variable names, i.e., add prefix functionname__ to
+   *     local variable names, where functionname is the name of the function that declared the
+   *     local variable
+   * @return AST string either using qualified names or pure names for local variables
+   */
   public String toASTString(boolean pQualified);
 
   public String toParenthesizedASTString(boolean pQualified);
