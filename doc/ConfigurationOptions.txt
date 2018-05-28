@@ -1052,6 +1052,10 @@ cpa.automaton.mergeOnTop = false
 # outgoing edges as TOP.
 cpa.automaton.prec.topOnFinalSelfLoopingState = false
 
+# file for saving the automaton in spc format (%s will be replaced with
+# automaton name)
+cpa.automaton.spcExportFile = "%s.spc"
+
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
 cpa.automaton.treatErrorsAsTargets = true
