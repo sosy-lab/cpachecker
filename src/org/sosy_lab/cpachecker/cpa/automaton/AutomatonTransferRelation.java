@@ -175,7 +175,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
               "Automaton transition condition could not be evaluated", match);
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
+        return Collections.singleton(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -189,7 +189,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                   "Automaton transition assertions could not be evaluated", assertionsHold);
             }
             // cannot yet be evaluated
-            return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
+            return Collections.singleton(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -198,7 +198,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                     "Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
+              return Collections.singleton(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above

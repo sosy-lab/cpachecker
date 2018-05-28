@@ -1245,7 +1245,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         }
       };
 
-  static class IntBinaryTest implements AutomatonBoolExpr {
+  abstract static class IntBinaryTest implements AutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -1445,7 +1445,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class BoolBinaryTest implements AutomatonBoolExpr {
+  abstract static class BoolBinaryTest implements AutomatonBoolExpr {
 
     protected final AutomatonBoolExpr a;
     protected final AutomatonBoolExpr b;
