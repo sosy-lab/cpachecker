@@ -102,10 +102,9 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState =
-        simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
+    simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
 
-    Assert.assertTrue(newState.isEmpty());
+    Assert.assertTrue(constraintsState.isEmpty());
   }
 
   @Test
@@ -117,9 +116,9 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState = simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(group2ConstraintsExist(newState));
+    Assert.assertTrue(group2ConstraintsExist(constraintsState));
   }
 
   private boolean group2ConstraintsExist(
@@ -141,11 +140,10 @@ public class StateSimplifierTest {
     valueState.forget(group2MemLoc2);
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState =
-        simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(newState.size() == 1
-        && newState.contains(group2Constraint1));
+    Assert.assertTrue(constraintsState.size() == 1
+        && constraintsState.contains(group2Constraint1));
   }
 
   private ConstraintsState getSampleConstraints() {
