@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -86,6 +88,8 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
   private IdentifierAssignment definiteAssignment;
   private BooleanFormula lastModel;
+
+  private static ConstraintsCache cache = new ConstraintsCache();
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
@@ -298,22 +302,33 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
           // is some variable assignment (i.e., model != true), then we check the formula
           // for satisfiability without any assignments, again.
           prover.pop(); // Remove model assignment from prover
-          unsat = prover.isUnsat();
-        }
 
-        if (!unsat) {
-          lastModel =
-              prover
-                  .getModelAssignments()
-                  .stream()
-                  .map(ValueAssignment::getAssignmentAsFormula)
-                  .collect(booleanFormulaManager.toConjunction());
-          // doing this while the complete formula is still on the prover environment stack is
-          // cheaper than performing another complete SAT check when the assignment is really
-          // requested
-          resolveDefiniteAssignments();
-        } else {
-          lastModel = null;
+          CacheResult res = cache.getCachedResult(constraints);
+
+          if (res.isUnsat()) {
+            unsat = true;
+          } else if (res.isSat()) {
+            unsat = false;
+          } else {
+            unsat = prover.isUnsat();
+
+            if (!unsat) {
+              lastModel =
+                  prover
+                      .getModelAssignments()
+                      .stream()
+                      .map(ValueAssignment::getAssignmentAsFormula)
+                      .collect(booleanFormulaManager.toConjunction());
+              cache.addSat(constraints, lastModel);
+              // doing this while the complete formula is still on the prover environment stack is
+              // cheaper than performing another complete SAT check when the assignment is really
+              // requested
+              resolveDefiniteAssignments();
+            } else {
+              lastModel = null;
+              cache.addUnsat(constraints);
+            }
+          }
         }
 
         return unsat;
@@ -573,4 +588,77 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     }
   }
 
+  private static class ConstraintsCache {
+
+    private Map<Integer, CacheResult> cacheMap = new HashMap<>();
+
+    CacheResult getCachedResult(Collection<Constraint> pConstraints) {
+      int id = getId(pConstraints);
+      return cacheMap.getOrDefault(id, CacheResult.getUnknown());
+    }
+
+    private int getId(Collection<Constraint> pConstraints) {
+      int id = 0;
+      // do this manually to make sure that we get the same id independent of the data structure
+      // used
+      for (Constraint c : pConstraints) {
+        id += c.hashCode();
+      }
+      return id;
+    }
+
+    void addSat(Collection<Constraint> pConstraints, BooleanFormula pModel) {
+      cacheMap.put(getId(pConstraints), CacheResult.getSat(pModel));
+    }
+
+    void addUnsat(Collection<Constraint> pConstraints) {
+      cacheMap.put(getId(pConstraints), CacheResult.getUnsat());
+    }
+  }
+
+  private static class CacheResult {
+    enum Result {
+      SAT,
+      UNSAT,
+      UNKNOWN
+    }
+
+    private static final CacheResult UNSAT_SINGLETON =
+        new CacheResult(Result.UNSAT, Optional.empty());
+    private static final CacheResult UNKNOWN_SINGLETON =
+        new CacheResult(Result.UNSAT, Optional.empty());
+
+    private Result result;
+    private Optional<BooleanFormula> model;
+
+    public static CacheResult getSat(BooleanFormula pModel) {
+      return new CacheResult(Result.SAT, Optional.of(pModel));
+    }
+
+    public static CacheResult getUnsat() {
+      return UNSAT_SINGLETON;
+    }
+
+    public static CacheResult getUnknown() {
+      return UNKNOWN_SINGLETON;
+    }
+
+    private CacheResult(Result pResult, Optional<BooleanFormula> pModel) {
+      result = pResult;
+      model = pModel;
+    }
+
+    public boolean isSat() {
+      return result.equals(Result.SAT);
+    }
+
+    public boolean isUnsat() {
+      return result.equals(Result.UNSAT);
+    }
+
+    public BooleanFormula getModel() {
+      checkState(model.isPresent(), "No model exists");
+      return model.get();
+    }
+  }
 }
