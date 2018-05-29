@@ -28,13 +28,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Joiner;
-
+import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import java.io.Serializable;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
@@ -167,6 +165,27 @@ public class FunctionPointerState implements LatticeAbstractState<FunctionPointe
         return EMPTY_STATE;
       }
       return new FunctionPointerState(values);
+    }
+
+    void addGlobalVariables(FunctionPointerState pReducedState) {
+      for (String var : pReducedState.pointerVariableValues.keySet()) {
+        FunctionPointerTarget newTarget = pReducedState.getTarget(var);
+        FunctionPointerTarget oldTarget = oldState.getTarget(var);
+        if (!var.contains("::") && !newTarget.equals(oldTarget)) {
+          // Global variable
+          setTarget(var, pReducedState.pointerVariableValues.get(var));
+        }
+      }
+    }
+
+    void clearVariablesExceptPrefix(String pFunctionName) {
+      for (String var : values.keySet()) {
+        if (!var.startsWith(pFunctionName) && var.contains("::")) {
+          // It needs to reduce states: we delete all information about other functions, except
+          // pFunctionName and global variables (without "::")
+          values = values.removeAndCopy(var);
+        }
+      }
     }
   }
 
