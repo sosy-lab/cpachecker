@@ -144,12 +144,12 @@ public class ConstraintsSolver implements Statistics {
         boolean gotResultFromCache = false;
 
         if (!booleanFormulaManager.isTrue(lastModel)) {
-          // if the last model does not fulfill the formula, and the last model actually
-          // is some variable assignment (i.e., model != true), then we check the formula
-          // for satisfiability without any assignments, again.
-          prover.pop(); // Remove model assignment from prover
 
           if (unsat) {
+            // if the last model does not fulfill the formula, and the last model actually
+            // is some variable assignment (i.e., model != true), then we check the formula
+            // for satisfiability without any assignments, again.
+            prover.pop(); // Remove model assignment from prover
             CacheResult res = cache.getCachedResult(pConstraints);
 
             if (res.isUnsat()) {
