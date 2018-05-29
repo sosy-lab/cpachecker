@@ -140,7 +140,7 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString(id.getName()).replace(" ", "_");
+    return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {

@@ -74,6 +74,7 @@ public class UsageCPAStatistics implements Statistics {
   private BAMCPA bamCpa;
 
   public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
+  public final StatTimer usagePreparationTimer = new StatTimer("Time for usage handling");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
 
@@ -109,6 +110,7 @@ public class UsageCPAStatistics implements Statistics {
       printStatisticsTimer.start();
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
       writer.put(transferRelationTimer);
+      writer.put(usagePreparationTimer);
       writer.put(printStatisticsTimer);
       errPrinter.printStatistics(writer);
       UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
