@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -38,8 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-
-import com.google.common.collect.Iterables;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Tests for {@link AliasedSubsetLessOrEqualOperator}.
@@ -54,10 +53,12 @@ public class AliasedSubsetLessOrEqualOperatorTest {
 
   private final IdentifierAssignment emptyDefiniteAssignment = IdentifierAssignment.empty();
 
-  private final SymbolicIdentifier id1 = factory.newIdentifier();
-  private final SymbolicIdentifier id2 = factory.newIdentifier();
-  private final SymbolicIdentifier alias1 = factory.newIdentifier();
-  private final SymbolicIdentifier alias2 = factory.newIdentifier();
+  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
+
+  private final SymbolicIdentifier id1 = factory.newIdentifier(memLoc1);
+  private final SymbolicIdentifier id2 = factory.newIdentifier(memLoc1);
+  private final SymbolicIdentifier alias1 = factory.newIdentifier(memLoc1);
+  private final SymbolicIdentifier alias2 = factory.newIdentifier(memLoc1);
 
   private final SymbolicExpression idExp1 = factory.asConstant(id1,
       defType);

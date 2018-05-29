@@ -60,14 +60,15 @@ public class StateSimplifierTest {
   private final SymbolicExpression number =
       factory.asConstant(new NumericValue(5), defaultNumericType);
 
+  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
   private final SymbolicExpression group1Id1 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group1Id2 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id1 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id2 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
 
   private final Constraint group1Constraint1 = (Constraint)
       factory.greaterThanOrEqual(group1Id1, group1Id2, defaultNumericType, defaultNumericType);

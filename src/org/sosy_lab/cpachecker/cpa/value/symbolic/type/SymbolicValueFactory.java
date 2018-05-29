@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Types;
-
-import java.util.Optional;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Factory for creating {@link SymbolicValue}s.
@@ -42,7 +42,7 @@ import java.util.Optional;
 public class SymbolicValueFactory {
 
   private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
-  private static int idCounter = 0;
+  private int idCounter = 0;
 
   private SymbolicValueFactory() {
     // DO NOTHING
@@ -53,11 +53,11 @@ public class SymbolicValueFactory {
   }
 
   public static void reset() {
-    idCounter = 0;
+    SINGLETON.idCounter = 0;
   }
 
-  public SymbolicIdentifier newIdentifier() {
-    return new SymbolicIdentifier(idCounter++);
+  public SymbolicIdentifier newIdentifier(MemoryLocation pMemoryLocation) {
+    return new SymbolicIdentifier(idCounter++, pMemoryLocation);
   }
 
   public SymbolicExpression asConstant(Value pValue, Type pType) {
