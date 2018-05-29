@@ -24,7 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import com.google.common.collect.Iterables;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -72,13 +77,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.
@@ -210,7 +208,6 @@ public class ConstraintsTransferRelation
 
     final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
     FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
-    newState.initialize(solver, formulaManager, formulaCreator);
 
     if (oNewConstraint.isPresent()) {
       final Constraint newConstraint = oNewConstraint.get();
@@ -224,14 +221,6 @@ public class ConstraintsTransferRelation
 
       } else {
         newState.add(newConstraint);
-
-        if (checkStrategy == CheckStrategy.AT_ASSUME && newState.isUnsat()) {
-          return null;
-
-        } else {
-          return newState;
-        }
-
       }
     }
 
@@ -431,22 +420,26 @@ public class ConstraintsTransferRelation
             truthAssumption,
             pFunctionName);
 
+        // newState == null represents the bottom element, so we return an empty collection
+        // (which represents the bottom element for strengthen methods)
+        if (newState != null) {
+          newState = simplify(newState, valueState);
+          FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
+          newState.initialize(solver, formulaManager, formulaCreator);
+          if (checkStrategy != CheckStrategy.AT_ASSUME || !newState.isUnsat()) {
+            newStates.add(newState);
+          }
+
+          if (newState.equals(pStateToStrengthen)) {
+            return Optional.empty();
+          }
+        }
+        return Optional.of(newStates);
+
       } catch (SolverException e) {
         throw new CPATransferException(
             "Error while strengthening ConstraintsState with ValueAnalysisState", e);
       }
-
-      // newState == null represents the bottom element, so we return an empty collection
-      // (which represents the bottom element for strengthen methods)
-      if (newState != null) {
-        newState = simplify(newState, valueState);
-        newStates.add(newState);
-
-        if (newState.equals(pStateToStrengthen)) {
-          return Optional.empty();
-        }
-      }
-      return Optional.of(newStates);
     }
   }
 
