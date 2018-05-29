@@ -27,7 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -579,9 +584,54 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
     private Map<Integer, CacheResult> cacheMap = new HashMap<>();
 
+    /**
+     * Multimap that maps each constraint to all collections of constraints that it occurred in,
+     * where each collection of constraints is represented by a pair &lt;id, size&gt;
+     */
+    private Multimap<Constraint, Pair<Integer, Integer>> constraintContainedIn =
+        HashMultimap.create();
+
     CacheResult getCachedResult(Collection<Constraint> pConstraints) {
       int id = getId(pConstraints);
-      return cacheMap.getOrDefault(id, CacheResult.getUnknown());
+      if (cacheMap.containsKey(id)) {
+        return cacheMap.get(id);
+      } else {
+        return getCachedResultOfSubset(pConstraints);
+      }
+    }
+
+    CacheResult getCachedResultOfSubset(Collection<Constraint> pConstraints) {
+      checkState(!pConstraints.isEmpty());
+
+      Set<Pair<Integer, Integer>> containAllConstraints = null;
+      for (Constraint c : pConstraints) {
+        Set<Pair<Integer, Integer>> containC = ImmutableSet.copyOf(constraintContainedIn.get(c));
+        if (containAllConstraints == null) {
+          containAllConstraints = containC;
+        } else {
+          containAllConstraints = Sets.intersection(containAllConstraints, containC);
+        }
+
+        if (containAllConstraints.isEmpty()) {
+          return CacheResult.getUnknown();
+        }
+      }
+
+      int sizeOfQuery = pConstraints.size();
+      for (Pair<Integer, Integer> col : containAllConstraints) {
+        int idOfCollection = col.getFirst();
+        int sizeOfCollection = col.getSecond();
+        CacheResult cachedResult = cacheMap.get(idOfCollection);
+        if (sizeOfQuery <= sizeOfCollection && cachedResult.isSat()) {
+          // currently considered collection is a superset of the queried collection
+          return cachedResult;
+
+        } else if (sizeOfQuery >= sizeOfCollection && cachedResult.isUnsat()) {
+          // currently considered collection is a subset of the queried collection
+          return cachedResult;
+        }
+      }
+      return CacheResult.getUnknown();
     }
 
     private int getId(Collection<Constraint> pConstraints) {
@@ -595,11 +645,20 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     }
 
     void addSat(Collection<Constraint> pConstraints, BooleanFormula pModel) {
-      cacheMap.put(getId(pConstraints), CacheResult.getSat(pModel));
+      add(pConstraints, CacheResult.getSat(pModel));
     }
 
     void addUnsat(Collection<Constraint> pConstraints) {
-      cacheMap.put(getId(pConstraints), CacheResult.getUnsat());
+      add(pConstraints, CacheResult.getUnsat());
+    }
+
+    private void add(Collection<Constraint> pConstraints, CacheResult pResult) {
+      int id = getId(pConstraints);
+      Pair<Integer, Integer> idAndSize = Pair.of(id, pConstraints.size());
+      for (Constraint c : pConstraints) {
+        constraintContainedIn.put(c, idAndSize);
+      }
+      cacheMap.put(id, pResult);
     }
   }
 
