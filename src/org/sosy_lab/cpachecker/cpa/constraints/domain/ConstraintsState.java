@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -81,6 +81,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   private ProverEnvironment prover;
   private FormulaCreator formulaCreator;
   private FormulaManagerView formulaManager;
+  private BooleanFormulaManagerView booleanFormulaManager;
   private SymbolicIdentifierLocator locator;
 
   private IdentifierAssignment definiteAssignment;
@@ -90,10 +91,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
    * Creates a new, initial <code>ConstraintsState</code> object.
    */
   public ConstraintsState() {
-    constraints = new ArrayList<>();
-    constraintFormulas = new HashMap<>();
-    definiteAssignment = new IdentifierAssignment();
-    locator = SymbolicIdentifierLocator.getInstance();
+    this(Collections.emptySet(), IdentifierAssignment.empty());
   }
 
   public ConstraintsState(
@@ -124,6 +122,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     prover = pState.prover;
     formulaCreator = pState.formulaCreator;
     formulaManager = pState.formulaManager;
+    booleanFormulaManager = pState.booleanFormulaManager;
     locator = pState.locator;
 
     lastAddedConstraint = pState.lastAddedConstraint;
@@ -142,10 +141,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   // We use a method here so subtypes can override it, in contrast to a public copy constructor
   public ConstraintsState copyOf() {
     return new ConstraintsState(this);
-  }
-
-  protected FormulaCreator getFormulaCreator() {
-    return formulaCreator;
   }
 
   /**
@@ -266,6 +261,8 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   public void initialize(Solver pSolver, FormulaManagerView pFormulaManager, FormulaCreator pFormulaCreator) {
     solver = pSolver;
     formulaManager = pFormulaManager;
+    booleanFormulaManager = formulaManager.getBooleanFormulaManager();
+    lastModel = booleanFormulaManager.makeTrue();
     formulaCreator = pFormulaCreator;
   }
 
@@ -276,44 +273,58 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
   public boolean isUnsat() throws SolverException, InterruptedException, UnrecognizedCCodeException {
-    boolean unsat = false;
 
-    try {
-      if (!constraints.isEmpty()) {
+    if (!constraints.isEmpty()) {
+      try {
         BooleanFormula constraintsAsFormula = getFullFormula();
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         prover.push(constraintsAsFormula);
 
-        if (lastModel != null) {
-          prover.push(lastModel);
-          unsat = prover.isUnsat();
-          prover.pop(); // Remove model assignment from prover
-        }
+        prover.push(lastModel);
+        boolean unsat = prover.isUnsat();
+        if (!unsat) {
+          // if the last model fulfills the formula,
+          // the model may still increase because of newly introduced variables,
+          // so we update to this (potentially) new model
+          lastModel =
+              prover
+                  .getModelAssignments()
+                  .stream()
+                  .map(ValueAssignment::getAssignmentAsFormula)
+                  .collect(booleanFormulaManager.toConjunction());
 
-        if (unsat) {
+        } else if (!booleanFormulaManager.isTrue(lastModel)) {
+          // if the last model does not fulfill the formula, and the last model actually
+          // is some variable assignment (i.e., model != true), then we check the formula
+          // for satisfiability without any assignments, again.
+          prover.pop(); // Remove model assignment from prover
           unsat = prover.isUnsat();
         }
 
         if (!unsat) {
-          lastModel = prover.getModelAssignments()
-              .stream()
-              .map(ValueAssignment::getAssignmentAsFormula)
-              .collect(formulaManager.getBooleanFormulaManager().toConjunction());
+          lastModel =
+              prover
+                  .getModelAssignments()
+                  .stream()
+                  .map(ValueAssignment::getAssignmentAsFormula)
+                  .collect(booleanFormulaManager.toConjunction());
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
           resolveDefiniteAssignments();
-        }
-
-        if (unsat) {
+        } else {
           lastModel = null;
         }
-      }
-    } finally {
-      closeProver();
-    }
 
-    return unsat;
+        return unsat;
+
+      } finally {
+        closeProver();
+      }
+
+    } else {
+      return false;
+    }
   }
 
   private void closeProver() {
@@ -446,7 +457,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
     createMissingConstraintFormulas();
 
-    return formulaManager.getBooleanFormulaManager().and(constraintFormulas.values());
+    return booleanFormulaManager.and(constraintFormulas.values());
   }
 
   private void createMissingConstraintFormulas() throws UnrecognizedCCodeException, InterruptedException {
