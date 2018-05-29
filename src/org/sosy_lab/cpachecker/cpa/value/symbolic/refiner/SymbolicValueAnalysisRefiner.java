@@ -261,8 +261,6 @@ public class SymbolicValueAnalysisRefiner
       ARGPath pTargetPath, Map<SymbolicIdentifier, Value> pIdentifierAssignment)
       throws CPAException, InterruptedException {
 
-    SymbolicValueFactory.reset();
-
     PathIterator fullPath = pTargetPath.fullPathIterator();
     ARGState first = pTargetPath.getFirstState();
     ValueAnalysisState firstValue =
