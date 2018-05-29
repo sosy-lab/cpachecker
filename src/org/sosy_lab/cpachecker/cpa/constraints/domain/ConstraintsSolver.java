@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.HashBasedTable;
@@ -427,6 +428,7 @@ public class ConstraintsSolver implements Statistics {
         }
       }
 
+      checkNotNull(containAllConstraints);
       int sizeOfQuery = pConstraints.size();
       for (Pair<Integer, Integer> col : containAllConstraints) {
         int idOfCollection = col.getFirst();
