@@ -287,50 +287,42 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
         prover.push(lastModel);
         boolean unsat = prover.isUnsat();
+
+        if (!booleanFormulaManager.isTrue(lastModel)) {
+          // if the last model does not fulfill the formula, and the last model actually
+          // is some variable assignment (i.e., model != true), then we check the formula
+          // for satisfiability without any assignments, again.
+          prover.pop(); // Remove model assignment from prover
+
+          if (unsat) {
+            CacheResult res = cache.getCachedResult(constraints);
+
+            if (res.isUnsat()) {
+              unsat = true;
+            } else if (res.isSat()) {
+              unsat = false;
+            } else {
+              unsat = prover.isUnsat();
+            }
+          }
+        }
+
         if (!unsat) {
-          // if the last model fulfills the formula,
-          // the model may still increase because of newly introduced variables,
-          // so we update to this (potentially) new model
           lastModelAsAssignment = prover.getModelAssignments();
           lastModel =
               lastModelAsAssignment
                   .stream()
                   .map(ValueAssignment::getAssignmentAsFormula)
                   .collect(booleanFormulaManager.toConjunction());
-
-        } else if (!booleanFormulaManager.isTrue(lastModel)) {
-          // if the last model does not fulfill the formula, and the last model actually
-          // is some variable assignment (i.e., model != true), then we check the formula
-          // for satisfiability without any assignments, again.
-          prover.pop(); // Remove model assignment from prover
-
-          CacheResult res = cache.getCachedResult(constraints);
-
-          if (res.isUnsat()) {
-            unsat = true;
-          } else if (res.isSat()) {
-            unsat = false;
-          } else {
-            unsat = prover.isUnsat();
-
-            if (!unsat) {
-              lastModelAsAssignment = prover.getModelAssignments();
-              lastModel =
-                  lastModelAsAssignment
-                      .stream()
-                      .map(ValueAssignment::getAssignmentAsFormula)
-                      .collect(booleanFormulaManager.toConjunction());
-              cache.addSat(constraints, lastModel);
-              // doing this while the complete formula is still on the prover environment stack is
-              // cheaper than performing another complete SAT check when the assignment is really
-              // requested
-              resolveDefiniteAssignments();
-            } else {
-              lastModel = null;
-              definiteAssignment = null;
-              cache.addUnsat(constraints);
-            }
-          }
+          cache.addSat(constraints, lastModel);
+          // doing this while the complete formula is still on the prover environment stack is
+          // cheaper than performing another complete SAT check when the assignment is really
+          // requested
+          resolveDefiniteAssignments();
+        } else {
+          lastModel = null;
+          definiteAssignment = null;
+          cache.addUnsat(constraints);
         }
 
         return unsat;
