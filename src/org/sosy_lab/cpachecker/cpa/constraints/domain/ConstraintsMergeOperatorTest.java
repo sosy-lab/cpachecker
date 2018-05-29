@@ -57,12 +57,12 @@ public class ConstraintsMergeOperatorTest {
   public void testMerge_mergePossible() throws Exception {
     Set<Constraint> constraints = getConstraints();
 
-    ConstraintsState state1 = new ConstraintsState(constraints, new IdentifierAssignment());
+    ConstraintsState state1 = new ConstraintsState(constraints, IdentifierAssignment.empty());
     state1.add(posConst);
 
     constraints = getConstraints();
 
-    ConstraintsState state2 = new ConstraintsState(constraints, new IdentifierAssignment());
+    ConstraintsState state2 = new ConstraintsState(constraints, IdentifierAssignment.empty());
     state2.add(negConst);
 
     ConstraintsState mergeResult = (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());

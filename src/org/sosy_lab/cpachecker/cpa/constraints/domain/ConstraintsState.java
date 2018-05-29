@@ -306,7 +306,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
         }
 
         if (unsat) {
-          definiteAssignment = null;
           lastModel = null;
         }
       }

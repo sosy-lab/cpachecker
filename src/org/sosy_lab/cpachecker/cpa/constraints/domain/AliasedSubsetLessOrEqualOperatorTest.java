@@ -52,7 +52,7 @@ public class AliasedSubsetLessOrEqualOperatorTest {
   private final AliasedSubsetLessOrEqualOperator
       leqOp = AliasedSubsetLessOrEqualOperator.getInstance();
 
-  private final IdentifierAssignment emptyDefiniteAssignment = new IdentifierAssignment();
+  private final IdentifierAssignment emptyDefiniteAssignment = IdentifierAssignment.empty();
 
   private final SymbolicIdentifier id1 = factory.newIdentifier();
   private final SymbolicIdentifier id2 = factory.newIdentifier();

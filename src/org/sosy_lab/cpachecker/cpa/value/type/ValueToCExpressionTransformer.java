@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
   private final SymbolicExpressionTransformer symbolicTransformer =
-      new SymbolicExpressionTransformer(new IdentifierAssignment());
+      new SymbolicExpressionTransformer(IdentifierAssignment.empty());
 
   private CType type;
 
