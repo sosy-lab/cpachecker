@@ -84,7 +84,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   private SymbolicIdentifierLocator locator;
 
   private IdentifierAssignment definiteAssignment;
-  private ImmutableList<ValueAssignment> lastModel;
+  private BooleanFormula lastModel;
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
@@ -276,7 +276,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
   public boolean isUnsat() throws SolverException, InterruptedException, UnrecognizedCCodeException {
-    boolean unsat = true;
+    boolean unsat = false;
 
     try {
       if (!constraints.isEmpty()) {
@@ -285,24 +285,24 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
         prover.push(constraintsAsFormula);
 
         if (lastModel != null) {
-          List<BooleanFormula> modelAssignments = new ArrayList<>(lastModel.size());
-          for (ValueAssignment a : lastModel) {
-            modelAssignments.add(a.getAssignmentAsFormula());
-          }
-          prover.push(formulaManager.getBooleanFormulaManager().and(modelAssignments));
+          prover.push(lastModel);
           unsat = prover.isUnsat();
           prover.pop(); // Remove model assignment from prover
         }
 
         if (unsat) {
           unsat = prover.isUnsat();
-          if (!unsat) {
-            lastModel = prover.getModelAssignments();
-            // doing this while the complete formula is still on the prover environment stack is
-            // cheaper than performing another complete SAT check when the assignment is really
-            // requested
-            resolveDefiniteAssignments();
-          }
+        }
+
+        if (!unsat) {
+          lastModel = prover.getModelAssignments()
+              .stream()
+              .map(ValueAssignment::getAssignmentAsFormula)
+              .collect(formulaManager.getBooleanFormulaManager().toConjunction());
+          // doing this while the complete formula is still on the prover environment stack is
+          // cheaper than performing another complete SAT check when the assignment is really
+          // requested
+          resolveDefiniteAssignments();
         }
 
         if (unsat) {
