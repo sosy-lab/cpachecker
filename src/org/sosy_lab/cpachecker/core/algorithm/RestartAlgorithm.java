@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.DummyUnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -120,8 +123,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       return "Restart Algorithm";
     }
 
-    private void printIntermediateStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
+    private void printIntermediateStatistics(
+        PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
       String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
       out.println(text);
@@ -144,7 +147,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     private void printSubStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
-
       for (Statistics s : subStats) {
         StatisticsUtils.printStatistics(s, out, logger, result, reached);
       }
@@ -326,12 +328,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           currentReached = currentAlg.getThird();
           provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
-          logger.logUserException(
-              Level.WARNING,
-              e,
-              "Skipping one analysis because the configuration file "
-                  + singleConfigFileName
-                  + " is invalid");
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
           continue;
         } catch (IOException e) {
           String message =
@@ -485,10 +482,22 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       }
 
       if (configFilesIterator.hasNext()) {
+
+        UnmodifiableReachedSet reachedForStats = currentReached;
+        // hack to get all reached states for BAM
+        if (currentCpa instanceof AbstractBAMCPA) {
+          FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
+          Collection<ReachedSet> otherReachedSets =
+              ((AbstractBAMCPA) currentCpa).getData().getCache().getAllCachedReachedStates();
+          reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
+          reachedForStats = new DummyUnmodifiableReachedSet(reachedStates.toSet());
+        }
+
         if (printIntermediateStatistics) {
-          stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
+          stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reachedForStats);
         } else {
-          stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
+          stats.printIntermediateStatistics(
+              new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, reachedForStats);
         }
         if (writeIntermediateOutputFiles) {
           stats.writeOutputFiles(Result.UNKNOWN, pReached);

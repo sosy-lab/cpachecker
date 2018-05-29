@@ -134,6 +134,9 @@ public class BAMARGStatistics extends ARGStatistics {
 
   private @Nullable UnmodifiableReachedSet createReachedSetView(
       UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates) {
+    if (!(pReached instanceof ReachedSet)) {
+      return null;
+    }
     // create pseudo-reached-set for export.
     // it will be sufficient for exporting a CEX (error-path, error-witness, harness)
 
