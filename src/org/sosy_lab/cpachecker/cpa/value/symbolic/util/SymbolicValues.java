@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -30,13 +34,11 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Util class for {@link SymbolicValue}.
@@ -200,5 +202,25 @@ public class SymbolicValues {
       final Collection<? extends SymbolicValue> pSecondValues
   ) {
     return aliasCreator.getPossibleAliases(pFirstValues, pSecondValues);
+  }
+
+  public static boolean isSymbolicTerm(String pTerm) {
+    // TODO: is it valid to get the variable name? use the visitor instead?
+    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm);
+  }
+
+  public static SymbolicIdentifier convertTermToSymbolicIdentifier(String pTerm) {
+    return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pTerm);
+  }
+
+  public static Value convertToValue(ValueAssignment assignment) {
+    Object value = assignment.getValue();
+    if (value instanceof Number) {
+      return new NumericValue((Number) value);
+    } else if (value instanceof Boolean) {
+      return BooleanValue.valueOf((Boolean) value);
+    } else {
+      throw new AssertionError("Unexpected value " + value);
+    }
   }
 }

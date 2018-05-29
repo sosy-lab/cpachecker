@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,8 +46,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -88,6 +88,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
   private IdentifierAssignment definiteAssignment;
   private BooleanFormula lastModel;
+  private ImmutableList<ValueAssignment> lastModelAsAssignment;
 
   private static ConstraintsCache cache = new ConstraintsCache();
 
@@ -290,9 +291,9 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
           // if the last model fulfills the formula,
           // the model may still increase because of newly introduced variables,
           // so we update to this (potentially) new model
+          lastModelAsAssignment = prover.getModelAssignments();
           lastModel =
-              prover
-                  .getModelAssignments()
+              lastModelAsAssignment
                   .stream()
                   .map(ValueAssignment::getAssignmentAsFormula)
                   .collect(booleanFormulaManager.toConjunction());
@@ -313,9 +314,9 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
             unsat = prover.isUnsat();
 
             if (!unsat) {
+              lastModelAsAssignment = prover.getModelAssignments();
               lastModel =
-                  prover
-                      .getModelAssignments()
+                  lastModelAsAssignment
                       .stream()
                       .map(ValueAssignment::getAssignmentAsFormula)
                       .collect(booleanFormulaManager.toConjunction());
@@ -362,10 +363,11 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   private void computeDefiniteAssignment() throws SolverException, InterruptedException {
     try (Model validAssignment = prover.getModel()) {
       for (ValueAssignment val : validAssignment) {
-        if (isSymbolicTerm(val.getName())) {
+        if (SymbolicValues.isSymbolicTerm(val.getName())) {
 
-          SymbolicIdentifier identifier = toSymbolicIdentifier(val.getName());
-          Value concreteValue = convertToValue(val);
+          SymbolicIdentifier identifier =
+              SymbolicValues.convertTermToSymbolicIdentifier(val.getName());
+          Value concreteValue = SymbolicValues.convertToValue(val);
 
           if (!definiteAssignment.containsKey(identifier)
               && isOnlySatisfyingAssignment(val)) {
@@ -425,10 +427,17 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     return new IdentifierAssignment(definiteAssignment);
   }
 
-  private boolean isSymbolicTerm(String pTerm) {
+  public List<ValueAssignment> getModel()
+      throws InterruptedException, SolverException, UnrecognizedCCodeException {
+    if (lastModelAsAssignment == null) {
+      checkState(!isUnsat());
+    }
 
-    // TODO: is it valid to get the variable name? use the visitor instead?
-    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm);
+    if (lastModelAsAssignment == null) {
+      return Collections.emptyList();
+    } else {
+      return lastModelAsAssignment;
+    }
   }
 
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
@@ -444,21 +453,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     prover.pop();
 
     return isUnsat;
-  }
-
-  private SymbolicIdentifier toSymbolicIdentifier(String pEncoding) {
-    return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pEncoding);
-  }
-
-  private Value convertToValue(ValueAssignment assignment) {
-    Object value = assignment.getValue();
-    if (value instanceof Number) {
-      return new NumericValue((Number) value);
-    } else if (value instanceof Boolean) {
-      return BooleanValue.valueOf((Boolean) value);
-    } else {
-      throw new AssertionError("Unexpected value " + value);
-    }
   }
 
   /**
