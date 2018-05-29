@@ -1280,7 +1280,7 @@ cpa.congruence.useCachingPathFormulaManager = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
-  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+  enum:     [SUBSET]
 
 # Type of merge operator to use
 cpa.constraints.mergeType = SEP
