@@ -189,7 +189,9 @@ public class UsageTransferRelation implements TransferRelation {
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.copy();
     precision = (UsagePrecision) pPrecision;
+    statistics.usagePreparationTimer.start();
     handleEdge(pCfaEdge);
+    statistics.usagePreparationTimer.stop();
 
     Collection<? extends AbstractState> newWrappedStates =
         wrappedTransfer.getAbstractSuccessorsForEdge(
