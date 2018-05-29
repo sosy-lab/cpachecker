@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import com.google.common.collect.Iterables;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -179,20 +177,8 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
-    // assume edges with integer literals are created by statements like __VERIFIER_assume(0);
-    // We do not have to create constraints out of these, as they are always trivial.
-    if (pExpression instanceof CIntegerLiteralExpression) {
-      BigInteger valueAsInt = ((CIntegerLiteralExpression) pExpression).getValue();
-
-      if (pTruthAssumption == valueAsInt.equals(BigInteger.ONE)) {
-        return pOldState.copyOf();
-      } else {
-        return null;
-      }
-
-    } else {
-      return computeNewStateByCreatingConstraint(pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName);
-    }
+    return computeNewStateByCreatingConstraint(
+        pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName);
   }
 
   private ConstraintsState computeNewStateByCreatingConstraint(
@@ -221,6 +207,7 @@ public class ConstraintsTransferRelation
 
       } else {
         newState.add(newConstraint);
+        return newState;
       }
     }
 
