@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -47,18 +48,17 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  */
 public class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
 
-  /**
-   * Stores identifiers and their corresponding constraints
-   */
+  /** The constraints of this state */
   private List<Constraint> constraints;
 
   /**
-   * The last constraint added to this state. This does not have to be the last constraint in
-   * {@link #constraints}.
+   * The last constraint added to this state. This does not have to be the last constraint in {@link
+   * #constraints}.
    */
   // It does not have to be the last constraint contained in 'constraints' because we only
   // add a constraint to 'constraints' if it's not yet in this list.
-  private Constraint lastAddedConstraint;
+  private Optional<Constraint> lastAddedConstraint = Optional.empty();
+
   private Map<Constraint, BooleanFormula> constraintFormulas;
 
   private IdentifierAssignment definiteAssignment;
@@ -114,7 +114,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   public boolean add(Constraint pConstraint) {
     checkNotNull(pConstraint);
 
-    lastAddedConstraint = pConstraint;
+    lastAddedConstraint = Optional.of(pConstraint);
     return !constraints.contains(pConstraint) && constraints.add(pConstraint);
   }
 
@@ -130,8 +130,8 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     return changed;
   }
 
-  Constraint getLastAddedConstraint() {
-    return checkNotNull(lastAddedConstraint);
+  Optional<Constraint> getLastAddedConstraint() {
+    return lastAddedConstraint;
   }
 
   @Override

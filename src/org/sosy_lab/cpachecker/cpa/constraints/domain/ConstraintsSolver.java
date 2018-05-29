@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -84,16 +87,26 @@ public class ConstraintsSolver implements StatisticsProvider {
   )
   private boolean cacheSubsets = true;
 
+  @Option(
+      secure = true,
+      description = "Whether to perform SAT checks only for the last added constraint",
+      name = "minimalSatCheck")
+  private boolean performMinimalSatCheck = true;
+
   private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
+  private final StatTimer timeForIndependentComputation =
+      new StatTimer(StatKind.SUM, "Time for " + "independent computation");
   private final StatTimer timeForDefinitesComputation =
-      new StatTimer(StatKind.SUM, "Time for " + "resolving definites");
+      new StatTimer(StatKind.SUM, "Time for resolving definites");
 
   private ConstraintsCache cache;
   private Solver solver;
   private ProverEnvironment prover;
   private FormulaManagerView formulaManager;
   private BooleanFormulaManagerView booleanFormulaManager;
+
   private CtoFormulaConverter converter;
+  private SymbolicIdentifierLocator locator;
 
   /** Table of id constraints set, id identifier assignment, formula * */
   private Table<Integer, Integer, BooleanFormula> constraintFormulas = HashBasedTable.create();
@@ -110,6 +123,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     converter = pConverter;
+    locator = SymbolicIdentifierLocator.getInstance();
 
     if (cacheSubsets) {
       cache = new SubsetConstraintsCache();
@@ -145,8 +159,39 @@ public class ConstraintsSolver implements StatisticsProvider {
     if (!pConstraints.isEmpty()) {
       try {
         timeForSatChecks.start();
+        Set<Constraint> relevantConstraints = new HashSet<>();
+        if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
+          try {
+            timeForIndependentComputation.start();
+            Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
+            Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
+            Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
+            Set<SymbolicIdentifier> relevantIdentifiers;
+            do {
+              relevantIdentifiers = ImmutableSet.copyOf(newRelevantIdentifiers);
+              Iterator<Constraint> it = leftOverConstraints.iterator();
+              while (it.hasNext()) {
+                Constraint currentC = it.next();
+                Set<SymbolicIdentifier> containedIdentifiers = currentC.accept(locator);
+                if (!Sets.intersection(containedIdentifiers, relevantIdentifiers).isEmpty()) {
+                  newRelevantIdentifiers = Sets.union(newRelevantIdentifiers, containedIdentifiers);
+                  relevantConstraints.add(currentC);
+                  it.remove();
+                }
+              }
+            } while (!newRelevantIdentifiers.equals(relevantIdentifiers));
+
+          } finally {
+            timeForIndependentComputation.stop();
+          }
+
+        } else {
+          relevantConstraints = pConstraints;
+        }
+
         BooleanFormula constraintsAsFormula =
-            getFullFormula(pConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
+            getFullFormula(
+                relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         prover.push(constraintsAsFormula);
 
