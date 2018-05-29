@@ -306,6 +306,8 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
               unsat = true;
             } else if (res.isSat()) {
               unsat = false;
+              lastModel = res.getModel();
+              lastModelAsAssignment = res.getModelAssignment();
             } else {
               unsat = prover.isUnsat();
             }
@@ -319,7 +321,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
                   .stream()
                   .map(ValueAssignment::getAssignmentAsFormula)
                   .collect(booleanFormulaManager.toConjunction());
-          cache.addSat(constraints, lastModel);
+          cache.addSat(constraints, lastModelAsAssignment, lastModel);
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
@@ -644,8 +646,11 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
       return id;
     }
 
-    void addSat(Collection<Constraint> pConstraints, BooleanFormula pModel) {
-      add(pConstraints, CacheResult.getSat(pModel));
+    void addSat(
+        Collection<Constraint> pConstraints,
+        ImmutableList<ValueAssignment> pModelAssignment,
+        BooleanFormula pModel) {
+      add(pConstraints, CacheResult.getSat(pModelAssignment, pModel));
     }
 
     void addUnsat(Collection<Constraint> pConstraints) {
@@ -670,15 +675,17 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     }
 
     private static final CacheResult UNSAT_SINGLETON =
-        new CacheResult(Result.UNSAT, Optional.empty());
+        new CacheResult(Result.UNSAT, Optional.empty(), Optional.empty());
     private static final CacheResult UNKNOWN_SINGLETON =
-        new CacheResult(Result.UNSAT, Optional.empty());
+        new CacheResult(Result.UNSAT, Optional.empty(), Optional.empty());
 
     private Result result;
     private Optional<BooleanFormula> model;
+    private Optional<ImmutableList<ValueAssignment>> modelAssignment;
 
-    public static CacheResult getSat(BooleanFormula pModel) {
-      return new CacheResult(Result.SAT, Optional.of(pModel));
+    public static CacheResult getSat(
+        ImmutableList<ValueAssignment> pModelAssignment, BooleanFormula pModel) {
+      return new CacheResult(Result.SAT, Optional.of(pModelAssignment), Optional.of(pModel));
     }
 
     public static CacheResult getUnsat() {
@@ -689,8 +696,12 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
       return UNKNOWN_SINGLETON;
     }
 
-    private CacheResult(Result pResult, Optional<BooleanFormula> pModel) {
+    private CacheResult(
+        Result pResult,
+        Optional<ImmutableList<ValueAssignment>> pModelAssignment,
+        Optional<BooleanFormula> pModel) {
       result = pResult;
+      modelAssignment = pModelAssignment;
       model = pModel;
     }
 
@@ -705,6 +716,11 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     public BooleanFormula getModel() {
       checkState(model.isPresent(), "No model exists");
       return model.get();
+    }
+
+    public ImmutableList<ValueAssignment> getModelAssignment() {
+      checkState(modelAssignment.isPresent(), "No model assignment exists");
+      return modelAssignment.get();
     }
   }
 }
