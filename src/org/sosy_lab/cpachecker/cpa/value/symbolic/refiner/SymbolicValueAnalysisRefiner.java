@@ -85,9 +85,11 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
@@ -257,6 +259,9 @@ public class SymbolicValueAnalysisRefiner
   private List<Pair<ForgettingCompositeState, List<CFAEdge>>> evaluate(
       ARGPath pTargetPath, IdentifierAssignment pIdentifierAssignment)
       throws CPAException, InterruptedException {
+
+    SymbolicValueFactory.reset();
+
     PathIterator fullPath = pTargetPath.fullPathIterator();
     ARGState first = pTargetPath.getFirstState();
     ValueAnalysisState firstValue =

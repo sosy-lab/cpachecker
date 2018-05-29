@@ -42,6 +42,7 @@ import java.util.Optional;
 public class SymbolicValueFactory {
 
   private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
+  private static int idCounter = 0;
 
   private SymbolicValueFactory() {
     // DO NOTHING
@@ -51,8 +52,12 @@ public class SymbolicValueFactory {
     return SINGLETON;
   }
 
+  public static void reset() {
+    idCounter = 0;
+  }
+
   public SymbolicIdentifier newIdentifier() {
-    return SymbolicIdentifier.getNewIdentifier();
+    return new SymbolicIdentifier(idCounter++);
   }
 
   public SymbolicExpression asConstant(Value pValue, Type pType) {
