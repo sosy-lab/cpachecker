@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -95,9 +96,7 @@ public class ConstraintsTransferRelation
 
   private MachineModel machineModel;
 
-  private Solver solver;
-  private FormulaManagerView formulaManager;
-  private CtoFormulaConverter converter;
+  private ConstraintsSolver solver;
   private StateSimplifier simplifier;
 
   public ConstraintsTransferRelation(
@@ -114,26 +113,32 @@ public class ConstraintsTransferRelation
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig);
 
-    solver = pSolver;
-    formulaManager = solver.getFormulaManager();
-    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
+    FormulaManagerView formulaManager = pSolver.getFormulaManager();
+    CtoFormulaConverter converter =
+        initializeCToFormulaConverter(formulaManager, pLogger, pConfig, pShutdownNotifier);
+    solver = new ConstraintsSolver(pConfig, pSolver, formulaManager, converter);
   }
 
   // Can only be called after machineModel and formulaManager are set
-  private void initializeCToFormulaConverter(LogManager pLogger, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  private CtoFormulaConverter initializeCToFormulaConverter(
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
 
     FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, machineModel);
 
-    converter = new CtoFormulaConverter(options,
-                                        formulaManager,
-                                        machineModel,
-                                        Optional.empty(),
-                                        pLogger,
-                                        pShutdownNotifier,
-                                        typeHandler,
-                                        AnalysisDirection.FORWARD);
+    return new CtoFormulaConverter(
+        options,
+        pFormulaManager,
+        machineModel,
+        Optional.empty(),
+        pLogger,
+        pShutdownNotifier,
+        typeHandler,
+        AnalysisDirection.FORWARD);
 }
 
   @Override
@@ -194,7 +199,6 @@ public class ConstraintsTransferRelation
     ConstraintsState newState = pOldState.copyOf();
 
     final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
-    FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
 
     if (oNewConstraint.isPresent()) {
       final Constraint newConstraint = oNewConstraint.get();
@@ -202,7 +206,7 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (isTrivial(newConstraint, definiteAssignment)) {
-        if (solver.isUnsat(formulaCreator.createFormula(newConstraint, newState.getDefiniteAssignment()))) {
+        if (solver.isUnsat(newConstraint, definiteAssignment, pFunctionName)) {
           return null;
         }
 
@@ -213,14 +217,6 @@ public class ConstraintsTransferRelation
     }
 
     return pOldState;
-  }
-
-  private FormulaCreator getFormulaCreator(String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pFunctionName);
-  }
-
-  private CtoFormulaConverter getConverter() {
-    return converter;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
@@ -323,6 +319,8 @@ public class ConstraintsTransferRelation
       throws CPATransferException, InterruptedException {
     assert pStateToStrengthen instanceof ConstraintsState;
 
+    super.setInfo(pStateToStrengthen, pPrecision, pCfaEdge);
+
     final ConstraintsState initialStateToStrengthen = (ConstraintsState) pStateToStrengthen;
 
     final String currentFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -417,9 +415,7 @@ public class ConstraintsTransferRelation
         // (which represents the bottom element for strengthen methods)
         if (newState != null) {
           newState = simplify(newState, valueState);
-          FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
-          newState.initialize(solver, formulaManager, formulaCreator);
-          if (checkStrategy != CheckStrategy.AT_ASSUME || !newState.isUnsat()) {
+          if (checkStrategy != CheckStrategy.AT_ASSUME || !solver.isUnsat(newState, functionName)) {
             newStates.add(newState);
           }
 
@@ -454,9 +450,7 @@ public class ConstraintsTransferRelation
       final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
 
       try {
-        if (automatonState.isTarget()
-            && pStateToStrengthen.isInitialized()
-            && pStateToStrengthen.isUnsat()) {
+        if (automatonState.isTarget() && solver.isUnsat(pStateToStrengthen, functionName)) {
 
           return Optional.<Collection<ConstraintsState>>of(Collections.<ConstraintsState>emptySet());
 

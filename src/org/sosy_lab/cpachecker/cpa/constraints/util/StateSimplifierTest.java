@@ -92,7 +92,6 @@ public class StateSimplifierTest {
     simplifier =
         new StateSimplifier(config);
     SymbolicValues.initialize();
-
   }
 
 

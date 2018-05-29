@@ -32,8 +32,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -79,7 +81,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
@@ -109,7 +110,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Refiner for value analysis using symbolic values.
@@ -252,17 +252,13 @@ public class SymbolicValueAnalysisRefiner
     if (cex.isSpurious()) {
       return true;
     } else if (pathConstraintsOutputFile != null) {
-      try {
-        addSymbolicInformationToCex(cex, pathConstraintsOutputFile);
-      } catch (SolverException e) {
-        throw new CPAException("Solver Exception occurred while adding symbolic information", e);
-      }
+      addSymbolicInformationToCex(cex, pathConstraintsOutputFile);
     }
     return false;
   }
 
   private List<Pair<ForgettingCompositeState, List<CFAEdge>>> evaluate(
-      ARGPath pTargetPath, IdentifierAssignment pIdentifierAssignment)
+      ARGPath pTargetPath, Map<SymbolicIdentifier, Value> pIdentifierAssignment)
       throws CPAException, InterruptedException {
 
     SymbolicValueFactory.reset();
@@ -315,12 +311,12 @@ public class SymbolicValueAnalysisRefiner
   }
 
   private void addSymbolicInformationToCex(CounterexampleInfo pCex, PathTemplate pOutputFile)
-      throws CPAException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException {
     ARGPath tp = pCex.getTargetPath();
     StringBuilder symbolicInfo = new StringBuilder();
 
     List<Pair<ForgettingCompositeState, List<CFAEdge>>> stateSequence =
-        evaluate(tp, IdentifierAssignment.empty());
+        evaluate(tp, Collections.emptyMap());
 
     ARGState first = tp.getFirstState();
     ValueAnalysisState firstValue =
@@ -385,7 +381,7 @@ public class SymbolicValueAnalysisRefiner
     ConstraintsState finalConstraints = currentState.getConstraintsState();
 
     List<ValueAssignment> assignments = finalConstraints.getModel();
-    IdentifierAssignment assignment = new IdentifierAssignment();
+    Map<SymbolicIdentifier, Value> assignment = new HashMap<>();
     for (ValueAssignment va : assignments) {
       SymbolicIdentifier identifier = SymbolicValues.convertTermToSymbolicIdentifier(va.getName());
       Value value = SymbolicValues.convertToValue(va);

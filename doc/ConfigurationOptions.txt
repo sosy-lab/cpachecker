@@ -1278,6 +1278,9 @@ cpa.congruence.trackCongruenceSum = false
 # Cache formulas produced by path formula manager
 cpa.congruence.useCachingPathFormulaManager = true
 
+# Whether to use subset/superset caching
+cpa.constraints.cacheSubsets = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
   enum:     [SUBSET]
