@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 
@@ -77,7 +76,6 @@ public class SymbolicValueAnalysisFeasibilityChecker
 
   @Override
   public boolean isFeasible(ARGPath path) throws CPAException, InterruptedException {
-    SymbolicValueFactory.reset();
     return super.isFeasible(path);
   }
 
@@ -85,7 +83,6 @@ public class SymbolicValueAnalysisFeasibilityChecker
   public boolean isFeasible(
       ARGPath pPath, ForgettingCompositeState pStartingPoint)
       throws CPAException, InterruptedException {
-    SymbolicValueFactory.reset();
     return super.isFeasible(pPath, pStartingPoint);
   }
 
@@ -93,7 +90,6 @@ public class SymbolicValueAnalysisFeasibilityChecker
   public boolean isFeasible(
       ARGPath pPath, Set<ControlAutomatonCPA> pAutomatons)
       throws CPAException, InterruptedException {
-    SymbolicValueFactory.reset();
     return super.isFeasible(pPath, pAutomatons);
   }
 
@@ -101,7 +97,6 @@ public class SymbolicValueAnalysisFeasibilityChecker
   public boolean isFeasible(
       ARGPath pPath, ForgettingCompositeState pStartingPoint, Set<ControlAutomatonCPA> pAutomatons)
       throws CPAException, InterruptedException {
-    SymbolicValueFactory.reset();
     return super.isFeasible(pPath, pStartingPoint, pAutomatons);
   }
 }
