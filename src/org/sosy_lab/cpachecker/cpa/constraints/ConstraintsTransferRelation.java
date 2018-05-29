@@ -384,6 +384,7 @@ public class ConstraintsTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    solver.collectStatistics(statsCollection);
     statsCollection.add(simplifier);
   }
 

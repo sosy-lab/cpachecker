@@ -49,6 +49,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
@@ -63,6 +64,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -70,7 +75,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.constraints")
-public class ConstraintsSolver implements Statistics {
+public class ConstraintsSolver implements StatisticsProvider {
 
   @Option(
     secure = true,
@@ -78,6 +83,10 @@ public class ConstraintsSolver implements Statistics {
     name = "cacheSubsets"
   )
   private boolean cacheSubsets = true;
+
+  private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
+  private final StatTimer timeForDefinitesComputation =
+      new StatTimer(StatKind.SUM, "Time for " + "resolving definites");
 
   private ConstraintsCache cache;
   private Solver solver;
@@ -112,9 +121,16 @@ public class ConstraintsSolver implements Statistics {
   public boolean isUnsat(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
       throws UnrecognizedCCodeException, InterruptedException, SolverException {
-    BooleanFormula constraintAsFormula =
-        getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
-    return solver.isUnsat(constraintAsFormula);
+    try {
+      timeForSatChecks.start();
+
+      BooleanFormula constraintAsFormula =
+          getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
+      return solver.isUnsat(constraintAsFormula);
+
+    } finally {
+      timeForSatChecks.stop();
+    }
   }
 
   /**
@@ -128,6 +144,7 @@ public class ConstraintsSolver implements Statistics {
 
     if (!pConstraints.isEmpty()) {
       try {
+        timeForSatChecks.start();
         BooleanFormula constraintsAsFormula =
             getFullFormula(pConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
@@ -185,6 +202,7 @@ public class ConstraintsSolver implements Statistics {
 
       } finally {
         closeProver();
+        timeForSatChecks.stop();
       }
 
     } else {
@@ -202,10 +220,16 @@ public class ConstraintsSolver implements Statistics {
   private void resolveDefiniteAssignments(
       ConstraintsState pConstraints, List<ValueAssignment> pModel, String pFunctionName)
       throws InterruptedException, SolverException {
+    try {
+      timeForDefinitesComputation.start();
 
-    IdentifierAssignment newDefinites =
-        computeDefiniteAssignment(pConstraints, pModel, pFunctionName);
-    pConstraints.setDefiniteAssignment(newDefinites);
+      IdentifierAssignment newDefinites =
+          computeDefiniteAssignment(pConstraints, pModel, pFunctionName);
+      pConstraints.setDefiniteAssignment(newDefinites);
+
+    } finally {
+      timeForDefinitesComputation.stop();
+    }
   }
 
   private IdentifierAssignment computeDefiniteAssignment(
@@ -314,12 +338,29 @@ public class ConstraintsSolver implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {}
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(
+        new Statistics() {
+          @Override
+          public void printStatistics(
+              PrintStream out, Result result, UnmodifiableReachedSet reached) {
+            StatisticsWriter.writingStatisticsTo(out)
+                .put(timeForSatChecks)
+                .put(timeForDefinitesComputation);
+          }
 
-  @Nullable
-  @Override
-  public String getName() {
-    return null;
+          @Override
+          public String getName() {
+            return ConstraintsSolver.class.getSimpleName();
+          }
+        });
+
+    if (cache instanceof StatisticsProvider) {
+      ((StatisticsProvider) cache).collectStatistics(statsCollection);
+
+    } else if (cache instanceof Statistics) {
+      statsCollection.add((Statistics) cache);
+    }
   }
 
   private interface ConstraintsCache {
@@ -331,9 +372,13 @@ public class ConstraintsSolver implements Statistics {
     void addUnsat(Collection<Constraint> pConstraints);
   }
 
-  private class MatchingConstraintsCache implements ConstraintsCache {
+  private class MatchingConstraintsCache implements ConstraintsCache, StatisticsProvider {
 
     private Map<Integer, CacheResult> cacheMap = new HashMap<>();
+
+    private StatCounter cacheLookups = new StatCounter("Matching cache lookups");
+    private StatCounter cacheHits = new StatCounter("Matching cache hits");
+    private StatTimer lookupTime = new StatTimer("Matching cache lookup time");
 
     @Override
     public CacheResult getCachedResult(Collection<Constraint> pConstraints) {
@@ -342,10 +387,17 @@ public class ConstraintsSolver implements Statistics {
     }
 
     CacheResult getCachedResult(int pId) {
-      if (cacheMap.containsKey(pId)) {
-        return cacheMap.get(pId);
-      } else {
-        return CacheResult.getUnknown();
+      try {
+        cacheLookups.inc();
+        lookupTime.start();
+        if (cacheMap.containsKey(pId)) {
+          cacheHits.inc();
+          return cacheMap.get(pId);
+        } else {
+          return CacheResult.getUnknown();
+        }
+      } finally {
+        lookupTime.stop();
       }
     }
 
@@ -364,9 +416,30 @@ public class ConstraintsSolver implements Statistics {
       int id = getConstraintId(pConstraints);
       cacheMap.put(id, pResult);
     }
+
+    @Override
+    public void collectStatistics(Collection<Statistics> statsCollection) {
+      statsCollection.add(
+          new Statistics() {
+            @Override
+            public void printStatistics(
+                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+              StatisticsWriter.writingStatisticsTo(pOut)
+                  .put(cacheLookups)
+                  .put(cacheHits)
+                  .put(lookupTime);
+            }
+
+            @Nullable
+            @Override
+            public String getName() {
+              return ConstraintsSolver.this.getClass().getSimpleName();
+            }
+          });
+    }
   }
 
-  private class SubsetConstraintsCache implements ConstraintsCache {
+  private class SubsetConstraintsCache implements ConstraintsCache, StatisticsProvider {
 
     private MatchingConstraintsCache delegate;
 
@@ -377,17 +450,33 @@ public class ConstraintsSolver implements Statistics {
     private Multimap<Constraint, Pair<Integer, Integer>> constraintContainedIn =
         HashMultimap.create();
 
+    private StatCounter cacheLookups = new StatCounter("Cache lookups");
+    private StatCounter directCacheHits = new StatCounter("Direct cache hits");
+    private StatCounter cacheHits = new StatCounter("Subset cache hits");
+    private StatTimer lookupTime = new StatTimer(StatKind.SUM, "Subset lookup time");
+
     public SubsetConstraintsCache() {
       delegate = new MatchingConstraintsCache();
     }
 
     @Override
     public CacheResult getCachedResult(Collection<Constraint> pConstraints) {
-      CacheResult res = delegate.getCachedResult(pConstraints);
-      if (!res.isSat() && !res.isUnsat()) {
-        res = getCachedResultOfSubset(pConstraints);
+      try {
+        cacheLookups.inc();
+        lookupTime.start();
+        CacheResult res = delegate.getCachedResult(pConstraints);
+        if (!res.isSat() && !res.isUnsat()) {
+          res = getCachedResultOfSubset(pConstraints);
+        } else {
+          directCacheHits.inc();
+        }
+        if (res.isSat() || res.isUnsat()) {
+          cacheHits.inc();
+        }
+        return res;
+      } finally {
+        lookupTime.stop();
       }
-      return res;
     }
 
     @Override
@@ -444,6 +533,28 @@ public class ConstraintsSolver implements Statistics {
         }
       }
       return CacheResult.getUnknown();
+    }
+
+    @Override
+    public void collectStatistics(Collection<Statistics> statsCollection) {
+      statsCollection.add(
+          new Statistics() {
+            @Override
+            public void printStatistics(
+                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+              StatisticsWriter.writingStatisticsTo(pOut)
+                  .put(cacheLookups)
+                  .put(directCacheHits)
+                  .put(cacheHits)
+                  .put(lookupTime);
+            }
+
+            @Nullable
+            @Override
+            public String getName() {
+              return ConstraintsSolver.this.getClass().getSimpleName();
+            }
+          });
     }
   }
 
