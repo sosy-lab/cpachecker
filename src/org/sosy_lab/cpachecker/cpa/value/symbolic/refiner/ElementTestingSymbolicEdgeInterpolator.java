@@ -168,8 +168,6 @@ public class ElementTestingSymbolicEdgeInterpolator
 
       if (isPathFeasible(pSuffix, reducedState)) {
         reducedState = pSuccessorState;
-      } else {
-        return reducedState;
       }
     }
 
