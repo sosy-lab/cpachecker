@@ -316,9 +316,8 @@ public class SymbolicValueAnalysisRefiner
   }
 
   private CIdExpression getCorrespondingIdExpression(MemoryLocation pMemLoc, CType pType) {
-    String funcName = pMemLoc.getFunctionName();
+    boolean isGlobal = pMemLoc.isOnFunctionStack();
     String varName = pMemLoc.getIdentifier();
-    boolean isGlobal = funcName.isEmpty();
     CSimpleDeclaration idDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
