@@ -59,6 +59,8 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
@@ -76,12 +78,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Transfer relation for Symbolic Execution Analysis.
- */
+/** Transfer relation for Symbolic Execution Analysis. */
 @Options(prefix = "cpa.constraints")
 public class ConstraintsTransferRelation
-    extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
+    extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision>
+    implements StatisticsProvider {
 
   private enum CheckStrategy { AT_ASSUME, AT_TARGET }
 
@@ -370,6 +371,11 @@ public class ConstraintsTransferRelation
     } else {
       return newStates;
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(simplifier);
   }
 
   private class ValueAnalysisStrengthenOperator implements StrengthenOperator {

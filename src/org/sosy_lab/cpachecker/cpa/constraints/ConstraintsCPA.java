@@ -78,7 +78,7 @@ public class ConstraintsCPA
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private TransferRelation transferRelation;
+  private ConstraintsTransferRelation transferRelation;
   private ConstraintsPrecisionAdjustment precisionAdjustment;
   private ConstraintsPrecision precision;
 
@@ -185,6 +185,7 @@ public class ConstraintsCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    transferRelation.collectStatistics(statsCollection);
     precisionAdjustment.collectStatistics(statsCollection);
 
     if (mergeOperator instanceof Statistics) {

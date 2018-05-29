@@ -24,16 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import com.google.common.collect.Iterables;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -43,18 +48,21 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Simplifier for {@link ConstraintsState}s.
- * Provides different methods for simplifying a <code>ConstraintsState</code>
- * through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
+ * Simplifier for {@link ConstraintsState}s. Provides different methods for simplifying a <code>
+ * ConstraintsState</code> through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
  */
 @Options(prefix = "cpa.constraints")
-public class StateSimplifier {
+public class StateSimplifier implements Statistics {
 
   @Option(
     description =
-        "Whether to remove trivial constraints from constraints states during" + " simplification",
+        "Whether to remove trivial constraints from constraints states during simplification",
     secure = true
   )
   private boolean removeTrivial = false;
@@ -66,6 +74,14 @@ public class StateSimplifier {
     secure = true
   )
   private boolean removeOutdated = true;
+
+  private final StatTimer trivialRemovalTime = new StatTimer("Time for trivial constraint removal");
+  private final StatTimer outdatedRemovalTime =
+      new StatTimer("Time for outdated constraint " + "removal");
+  private final StatInt removedTrivial =
+      new StatInt(StatKind.SUM, "Number of removed trivial " + "constraints");
+  private final StatInt removedOutdated =
+      new StatInt(StatKind.SUM, "Number of removed outdated " + "constraints");
 
   public StateSimplifier(
       final Configuration pConfig
@@ -89,11 +105,21 @@ public class StateSimplifier {
     ConstraintsState newState = pState;
 
     if (removeTrivial) {
-      newState = removeTrivialConstraints(newState, newState.getDefiniteAssignment());
+      try {
+        trivialRemovalTime.start();
+        newState = removeTrivialConstraints(newState, newState.getDefiniteAssignment());
+      } finally {
+        trivialRemovalTime.stop();
+      }
     }
 
     if (removeOutdated) {
-      newState = removeOutdatedConstraints(newState, pValueState);
+      try {
+        outdatedRemovalTime.start();
+        newState = removeOutdatedConstraints(newState, pValueState);
+      } finally {
+        outdatedRemovalTime.stop();
+      }
     }
 
     return newState;
@@ -116,6 +142,7 @@ public class StateSimplifier {
       }
     }
 
+    removedTrivial.setNextValue(pState.size() - newState.size());
     return newState;
 
   }
@@ -188,6 +215,7 @@ public class StateSimplifier {
       }
     }
 
+    removedOutdated.setNextValue(pState.size() - newState.size());
     return newState;
   }
 
@@ -309,6 +337,22 @@ public class StateSimplifier {
     }
 
     return activitySet;
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+
+    StatisticsWriter.writingStatisticsTo(out)
+        .put(removedTrivial)
+        .put(trivialRemovalTime)
+        .put(removedOutdated)
+        .put(outdatedRemovalTime);
+  }
+
+  @Nullable
+  @Override
+  public String getName() {
+    return StateSimplifier.class.getSimpleName();
   }
 
   private enum Activity { ACTIVE, UNUSED, DELETED }
