@@ -326,6 +326,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
               resolveDefiniteAssignments();
             } else {
               lastModel = null;
+              definiteAssignment = null;
               cache.addUnsat(constraints);
             }
           }
