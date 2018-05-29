@@ -35,10 +35,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -47,6 +50,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -74,10 +79,16 @@ public class ConstraintsStrengthenOperator implements Statistics {
   private final Timer totalTime = new Timer();
   private int replacedSymbolicExpressions = 0;
 
+  private final LogManager logger;
+  private final MachineModel machineModel;
 
-  public ConstraintsStrengthenOperator(final Configuration pConfig)
+  public ConstraintsStrengthenOperator(
+      final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    logger = pLogger;
+    machineModel = pMachineModel;
   }
 
   /**
@@ -104,9 +115,10 @@ public class ConstraintsStrengthenOperator implements Statistics {
       ValueAnalysisState newState;
 
       if (adoptDefinites) {
+        String functionName = pEdge.getSuccessor().getFunctionName();
         newState =
-            evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
-
+            evaluateAssignment(
+                pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen, functionName);
       } else {
         newState = pStateToStrengthen;
       }
@@ -129,16 +141,19 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
   private ValueAnalysisState evaluateAssignment(
       final IdentifierAssignment pAssignment,
-      final ValueAnalysisState pValueState
-  ) {
+      final ValueAnalysisState pValueState,
+      final String pFunctionName) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
+    AbstractExpressionValueVisitor valueVisitor =
+        new ExpressionValueVisitor(
+            newElement, pFunctionName, machineModel, new LogManagerWithoutDuplicates(logger));
 
     for (Map.Entry<? extends SymbolicIdentifier, Value> onlyValidAssignment : pAssignment.entrySet()) {
       final SymbolicIdentifier identifierToReplace = onlyValidAssignment.getKey();
       final Value newIdentifierValue = onlyValidAssignment.getValue();
 
-      newElement.assignConstant(identifierToReplace, newIdentifierValue);
+      newElement.assignConstant(identifierToReplace, newIdentifierValue, valueVisitor);
     }
 
     return newElement;

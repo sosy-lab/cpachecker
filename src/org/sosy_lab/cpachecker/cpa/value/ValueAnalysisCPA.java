@@ -134,7 +134,8 @@ public class ValueAnalysisCPA
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
     unknownValueHandler = new SymbolicValueAssigner(config);
-    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
+    constraintsStrengthenOperator =
+        new ConstraintsStrengthenOperator(config, logger, cfa.getMachineModel());
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();

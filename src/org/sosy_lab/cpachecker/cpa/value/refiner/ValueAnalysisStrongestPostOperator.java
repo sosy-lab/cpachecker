@@ -70,7 +70,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
             new SymbolicValueAssigner(pConfig),
-            new ConstraintsStrengthenOperator(pConfig),
+            new ConstraintsStrengthenOperator(pConfig, pLogger, pCfa.getMachineModel()),
             null);
   }
 

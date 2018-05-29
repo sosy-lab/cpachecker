@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -81,11 +83,11 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -136,6 +138,8 @@ public class SymbolicValueAnalysisRefiner
   private Precision fullPrecision;
 
   private ValueAnalysisConcreteErrorPathAllocator errorPathAllocator;
+
+  private final MachineModel machineModel;
 
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -232,8 +236,9 @@ public class SymbolicValueAnalysisRefiner
         VariableTrackingPrecision.createStaticPrecision(
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
 
+    machineModel = pCfa.getMachineModel();
     errorPathAllocator =
-        new ValueAnalysisConcreteErrorPathAllocator(pConfig, pLogger, pCfa.getMachineModel());
+        new ValueAnalysisConcreteErrorPathAllocator(pConfig, pLogger, machineModel);
     if (pathConstraintsOutputFile != null && !pCfa.getLanguage().equals(Language.C)) {
       throw new InvalidConfigurationException(
           "At the moment, writing path constraints is only supported for C");
@@ -291,8 +296,15 @@ public class SymbolicValueAnalysisRefiner
           throw new IllegalStateException("Counterexample said to be feasible but spurious");
         } else {
           currentState = maybeNext.get();
+          ValueAnalysisState currentValueState = currentState.getValueState();
+          ExpressionValueVisitor valueVisitor =
+              new ExpressionValueVisitor(
+                  currentValueState,
+                  currentEdge.getSuccessor().getFunctionName(),
+                  machineModel,
+                  new LogManagerWithoutDuplicates(logger));
           for (Entry<SymbolicIdentifier, Value> e : pIdentifierAssignment.entrySet()) {
-            currentState.getValueState().assignConstant(e.getKey(), e.getValue());
+            currentValueState.assignConstant(e.getKey(), e.getValue(), valueVisitor);
           }
         }
       } while (!fullPath.isPositionWithState());

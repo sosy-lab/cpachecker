@@ -61,9 +61,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   private static final long serialVersionUID = -3773425414056328601L;
 
-  // stores the next usable id
-  private static long nextId = 0;
-
   // this objects unique id for identifying it
   private final long id;
 
@@ -77,17 +74,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   private SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
     id = pId;
     representedLocation = checkNotNull(pRepresentedLocation);
-  }
-
-  /**
-   * Returns a new instance of a <code>SymbolicIdentifier</code>.
-   * <p/>
-   * <p>Each call to this method returns a new, unique <code>SymbolicIdentifier</code>.</p>
-   *
-   * @return a new instance of a <code>SymbolicIdentifier</code>
-   */
-  static SymbolicIdentifier getNewIdentifier() {
-    return new SymbolicIdentifier(nextId++);
   }
 
   @Override

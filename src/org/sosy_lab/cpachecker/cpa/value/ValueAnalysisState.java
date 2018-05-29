@@ -41,11 +41,14 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -58,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -160,8 +164,25 @@ public class ValueAnalysisState
    * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> to assign the concrete value to.
    * @param pValue value to be assigned.
    */
-  public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, Value pValue) {
+  public void assignConstant(
+      SymbolicIdentifier pSymbolicIdentifier,
+      Value pValue,
+      AbstractExpressionValueVisitor pValueVisitor) {
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      CType memLocType = (CType) entry.getValue().getType();
+      Value typedValue = pValue;
+      if (pValue.isNumericValue()) {
+        CIntegerLiteralExpression valueAsExpression =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY,
+                memLocType,
+                BigInteger.valueOf(pValue.asNumericValue().longValue()));
+        try {
+          typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
+        } catch (UnrecognizedCCodeException pE) {
+          throw new AssertionError(pE);
+        }
+      }
       MemoryLocation currMemloc = entry.getKey();
       Value currVal = entry.getValue().getValue();
 
@@ -172,7 +193,7 @@ public class ValueAnalysisState
       if (currVal instanceof SymbolicIdentifier
           && ((SymbolicIdentifier) currVal).getId() == pSymbolicIdentifier.getId()) {
 
-        assignConstant(currMemloc, pValue, entry.getValue().getType());
+        assignConstant(currMemloc, typedValue, memLocType);
       }
     }
   }
