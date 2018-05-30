@@ -316,7 +316,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      currentAlg = createNextAlgorithm(chosenConfig, cfa.getMainFunction(), shutdownManager);
+      currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), shutdownManager);
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
@@ -347,7 +347,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     return chosenAlgorithm.run(reachedSetForChosenAnalysis);
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
+  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
