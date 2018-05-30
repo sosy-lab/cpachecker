@@ -93,6 +93,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
     lastAddedConstraint = pState.lastAddedConstraint;
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
+    lastModelAsAssignment = pState.lastModelAsAssignment;
   }
 
   /**
