@@ -118,7 +118,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class SelectionAlgorithmStatistics implements Statistics {
 
-    private String chosenProperty = "";
+    private String chosenConfig = "";
     private int onlyRelevantBools = 0;
     private double relevantBoolRatio = 0.0;
     private double relevantAddressedRatio = 0.0;
@@ -133,7 +133,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      out.println("Used algorithm property:                       " + chosenProperty);
+      out.println("Used algorithm property:                       " + chosenConfig);
       out.println("Program containing only relevant bools:        " + onlyRelevantBools);
       out.println(
           String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
@@ -311,7 +311,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    stats.chosenProperty = chosenConfig.toString().substring(7);
+    stats.chosenConfig = chosenConfig.toString().substring(7);
 
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
