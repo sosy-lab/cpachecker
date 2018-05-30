@@ -384,6 +384,8 @@ public class SymbolicValueAnalysisRefiner
       Value value = SymbolicValues.convertToValue(va);
       assignment.put(identifier, value);
     }
+    assignment.putAll(finalConstraints.getDefiniteAssignment());
+
     stateSequence = evaluate(tp, assignment);
     List<Pair<ValueAnalysisState, List<CFAEdge>>> concreteAssignmentsOnPath =
         new ArrayList<>(stateSequence.size());
