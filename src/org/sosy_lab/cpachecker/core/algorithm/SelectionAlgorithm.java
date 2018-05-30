@@ -135,8 +135,11 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Used algorithm property:                       " + chosenProperty);
       out.println("Program containing only relevant bools:        " + onlyRelevantBools);
-      out.println("Relevant boolean vars / relevant vars ratio:   " + relevantBoolRatio);
-      out.println("Relevant addressed vars / relevant vars ratio: " + relevantAddressedRatio);
+      out.println(
+          String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
+      out.println(
+          String.format(
+              "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
       out.println(
           "Program containing external functions:         " + containsExternalFunctionCalls);
       out.println("Number of all righthand side functions:        " + numberOfAllRightFunctions);
@@ -251,24 +254,20 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     if (!variableClassification.get().getRelevantVariables().isEmpty()) {
       stats.relevantBoolRatio =
-          round(
-              ((double)
-                      (Sets.intersection(
-                              variableClassification.get().getIntBoolVars(),
-                              variableClassification.get().getRelevantVariables())
-                          .size()))
-                  / (double) (variableClassification.get().getRelevantVariables().size()),
-              4);
+          ((double)
+                  (Sets.intersection(
+                          variableClassification.get().getIntBoolVars(),
+                          variableClassification.get().getRelevantVariables())
+                      .size()))
+              / (double) (variableClassification.get().getRelevantVariables().size());
 
-    stats.relevantAddressedRatio =
-        round(
-            ((double)
-                    (Sets.intersection(
-                            variableClassification.get().getAddressedVariables(),
-                            variableClassification.get().getRelevantVariables())
-                        .size()))
-                / (double) (variableClassification.get().getRelevantVariables().size()),
-            4);
+      stats.relevantAddressedRatio =
+          ((double)
+                  (Sets.intersection(
+                          variableClassification.get().getAddressedVariables(),
+                          variableClassification.get().getRelevantVariables())
+                      .size()))
+              / (double) (variableClassification.get().getRelevantVariables().size());
     }
 
     boolean hasOnlyRelevantIntBoolVars =
@@ -408,16 +407,5 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider) chosenAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
-  }
-
-  public static double round(double value, int places) {
-    if (places < 0) {
-      throw new IllegalArgumentException();
-    }
-
-    long factor = (long) Math.pow(10, places);
-    value = value * factor;
-    long tmp = Math.round(value);
-    return (double) tmp / factor;
   }
 }
