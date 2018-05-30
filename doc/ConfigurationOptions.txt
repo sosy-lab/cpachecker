@@ -924,6 +924,10 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
+# translate final ARG into an automaton
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%s.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%s.spc"
+
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
