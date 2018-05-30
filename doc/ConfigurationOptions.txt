@@ -284,6 +284,9 @@ analysis.replacedFunctionsWithParameters = {"pthread_create"}
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# Use heuristics to select the analysis
+analysis.selectAnalysisHeuristically = false
+
 # if this option is used, the CFA will be loaded from the given file instead
 # of parsed from sourcefile.
 analysis.serializedCfaFile = no default value
@@ -2860,6 +2863,29 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Configuration for programs containing more than @Option adressedRatio
+# addressed vars.
+heuristicSelection.addressedConfig = no default value
+
+# Ratio of addressed vars. Values bigger than the passed value lead to
+# @option addressedConfig.
+heuristicSelection.addressedRatio = no default value
+
+# Configuration for programs with loops and complex datastructures.
+heuristicSelection.complexLoopConfig = no default value
+
+# Configuration for loop-free programs and complex datastructures.
+heuristicSelection.complexLoopFreeConfig = no default value
+
+# Configuration for programs with loops.
+heuristicSelection.loopConfig = no default value
+
+# Configuration for loop-free programs.
+heuristicSelection.loopFreeConfig = no default value
+
+# Configuration for programs containing only relevant bool vars.
+heuristicSelection.onlyBoolConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
