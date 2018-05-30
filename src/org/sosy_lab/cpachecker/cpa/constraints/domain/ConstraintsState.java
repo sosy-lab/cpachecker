@@ -214,7 +214,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   }
 
   /** Returns the last model computed for this constraints state. */
-  public List<ValueAssignment> getModel() {
+  public ImmutableList<ValueAssignment> getModel() {
     return lastModelAsAssignment;
   }
 

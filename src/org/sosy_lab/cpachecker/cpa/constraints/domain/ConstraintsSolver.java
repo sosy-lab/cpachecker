@@ -195,7 +195,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         prover.push(constraintsAsFormula);
 
-        List<ValueAssignment> modelAsAssignment = pConstraints.getModel();
+        ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
         BooleanFormula lastModel =
             modelAsAssignment
                 .stream()
@@ -203,40 +203,45 @@ public class ConstraintsSolver implements StatisticsProvider {
                 .collect(booleanFormulaManager.toConjunction());
         prover.push(lastModel);
         boolean unsat = prover.isUnsat();
+        if (!unsat) {
+          // get this before popping the model assignment ; the operation will be invalid otherwise
+          modelAsAssignment = prover.getModelAssignments();
+        }
+        // We have to remove the model assignment before resolving definite assignments, below.
+        prover.pop(); // Remove model assignment from prover
 
         boolean gotResultFromCache = false;
 
-        if (!booleanFormulaManager.isTrue(lastModel)) {
+        if (unsat && !booleanFormulaManager.isTrue(lastModel)) {
+          // if the last model does not fulfill the formula, and the last model actually
+          // is some variable assignment (i.e., model != true), then we check the formula
+          // for satisfiability without any assignments, again.
+          CacheResult res = cache.getCachedResult(pConstraints);
 
-          if (unsat) {
-            // if the last model does not fulfill the formula, and the last model actually
-            // is some variable assignment (i.e., model != true), then we check the formula
-            // for satisfiability without any assignments, again.
-            prover.pop(); // Remove model assignment from prover
-            CacheResult res = cache.getCachedResult(pConstraints);
+          if (res.isUnsat()) {
+            unsat = true;
+            gotResultFromCache = true;
+          } else if (res.isSat()) {
+            unsat = false;
+            gotResultFromCache = true;
+            pConstraints.setModel(res.getModelAssignment());
+          } else {
+            unsat = prover.isUnsat();
 
-            if (res.isUnsat()) {
-              unsat = true;
-              gotResultFromCache = true;
-            } else if (res.isSat()) {
-              unsat = false;
-              gotResultFromCache = true;
-              pConstraints.setModel(res.getModelAssignment());
-            } else {
-              unsat = prover.isUnsat();
+            if (!unsat) {
+              modelAsAssignment = prover.getModelAssignments();
             }
           }
         }
 
         if (!gotResultFromCache) {
           if (!unsat) {
-            ImmutableList<ValueAssignment> lastModelAsAssignment = prover.getModelAssignments();
-            pConstraints.setModel(lastModelAsAssignment);
-            cache.addSat(pConstraints, lastModelAsAssignment);
+            pConstraints.setModel(modelAsAssignment);
+            cache.addSat(pConstraints, modelAsAssignment);
             // doing this while the complete formula is still on the prover environment stack is
             // cheaper than performing another complete SAT check when the assignment is really
             // requested
-            resolveDefiniteAssignments(pConstraints, lastModelAsAssignment, pFunctionName);
+            resolveDefiniteAssignments(pConstraints, modelAsAssignment, pFunctionName);
 
           } else {
             cache.addUnsat(pConstraints);
@@ -613,7 +618,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     private static final CacheResult UNSAT_SINGLETON =
         new CacheResult(Result.UNSAT, Optional.empty());
     private static final CacheResult UNKNOWN_SINGLETON =
-        new CacheResult(Result.UNSAT, Optional.empty());
+        new CacheResult(Result.UNKNOWN, Optional.empty());
 
     private Result result;
     private Optional<ImmutableList<ValueAssignment>> modelAssignment;
