@@ -92,7 +92,10 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathA
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
@@ -289,15 +292,29 @@ public class SymbolicValueAnalysisRefiner
           throw new IllegalStateException("Counterexample said to be feasible but spurious");
         } else {
           currentState = maybeNext.get();
-          ValueAnalysisState currentValueState = currentState.getValueState();
-          ExpressionValueVisitor valueVisitor =
-              new ExpressionValueVisitor(
-                  currentValueState,
-                  currentEdge.getSuccessor().getFunctionName(),
-                  machineModel,
-                  new LogManagerWithoutDuplicates(logger));
-          for (Entry<SymbolicIdentifier, Value> e : pIdentifierAssignment.entrySet()) {
-            currentValueState.assignConstant(e.getKey(), e.getValue(), valueVisitor);
+          if (!pIdentifierAssignment.isEmpty()) {
+            ValueAnalysisState currentValueState = currentState.getValueState();
+            Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
+            for (Entry<MemoryLocation, ValueAndType> e : currentValueState.getConstants()) {
+              Value v = e.getValue().getValue();
+              if (v instanceof SymbolicValue) {
+                usedIdentifiers.addAll(((SymbolicValue) v).accept(SymbolicIdentifierLocator
+                    .getInstance()));
+              }
+            }
+            ExpressionValueVisitor valueVisitor =
+                new ExpressionValueVisitor(
+                    currentValueState,
+                    currentEdge.getSuccessor().getFunctionName(),
+                    machineModel,
+                    new LogManagerWithoutDuplicates(logger));
+            for (SymbolicIdentifier i : usedIdentifiers) {
+              if (pIdentifierAssignment.containsKey(i)) {
+                currentValueState.assignConstant(i, pIdentifierAssignment.get(i), valueVisitor);
+              } else {
+                currentValueState.assignConstant(i, new NumericValue(0), valueVisitor);
+              }
+            }
           }
         }
       } while (!fullPath.isPositionWithState());
