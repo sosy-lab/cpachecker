@@ -81,7 +81,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
-    private HashSet<String> functionNames = new HashSet<>();
+    private final HashSet<String> functionNames = new HashSet<>();
     private int functionCount = 0;
 
     @Override
