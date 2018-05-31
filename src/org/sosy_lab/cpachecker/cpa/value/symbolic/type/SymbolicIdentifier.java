@@ -213,7 +213,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      */
     public boolean isSymbolicEncoding(String pName) {
       String variableName = FormulaManagerView.parseName(pName).getFirst();
-      return variableName.matches("[a-zA-Z_]*(::)?[a-zA-Z_]*(/[0-9]+)?#[0-9]*");
+      return variableName.matches("[a-zA-Z_]*(::)?[a-zA-Z_0-9]*(/[0-9]+)?#[0-9]*");
     }
   }
 }
