@@ -562,7 +562,7 @@ with considerably less effort */
 				graphCount = null;
 				$("#renderStateModal").modal("show");
 				if (cfaWorker === undefined) {
-					cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function.toString() + ")()"], {
+					cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
 						type: "text/javascript"
 					})));
 				}
@@ -652,7 +652,7 @@ with considerably less effort */
 				graphCount = null;
 				$("#renderStateModal").modal("show");
 				if (argWorker === undefined) {
-					argWorker = new Worker(URL.createObjectURL(new Blob(["(" + argWorker_function.toString() + ")()"], {
+					argWorker = new Worker(URL.createObjectURL(new Blob(["(" + argWorker_function + ")()"], {
 						type: "text/javascript"
 					})));
 				}
@@ -1570,11 +1570,11 @@ function init() {
 	 * Create workers using blobs due to Chrome's default security policy and 
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
-	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function.toString() + ")()"], {
+	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
 		type: 'text/javascript'
 	})));
 	if (argJson.nodes) {
-		argWorker = new Worker(URL.createObjectURL(new Blob(["(" + argWorker_function.toString() + ")()"], {
+		argWorker = new Worker(URL.createObjectURL(new Blob(["(" + argWorker_function + ")()"], {
 			type: "text/javascript"
 		})));
 	}

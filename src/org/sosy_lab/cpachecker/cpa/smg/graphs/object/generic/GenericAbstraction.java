@@ -114,9 +114,9 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   @Override
   public String toString() {
     return "Generic Abstraction:\n"
-        + "pointersToThisAbstraction " + abstractToConcretePointerMap.toString() + "\n"
-        + "pointersToThisAbstraction " + abstractToConcretePointerMap.toString() + "\n"
-        + "materlisationSteps " + materlisationStepMap.toString();
+        + "pointersToThisAbstraction " + abstractToConcretePointerMap + "\n"
+        + "pointersToThisAbstraction " + abstractToConcretePointerMap + "\n"
+        + "materlisationSteps " + materlisationStepMap;
   }
 
   public GenericAbstractionCandidateTemplate createCandidateTemplate(MachineModel pMachineModel) {

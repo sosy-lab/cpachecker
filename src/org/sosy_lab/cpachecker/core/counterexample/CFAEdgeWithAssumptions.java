@@ -165,7 +165,7 @@ public class CFAEdgeWithAssumptions {
 
   @Override
   public String toString() {
-    return edge.toString() + " " + expressionStmts.toString();
+    return edge + " " + expressionStmts;
   }
 
   @Nullable

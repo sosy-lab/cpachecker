@@ -253,7 +253,7 @@ public class CExpressionToOrinalCodeVisitor
     if (substitute != null) {
       return substitute;
     }
-    return pLiteralExpression.getValue().toString() + "i";
+    return pLiteralExpression.getValue() + "i";
   }
 
   @Override

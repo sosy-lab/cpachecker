@@ -59,7 +59,7 @@ public abstract class SMGAbstractObjectAndState<T> {
 
   @Override
   public String toString() {
-    return object.toString() + " StateId: " + smgState.getId();
+    return object + " StateId: " + smgState.getId();
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {

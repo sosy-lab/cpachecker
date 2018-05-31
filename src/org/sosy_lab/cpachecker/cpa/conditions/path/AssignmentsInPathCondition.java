@@ -180,7 +180,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public String toString() {
-      return mapping.toString() + " [max: " + maximum + "]";
+      return mapping + " [max: " + maximum + "]";
     }
 
     /**

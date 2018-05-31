@@ -268,7 +268,7 @@ public abstract class GraphToPixelsWriter<Node> {
     Graphics2D g = canvasHandler.createCanvas(finalWidth, finalHeight);
     drawContent(g, finalWidth, finalHeight, structure);
 
-    Path fullOutputFile = Paths.get(pOutputFile.toString() + "." + imageFormat);
+    Path fullOutputFile = Paths.get(pOutputFile + "." + imageFormat);
     canvasHandler.writeToFile(fullOutputFile);
   }
 

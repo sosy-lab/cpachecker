@@ -150,7 +150,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
 class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
@@ -429,8 +428,8 @@ class ASTConverter {
 
     // update initializer (can't be constructed while generating the Declaration)
     if (preSideAssignments.size() != 0 || postSideAssignments.size() != 0) {
-      logger.log(Level.WARNING, "Sideeffects of initializer of field "
-          + fieldName + "will be ignored");
+      logger.log(
+          Level.WARNING, "Sideeffects of initializer of field " + fieldName + " will be ignored");
       preSideAssignments.clear();
       postSideAssignments.clear();
     }
@@ -2062,8 +2061,7 @@ class ASTConverter {
     } else if (op.equals(PrefixExpression.Operator.MINUS)) {
       return UnaryOperator.MINUS;
     } else {
-      throw new CFAGenerationRuntimeException(
-          "Could not proccess Operator:"  + op.toString() + ".");
+      throw new CFAGenerationRuntimeException("Could not proccess Operator:" + op + ".");
     }
   }
 
@@ -2294,8 +2292,7 @@ class ASTConverter {
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
     if (!(iterable instanceof JIdExpression)) {
-      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly processed.",
-          pExpr);
+      throw new CFAGenerationRuntimeException(pExpr + " was not correctly processed.", pExpr);
     }
 
     FileLocation fileLoc = getFileLocation(pExpr);

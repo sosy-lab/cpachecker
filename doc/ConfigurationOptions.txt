@@ -284,6 +284,9 @@ analysis.replacedFunctionsWithParameters = {"pthread_create"}
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# Use heuristics to select the analysis
+analysis.selectAnalysisHeuristically = false
+
 # if this option is used, the CFA will be loaded from the given file instead
 # of parsed from sourcefile.
 analysis.serializedCfaFile = no default value
@@ -924,6 +927,10 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
+# translate final ARG into an automaton
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%s.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%s.spc"
+
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
@@ -1278,13 +1285,19 @@ cpa.congruence.trackCongruenceSum = false
 # Cache formulas produced by path formula manager
 cpa.congruence.useCachingPathFormulaManager = true
 
+# Whether to use subset/superset caching
+cpa.constraints.cacheSubsets = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
-  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+  enum:     [SUBSET]
 
 # Type of merge operator to use
 cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
+
+# Whether to perform SAT checks only for the last added constraint
+cpa.constraints.minimalSatCheck = true
 
 # Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
 # is used.
@@ -2850,6 +2863,29 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Configuration for programs containing more than @Option adressedRatio
+# addressed vars.
+heuristicSelection.addressedConfig = no default value
+
+# Ratio of addressed vars. Values bigger than the passed value lead to
+# @option addressedConfig.
+heuristicSelection.addressedRatio = no default value
+
+# Configuration for programs with loops and complex datastructures.
+heuristicSelection.complexLoopConfig = no default value
+
+# Configuration for loop-free programs and complex datastructures.
+heuristicSelection.complexLoopFreeConfig = no default value
+
+# Configuration for programs with loops.
+heuristicSelection.loopConfig = no default value
+
+# Configuration for loop-free programs.
+heuristicSelection.loopFreeConfig = no default value
+
+# Configuration for programs containing only relevant bool vars.
+heuristicSelection.onlyBoolConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true

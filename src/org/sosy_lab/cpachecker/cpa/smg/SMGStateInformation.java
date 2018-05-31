@@ -74,7 +74,7 @@ public class SMGStateInformation {
 
   @Override
   public String toString() {
-    return hvEdges.toString() + "\n" + ptEdges.toString();
+    return hvEdges + "\n" + ptEdges;
   }
 
   public static SMGStateInformation of(Set<SMGEdgeHasValue> pHves,

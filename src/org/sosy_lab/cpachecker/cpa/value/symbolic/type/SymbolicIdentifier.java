@@ -26,16 +26,13 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.Longs;
-
+import java.util.Objects;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Objects;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 /**
  * Identifier for basic symbolic values.
@@ -61,33 +58,14 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   private static final long serialVersionUID = -3773425414056328601L;
 
-  // stores the next usable id
-  private static long nextId = 0;
-
   // this objects unique id for identifying it
   private final long id;
 
   private final @Nullable MemoryLocation representedLocation;
 
-  public SymbolicIdentifier(long pId) {
-    id = pId;
-    representedLocation = null;
-  }
-
-  private SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
+  public SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
     id = pId;
     representedLocation = checkNotNull(pRepresentedLocation);
-  }
-
-  /**
-   * Returns a new instance of a <code>SymbolicIdentifier</code>.
-   * <p/>
-   * <p>Each call to this method returns a new, unique <code>SymbolicIdentifier</code>.</p>
-   *
-   * @return a new instance of a <code>SymbolicIdentifier</code>
-   */
-  static SymbolicIdentifier getNewIdentifier() {
-    return new SymbolicIdentifier(nextId++);
   }
 
   @Override
@@ -173,8 +151,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
     private static final Converter SINGLETON = new Converter();
 
-    private static final String PREFIX = "s";
-
     private Converter() {
       // DO NOTHING
     }
@@ -199,16 +175,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * identifier
      */
     public String convertToStringEncoding(SymbolicIdentifier pIdentifier) {
-      return PREFIX + pIdentifier.getId();
-    }
-
-    /**
-     * Returns, for a String representation s of a {@link SymbolicIdentifier},
-     * the string encoding that would result from calling
-     * convertToStringEncoding(convertToIdentifier(s)).
-     */
-    public String normalizeStringEncoding(final String pStringRepresentation) {
-      return convertToStringEncoding(convertToIdentifier(pStringRepresentation));
+      Optional<MemoryLocation> representedLocation = pIdentifier.getRepresentedLocation();
+      assert representedLocation.isPresent();
+      return representedLocation.get().getAsSimpleString() + "#" + pIdentifier.getId();
     }
 
     /**
@@ -226,10 +195,12 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
         String pIdentifierInformation) {
 
       final String variableName = FormulaManagerView.parseName(pIdentifierInformation).getFirst();
-      final String identifierIdOnly = variableName.substring(PREFIX.length());
+      final int idStart = variableName.indexOf("#");
+      final String memLocName = variableName.substring(0, idStart);
+      final String identifierIdOnly = variableName.substring(idStart + 1);
       final long id = Long.parseLong(identifierIdOnly);
 
-      return new SymbolicIdentifier(id);
+      return new SymbolicIdentifier(id, MemoryLocation.valueOf(memLocName));
     }
 
     /**
@@ -242,7 +213,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      */
     public boolean isSymbolicEncoding(String pName) {
       String variableName = FormulaManagerView.parseName(pName).getFirst();
-      return variableName.matches(PREFIX + "[0-9]*");
+      return variableName.matches("[a-zA-Z_]*(::)?[a-zA-Z_]*(/[0-9]+)?#[0-9]*");
     }
   }
 }

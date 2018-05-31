@@ -32,6 +32,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -55,6 +56,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -69,6 +71,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
+import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter.SplitterStrategy;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -132,6 +138,20 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argCFile = Paths.get("ARG.c");
 
+  @Option(
+      secure = true,
+      name = "automaton.exportSpcFile",
+      description = "translate final ARG into an automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate automatonSpcFile = PathTemplate.ofFormatString("ARG_parts/ARG.%s.spc");
+
+  @Option(
+      secure = true,
+      name = "automaton.exportDotFile",
+      description = "translate final ARG into an automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate automatonSpcDotFile =
+      PathTemplate.ofFormatString("ARG_parts/ARG.%s.spc.dot");
 
   protected final ConfigurableProgramAnalysis cpa;
 
@@ -164,8 +184,13 @@ public class ARGStatistics implements Statistics {
     cexExporter =
         new CEXExporter(config, logger, cfa, cpa, argWitnessExporter, extendedWitnessExporter);
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null
-        && proofWitness == null && pixelGraphicFile == null) {
+    if (argFile == null
+        && simplifiedArgFile == null
+        && refinementGraphFile == null
+        && proofWitness == null
+        && pixelGraphicFile == null
+        && automatonSpcFile == null
+        && automatonSpcDotFile == null) {
       exportARG = false;
     }
 
@@ -362,6 +387,25 @@ public class ARGStatistics implements Statistics {
 
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write refinement graph to file");
+      }
+    }
+
+    if (automatonSpcFile != null || automatonSpcDotFile != null) {
+      ARGToAutomatonConverter argToAutomatonConverter =
+          new ARGToAutomatonConverter(rootState, SplitterStrategy.NONE);
+      try {
+        Automaton automaton = Iterables.getOnlyElement(argToAutomatonConverter.getAutomata());
+        if (automatonSpcFile != null) {
+          IO.writeFile(automatonSpcFile.getPath(0), Charset.defaultCharset(), automaton);
+        }
+        if (automatonSpcDotFile != null) {
+          try (Writer w =
+              IO.openOutputFile(automatonSpcDotFile.getPath(0), Charset.defaultCharset())) {
+            automaton.writeDotFile(w);
+          }
+        }
+      } catch (IOException | InvalidAutomatonException iae) {
+        logger.logUserException(Level.WARNING, iae, "Could not write ARG to automata to file");
       }
     }
   }

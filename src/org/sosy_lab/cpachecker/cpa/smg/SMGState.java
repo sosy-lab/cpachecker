@@ -549,8 +549,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         result.add(resultOfMaterilisation);
         return SMGAddressValueAndStateList.copyOfAddressValueList(result);
       default:
-        throw new UnsupportedOperationException("Materilization of abstraction"
-            + pSmgAbstractObject.toString() + " not yet implemented.");
+        throw new UnsupportedOperationException(
+            "Materilization of abstraction" + pSmgAbstractObject + " not yet implemented.");
     }
   }
 

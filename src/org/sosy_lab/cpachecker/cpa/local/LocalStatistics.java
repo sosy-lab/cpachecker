@@ -86,7 +86,7 @@ public class LocalStatistics implements Statistics {
           }
         }
         for (Map.Entry<CFANode, LocalState> entry : reachedStatistics.entrySet()) {
-          writer.append(entry.getKey().toString() + "\n");
+          writer.append(entry.getKey() + "\n");
           writer.append(entry.getValue().toLog() + "\n");
         }
       }

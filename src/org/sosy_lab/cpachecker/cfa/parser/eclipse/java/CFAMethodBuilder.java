@@ -1691,7 +1691,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         .convertExpressionWithoutSideEffects(statement.getExpression());
 
     // TODO rawSignature ok in that way?
-    String rawSignature = "switch (" + statement.getExpression().toString() + ")";
+    String rawSignature = "switch (" + statement.getExpression() + ")";
     String description = "switch (" + switchExpression.toASTString() + ")";
 
     BlankEdge firstSwitchEdge = new BlankEdge(rawSignature, fileloc,

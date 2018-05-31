@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;

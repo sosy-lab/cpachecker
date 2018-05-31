@@ -62,7 +62,7 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression implem
 
   @Override
   public String toASTString() {
-    return getValue().toString() + "i";
+    return getValue() + "i";
   }
 
   @Override

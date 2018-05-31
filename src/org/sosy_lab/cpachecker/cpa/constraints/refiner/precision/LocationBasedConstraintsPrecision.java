@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
@@ -111,6 +110,6 @@ class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
 
   @Override
   public String toString() {
-    return "LocationBasedConstraintsPrecision{" + trackedLocations.toString() + "}";
+    return "LocationBasedConstraintsPrecision{" + trackedLocations + "}";
   }
 }

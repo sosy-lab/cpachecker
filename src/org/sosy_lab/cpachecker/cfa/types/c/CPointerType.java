@@ -69,8 +69,7 @@ public final class CPointerType implements CType, Serializable {
   public String toString() {
     String decl;
 
-    decl = "(" + type.toString() + ")*";
-
+    decl = "(" + type + ")*";
 
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
@@ -95,7 +94,7 @@ public final class CPointerType implements CType, Serializable {
     inner.append(pDeclarator);
 
     if (type instanceof CArrayType) {
-      return type.toASTString("(" + inner.toString() + ")");
+      return type.toASTString("(" + inner + ")");
     } else {
       return type.toASTString(inner.toString());
     }

@@ -88,7 +88,7 @@ public class Constraint {
       if (cns.isEmpty()) {
         return "true";
       } else {
-        return cns.toString() + " (vars: " + vars.toString() + ")";
+      return cns + " (vars: " + vars + ")";
       }
   }
 

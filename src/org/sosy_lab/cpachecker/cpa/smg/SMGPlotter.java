@@ -91,7 +91,7 @@ public final class SMGPlotter {
     }
 
     private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
-      return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject.toString() + "\"";
+      return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject + "\"";
     }
 
     @Override

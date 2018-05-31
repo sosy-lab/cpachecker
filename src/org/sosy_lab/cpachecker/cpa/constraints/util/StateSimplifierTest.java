@@ -30,7 +30,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -60,14 +59,15 @@ public class StateSimplifierTest {
   private final SymbolicExpression number =
       factory.asConstant(new NumericValue(5), defaultNumericType);
 
+  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
   private final SymbolicExpression group1Id1 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group1Id2 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id1 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id2 =
-      factory.asConstant(factory.newIdentifier(), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
 
   private final Constraint group1Constraint1 = (Constraint)
       factory.greaterThanOrEqual(group1Id1, group1Id2, defaultNumericType, defaultNumericType);
@@ -91,8 +91,7 @@ public class StateSimplifierTest {
         .build();
     simplifier =
         new StateSimplifier(config);
-    SymbolicValues.initialize(ComparisonType.SUBSET);
-
+    SymbolicValues.initialize();
   }
 
 
@@ -102,10 +101,9 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState =
-        simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
+    simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
 
-    Assert.assertTrue(newState.isEmpty());
+    Assert.assertTrue(constraintsState.isEmpty());
   }
 
   @Test
@@ -117,9 +115,9 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState = simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(group2ConstraintsExist(newState));
+    Assert.assertTrue(group2ConstraintsExist(constraintsState));
   }
 
   private boolean group2ConstraintsExist(
@@ -141,11 +139,10 @@ public class StateSimplifierTest {
     valueState.forget(group2MemLoc2);
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState =
-        simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(newState.size() == 1
-        && newState.contains(group2Constraint1));
+    Assert.assertTrue(constraintsState.size() == 1
+        && constraintsState.contains(group2Constraint1));
   }
 
   private ConstraintsState getSampleConstraints() {

@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import com.google.common.collect.ForwardingMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
-import com.google.common.collect.ForwardingMap;
-import com.google.common.collect.Maps;
 
 /**
  * Assignment for {@link SymbolicIdentifier}s.
@@ -38,10 +37,18 @@ import com.google.common.collect.Maps;
 public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Value> {
   private static final String ERROR_MSG_ASSIGNMENT_REMOVAL =
       "Definite assignments can't be removed!";
+
+  private static final IdentifierAssignment EMPTY = new EmptyAssignment();
+
   private Map<SymbolicIdentifier, Value> assignment = new HashMap<>();
 
   public IdentifierAssignment() {
     super();
+  }
+
+  /** Returns a new, empty and immutable IdentifierAssignment **/
+  public static IdentifierAssignment empty() {
+    return EMPTY;
   }
 
   public IdentifierAssignment(IdentifierAssignment pAssignment) {
@@ -94,4 +101,11 @@ public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Valu
     return assignment.hashCode();
   }
 
+
+  private static class EmptyAssignment extends IdentifierAssignment {
+    @Override
+    protected Map<SymbolicIdentifier, Value> delegate() {
+      return ImmutableMap.of();
+    }
+  }
 }

@@ -523,7 +523,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
 
     @Override
     public String toString() {
-      return cti.toString() + " with inputs " + inputs;
+      return cti + " with inputs " + inputs;
     }
 
     public CounterexampleToInductivity getCti() {
