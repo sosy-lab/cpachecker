@@ -307,6 +307,8 @@ public class ConstraintsSolver implements StatisticsProvider {
 
           newDefinites.put(identifier, concreteValue);
         }
+      } else {
+        throw new AssertionError("Unknown value in model: " + val.getName());
       }
     }
     assert newDefinites.entrySet().containsAll(pState.getDefiniteAssignment().entrySet());
