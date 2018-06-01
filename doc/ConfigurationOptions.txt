@@ -1285,6 +1285,9 @@ cpa.congruence.trackCongruenceSum = false
 # Cache formulas produced by path formula manager
 cpa.congruence.useCachingPathFormulaManager = true
 
+# Whether to perform caching of constraint satisfiability results
+cpa.constraints.cache = true
+
 # Whether to use subset/superset caching
 cpa.constraints.cacheSubsets = true
 
@@ -1312,9 +1315,15 @@ cpa.constraints.removeOutdated = true
 # simplification
 cpa.constraints.removeTrivial = false
 
+# Resolve definite assignments
+cpa.constraints.resolveDefinites = true
+
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
+
+# Try model of predecessor constraints state before running SMT solver
+cpa.constraints.useLastModel = true
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
