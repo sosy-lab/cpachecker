@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
@@ -71,7 +72,8 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     // so lets use the (expanded) inner precision.
     Precision validPrecision = pPrecision;
     if (AbstractStates.isTargetState(pElement)
-        || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))) {
+        || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))
+        || (pElement instanceof Exitable && ((Exitable) pElement).isExitState())) {
       Precision expandedPrecision = data.getExpandedPrecisionForState(pElement);
       if (expandedPrecision != null) {
         validPrecision = expandedPrecision;

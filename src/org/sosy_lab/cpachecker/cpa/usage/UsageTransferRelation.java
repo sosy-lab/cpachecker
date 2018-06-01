@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -171,10 +172,10 @@ public class UsageTransferRelation implements TransferRelation {
     CFAEdge currentEdge = pCfaEdge;
     UsageState oldState = (UsageState) pState;
 
-    /*if (oldState.isExitState()) {
+    if (oldState.isExitState()) {
       statistics.transferRelationTimer.stop();
       return Collections.emptySet();
-    }*/
+    }
 
     boolean needToReset = false;
     if (shouldBeSkipped(pCfaEdge)) {
