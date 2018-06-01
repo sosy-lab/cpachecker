@@ -230,6 +230,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
         Boolean unsat = null; // assign null to fail fast if assignment is missed
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
+        ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
         if (useLastModel) {
           BooleanFormula lastModel =
               modelAsAssignment
@@ -241,7 +242,7 @@ public class ConstraintsSolver implements StatisticsProvider {
           if (!unsat) {
             // get this before popping the model assignment ; the operation will be invalid
             // otherwise
-            modelAsAssignment = prover.getModelAssignments();
+            newModelAsAssignment = prover.getModelAssignments();
           }
           // We have to remove the model assignment before resolving definite assignments, below.
           prover.pop(); // Remove model assignment from prover
@@ -263,23 +264,26 @@ public class ConstraintsSolver implements StatisticsProvider {
             gotResultFromCache = true;
             pConstraints.setModel(res.getModelAssignment());
           } else {
+            prover.close();
+            prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+            prover.push(constraintsAsFormula);
             unsat = prover.isUnsat();
 
             if (!unsat) {
-              modelAsAssignment = prover.getModelAssignments();
+              newModelAsAssignment = prover.getModelAssignments();
             }
           }
         }
 
         if (!gotResultFromCache) {
           if (!unsat) {
-            pConstraints.setModel(modelAsAssignment);
-            cache.addSat(pConstraints, modelAsAssignment);
+            pConstraints.setModel(newModelAsAssignment);
+            cache.addSat(pConstraints, newModelAsAssignment);
             // doing this while the complete formula is still on the prover environment stack is
             // cheaper than performing another complete SAT check when the assignment is really
             // requested
             if (resolveDefinites) {
-              resolveDefiniteAssignments(pConstraints, modelAsAssignment, pFunctionName);
+              resolveDefiniteAssignments(pConstraints, newModelAsAssignment, pFunctionName);
             }
 
           } else {
