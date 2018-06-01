@@ -44,11 +44,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -93,6 +96,29 @@ public class ConstraintsSolver implements StatisticsProvider {
       name = "minimalSatCheck")
   private boolean performMinimalSatCheck = true;
 
+  @Option(
+      secure = true,
+      description = "Whether to perform caching of constraint satisfiability results",
+      name = "cache"
+  )
+  private boolean doCaching = true;
+
+
+  @Option(
+      secure = true,
+      description = "Resolve definite assignments",
+      name = "resolveDefinites"
+  )
+  private boolean resolveDefinites = true;
+
+  @Option(
+      secure = true,
+      description = "Try model of predecessor constraints state before running SMT solver",
+      name = "useLastModel")
+  private boolean useLastModel = true;
+
+  private final LogManagerWithoutDuplicates logger;
+
   private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
   private final StatTimer timeForIndependentComputation =
       new StatTimer(StatKind.SUM, "Time for " + "independent computation");
@@ -113,23 +139,30 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   public ConstraintsSolver(
       final Configuration pConfig,
+      final LogManager pLogger,
       final Solver pSolver,
       final FormulaManagerView pFormulaManager,
       final CtoFormulaConverter pConverter)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    logger = new LogManagerWithoutDuplicates(pLogger);
     solver = pSolver;
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
 
-    if (cacheSubsets) {
-      cache = new SubsetConstraintsCache();
+    if (doCaching) {
+      if (cacheSubsets) {
+        cache = new SubsetConstraintsCache();
+      } else {
+        cache = new MatchingConstraintsCache();
+      }
     } else {
-      cache = new MatchingConstraintsCache();
+      cache = new DummyCache();
     }
+
   }
 
   public boolean isUnsat(
@@ -195,24 +228,29 @@ public class ConstraintsSolver implements StatisticsProvider {
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         prover.push(constraintsAsFormula);
 
+        Boolean unsat = null; // assign null to fail fast if assignment is missed
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
-        BooleanFormula lastModel =
-            modelAsAssignment
-                .stream()
-                .map(ValueAssignment::getAssignmentAsFormula)
-                .collect(booleanFormulaManager.toConjunction());
-        prover.push(lastModel);
-        boolean unsat = prover.isUnsat();
-        if (!unsat) {
-          // get this before popping the model assignment ; the operation will be invalid otherwise
-          modelAsAssignment = prover.getModelAssignments();
+        ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+        if (useLastModel) {
+          BooleanFormula lastModel =
+              modelAsAssignment
+                  .stream()
+                  .map(ValueAssignment::getAssignmentAsFormula)
+                  .collect(booleanFormulaManager.toConjunction());
+          prover.push(lastModel);
+          unsat = prover.isUnsat();
+          if (!unsat) {
+            // get this before popping the model assignment ; the operation will be invalid
+            // otherwise
+            newModelAsAssignment = prover.getModelAssignments();
+          }
+          // We have to remove the model assignment before resolving definite assignments, below.
+          prover.pop(); // Remove model assignment from prover
         }
-        // We have to remove the model assignment before resolving definite assignments, below.
-        prover.pop(); // Remove model assignment from prover
 
         boolean gotResultFromCache = false;
 
-        if (unsat && !booleanFormulaManager.isTrue(lastModel)) {
+        if (!useLastModel || (unsat && !modelAsAssignment.isEmpty())) {
           // if the last model does not fulfill the formula, and the last model actually
           // is some variable assignment (i.e., model != true), then we check the formula
           // for satisfiability without any assignments, again.
@@ -226,22 +264,27 @@ public class ConstraintsSolver implements StatisticsProvider {
             gotResultFromCache = true;
             pConstraints.setModel(res.getModelAssignment());
           } else {
+            prover.close();
+            prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+            prover.push(constraintsAsFormula);
             unsat = prover.isUnsat();
 
             if (!unsat) {
-              modelAsAssignment = prover.getModelAssignments();
+              newModelAsAssignment = prover.getModelAssignments();
             }
           }
         }
 
         if (!gotResultFromCache) {
           if (!unsat) {
-            pConstraints.setModel(modelAsAssignment);
-            cache.addSat(pConstraints, modelAsAssignment);
+            pConstraints.setModel(newModelAsAssignment);
+            cache.addSat(pConstraints, newModelAsAssignment);
             // doing this while the complete formula is still on the prover environment stack is
             // cheaper than performing another complete SAT check when the assignment is really
             // requested
-            resolveDefiniteAssignments(pConstraints, modelAsAssignment, pFunctionName);
+            if (resolveDefinites) {
+              resolveDefiniteAssignments(pConstraints, newModelAsAssignment, pFunctionName);
+            }
 
           } else {
             cache.addUnsat(pConstraints);
@@ -307,6 +350,9 @@ public class ConstraintsSolver implements StatisticsProvider {
 
           newDefinites.put(identifier, concreteValue);
         }
+      } else {
+        logger.logOnce(
+            Level.FINE, "Constraints solver could not assign value to variable in " + "model");
       }
     }
     assert newDefinites.entrySet().containsAll(pState.getDefiniteAssignment().entrySet());
@@ -605,6 +651,25 @@ public class ConstraintsSolver implements StatisticsProvider {
               return ConstraintsSolver.this.getClass().getSimpleName();
             }
           });
+    }
+  }
+
+  private static class DummyCache implements ConstraintsCache {
+
+    @Override
+    public CacheResult getCachedResult(Collection<Constraint> pConstraints) {
+      return CacheResult.getUnknown();
+    }
+
+    @Override
+    public void addSat(
+        Collection<Constraint> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
+      // do nothing
+    }
+
+    @Override
+    public void addUnsat(Collection<Constraint> pConstraints) {
+      // do nothing
     }
   }
 

@@ -276,7 +276,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         compoundIntervalManagerFactory,
         machineModel,
         options.allowOverapproximationOfUnsupportedFeatures,
-        options.usePointerAliasStrengthening);
+        options.usePointerAliasStrengthening,
+        cfa.getVarClassification());
   }
 
   @Override

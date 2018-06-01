@@ -125,6 +125,9 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     private int containsExternalFunctionCalls = 0;
     // TODO: Change name
     private int numberOfAllRightFunctions = 0;
+    public int requiresAliasHandling = 0;
+    public int requiresLoopHandling = 0;
+    public int requiresCompositeTypeHandling = 0;
 
     @Override
     public String getName() {
@@ -137,6 +140,10 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Program containing only relevant bools:        " + onlyRelevantBools);
       out.println(
           String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
+      out.println("Requires alias handling:                       " + requiresAliasHandling);
+      out.println("Requires loop handling:                        " + requiresLoopHandling);
+      out.println(
+          "Requires composite-type handling:              " + requiresCompositeTypeHandling);
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -235,6 +242,9 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
         pReachedSet.size() <= 1,
         "SelectionAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReachedSet.isEmpty(), "SelectionAlgorithm needs non-empty reached set");
+    checkArgument(
+        cfa.getVarClassification().isPresent(),
+        "SelectionAlgorithm requires variable classification");
 
     // Preliminary analysis
     SelectionAlgorithmCFAVisitor visitor = new SelectionAlgorithmCFAVisitor();
@@ -250,35 +260,42 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     ForwardingReachedSet reached = (ForwardingReachedSet) pReachedSet;
 
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-    Optional<VariableClassification> variableClassification = cfa.getVarClassification();
+    VariableClassification variableClassification = cfa.getVarClassification().get();
 
-    if (!variableClassification.get().getRelevantVariables().isEmpty()) {
+    if (!variableClassification.getRelevantVariables().isEmpty()) {
       stats.relevantBoolRatio =
           ((double)
                   (Sets.intersection(
-                          variableClassification.get().getIntBoolVars(),
-                          variableClassification.get().getRelevantVariables())
+                          variableClassification.getIntBoolVars(),
+                          variableClassification.getRelevantVariables())
                       .size()))
-              / (double) (variableClassification.get().getRelevantVariables().size());
+              / (double) (variableClassification.getRelevantVariables().size());
 
       stats.relevantAddressedRatio =
           ((double)
                   (Sets.intersection(
-                          variableClassification.get().getAddressedVariables(),
-                          variableClassification.get().getRelevantVariables())
+                          variableClassification.getAddressedVariables(),
+                          variableClassification.getRelevantVariables())
                       .size()))
-              / (double) (variableClassification.get().getRelevantVariables().size());
+              / (double) (variableClassification.getRelevantVariables().size());
     }
 
     boolean hasOnlyRelevantIntBoolVars =
         variableClassification
-            .get()
             .getIntBoolVars()
-            .containsAll(variableClassification.get().getRelevantVariables());
+            .containsAll(variableClassification.getRelevantVariables());
 
     boolean requiresAliasHandling =
-        (!variableClassification.get().getAddressedVariables().isEmpty()
-            || !variableClassification.get().getAddressedFields().isEmpty());
+        !variableClassification.getAddressedVariables().isEmpty()
+            || !variableClassification.getAddressedFields().isEmpty();
+    stats.requiresAliasHandling = requiresAliasHandling ? 1 : 0;
+
+    boolean requiresLoopHandling =
+        !loopStructure.isPresent() || !loopStructure.get().getAllLoops().isEmpty();
+    stats.requiresLoopHandling = requiresLoopHandling ? 1 : 0;
+
+    boolean requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
+    stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling ? 1 : 0;
 
     final Path chosenConfig;
 
@@ -291,23 +308,21 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
         > Double.parseDouble(addressedRatio.value().toString().substring(7))) {
       chosenConfig = addressedConfig.value();
 
-    } else {
-      if (!loopStructure.isPresent() || !loopStructure.get().getAllLoops().isEmpty()) {
-        if (requiresAliasHandling) {
-          // Run complex loop config
-          chosenConfig = complexLoopConfig.value();
-        } else {
-          // Run standard loop config
-          chosenConfig = loopConfig.value();
-        }
+    } else if (requiresLoopHandling) {
+      if (requiresAliasHandling) {
+        // Run complex loop config
+        chosenConfig = complexLoopConfig.value();
       } else {
-        if (requiresAliasHandling) {
-          // Run complex loop-free config
-          chosenConfig = complexLoopFreeConfig.value();
-        } else {
-          // Run standard loop-free config
-          chosenConfig = loopFreeConfig.value();
-        }
+        // Run standard loop config
+        chosenConfig = loopConfig.value();
+      }
+    } else {
+      if (requiresAliasHandling) {
+        // Run complex loop-free config
+        chosenConfig = complexLoopFreeConfig.value();
+      } else {
+        // Run standard loop-free config
+        chosenConfig = loopFreeConfig.value();
       }
     }
 
