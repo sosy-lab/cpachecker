@@ -31,10 +31,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.logging.Level;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class AutomatonTest {
@@ -186,8 +189,9 @@ public class AutomatonTest {
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile", "test/config/automata/simple_setuid.txt",
             "analysis.stopAfterError", "FALSE");
-
-    TestResults results = CPATestRunner.run(prop, "test/programs/simple/simple_setuid_test.c");
+    Configuration config = TestDataTools.configurationForTest().setOptions(prop).build();
+    TestResults results =
+        CPATestRunner.run(config, "test/programs/simple/simple_setuid_test.c", Level.FINER);
     assertThat(results.getLog()).contains("Systemcall in line 14 with userid 2");
     assertThat(results.getLog()).contains("going to ErrorState on edge \"system(40);\"");
     results.assertIsUnsafe();

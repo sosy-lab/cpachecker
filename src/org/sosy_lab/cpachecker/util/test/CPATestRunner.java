@@ -52,8 +52,12 @@ public class CPATestRunner {
   }
 
   public static TestResults run(Configuration config, String pSourceCodeFilePath) throws Exception {
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    stringLogHandler.setLevel(Level.INFO);
+    return run(config, pSourceCodeFilePath, Level.INFO);
+  }
+
+  public static TestResults run(Configuration config, String pSourceCodeFilePath, Level logLevel) throws Exception {
+        StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    stringLogHandler.setLevel(logLevel);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
 
