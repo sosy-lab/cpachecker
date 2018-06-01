@@ -118,7 +118,7 @@ public class ConstraintsTransferRelation
     FormulaManagerView formulaManager = pSolver.getFormulaManager();
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(formulaManager, pLogger, pConfig, pShutdownNotifier);
-    solver = new ConstraintsSolver(pConfig, pSolver, formulaManager, converter);
+    solver = new ConstraintsSolver(pConfig, logger, pSolver, formulaManager, converter);
   }
 
   // Can only be called after machineModel and formulaManager are set

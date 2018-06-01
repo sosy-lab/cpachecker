@@ -44,11 +44,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -93,6 +96,8 @@ public class ConstraintsSolver implements StatisticsProvider {
       name = "minimalSatCheck")
   private boolean performMinimalSatCheck = true;
 
+  private final LogManagerWithoutDuplicates logger;
+
   private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
   private final StatTimer timeForIndependentComputation =
       new StatTimer(StatKind.SUM, "Time for " + "independent computation");
@@ -113,12 +118,14 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   public ConstraintsSolver(
       final Configuration pConfig,
+      final LogManager pLogger,
       final Solver pSolver,
       final FormulaManagerView pFormulaManager,
       final CtoFormulaConverter pConverter)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    logger = new LogManagerWithoutDuplicates(pLogger);
     solver = pSolver;
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
@@ -308,7 +315,8 @@ public class ConstraintsSolver implements StatisticsProvider {
           newDefinites.put(identifier, concreteValue);
         }
       } else {
-        throw new AssertionError("Unknown value in model: " + val.getName());
+        logger.logOnce(
+            Level.FINE, "Constraints solver could not assign value to variable in " + "model");
       }
     }
     assert newDefinites.entrySet().containsAll(pState.getDefiniteAssignment().entrySet());
