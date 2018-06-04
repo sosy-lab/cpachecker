@@ -61,6 +61,7 @@ public class UsageState extends AbstractSingleWrapperState
   private final transient StateStatistics stats;
 
   private boolean isExitState;
+  private boolean isStorageDumped;
 
   private final transient Map<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
 
@@ -79,6 +80,7 @@ public class UsageState extends AbstractSingleWrapperState
     functionContainer = pFuncContainer;
     stats = pStats;
     isExitState = exit;
+    isStorageDumped = false;
   }
 
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
@@ -151,7 +153,11 @@ public class UsageState extends AbstractSingleWrapperState
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
-    return new UsageState(pWrappedState, this);
+    UsageState result = new UsageState(pWrappedState, this);
+    if (isStorageDumped) {
+      result.recentUsages = new TemporaryUsageStorage();
+    }
+    return result;
   }
 
   @Override
@@ -237,6 +243,7 @@ public class UsageState extends AbstractSingleWrapperState
     stats.joinTimer.start();
     recentUsages.copyUsagesFrom(pState.recentUsages);
     stats.joinTimer.stop();
+    variableBindingRelation.putAll(pState.variableBindingRelation);
   }
 
   public UsageState reduce(final AbstractState wrappedState) {
@@ -269,7 +276,7 @@ public class UsageState extends AbstractSingleWrapperState
       stats.addRecentUsagesTimer.start();
       functionContainer.join(recentUsages);
       stats.addRecentUsagesTimer.stop();
-      recentUsages.clear();
+      isStorageDumped = true;
     }
   }
 
@@ -342,22 +349,8 @@ public class UsageState extends AbstractSingleWrapperState
 
   @Override
   public UsageState join(UsageState pOther) {
-    if (!getWrappedState().equals(pOther.getWrappedState())) {
-      throw new UnsupportedOperationException("Join is not permitted for different wrapped states");
-    }
-    // Function containers must be equal
-    if (functionContainer != pOther.getFunctionContainer()) {
-      throw new UnsupportedOperationException("Join is not permitted for different funtions");
-    }
-    if (this.isLessOrEqual(pOther)) {
-      return pOther;
-    } else if (pOther.isLessOrEqual(this)) {
-      return this;
-    }
-    UsageState mergedState = this.copy();
-    mergedState.joinRecentUsagesFrom(pOther);
-    mergedState.variableBindingRelation.putAll(pOther.variableBindingRelation);
-    return mergedState;
+    throw new UnsupportedOperationException(
+        "Join is not supported for usage states, use merge operator");
   }
 
   protected Object readResolve() {
