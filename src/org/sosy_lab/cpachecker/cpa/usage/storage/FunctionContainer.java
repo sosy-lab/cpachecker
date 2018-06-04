@@ -156,7 +156,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     private StatCounter numberOfFunctionContainers = new StatCounter("Total number of function containers");
 
     private StatTimer effectTimer = new StatTimer("Time for appling effect");
-    private StatTimer copyTimer = new StatTimer("Time for joining");
+    private StatTimer copyTimer = new StatTimer("Time for coping usages");
 
     public void printStatistics(StatisticsWriter out) {
       out.spacer()

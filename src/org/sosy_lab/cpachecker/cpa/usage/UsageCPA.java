@@ -64,6 +64,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   private final StopOperator stopOperator;
+  private final MergeOperator mergeOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
@@ -86,6 +87,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     pConfig.inject(this);
     this.cfa = pCfa;
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
+    this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
 
     LockCPA LockCPA = CPAs.retrieveCPA(this, LockCPA.class);
     this.statistics =
@@ -124,7 +126,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return new UsageMergeOperator();
+    return mergeOperator;
   }
 
   @Override
