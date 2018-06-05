@@ -34,27 +34,22 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 @SuppressFBWarnings(
-  justification = "Serialization of container is useless and not supported",
-  value = "SE_BAD_FIELD"
-)
+    justification = "Serialization of container is useless and not supported",
+    value = "SE_BAD_FIELD")
 public class TemporaryUsageStorage extends AbstractUsageStorage {
   private static final long serialVersionUID = -8932709343923545136L;
 
   // Not set! There was a bug, when two similar usages of different ids are overlapped.
   private final List<UsageInfo> withoutARGState;
 
-  private TemporaryUsageStorage previousStorage;
-
   private TemporaryUsageStorage(TemporaryUsageStorage previous) {
     super(previous);
     // Copy states without ARG to set it later
     withoutARGState = new ArrayList<>(previous.withoutARGState);
-    previousStorage = previous;
   }
 
   public TemporaryUsageStorage() {
     withoutARGState = new ArrayList<>();
-    previousStorage = null;
   }
 
   @Override
@@ -76,23 +71,12 @@ public class TemporaryUsageStorage extends AbstractUsageStorage {
     withoutARGState.clear();
   }
 
-  @Override
-  public void clear() {
-    clearSets();
-    TemporaryUsageStorage previous = previousStorage;
-    //We cannot use recursion, due to large callstack and stack overflow exception
-    while (previous != null) {
-      previous.clearSets();
-      previous = previous.previousStorage;
-    }
-    previousStorage = null;
-  }
-
   public TemporaryUsageStorage copy() {
     return new TemporaryUsageStorage(this);
   }
 
-  private void clearSets() {
+  @Override
+  public void clear() {
     super.clear();
     withoutARGState.clear();
   }
