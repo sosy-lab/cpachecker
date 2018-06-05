@@ -327,10 +327,10 @@ div pre {
 }
 
 .loader {
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-family: "Helvetica Neue", Helvetica, Arial, "sans-serf";
 	font-size: 20px;
 	font-style: italic;
-	color: #663399;
+	color: #4040a1;
 }
 
 #cfa-toolbar {

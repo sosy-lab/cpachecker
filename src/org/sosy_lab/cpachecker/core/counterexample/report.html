@@ -46,17 +46,17 @@ with considerably less effort -->
     </span>
   </header>
 
-  <div class="modal fade" id="renderStateModal" role="dialog">
-    <div class="modal-dialog">
+  <div class="modal fade" id="renderStateModal" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h4 class="modal-title">Graphs Rendering Progress</h4>
+          <h4 class="modal-title text-center">Graphs Rendering Progress</h4>
         </div>
         <div class="modal-body">
-          <p class="loader">Rendered CFA graphs &nbsp;
+          <p class="loader">Rendered CFA graphs : &nbsp;
             <span id="cfa-modal"></span>
           </p>
-          <p class="loader">Rendered ARG graphs &nbsp;
+          <p class="loader">Rendered ARG graphs : &nbsp;
             <span id="arg-modal"></span>
           </p>
           <p id="arg-modal-error" class="loader" style="display: none;"> Render ARG Error Graph </p>
