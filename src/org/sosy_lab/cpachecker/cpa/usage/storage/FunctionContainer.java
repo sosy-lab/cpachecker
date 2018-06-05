@@ -27,6 +27,7 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,6 +57,8 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   private final Set<FunctionContainer> joinedWith;
 
+  private final Set<TemporaryUsageStorage> storages;
+
   public static FunctionContainer createInitialContainer() {
     return new FunctionContainer(new StorageStatistics(), new ArrayList<>());
   }
@@ -66,6 +69,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     stats.numberOfFunctionContainers.inc();
     effects = pEffects;
     joinedWith = new IdentityHashSet<>();
+    storages = new HashSet<>();
   }
 
   public FunctionContainer clone(List<LockEffect> pEffects) {
@@ -140,6 +144,15 @@ public class FunctionContainer extends AbstractUsageStorage {
     stats.copyTimer.start();
     copyUsagesFrom(pRecentUsages);
     stats.copyTimer.stop();
+  }
+
+  public void clearStorages() {
+    storages.forEach(TemporaryUsageStorage::clear);
+    storages.clear();
+  }
+
+  public void registerTemporaryContainer(TemporaryUsageStorage storage) {
+    storages.add(storage);
   }
 
   public StorageStatistics getStatistics() {
