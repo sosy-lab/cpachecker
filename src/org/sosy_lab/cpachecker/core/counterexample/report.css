@@ -32,6 +32,10 @@ body {
 	padding: 0;
 }
 
+.nav > li > a:hover{
+	background-color: #c0c0c0;
+}
+
 .btn {
 	cursor: pointer;
 }

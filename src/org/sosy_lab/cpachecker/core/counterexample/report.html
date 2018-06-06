@@ -113,7 +113,7 @@ with considerably less effort -->
 
     <section id="externalFiles_section">
 
-      <ul class="nav nav-pills">
+      <ul class="nav nav-pills nav-tabs">
         <li class="nav-item" ng-class="{active: tabIsSet(1)}">
           <a class="nav-link active" data-toggle="pill" href ng-click="setTab(1)" id="set-tab-1">CFA</a>
         </li>
@@ -140,61 +140,79 @@ with considerably less effort -->
 
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
-        <label>
-          <strong>Displayed CFA</strong>
-        </label>
-        <select class="btn btn-outline-secondary selectpicker" ng-options="f as f for f in functions" ng-model="selectedCFAFunction"
-          ng-change="setCFAFunction()">
-        </select>
-        <label>
-          <strong>Mouse Wheel Zoom</strong>
-        </label>
-        <span class="button-checkbox">
-          <button class="btn btn-outline-secondary" id="cfa-zoom-button" type="button" data-color="primary" ng-click="zoomControl()">
-            <i class="far fa-square"></i>
-          </button>
-        </span>
-        <label>
-          <strong>Split Threshold</strong>
-        </label>
-        <input type="text" aria-label="Split Threshold" id="cfa-split-threshold">
-        <button class="btn btn-outline-secondary" type="button" ng-click="redraw()">
-          <i class="fas fa-sync"></i>
-        </button>
+        <nav class="navbar navbar-light bg-light">
+          <div class="nav-item">
+            <label>
+              <strong>Displayed CFA</strong>
+            </label>
+            <select class="btn btn-outline-secondary selectpicker" ng-options="f as f for f in functions" ng-model="selectedCFAFunction"
+              ng-change="setCFAFunction()">
+            </select>
+          </div>
+          <div class="nav-item">
+            <label>
+              <strong>Mouse Wheel Zoom</strong>
+            </label>
+            <span class="button-checkbox">
+              <button class="btn btn-outline-secondary" id="cfa-zoom-button" type="button" data-color="primary" ng-click="zoomControl()">
+                <i class="far fa-square"></i>
+              </button>
+            </span>
+          </div>
+          <div class="nav-item">
+            <label>
+              <strong>Split Threshold</strong>
+            </label>
+            <input type="text" aria-label="Split Threshold" id="cfa-split-threshold">
+            <button class="btn btn-outline-secondary" type="button" ng-click="redraw()">
+              <i class="fas fa-sync"></i>
+            </button>
+          </div>
+          </ul>
+        </nav>
       </div>
 
       <div id="cfa-container" ng-class="{active: tabIsSet(1)}">
       </div>
 
       <div id="arg-toolbar" ng-controller="ARGToolbarController">
-        <label>
-          <strong>Displayed ARG</strong>
-        </label>
-        <select class="btn btn-outline-secondary selectpicker" ng-options="s as s for s in argSelections" ng-model="$root.displayedARG"
-          ng-change="displayARG()"></select>
-        <label>
-          <strong>Mouse Wheel Zoom</strong>
-        </label>
-        <span class="button-checkbox">
-          <button class="btn btn-outline-secondary" id="arg-zoom-button" type="button" data-color="primary" ng-click="argZoomControl()">
-            <i class="far fa-square"></i>
-          </button>
-        </span>
-        <label>
-          <strong>Split Threshold</strong>
-        </label>
-        <input type="text" aria-label="Split Threshold" id="arg-split-threshold">
-        <button class="btn btn-outline-secondary" type="button" ng-click="argRedraw()">
-          <i class="fas fa-sync"></i>
-        </button>
+        <nav class="navbar navbar-light bg-light">
+          <div class="nav-item">
+            <label>
+              <strong>Displayed ARG</strong>
+            </label>
+            <select class="btn btn-outline-secondary selectpicker" ng-options="s as s for s in argSelections" ng-model="$root.displayedARG"
+              ng-change="displayARG()"></select>
+            <label>
+          </div>
+          <div class="nav-item">
+            <strong>Mouse Wheel Zoom</strong>
+            </label>
+            <span class="button-checkbox">
+              <button class="btn btn-outline-secondary" id="arg-zoom-button" type="button" data-color="primary" ng-click="argZoomControl()">
+                <i class="far fa-square"></i>
+              </button>
+            </span>
+          </div>
+          <div class="nav-item">
+            <label>
+              <strong>Split Threshold</strong>
+            </label>
+            <input type="text" aria-label="Split Threshold" id="arg-split-threshold">
+            <button class="btn btn-outline-secondary" type="button" ng-click="argRedraw()">
+              <i class="fas fa-sync"></i>
+            </button>
+          </div>
+        </nav>
       </div>
 
       <div id="arg-container" ng-class="{active: tabIsSet(2)}">
       </div>
+
       <div class="fileContent content" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}" ng-controller="SourceController">
         <div class="edit-line">
           <div class="dropdown" id="dropdownMenu2">
-            <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
               Displayed Sourcefile
               <span class="caret"></span>
             </button>
