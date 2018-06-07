@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.harness;
 
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.getCanonicalType;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunction;
+import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunctionWithoutVerifierError;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedType;
 
 import com.google.common.base.Preconditions;
@@ -315,10 +316,20 @@ public class HarnessExporter {
     }
   }
 
-  private TestVector completeExternalFunctions(TestVector pVector, Iterable<AFunctionDeclaration> pExternalFunctions) {
+  /**
+   * Create a test vector that contains dummy values for the given external functions that are not
+   * yet part of the provided test vector.
+   *
+   * @param pVector the current test vector
+   * @param pExternalFunctions the external functions to check
+   * @return a test vector that contains the values of the given vector and the newly created dummy
+   *     values.
+   */
+  private TestVector completeExternalFunctions(
+      TestVector pVector, Iterable<AFunctionDeclaration> pExternalFunctions) {
     TestVector result = pVector;
     for (AFunctionDeclaration functionDeclaration : pExternalFunctions) {
-      if (!isPredefinedFunction(functionDeclaration)
+      if (!isPredefinedFunctionWithoutVerifierError(functionDeclaration)
           && !pVector.contains(functionDeclaration)) {
         result = addDummyValue(result, functionDeclaration);
       }
