@@ -2260,7 +2260,18 @@ public abstract class AbstractExpressionValueVisitor
 
     // JavaScript IdExpression could not be resolved
     if (decl == null) {
-      return UnknownValue.getInstance();
+      // Check if ID refers to a value property of the Global Object
+      // https://www.ecma-international.org/ecma-262/5.1/#sec-15.1.1
+      switch (pIdExpression.getName()) {
+        case "Infinity":
+          return new NumericValue(Double.POSITIVE_INFINITY);
+        case "NaN":
+          return new NumericValue(Double.NaN);
+        case "undefined":
+          return JSUndefinedValue.getInstance();
+        default:
+          return UnknownValue.getInstance();
+      }
     }
 
     return evaluateJSIdExpression(pIdExpression);
