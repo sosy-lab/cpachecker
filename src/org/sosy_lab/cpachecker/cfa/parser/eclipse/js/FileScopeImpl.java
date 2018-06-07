@@ -23,8 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+
 class FileScopeImpl implements FileScope {
   private final String fileName;
+
+  /** Global declarations in the file mapped by their original name. */
+  private final Map<String, JSSimpleDeclaration> localDeclarations = new HashMap<>();
 
   FileScopeImpl(final String pFileName) {
     fileName = pFileName;
@@ -38,5 +47,18 @@ class FileScopeImpl implements FileScope {
   @Override
   public Scope getParentScope() {
     return null;
+  }
+
+  @Override
+  public void addDeclaration(@Nonnull final JSSimpleDeclaration pDeclaration) {
+    final String origName = pDeclaration.getOrigName();
+    assert !localDeclarations.containsKey(origName);
+    localDeclarations.put(origName, pDeclaration);
+  }
+
+  @Override
+  public Optional<? extends JSSimpleDeclaration> findDeclaration(
+      @Nonnull final String pIdentifier) {
+    return Optional.ofNullable(localDeclarations.get(pIdentifier));
   }
 }

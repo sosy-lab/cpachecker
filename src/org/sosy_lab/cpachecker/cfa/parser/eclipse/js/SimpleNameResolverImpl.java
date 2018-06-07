@@ -23,27 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
-import org.eclipse.wst.jsdt.core.dom.IBinding;
+import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
-import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
-import org.eclipse.wst.jsdt.internal.core.dom.binding.FunctionBinding;
-import org.eclipse.wst.jsdt.internal.core.dom.binding.VariableBinding;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 
 class SimpleNameResolverImpl implements SimpleNameResolver {
-  private final VariableDeclarationRegistry variableDeclarationRegistry;
-  private final FunctionDeclarationRegistry functionDeclarationRegistry;
-
-  SimpleNameResolverImpl(
-      final VariableDeclarationRegistry pVariableDeclarationRegistry,
-      final FunctionDeclarationRegistry pFunctionDeclarationRegistry) {
-    variableDeclarationRegistry = pVariableDeclarationRegistry;
-    functionDeclarationRegistry = pFunctionDeclarationRegistry;
-  }
 
   @Override
   public JSIdExpression resolve(final JavaScriptCFABuilder pBuilder, final SimpleName pSimpleName) {
@@ -56,38 +41,12 @@ class SimpleNameResolverImpl implements SimpleNameResolver {
     // However, it can not be resolved to an JSIdExpression.
     assert !pSimpleName.getIdentifier().equals("undefined")
         : "Can not resolve undefined"; // unsupported use of undefined
-    final IBinding binding = pSimpleName.resolveBinding();
-    assert binding != null;
+    final Optional<? extends JSSimpleDeclaration> declaration =
+        pBuilder.getBuilder().getScope().findDeclaration(pSimpleName.getIdentifier());
     return new JSIdExpression(
         pBuilder.getFileLocation(pSimpleName),
-        pSimpleName.getIdentifier(),
-        resolve(binding));
+        declaration.isPresent() ? declaration.get().getName() : pSimpleName.getIdentifier(),
+        declaration.orElse(null));
   }
 
-  public JSSimpleDeclaration resolve(final IBinding pBinding) {
-    if (pBinding instanceof VariableBinding) {
-      return resolve((VariableBinding) pBinding);
-    } else if (pBinding instanceof FunctionBinding) {
-      return resolve((FunctionBinding) pBinding);
-    }
-    throw new CFAGenerationRuntimeException(
-        "Unknown kind of binding (not handled yet): " + pBinding.toString());
-  }
-
-  public JSVariableDeclaration resolve(final VariableBinding pBinding) {
-    return resolve((VariableDeclarationFragment) pBinding.getDeclaration().getNode().getParent());
-  }
-
-  public JSFunctionDeclaration resolve(final FunctionBinding pBinding) {
-    return resolve((FunctionDeclaration) pBinding.getDeclaration().getNode().getParent());
-  }
-
-  public JSFunctionDeclaration resolve(final FunctionDeclaration pDeclaration) {
-    return functionDeclarationRegistry.get(pDeclaration);
-  }
-
-  public JSVariableDeclaration resolve(
-      final VariableDeclarationFragment pVariableDeclarationFragment) {
-    return variableDeclarationRegistry.get(pVariableDeclarationFragment);
-  }
 }

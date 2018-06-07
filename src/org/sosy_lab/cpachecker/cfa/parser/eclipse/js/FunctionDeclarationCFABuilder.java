@@ -51,6 +51,8 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             pBuilder.getFileLocation(pFunctionDeclaration),
             getFunctionName(pFunctionDeclaration),
             Collections.emptyList());
+    // TODO rename function if same function name already exists in scope
+    pBuilder.getBuilder().getScope().addDeclaration(jsFunctionDeclaration);
     final String returnVariableName = "__retval__";
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(
@@ -71,7 +73,10 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             exitNode,
             Optional.of(returnVariableDeclaration));
     exitNode.setEntryNode(entryNode);
-    final JavaScriptCFABuilder functionCFABuilder = pBuilder.copyWith(entryNode);
+    final JavaScriptCFABuilder functionCFABuilder =
+        pBuilder.copyWith(
+            entryNode,
+            new FunctionScopeImpl(pBuilder.getBuilder().getScope(), jsFunctionDeclaration));
 
     addFunctionEntryNode(pBuilder);
 

@@ -1,0 +1,101 @@
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+
+class FunctionScopeImpl implements FunctionScope {
+
+  private final Scope parentScope;
+  private final JSFunctionDeclaration functionDeclaration;
+
+  /** Declarations in the body of the function mapped by their original name. */
+  private final Map<String, JSSimpleDeclaration> localDeclarations = new HashMap<>();
+
+  FunctionScopeImpl(
+      @Nonnull final Scope pParentScope,
+      @Nonnull final JSFunctionDeclaration pFunctionDeclaration) {
+    parentScope = pParentScope;
+    functionDeclaration = pFunctionDeclaration;
+  }
+
+  @Override
+  public Scope getParentScope() {
+    return parentScope;
+  }
+
+  @Override
+  public void addDeclaration(@Nonnull final JSSimpleDeclaration pDeclaration) {
+    final String origName = pDeclaration.getOrigName();
+    assert !localDeclarations.containsKey(origName);
+    localDeclarations.put(origName, pDeclaration);
+  }
+
+  @Override
+  public Optional<? extends JSSimpleDeclaration> findDeclaration(
+      @Nonnull final String pIdentifier) {
+    final Optional<? extends JSSimpleDeclaration> localDeclaration =
+        findLocalDeclaration(pIdentifier);
+    if (localDeclaration.isPresent()) {
+      return localDeclaration;
+    }
+    final Optional<? extends JSSimpleDeclaration> parameterDeclaration =
+        findParameterDeclaration(pIdentifier);
+    if (parameterDeclaration.isPresent()) {
+      return parameterDeclaration;
+    }
+    return parentScope.findDeclaration(pIdentifier);
+  }
+
+  /**
+   * Find declaration of variable declared in this function.
+   *
+   * @param pIdentifier The original name as in the source code to analyze.
+   * @return Only present if declaration is found.
+   */
+  private Optional<? extends JSSimpleDeclaration> findLocalDeclaration(
+      @Nonnull final String pIdentifier) {
+    return Optional.ofNullable(localDeclarations.get(pIdentifier));
+  }
+
+  private Optional<? extends JSSimpleDeclaration> findParameterDeclaration(
+      @Nonnull final String pIdentifier) {
+    return functionDeclaration
+        .getParameters()
+        .stream()
+        .filter(
+            pJSParameterDeclaration -> pJSParameterDeclaration.getOrigName().equals(pIdentifier))
+        .findFirst();
+  }
+
+  @Override
+  public JSFunctionDeclaration getFunctionDeclaration() {
+    return functionDeclaration;
+  }
+}

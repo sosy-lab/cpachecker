@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 final class ExpressionAppendableFactory {
 
-  static ExpressionAppendable withAllFeatures(final SimpleNameResolver pSimpleNameResolver) {
+  static ExpressionAppendable withAllFeatures() {
     final ExpressionCFABuilder builder = new ExpressionCFABuilder();
     builder.setBooleanLiteralConverter(new BooleanLiteralConverterImpl());
     builder.setConditionalExpressionAppendable(new ConditionalExpressionCFABuilder());
@@ -37,7 +37,7 @@ final class ExpressionAppendableFactory {
     builder.setParenthesizedExpressionAppendable(new ParenthesizedExpressionCFABuilder());
     builder.setPrefixExpressionAppendable(new PrefixExpressionCFABuilder());
     builder.setPostfixExpressionAppendable(new PostfixExpressionCFABuilder());
-    builder.setSimpleNameResolver(pSimpleNameResolver);
+    builder.setSimpleNameResolver(new SimpleNameResolverImpl());
     builder.setStringLiteralConverter(new StringLiteralConverterImpl());
     builder.setUndefinedLiteralConverter(new UndefinedLiteralConverterImpl());
     return builder;

@@ -23,8 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+
 interface Scope {
   Scope getParentScope();
+
+  /**
+   * Add declaration to this scope.
+   *
+   * @param pDeclaration Declaration that is declared in this scope.
+   */
+  void addDeclaration(final JSSimpleDeclaration pDeclaration);
+
+  /**
+   * Search for the declaration of an identifier.
+   *
+   * @param pIdentifier The original name as in the source code to analyze.
+   * @return Only present if declaration is found.
+   */
+  Optional<? extends JSSimpleDeclaration> findDeclaration(final String pIdentifier);
 
   default FileScope getFileScope() {
     return getScope(FileScope.class);
@@ -58,11 +76,10 @@ interface Scope {
     if (!hasParentScope()) {
       return null;
     }
-    for (Scope current = getParentScope();
-        current.hasParentScope();
-        current = current.getParentScope()) {
-      if (parentScopeType.isInstance(current)) {
-        return (S) current;
+    for (Scope current = this; current.hasParentScope(); current = current.getParentScope()) {
+      final Scope currentParentScope = current.getParentScope();
+      if (parentScopeType.isInstance(currentParentScope)) {
+        return (S) currentParentScope;
       }
     }
     return null;
