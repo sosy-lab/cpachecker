@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Predicates;
@@ -56,11 +58,13 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -98,6 +102,14 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path configFile;
+
+  @Option(
+    secure = true,
+    name = "changeCEXInfo",
+    description =
+        "counterexample information should provide more precise information from counterexample check, if available"
+  )
+  private boolean provideCEXInfoFromCEXCheck = false;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
@@ -195,6 +207,26 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       lShutdownManager.requestShutdown("Analysis terminated");
       CPAs.closeCpaIfPossible(lCpas, lLogger);
       CPAs.closeIfPossible(lAlgorithm, lLogger);
+
+      if (provideCEXInfoFromCEXCheck) {
+        AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
+        if (target != null && target instanceof ARGState) {
+          ARGState argTarget = (ARGState) target;
+          if (argTarget.getCounterexampleInformation().isPresent()) {
+            CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().get();
+            if (!cexInfo.isSpurious() && cexInfo.isPreciseCounterExample()) {
+              pErrorState.replaceCounterexampleInformation(
+                  CounterexampleInfo.feasiblePrecise(
+                      pErrorState.getCounterexampleInformation().isPresent()
+                          ? pErrorState.getCounterexampleInformation().get().getTargetPath()
+                          : ARGUtils.getOnePathTo(pErrorState),
+                      cexInfo.getCFAPathWithAssignments()));
+              assert (pErrorPathStates.containsAll(
+                  pErrorState.getCounterexampleInformation().get().getTargetPath().asStatesList()));
+            }
+          }
+        }
+      }
 
       // counterexample is feasible if a target state is reachable
       return lReached.hasViolatedProperties();
