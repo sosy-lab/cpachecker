@@ -291,7 +291,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
     CallstackTransferRelation csTr;
     try {
-      csTr = new CallstackTransferRelation(Configuration.builder().build(), logger);
+      csTr = new CallstackTransferRelation(Configuration.defaultConfiguration(), logger);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.INFO,
           "Cannot use inlined representation to detect unexplored target states. ",

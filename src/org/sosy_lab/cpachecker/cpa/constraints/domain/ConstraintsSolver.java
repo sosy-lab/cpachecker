@@ -563,11 +563,11 @@ public class ConstraintsSolver implements StatisticsProvider {
         CacheResult res = delegate.getCachedResult(pConstraints);
         if (!res.isSat() && !res.isUnsat()) {
           res = getCachedResultOfSubset(pConstraints);
+          if (res.isSat() || res.isUnsat()) {
+            cacheHits.inc();
+          }
         } else {
           directCacheHits.inc();
-        }
-        if (res.isSat() || res.isUnsat()) {
-          cacheHits.inc();
         }
         return res;
       } finally {

@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
@@ -155,11 +156,11 @@ public class ARGStatistics implements Statistics {
 
   protected final ConfigurableProgramAnalysis cpa;
 
+  private final CEXExportOptions counterexampleOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final ExtendedWitnessExporter extendedWitnessExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private final ARGToPixelsWriter argToBitmapExporter;
@@ -174,15 +175,12 @@ public class ARGStatistics implements Statistics {
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
+    counterexampleOptions = new CEXExportOptions(config);
     argToBitmapExporter = new ARGToPixelsWriter(config);
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
-    extendedWitnessExporter = new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
-    cexExporter =
-        new CEXExporter(config, logger, cfa, cpa, argWitnessExporter, extendedWitnessExporter);
 
     if (argFile == null
         && simplifiedArgFile == null
@@ -192,6 +190,28 @@ public class ARGStatistics implements Statistics {
         && automatonSpcFile == null
         && automatonSpcDotFile == null) {
       exportARG = false;
+    }
+
+    if ((proofWitness == null || !exportARG) && counterexampleOptions.disabledCompletely()) {
+      argWitnessExporter = null;
+    } else {
+      argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+    }
+
+    if (counterexampleOptions.disabledCompletely()) {
+      cexExporter = null;
+    } else {
+      ExtendedWitnessExporter extendedWitnessExporter =
+          new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
+      cexExporter =
+          new CEXExporter(
+              config,
+              counterexampleOptions,
+              logger,
+              cfa,
+              cpa,
+              argWitnessExporter,
+              extendedWitnessExporter);
     }
 
     argToCExporter = new ARGToCTranslator(logger, config);
@@ -247,13 +267,18 @@ public class ARGStatistics implements Statistics {
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if (cexExporter.dumpErrorPathImmediately() && !exportARG && !translateARG) {
+    if ((counterexampleOptions.disabledCompletely()
+            || counterexampleOptions.dumpErrorPathImmediately())
+        && !exportARG
+        && !translateARG) {
       return;
     }
 
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
+    if (!counterexampleOptions.disabledCompletely()
+        && !counterexampleOptions.dumpErrorPathImmediately()
+        && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
@@ -406,7 +431,7 @@ public class ARGStatistics implements Statistics {
         }
       } catch (IOException | InvalidAutomatonException iae) {
         logger.logUserException(Level.WARNING, iae, "Could not write ARG to automata to file");
-      }
+  }
     }
   }
 
@@ -432,7 +457,8 @@ public class ARGStatistics implements Statistics {
 
   public void exportCounterexampleOnTheFly(
       ARGState pTargetState, CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
-    if (cexExporter.dumpErrorPathImmediately()) {
+    if (!counterexampleOptions.disabledCompletely()
+        && counterexampleOptions.dumpErrorPathImmediately()) {
       cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
     }
   }

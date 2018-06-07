@@ -215,7 +215,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             AutomatonState errorState = AutomatonState.automatonStateFactory(
                 Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
 
-            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
+            logger.log(
+                Level.FINER,
+                "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
 

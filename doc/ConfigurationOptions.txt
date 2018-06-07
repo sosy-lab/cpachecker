@@ -742,6 +742,10 @@ counterexample.ambigiousARG = false
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
 
+# counterexample information should provide more precise information from
+# counterexample check, if available
+counterexample.checker.changeCEXInfo = false
+
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
 
