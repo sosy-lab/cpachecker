@@ -78,7 +78,10 @@ final class JSUnaryMinusOperatorEvaluation extends JSNumericUnaryOperatorEvaluat
 
   @Override
   public Value apply(final NumericValue pOperand) {
-    return pOperand.negate();
+    // There is no negative integer zero in Java, but in JavaScript.
+    // Java has negative double zero.
+    // Thus, numbers are always represented as double.
+    return new NumericValue(-pOperand.doubleValue());
   }
 }
 
