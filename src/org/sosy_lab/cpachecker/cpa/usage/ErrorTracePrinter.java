@@ -31,6 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -120,7 +121,7 @@ public abstract class ErrorTracePrinter {
     cfa = pCfa;
   }
 
-  private void createPath(UsageInfo usage) {
+  private List<CFAEdge> createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
     ARGState target = (ARGState) usage.getKeyState();
@@ -133,10 +134,9 @@ public abstract class ErrorTracePrinter {
     }
     if (path == null) {
       logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
-      return;
+      return Collections.emptyList();
     }
-    // path is transformed internally
-    usage.setRefinedPath(path.getInnerEdges());
+    return path.getInnerEdges();
   }
 
   protected String createUniqueName(SingleIdentifier id) {
@@ -213,10 +213,11 @@ public abstract class ErrorTracePrinter {
   }
 
   protected List<CFAEdge> getPath(UsageInfo usage) {
-    if (usage.getPath() == null) {
-      createPath(usage);
-    }
     List<CFAEdge> path = usage.getPath();
+
+    if (usage.getPath() == null) {
+      path = createPath(usage);
+    }
 
     return path.isEmpty() ? null : path;
   }

@@ -34,6 +34,8 @@ void* control_function(void* arg) {
 
 int main() {
     pthread_t thread;
+    __my A;
+    
 	A.a[0] = 1;
 	pthread_create(&thread, 0, &control_function, 0);
 	pthread_mutex_lock(&mutex);

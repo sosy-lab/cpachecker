@@ -117,7 +117,6 @@ public class PathPairIterator extends
       //First time or it was unreachable last time
       firstPath = getNextPath(firstUsage);
       if (firstPath == null) {
-        checkAreUsagesUnreachable(pInput);
         return null;
       }
     }
@@ -129,30 +128,19 @@ public class PathPairIterator extends
       //And move shift the first one
       firstPath = getNextPath(firstUsage);
       if (firstPath == null) {
-        checkAreUsagesUnreachable(pInput);
         return null;
       }
       secondPath = getNextPath(secondUsage);
       if (secondPath == null) {
-        checkAreUsagesUnreachable(pInput);
         return null;
       }
     }
     return Pair.of(firstPath, secondPath);
   }
 
-  private void checkAreUsagesUnreachable(Pair<UsageInfo, UsageInfo> pInput) {
-    UsageInfo firstUsage = pInput.getFirst();
-    UsageInfo secondUsage = pInput.getSecond();
-
-    checkIsUsageUnreachable(firstUsage);
-    checkIsUsageUnreachable(secondUsage);
-  }
-
-  private void checkIsUsageUnreachable(UsageInfo pInput) {
-    if (!computedPathsForUsage.containsKey(pInput) || computedPathsForUsage.get(pInput).size() == 0) {
-      pInput.setAsUnreachable();
-    }
+  private boolean checkIsUsageUnreachable(UsageInfo pInput) {
+    return !computedPathsForUsage.containsKey(pInput)
+        || computedPathsForUsage.get(pInput).size() == 0;
   }
 
   @Override
@@ -186,6 +174,21 @@ public class PathPairIterator extends
     }
     updateTheComputedSet(firstExtendedPath);
     updateTheComputedSet(secondExtendedPath);
+  }
+
+  @Override
+  protected void finish(Pair<UsageInfo, UsageInfo> pInput, RefinementResult pResult) {
+    UsageInfo firstUsage = pInput.getFirst();
+    UsageInfo secondUsage = pInput.getSecond();
+    List<UsageInfo> unreacheableUsages = new ArrayList<>(2);
+
+    if (checkIsUsageUnreachable(firstUsage)) {
+      unreacheableUsages.add(firstUsage);
+    }
+    if (checkIsUsageUnreachable(secondUsage)) {
+      unreacheableUsages.add(secondUsage);
+    }
+    pResult.addInfo(this.getClass(), unreacheableUsages);
   }
 
   @Override
