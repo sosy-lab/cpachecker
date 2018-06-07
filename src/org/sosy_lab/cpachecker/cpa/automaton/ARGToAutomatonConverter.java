@@ -26,25 +26,47 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.ImmutableList.of;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 
+/**
+ * This class converts an ARG into an automaton (or several automata), that can be used as
+ * specification for a second execution of CPAchecker. The automata represent disjoint partitions of
+ * the state space, i.e., the analysis of each one of them returns a result, and merging all those
+ * results is sound for the whole program. We currently provide different strategies for splitting
+ * the state space.
+ *
+ * <p>The idea is based on the paper "Structurally Defined Conditional Data-Flow Static Analysis"
+ * from Elena Sherman and Matthew B. Dwyer.
+ */
+@Options(prefix = "cpa.arg.automaton")
 public class ARGToAutomatonConverter {
 
   public enum SplitterStrategy {
@@ -52,44 +74,83 @@ public class ARGToAutomatonConverter {
     NONE,
     /** split at non-nested conditions only */
     GLOBAL_CONDITIONS,
-    /** split at all conditions */
-    LOCAL_CONDITIONS,
-    /** unroll loops // TODO just use a LoopCPA? */
-    LOOPS,
   }
 
-  private final ARGState root;
-  private final SplitterStrategy strategy;
-
-  public ARGToAutomatonConverter(ARGState pRoot, SplitterStrategy pStrategy) {
-    root = pRoot;
-    strategy = pStrategy;
+  public enum BranchExportStrategy {
+    /** export no branches */
+    NONE,
+    /** export all branches, will contain redundant paths, mostly for debugging. */
+    ALL,
+    /** export all leaf nodes of the ARG, very precise, no redundant paths are exported. */
+    LEAFS,
+    /** export some intermediate nodes, sound due to export of siblings if needed. */
+    WEIGHTED
   }
 
-  public Iterable<Automaton> getAutomata() throws InvalidAutomatonException {
+  @Option(
+      secure = true,
+      description = "which coarse strategy should be applied when analyzing the ARG?")
+  private SplitterStrategy strategy = SplitterStrategy.GLOBAL_CONDITIONS;
+
+  @Option(
+      secure = true,
+      description = "after determining branches, which one of them should be exported?")
+  private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAFS;
+
+  @Option(
+      secure = true,
+      description = "minimum ratio of branch compared to whole program to be exported")
+  private double branchRatio = 0.5;
+
+  @Option(
+      secure = true,
+      description = "minimum ratio of siblings suchthat one of them will be exported")
+  private double siblingRatio = 0.4;
+
+  public ARGToAutomatonConverter(@Nullable Configuration config)
+      throws InvalidConfigurationException {
+    if (config == null) {
+      strategy = SplitterStrategy.NONE;
+      selectionStrategy = BranchExportStrategy.NONE;
+    } else {
+      config.inject(this);
+    }
+  }
+
+  public Iterable<Automaton> getAutomata(ARGState root) {
     switch (strategy) {
       case NONE:
         return Collections.singleton(getAutomatonForStates(root, of()));
       case GLOBAL_CONDITIONS:
-        return getGlobalConditionSplitAutomata();
+        return getGlobalConditionSplitAutomata(root, selectionStrategy);
       default:
         throw new AssertionError("unexpected strategy");
     }
   }
 
-  /** generate an automaton that traverses the subgraph, but leaves out ignoresd states. */
-  private static Automaton getAutomatonForStates(ARGState pRoot, Collection<ARGState> ignoredStates)
+  /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
+  private static Automaton getAutomatonForStates(
+      ARGState pRoot, Collection<ARGState> ignoredStates) {
+    try {
+      return getAutomatonForStates0(pRoot, ignoredStates);
+    } catch (InvalidAutomatonException e) {
+      throw new AssertionError("unexpected exception", e);
+    }
+  }
+
+  /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
+  private static Automaton getAutomatonForStates0(ARGState root, Collection<ARGState> ignoredStates)
       throws InvalidAutomatonException {
 
-    Preconditions.checkArgument(!ignoredStates.contains(pRoot));
-    Preconditions.checkArgument(!pRoot.isCovered());
+    Preconditions.checkArgument(!ignoredStates.contains(root));
+    Preconditions.checkArgument(!root.isCovered());
     Preconditions.checkArgument(Iterables.all(ignoredStates, s -> !s.isCovered()));
 
     Map<String, AutomatonVariable> variables = Collections.emptyMap();
 
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Collection<ARGState> finished = new HashSet<>();
-    waitlist.add(pRoot);
+    waitlist.add(root);
 
     List<AutomatonInternalState> states = new ArrayList<>();
     while (!waitlist.isEmpty()) {
@@ -123,17 +184,19 @@ public class ARGToAutomatonConverter {
       states.add(new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
     }
 
-    return new Automaton("ARG", variables, states, id(pRoot));
+    return new Automaton("ARG", variables, states, id(root));
   }
 
   /** unwrap covered state if needed. */
   private static ARGState uncover(ARGState s) {
-    if (s.isCovered()) {
-      Preconditions.checkArgument(s.getChildren().isEmpty(), "covered state has children:", s);
+    while (s.isCovered()) {
       s = s.getCoveringState();
-      Preconditions.checkArgument(!s.isCovered(), "covering state is covered:", s);
     }
     return s;
+  }
+
+  private static Iterable<ARGState> uncover(Iterable<ARGState> states) {
+    return Iterables.transform(states, ARGToAutomatonConverter::uncover);
   }
 
   /**
@@ -151,71 +214,209 @@ public class ARGToAutomatonConverter {
     return new AutomatonBoolExpr.Negation(otherwise);
   }
 
-  private static String id(ARGState s) {
-    return "S" + s.getStateId() + "_N" + AbstractStates.extractLocation(s).getNodeNumber();
-  }
-
-  private Iterable<Automaton> getGlobalConditionSplitAutomata() throws InvalidAutomatonException {
-    Multimap<ARGState, ARGState> dependencies = getGlobalBranchingTree(root);
+  private Iterable<Automaton> getGlobalConditionSplitAutomata(
+      ARGState root, BranchExportStrategy branchExportStrategy) {
+    Map<ARGState, BranchingInfo> dependencies = getGlobalBranchingTree(root);
     Preconditions.checkState(dependencies.isEmpty() || dependencies.containsKey(root));
-    ImmutableSet<ARGState> loopStates = ImmutableSet.copyOf(getLoopStates(dependencies));
 
-    return collectAutomaton(loopStates);
+    // logger.log(Level.INFO, toDot(dependencies));
+
+    Map<ARGState, BranchingInfo> loopFreeDependencies = getFilteredDependencies(root, dependencies);
+    Preconditions.checkState(
+        loopFreeDependencies.isEmpty() || loopFreeDependencies.containsKey(root));
+
+    // logger.log(Level.INFO, toDot(loopFreeDependencies));
+
+    // add info about cut-off branches to each node
+    addBranchInformation(root, loopFreeDependencies);
+
+    // having parent relation is nice to have
+    addParents(loopFreeDependencies);
+
+    return collectAutomata(root, loopFreeDependencies, branchExportStrategy);
   }
 
   /**
-   * collect all automata that start at root and ignore some branches. Split automata at the given
-   * branching point if possible.
+   * Given a tree (DAG) of dependencies, we can create several automata, such that (starting from
+   * root-node)
+   *
+   * <ul>
+   *   <li>either a node is exported or
+   *   <li>if there are children, the same rule applies for all of its children.
+   * </ul>
    */
-  private Collection<Automaton> collectAutomaton(ImmutableSet<ARGState> loopStates)
-      throws InvalidAutomatonException {
-    Map<ImmutableSet<ARGState>, Automaton> automata = new LinkedHashMap<>();
+  private Iterable<Automaton> collectAutomata(
+      ARGState root, Map<ARGState, BranchingInfo> pDependencies, BranchExportStrategy export) {
 
-    Deque<Pair<ARGState, ImmutableSet<ARGState>>> waitlist = new ArrayDeque<>();
-    waitlist.add(Pair.of(root, ImmutableSet.of()));
-    Multimap<ARGState, ImmutableSet<ARGState>> finished = HashMultimap.create();
+    switch (export) {
+      case NONE:
+        return Collections.emptyList();
+
+      case ALL: // export all nodes, mainly for debugging.
+        return FluentIterable.from(pDependencies.entrySet())
+            .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
+            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+
+      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph
+        return FluentIterable.from(pDependencies.entrySet())
+            // end-states do not have outgoing edges, and thus no next states.
+            .filter(entry -> entry.getValue().getNextStates().isEmpty())
+            .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
+            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+
+      case WEIGHTED: // export all nodes, where children are heavier than a given limit
+        return getWeightedAutomata(root, pDependencies);
+
+      default:
+        throw new AssertionError("unexpected export strategy");
+    }
+  }
+
+  private Iterable<Automaton> getWeightedAutomata(
+      ARGState root, Map<ARGState, BranchingInfo> pDependencies) {
+    Set<ARGState> endStates = new HashSet<>();
+    for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
+      if (entry.getValue().getNextStates().isEmpty()) {
+        endStates.add(entry.getKey());
+      }
+    }
+    List<Automaton> automata = new ArrayList<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>(endStates);
+    Map<ARGState, Boolean> finished = new HashMap<>();
+    while (!waitlist.isEmpty()) {
+      ARGState s = waitlist.pop();
+      if (finished.containsKey(s)) {
+        continue;
+      }
+      BranchingInfo bi = pDependencies.get(s);
+      Set<ARGState> children = bi.getNextStates();
+      if (!finished.keySet().containsAll(children)) {
+        waitlist.add(s); // re-schedule until all children are finished
+        continue;
+      }
+      final boolean finishedExport;
+      Set<ARGState> finishedChildren = from(children).filter(c -> finished.get(c)).toSet();
+      if (!children.isEmpty() && children.equals(finishedChildren)) {
+        // all children exported, finished
+        finishedExport = true;
+      } else if (!finishedChildren.isEmpty()) {
+        // only some children are exported -> export all siblings as one automaton.
+        for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
+          automata.add(getAutomatonForStates(root, Sets.union(ignores.asSet(), finishedChildren)));
+        }
+        finishedExport = true;
+      } else {
+        // no children are exported -> export current node or skip and export parent
+        if (shouldExportAutomatonFor(root, s, pDependencies)) {
+          for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
+            automata.add(getAutomatonForStates(root, ignores.asSet()));
+          }
+          finishedExport = true;
+        } else {
+          finishedExport = false;
+        }
+      }
+      finished.put(s, finishedExport);
+      if (!finishedExport) {
+        waitlist.addAll(bi.getParents());
+      }
+    }
+    return automata;
+  }
+
+  private boolean shouldExportAutomatonFor(
+      ARGState root, ARGState s, Map<ARGState, BranchingInfo> pDependencies) {
+    if (s == root) { // if no other automaton is exported, then export the whole ARG via root
+      return true;
+    }
+    int rootSize = sizeOfBranch(root);
+    int branchSize = sizeOfBranch(s);
+    if (branchSize > branchRatio * rootSize) {
+      // export large branches and ignore small branches
+      return true;
+    }
+    Collection<Integer> siblings =
+        FluentIterable.from(pDependencies.get(s).getParents())
+            .transformAndConcat(p -> pDependencies.get(p).getNextStates())
+            .transform(n -> sizeOfBranch(n))
+            .toSet();
+    if (Collections.max(siblings) - Collections.min(siblings) > siblingRatio * rootSize) {
+      // export states where siblings are very different in size
+      return true;
+    }
+    return false;
+  }
+
+  /** returns the number of states in the current branch until the end-states. */
+  // TODO speedup with caching or similar.
+  private int sizeOfBranch(ARGState state) {
+    Set<ARGState> reachable = new HashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(state);
+    while (!waitlist.isEmpty()) {
+      ARGState s = waitlist.pop();
+      if (reachable.add(s)) {
+        waitlist.addAll(s.getChildren());
+      }
+    }
+    return reachable.size();
+  }
+
+  /**
+   * add the list of ignoredNodes to each BranchingInfo in the tree.
+   *
+   * <p>For loop-states, we just add the ignoredNodes of their parent. Maybe we should even expect
+   * no loop.states at all.
+   */
+  private void addBranchInformation(ARGState root, Map<ARGState, BranchingInfo> dependencies) {
+    dependencies.get(root).addIgnoreStates(PersistentSet.of());
+
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(root);
+    Set<ARGState> finished = new HashSet<>();
 
     while (!waitlist.isEmpty()) {
-      Pair<ARGState, ImmutableSet<ARGState>> p = waitlist.pop();
-      ARGState branchingPoint = p.getFirst();
-      ImmutableSet<ARGState> ignoreBranches = p.getSecond();
-
-      if (!finished.put(branchingPoint, p.getSecond())) {
+      ARGState branchingPoint = waitlist.pop();
+      assert dependencies.containsKey(branchingPoint);
+      if (!finished.add(branchingPoint)) {
         continue;
       }
 
-      for (ARGState child : branchingPoint.getChildren()) {
-        ImmutableSet<ARGState> newIgnoreBranches;
-        if (loopStates.contains(branchingPoint)) {
-          // for loop-states, we cannot split the automaton.
-          // for some other states we also do not apply splitting,
-          newIgnoreBranches = ignoreBranches;
-        } else {
-          // for non-loop-states, we split the automaton
-          newIgnoreBranches =
-              ImmutableSet.<ARGState>builder()
-                  .addAll(ignoreBranches)
-                  .addAll(from(branchingPoint.getChildren()).filter(s -> s != child))
-                  .build();
-        }
-        if (getNext(child, true).isEmpty()) {
-          // no more dependencies, simply export the automaton
-          if (!automata.containsKey(newIgnoreBranches)) {
-            // do not export duplicates
-            automata.put(newIgnoreBranches, getAutomatonForStates(root, newIgnoreBranches));
+      BranchingInfo branch = dependencies.get(branchingPoint);
+      Preconditions.checkArgument(branch.current == branchingPoint);
+
+      for (Entry<ARGState, ARGState> viaChild : branch.children.entries()) {
+        ARGState nextState = viaChild.getValue();
+        waitlist.add(nextState);
+        BranchingInfo nextBi = dependencies.get(nextState);
+        for (PersistentSet<ARGState> ignoreBranch : branch.getIgnoreStates()) {
+          PersistentSet<ARGState> newIgnoreBranch = ignoreBranch;
+          if (!branch.isPartOfLoop()) {
+            // for loop-states, we cannot split the automaton -> ignore this case
+            // for non-loop-states, we split the automaton
+            for (ARGState sibling :
+                from(branchingPoint.getChildren()).filter(s -> s != viaChild.getKey())) {
+              newIgnoreBranch = newIgnoreBranch.addAndCopy(uncover(sibling));
+            }
           }
-        } else {
-          // more dependencies for splitting subgraphs, call recursively for subgraph of child
-          waitlist.add(Pair.of(child, newIgnoreBranches));
+          nextBi.addIgnoreStates(newIgnoreBranch);
         }
       }
     }
-    return automata.values();
   }
 
-  private Multimap<ARGState, ARGState> getGlobalBranchingTree(ARGState pRoot) {
+  /** add backwards parent relation. */
+  private void addParents(Map<ARGState, BranchingInfo> pDependencies) {
+    for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
+      for (ARGState nextState : entry.getValue().getNextStates()) {
+        pDependencies.get(nextState).addParent(entry.getKey());
+      }
+    }
+  }
+
+  private Map<ARGState, BranchingInfo> getGlobalBranchingTree(ARGState pRoot) {
     Preconditions.checkArgument(!pRoot.isCovered());
-    Multimap<ARGState, ARGState> branchingTree = HashMultimap.create();
+    Map<ARGState, BranchingInfo> branchingTree = new LinkedHashMap<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Collection<ARGState> finished = new HashSet<>();
     waitlist.add(pRoot);
@@ -224,36 +425,116 @@ public class ARGToAutomatonConverter {
       if (!finished.add(s)) {
         continue;
       }
-      Collection<ARGState> nextStates = getNext(s, false);
-      branchingTree.putAll(s, nextStates);
-      waitlist.addAll(nextStates);
+      ImmutableSetMultimap.Builder<ARGState, ARGState> childToNext = ImmutableSetMultimap.builder();
+      for (ARGState child : uncover(s.getChildren())) {
+        Collection<ARGState> nextStates = getNext(child);
+        waitlist.addAll(nextStates);
+        childToNext.putAll(child, nextStates);
+      }
+      branchingTree.put(s, new BranchingInfo(s, childToNext.build()));
     }
     return branchingTree;
   }
 
+  /**
+   * get dependencies without loops, i.e., remove all loops.
+   *
+   * <p>Runtime-info: We do not analyze the whole ARG, but only the states in pDependencies.
+   */
+  private Map<ARGState, BranchingInfo> getFilteredDependencies(
+      ARGState root, final Map<ARGState, BranchingInfo> pDependencies) {
+    // pre-compute loop-info once
+    markLoopStates(pDependencies);
+
+    // then build new dependencies without loops
+    Map<ARGState, BranchingInfo> branchingTree = new LinkedHashMap<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Collection<ARGState> finished = new HashSet<>();
+    waitlist.add(root);
+    while (!waitlist.isEmpty()) {
+      final ARGState s = uncover(waitlist.pop());
+      Preconditions.checkState(pDependencies.containsKey(s));
+      if (!finished.add(s)) {
+        continue;
+      }
+      ImmutableSetMultimap.Builder<ARGState, ARGState> childToNext = ImmutableSetMultimap.builder();
+      for (ARGState child : uncover(s.getChildren())) {
+        Collection<ARGState> nextStates = getNextWithoutLoops(child, s, pDependencies);
+        waitlist.addAll(nextStates);
+        childToNext.putAll(child, nextStates);
+      }
+      branchingTree.put(s, new BranchingInfo(s, childToNext.build()));
+    }
+
+    markLoopStates(branchingTree);
+    assert Iterables.all(branchingTree.values(), bi -> !bi.isPartOfLoop())
+        : "we should have removed all cyclic dependencies";
+
+    return branchingTree;
+  }
+
   /** get all branching states that part of a cycle. */
-  private Iterable<ARGState> getLoopStates(Multimap<ARGState, ARGState> dependencies) {
-    return from(dependencies.keySet()).filter(s -> isPartOfCycle(s, dependencies));
+  private void markLoopStates(Map<ARGState, BranchingInfo> pDependencies) {
+    for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
+      if (isPartOfCycle(entry.getKey(), pDependencies)) {
+        entry.getValue().setPartOfLoop();
+      }
+    }
+  }
+
+  /**
+   * return next states for given child, with ignoring loops in the ARG.
+   *
+   * <p>Runtime-info: We do not analyze the whole ARG, but only the states in pDependencies.
+   */
+  private Collection<ARGState> getNextWithoutLoops(
+      final ARGState pChild,
+      final ARGState pState,
+      final Map<ARGState, BranchingInfo> pDependencies) {
+    final Collection<ARGState> nextStates = new LinkedHashSet<>();
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    final Collection<ARGState> finished = new HashSet<>();
+    waitlist.addAll(pDependencies.get(pState).children.get(pChild));
+    while (!waitlist.isEmpty()) {
+      final ARGState s = uncover(waitlist.pop());
+      Preconditions.checkState(pDependencies.containsKey(s));
+      if (!finished.add(s)) {
+        continue;
+      }
+      final BranchingInfo bi = pDependencies.get(s);
+      if (bi.isPartOfLoop()) {
+        // go deeper into branch
+        waitlist.addAll(bi.getNextStates());
+      } else {
+        // terminate current branch-visitation
+        nextStates.add(s);
+      }
+    }
+    return nextStates;
   }
 
   /**
    * check whether there is a loop containing the given state.
    *
    * <p>Actually BFS with additional check for initial element.
+   *
+   * <p>Runtime-info: We do not analyze the whole ARG, but only the states in pDependencies.
    */
-  private boolean isPartOfCycle(ARGState pRoot, Multimap<ARGState, ARGState> dependencies) {
-    Deque<ARGState> waitlist = new ArrayDeque<>();
-    Collection<ARGState> finished = new HashSet<>();
-    waitlist.addAll(dependencies.get(pRoot));
+  private boolean isPartOfCycle(
+      final ARGState pRoot, final Map<ARGState, BranchingInfo> pDependencies) {
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    final Collection<ARGState> finished = new HashSet<>();
+    waitlist.addAll(pDependencies.get(pRoot).getNextStates());
     while (!waitlist.isEmpty()) {
-      ARGState s = waitlist.pop();
+      final ARGState s = waitlist.pop();
+      assert pDependencies.containsKey(s);
       if (!finished.add(s)) {
         continue;
       }
       if (s == pRoot) {
         return true;
       }
-      waitlist.addAll(dependencies.get(s));
+      waitlist.addAll(pDependencies.get(s).getNextStates());
     }
     return false;
   }
@@ -262,27 +543,114 @@ public class ARGToAutomatonConverter {
    * return all branching nodes directly reachable from the current node, including nodes reachable
    * via branches of covered states.
    */
-  private Collection<ARGState> getNext(ARGState base, boolean includeSelf) {
-    base = uncover(base);
-    Collection<ARGState> next = new ArrayList<>();
-    Deque<ARGState> waitlist = new ArrayDeque<>();
-    Collection<ARGState> finished = new HashSet<>();
-    if (includeSelf) {
-      waitlist.add(base);
-    } else {
-      waitlist.addAll(base.getChildren());
-    }
+  private Collection<ARGState> getNext(final ARGState base) {
+    final Collection<ARGState> next = new ArrayList<>();
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    final Collection<ARGState> finished = new HashSet<>();
+    waitlist.add(base);
     while (!waitlist.isEmpty()) {
-      ARGState s = uncover(waitlist.pop());
+      final ARGState s = uncover(waitlist.pop());
       if (!finished.add(s)) {
         continue;
       }
-      if (s.getChildren().size() > 1) {
+      if (s.getChildren().size() > 1 || s.getChildren().size() == 0) {
+        // branching-points and end-states are important
         next.add(s);
       } else {
         waitlist.addAll(s.getChildren());
       }
     }
     return next;
+  }
+
+  /** create simple dot-graph for dependencies, marking loop-states. useful for debugging. */
+  @SuppressWarnings("unused")
+  private static String toDot(Map<ARGState, BranchingInfo> pDependencies) {
+    StringBuilder str = new StringBuilder("digraph BRANCHING_NODES {\n");
+    str.append("  node [style=\"filled\" color=\"white\"];\n");
+    for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
+      String color = entry.getValue().isPartOfLoop() ? "green" : "white";
+      String label =
+          id(entry.getKey())
+              + "\\n{"
+              + Joiner.on(",\\n")
+                  .join(
+                      Iterables.transform(
+                          entry.getValue().ignoreStates, ARGToAutomatonConverter::id))
+              + "}";
+      str.append(
+          String.format(
+              "  %s [fillcolor=\"%s\", label=\"%s\"];%n", id(entry.getKey()), color, label));
+    }
+    for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
+      for (Entry<ARGState, ARGState> viaChild : entry.getValue().children.entries()) {
+        str.append(
+            String.format(
+                "  %s -> %s [label=\"%s\"];%n",
+                id(entry.getKey()), id(viaChild.getValue()), id(viaChild.getKey())));
+      }
+    }
+    return str.append("}").toString();
+  }
+
+  private static String id(final ARGState s) {
+    return "S" + s.getStateId() + "_N" + AbstractStates.extractLocation(s).getNodeNumber();
+  }
+
+  private static Iterable<String> id(final Iterable<ARGState> states) {
+    return Iterables.transform(states, ARGToAutomatonConverter::id);
+  }
+
+  private static final class BranchingInfo {
+    private final ARGState current;
+
+    /** mapping of direct child-states towards nextStates. */
+    private final ImmutableSetMultimap<ARGState, ARGState> children;
+
+    private final Set<ARGState> parents = new LinkedHashSet<>(); // lazily filled
+
+    private boolean isPartOfLoop = false; // lazy
+
+    /**
+     * current state can be reached via several paths. ignoreStates cut off all other branches for
+     * each of those paths.
+     */
+    private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
+
+    BranchingInfo(
+        ARGState pCurrent,
+        ImmutableSetMultimap<ARGState, ARGState> pChildren) {
+      current = pCurrent;
+      children = pChildren;
+    }
+
+    private Set<ARGState> getNextStates() {
+      return ImmutableSet.copyOf(children.values());
+    }
+
+    private Set<PersistentSet<ARGState>> getIgnoreStates() {
+      return ignoreStates;
+    }
+
+    private void addIgnoreStates(PersistentSet<ARGState> pIgnoreStates) {
+      Preconditions.checkNotNull(pIgnoreStates);
+      ignoreStates.add(pIgnoreStates);
+    }
+
+    private boolean isPartOfLoop() {
+      return isPartOfLoop;
+    }
+
+    private void setPartOfLoop() {
+      isPartOfLoop = true;
+    }
+
+    private void addParent(ARGState parent) {
+      parents.add(parent);
+    }
+
+    private Set<ARGState> getParents() {
+      return parents;
+    }
   }
 }
