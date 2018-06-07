@@ -21,10 +21,13 @@ body {
 	width: 100%;
 	min-width: 750px;
 	height: 50px;
-	background-color: whitesmoke;
+	background-color: #ffef96;
 	border-bottom: solid 2px;
 	border-bottom-color: lightgrey;
 	padding: 7px;
+	padding-top: 5px; 
+	text-align: center;
+	justify-content: center;
 }
 
 .sections {
@@ -32,7 +35,7 @@ body {
 	padding: 0;
 }
 
-.nav > li > a:hover{
+.nav>li>a:hover {
 	background-color: #c0c0c0;
 }
 
@@ -42,13 +45,14 @@ body {
 
 .header img.logo {
 	float: left;
-	height: 30px;
-	margin-right: 5px;
+	height: 40px;
+	margin-left:10px;
 }
 
 .header h1 {
 	display: inline;
-	font-size: 20px;
+	font-size: 21px;
+	color: #50394c;
 }
 
 .header .generated {
