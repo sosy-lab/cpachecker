@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.OptionalLong;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -117,6 +118,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (readableState.contains(memLoc)) {
       return readableState.getValueFor(memLoc);
     } else {
+      final String idName =
+          varName.getDeclaration() != null
+              ? varName.getDeclaration().getQualifiedName()
+              : varName.getName();
+      getLogger().log(Level.WARNING, "Memory location of " + idName + " not found in state");
       return Value.UnknownValue.getInstance();
     }
   }
