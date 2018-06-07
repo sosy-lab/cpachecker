@@ -14,7 +14,7 @@ with considerably less effort */
 	reportController = app.controller('ReportController', ['$rootScope', '$scope',
 		function ($rootScope, $scope) {
 			$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
-			$scope.help_content = "<p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" +
+			$scope.help_content = "<div class=\"container \" style=\"font-family: Arial\"><p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" +
 				"Initially all CFA's are displayed below one another beginning with the CFA for the program entry function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
 				"<p>&#9675; &nbsp; normal element</p>" +
 				"<p>&#9634; &nbsp; combined normal elements</p>" +
@@ -35,14 +35,14 @@ with considerably less effort */
 				"<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
 				"<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
 				"<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-				"<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p>";
-			$scope.help_errorpath = "<p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>\n" +
-				"<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>\n" +
-				"<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>\n" +
-				"<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
+				"<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p></div>";
+			$scope.help_errorpath = "<div style=\"font-family: Arial\"><p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>" +
+				"<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>" +
+				"<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>" +
+				"<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>" +
 				"<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
 				"- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)\n" +
-				"- An 'exact matches' search will look for a variable declarator matching exactly the provided text considering both, edge descriptions and value assignments</p>";
+				"- An 'exact matches' search will look for a variable declarator matching exactly the provided text considering both, edge descriptions and value assignments</p></div>";
 			$scope.tab = 1;
 			$scope.$on("ChangeTab", function (event, tabIndex) {
 				$scope.setTab(tabIndex);
@@ -1612,14 +1612,16 @@ function init() {
 			});
 			d3.selectAll(".cfa-graph").style("visibility", "visible");
 			if (cfaSplit) {
-				$("#renderStateModal").modal("hide");
+				$("#renderStateModal").hide();
+				$('.modal-backdrop').hide();
 			} else {
 				if (!argTabDisabled) {
 					argWorker.postMessage({
 						"renderer": "ready"
 					});
 				} else {
-					$("#renderStateModal").modal("hide");
+					$("#renderStateModal").hide();
+					$('.modal-backdrop').hide();
 				}
 			}
 		}
@@ -1663,7 +1665,8 @@ function init() {
 				})
 				if (m.data.errorGraph !== undefined) {
 					addEventsToArg();
-					$("#renderStateModal").modal("hide");
+					$("#renderStateModal").hide();
+					$('.modal-backdrop').hide();
 					argWorker.postMessage({
 						"errorGraph": true
 					});
@@ -1688,7 +1691,8 @@ function init() {
 						PR.prettyPrint();
 					}
 				}
-				$("#renderStateModal").modal("hide");
+				$("#renderStateModal").hide();
+				$('.modal-backdrop').hide();
 			}
 		}, false);
 

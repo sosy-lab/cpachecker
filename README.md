@@ -57,11 +57,14 @@ Verifying a Program with CPAchecker
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java`
    for 64bit OpenJDK 8 on Ubuntu.
-   On Windows (witout Cygwin), you need to use `cpa.bat` instead of `cpa.sh` (would work 
-   within a Cygwin environment). Please take note that not all analysis 
-   configurations are available for Windows; one reason for this is that not 
-   all solvers (and other native libraries that are used for specific 
-   abstract domains) are available for Windows.
+   On Windows (without Cygwin), you need to use `cpa.bat` instead of `cpa.sh`.
+
+   Please note that not all analysis configurations are available for Windows and Mac
+   because we do not ship binaries for SMT solvers for these platforms.
+   You either need to build the appropriate binaries yourself
+   or use less powerful analyses that work with Java-based solvers,
+   for example this one instead of `-default`:
+   `-predicateAnalysis-linear -setprop solver.solver=SMTInterpol`
 
 5. Additionally to the console output,
    an interactive HTML report is generated in the directory `output/`,

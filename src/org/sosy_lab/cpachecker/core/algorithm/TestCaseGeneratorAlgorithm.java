@@ -259,8 +259,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   }
 
   private CounterexampleInfo extractCexInfo(final ARGState pTarget) {
-    // TODO may not contain sufficient information to write test harness, e.g. when using
-    // ValueAnalysis
+    // may not contain sufficient information to write test harness, e.g. ValueAnalysis uses
+    // special variant of counterexample check to generate sufficient information
     if (pTarget.getCounterexampleInformation().isPresent()) {
       return pTarget.getCounterexampleInformation().get();
     }

@@ -47,10 +47,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsMergeOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ImplicationLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.SubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
@@ -63,7 +61,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 public class ConstraintsCPA
     implements ConfigurableProgramAnalysis, StatisticsProvider, AutoCloseable {
 
-  public enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
+  public enum ComparisonType {
+    SUBSET,
+  }
 
   public enum MergeType { SEP, JOIN_FITTING_CONSTRAINT }
 
@@ -78,7 +78,7 @@ public class ConstraintsCPA
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private TransferRelation transferRelation;
+  private ConstraintsTransferRelation transferRelation;
   private ConstraintsPrecisionAdjustment precisionAdjustment;
   private ConstraintsPrecision precision;
 
@@ -96,7 +96,7 @@ public class ConstraintsCPA
     logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
 
-    SymbolicValues.initialize(lessOrEqualType);
+    SymbolicValues.initialize();
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
@@ -125,14 +125,6 @@ public class ConstraintsCPA
     switch (lessOrEqualType) {
       case SUBSET:
         abstractDomain = SubsetLessOrEqualOperator.getInstance();
-        break;
-
-      case ALIASED_SUBSET:
-        abstractDomain = AliasedSubsetLessOrEqualOperator.getInstance();
-        break;
-
-      case IMPLICATION:
-        abstractDomain = new ImplicationLessOrEqualOperator(solver);
         break;
 
       default:
@@ -185,6 +177,7 @@ public class ConstraintsCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    transferRelation.collectStatistics(statsCollection);
     precisionAdjustment.collectStatistics(statsCollection);
 
     if (mergeOperator instanceof Statistics) {

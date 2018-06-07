@@ -77,7 +77,7 @@ public class ValueTransferBasedStrongestPostOperator
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
             new SymbolicValueAssigner(pConfig),
-            new ConstraintsStrengthenOperator(pConfig),
+            new ConstraintsStrengthenOperator(pConfig, pLogger, pCfa.getMachineModel()),
             null);
 
     valueStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
@@ -224,10 +224,11 @@ public class ValueTransferBasedStrongestPostOperator
   ) throws CPATransferException, InterruptedException {
 
     Collection<? extends AbstractState> successors =
-        constraintsTransfer.strengthen(pConstraintsState,
-                                       ImmutableList.<AbstractState>of(pValueState),
-                                       pOperation,
-                                       SingletonPrecision.getInstance());
+        constraintsTransfer.strengthen(
+            pConstraintsState,
+            ImmutableList.of(pValueState),
+            pOperation,
+            SingletonPrecision.getInstance());
 
     if (isContradiction(successors)) {
       return Optional.empty();

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -31,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
   private final SymbolicExpressionTransformer symbolicTransformer =
-      new SymbolicExpressionTransformer(new IdentifierAssignment());
+      new SymbolicExpressionTransformer(IdentifierAssignment.empty());
 
   private CType type;
 
@@ -90,25 +90,15 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
 
   @Override
   public CExpression visit(NumericValue pValue) {
-    checkState(type instanceof CSimpleType);
-    CSimpleType simpleT = (CSimpleType) type;
-    switch (simpleT.getType()) {
-      case INT:
-      case BOOL:
-      case CHAR:
-        return new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, BigInteger.valueOf(pValue.longValue()));
+    if (type instanceof CSimpleType
+        && (((CSimpleType) type).getType().equals(CBasicType.FLOAT)
+            || ((CSimpleType) type).getType().equals(CBasicType.DOUBLE))) {
+      return new CFloatLiteralExpression(
+          FileLocation.DUMMY, type, BigDecimal.valueOf(pValue.doubleValue()));
 
-      case FLOAT:
-      case DOUBLE:
-        return new CFloatLiteralExpression(
-            FileLocation.DUMMY, type, BigDecimal.valueOf(pValue.doubleValue()));
-
-      case UNSPECIFIED:
-        throw new UnsupportedOperationException("Numeric value of unspecified type: " + pValue);
-
-      default:
-        throw new AssertionError("Unhandled basic type: " + simpleT.getType());
+    } else {
+      return new CIntegerLiteralExpression(
+          FileLocation.DUMMY, type, BigInteger.valueOf(pValue.longValue()));
     }
   }
 

@@ -35,8 +35,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 public class ConstraintsInformation {
 
   public static final ConstraintsInformation EMPTY =
-      new ConstraintsInformation(Collections.<Constraint>emptySet(),
-                                 new IdentifierAssignment());
+      new ConstraintsInformation(Collections.<Constraint>emptySet(), IdentifierAssignment.empty());
 
   private final Set<Constraint> constraints;
   private final IdentifierAssignment definiteValueAssignments;

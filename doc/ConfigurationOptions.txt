@@ -284,6 +284,9 @@ analysis.replacedFunctionsWithParameters = {"pthread_create"}
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# Use heuristics to select the analysis
+analysis.selectAnalysisHeuristically = false
+
 # if this option is used, the CFA will be loaded from the given file instead
 # of parsed from sourcefile.
 analysis.serializedCfaFile = no default value
@@ -739,6 +742,10 @@ counterexample.ambigiousARG = false
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
 
+# counterexample information should provide more precise information from
+# counterexample check, if available
+counterexample.checker.changeCEXInfo = false
+
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
 
@@ -923,6 +930,27 @@ cpa.apron.splitDisequalities = true
 
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
+
+# minimum ratio of branch compared to whole program to be exported
+cpa.arg.automaton.branchRatio = 0.5
+
+# translate final ARG into an automaton
+cpa.arg.automaton.export = false
+
+# translate final ARG into an automaton, depends on 'automaton.export=true'
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
+
+# after determining branches, which one of them should be exported?
+cpa.arg.automaton.selectionStrategy = LEAFS
+  enum:     [NONE, ALL, LEAFS, WEIGHTED]
+
+# minimum ratio of siblings suchthat one of them will be exported
+cpa.arg.automaton.siblingRatio = 0.4
+
+# which coarse strategy should be applied when analyzing the ARG?
+cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
+  enum:     [NONE, GLOBAL_CONDITIONS]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
@@ -1278,13 +1306,22 @@ cpa.congruence.trackCongruenceSum = false
 # Cache formulas produced by path formula manager
 cpa.congruence.useCachingPathFormulaManager = true
 
+# Whether to perform caching of constraint satisfiability results
+cpa.constraints.cache = true
+
+# Whether to use subset/superset caching
+cpa.constraints.cacheSubsets = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
-  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+  enum:     [SUBSET]
 
 # Type of merge operator to use
 cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
+
+# Whether to perform SAT checks only for the last added constraint
+cpa.constraints.minimalSatCheck = true
 
 # Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
 # is used.
@@ -1299,9 +1336,15 @@ cpa.constraints.removeOutdated = true
 # simplification
 cpa.constraints.removeTrivial = false
 
+# Resolve definite assignments
+cpa.constraints.resolveDefinites = true
+
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
+
+# Try model of predecessor constraints state before running SMT solver
+cpa.constraints.useLastModel = true
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -2850,6 +2893,29 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Configuration for programs containing more than @Option adressedRatio
+# addressed vars.
+heuristicSelection.addressedConfig = no default value
+
+# Ratio of addressed vars. Values bigger than the passed value lead to
+# @option addressedConfig.
+heuristicSelection.addressedRatio = no default value
+
+# Configuration for programs with loops and complex datastructures.
+heuristicSelection.complexLoopConfig = no default value
+
+# Configuration for loop-free programs and complex datastructures.
+heuristicSelection.complexLoopFreeConfig = no default value
+
+# Configuration for programs with loops.
+heuristicSelection.loopConfig = no default value
+
+# Configuration for loop-free programs.
+heuristicSelection.loopFreeConfig = no default value
+
+# Configuration for programs containing only relevant bool vars.
+heuristicSelection.onlyBoolConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true

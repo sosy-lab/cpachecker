@@ -922,6 +922,7 @@ public class ARGToCTranslator {
     CFAEdge edge;
     Set<ARGState> visited = new HashSet<>();
     Deque<Pair<ARGState, DeclarationInfo>> waitlist = new ArrayDeque<>();
+    List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
     Multimap<ARGState, Map<CDeclaration, String>> decProblems = HashMultimap.create();
 
@@ -931,6 +932,7 @@ public class ARGToCTranslator {
     while (!waitlist.isEmpty()) {
       current = waitlist.pop();
       parent = current.getFirst();
+      assumeInfo.clear();
 
       for (ARGState child : parent.getChildren()) {
         edge = parent.getEdgeToChild(child);
@@ -949,12 +951,25 @@ public class ARGToCTranslator {
         child = getCovering(child);
 
         if (visited.add(child)) {
-          waitlist.push(Pair.of(child, decInfo));
+          // need to use the same exploration order as during code generation
+          if (edge instanceof CAssumeEdge) {
+            if (getRealTruthAssumption((CAssumeEdge) edge)) {
+              assumeInfo.add(Pair.of(child, decInfo));
+            } else {
+              assumeInfo.add(0, Pair.of(child, decInfo));
+            }
+          } else {
+            waitlist.push(Pair.of(child, decInfo));
+          }
         }
 
         if (child.getCoveredByThis() != null || child.getParents().size() > 0) {
           decProblems.put(child, decInfo.currentFuncDecInfo);
         }
+      }
+
+      for (int i = 0; i < assumeInfo.size(); i++) {
+        waitlist.push(assumeInfo.get(i));
       }
     }
 

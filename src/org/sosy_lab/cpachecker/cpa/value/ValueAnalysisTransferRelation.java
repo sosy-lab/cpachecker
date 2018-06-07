@@ -1483,6 +1483,9 @@ public class ValueAnalysisTransferRelation
         MemoryLocation otherVariable = locationIterator.next();
         if (!locationIterator.hasNext()) {
           target = otherVariable;
+          if (type == null && pValueState.contains(target)) {
+            type = pValueState.getTypeForMemoryLocation(target);
+          }
           shouldAssign = true;
         }
       }

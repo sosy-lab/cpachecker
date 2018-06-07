@@ -21,15 +21,22 @@ body {
 	width: 100%;
 	min-width: 750px;
 	height: 50px;
-	background-color: whitesmoke;
+	background-color: #ffef96;
 	border-bottom: solid 2px;
 	border-bottom-color: lightgrey;
 	padding: 7px;
+	padding-top: 5px; 
+	text-align: center;
+	justify-content: center;
 }
 
 .sections {
 	height: 100%;
 	padding: 0;
+}
+
+.nav>li>a:hover {
+	background-color: #c0c0c0;
 }
 
 .btn {
@@ -38,13 +45,14 @@ body {
 
 .header img.logo {
 	float: left;
-	height: 30px;
-	margin-right: 5px;
+	height: 40px;
+	margin-left:10px;
 }
 
 .header h1 {
 	display: inline;
-	font-size: 20px;
+	font-size: 21px;
+	color: #50394c;
 }
 
 .header .generated {
@@ -73,96 +81,96 @@ body {
 }
 
 #errorpath_section {
-    position:relative;
-    float: left;
-    width: 25%;
-    min-width: 70px;
-    height: inherit;
-    background-color: white;
-    border: solid 4px;
-    border-color: lightgrey;
-    padding: 5px;
+	position: relative;
+	float: left;
+	width: 25%;
+	min-width: 70px;
+	height: inherit;
+	background-color: white;
+	border: solid 4px;
+	border-color: lightgrey;
+	padding: 5px;
 }
 
 #errorpath_section header .input-group {
-    margin-top: 5px;
-    margin-bottom: 5px;
+	margin-top: 5px;
+	margin-bottom: 5px;
 }
 
 #errorpath_section .fileContent {
-    height: calc(100% - 110px);
-    margin: 5px;
-    overflow: auto;
+	height: calc(100% - 110px);
+	margin: 5px;
+	overflow: auto;
 }
 
 #searchOptions label {
-    font-weight: normal;
+	font-weight: normal;
 }
 
 #matches {
-    display: none;
+	display: none;
 }
 
 .markedValues {
-    background-color: #83d480;
-    border-radius: 25px;
-    margin-bottom: 2px;
-    padding: 2px;
-    padding-left: 8px;
-    max-width: 270px;
+	background-color: #83d480;
+	border-radius: 25px;
+	margin-bottom: 2px;
+	padding: 2px;
+	padding-left: 8px;
+	max-width: 270px;
 }
 
 .markedDescriptions {
-    background-color: #71afff;
-    border-radius: 20px;
-    padding: 2px;
-    padding-left: 8px;
-    margin-bottom: 2px;
-    max-width: 270px;
+	background-color: #71afff;
+	border-radius: 20px;
+	padding: 2px;
+	padding-left: 8px;
+	margin-bottom: 2px;
+	max-width: 270px;
 }
 
 .markedTableElement {
-    border: solid 2px;
-    border-color: #00d415;
+	border: solid 2px;
+	border-color: #00d415;
 }
 
 .markedValueElement pre {
-    background-color: #83d480 !important;
+	background-color: #83d480 !important;
 }
 
 .markedDescElement pre {
-    background-color: #71afff !important;
+	background-color: #71afff !important;
 }
 
 .markedValueDescElement pre {
-    background: linear-gradient(#83d480, #71afff) !important;
+	background: linear-gradient(#83d480, #71afff) !important;
 }
 
 #err-table td {
-    cursor: pointer;
+	cursor: pointer;
 }
 
 #err-table td.disabled {
-    cursor: not-allowed;
-    pointer-events: none;
+	cursor: not-allowed;
+	pointer-events: none;
 }
 
 #err-table td:hover {
-    font-weight: bold;
+	font-weight: bold;
 }
 
 #err-table td:first-child {
-    border-radius: 6px;
+	border-radius: 6px;
 }
 
 #err-table td pre {
-    padding: 0px;
-    margin: 0px;
-    border: none;
+	padding: 0px;
+	margin: 0px;
+	border: none;
 }
 
 #err-table tr td pre.make-pretty {
-    background-color: #696969;
+	background-color: #696969;
 }
 
 #err-table tr.clickedErrPathElement {
@@ -170,7 +178,7 @@ body {
 }
 
 .marked-source-line {
-    background-color: #df80ff !important;
+	background-color: #df80ff !important;
 }
 
 .marked-cfa-edge path {
@@ -183,25 +191,25 @@ body {
 	stroke-width: 3px !important;
 }
 
-.marked-cfa-node > rect {
+.marked-cfa-node>rect {
 	outline: #8B008B solid thick !important;
 }
 
-.marked-cfa-node > polygon {
+.marked-cfa-node>polygon {
 	stroke: #8B008B !important;
 	stroke-width: 5px !important;
 }
 
-.marked-cfa-node > circle {
+.marked-cfa-node>circle {
 	stroke: #8B008B !important;
 	stroke-width: 5px !important;
 }
 
 .marked-cfa-node-label {
-    fill: #ff00ff !important;
+	fill: #ff00ff !important;
 }
 
-.marked-arg-node > rect {
+.marked-arg-node>rect {
 	outline: #8B008B solid thick !important;
 }
 
@@ -244,7 +252,7 @@ body {
 	top: 100px;
 	bottom: 5px;
 	left: 5px;
-	right: 5px;	
+	right: 5px;
 }
 
 #externalFiles_section div.arg-content {
@@ -253,7 +261,7 @@ body {
 	top: 100px;
 	bottom: 5px;
 	left: 5px;
-	right: 5px;	
+	right: 5px;
 }
 
 table {
@@ -280,22 +288,22 @@ td:first-child {
 }
 
 .edit-line {
-    width: 100%;
-    background-color: white;
-    padding: 5px;
+	width: 100%;
+	background-color: white;
+	padding: 5px;
 }
 
 .edit-line div {
-    display: inline-block;
+	display: inline-block;
 }
 
 .edit-line label {
-    margin-right: 100px;
-    display: inline-block;
+	margin-right: 100px;
+	display: inline-block;
 }
 
 .edit-line p {
-    display: inline-block;
+	display: inline-block;
 }
 
 div pre {
@@ -311,7 +319,6 @@ div pre {
 	border: 0px;
 	margin: 0px;
 	display: inline-block;
-	float: right;
 }
 
 #externalFiles_section .help_button {
@@ -328,21 +335,21 @@ div pre {
 }
 
 .loader {
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-family: "Helvetica Neue", Helvetica, Arial, "sans-serf";
 	font-size: 20px;
 	font-style: italic;
-	color: #663399;
+	color: #4040a1;
 }
 
 #cfa-toolbar {
-    width: 95%;
-    background-color: white;
-    margin-top: 5px;
+	width: 95%;
+	background-color: white;
+	margin-top: 5px;
 	margin-left: 10px;
-    padding: 5px;
-    position: fixed;
-    display: inline-block;
-    visibility: hidden;
+	padding: 5px;
+	position: fixed;
+	display: inline-block;
+	visibility: hidden;
 }
 
 #cfa-toolbar select {
@@ -365,13 +372,13 @@ input[type=text] {
 }
 
 #arg-toolbar {
-    width: 95%;
-    background-color: white;
-    left: 20px;
-    top: 60px;
-    padding: 5px;
-    position: absolute;
-    display: inline-block;
+	width: 95%;
+	background-color: white;
+	left: 20px;
+	top: 60px;
+	padding: 5px;
+	position: absolute;
+	display: inline-block;
 	visibility: hidden;
 }
 
@@ -391,19 +398,19 @@ text {
 	font-size: 12px;
 }
 
-.arg-node.target > rect {
+.arg-node.target>rect {
 	fill: red;
 }
 
-.arg-node.not-expanded > rect {
+.arg-node.not-expanded>rect {
 	fill: orange;
 }
 
-.arg-node.highlighted > rect {
+.arg-node.highlighted>rect {
 	fill: cornflowerblue;
 }
 
-.arg-node.covered > rect {
+.arg-node.covered>rect {
 	fill: green;
 }
 
@@ -465,6 +472,7 @@ text {
 }
 
 /* if we have display: none here Firefox cannot render the edges connecting to the dummy nodes */
+
 .dummy rect {
 	visibility: hidden;
 }
