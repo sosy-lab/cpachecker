@@ -1612,14 +1612,16 @@ function init() {
 			});
 			d3.selectAll(".cfa-graph").style("visibility", "visible");
 			if (cfaSplit) {
-				$("#renderStateModal").modal("hide");
+				$("#renderStateModal").hide();
+				$('.modal-backdrop').hide();
 			} else {
 				if (!argTabDisabled) {
 					argWorker.postMessage({
 						"renderer": "ready"
 					});
 				} else {
-					$("#renderStateModal").modal("hide");
+					$("#renderStateModal").hide();
+					$('.modal-backdrop').hide();
 				}
 			}
 		}
@@ -1663,7 +1665,8 @@ function init() {
 				})
 				if (m.data.errorGraph !== undefined) {
 					addEventsToArg();
-					$("#renderStateModal").modal("hide");
+					$("#renderStateModal").hide();
+					$('.modal-backdrop').hide();
 					argWorker.postMessage({
 						"errorGraph": true
 					});
@@ -1688,7 +1691,8 @@ function init() {
 						PR.prettyPrint();
 					}
 				}
-				$("#renderStateModal").modal("hide");
+				$("#renderStateModal").hide();
+				$('.modal-backdrop').hide();
 			}
 		}, false);
 
