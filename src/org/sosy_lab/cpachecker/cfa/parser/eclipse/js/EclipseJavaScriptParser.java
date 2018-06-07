@@ -80,7 +80,7 @@ class EclipseJavaScriptParser implements Parser {
   public ParseResult parseString(final String filename, final String code) throws ParserException {
     parseTimer.start();
     try {
-      return buildCFA(createAST(filename, code), new Scope(filename));
+      return buildCFA(createAST(filename, code), new FileScopeImpl(filename));
     } finally {
       parseTimer.stop();
     }

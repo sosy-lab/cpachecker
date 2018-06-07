@@ -132,7 +132,7 @@ class CFABuilder implements FileLocationProvider {
   }
 
   public String getFilename() {
-    return getScope().getFileName();
+    return getScope().getFileScope().getFileName();
   }
 
   @Override
@@ -147,7 +147,7 @@ class CFABuilder implements FileLocationProvider {
     final JavaScriptUnit javaScriptUnit = (JavaScriptUnit) pNode.getRoot();
 
     return new FileLocation(
-        scope.getFileName(),
+        getFilename(),
         pNode.getStartPosition(),
         pNode.getLength(),
         javaScriptUnit.getLineNumber(pNode.getStartPosition()),

@@ -65,7 +65,7 @@ final class JavaScriptCFABuilderFactory {
     CFACreationUtils.addEdgeUnconditionallyToCFA(
         new BlankEdge("", FileLocation.DUMMY, dummyEntryNode, entryNode, "start dummy edge"));
     final LogManager logger = LogManager.createTestLogManager();
-    final Scope scope = new Scope(filename);
+    final Scope scope = new FileScopeImpl(filename);
     return new CFABuilder(scope, logger, functionName, entryNode);
   }
 
