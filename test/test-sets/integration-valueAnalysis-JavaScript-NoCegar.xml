@@ -13,5 +13,6 @@
         <include>../programs/javascript/**.js</include>
         <exclude>../programs/javascript/call-of-hoisted-function.js</exclude>
         <exclude>../programs/javascript/closure.js</exclude>
+        <exclude>../programs/javascript/side-effects-in-expressions.js</exclude>
     </tasks>
 </benchmark>
