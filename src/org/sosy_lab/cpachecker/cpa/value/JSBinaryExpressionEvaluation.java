@@ -47,6 +47,7 @@ final class JSBinaryExpressionEvaluation {
     operatorEvaluation.put(BinaryOperator.NOT_EQUAL_EQUAL, new JSStrictUnequalityEvaluation());
     operatorEvaluation.put(BinaryOperator.PLUS, new JSAdditionOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.MINUS, new JSSubtractionOperatorEvaluation());
+    operatorEvaluation.put(BinaryOperator.TIMES, new JSMultiplicationOperatorEvaluation());
   }
 
   public static Value evaluate(
@@ -107,5 +108,13 @@ final class JSSubtractionOperatorEvaluation extends JSNumericBinaryOperatorEvalu
   @Override
   public Value apply(final NumericValue pLeft, final NumericValue pRight) {
     return new NumericValue(pLeft.bigDecimalValue().subtract(pRight.bigDecimalValue()));
+  }
+}
+
+final class JSMultiplicationOperatorEvaluation extends JSNumericBinaryOperatorEvaluation {
+
+  @Override
+  public Value apply(final NumericValue pLeft, final NumericValue pRight) {
+    return new NumericValue(pLeft.doubleValue() * pRight.doubleValue());
   }
 }
