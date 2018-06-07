@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
-
 import java.math.BigInteger;
 import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
 import org.eclipse.wst.jsdt.core.dom.PostfixExpression.Operator;
@@ -63,7 +61,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
             false,
             oldValueVariableName,
             oldValueVariableName,
-            qualifiedNameOf(pBuilder.getFunctionName(), oldValueVariableName),
+            pBuilder.getScope().qualifiedVariableNameOf(oldValueVariableName),
             new JSInitializerExpression(FileLocation.DUMMY, variableToIncrement));
     final JSExpressionAssignmentStatement incrementStatement =
         new JSExpressionAssignmentStatement(

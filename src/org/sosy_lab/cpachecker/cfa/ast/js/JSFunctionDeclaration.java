@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
@@ -38,12 +39,26 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDeclaration {
 
   private static final long serialVersionUID = -6049361884111627710L;
+  private final String qualifiedName;
 
   public JSFunctionDeclaration(
       FileLocation pFileLocation,
       String pName,
+      @Nonnull final String pOrigName,
+      @Nonnull final String pQualifiedName,
       List<JSParameterDeclaration> parameters) {
-    super(pFileLocation, JSFunctionType.instance, checkNotNull(pName), parameters);
+    super(
+        pFileLocation,
+        JSFunctionType.instance,
+        checkNotNull(pName),
+        checkNotNull(pOrigName),
+        parameters);
+    qualifiedName = checkNotNull(pQualifiedName);
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
   }
 
   @Override

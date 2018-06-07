@@ -68,4 +68,6 @@ interface JavaScriptCFABuilder
   FunctionExitNode getFunctionExitNode();
 
   JSIdExpression getReturnVariableId();
+
+  Scope getScope();
 }

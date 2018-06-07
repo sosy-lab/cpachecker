@@ -46,10 +46,7 @@ public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
             parseExpression(ParenthesizedExpression.class, "(function () {})").getExpression();
 
     final JSFunctionDeclaration jsFunctionDeclaration =
-        new JSFunctionDeclaration(
-            FileLocation.DUMMY,
-            "",
-            Collections.emptyList());
+        new JSFunctionDeclaration(FileLocation.DUMMY, "", "", "", Collections.emptyList());
 
     final FunctionDeclarationAppendable functionDeclarationAppendable =
         mock(FunctionDeclarationAppendable.class);

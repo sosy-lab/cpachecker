@@ -24,15 +24,18 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.base.Optional;
-import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
+import org.eclipse.wst.jsdt.core.dom.SingleVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -46,13 +49,20 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
   @Override
   public JSFunctionDeclaration append(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
+    final Scope currentScope = pBuilder.getScope();
+    final List<JSParameterDeclaration> parameters =
+        convertParameters(pBuilder, pFunctionDeclaration);
+    final String originalFunctionName = getFunctionName(pFunctionDeclaration);
+    final String functionName = currentScope.uniquifyName(originalFunctionName);
+    final String functionQualifiedName = currentScope.qualifiedFunctionNameOf(functionName);
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
             pBuilder.getFileLocation(pFunctionDeclaration),
-            getFunctionName(pFunctionDeclaration),
-            Collections.emptyList());
-    // TODO rename function if same function name already exists in scope
-    pBuilder.getBuilder().getScope().addDeclaration(jsFunctionDeclaration);
+            functionName,
+            originalFunctionName,
+            functionQualifiedName,
+            parameters);
+    currentScope.addDeclaration(jsFunctionDeclaration);
     final String returnVariableName = "__retval__";
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(
@@ -64,8 +74,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             new JSInitializerExpression(
                 FileLocation.DUMMY, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
 
-    final String functionName = jsFunctionDeclaration.getName();
-    final FunctionExitNode exitNode = new FunctionExitNode(functionName);
+    final FunctionExitNode exitNode = new FunctionExitNode(functionQualifiedName);
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(
             FileLocation.DUMMY,
@@ -74,9 +83,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             Optional.of(returnVariableDeclaration));
     exitNode.setEntryNode(entryNode);
     final JavaScriptCFABuilder functionCFABuilder =
-        pBuilder.copyWith(
-            entryNode,
-            new FunctionScopeImpl(pBuilder.getBuilder().getScope(), jsFunctionDeclaration));
+        pBuilder.copyWith(entryNode, new FunctionScopeImpl(currentScope, jsFunctionDeclaration));
 
     addFunctionEntryNode(pBuilder);
 
@@ -106,6 +113,20 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     functionCFABuilder.appendTo(pBuilder.getBuilder());
 
     return jsFunctionDeclaration;
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<JSParameterDeclaration> convertParameters(
+      final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
+    final List<SingleVariableDeclaration> parameterDeclarations = pFunctionDeclaration.parameters();
+    return parameterDeclarations
+        .stream()
+        .map(
+            parameterDeclaration ->
+                new JSParameterDeclaration(
+                    pBuilder.getFileLocation(parameterDeclaration),
+                    parameterDeclaration.getName().getIdentifier()))
+        .collect(Collectors.toList());
   }
 
   /**

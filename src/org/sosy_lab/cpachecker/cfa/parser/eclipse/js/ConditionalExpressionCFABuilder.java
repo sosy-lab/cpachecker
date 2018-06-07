@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
-
 import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -51,7 +49,7 @@ class ConditionalExpressionCFABuilder implements ConditionalExpressionAppendable
             false,
             resultVariableName,
             resultVariableName,
-            qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),
+            pBuilder.getScope().qualifiedVariableNameOf(resultVariableName),
             null);
     final JSIdExpression resultVariableId =
         new JSIdExpression(

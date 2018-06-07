@@ -148,8 +148,15 @@ public class CFASecondPassBuilder {
 
     // If we have a function declaration, it is a normal call to this function,
     // and neither a call to an undefined function nor a function pointer call.
-    return (functionDecl != null)
-            && cfa.getAllFunctionNames().contains(functionDecl.getName());
+    if (functionDecl == null) {
+      return false;
+    }
+    final String functionName = functionDecl.getQualifiedName();
+    final boolean isKnownFunction = cfa.getAllFunctionNames().contains(functionName);
+    if (!isKnownFunction) {
+      logger.log(Level.INFO, "Call to unknown function " + functionName);
+    }
+    return isKnownFunction;
   }
 
   /**
@@ -178,7 +185,7 @@ public class CFASecondPassBuilder {
     }
 
     AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-    String functionName = functionCallExpression.getDeclaration().getName();
+    final String functionName = functionCallExpression.getDeclaration().getQualifiedName();
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     FunctionExitNode fExitNode = fDefNode.getExitNode();

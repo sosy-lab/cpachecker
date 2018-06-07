@@ -28,4 +28,9 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 interface FunctionScope extends Scope {
 
   JSFunctionDeclaration getFunctionDeclaration();
+
+  @Override
+  default String getNameOfScope() {
+    return getFunctionDeclaration().getName();
+  }
 }

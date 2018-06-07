@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -55,6 +56,16 @@ public final class JSVariableDeclaration extends AVariableDeclaration implements
         pOrigName,
         pQualifiedName,
         pInitializer);
+  }
+
+  /**
+   * Creates a local variable declaration with dummy file location, no initializer and same names.
+   *
+   * @param pName Used as name, original name and qualified name.
+   * @return Local variable declaration with dummy file location, no initializer and same names.
+   */
+  public static JSVariableDeclaration local(final @Nonnull String pName) {
+    return new JSVariableDeclaration(FileLocation.DUMMY, false, pName, pName, pName, null);
   }
 
   @Override

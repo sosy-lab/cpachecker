@@ -53,7 +53,7 @@ class CFABuilder implements FileLocationProvider {
       final Scope pScope,
       final LogManager pLogger,
       final JSFunctionEntryNode pEntryNode) {
-    this(pScope, pLogger, pEntryNode.getFunctionName(), pEntryNode);
+    this(pScope, pLogger, pEntryNode.getFunctionDefinition().getQualifiedName(), pEntryNode);
     parseResult.getFunctions().put(functionName, pEntryNode);
     parseResult.getCFANodes().put(functionName, pEntryNode);
     parseResult.getCFANodes().put(functionName, pEntryNode.getExitNode());

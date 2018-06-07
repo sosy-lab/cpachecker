@@ -31,13 +31,11 @@ import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
-import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
@@ -47,8 +45,7 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testFunctionInvocation() {
-    final JavaScriptUnit ast = createAST("function foo() { /* stub */ }\nfoo()");
-    final String expectedFunctionName = "foo";
+    final JavaScriptUnit ast = createAST("function foo(a, b) { /* stub */ }\nfoo(e1, e2)");
     final FunctionInvocation functionInvocation =
         (FunctionInvocation) ((ExpressionStatement) ast.statements().get(1)).getExpression();
     // expected CFA: entryNode -{foo()}-> ()
@@ -56,8 +53,10 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
     final JSIdExpression functionId =
         new JSIdExpression(FileLocation.DUMMY, "foo", functionDeclaration);
+    final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
+    final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(functionId);
+    when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(functionId, e1, e2);
     builder.setExpressionAppendable(expressionAppendable);
 
     // TODO check return value
@@ -67,21 +66,20 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
     final JSFunctionCallAssignmentStatement functionCallStatement =
         (JSFunctionCallAssignmentStatement) functionInvocationEdge.getStatement();
-    // TODO check function declaration of functionCallExpression
     final JSFunctionCallExpression functionCallExpression =
         functionCallStatement.getFunctionCallExpression();
     Truth.assertThat(functionCallExpression.getFunctionNameExpression())
         .isInstanceOf(JSIdExpression.class);
-    Truth.assertThat(
-            ((JSIdExpression) functionCallExpression.getFunctionNameExpression()).getName())
-        .isEqualTo(expectedFunctionName);
+    Truth.assertThat(functionCallExpression.getFunctionNameExpression()).isEqualTo(functionId);
+    Truth.assertThat(functionCallExpression.getDeclaration()).isEqualTo(functionDeclaration);
+    Truth.assertThat(functionCallExpression.getParameterExpressions()).containsExactly(e1, e2);
     Truth.assertThat(functionInvocationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 
   @Test
   public final void testImmediatelyInvokedFunctionExpression() {
     final FunctionInvocation functionInvocation =
-        parseExpression(FunctionInvocation.class, "(function () {})()");
+        parseExpression(FunctionInvocation.class, "(function (a, b) {})(e1, e2)");
 
     final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
     final JSIdExpression functionId =
@@ -89,9 +87,10 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
             FileLocation.DUMMY,
             "__CPAChecker_ANONYMOUS_FUNCTION_0",
             functionDeclaration);
+    final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
+    final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any(ParenthesizedExpression.class)))
-        .thenReturn(functionId);
+    when(expressionAppendable.append(any(), any())).thenReturn(functionId, e1, e2);
     builder.setExpressionAppendable(expressionAppendable);
 
     // TODO check return value
@@ -105,6 +104,7 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
         functionCallStatement.getFunctionCallExpression();
     Truth.assertThat(functionCallExpression.getFunctionNameExpression()).isEqualTo(functionId);
     Truth.assertThat(functionCallExpression.getDeclaration()).isEqualTo(functionDeclaration);
+    Truth.assertThat(functionCallExpression.getParameterExpressions()).containsExactly(e1, e2);
     Truth.assertThat(functionInvocationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 }

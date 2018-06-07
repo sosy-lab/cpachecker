@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.js;
 
-import java.util.List;
 import com.google.common.base.Optional;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
@@ -44,7 +44,7 @@ public class JSFunctionEntryNode extends FunctionEntryNode {
 
     super(
         pFileLocation,
-        pFunctionDefinition.getName(),
+        pFunctionDefinition.getQualifiedName(),
         pExitNode,
         pFunctionDefinition,
         pReturnVariable);

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
-
 import com.google.common.collect.ImmutableSet;
 import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
@@ -34,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -93,7 +90,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
             false,
             resultVariableName,
             resultVariableName,
-            qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),
+            pBuilder.getScope().qualifiedVariableNameOf(resultVariableName),
             null);
     final JSIdExpression resultVariableId =
         new JSIdExpression(

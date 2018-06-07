@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
-
-import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -45,6 +45,7 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
         pNode.getName() != null
             ? pBuilder.resolve(pNode.getName())
             : (JSIdExpression) pBuilder.append(pNode.getExpression());
+    final List<JSExpression> arguments = appendArguments(pBuilder, pNode);
     final JSFunctionDeclaration declaration = (JSFunctionDeclaration) function.getDeclaration();
     final String resultVariableName = pBuilder.generateVariableName();
     final JSVariableDeclaration resultVariableDeclaration =
@@ -53,7 +54,7 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
             false,
             resultVariableName,
             resultVariableName,
-            qualifiedNameOf(pBuilder.getFunctionName(), resultVariableName),
+            pBuilder.getScope().qualifiedVariableNameOf(resultVariableName),
             null);
     final JSIdExpression resultVariableId =
         new JSIdExpression(
@@ -63,10 +64,7 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
             pBuilder.getFileLocation(pNode),
             resultVariableId,
             new JSFunctionCallExpression(
-                pBuilder.getFileLocation(pNode),
-                function,
-                Collections.emptyList(),
-                declaration));
+                pBuilder.getFileLocation(pNode), function, arguments, declaration));
 
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
@@ -80,4 +78,12 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
     return resultVariableId;
   }
 
+  @SuppressWarnings("unchecked")
+  private List<JSExpression> appendArguments(
+      final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
+    return ((List<Expression>) pNode.arguments())
+        .stream()
+        .map(argument -> pBuilder.append(argument))
+        .collect(Collectors.toList());
+  }
 }

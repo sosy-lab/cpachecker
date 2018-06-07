@@ -147,6 +147,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
     javaScriptUnitAppendable = pJavaScriptUnitAppendable;
   }
 
+  // TODO replace with declareTemporaryVariable
   @Override
   public String generateVariableName() {
     return variableNameGenerator.generateVariableName();
@@ -174,6 +175,11 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
         functionEntryNode.getReturnVariable().get();
     return new JSIdExpression(
         FileLocation.DUMMY, returnVariableDeclaration.getName(), returnVariableDeclaration);
+  }
+
+  @Override
+  public Scope getScope() {
+    return getBuilder().getScope();
   }
 
   @Override

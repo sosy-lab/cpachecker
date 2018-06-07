@@ -23,7 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import javax.annotation.Nonnull;
+
+/**
+ * The scope of the JavaScript input file. Only single JavaScript input files are supported at the
+ * moment. Thus, it is not necessary to include the file name in the name of the scope. It is
+ * shorter without it and still unique. Apart from this, some parts of CPAchecker currently do not
+ * support the characters contained in the file path.
+ */
 interface FileScope extends Scope {
 
   String getFileName();
+
+  @Nonnull
+  @Override
+  default String getNameOfScope() {
+    // Some parts of CPAchecker currently do not support the characters contained in the file path.
+    // Further, it is not necessary to include the file name in the name of the scope at the
+    // moment (see description of interface FileScope).
+    // Replace the following return statement with the return statement below it, when file name
+    // should be part of the scope name.
+    return "";
+    //    return getFileName();
+  }
 }

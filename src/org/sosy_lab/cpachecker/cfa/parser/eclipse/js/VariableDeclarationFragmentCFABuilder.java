@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.sosy_lab.cpachecker.cfa.ast.java.QualifiedNameBuilder.qualifiedNameOf;
-
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
@@ -46,9 +44,9 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
             false,
             variableIdentifier,
             variableIdentifier,
-            qualifiedNameOf(pBuilder.getFunctionName(), variableIdentifier),
+            pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
             new JSInitializerExpression(expression.getFileLocation(), expression));
-    pBuilder.getBuilder().getScope().addDeclaration(variableDeclaration);
+    pBuilder.getScope().addDeclaration(variableDeclaration);
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(

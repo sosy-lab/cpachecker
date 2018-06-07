@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 
 class FunctionScopeImpl implements FunctionScope {
@@ -43,6 +44,21 @@ class FunctionScopeImpl implements FunctionScope {
       @Nonnull final JSFunctionDeclaration pFunctionDeclaration) {
     parentScope = pParentScope;
     functionDeclaration = pFunctionDeclaration;
+    setQualifiedNameOfParameters();
+  }
+
+  /**
+   * The qualified name of a parameter depends on the function scope. Parameters belong to the
+   * function declaration, which is required by the function scope. Thereby, the qualified name of a
+   * parameter can only be set after the function scope is created.
+   */
+  private void setQualifiedNameOfParameters() {
+    for (final JSParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
+      final String parameterName = parameterDeclaration.getName();
+      assert !getParentScope().findDeclaration(parameterName).isPresent()
+          : "Parameter name " + parameterName + " may not shadow identifier of parent scope";
+      parameterDeclaration.setQualifiedName(qualifiedVariableNameOf(parameterName));
+    }
   }
 
   @Override

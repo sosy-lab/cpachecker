@@ -42,7 +42,7 @@ class SimpleNameResolverImpl implements SimpleNameResolver {
     assert !pSimpleName.getIdentifier().equals("undefined")
         : "Can not resolve undefined"; // unsupported use of undefined
     final Optional<? extends JSSimpleDeclaration> declaration =
-        pBuilder.getBuilder().getScope().findDeclaration(pSimpleName.getIdentifier());
+        pBuilder.getScope().findDeclaration(pSimpleName.getIdentifier());
     return new JSIdExpression(
         pBuilder.getFileLocation(pSimpleName),
         declaration.isPresent() ? declaration.get().getName() : pSimpleName.getIdentifier(),

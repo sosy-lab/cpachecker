@@ -42,6 +42,13 @@ public final class JSParameterDeclaration extends AParameterDeclaration
     super(pFileLocation, JSAnyType.ANY, checkNotNull(pName));
   }
 
+  /**
+   * Is set in {@link
+   * org.sosy_lab.cpachecker.cfa.parser.eclipse.js.FunctionScopeImpl#setQualifiedNameOfParameters()}.
+   *
+   * @param pQualifiedName The qualified name of the parameter, which depends on the qualified name
+   *     of the function scope.
+   */
   public void setQualifiedName(String pQualifiedName) {
     checkState(qualifiedName == null);
     qualifiedName = checkNotNull(pQualifiedName);
