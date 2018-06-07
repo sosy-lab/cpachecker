@@ -354,7 +354,7 @@ public class ARGToAutomatonConverter {
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(state);
     while (!waitlist.isEmpty()) {
-      ARGState s = waitlist.pop();
+      ARGState s = uncover(waitlist.pop());
       if (reachable.add(s)) {
         waitlist.addAll(s.getChildren());
       }
