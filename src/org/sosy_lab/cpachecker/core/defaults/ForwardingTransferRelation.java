@@ -54,6 +54,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -576,6 +579,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       return isGlobal((CExpression) exp);
     } else if (exp instanceof JExpression) {
       return isGlobal((JExpression) exp);
+    } else if (exp instanceof JSExpression) {
+      return isGlobal((JSExpression) exp);
     } else {
       throw new AssertionError("unknown expression: " + exp);
     }
@@ -598,6 +603,16 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       }
     }
 
+    return false;
+  }
+
+  protected static boolean isGlobal(final JSExpression exp) {
+    if (exp instanceof JSIdExpression) {
+      final JSSimpleDeclaration decl = ((JSIdExpression) exp).getDeclaration();
+      if (decl instanceof ADeclaration) {
+        return ((ADeclaration) decl).isGlobal();
+      }
+    }
     return false;
   }
 
