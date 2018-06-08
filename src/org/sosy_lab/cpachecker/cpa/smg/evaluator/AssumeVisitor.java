@@ -140,13 +140,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private PointerComparisonResult comparePointer(SMGKnownAddVal pV1, SMGKnownAddVal pV2, BinaryOperator pOp) {
+  /** returns the comparison of two pointers, i.e. "p1 op p2". */
+  private boolean comparePointer(SMGKnownAddVal pV1, SMGKnownAddVal pV2, BinaryOperator pOp) {
 
     SMGObject object1 = pV1.getObject();
     SMGObject object2 = pV2.getObject();
-
-    boolean isTrue = false;
-    boolean isFalse = true;
 
     // there can be more precise comparison when pointer point to the same object.
     if (object1 == object2) {
@@ -155,27 +153,19 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
       switch (pOp) {
       case GREATER_EQUAL:
-        isTrue = offset1 >= offset2;
-        isFalse = !isTrue;
-        break;
+          return offset1 >= offset2;
       case GREATER_THAN:
-        isTrue = offset1 > offset2;
-        isFalse = !isTrue;
-        break;
+          return offset1 > offset2;
       case LESS_EQUAL:
-        isTrue = offset1 <= offset2;
-        isFalse = !isTrue;
-        break;
+          return offset1 <= offset2;
       case LESS_THAN:
-        isTrue = offset1 < offset2;
-        isFalse = !isTrue;
-        break;
+          return offset1 < offset2;
       default:
         throw new AssertionError("Impossible case thrown");
       }
 
     }
-    return PointerComparisonResult.valueOf(isTrue, isFalse);
+    return false;
   }
 
   private SMGValueAndState evaluateBinaryAssumptionOfConcreteSymbolicValues(SMGState pNewState, BinaryOperator pOp, SMGKnownSymValue pV1, SMGKnownSymValue pV2) {
@@ -237,11 +227,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       }
 
         if (isPointerOp1 && isPointerOp2) {
-          SMGKnownAddVal p1 = (SMGKnownAddVal) pV1;
-          SMGKnownAddVal p2 = (SMGKnownAddVal) pV2;
-          PointerComparisonResult result = comparePointer(p1, p2, pOp);
-          isFalse = result.isFalse();
-          isTrue = result.isTrue();
+          isTrue = comparePointer((SMGKnownAddVal) pV1, (SMGKnownAddVal) pV2, pOp);
+          isFalse = !isTrue;
         }
       break;
     default:
@@ -398,29 +385,6 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
     public SMGSymbolicValue getVal1() {
       return val1;
-    }
-  }
-
-  private static class PointerComparisonResult {
-
-    private final boolean isTrue;
-    private final boolean isFalse;
-
-    private PointerComparisonResult(boolean pIsTrue, boolean pIsFalse) {
-      isTrue = pIsTrue;
-      isFalse = pIsFalse;
-    }
-
-    public static PointerComparisonResult valueOf(boolean pIsTrue, boolean pIsFalse) {
-      return new PointerComparisonResult(pIsTrue, pIsFalse);
-    }
-
-    public boolean isTrue() {
-      return isTrue;
-    }
-
-    public boolean isFalse() {
-      return isFalse;
     }
   }
 }
