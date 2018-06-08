@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Preconditions;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -42,9 +43,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -133,10 +135,8 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
     assert smgExpressionEvaluator.getRealExpressionType(operand) instanceof CPointerType
       || smgExpressionEvaluator.getRealExpressionType(operand) instanceof CArrayType;
 
-    SMGAddressValueAndStateList addressValueAndState = smgExpressionEvaluator.evaluateAddress(
-        getInitialSmgState(), getCfaEdge(), operand);
-
-    return addressValueAndState.asAddressAndStateList();
+    return asAddressAndStateList(
+        smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), operand));
   }
 
   public final CFAEdge getCfaEdge() {
@@ -145,5 +145,20 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
   public final SMGState getInitialSmgState() {
     return initialSmgState;
+  }
+
+  protected static List<SMGAddressAndState> asAddressAndStateList(
+      List<SMGAddressValueAndState> lst) {
+    List<SMGAddressAndState> result = new ArrayList<>();
+    for (SMGAddressValueAndState addressValueAndState : lst) {
+      SMGAddressValue addressValue = addressValueAndState.getObject();
+      result.add(
+          SMGAddressAndState.of(
+              addressValueAndState.getSmgState(),
+              addressValue.isUnknown()
+                  ? SMGAddress.getUnknownInstance()
+                  : addressValue.getAddress()));
+    }
+    return result;
   }
 }

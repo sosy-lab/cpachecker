@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.List;
 import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -257,20 +258,19 @@ public class SMGStateTest {
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGAddressValueAndStateList add = smg1State.getPointerFromValue(6);
+    List<SMGAddressValueAndState> add = smg1State.getPointerFromValue(6);
 
-    add.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGState newState = add.getValueAndStateList().get(1).getSmgState();
+    SMGState newState = add.get(1).getSmgState();
 
-    SMGAddressValueAndStateList add2 = newState.getPointerFromValue(7);
+    List<SMGAddressValueAndState> add2 = newState.getPointerFromValue(7);
 
-    add2.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add2.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
+    add2.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   @SuppressWarnings("unchecked")
@@ -463,7 +463,8 @@ public class SMGStateTest {
 
     Integer pointer = pt.getValue().intValue();
 
-    SMGAddressValue pt_obtained = Iterables.getOnlyElement(state.getPointerFromValue(pointer).asAddressValueAndStateList()).getObject();
+    SMGAddressValue pt_obtained =
+        Iterables.getOnlyElement(state.getPointerFromValue(pointer)).getObject();
     Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
   }
 

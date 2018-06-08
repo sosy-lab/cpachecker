@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.List;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -35,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -101,7 +101,7 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
     SMGValueAndState symbolicValueAndState;
 
     try {
-      SMGValueAndStateList symbolicValueAndStates =
+      List<? extends SMGValueAndState> symbolicValueAndStates =
           smgRightHandSideEvaluator.evaluateExpressionValue(getNewState(), getEdge(), exp);
 
       if (symbolicValueAndStates.size() != 1) {
@@ -110,7 +110,7 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
                 + " already being evaluated once in this transfer-relation step.");
       }
 
-      symbolicValueAndState = symbolicValueAndStates.getValueAndStateList().get(0);
+      symbolicValueAndState = symbolicValueAndStates.get(0);
 
     } catch (CPATransferException e) {
       UnrecognizedCCodeException e2 = new UnrecognizedCCodeException(

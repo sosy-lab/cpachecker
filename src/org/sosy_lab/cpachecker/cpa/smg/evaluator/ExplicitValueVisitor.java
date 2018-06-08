@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -114,7 +113,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     if (value.isUnknown() && binaryExp.getOperator().isLogicalOperator()) {
       /* We may be able to get an explicit Value from pointer comaprisons. */
 
-      SMGValueAndStateList symValueAndStates;
+      List<? extends SMGValueAndState> symValueAndStates;
 
       try {
         symValueAndStates = smgExpressionEvaluator.evaluateAssumptionValue(smgState, edge, binaryExp);
@@ -128,13 +127,13 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       SMGValueAndState symValueAndState;
 
       if (symValueAndStates.size() > 0) {
-        symValueAndState = symValueAndStates.getValueAndStateList().get(0);
+        symValueAndState = symValueAndStates.get(0);
       } else {
         symValueAndState = SMGValueAndState.of(getNewState());
       }
 
       for (int c = 1; c < symValueAndStates.size(); c++) {
-        smgStatesToBeProccessed.add(symValueAndStates.getValueAndStateList().get(c).getSmgState());
+        smgStatesToBeProccessed.add(symValueAndStates.get(c).getSmgState());
       }
 
       SMGSymbolicValue symValue = symValueAndState.getObject();
@@ -159,7 +158,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   private Value evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
       throws UnrecognizedCCodeException {
 
-    SMGValueAndStateList valueAndStates;
+    List<? extends SMGValueAndState> valueAndStates;
     try {
       valueAndStates = smgExpressionEvaluator.evaluateExpressionValue(smgState, edge, leftHandSide);
     } catch (CPATransferException e) {
@@ -171,13 +170,13 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     SMGValueAndState valueAndState;
     if (valueAndStates.size() > 0) {
-      valueAndState = valueAndStates.getValueAndStateList().get(0);
+      valueAndState = valueAndStates.get(0);
     } else {
       valueAndState = SMGValueAndState.of(getNewState());
     }
 
     for (int c = 1; c < valueAndStates.size(); c++) {
-      smgStatesToBeProccessed.add(valueAndStates.getValueAndStateList().get(c).getSmgState());
+      smgStatesToBeProccessed.add(valueAndStates.get(c).getSmgState());
     }
 
     SMGSymbolicValue value = valueAndState.getObject();

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -102,10 +101,15 @@ class ArrayVisitor extends AddressVisitor
     }
 
     // a = &a[0]
-    SMGAddressValueAndStateList result =
-        smgExpressionEvaluator.handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
-            address, arrayOffset, addressType, lVarIsAddress, binaryExp);
-    return result.asAddressAndStateList();
+    return asAddressAndStateList(
+        smgExpressionEvaluator.handlePointerArithmetic(
+            getInitialSmgState(),
+            getCfaEdge(),
+            address,
+            arrayOffset,
+            addressType,
+            lVarIsAddress,
+            binaryExp));
   }
 
   @Override
@@ -137,9 +141,9 @@ class ArrayVisitor extends AddressVisitor
             smgExpressionEvaluator.readValue(newState, address.getObject(),
                 address.getOffset(), type, getCfaEdge());
 
-        SMGAddressValueAndStateList trueAddressAndState = smgExpressionEvaluator.getAddressFromSymbolicValue(pointerAndState);
-
-        result.addAll(trueAddressAndState.asAddressAndStateList());
+        result.addAll(
+            asAddressAndStateList(
+                smgExpressionEvaluator.getAddressFromSymbolicValue(pointerAndState)));
       }
 
       return result;
