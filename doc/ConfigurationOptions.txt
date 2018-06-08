@@ -1941,6 +1941,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
+# use variant described in the Guiding Craig Interpolation Paper leading to a
+# different routine
+cpa.predicate.refinement.domainSpecificAbstractions = false
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 

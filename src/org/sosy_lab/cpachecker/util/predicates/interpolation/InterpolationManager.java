@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import org.matheclipse.basic.Config;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -73,17 +75,22 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.Sequential
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.WellScopedInterpolation;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpecificAbstraction;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.java_smt.SolverContextFactory;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -120,6 +127,7 @@ public final class InterpolationManager {
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pmgr;
   private final Solver solver;
+  private Configuration my_config;
 
   private final Interpolator<?> interpolator;
 
@@ -131,6 +139,11 @@ public final class InterpolationManager {
       description="use incremental search in counterexample analysis, "
         + "to find the minimal infeasible prefix")
   private boolean incrementalCheck = false;
+
+  @Option(secure=true, name="domainSpecificAbstractions",
+      description="use variant described in the Guiding Craig Interpolation Paper "
+          + "leading to a different routine")
+  private boolean domainSpecificAbstractions = false;
 
   @Option(secure=true, name="cexTraceCheckDirection",
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
@@ -204,6 +217,7 @@ public final class InterpolationManager {
     solver = pSolver;
     loopStructure = pLoopStructure.orElse(null);
     variableClassification = pVarClassification.orElse(null);
+    my_config = config;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -611,40 +625,77 @@ public final class InterpolationManager {
   private <T> List<BooleanFormula> getInterpolants(Interpolator<T> pInterpolator,
       List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
           throws SolverException, InterruptedException {
+
     // TODO replace with Config-Class-Constructor-Injection?
-    final  ITPStrategy<T> itpStrategy;
-    switch (strategy) {
-      case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr, sequentialStrategy);
-        break;
-      case SEQ:
-        itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE_WELLSCOPED:
-        itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE_NESTED:
-        itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE_CPACHECKER:
-        itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE:
-        itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      default:
-        throw new AssertionError("unknown interpolation strategy");
+    List<BooleanFormula> my_interpolants;
+
+
+    if (domainSpecificAbstractions) {
+      Solver my_solver = null;
+      try {
+        my_solver = Solver.create(
+            my_config, logger,
+            shutdownNotifier);
+      } catch (InvalidConfigurationException pE) {
+        logger.log(Level.WARNING, "Invalid Configuration!");
+      }
+      FormulaManagerView new_fmgr = my_solver.getFormulaManager();
+      DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<T>(shutdownNotifier,
+          new_fmgr,
+          bfmgr, fmgr, pInterpolator);
+      List<BooleanFormula> tocheck = Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+        my_interpolants = dsa.domainSpecificAbstractionsCheck
+            (my_solver, tocheck);
+
+      //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
+      //    (my_solver, tocheck);
+      List<BooleanFormula> interpolantList = new ArrayList<>(formulasWithStatesAndGroupdIds.size());
+      for (BooleanFormula f : my_interpolants) {
+        BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
+        interpolantList.add(interpolant);
+      }
+      //return my_interpolants;
+      return interpolantList;
+    } else {
+      final ITPStrategy<T> itpStrategy;
+      switch (strategy) {
+        case SEQ_CPACHECKER:
+          itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr,
+              sequentialStrategy);
+          break;
+        case SEQ:
+          itpStrategy =
+              new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE_WELLSCOPED:
+          itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE_NESTED:
+          itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE_CPACHECKER:
+          itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE:
+          itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        default:
+          throw new AssertionError("unknown interpolation strategy");
+      }
+
+      final List<BooleanFormula> interpolants =
+          itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
+
+      assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size()
+          : "we should return N-1 interpolants for N formulas.";
+
+      if (verifyInterpolants) {
+        itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
+      }
+
+
+      return interpolants;
     }
-
-    final List<BooleanFormula> interpolants = itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
-
-    assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size() : "we should return N-1 interpolants for N formulas.";
-
-    if (verifyInterpolants) {
-      itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
-    }
-
-    return interpolants;
   }
 
   /**
