@@ -53,9 +53,9 @@ public final class WhileStatementCFABuilderTest extends CFABuilderTestBase {
   public final void testWhile() {
     final WhileStatement whileStatement =
         parseStatement(WhileStatement.class, "while (condition) { doSomething() }");
-    // expected CFA: ------------------------------------->((entryNode)) --[!condition]--> ()
-    //                 |                                         |
-    //                 \<--{doSomething()}-- () <--[!condition]--/
+    // expected CFA: ------------------------------------------->((entryNode)) --[!condition]--> ()
+    //                 |                                               |
+    //                 \<-- () <--{doSomething()}-- () <--[condition]--/
 
     final JSExpression condition =
         new JSIdExpression(FileLocation.DUMMY, "condition", mock(JSSimpleDeclaration.class));
