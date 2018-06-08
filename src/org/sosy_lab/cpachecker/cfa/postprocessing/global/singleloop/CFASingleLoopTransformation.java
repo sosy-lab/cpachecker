@@ -41,6 +41,7 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1273,7 +1274,8 @@ public class CFASingleLoopTransformation {
       Class<? extends CFANode> clazz = pNode.getClass();
       Class<?>[] requiredParameterTypes = new Class<?>[] { int.class, String.class };
       for (Constructor<?> cons : clazz.getConstructors()) {
-        if (cons.isAccessible() && Arrays.equals(cons.getParameterTypes(), requiredParameterTypes)) {
+        if (Modifier.isPublic(cons.getModifiers())
+            && Arrays.equals(cons.getParameterTypes(), requiredParameterTypes)) {
           try {
             result = (CFANode) cons.newInstance(functionName);
             break;
