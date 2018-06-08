@@ -66,7 +66,11 @@ public class ValidationConfigurationBuilder {
 
     adaptCPAConfig(configBuilder, relPropEntries);
 
-    return configBuilder.build();
+    try {
+      return configBuilder.build();
+    } catch (InvalidConfigurationException e) {
+      throw new ValidationConfigurationConstructionFailed(e);
+    }
   }
 
   private Map<String, String> extractRelevantPropertyEntriesAndClearAnalysisOptions(
