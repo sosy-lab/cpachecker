@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
@@ -246,8 +245,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Normal function call case
-    for (FunctionEntryNode node : CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class)) {
-      if (node.getFunctionName().equals(pState.getCurrentFunction())) {
+    for (int i = 0; i < callNode.getNumLeavingEdges(); i++) {
+      CFANode node = callNode.getLeavingEdge(i).getSuccessor();
+      if (node instanceof FunctionEntryNode && node.getFunctionName().equals(function)) {
         return false;
       }
     }
