@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-abstract class CFABuilderTestBase {
+public abstract class CFABuilderTestBase {
 
   protected EclipseJavaScriptParser parser;
   protected ConfigurableJavaScriptCFABuilder builder;
