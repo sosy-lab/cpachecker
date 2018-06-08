@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGAddressValue {
 
   /** The address this value represents. */
-  private final SMGKnownAddress address;
+  private final SMGAddress address;
 
-  private SMGKnownAddressValue(BigInteger pValue, SMGKnownAddress pAddress) {
+  private SMGKnownAddressValue(BigInteger pValue, SMGAddress pAddress) {
     super(pValue);
     checkNotNull(pAddress);
     address = pAddress;
@@ -45,16 +45,16 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
 
   public static SMGKnownAddressValue valueOf(
       SMGObject pObject, SMGKnownExpValue pOffset, SMGKnownSymValue pAddress) {
-    return new SMGKnownAddressValue(pAddress.getValue(), SMGKnownAddress.valueOf(pObject, pOffset));
+    return new SMGKnownAddressValue(pAddress.getValue(), SMGAddress.valueOf(pObject, pOffset));
   }
 
   public static SMGKnownAddressValue valueOf(int pValue, SMGObject object, long offset) {
     return new SMGKnownAddressValue(
-        BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
+        BigInteger.valueOf(pValue), SMGAddress.valueOf(object, SMGKnownExpValue.valueOf(offset)));
   }
 
   @Override
-  public SMGKnownAddress getAddress() {
+  public SMGAddress getAddress() {
     return address;
   }
 
@@ -65,7 +65,7 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
 
   @Override
   public SMGKnownExpValue getOffset() {
-    return address.getOffset();
+    return (SMGKnownExpValue) address.getOffset();
   }
 
   @Override
