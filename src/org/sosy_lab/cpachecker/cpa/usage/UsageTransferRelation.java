@@ -177,50 +177,46 @@ public class UsageTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    boolean needToReset = false;
-    if (shouldBeSkipped(pCfaEdge)) {
-      callstackTransfer.enableRecursiveContext();
-      needToReset = true;
-      currentEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
-      Preconditions.checkNotNull(
-          currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
-      logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
-    }
+    currentEdge = changeIfNeccessary(pCfaEdge);
 
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.copy();
     precision = (UsagePrecision) pPrecision;
     statistics.usagePreparationTimer.start();
-    handleEdge(pCfaEdge);
+    handleEdge(currentEdge);
     statistics.usagePreparationTimer.stop();
 
+    statistics.innerAnalysisTimer.start();
     Collection<? extends AbstractState> newWrappedStates =
         wrappedTransfer.getAbstractSuccessorsForEdge(
             oldWrappedState, precision.getWrappedPrecision(), currentEdge);
+    statistics.innerAnalysisTimer.stop();
 
     // Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
-      UsageState resultState = newState.copy(newWrappedState);
-      if (resultState != null) {
-        result.add(resultState);
-      }
+      result.add(newState.copy(newWrappedState));
     }
 
-    if (needToReset) {
+    if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
     statistics.transferRelationTimer.stop();
     return result;
   }
 
-  private boolean shouldBeSkipped(CFAEdge pCfaEdge) {
+  private CFAEdge changeIfNeccessary(CFAEdge pCfaEdge) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      String functionName = ((FunctionCallEdge) pCfaEdge).getSuccessor().getFunctionName();
-      if (skippedfunctions != null && skippedfunctions.contains(functionName)) {
-        return true;
+      String functionName = pCfaEdge.getSuccessor().getFunctionName();
+      if (skippedfunctions.contains(functionName)) {
+        CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
+        Preconditions.checkNotNull(
+            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+        logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
+        callstackTransfer.enableRecursiveContext();
+        return newEdge;
       }
     }
-    return false;
+    return pCfaEdge;
   }
 
   private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
