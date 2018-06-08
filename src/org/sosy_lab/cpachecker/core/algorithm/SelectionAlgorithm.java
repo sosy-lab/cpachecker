@@ -31,9 +31,11 @@ import java.io.PrintStream;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -46,12 +48,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -82,6 +91,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
     private final HashSet<String> functionNames = new HashSet<>();
+    private Set<String> arrayVariables = new HashSet<>();
+    private HashSet<String> floatVariables = new HashSet<>();
     private int functionCount = 0;
 
     @Override
@@ -97,6 +108,26 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
                 final AIdExpression id = (AIdExpression) exp;
                 functionNames.add(id.getName());
                 functionCount = functionCount + 1;
+              }
+            }
+            break;
+          }
+        case DeclarationEdge:
+          {
+            final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+            ADeclaration declaration = declarationEdge.getDeclaration();
+            Type declType = declaration.getType();
+            if (declType instanceof CArrayType || declType instanceof JArrayType) {
+              arrayVariables.add(declaration.getQualifiedName());
+            } else if (declType instanceof CSimpleType) {
+              CSimpleType simpleType = (CSimpleType) declType;
+              if (simpleType.getType().isFloatingPointType()) {
+                floatVariables.add(declaration.getQualifiedName());
+              }
+            } else if (declType instanceof JSimpleType) {
+              JSimpleType simpleType = (JSimpleType) declType;
+              if (simpleType.getType().isFloatingPointType()) {
+                floatVariables.add(declaration.getQualifiedName());
               }
             }
             break;
@@ -125,9 +156,11 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     private int containsExternalFunctionCalls = 0;
     // TODO: Change name
     private int numberOfAllRightFunctions = 0;
-    public int requiresAliasHandling = 0;
-    public int requiresLoopHandling = 0;
-    public int requiresCompositeTypeHandling = 0;
+    private int requiresAliasHandling = 0;
+    private int requiresLoopHandling = 0;
+    private int requiresCompositeTypeHandling = 0;
+    private int requiresArrayHandling = 0;
+    private int requiresFloatHandling = 0;
 
     @Override
     public String getName() {
@@ -144,6 +177,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Requires loop handling:                        " + requiresLoopHandling);
       out.println(
           "Requires composite-type handling:              " + requiresCompositeTypeHandling);
+      out.println("Requires array handling:                       " + requiresArrayHandling);
+      out.println("Requires float handling:                       " + requiresFloatHandling);
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -296,6 +331,18 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     boolean requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
     stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling ? 1 : 0;
+
+    boolean requiresArrayHandling =
+        !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.arrayVariables)
+            || !Collections.disjoint(
+                variableClassification.getAddressedFields().values(), visitor.arrayVariables);
+    stats.requiresArrayHandling = requiresArrayHandling ? 1 : 0;
+
+    boolean requiresFloatHandling =
+        !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
+            || !Collections.disjoint(
+                variableClassification.getAddressedFields().values(), visitor.floatVariables);
+    stats.requiresFloatHandling = requiresFloatHandling ? 1 : 0;
 
     final Path chosenConfig;
 
