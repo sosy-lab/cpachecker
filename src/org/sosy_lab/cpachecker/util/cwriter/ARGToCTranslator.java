@@ -926,7 +926,6 @@ public class ARGToCTranslator {
 
     Multimap<ARGState, Map<CDeclaration, String>> decProblems = HashMultimap.create();
 
-    visited.add(root);
     waitlist.push(Pair.of(root, new DeclarationInfo(ImmutableMap.of(), ImmutableList.of())));
 
     while (!waitlist.isEmpty()) {
@@ -934,42 +933,43 @@ public class ARGToCTranslator {
       parent = current.getFirst();
       assumeInfo.clear();
 
-      for (ARGState child : parent.getChildren()) {
-        edge = parent.getEdgeToChild(child);
+      if (visited.add(parent)) {
 
-        if (edge == null) {
-          // assume dynamic multi-edge case
-          decInfo = current.getSecond();
-          for (CFAEdge edgeM : parent.getEdgesToChild(child)) {
-            decInfo = handleDecInfoForEdge(edgeM, parent, child, decInfo);
+        for (ARGState child : parent.getChildren()) {
+          edge = parent.getEdgeToChild(child);
+
+          if (edge == null) {
+            // assume dynamic multi-edge case
+            decInfo = current.getSecond();
+            for (CFAEdge edgeM : parent.getEdgesToChild(child)) {
+              decInfo = handleDecInfoForEdge(edgeM, parent, child, decInfo);
+            }
+          } else {
+            // checkEdge(edge, parent, child, listPerFunction.getLast());
+            decInfo = handleDecInfoForEdge(edge, parent, child, current.getSecond());
           }
-        } else {
-          // checkEdge(edge, parent, child, listPerFunction.getLast());
-          decInfo = handleDecInfoForEdge(edge, parent, child, current.getSecond());
-        }
 
-        child = getCovering(child);
+          child = getCovering(child);
 
-        if (visited.add(child)) {
           // need to use the same exploration order as during code generation
           if (edge instanceof CAssumeEdge) {
             if (getRealTruthAssumption((CAssumeEdge) edge)) {
-              assumeInfo.add(Pair.of(child, decInfo));
-            } else {
               assumeInfo.add(0, Pair.of(child, decInfo));
+            } else {
+              assumeInfo.add(Pair.of(child, decInfo));
             }
           } else {
             waitlist.push(Pair.of(child, decInfo));
           }
+
+          if (child.getCoveredByThis() != null || child.getParents().size() > 0) {
+            decProblems.put(child, decInfo.currentFuncDecInfo);
+          }
         }
 
-        if (child.getCoveredByThis() != null || child.getParents().size() > 0) {
-          decProblems.put(child, decInfo.currentFuncDecInfo);
+        for (int i = 0; i < assumeInfo.size(); i++) {
+          waitlist.push(assumeInfo.get(i));
         }
-      }
-
-      for (int i = 0; i < assumeInfo.size(); i++) {
-        waitlist.push(assumeInfo.get(i));
       }
     }
 
