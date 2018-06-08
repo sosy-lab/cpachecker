@@ -18,7 +18,7 @@
     </path>
 
     <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
-    <target name="build-project" depends="build-dependencies">
+    <target name="build-project" unless="skipBuild" depends="build-dependencies">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <mkdir dir="${source.generated.dir}"/>
         <copy todir="${class.dir}">
