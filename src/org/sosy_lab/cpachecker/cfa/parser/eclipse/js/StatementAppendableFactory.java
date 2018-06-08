@@ -34,6 +34,7 @@ final class StatementAppendableFactory {
     builder.setReturnStatementAppendable(new ReturnStatementCFABuilder());
     builder.setVariableDeclarationStatementAppendable(new VariableDeclarationStatementCFABuilder());
     builder.setWhileStatementAppendable(new WhileStatementCFABuilder());
+    builder.setDoWhileStatementAppendable(new DoWhileStatementCFABuilder());
     return builder;
   }
 }
