@@ -49,6 +49,7 @@ final class JSBinaryExpressionEvaluation {
     operatorEvaluation.put(BinaryOperator.MINUS, new JSSubtractionOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.TIMES, new JSMultiplicationOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.DIVIDE, new JSDivisionOperatorEvaluation());
+    operatorEvaluation.put(BinaryOperator.REMAINDER, new JSRemainderOperatorEvaluation());
   }
 
   public static Value evaluate(
@@ -125,5 +126,13 @@ final class JSDivisionOperatorEvaluation extends JSNumericBinaryOperatorEvaluati
   @Override
   public Value apply(final NumericValue pLeft, final NumericValue pRight) {
     return new NumericValue(pLeft.doubleValue() / pRight.doubleValue());
+  }
+}
+
+final class JSRemainderOperatorEvaluation extends JSNumericBinaryOperatorEvaluation {
+
+  @Override
+  public Value apply(final NumericValue pLeft, final NumericValue pRight) {
+    return new NumericValue(pLeft.doubleValue() % pRight.doubleValue());
   }
 }
