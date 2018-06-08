@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Preconditions;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * It is used to prevent
  * code replication in other visitors who need this kind of functionality,
  * which is why its abstract.
- *
  */
 abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressAndState>, CPATransferException>
     implements CRightHandSideVisitor<List<SMGAddressAndState>, CPATransferException> {
@@ -68,12 +68,12 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
   }
 
   @Override
-  protected List<SMGAddressAndState> visitDefault(CExpression pExp) throws CPATransferException {
-    return SMGAddressAndState.listOf(getInitialSmgState());
+  protected List<SMGAddressAndState> visitDefault(CExpression pExp) {
+    return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
   }
 
   protected List<SMGAddressAndState> visitDefault(@SuppressWarnings("unused") CRightHandSide rhs) {
-    return SMGAddressAndState.listOf(getInitialSmgState());
+    return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
   }
 
   @Override
@@ -99,13 +99,14 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
           if (addedLocalVariable.isPresent()) {
             object = addedLocalVariable.get();
           } else {
-            return SMGAddressAndState.listOf(state, SMGAddress.UNKNOWN);
+            return Collections.singletonList(SMGAddressAndState.of(state, SMGAddress.UNKNOWN));
           }
         }
       }
     }
 
-    return SMGAddressAndState.listOf(state, SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
+    return Collections.singletonList(
+        SMGAddressAndState.of(state, SMGAddress.valueOf(object, SMGKnownExpValue.ZERO)));
   }
 
   @Override

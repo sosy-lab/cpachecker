@@ -68,10 +68,6 @@ public abstract class SMGAbstractObjectAndState<T> {
       super(pState, pValue);
     }
 
-    public SMGAddressAndState asSMGAddressAndState() {
-      return SMGAddressAndState.of(getSmgState(), getObject().getAddress());
-    }
-
     @Override
     public SMGAddressValue getObject() {
       return (SMGAddressValue) super.getObject();
@@ -90,14 +86,6 @@ public abstract class SMGAbstractObjectAndState<T> {
 
     private SMGAddressAndState(SMGState pState, SMGAddress pAddress) {
       super(pState, pAddress);
-    }
-
-    public static List<SMGAddressAndState> listOf(SMGState pInitialSmgState, SMGAddress pValueOf) {
-      return ImmutableList.of(of(pInitialSmgState, pValueOf));
-    }
-
-    public static List<SMGAddressAndState> listOf(SMGState pInitialSmgState) {
-      return ImmutableList.of(of(pInitialSmgState));
     }
 
     public static SMGAddressAndState of(SMGState pState) {
@@ -162,10 +150,6 @@ public abstract class SMGAbstractObjectAndState<T> {
 
     public List<SMGState> asSMGStateList() {
       return Lists.transform(valueAndStateList, SMGValueAndState::getSmgState);
-    }
-
-    public static SMGValueAndStateList copyOfUnknownValue(List<SMGState> pNewStates) {
-      return copyOf(Lists.transform(pNewStates, SMGValueAndState::of));
     }
   }
 

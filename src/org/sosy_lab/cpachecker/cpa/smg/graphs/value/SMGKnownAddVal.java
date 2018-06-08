@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,29 +48,13 @@ public final class SMGKnownAddVal extends SMGKnownSymValue implements SMGAddress
     return new SMGKnownAddVal(pAddress.getValue(), SMGKnownAddress.valueOf(pObject, pOffset));
   }
 
+  public static SMGKnownAddVal valueOf(int pValue, SMGObject object, long offset) {
+    return new SMGKnownAddVal(BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
+  }
+
   @Override
   public SMGKnownAddress getAddress() {
     return address;
-  }
-
-  public static SMGKnownAddVal valueOf(BigInteger pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(pValue, pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(SMGKnownSymValue pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(pValue.getValue(), pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(int pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(long pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(int pValue, SMGObject object, long offset) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
   }
 
   @Override
