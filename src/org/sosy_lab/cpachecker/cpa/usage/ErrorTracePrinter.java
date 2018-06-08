@@ -209,7 +209,7 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String getNoteFor(CFAEdge pEdge) {
-    return lockTransfer == null ? null : lockTransfer.doesChangeTheState(pEdge);
+    return lockTransfer == null || pEdge == null ? "" : lockTransfer.doesChangeTheState(pEdge);
   }
 
   protected List<CFAEdge> getPath(UsageInfo usage) {

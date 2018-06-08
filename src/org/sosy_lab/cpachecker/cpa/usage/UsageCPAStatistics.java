@@ -75,6 +75,7 @@ public class UsageCPAStatistics implements Statistics {
 
   public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
   public final StatTimer usagePreparationTimer = new StatTimer("Time for usage handling");
+  public final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
 
@@ -111,6 +112,7 @@ public class UsageCPAStatistics implements Statistics {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
       writer.put(transferRelationTimer);
       writer.put(usagePreparationTimer);
+      writer.put(innerAnalysisTimer);
       writer.put(printStatisticsTimer);
       errPrinter.printStatistics(writer);
       UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);

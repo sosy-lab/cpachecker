@@ -60,35 +60,34 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
     ThreadStateBuilder builder = tState.getBuilder();
     try {
-      try {
-        if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          if (!handleFunctionCall((CFunctionCallEdge)pCfaEdge, builder)) {
-            //Try to join non-created thread
-            return Collections.emptySet();
-          }
-        } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
-          CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
-          if (isThreadCreateFunction(functionCall)) {
-            builder.handleParentThread((CThreadCreateStatement)functionCall);
-          }
-        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
-          if (stmnt instanceof CThreadJoinStatement) {
-            threadStatistics.threadJoins.inc();
-            if (!builder.joinThread((CThreadJoinStatement) stmnt)) {
-              return Collections.emptySet();
-            }
-          }
-        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
-          if (isThreadCreateFunction(functionCall)) {
+      if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        if (!handleFunctionCall((CFunctionCallEdge) pCfaEdge, builder)) {
+          // Try to join non-created thread
+          return Collections.emptySet();
+        }
+      } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
+        CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pCfaEdge).getFunctionCall();
+        if (isThreadCreateFunction(functionCall)) {
+          builder.handleParentThread((CThreadCreateStatement) functionCall);
+        }
+      } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
+        if (stmnt instanceof CThreadJoinStatement) {
+          threadStatistics.threadJoins.inc();
+          if (!builder.joinThread((CThreadJoinStatement) stmnt)) {
             return Collections.emptySet();
           }
         }
-      } catch (HandleCodeException e) {
-        return Collections.emptySet();
+      } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        CFunctionCall functionCall =
+            ((CFunctionReturnEdge) pCfaEdge).getSummaryEdge().getExpression();
+        if (isThreadCreateFunction(functionCall)) {
+          return Collections.emptySet();
+        }
       }
       return Collections.singleton(builder.build());
+    } catch (HandleCodeException e) {
+      return Collections.emptySet();
     } finally {
       threadStatistics.transfer.stop();
     }
