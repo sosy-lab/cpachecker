@@ -31,6 +31,7 @@ import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.ReturnStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.wst.jsdt.core.dom.WhileStatement;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class StatementCFABuilder implements StatementAppendable {
@@ -42,6 +43,7 @@ class StatementCFABuilder implements StatementAppendable {
   private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
   private FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable;
   private ReturnStatementAppendable returnStatementAppendable;
+  private WhileStatementAppendable whileStatementAppendable;
 
   void setBlockStatementAppendable(final BlockStatementAppendable pBlockStatementAppendable) {
     blockStatementAppendable = pBlockStatementAppendable;
@@ -64,6 +66,10 @@ class StatementCFABuilder implements StatementAppendable {
   void setVariableDeclarationStatementAppendable(
       final VariableDeclarationStatementAppendable pVariableDeclarationStatementAppendable) {
     variableDeclarationStatementAppendable = pVariableDeclarationStatementAppendable;
+  }
+
+  void setWhileStatementAppendable(final WhileStatementAppendable pWhileStatementAppendable) {
+    whileStatementAppendable = pWhileStatementAppendable;
   }
 
   void setFunctionDeclarationStatementAppendable(
@@ -93,6 +99,8 @@ class StatementCFABuilder implements StatementAppendable {
     } else if (pStatement instanceof VariableDeclarationStatement) {
       variableDeclarationStatementAppendable.append(
           pBuilder, (VariableDeclarationStatement) pStatement);
+    } else if (pStatement instanceof WhileStatement) {
+      whileStatementAppendable.append(pBuilder, (WhileStatement) pStatement);
     } else {
       throw new CFAGenerationRuntimeException(
           "Unknown kind of statement (not handled yet): " + pStatement.getClass().getName(),
