@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -136,7 +136,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   /** returns the comparison of two pointers, i.e. "p1 op p2". */
-  private boolean comparePointer(SMGKnownAddVal pV1, SMGKnownAddVal pV2, BinaryOperator pOp) {
+  private boolean comparePointer(
+      SMGKnownAddressValue pV1, SMGKnownAddressValue pV2, BinaryOperator pOp) {
 
     SMGObject object1 = pV1.getObject();
     SMGObject object2 = pV2.getObject();
@@ -165,8 +166,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
   private SMGValueAndState evaluateBinaryAssumptionOfConcreteSymbolicValues(SMGState pNewState, BinaryOperator pOp, SMGKnownSymValue pV1, SMGKnownSymValue pV2) {
 
-    boolean isPointerOp1 = pV1 instanceof SMGKnownAddVal;
-    boolean isPointerOp2 = pV2 instanceof SMGKnownAddVal;
+    boolean isPointerOp1 = pV1 instanceof SMGKnownAddressValue;
+    boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
 
     int v1 = pV1.getAsInt();
     int v2 = pV2.getAsInt();
@@ -222,7 +223,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       }
 
         if (isPointerOp1 && isPointerOp2) {
-          isTrue = comparePointer((SMGKnownAddVal) pV1, (SMGKnownAddVal) pV2, pOp);
+          isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
         }
       break;

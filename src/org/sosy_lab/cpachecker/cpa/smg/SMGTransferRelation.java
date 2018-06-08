@@ -102,7 +102,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -877,8 +877,8 @@ public class SMGTransferRelation
       CFAEdge pCfaEdge) throws SMGInconsistentException,
       UnrecognizedCCodeException {
 
-    if (pValue instanceof SMGKnownAddVal) {
-      SMGKnownAddVal structAddress = (SMGKnownAddVal) pValue;
+    if (pValue instanceof SMGKnownAddressValue) {
+      SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
 
       SMGObject source = structAddress.getObject();
       long structOffset = structAddress.getOffset().getAsInt();
@@ -992,8 +992,9 @@ public class SMGTransferRelation
       if (pValue instanceof SMGKnownSymValue) {
         SMGExplicitValue explicit = pNewState.getExplicit((SMGKnownSymValue) pValue);
         if (!explicit.isUnknown()) {
-          pValue = SMGKnownAddVal.valueOf(SMGNullObject.INSTANCE, (SMGKnownExpValue)explicit,
-              (SMGKnownSymValue)pValue);
+          pValue =
+              SMGKnownAddressValue.valueOf(
+                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, (SMGKnownSymValue) pValue);
         }
       }
     }

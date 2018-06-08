@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -700,8 +700,8 @@ public class SMGExpressionEvaluator {
 
         SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGValueFactory
             .getNewValue());
-        SMGKnownAddVal addressValue = SMGKnownAddVal.valueOf(pTarget,
-            (SMGKnownExpValue) pOffset, value);
+        SMGKnownAddressValue addressValue =
+            SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
         result.add(SMGAddressValueAndState.of(addressValueAndState.getSmgState(), addressValue));
       } else {
         result.add(addressValueAndState);
@@ -724,7 +724,9 @@ public class SMGExpressionEvaluator {
     if(pTarget instanceof SMGRegion) {
       regionTarget = (SMGRegion) pTarget;
     } else if (pTarget == SMGNullObject.INSTANCE) {
-      SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal.valueOf(0, pTarget, pOffset.getAsInt()));
+      SMGAddressValueAndState result =
+          SMGAddressValueAndState.of(
+              pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsInt()));
       return Collections.singletonList(result);
     } else {
       throw new AssertionError("Abstraction " + pTarget + " was not materialised.");

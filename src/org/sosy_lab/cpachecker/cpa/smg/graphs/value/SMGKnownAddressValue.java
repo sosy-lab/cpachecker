@@ -32,24 +32,25 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  * A class to represent a value which points to an address. This class is mainly used to store value
  * information.
  */
-public final class SMGKnownAddVal extends SMGKnownSymValue implements SMGAddressValue {
+public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGAddressValue {
 
   /** The address this value represents. */
   private final SMGKnownAddress address;
 
-  private SMGKnownAddVal(BigInteger pValue, SMGKnownAddress pAddress) {
+  private SMGKnownAddressValue(BigInteger pValue, SMGKnownAddress pAddress) {
     super(pValue);
     checkNotNull(pAddress);
     address = pAddress;
   }
 
-  public static SMGKnownAddVal valueOf(
+  public static SMGKnownAddressValue valueOf(
       SMGObject pObject, SMGKnownExpValue pOffset, SMGKnownSymValue pAddress) {
-    return new SMGKnownAddVal(pAddress.getValue(), SMGKnownAddress.valueOf(pObject, pOffset));
+    return new SMGKnownAddressValue(pAddress.getValue(), SMGKnownAddress.valueOf(pObject, pOffset));
   }
 
-  public static SMGKnownAddVal valueOf(int pValue, SMGObject object, long offset) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
+  public static SMGKnownAddressValue valueOf(int pValue, SMGObject object, long offset) {
+    return new SMGKnownAddressValue(
+        BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
   }
 
   @Override

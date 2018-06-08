@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -478,8 +478,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (heap.isPointer(pValue)) {
       SMGEdgePointsTo addressValue = heap.getPointer(pValue);
 
-      SMGAddressValue address = SMGKnownAddVal.valueOf(addressValue.getValue(),
-          addressValue.getObject(), addressValue.getOffset());
+      SMGAddressValue address =
+          SMGKnownAddressValue.valueOf(
+              addressValue.getValue(), addressValue.getObject(), addressValue.getOffset());
 
       SMGObject obj = address.getObject();
 
@@ -617,8 +618,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     SMGAddressValueAndState result =
-        SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(pPointerToAbstractObject.getValue(),
-            newObject, pPointerToAbstractObject.getOffset()));
+        SMGAddressValueAndState.of(
+            this,
+            SMGKnownAddressValue.valueOf(
+                pPointerToAbstractObject.getValue(),
+                newObject,
+                pPointerToAbstractObject.getOffset()));
 
     return result;
   }
@@ -802,8 +807,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addHasValueEdge(newFieldFromNewRegionToSll);
     heap.addPointsToEdge(newPtEToSll);
 
-    return SMGAddressValueAndState.of(this,
-        SMGKnownAddVal.valueOf(oldPointerToSll, newConcreteRegion, hfo));
+    return SMGAddressValueAndState.of(
+        this, SMGKnownAddressValue.valueOf(oldPointerToSll, newConcreteRegion, hfo));
   }
 
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
@@ -916,9 +921,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.addHasValueEdge(newFieldFromDllToNewRegion);
 
-
-    return SMGAddressValueAndState.of(this,
-        SMGKnownAddVal.valueOf(oldPointerToDll, newConcreteRegion, hfo));
+    return SMGAddressValueAndState.of(
+        this, SMGKnownAddressValue.valueOf(oldPointerToDll, newConcreteRegion, hfo));
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
@@ -1605,7 +1609,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addPointsToEdge(points_to);
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddVal.valueOf(new_value, new_object, 0);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
   }
 
   /** memory externally allocated could be freed by the user */
@@ -1620,7 +1624,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.setExternallyAllocatedFlag(new_object, true);
 
-    return SMGKnownAddVal.valueOf(new_value, new_object, options.getExternalAllocationSize()/2);
+    return SMGKnownAddressValue.valueOf(
+        new_value, new_object, options.getExternalAllocationSize() / 2);
   }
 
   public void setExternallyAllocatedFlag(SMGObject pObject) {
@@ -1637,7 +1642,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddVal.valueOf(new_value, new_object, 0);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
   }
 
   public void setMemLeak() {
