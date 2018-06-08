@@ -642,7 +642,7 @@ public final class InterpolationManager {
       FormulaManagerView new_fmgr = my_solver.getFormulaManager();
       DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<T>(shutdownNotifier,
           new_fmgr,
-          bfmgr, fmgr, pInterpolator);
+          bfmgr, fmgr, pInterpolator, logger);
       List<BooleanFormula> tocheck = Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
         my_interpolants = dsa.domainSpecificAbstractionsCheck
             (my_solver, tocheck);
