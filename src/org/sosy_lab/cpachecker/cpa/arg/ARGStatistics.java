@@ -73,9 +73,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
-import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter.SplitterStrategy;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -141,18 +139,24 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
-      name = "automaton.exportSpcFile",
+      name = "automaton.export",
       description = "translate final ARG into an automaton")
+  private boolean exportAutomaton = false;
+
+  @Option(
+      secure = true,
+      name = "automaton.exportSpcFile",
+      description = "translate final ARG into an automaton, depends on 'automaton.export=true'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate automatonSpcFile = PathTemplate.ofFormatString("ARG_parts/ARG.%s.spc");
+  private PathTemplate automatonSpcFile = PathTemplate.ofFormatString("ARG_parts/ARG.%03d.spc");
 
   @Option(
       secure = true,
       name = "automaton.exportDotFile",
-      description = "translate final ARG into an automaton")
+      description = "translate final ARG into an automaton, depends on 'automaton.export=true'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate automatonSpcDotFile =
-      PathTemplate.ofFormatString("ARG_parts/ARG.%s.spc.dot");
+      PathTemplate.ofFormatString("ARG_parts/ARG.%03d.spc.dot");
 
   protected final ConfigurableProgramAnalysis cpa;
 
@@ -164,6 +168,7 @@ public class ARGStatistics implements Statistics {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private final ARGToPixelsWriter argToBitmapExporter;
+  private ARGToAutomatonConverter argToAutomatonSplitter;
   protected final LogManager logger;
 
   public ARGStatistics(
@@ -187,8 +192,7 @@ public class ARGStatistics implements Statistics {
         && refinementGraphFile == null
         && proofWitness == null
         && pixelGraphicFile == null
-        && automatonSpcFile == null
-        && automatonSpcDotFile == null) {
+        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))) {
       exportARG = false;
     }
 
@@ -215,6 +219,7 @@ public class ARGStatistics implements Statistics {
     }
 
     argToCExporter = new ARGToCTranslator(logger, config);
+    argToAutomatonSplitter = new ARGToAutomatonConverter(config);
 
     if (argCFile == null) {
       translateARG = false;
@@ -415,23 +420,46 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    if (automatonSpcFile != null || automatonSpcDotFile != null) {
-      ARGToAutomatonConverter argToAutomatonConverter =
-          new ARGToAutomatonConverter(rootState, SplitterStrategy.NONE);
+    if (exportAutomaton && (automatonSpcFile != null || automatonSpcDotFile != null)) {
+      ARGToAutomatonConverter argToAutomatonConverter;
       try {
-        Automaton automaton = Iterables.getOnlyElement(argToAutomatonConverter.getAutomata());
+        argToAutomatonConverter = new ARGToAutomatonConverter(null);
+      } catch (InvalidConfigurationException e) {
+        throw new AssertionError("should not happen");
+      }
+      try {
+        Automaton automaton =
+            Iterables.getOnlyElement(argToAutomatonConverter.getAutomata(rootState));
         if (automatonSpcFile != null) {
-          IO.writeFile(automatonSpcFile.getPath(0), Charset.defaultCharset(), automaton);
+          IO.writeFile(automatonSpcFile.getPath(-1), Charset.defaultCharset(), automaton);
         }
         if (automatonSpcDotFile != null) {
           try (Writer w =
-              IO.openOutputFile(automatonSpcDotFile.getPath(0), Charset.defaultCharset())) {
+              IO.openOutputFile(automatonSpcDotFile.getPath(-1), Charset.defaultCharset())) {
             automaton.writeDotFile(w);
           }
         }
-      } catch (IOException | InvalidAutomatonException iae) {
-        logger.logUserException(Level.WARNING, iae, "Could not write ARG to automata to file");
-  }
+      } catch (IOException io) {
+        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      }
+      int counter = 0;
+      try {
+        for (Automaton automaton : argToAutomatonSplitter.getAutomata(rootState)) {
+          counter++;
+          if (automatonSpcFile != null) {
+            IO.writeFile(automatonSpcFile.getPath(counter), Charset.defaultCharset(), automaton);
+          }
+          if (automatonSpcDotFile != null) {
+            try (Writer w =
+                IO.openOutputFile(automatonSpcDotFile.getPath(counter), Charset.defaultCharset())) {
+              automaton.writeDotFile(w);
+            }
+          }
+        }
+        logger.log(Level.INFO, "Number of exported automata after splitting:", counter);
+      } catch (IOException io) {
+        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      }
     }
   }
 

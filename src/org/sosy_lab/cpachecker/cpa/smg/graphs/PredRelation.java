@@ -36,7 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -59,9 +59,11 @@ public class PredRelation {
   public void addRelation(SMGSymbolicValue pOne, int pCType1,
                           SMGSymbolicValue pTwo, int pCType2,
                           BinaryOperator pOperator) {
-    //TODO: track address values
-    if (!pOne.isUnknown() && !pTwo.isUnknown() &&
-        !(pOne instanceof SMGKnownAddVal) && !(pTwo instanceof SMGKnownAddVal)) {
+    // TODO: track address values
+    if (!pOne.isUnknown()
+        && !pTwo.isUnknown()
+        && !(pOne instanceof SMGKnownAddressValue)
+        && !(pTwo instanceof SMGKnownAddressValue)) {
       addRelation(pOne.getAsInt(), pTwo.getAsInt(), pOperator);
       addValueSize(pOne.getAsInt(), pCType1);
       addValueSize(pTwo.getAsInt(), pCType2);

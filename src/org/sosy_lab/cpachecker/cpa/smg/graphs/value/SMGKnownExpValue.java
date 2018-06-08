@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,81 +49,65 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
 
   @Override
   public SMGExplicitValue xor(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().xor(pRVal.getValue()));
   }
 
   @Override
   public SMGExplicitValue or(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().or(pRVal.getValue()));
   }
 
   @Override
   public SMGExplicitValue and(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().and(pRVal.getValue()));
   }
 
   @Override
   public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().shiftLeft(pRVal.getAsInt()));
   }
 
   @Override
   public SMGExplicitValue multiply(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().multiply(pRVal.getValue()));
   }
 
   @Override
   public SMGExplicitValue divide(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().divide(pRVal.getValue()));
   }
 
   @Override
   public SMGExplicitValue subtract(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().subtract(pRVal.getValue()));
   }
 
   @Override
   public SMGExplicitValue add(SMGExplicitValue pRVal) {
-
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
     return valueOf(getValue().add(pRVal.getValue()));
   }
 

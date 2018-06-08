@@ -931,9 +931,26 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
+# minimum ratio of branch compared to whole program to be exported
+cpa.arg.automaton.branchRatio = 0.5
+
 # translate final ARG into an automaton
-cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%s.spc.dot"
-cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%s.spc"
+cpa.arg.automaton.export = false
+
+# translate final ARG into an automaton, depends on 'automaton.export=true'
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
+
+# after determining branches, which one of them should be exported?
+cpa.arg.automaton.selectionStrategy = LEAFS
+  enum:     [NONE, ALL, LEAFS, WEIGHTED]
+
+# minimum ratio of siblings suchthat one of them will be exported
+cpa.arg.automaton.siblingRatio = 0.4
+
+# which coarse strategy should be applied when analyzing the ARG?
+cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
+  enum:     [NONE, GLOBAL_CONDITIONS]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true

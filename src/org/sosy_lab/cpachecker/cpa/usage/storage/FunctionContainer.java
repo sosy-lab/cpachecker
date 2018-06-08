@@ -26,21 +26,12 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedSet;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
-import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -86,15 +77,7 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!super.equals(obj) ||
-        getClass() != obj.getClass()) {
-      return false;
-    }
-    FunctionContainer other = (FunctionContainer) obj;
-    return Objects.equals(effects, other.effects);
+    return this == obj;
   }
 
   public void join(FunctionContainer funcContainer) {
@@ -104,39 +87,8 @@ public class FunctionContainer extends AbstractUsageStorage {
       stats.hitTimes.inc();
       return;
     }
-    joinedWith.add(funcContainer);
-
-    if (funcContainer.effects.isEmpty()) {
-      stats.copyTimer.start();
-      stats.emptyJoin.inc();
-      copyUsagesFrom(funcContainer);
-      stats.copyTimer.stop();
-    } else {
-      Map<LockState, LockState> reduceToExpand = new HashMap<>();
-
-      for (Map.Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : funcContainer.entrySet()) {
-        SingleIdentifier id = entry.getKey();
-        SortedSet<UsageInfo> usages = entry.getValue();
-        stats.totalUsages.setNextValue(usages.size());
-
-        stats.effectTimer.start();
-        stats.effectJoin.inc();
-        LockState locks, expandedLocks;
-        for (UsageInfo uinfo : usages) {
-          locks = (LockState) uinfo.getLockState();
-          if (reduceToExpand.containsKey(locks)) {
-            expandedLocks = reduceToExpand.get(locks);
-          } else {
-            stats.expandedUsages.inc();
-            LockStateBuilder builder = locks.builder();
-            funcContainer.effects.forEach(e -> e.effect(builder));
-            expandedLocks = builder.build();
-            reduceToExpand.put(locks, expandedLocks);
-          }
-          add(id, uinfo.expand(expandedLocks));
-        }
-        stats.effectTimer.stop();
-      }
+    if (!funcContainer.isEmpty() || !funcContainer.joinedWith.isEmpty()) {
+      joinedWith.add(funcContainer);
     }
   }
 
@@ -159,11 +111,15 @@ public class FunctionContainer extends AbstractUsageStorage {
     return stats;
   }
 
+  public Set<FunctionContainer> getContainers() {
+    return joinedWith;
+  }
+
+  public List<LockEffect> getLockEffects() {
+    return effects;
+  }
+
   public static class StorageStatistics {
-    private StatInt totalUsages = new StatInt(StatKind.SUM, "Number of expanding querries");
-    private StatCounter expandedUsages = new StatCounter("Number of executed querries");
-    private StatCounter emptyJoin = new StatCounter("Number of empty joins");
-    private StatCounter effectJoin = new StatCounter("Number of effect joins");
     private StatCounter hitTimes = new StatCounter("Number of hits into cache");
     private StatCounter totalJoins = new StatCounter("Total number of joins");
     private StatCounter numberOfFunctionContainers = new StatCounter("Total number of function containers");
@@ -177,10 +133,6 @@ public class FunctionContainer extends AbstractUsageStorage {
          .put(copyTimer)
          .put(totalJoins)
          .put(hitTimes)
-         .put(emptyJoin)
-         .put(effectJoin)
-         .put(totalUsages)
-         .put(expandedUsages)
          .put(numberOfFunctionContainers);
     }
   }
