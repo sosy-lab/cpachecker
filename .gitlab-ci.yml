@@ -71,3 +71,20 @@ python-unit-tests:jdk-9:
     - build:jdk-9
   image: ${CI_REGISTRY_IMAGE}/test:jdk-9
 
+
+# No coverage is computed for CPAchecker
+unit-tests:jdk-8:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+unit-tests:jdk-9:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+# Disable some checks because they are not used for CPAchecker
+check-format:
+  only: []
+
+checkstyle:
+  only: []
+
+javadoc:
+  only: []
