@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge.assume;
+
 import com.google.common.collect.ImmutableSet;
-import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
@@ -33,9 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
@@ -216,15 +215,4 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         "Unknown kind of binary operator (not handled yet): " + pOperator.toString());
   }
 
-  private BiFunction<CFANode, CFANode, AbstractCFAEdge> assume(
-      final JSExpression pCondition, final boolean pTruthAssumption) {
-    return (pPredecessor, pSuccessor) ->
-        new JSAssumeEdge(
-            pCondition.toASTString(),
-            pCondition.getFileLocation(),
-            pPredecessor,
-            pSuccessor,
-            pCondition,
-            pTruthAssumption);
-  }
 }

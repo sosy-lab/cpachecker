@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import java.util.function.BiFunction;
+import static org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge.assume;
+
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
@@ -111,15 +110,4 @@ class ConditionalExpressionCFABuilder implements ConditionalExpressionAppendable
     return resultVariableId;
   }
 
-  private BiFunction<CFANode, CFANode, AbstractCFAEdge> assume(
-      final JSExpression pCondition, final boolean pTruthAssumption) {
-    return (pPredecessor, pSuccessor) ->
-        new JSAssumeEdge(
-            pCondition.toASTString(),
-            pCondition.getFileLocation(),
-            pPredecessor,
-            pSuccessor,
-            pCondition,
-            pTruthAssumption);
-  }
 }

@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.model.js;
 
 import com.google.common.base.Optional;
+import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,6 +35,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class JSAssumeEdge extends AssumeEdge {
 
   private static final long serialVersionUID = 708785392078306310L;
+
+  public static BiFunction<CFANode, CFANode, AbstractCFAEdge> assume(
+      final JSExpression pCondition, final boolean pTruthAssumption) {
+    return (pPredecessor, pSuccessor) ->
+        new JSAssumeEdge(
+            pCondition.toASTString(),
+            pCondition.getFileLocation(),
+            pPredecessor,
+            pSuccessor,
+            pCondition,
+            pTruthAssumption);
+  }
 
   public JSAssumeEdge(
       String pRawStatement,
