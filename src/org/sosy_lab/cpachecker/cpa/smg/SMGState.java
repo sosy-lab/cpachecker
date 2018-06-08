@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
@@ -86,7 +87,7 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, Graphable {
 
   // Properties:
   public static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -454,12 +455,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public String toString() {
-    if (getPredecessorId() != 0) {
-      return "SMGState [" + getId() + "] <-- parent [" + getPredecessorId() + "]\n"
-          + heap.toString();
-    } else {
-      return "SMGState [" + getId() + "] <-- no parent, initial state\n" + heap.toString();
-    }
+    String parent =
+        getPredecessorId() == 0
+            ? "no parent, initial state"
+            : "parent [" + getPredecessorId() + "]";
+    return String.format("SMGState [%d] <-- %s: %s", getId(), parent, heap);
   }
 
   /**
@@ -2390,5 +2390,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public CLangStackFrame getStackFrame() {
     return Iterables.getLast(heap.getStackFrames());
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 }
