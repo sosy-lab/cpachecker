@@ -62,6 +62,7 @@ import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 import javax.annotation.Nonnull;
 
+@SuppressWarnings("unused")
 public final class ReturnValueCaptor<R> {
   private final List<R> returnValues = new ArrayList<>();
 
@@ -82,6 +83,19 @@ public final class ReturnValueCaptor<R> {
   }
 
   public <T, U> BiFunction<T, U, R> captureReturn(@Nonnull final BiFunction<T, U, R> pFunction) {
+    return captureReturnOfBiFunction(pFunction);
+  }
+
+  public <T> Function<T, R> captureReturn(@Nonnull final Function<T, R> pFunction) {
+    return captureReturnOfFunction(pFunction);
+  }
+
+  public Supplier<R> captureReturn(@Nonnull final Supplier<R> pFunction) {
+    return captureReturnOfSupplier(pFunction);
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  public <T, U> BiFunction<T, U, R> captureReturnOfBiFunction(@Nonnull final BiFunction<T, U, R> pFunction) {
     return (final T pFirst, final U pSecond) -> {
       final R returnValue = pFunction.apply(pFirst, pSecond);
       returnValues.add(returnValue);
@@ -89,7 +103,7 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public BinaryOperator<R> captureReturn(@Nonnull final BinaryOperator<R> pFunction) {
+  public BinaryOperator<R> captureReturnOfBinaryOperator(@Nonnull final BinaryOperator<R> pFunction) {
     return (final R pFirst, final R pSecond) -> {
       final R returnValue = pFunction.apply(pFirst, pSecond);
       returnValues.add(returnValue);
@@ -97,7 +111,8 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public <T> Function<T, R> captureReturn(@Nonnull final Function<T, R> pFunction) {
+  @SuppressWarnings("WeakerAccess")
+  public <T> Function<T, R> captureReturnOfFunction(@Nonnull final Function<T, R> pFunction) {
     return (final T pFirst) -> {
       final R returnValue = pFunction.apply(pFirst);
       returnValues.add(returnValue);
@@ -105,7 +120,8 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public Supplier<R> captureReturn(@Nonnull final Supplier<R> pFunction) {
+  @SuppressWarnings("WeakerAccess")
+  public Supplier<R> captureReturnOfSupplier(@Nonnull final Supplier<R> pFunction) {
     return () -> {
       final R returnValue = pFunction.get();
       returnValues.add(returnValue);
@@ -113,7 +129,7 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public IntFunction<R> captureReturn(@Nonnull final IntFunction<R> pFunction) {
+  public IntFunction<R> captureReturnOfIntFunction(@Nonnull final IntFunction<R> pFunction) {
     return (final int pParameter) -> {
       final R returnValue = pFunction.apply(pParameter);
       returnValues.add(returnValue);
@@ -121,7 +137,7 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public LongFunction<R> captureReturn(@Nonnull final LongFunction<R> pFunction) {
+  public LongFunction<R> captureReturnOfLongFunction(@Nonnull final LongFunction<R> pFunction) {
     return (final long pParameter) -> {
       final R returnValue = pFunction.apply(pParameter);
       returnValues.add(returnValue);
@@ -129,7 +145,7 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public DoubleFunction<R> captureReturn(@Nonnull final DoubleFunction<R> pFunction) {
+  public DoubleFunction<R> captureReturnOfDoubleFunction(@Nonnull final DoubleFunction<R> pFunction) {
     return (final double pParameter) -> {
       final R returnValue = pFunction.apply(pParameter);
       returnValues.add(returnValue);
@@ -137,7 +153,7 @@ public final class ReturnValueCaptor<R> {
     };
   }
 
-  public UnaryOperator<R> captureReturn(@Nonnull final UnaryOperator<R> pFunction) {
+  public UnaryOperator<R> captureReturnOfUnaryOperator(@Nonnull final UnaryOperator<R> pFunction) {
     return (final R pOperand) -> {
       final R returnValue = pFunction.apply(pOperand);
       returnValues.add(returnValue);
@@ -146,7 +162,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public IntUnaryOperator captureReturn(@Nonnull final IntUnaryOperator pFunction) {
+  public IntUnaryOperator captureReturnOfIntUnaryOperator(@Nonnull final IntUnaryOperator pFunction) {
     return (final int pOperand) -> {
       final Integer returnValue = pFunction.applyAsInt(pOperand);
       returnValues.add((R) returnValue);
@@ -155,7 +171,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public LongUnaryOperator captureReturn(@Nonnull final LongUnaryOperator pFunction) {
+  public LongUnaryOperator captureReturnOfLongUnaryOperator(@Nonnull final LongUnaryOperator pFunction) {
     return (final long pOperand) -> {
       final Long returnValue = pFunction.applyAsLong(pOperand);
       returnValues.add((R) returnValue);
@@ -164,7 +180,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public DoubleUnaryOperator captureReturn(@Nonnull final DoubleUnaryOperator pFunction) {
+  public DoubleUnaryOperator captureReturnOfDoubleUnaryOperator(@Nonnull final DoubleUnaryOperator pFunction) {
     return (final double pOperand) -> {
       final Double returnValue = pFunction.applyAsDouble(pOperand);
       returnValues.add((R) returnValue);
@@ -173,7 +189,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T> ToIntFunction<T> captureReturn(@Nonnull final ToIntFunction<T> pFunction) {
+  public <T> ToIntFunction<T> captureReturnOfToIntFunction(@Nonnull final ToIntFunction<T> pFunction) {
     return (final T pParameter) -> {
       final Integer returnValue = pFunction.applyAsInt(pParameter);
       returnValues.add((R) returnValue);
@@ -182,7 +198,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T> ToLongFunction<T> captureReturn(@Nonnull final ToLongFunction<T> pFunction) {
+  public <T> ToLongFunction<T> captureReturnOfToLongFunction(@Nonnull final ToLongFunction<T> pFunction) {
     return (final T pParameter) -> {
       final Long returnValue = pFunction.applyAsLong(pParameter);
       returnValues.add((R) returnValue);
@@ -191,7 +207,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T> ToDoubleFunction<T> captureReturn(@Nonnull final ToDoubleFunction<T> pFunction) {
+  public <T> ToDoubleFunction<T> captureReturnOfToDoubleFunction(@Nonnull final ToDoubleFunction<T> pFunction) {
     return (final T pParameter) -> {
       final Double returnValue = pFunction.applyAsDouble(pParameter);
       returnValues.add((R) returnValue);
@@ -200,7 +216,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T, U> ToIntBiFunction<T, U> captureReturn(
+  public <T, U> ToIntBiFunction<T, U> captureReturnOfToIntBiFunction(
       @Nonnull final ToIntBiFunction<T, U> pFunction) {
     return (final T pFirst, final U pSecond) -> {
       final Integer returnValue = pFunction.applyAsInt(pFirst, pSecond);
@@ -210,7 +226,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T, U> ToLongBiFunction<T, U> captureReturn(
+  public <T, U> ToLongBiFunction<T, U> captureReturnOfToLongBiFunction(
       @Nonnull final ToLongBiFunction<T, U> pFunction) {
     return (final T pFirst, final U pSecond) -> {
       final Long returnValue = pFunction.applyAsLong(pFirst, pSecond);
@@ -220,7 +236,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T, U> ToDoubleBiFunction<T, U> captureReturn(
+  public <T, U> ToDoubleBiFunction<T, U> captureReturnOfToDoubleBiFunction(
       @Nonnull final ToDoubleBiFunction<T, U> pFunction) {
     return (final T pFirst, final U pSecond) -> {
       final Double returnValue = pFunction.applyAsDouble(pFirst, pSecond);
@@ -230,7 +246,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public BooleanSupplier captureReturn(@Nonnull final BooleanSupplier pFunction) {
+  public BooleanSupplier captureReturnOfBooleanSupplier(@Nonnull final BooleanSupplier pFunction) {
     return () -> {
       final Boolean returnValue = pFunction.getAsBoolean();
       returnValues.add((R) returnValue);
@@ -239,7 +255,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public IntSupplier captureReturn(@Nonnull final IntSupplier pFunction) {
+  public IntSupplier captureReturnOfIntSupplier(@Nonnull final IntSupplier pFunction) {
     return () -> {
       final Integer returnValue = pFunction.getAsInt();
       returnValues.add((R) returnValue);
@@ -248,7 +264,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public DoubleSupplier captureReturn(@Nonnull final DoubleSupplier pFunction) {
+  public DoubleSupplier captureReturnOfDoubleSupplier(@Nonnull final DoubleSupplier pFunction) {
     return () -> {
       final Double returnValue = pFunction.getAsDouble();
       returnValues.add((R) returnValue);
@@ -257,7 +273,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public LongSupplier captureReturn(@Nonnull final LongSupplier pFunction) {
+  public LongSupplier captureReturnOfLongSupplier(@Nonnull final LongSupplier pFunction) {
     return () -> {
       final Long returnValue = pFunction.getAsLong();
       returnValues.add((R) returnValue);
@@ -266,7 +282,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T> Predicate<T> captureReturn(@Nonnull final Predicate<T> pFunction) {
+  public <T> Predicate<T> captureReturnOfPredicate(@Nonnull final Predicate<T> pFunction) {
     return (final T pParameter) -> {
       final Boolean returnValue = pFunction.test(pParameter);
       returnValues.add((R) returnValue);
@@ -275,7 +291,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public IntPredicate captureReturn(@Nonnull final IntPredicate pFunction) {
+  public IntPredicate captureReturnOfIntPredicate(@Nonnull final IntPredicate pFunction) {
     return (final int pParameter) -> {
       final Boolean returnValue = pFunction.test(pParameter);
       returnValues.add((R) returnValue);
@@ -284,7 +300,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public DoublePredicate captureReturn(@Nonnull final DoublePredicate pFunction) {
+  public DoublePredicate captureReturnOfDoublePredicate(@Nonnull final DoublePredicate pFunction) {
     return (final double pParameter) -> {
       final Boolean returnValue = pFunction.test(pParameter);
       returnValues.add((R) returnValue);
@@ -293,7 +309,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public LongPredicate captureReturn(@Nonnull final LongPredicate pFunction) {
+  public LongPredicate captureReturnOfLongPredicate(@Nonnull final LongPredicate pFunction) {
     return (final long pParameter) -> {
       final Boolean returnValue = pFunction.test(pParameter);
       returnValues.add((R) returnValue);
@@ -302,7 +318,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T, U> BiPredicate<T, U> captureReturn(@Nonnull final BiPredicate<T, U> pFunction) {
+  public <T, U> BiPredicate<T, U> captureReturnOfBiPredicate(@Nonnull final BiPredicate<T, U> pFunction) {
     return (final T pFirst, final U pSecond) -> {
       final Boolean returnValue = pFunction.test(pFirst, pSecond);
       returnValues.add((R) returnValue);
@@ -311,7 +327,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public DoubleToIntFunction captureReturn(@Nonnull final DoubleToIntFunction pFunction) {
+  public DoubleToIntFunction captureReturnOfDoubleToIntFunction(@Nonnull final DoubleToIntFunction pFunction) {
     return (final double pParameter) -> {
       final Integer returnValue = pFunction.applyAsInt(pParameter);
       returnValues.add((R) returnValue);
@@ -320,7 +336,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public IntToDoubleFunction captureReturn(@Nonnull final IntToDoubleFunction pFunction) {
+  public IntToDoubleFunction captureReturnOfIntToDoubleFunction(@Nonnull final IntToDoubleFunction pFunction) {
     return (final int pParameter) -> {
       final Double returnValue = pFunction.applyAsDouble(pParameter);
       returnValues.add((R) returnValue);
@@ -329,7 +345,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public LongToIntFunction captureReturn(@Nonnull final LongToIntFunction pFunction) {
+  public LongToIntFunction captureReturnOfLongToIntFunction(@Nonnull final LongToIntFunction pFunction) {
     return (final long pParameter) -> {
       final Integer returnValue = pFunction.applyAsInt(pParameter);
       returnValues.add((R) returnValue);
@@ -338,7 +354,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public IntToLongFunction captureReturn(@Nonnull final IntToLongFunction pFunction) {
+  public IntToLongFunction captureReturnOfIntToLongFunction(@Nonnull final IntToLongFunction pFunction) {
     return (final int pParameter) -> {
       final Long returnValue = pFunction.applyAsLong(pParameter);
       returnValues.add((R) returnValue);
@@ -347,7 +363,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public DoubleToLongFunction captureReturn(@Nonnull final DoubleToLongFunction pFunction) {
+  public DoubleToLongFunction captureReturnOfDoubleToLongFunction(@Nonnull final DoubleToLongFunction pFunction) {
     return (final double pParameter) -> {
       final Long returnValue = pFunction.applyAsLong(pParameter);
       returnValues.add((R) returnValue);
@@ -356,7 +372,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public LongToDoubleFunction captureReturn(@Nonnull final LongToDoubleFunction pFunction) {
+  public LongToDoubleFunction captureReturnOfLongToDoubleFunction(@Nonnull final LongToDoubleFunction pFunction) {
     return (final long pParameter) -> {
       final Double returnValue = pFunction.applyAsDouble(pParameter);
       returnValues.add((R) returnValue);
@@ -365,7 +381,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public IntBinaryOperator captureReturn(@Nonnull final IntBinaryOperator pFunction) {
+  public IntBinaryOperator captureReturnOfIntBinaryOperator(@Nonnull final IntBinaryOperator pFunction) {
     return (final int pFirst, final int pSecond) -> {
       final Integer returnValue = pFunction.applyAsInt(pFirst, pSecond);
       returnValues.add((R) returnValue);
@@ -374,7 +390,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public LongBinaryOperator captureReturn(@Nonnull final LongBinaryOperator pFunction) {
+  public LongBinaryOperator captureReturnOfLongBinaryOperator(@Nonnull final LongBinaryOperator pFunction) {
     return (final long pFirst, final long pSecond) -> {
       final Long returnValue = pFunction.applyAsLong(pFirst, pSecond);
       returnValues.add((R) returnValue);
@@ -383,7 +399,7 @@ public final class ReturnValueCaptor<R> {
   }
 
   @SuppressWarnings("unchecked")
-  public DoubleBinaryOperator captureReturn(@Nonnull final DoubleBinaryOperator pFunction) {
+  public DoubleBinaryOperator captureReturnOfDoubleBinaryOperator(@Nonnull final DoubleBinaryOperator pFunction) {
     return (final double pFirst, final double pSecond) -> {
       final Double returnValue = pFunction.applyAsDouble(pFirst, pSecond);
       returnValues.add((R) returnValue);
