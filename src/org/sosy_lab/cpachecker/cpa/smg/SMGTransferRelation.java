@@ -488,11 +488,8 @@ public class SMGTransferRelation
 
     // get the value of the expression (either true[-1], false[0], or unknown[null])
     AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, smgState);
-    List<? extends SMGValueAndState> valueAndStates = expression.accept(visitor);
-
     List<SMGState> result = new ArrayList<>();
-
-    for (SMGValueAndState valueAndState : valueAndStates) {
+    for (SMGValueAndState valueAndState : expression.accept(visitor)) {
 
       SMGSymbolicValue value = valueAndState.getObject();
       smgState = valueAndState.getSmgState();
@@ -548,11 +545,10 @@ public class SMGTransferRelation
       val2ImpliesOn = SMGUnknownValue.getInstance();
     }
 
-    List<SMGExplicitValueAndState> explicitValueAndStates = expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression);
+    List<SMGState> result = new ArrayList<>();
 
-    List<SMGState> result = new ArrayList<>(explicitValueAndStates.size());
-
-    for (SMGExplicitValueAndState explicitValueAndState : explicitValueAndStates) {
+    for (SMGExplicitValueAndState explicitValueAndState :
+        expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression)) {
 
       SMGExplicitValue explicitValue = explicitValueAndState.getObject();
       smgState = explicitValueAndState.getSmgState();

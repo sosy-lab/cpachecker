@@ -380,14 +380,12 @@ public class SMGExpressionEvaluator {
 
   private List<? extends SMGValueAndState> evaluateNonAddressValue(
       SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-    ExpressionValueVisitor visitor = getExpressionValueVisitor(cfaEdge, newState);
-    return rValue.accept(visitor);
+    return rValue.accept(getExpressionValueVisitor(cfaEdge, newState));
   }
 
   protected List<? extends SMGValueAndState> evaluateAssumptionValue(
       SMGState newState, CFAEdge cfaEdge, CExpression rValue) throws CPATransferException {
-    ExpressionValueVisitor visitor = getAssumeVisitor(cfaEdge, newState);
-    return rValue.accept(visitor);
+    return rValue.accept(getAssumeVisitor(cfaEdge, newState));
   }
 
   public SMGSymbolicValue evaluateAssumptionValueV2(SMGState newState,
