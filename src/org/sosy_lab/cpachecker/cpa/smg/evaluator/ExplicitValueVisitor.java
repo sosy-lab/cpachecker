@@ -124,18 +124,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         throw e2;
       }
 
-      SMGValueAndState symValueAndState;
-
-      if (symValueAndStates.size() > 0) {
-        symValueAndState = symValueAndStates.get(0);
-      } else {
-        symValueAndState = SMGValueAndState.of(getNewState());
-      }
-
-      for (int c = 1; c < symValueAndStates.size(); c++) {
-        smgStatesToBeProccessed.add(symValueAndStates.get(c).getSmgState());
-      }
-
+      SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
       SMGSymbolicValue symValue = symValueAndState.getObject();
       smgState = symValueAndState.getSmgState();
 
@@ -168,17 +157,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       throw e2;
     }
 
-    SMGValueAndState valueAndState;
-    if (valueAndStates.size() > 0) {
-      valueAndState = valueAndStates.get(0);
-    } else {
-      valueAndState = SMGValueAndState.of(getNewState());
-    }
-
-    for (int c = 1; c < valueAndStates.size(); c++) {
-      smgStatesToBeProccessed.add(valueAndStates.get(c).getSmgState());
-    }
-
+    SMGValueAndState valueAndState = getStateAndAddRestForLater(valueAndStates);
     SMGSymbolicValue value = valueAndState.getObject();
     smgState = valueAndState.getSmgState();
 
@@ -188,6 +167,25 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     } else {
       return new NumericValue(expValue.getAsLong());
     }
+  }
+
+  /**
+   * Returns the first state (or a new state if list is empty) and stores the rest of the list for
+   * later analysis.
+   */
+  private SMGValueAndState getStateAndAddRestForLater(
+      final List<? extends SMGValueAndState> valueAndStates) {
+    final SMGValueAndState valueAndState;
+    if (valueAndStates.size() > 0) {
+      valueAndState = valueAndStates.get(0);
+    } else {
+      valueAndState = SMGValueAndState.of(getNewState());
+    }
+
+    for (int c = 1; c < valueAndStates.size(); c++) {
+      smgStatesToBeProccessed.add(valueAndStates.get(c).getSmgState());
+    }
+    return valueAndState;
   }
 
   @Override
