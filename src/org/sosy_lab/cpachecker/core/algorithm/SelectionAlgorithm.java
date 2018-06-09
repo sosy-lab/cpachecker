@@ -344,13 +344,14 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
     stats.requiresFloatHandling = requiresFloatHandling ? 1 : 0;
 
+    stats.onlyRelevantBools = hasOnlyRelevantIntBoolVars ? 1 : 0;
+
     final Path chosenConfig;
 
     // Perform heuristic
     if (hasOnlyRelevantIntBoolVars) {
       // Run bool only config
       chosenConfig = onlyBoolConfig.value();
-      stats.onlyRelevantBools = 1;
     } else if (stats.relevantAddressedRatio
         > Double.parseDouble(addressedRatio.value().toString().substring(7))) {
       chosenConfig = addressedConfig.value();
