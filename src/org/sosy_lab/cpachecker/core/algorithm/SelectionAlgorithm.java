@@ -197,16 +197,9 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private Algorithm chosenAlgorithm;
   private final SelectionAlgorithmStatistics stats;
 
-  @Option(secure = true, required = true, description = "Configuration for loop-free programs.")
+  @Option(secure = true, description = "Configuration for loop-free programs.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path loopFreeConfig;
-
-  @Option(
-      secure = true,
-      required = true,
-      description = "Configuration for loop-free programs and complex datastructures.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path complexLoopFreeConfig;
 
   @Option(secure = true, required = true, description = "Configuration for programs with loops.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -214,29 +207,33 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
-      required = true,
       description = "Configuration for programs with loops and complex datastructures.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path complexLoopConfig;
 
   @Option(
       secure = true,
-      required = true,
       description = "Configuration for programs containing only relevant bool vars.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path onlyBoolConfig;
 
   @Option(
       secure = true,
-      required = true,
       description =
           "Configuration for programs containing more than @Option adressedRatio addressed vars.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path addressedConfig;
 
+  @Option(secure = true, description = "Configuration for programs containing composite types.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path compositeTypeConfig;
+
+  @Option(secure = true, description = "Configuration for programs containing arrays.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path arrayConfig;
+
   @Option(
       secure = true,
-      required = true,
       description =
           "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig.")
   private double addressedRatio = 0;
@@ -343,27 +340,25 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     final Path chosenConfig;
 
     // Perform heuristic
-    if (hasOnlyRelevantIntBoolVars) {
+    if (!requiresLoopHandling && loopFreeConfig != null) {
+      // Run standard loop-free config
+      chosenConfig = loopFreeConfig;
+    } else if (hasOnlyRelevantIntBoolVars && onlyBoolConfig != null) {
       // Run bool only config
       chosenConfig = onlyBoolConfig;
-    } else if (stats.relevantAddressedRatio > addressedRatio) {
+    } else if (requiresCompositeTypeHandling && compositeTypeConfig != null) {
+      chosenConfig = compositeTypeConfig;
+    } else if (stats.relevantAddressedRatio > addressedRatio && addressedConfig != null) {
       chosenConfig = addressedConfig;
-    } else if (requiresLoopHandling) {
-      if (requiresAliasHandling) {
-        // Run complex loop config
-        chosenConfig = complexLoopConfig;
-      } else {
-        // Run standard loop config
-        chosenConfig = loopConfig;
-      }
+    } else if (requiresArrayHandling && arrayConfig != null) {
+      chosenConfig = arrayConfig;
+    } else if ((requiresFloatHandling || requiresArrayHandling || requiresCompositeTypeHandling)
+        && complexLoopConfig != null) {
+      // Run complex loop config
+      chosenConfig = complexLoopConfig;
     } else {
-      if (requiresAliasHandling) {
-        // Run complex loop-free config
-        chosenConfig = complexLoopFreeConfig;
-      } else {
-        // Run standard loop-free config
-        chosenConfig = loopFreeConfig;
-      }
+      // Run standard loop config
+      chosenConfig = loopConfig;
     }
 
     stats.chosenConfig = chosenConfig.toString().substring(7);
