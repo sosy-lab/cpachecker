@@ -136,4 +136,14 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
       detector = container.getUnsafeDetector();
     }
   }
+
+  @Override
+  protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
+    if (pCallerClass.equals(IdentifierIterator.class)) {
+      firstUsageIterator = null;
+      secondUsageIterator = null;
+      firstUsage = null;
+      secondUsageInfoSet = null;
+    }
+  }
 }
