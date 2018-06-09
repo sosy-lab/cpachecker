@@ -216,6 +216,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       //Just replace old precision
       falseCacheForCurrentIteration.forEach(falseCache::put);
       falseCacheForCurrentIteration.clear();
+      ARGReached = null;
+      strategy.lastAffectedStates.clear();
+      strategy.lastAddedPrecision = null;
     }
   }
 

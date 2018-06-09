@@ -329,7 +329,6 @@ public class UsageState extends AbstractSingleWrapperState
   }*/
 
   public static class StateStatistics {
-    private StatTimer expandTimer = new StatTimer("Time for lock difference calculation");
     private StatTimer joinTimer = new StatTimer("Time for joining");
     private StatTimer lessTimer = new StatTimer("Time for cover check");
     private StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
@@ -341,7 +340,7 @@ public class UsageState extends AbstractSingleWrapperState
     }
 
     public void printStatistics(StatisticsWriter out) {
-      out.spacer().put(expandTimer).put(joinTimer).put(addRecentUsagesTimer).put(lessTimer);
+      out.spacer().put(joinTimer).put(addRecentUsagesTimer).put(lessTimer);
 
       storageStats.printStatistics(out);
     }

@@ -99,11 +99,12 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     boolean success = true;
     CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
     if (isThreadCreateFunction(fCall)) {
-      threadStatistics.threadCreates.inc();
-      threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName());
-      builder.handleChildThread((CThreadCreateStatement)fCall);
-      //Just to statistics
-      threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
+      builder.handleChildThread((CThreadCreateStatement) fCall);
+      if (threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName())) {
+        threadStatistics.threadCreates.inc();
+        // Just to statistics
+        threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
+      }
     } else if (isThreadJoinFunction(fCall)) {
       threadStatistics.threadJoins.inc();
       success = builder.joinThread((CThreadJoinStatement)fCall);
