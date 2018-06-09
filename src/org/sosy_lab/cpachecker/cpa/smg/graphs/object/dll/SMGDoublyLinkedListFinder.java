@@ -395,15 +395,13 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     for (Integer val : nonSharedValues) {
-      Set<SMGEdgeHasValue> hves =
-          smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(val));
 
       /*Abstract simple fields when joining.*/
       if (!smg.isPointer(val)) {
         continue;
       }
 
-      for (SMGEdgeHasValue hve : hves) {
+      for (SMGEdgeHasValue hve : smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(val))) {
         if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
           return false;
         }

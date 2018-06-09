@@ -368,8 +368,7 @@ public class CLangSMG extends SMG {
     while (!workqueue2.isEmpty()) {
       SMGObject processed = workqueue2.remove();
       if (isObjectExternallyAllocated(processed)) {
-        for (SMGEdgeHasValue outbound :
-            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(processed))) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(processed))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
             setExternallyAllocatedFlag(pointedObject, true);
@@ -422,8 +421,7 @@ public class CLangSMG extends SMG {
     while (!workqueue.isEmpty()) {
       SMGObject obj = workqueue.remove();
       if (seenObjects.add(obj)) {
-        for (SMGEdgeHasValue outbound :
-            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(obj))) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if (pointedObject != null) {
             workqueue.add(pointedObject);

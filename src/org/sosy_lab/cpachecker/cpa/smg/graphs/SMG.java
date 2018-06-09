@@ -447,7 +447,8 @@ public class SMG {
    * object to null value
    */
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
-    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterByObject(pObj).filterHavingValue(SMG.NULL_ADDRESS);
+    SMGEdgeHasValueFilter objectFilter =
+        SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMG.NULL_ADDRESS);
     TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
     for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));

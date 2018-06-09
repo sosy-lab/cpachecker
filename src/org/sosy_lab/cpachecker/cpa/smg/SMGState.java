@@ -1190,9 +1190,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
 
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pObject);
-    filter.filterAtOffset(pOffset);
+    SMGEdgeHasValueFilter filter =
+        SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
     for (SMGEdgeHasValue object_edge : heap.getHVEdges(filter)) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -1815,10 +1814,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     long targetRangeSize = pTargetOffset + copyRange;
 
-    SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
-    filterSource.filterByObject(pSource);
-    SMGEdgeHasValueFilter filterTarget = new SMGEdgeHasValueFilter();
-    filterTarget.filterByObject(pTarget);
+    SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
+    SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
 
     // Remove all Target edges in range
     for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {

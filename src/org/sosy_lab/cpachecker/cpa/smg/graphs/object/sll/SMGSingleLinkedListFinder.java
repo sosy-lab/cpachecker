@@ -331,10 +331,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
-      Set<SMGEdgeHasValue> hves =
-          smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(val));
-
-      for (SMGEdgeHasValue hve : hves) {
+      for (SMGEdgeHasValue hve : smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(val))) {
         if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
           return false;
         }
