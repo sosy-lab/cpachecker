@@ -56,7 +56,7 @@ public class SMG {
   private SMGHasValueEdges hv_edges;
   private SMGPointsToEdges pt_edges;
   private PersistentMap<SMGObject, Boolean> object_validity;
-  private PersistentMap<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity;
+  private PersistentSet<SMGObject> externalObjectAllocation;
   private NeqRelation neq = new NeqRelation();
 
   private PredRelation pathPredicate = new PredRelation();
@@ -85,7 +85,7 @@ public class SMG {
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
     object_validity = PathCopyingPersistentTreeMap.of();
-    objectAllocationIdentity = PathCopyingPersistentTreeMap.of();
+    externalObjectAllocation = PersistentSet.of();
     machine_model = pMachineModel;
 
     initializeNullObject();
@@ -107,7 +107,7 @@ public class SMG {
     pathPredicate.putAll(pHeap.pathPredicate);
     errorPredicate.putAll(pHeap.errorPredicate);
     object_validity = pHeap.object_validity;
-    objectAllocationIdentity = pHeap.objectAllocationIdentity;
+    externalObjectAllocation = pHeap.externalObjectAllocation;
     objects = pHeap.objects;
     values = pHeap.values;
   }
@@ -139,10 +139,11 @@ public class SMG {
     return machine_model == other.machine_model
         && Objects.equals(hv_edges, other.hv_edges)
         && Objects.equals(neq, other.neq)
-        && Objects.equals(object_validity,other.object_validity)
+        && Objects.equals(object_validity, other.object_validity)
         && Objects.equals(objects, other.objects)
         && Objects.equals(pt_edges, other.pt_edges)
-        && Objects.equals(values, other.values);
+        && Objects.equals(values, other.values)
+        && Objects.equals(externalObjectAllocation, other.externalObjectAllocation);
   }
 
   /**
@@ -184,7 +185,7 @@ public class SMG {
   final public void removeObject(final SMGObject pObj) {
     objects = objects.removeAndCopy(pObj);
     object_validity = object_validity.removeAndCopy(pObj);
-    objectAllocationIdentity = objectAllocationIdentity.removeAndCopy(pObj);
+    externalObjectAllocation = externalObjectAllocation.removeAndCopy(pObj);
   }
 
   /**
@@ -213,7 +214,7 @@ public class SMG {
   final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
     objects = objects.addAndCopy(pObj);
     object_validity = object_validity.putAndCopy(pObj, pValidity);
-    objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObj, new ExternalObjectFlag(pExternal));
+    setExternallyAllocatedFlag(pObj, pExternal);
   }
 
   /**
@@ -299,7 +300,11 @@ public class SMG {
    */
   public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
     Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
-    objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObject, new ExternalObjectFlag(pExternal));
+    if (pExternal) {
+      externalObjectAllocation = externalObjectAllocation.addAndCopy(pObject);
+    } else {
+      externalObjectAllocation = externalObjectAllocation.removeAndCopy(pObject);
+    }
   }
 
   /**
@@ -458,7 +463,7 @@ public class SMG {
    */
   final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
     Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
-    return objectAllocationIdentity.get(pObject).isExternal();
+    return externalObjectAllocation.contains(pObject);
   }
 
   /**
@@ -586,23 +591,6 @@ public class SMG {
 
   public Set<Integer> getNeqsForValue(Integer pV) {
     return neq.getNeqsForValue(pV);
-  }
-
-  private static class ExternalObjectFlag {
-    private final boolean external;
-
-    public ExternalObjectFlag(boolean pExternal) {
-      external = pExternal;
-    }
-
-    public boolean isExternal() {
-      return external;
-    }
-
-    @Override
-    public String toString() {
-      return "" + external;
-    }
   }
 
   protected void clearValuesHvePte() {
