@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -208,29 +205,16 @@ public class PredRelation {
     if (smgValuesRelation.size() > pPathPredicateRelation.smgValuesDependency.size()) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgValuesDependency, new FilterPredicate<>(pPathPredicateRelation.smgValuesDependency)).isEmpty()) {
+    if (!pPathPredicateRelation.smgValuesDependency.entries().containsAll(smgValuesDependency.entries())) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgExplicitValueRelation, new FilterPredicate<>(pPathPredicateRelation.smgExplicitValueRelation)).isEmpty()) {
+    if (!pPathPredicateRelation.smgExplicitValueRelation.entries().containsAll(smgExplicitValueRelation.entries())) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgValuesRelation, new FilterPredicate<>(pPathPredicateRelation.smgValuesRelation)).isEmpty()) {
+    if (!pPathPredicateRelation.smgValuesRelation.entries().containsAll(smgValuesRelation.entries())) {
       return false;
     }
     return true;
-  }
-
-  public static class FilterPredicate<K, V> implements Predicate<Entry<K, V>> {
-    private final Multimap<K, V> filterAgainst;
-
-    public FilterPredicate(Multimap<K, V> filterAgainst) {
-      this.filterAgainst = filterAgainst;
-    }
-
-    @Override
-    public boolean apply(Entry<K, V> arg0) {
-      return !filterAgainst.containsEntry(arg0.getKey(), arg0.getValue());
-    }
   }
 
   static public class SymbolicRelation {
