@@ -58,42 +58,12 @@ public class SMGEdgePointsToFilter {
     return this;
   }
 
-  @Deprecated
-  public SMGObject filtersByTargetObject() {
-    return targetObject;
-  }
-
   public Integer filtersHavingValue() {
     return value;
   }
 
-  @Deprecated
-  public Long filtersAtTargetOffset() {
-    return targetOffset;
-  }
-
-  @Deprecated
-  public SMGTargetSpecifier filtersByTargetSpecifier() {
-    return targetSpecifier;
-  }
-
-  @Deprecated
-  public boolean isFilteringByObject() {
-    return targetObject != null;
-  }
-
   public boolean isFilteringAtValue() {
     return value != null;
-  }
-
-  @Deprecated
-  public boolean isFilteringAtTargetOffset() {
-    return targetOffset != null;
-  }
-
-  @Deprecated
-  public boolean isFilteringByTargetSpecifier() {
-    return targetSpecifier != null;
   }
 
   public static SMGEdgePointsToFilter valueFilter(Integer pValue) {
