@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -200,43 +199,40 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure = true, required = true, description = "Configuration for loop-free programs.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> loopFreeConfig;
-
-  @Option(
-    secure = true,
-    required = true,
-    description = "Configuration for loop-free programs and complex datastructures."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> complexLoopFreeConfig;
-
-  @Option(secure = true, required = true, description = "Configuration for programs with loops.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> loopConfig;
-
-  @Option(
-    secure = true,
-    required = true,
-    description = "Configuration for programs with loops and complex datastructures."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> complexLoopConfig;
-
-  @Option(
-    secure = true,
-    required = true,
-    description = "Configuration for programs containing only relevant bool vars."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> onlyBoolConfig;
+  private Path loopFreeConfig;
 
   @Option(
       secure = true,
       required = true,
-      description = "Configuration for programs containing more than @Option adressedRatio addressed vars."
-    )
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private AnnotatedValue<Path> addressedConfig;
+      description = "Configuration for loop-free programs and complex datastructures.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path complexLoopFreeConfig;
+
+  @Option(secure = true, required = true, description = "Configuration for programs with loops.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path loopConfig;
+
+  @Option(
+      secure = true,
+      required = true,
+      description = "Configuration for programs with loops and complex datastructures.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path complexLoopConfig;
+
+  @Option(
+      secure = true,
+      required = true,
+      description = "Configuration for programs containing only relevant bool vars.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path onlyBoolConfig;
+
+  @Option(
+      secure = true,
+      required = true,
+      description =
+          "Configuration for programs containing more than @Option adressedRatio addressed vars.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path addressedConfig;
 
   @Option(
       secure = true,
@@ -349,24 +345,24 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     // Perform heuristic
     if (hasOnlyRelevantIntBoolVars) {
       // Run bool only config
-      chosenConfig = onlyBoolConfig.value();
+      chosenConfig = onlyBoolConfig;
     } else if (stats.relevantAddressedRatio > addressedRatio) {
-      chosenConfig = addressedConfig.value();
+      chosenConfig = addressedConfig;
     } else if (requiresLoopHandling) {
       if (requiresAliasHandling) {
         // Run complex loop config
-        chosenConfig = complexLoopConfig.value();
+        chosenConfig = complexLoopConfig;
       } else {
         // Run standard loop config
-        chosenConfig = loopConfig.value();
+        chosenConfig = loopConfig;
       }
     } else {
       if (requiresAliasHandling) {
         // Run complex loop-free config
-        chosenConfig = complexLoopFreeConfig.value();
+        chosenConfig = complexLoopFreeConfig;
       } else {
         // Run standard loop-free config
-        chosenConfig = loopFreeConfig.value();
+        chosenConfig = loopFreeConfig;
       }
     }
 
