@@ -1679,7 +1679,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param smgObject The memory the given Address belongs to.
    * @return returns a possible new State
    */
-  public SMGState free(Integer address, Integer offset, SMGObject smgObject)
+  protected SMGState free(Integer address, Integer offset, SMGObject smgObject)
       throws SMGInconsistentException {
 
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
@@ -1729,11 +1729,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return this;
   }
 
-  public boolean containsInvalidElement(Object elem) {
+  protected boolean containsInvalidElement(Object elem) {
     return heap.containsInvalidElement(elem);
   }
 
-  public Set<Object> getInvalidChain() {
+  protected Set<Object> getInvalidChain() {
     return heap.getInvalidChain();
   }
 
@@ -1745,15 +1745,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addElementToCurrentChain(elem);
   }
 
-  public Set<Object> getCurrentChain() {
+  protected Set<Object> getCurrentChain() {
     return heap.getCurrentChain();
   }
 
-  public void cleanCurrentChain() {
+  protected void cleanCurrentChain() {
     heap.cleanCurrentChain();
   }
 
-  public void moveCurrentChainToInvalidChain() {
+  private void moveCurrentChainToInvalidChain() {
     heap.moveCurrentChainToInvalidChain();
   }
 
