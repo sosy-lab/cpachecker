@@ -1084,9 +1084,7 @@ final class SMGJoinValues {
       ((CLangSMG) pDestSMG).addHeapObject(listCopy);
     }
 
-    Set<SMGEdgeHasValue> hves = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pList));
-
-    for (SMGEdgeHasValue hve : hves) {
+    for (SMGEdgeHasValue hve : pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pList))) {
 
       if(hve.getOffset() != pfo && hve.getOffset() != nfo) {
 
@@ -1160,9 +1158,8 @@ final class SMGJoinValues {
 
     SMGObject newObj = pMapping.get(pObjToCheck);
 
-    Set<SMGEdgeHasValue> hves = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
-
-    for (SMGEdgeHasValue hve : hves) {
+    for (SMGEdgeHasValue hve :
+        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
 
       int subDlsValue = hve.getValue();
       int newVal = subDlsValue;

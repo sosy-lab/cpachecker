@@ -93,7 +93,8 @@ public class CLangSMG extends SMG {
    */
   private boolean has_leaks = false;
 
-  static private LogManager logger = null;
+  /** logger is always NULL, except for JUnit-tests */
+  private static LogManager logger = null;
 
   /**
    * A flag setting if the class should perform additional consistency checks.
@@ -239,10 +240,6 @@ public class CLangSMG extends SMG {
     }
     heap_objects = heap_objects.addAndCopy(pObject);
     addObject(pObject);
-  }
-
-  public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
-    return getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(obj));
   }
 
   /**

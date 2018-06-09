@@ -544,7 +544,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
      * If there is no pointer besides zero in the fields of the
      * optional object, use zero.*/
 
-    Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
+    Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
 
     Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
@@ -576,7 +576,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger.log(Level.ALL,
         "Materialise ", pOptionalObject, " in state id ", this.getId());
 
-    Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
+    Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
 
     Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
@@ -723,7 +723,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     Set<SMGEdgeHasValue> oldFieldsEdges =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
-    Set<SMGEdgePointsTo> oldPtEdges = heap.getPointerToObject(pListSeg);
+    Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
     heap.removeHasValueEdge(oldSllFieldToOldRegion);
     heap.removePointsToEdge(oldPointerToSll);
@@ -833,7 +833,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     Set<SMGEdgeHasValue> oldFieldsEdges =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
-    Set<SMGEdgePointsTo> oldPtEdges = heap.getPointerToObject(pListSeg);
+    Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
     heap.removeHeapObjectAndEdges(pListSeg);
 
@@ -1626,17 +1626,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Nullable
   public Integer getAddress(SMGRegion memory, long offset) {
-
-    SMGEdgePointsToFilter filter =
-        SMGEdgePointsToFilter.targetObjectFilter(memory).filterAtTargetOffset(offset);
-
-    Set<SMGEdgePointsTo> edges = heap.getPtEdges(filter);
-
-    if (edges.isEmpty()) {
-      return null;
-    } else {
-      return Iterables.getOnlyElement(edges).getValue();
-    }
+    return getAddress(memory, offset, null);
   }
 
   /**
@@ -1941,7 +1931,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           "SymValue1 ", pV1.getAsInt(), " ", temp, " SymValue2 ", pV2.getAsInt(),
               "; AddPredicate: ", pEdge);
     }
-    heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
+      getPathPredicateRelation().addRelation(pV1, pCType1, pV2, pCType2, temp);
   }
 }
 
@@ -1961,7 +1951,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         logger.log(Level.FINER, "SymValue ", pV1.getAsInt(), " ", temp, "; ExplValue ", pV2,
             "; AddPredicate: ", pEdge);
       }
-      heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
+      getPathPredicateRelation().addExplicitRelation(pV1, pCType1, pV2, pCType2, temp);
     }
   }
 
@@ -1976,7 +1966,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
           pSymbolicValue, " ; ExplValue", " ",
           pExplicitValue, "; on edge: ", pEdge);
-      heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2);
+      getErrorPredicateRelation()
+          .addExplicitRelation(
+              pSymbolicValue, pCType1, pExplicitValue, pCType2, BinaryOperator.GREATER_THAN);
     }
   }
 
@@ -2021,13 +2013,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   boolean isExplicit(int value) {
     return explicitValues.containsKey(SMGKnownSymValue.valueOf(value));
-  }
-
-  SMGKnownExpValue getExplicit(int value) {
-    SMGKnownSymValue key = SMGKnownSymValue.valueOf(value);
-
-    assert explicitValues.containsKey(key);
-    return explicitValues.get(key);
   }
 
   public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {

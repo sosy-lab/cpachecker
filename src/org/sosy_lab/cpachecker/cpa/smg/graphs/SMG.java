@@ -27,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -35,9 +36,6 @@ import java.util.TreeMap;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -46,8 +44,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMG {
@@ -329,41 +325,8 @@ public class SMG {
     neq = neq.addRelationAndCopy(pV1, pV2);
   }
 
-  /**
-   * Adds a predicate relation between two values to the SMG
-   * Keeps consistency: no
-   */
-  public void addPredicateRelation(SMGSymbolicValue pV1, Integer pCType1,
-                                   SMGSymbolicValue pV2, Integer pCType2,
-                                   BinaryOperator pOp, CFAEdge pEdge) {
-    CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-    if (assumeEdge.getTruthAssumption()) {
-      pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp);
-    } else {
-      pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp.getOppositLogicalOperator());
-    }
-  }
-
-  public void addPredicateRelation(SMGSymbolicValue pSymbolicValue, Integer pCType1,
-                                   SMGExplicitValue pExplicitValue, Integer pCType2,
-                                   BinaryOperator pOp, CFAEdge pEdge) {
-    if (pEdge instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      if (assumeEdge.getTruthAssumption()) {
-        pathPredicate.addExplicitRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pOp);
-      } else {
-        pathPredicate.addExplicitRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pOp.getOppositLogicalOperator());
-      }
-    }
-  }
-
   public PredRelation getPathPredicateRelation() {
     return pathPredicate;
-  }
-
-  public void addErrorRelation(SMGSymbolicValue pSMGSymbolicValue, Integer pCType1,
-                               SMGExplicitValue pExplicitValue, Integer pCType2) {
-    errorPredicate.addExplicitRelation(pSMGSymbolicValue, pCType1, pExplicitValue, pCType2, BinaryOperator.GREATER_THAN);
   }
 
   public PredRelation getErrorPredicateRelation() {
@@ -392,7 +355,7 @@ public class SMG {
    * @return Unmodifiable view on objects set.
    */
   final public Set<SMGObject> getObjects() {
-    return objects.asSet();
+    return Collections.unmodifiableSet(objects.asSet());
   }
 
   /**
@@ -400,7 +363,7 @@ public class SMG {
    * @return Unmodifiable view on Has-Value edges set.
    */
   final public Set<SMGEdgeHasValue> getHVEdges() {
-    return hv_edges.getHvEdges();
+    return Collections.unmodifiableSet(hv_edges.getHvEdges());
   }
 
   /**

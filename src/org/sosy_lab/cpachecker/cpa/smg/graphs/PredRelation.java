@@ -138,7 +138,6 @@ public class PredRelation {
 
   /** Returns closure list of symbolic values which affects pRelation */
   public Set<Integer> closureDependencyFor(PredRelation pRelation) {
-    Set<Integer> result = new HashSet<>();
     Set<Integer> toAdd = new HashSet<>();
     for (Entry<Integer, Integer> entry : pRelation.smgValuesDependency.entries()) {
       Integer key = entry.getKey();
@@ -148,6 +147,7 @@ public class PredRelation {
         toAdd.add(value);
       }
     }
+    Set<Integer> result = new HashSet<>();
     while (!toAdd.isEmpty()) {
       result.addAll(toAdd);
       Set<Integer> tempAdd = new HashSet<>();
