@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
@@ -39,7 +40,7 @@ public class SMGEdgePointsToFilter {
   private SMGTargetSpecifier targetSpecifier = null;
 
   private SMGEdgePointsToFilter(SMGObject pTargetObject) {
-    targetObject = pTargetObject;
+    targetObject = Preconditions.checkNotNull(pTargetObject, "fitlering for NULL might be useless");
   }
 
   public SMGEdgePointsToFilter filterHavingValue(Integer pValue) {
