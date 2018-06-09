@@ -607,13 +607,10 @@ public class SMGExpressionEvaluator {
 
   private List<SMGAddressValueAndState> createAddresses(List<SMGAddressAndState> pAddresses)
       throws SMGInconsistentException {
-
-    List<SMGAddressValueAndState> result = new ArrayList<>(pAddresses.size());
-
+    List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGAddressAndState addressAndState : pAddresses) {
       result.addAll(createAddress(addressAndState));
     }
-
     return result;
   }
 
@@ -640,8 +637,7 @@ public class SMGExpressionEvaluator {
    */
   List<SMGAddressValueAndState> getAddressFromSymbolicValues(
       List<? extends SMGValueAndState> pAddressValueAndStateList) throws SMGInconsistentException {
-    List<SMGAddressValueAndState> addressAndStateList =
-        new ArrayList<>(pAddressValueAndStateList.size());
+    List<SMGAddressValueAndState> addressAndStateList = new ArrayList<>();
     for (SMGValueAndState valueAndState : pAddressValueAndStateList) {
       addressAndStateList.addAll(getAddressFromSymbolicValue(valueAndState));
     }
@@ -697,9 +693,7 @@ public class SMGExpressionEvaluator {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGAddressValueAndState addressValueAndState : getAddress(pSmgState, pTarget, pOffset)) {
       if (addressValueAndState.getObject().isUnknown()) {
-
-        SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGValueFactory
-            .getNewValue());
+        SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
         SMGKnownAddressValue addressValue =
             SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
         result.add(SMGAddressValueAndState.of(addressValueAndState.getSmgState(), addressValue));

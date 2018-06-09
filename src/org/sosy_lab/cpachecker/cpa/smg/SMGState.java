@@ -504,48 +504,29 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     switch (pSmgAbstractObject.getKind()) {
       case DLL:
         SMGDoublyLinkedList dllListSeg = (SMGDoublyLinkedList) pSmgAbstractObject;
-
         if (dllListSeg.getMinimumLength() == 0) {
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
-          SMGState removalState = new SMGState(this);
-          List<SMGAddressValueAndState> removalResult =
-              removalState.removeDls(dllListSeg, pointerToAbstractObject);
-          result.addAll(removalResult);
-          SMGAddressValueAndState resultOfMaterilisation =
-              materialiseDls(dllListSeg, pointerToAbstractObject);
-          result.add(resultOfMaterilisation);
+          result.addAll(new SMGState(this).removeDls(dllListSeg, pointerToAbstractObject));
+          result.add(materialiseDls(dllListSeg, pointerToAbstractObject));
           return result;
         } else {
-          SMGAddressValueAndState result = materialiseDls(dllListSeg, pointerToAbstractObject);
-          return Collections.singletonList(result);
+          return Collections.singletonList(materialiseDls(dllListSeg, pointerToAbstractObject));
         }
       case SLL:
         SMGSingleLinkedList sllListSeg = (SMGSingleLinkedList) pSmgAbstractObject;
-
         if (sllListSeg.getMinimumLength() == 0) {
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
-          SMGState removalState = new SMGState(this);
-          List<SMGAddressValueAndState> resultOfRemoval =
-              removalState.removeSll(sllListSeg, pointerToAbstractObject);
-          result.addAll(resultOfRemoval);
-          SMGAddressValueAndState resultOfMaterilisation =
-              materialiseSll(sllListSeg, pointerToAbstractObject);
-          result.add(resultOfMaterilisation);
+          result.addAll(new SMGState(this).removeSll(sllListSeg, pointerToAbstractObject));
+          result.add(materialiseSll(sllListSeg, pointerToAbstractObject));
           return result;
         } else {
-          SMGAddressValueAndState result = materialiseSll(sllListSeg, pointerToAbstractObject);
-          return Collections.singletonList(result);
+          return Collections.singletonList(materialiseSll(sllListSeg, pointerToAbstractObject));
         }
       case OPTIONAL:
         List<SMGAddressValueAndState> result = new ArrayList<>(2);
         SMGOptionalObject optionalObject = (SMGOptionalObject) pSmgAbstractObject;
-        SMGState removalState = new SMGState(this);
-        List<SMGAddressValueAndState> resultOfRemoval =
-            removalState.removeOptionalObject(optionalObject);
-        result.addAll(resultOfRemoval);
-        SMGAddressValueAndState resultOfMaterilisation =
-            materialiseOptionalObject(optionalObject, pointerToAbstractObject);
-        result.add(resultOfMaterilisation);
+        result.addAll(new SMGState(this).removeOptionalObject(optionalObject));
+        result.add(materialiseOptionalObject(optionalObject, pointerToAbstractObject));
         return result;
       default:
         throw new UnsupportedOperationException(
@@ -617,15 +598,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       heap.addPointsToEdge(new SMGEdgePointsTo(edge.getValue(), newObject, edge.getOffset()));
     }
 
-    SMGAddressValueAndState result =
-        SMGAddressValueAndState.of(
-            this,
-            SMGKnownAddressValue.valueOf(
-                pPointerToAbstractObject.getValue(),
-                newObject,
-                pPointerToAbstractObject.getOffset()));
-
-    return result;
+    return SMGAddressValueAndState.of(
+        this,
+        SMGKnownAddressValue.valueOf(
+            pPointerToAbstractObject.getValue(), newObject, pPointerToAbstractObject.getOffset()));
   }
 
   private List<SMGAddressValueAndState> removeSll(
@@ -934,10 +910,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     newObjectMap.put(pRoot, pNewRegion);
 
-    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pRoot));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pRoot))) {
       if (!pRestriction.contains(hve.getOffset())) {
 
         int subDlsValue = hve.getValue();
@@ -1019,12 +992,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       Map<Integer, Integer> newValueMap) {
 
     SMGObject newObj = newObjectMap.get(pObjToCheck);
-
-    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
-
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       int subDlsValue = hve.getValue();
       int newVal = subDlsValue;
 
@@ -1082,10 +1050,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     reached.add(pRoot);
 
-    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pRoot));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pRoot))) {
       if (!pRestriction.contains(hve.getOffset())) {
 
         int subDlsValue = hve.getValue();
@@ -1129,10 +1094,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private void removeRestrictedSubSmg(SMGObject pObjToCheck,
       Set<SMGObject> pToBeChecked, Set<SMGObject> reached) {
 
-    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       int subDlsValue = hve.getValue();
 
       if (heap.isPointer(subDlsValue)) {
@@ -1163,7 +1125,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    */
   public boolean isPointer(Integer pValue) {
-
     return heap.isPointer(pValue);
   }
 
@@ -1232,9 +1193,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
     filter.filterByObject(pObject);
     filter.filterAtOffset(pOffset);
-    Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
-
-    for (SMGEdgeHasValue object_edge : edges) {
+    for (SMGEdgeHasValue object_edge : heap.getHVEdges(filter)) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         SMGSymbolicValue value = SMGKnownSymValue.valueOf(object_edge.getValue());
@@ -1762,12 +1721,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.setExternallyAllocatedFlag(smgObject, false);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
-    List<SMGEdgeHasValue> to_remove = new ArrayList<>();
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
-      to_remove.add(edge);
-    }
-
-    for (SMGEdgeHasValue edge : to_remove) {
       heap.removeHasValueEdge(edge);
     }
 
@@ -1876,10 +1830,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     SMGEdgeHasValueFilter filterTarget = new SMGEdgeHasValueFilter();
     filterTarget.filterByObject(pTarget);
 
-    //Remove all Target edges in range
-    Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
-
-    for (SMGEdgeHasValue edge : targetEdges) {
+    // Remove all Target edges in range
+    for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {
       if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
         boolean hvEdgeIsZero = edge.getValue() == SMG.NULL_ADDRESS;
         heap.removeHasValueEdge(edge);
@@ -2116,7 +2068,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
 
-    /* Treat functions as global objects with unnkown memory size.
+    /* Treat functions as global objects with unknown memory size.
      * Only write them into the smg when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
