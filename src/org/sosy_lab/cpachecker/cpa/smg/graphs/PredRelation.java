@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
@@ -253,26 +254,14 @@ public class PredRelation {
       }
 
       SymbolicRelation relation = (SymbolicRelation) pO;
-
-      if (!valueOne.equals(relation.valueOne)) {
-        return false;
-      }
-      if (!valueTwo.equals(relation.valueTwo)) {
-        return false;
-      }
-      if (operator != relation.operator) {
-        return false;
-      }
-
-      return true;
+      return valueOne.equals(relation.valueOne)
+          && valueTwo.equals(relation.valueTwo)
+          && operator == relation.operator;
     }
 
     @Override
     public int hashCode() {
-      int result = valueOne.hashCode();
-      result = 31 * result + valueTwo.hashCode();
-      result = 31 * result + operator.hashCode();
-      return result;
+      return Objects.hash(valueOne, valueTwo, operator);
     }
 
     @Override
@@ -322,26 +311,14 @@ public class PredRelation {
       }
 
       ExplicitRelation relation = (ExplicitRelation) pO;
-
-      if (!symbolicValue.equals(relation.symbolicValue)) {
-        return false;
-      }
-      if (!explicitValue.equals(relation.explicitValue)) {
-        return false;
-      }
-      if (operator != relation.operator) {
-        return false;
-      }
-
-      return true;
+      return symbolicValue.equals(relation.symbolicValue)
+          && explicitValue.equals(relation.explicitValue)
+          && operator == relation.operator;
     }
 
     @Override
     public int hashCode() {
-      int result = symbolicValue.hashCode();
-      result = 31 * result + explicitValue.hashCode();
-      result = 31 * result + operator.hashCode();
-      return result;
+      return Objects.hash(symbolicValue, explicitValue, operator);
     }
 
     @Override
