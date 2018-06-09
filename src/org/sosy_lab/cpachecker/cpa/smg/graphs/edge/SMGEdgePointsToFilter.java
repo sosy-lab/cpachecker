@@ -31,16 +31,15 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGEdgePointsToFilter {
 
+  /** the target of the CMGEdgePointsTo for filtering. */
+  private final SMGObject targetObject;
+
   private Integer value = null;
-  private SMGObject targetObject = null;
   private Long targetOffset = null;
   private SMGTargetSpecifier targetSpecifier = null;
 
-  private SMGEdgePointsToFilter() {}
-
-  public SMGEdgePointsToFilter filterByTargetObject(SMGObject pObject) {
-    targetObject = pObject;
-    return this;
+  private SMGEdgePointsToFilter(SMGObject pTargetObject) {
+    targetObject = pTargetObject;
   }
 
   public SMGEdgePointsToFilter filterHavingValue(Integer pValue) {
@@ -58,20 +57,8 @@ public class SMGEdgePointsToFilter {
     return this;
   }
 
-  public Integer filtersHavingValue() {
-    return value;
-  }
-
-  public boolean isFilteringAtValue() {
-    return value != null;
-  }
-
-  public static SMGEdgePointsToFilter valueFilter(Integer pValue) {
-    return new SMGEdgePointsToFilter().filterHavingValue(pValue);
-  }
-
   public static SMGEdgePointsToFilter targetObjectFilter(SMGObject pTargetObject) {
-    return new SMGEdgePointsToFilter().filterByTargetObject(pTargetObject);
+    return new SMGEdgePointsToFilter(pTargetObject);
   }
 
   public boolean holdsFor(SMGEdgePointsTo pEdge) {
@@ -79,7 +66,7 @@ public class SMGEdgePointsToFilter {
       return false;
     }
 
-    if (isFilteringAtValue() && !value.equals(pEdge.getValue())) {
+    if (value != null && !value.equals(pEdge.getValue())) {
       return false;
     }
 
@@ -96,8 +83,8 @@ public class SMGEdgePointsToFilter {
 
   public Iterable<SMGEdgePointsTo> filter(SMGPointsToEdges edges) {
 
-    if (isFilteringAtValue()) {
-      SMGEdgePointsTo result = edges.getEdgeWithValue(filtersHavingValue());
+    if (value != null) {
+      SMGEdgePointsTo result = edges.getEdgeWithValue(value);
       if (result == null) {
         return ImmutableSet.of();
       } else {
@@ -105,10 +92,6 @@ public class SMGEdgePointsToFilter {
       }
     }
 
-    return filter((Iterable<SMGEdgePointsTo>)edges);
-  }
-
-  public Iterable<SMGEdgePointsTo> filter(Iterable<SMGEdgePointsTo> edges) {
     return Iterables.filter(edges, this::holdsFor);
   }
 }
