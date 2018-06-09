@@ -239,13 +239,11 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     private AnnotatedValue<Path> addressedConfig;
 
   @Option(
-    secure = true,
-    required = true,
-    description =
-        "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> addressedRatio;
+      secure = true,
+      required = true,
+      description =
+          "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig.")
+  private double addressedRatio = 0;
 
   public SelectionAlgorithm(
       CFA pCfa,
@@ -352,10 +350,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     if (hasOnlyRelevantIntBoolVars) {
       // Run bool only config
       chosenConfig = onlyBoolConfig.value();
-    } else if (stats.relevantAddressedRatio
-        > Double.parseDouble(addressedRatio.value().toString().substring(7))) {
+    } else if (stats.relevantAddressedRatio > addressedRatio) {
       chosenConfig = addressedConfig.value();
-
     } else if (requiresLoopHandling) {
       if (requiresAliasHandling) {
         // Run complex loop config

@@ -2900,7 +2900,7 @@ heuristicSelection.addressedConfig = no default value
 
 # Ratio of addressed vars. Values bigger than the passed value lead to
 # @option addressedConfig.
-heuristicSelection.addressedRatio = no default value
+heuristicSelection.addressedRatio = 0
 
 # Configuration for programs with loops and complex datastructures.
 heuristicSelection.complexLoopConfig = no default value
