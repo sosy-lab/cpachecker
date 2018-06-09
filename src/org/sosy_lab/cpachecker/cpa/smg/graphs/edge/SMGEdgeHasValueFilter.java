@@ -69,64 +69,6 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
-  @Deprecated
-  public SMGObject filtersByObject() {
-    return object;
-  }
-
-  @Deprecated
-  public Integer filtersHavingValue() {
-    if (valueComplement) {
-      return null;
-    } else {
-      return value;
-    }
-  }
-
-  @Deprecated
-  public Integer filtersNotHavingValue() {
-    if (valueComplement) {
-      return value;
-    } else {
-      return null;
-    }
-  }
-
-  @Deprecated
-  public Long filtersAtOffset() {
-    return offset;
-  }
-
-  @Deprecated
-  public CType filtersByType() {
-    return type;
-  }
-
-  @Deprecated
-  public boolean isFilteringByObject() {
-    return object != null;
-  }
-
-  @Deprecated
-  public boolean isFilteringHavingValue() {
-    return value != null && !valueComplement;
-  }
-
-  @Deprecated
-  public boolean isFilteringNotHavingValue() {
-    return value != null && valueComplement;
-  }
-
-  @Deprecated
-  public boolean isFilteringAtOffset() {
-    return offset != null;
-  }
-
-  @Deprecated
-  public CType isFilteringAtType() {
-    return type;
-  }
-
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
     if (object != null && object != pEdge.getObject()) {
       return false;
