@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -253,8 +252,7 @@ public class SMGJoinTest {
 
     SMGObject global = resultSMG.getGlobalObjects().get(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
-    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
-    SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
+    SMGEdgeHasValue edge = Iterables.getOnlyElement(resultSMG.getHVEdges(filter));
     assertThat(resultSMG.getValues()).contains(Integer.valueOf(edge.getValue()));
   }
 
@@ -274,8 +272,7 @@ public class SMGJoinTest {
 
     SMGObject global = Iterables.get(resultSMG.getStackFrames(), 0).getVariable(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
-    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
-    SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
+    SMGEdgeHasValue edge = Iterables.getOnlyElement(resultSMG.getHVEdges(filter));
     assertThat(resultSMG.getValues()).contains(Integer.valueOf(edge.getValue()));
   }
 

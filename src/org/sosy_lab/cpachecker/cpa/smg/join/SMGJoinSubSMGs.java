@@ -25,23 +25,19 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 
 final class SMGJoinSubSMGs {
@@ -93,14 +89,12 @@ final class SMGJoinSubSMGs {
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
 
-    Set<SMGEdgeHasValue> edgesOnObject1 = Sets.newHashSet(inputSMG1.getHVEdges(filterOnSMG1));
-
     Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
-    for (SMGEdgeHasValue hvIn1 : edgesOnObject1) {
+    for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
 
       int lDiff = pLDiff;
@@ -108,8 +102,7 @@ final class SMGJoinSubSMGs {
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
-      int value2Level =
-          getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
+      int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
 
       int levelDiff1 = value1Level - pObj1.getLevel();
       int levelDiff2 = value2Level - pObj2.getLevel();

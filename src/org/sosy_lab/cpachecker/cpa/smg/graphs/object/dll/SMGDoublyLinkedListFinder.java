@@ -418,10 +418,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
     pObjects.add(pObject);
 
-    Set<SMGEdgeHasValue> hves = inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
       if (hve.getOffset() != pfo && hve.getOffset() != nfo) {
 
         int subSmgValue = hve.getValue();
@@ -455,10 +452,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
   private void getSubSmgOf(SMGObject pObjToCheck,
       Set<SMGObject> pToBeChecked,  CLangSMG pInputSmg, Set<SMGObject> pObjects, Set<Integer> pValues) {
 
-    Set<SMGEdgeHasValue> hves = pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       int subDlsValue = hve.getValue();
       pValues.add(subDlsValue);
 

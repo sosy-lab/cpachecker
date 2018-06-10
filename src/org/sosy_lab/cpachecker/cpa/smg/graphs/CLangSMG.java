@@ -29,6 +29,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -412,14 +413,14 @@ public class CLangSMG extends SMG {
       Set<SMGObject> seenObjects, Set<Integer> seenValues) {
 
     // basis: get all direct reachabale objects
-    Queue<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
+    Deque<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
     for (CLangStackFrame frame : getStackFrames()) {
       workqueue.addAll(frame.getAllObjects());
     }
 
     // search all indirect reachable objects
     while (!workqueue.isEmpty()) {
-      SMGObject obj = workqueue.remove();
+      SMGObject obj = workqueue.pop();
       if (seenObjects.add(obj)) {
         for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
@@ -856,13 +857,11 @@ public class CLangSMG extends SMG {
       Set<SMGObject> pReached, SMGObjectPosition pPos, SMGMemoryPath pParent, String pFunctionName,
       Integer pLocationOnStack, String pVariableName) {
 
-    Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
     List<Long> offsets = new ArrayList<>();
     Map<Long, SMGObject> offsetToRegion = new HashMap<>();
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
-
-    for (SMGEdgeHasValue objectHve : objectHves) {
+    for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
       Integer value = objectHve.getValue();
       long offset = objectHve.getOffset();
 
@@ -1005,13 +1004,12 @@ public class CLangSMG extends SMG {
       Set<SMGObject> pReached, SMGObjectPosition pPos, SMGMemoryPath pParent, String pFunctionName,
       Integer pLocationOnStack, String pVariableName) {
 
-    Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
     List<Long> offsets = new ArrayList<>();
     Map<Long, SMGObject> offsetToRegion = new HashMap<>();
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
-    for (SMGEdgeHasValue objectHve : objectHves) {
+    for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
       Integer value = objectHve.getValue();
 
       if (!isPointer(value)) {

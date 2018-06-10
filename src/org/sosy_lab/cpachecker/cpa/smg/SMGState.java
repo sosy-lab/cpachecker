@@ -485,10 +485,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGObject obj = address.getObject();
 
       if (obj.isAbstract()) {
-        List<SMGAddressValueAndState> result =
-            handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
         performConsistencyCheck(SMGRuntimeCheck.HALF);
-        return result;
+        return handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
       }
 
       return Collections.singletonList(SMGAddressValueAndState.of(this, address));
@@ -2184,10 +2182,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void writeUnknownValueInUnknownField(SMGObject target) {
-    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(target));
-    hves.forEach((SMGEdgeHasValue hve) -> {
-      heap.removeHasValueEdge(hve);
-    });
+    heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(target)).forEach(heap::removeHasValueEdge);
   }
 
   public void clearObjects() {

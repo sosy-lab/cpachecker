@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -185,7 +185,7 @@ public class SMGTransferRelation
     logger.log(Level.ALL, "state with id", state.getId(), "has successors with ids",
         Collections2.transform(successors, SMGState::getId));
     // Verify predicate on error feasibility
-    successors = Collections2.transform(successors, s -> checkAndSetErrorRelation(s));
+    successors = Collections2.transform(successors, this::checkAndSetErrorRelation);
     return successors;
   }
 
@@ -589,7 +589,7 @@ public class SMGTransferRelation
       }
     }
 
-    return ImmutableList.copyOf(result);
+    return result;
   }
 
   /**
@@ -750,10 +750,7 @@ public class SMGTransferRelation
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
             asSMGStateList(readValueToBeAssiged(resultState, cfaEdge, rValue));
-        newStates.forEach((SMGState smgState) -> {
-          smgState.unknownWrite();
-        });
-
+        newStates.forEach(smgState -> smgState.unknownWrite());
         result.addAll(newStates);
       } else {
         List<SMGState> newStates =
@@ -856,13 +853,10 @@ public class SMGTransferRelation
     //FIXME Does not work with variable array length.
     if (memoryOfField.getSize() < sizeOfField) {
 
-      logger.log(Level.INFO, () -> {
-        String log =
+      logger.log(Level.INFO, () ->
             String.format("%s: Attempting to write %d bytes into a field with size %d bytes: %s",
                 cfaEdge.getFileLocation(), sizeOfField, memoryOfField.getSize(),
-                cfaEdge.getRawStatement());
-        return log;
-      });
+                cfaEdge.getRawStatement()));
     }
 
     if (expressionEvaluator.isStructOrUnionType(rValueType)) {
@@ -960,12 +954,9 @@ public class SMGTransferRelation
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.INFO, () -> {
-        String msg =
+      logger.log(Level.INFO, () ->
             String.format("%s: Field (%d, %s) does not fit object %s.", pEdge.getFileLocation(),
-                pFieldOffset, pRValueType.toASTString(""), pMemoryOfField.toString());
-        return msg;
-      });
+                pFieldOffset, pRValueType.toASTString(""), pMemoryOfField.toString()));
       SMGState newState = pNewState.setInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
         if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
@@ -1140,13 +1131,9 @@ public class SMGTransferRelation
     }
 
     // Type cannot be resolved
-    logger.log(Level.INFO,() -> {
-          String msg =
+    logger.log(Level.INFO,() ->
               String.format("Type %s cannot be resolved sufficiently to handle initializer %s",
-                  realCType.toASTString(""), pNewInitializer);
-          return msg;
-        });
-
+                  realCType.toASTString(""), pNewInitializer));
     return ImmutableList.of(pNewState);
   }
 
@@ -1280,10 +1267,7 @@ public class SMGTransferRelation
         offset = offset + machineModel.getSizeofInBits(memberType);
 
         final long currentOffset = offset;
-        List<Pair<SMGState, Long>> newStatesAndOffset =
-            Lists.transform(pNewStates, s -> Pair.of(s, currentOffset));
-
-        resultOffsetAndStates.addAll(newStatesAndOffset);
+        resultOffsetAndStates.addAll(Lists.transform(pNewStates, s -> Pair.of(s, currentOffset)));
       }
 
       offsetAndStates = resultOffsetAndStates;

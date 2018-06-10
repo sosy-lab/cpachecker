@@ -98,9 +98,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       return;
     }
 
-    Set<SMGEdgeHasValue> hvesOfObject = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hveNext : hvesOfObject) {
+    for (SMGEdgeHasValue hveNext : pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
 
       long nfo = hveNext.getOffset();
       int nextPointer = hveNext.getValue();
@@ -137,11 +135,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
-      Set<SMGEdgePointsTo> pointsToThis = SMGUtils.getPointerToThisObject(pObject, pSmg);
-
       Set<CType> typesOfThisObject = new HashSet<>();
 
-      for (SMGEdgePointsTo edge : pointsToThis) {
+      for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
         Set<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
         for (SMGEdgeHasValue hve : hves) {
@@ -269,10 +265,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     // check if the sequence is uninterrupted
-    Set<SMGEdgePointsTo> ptes1 = SMGUtils.getPointerToThisObject(startObject, pSmg);
-    Set<SMGEdgePointsTo> ptes2 = SMGUtils.getPointerToThisObject(nextObject, pSmg);
-
-    for (SMGEdgePointsTo pte : ptes1) {
+    for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(startObject, pSmg)) {
       if (pte.getOffset() != candidate.getShape().getHfo()) {
         if (!nonSharedValues1.contains(pte.getValue())) {
           return;
@@ -280,7 +273,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
     }
 
-    for (SMGEdgePointsTo pte : ptes2) {
+    for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(nextObject, pSmg)) {
       if (pte.getOffset() != candidate.getShape().getHfo()) {
         if (!nonSharedValues2.contains(pte.getValue())) {
           return;
@@ -348,10 +341,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     pObjects.add(pObject);
 
-    Set<SMGEdgeHasValue> hves = inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
       if (hve.getOffset() != nfo) {
 
         int subSmgValue = hve.getValue();
