@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import static java.util.Collections.singletonList;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -540,7 +541,7 @@ public class SMGExpressionEvaluator {
             cfaEdge, binaryExp);
 
     default:
-        return Collections.singletonList(SMGAddressValueAndState.of(initialSmgState));
+        return singletonList(SMGAddressValueAndState.of(initialSmgState));
     }
   }
 
@@ -621,7 +622,7 @@ public class SMGExpressionEvaluator {
     SMGAddress address = addressAndState.getObject();
 
     if (address.isUnknown()) {
-      return Collections.singletonList(SMGAddressValueAndState.of(state));
+      return singletonList(SMGAddressValueAndState.of(state));
     }
 
     return createAddress(state, address.getObject(), address.getOffset());
@@ -661,29 +662,25 @@ public class SMGExpressionEvaluator {
       throws SMGInconsistentException {
 
     if (pAddressValueAndState instanceof SMGAddressValueAndState) {
-      return Collections.singletonList((SMGAddressValueAndState) pAddressValueAndState);
+      return singletonList((SMGAddressValueAndState) pAddressValueAndState);
     }
 
     SMGSymbolicValue pAddressValue = pAddressValueAndState.getObject();
     SMGState smgState = pAddressValueAndState.getSmgState();
 
     if (pAddressValue instanceof SMGAddressValue) {
-      return Collections.singletonList(
-          SMGAddressValueAndState.of(smgState, (SMGAddressValue) pAddressValue));
+      return singletonList(SMGAddressValueAndState.of(smgState, (SMGAddressValue) pAddressValue));
     }
 
     if (pAddressValue.isUnknown()) {
-      return Collections.singletonList(SMGAddressValueAndState.of(smgState));
+      return singletonList(SMGAddressValueAndState.of(smgState));
     }
 
     if (!smgState.isPointer(pAddressValue.getAsInt())) {
-      return Collections.singletonList(SMGAddressValueAndState.of(smgState));
+      return singletonList(SMGAddressValueAndState.of(smgState));
     }
 
-    List<SMGAddressValueAndState> addressValues =
-        smgState.getPointerFromValue(pAddressValue.getAsInt());
-
-    return addressValues;
+    return smgState.getPointerFromValue(pAddressValue.getAsInt());
   }
 
   protected List<SMGAddressValueAndState> createAddress(
@@ -710,7 +707,7 @@ public class SMGExpressionEvaluator {
       throws SMGInconsistentException {
 
     if (pTarget == null || pOffset.isUnknown()) {
-      return Collections.singletonList(SMGAddressValueAndState.of(pSmgState));
+      return singletonList(SMGAddressValueAndState.of(pSmgState));
     }
 
     SMGRegion regionTarget;
@@ -718,10 +715,9 @@ public class SMGExpressionEvaluator {
     if(pTarget instanceof SMGRegion) {
       regionTarget = (SMGRegion) pTarget;
     } else if (pTarget == SMGNullObject.INSTANCE) {
-      SMGAddressValueAndState result =
+      return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsInt()));
-      return Collections.singletonList(result);
+              pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsInt())));
     } else {
       throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
     }
@@ -729,15 +725,10 @@ public class SMGExpressionEvaluator {
     Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());
 
     if (address == null) {
-      return Collections.singletonList(SMGAddressValueAndState.of(pSmgState));
+      return singletonList(SMGAddressValueAndState.of(pSmgState));
     }
-
-    List<SMGAddressValueAndState> addressValues = pSmgState.getPointerFromValue(address);
-
-    return addressValues;
+    return pSmgState.getPointerFromValue(address);
   }
-
-
 
   /*
    * These Methods are designed to be overwritten to enable
@@ -746,22 +737,20 @@ public class SMGExpressionEvaluator {
    *
    */
 
-  /**
-   * @param edge the edge to handle
-   */
+  /** @param edge the edge to handle */
   protected SMGValueAndState handleUnknownDereference(SMGState smgState, CFAEdge edge) {
     return SMGValueAndState.of(smgState);
   }
 
-  public StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  private StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new StructAndUnionVisitor(this, pCfaEdge, pNewState);
   }
 
-  public ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
+  ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
     return new ArrayVisitor(this, pCfaEdge, pSmgState);
   }
 
-  public PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new PointerVisitor(this, pCfaEdge, pNewState);
   }
 
@@ -769,16 +758,16 @@ public class SMGExpressionEvaluator {
     return new AssumeVisitor(this, pCfaEdge, pNewState);
   }
 
-  public ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new ExpressionValueVisitor(this, pCfaEdge, pNewState);
   }
 
-  public LValueAssignmentVisitor getLValueAssignmentVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  LValueAssignmentVisitor getLValueAssignmentVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new LValueAssignmentVisitor(this, pCfaEdge, pNewState);
   }
 
-  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
-      Optional<CExpression> pExpression) {
+  CSizeOfVisitor getSizeOfVisitor(
+      CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
     return new CSizeOfVisitor(this, pEdge, pState, pExpression);
   }
 }

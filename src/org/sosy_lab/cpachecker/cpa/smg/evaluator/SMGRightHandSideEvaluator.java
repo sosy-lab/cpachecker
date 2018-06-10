@@ -139,12 +139,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  public PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new RHSPointerAddressVisitor(this, pCfaEdge, pNewState);
   }
 
   @Override
-  public ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new RHSExpressionValueVisitor(this, pCfaEdge, pNewState);
   }
 
@@ -154,7 +154,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  protected RHSCSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
+  RHSCSizeOfVisitor getSizeOfVisitor(
+      CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
     return new RHSCSizeOfVisitor(this, pEdge, pState, pExpression);
   }
 
