@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.junit.Assert;
@@ -487,7 +488,7 @@ public class SMGStateTest {
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
 
     Assert.assertFalse(state.hasMemoryLeaks());
-    state.setMemLeak();
+    state.setMemLeak("", Collections.emptyList());
     Assert.assertTrue(state.hasMemoryLeaks());
   }
 }

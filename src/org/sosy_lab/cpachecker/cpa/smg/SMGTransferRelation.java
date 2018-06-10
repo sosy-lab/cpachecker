@@ -667,12 +667,12 @@ public class SMGTransferRelation
                       cFCExpression, newState, pCfaEdge));
 
           for (SMGState s : newStates) {
-            s.setErrorDescription(
+            s.setMemLeak(
                 "Calling '"
                     + calledFunctionName
                     + "' and not using the result, "
-                    + "resulting in memory leak.");
-            s.setMemLeak();
+                    + "resulting in memory leak.",
+                Collections.emptyList());
           }
         }
 

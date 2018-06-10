@@ -28,6 +28,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1628,8 +1629,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /** Sets a flag indicating this SMGState is a successor over an edge causing a memory leak. */
-  public void setMemLeak() {
+  public void setMemLeak(String errorMsg, Collection<SMGObject> pUnreachableObjects) {
     hasMemoryLeak = true;
+    setErrorDescription(errorMsg);
+    invalidChain.addAll(pUnreachableObjects);
   }
 
   public boolean containsValue(int value) {
@@ -1790,9 +1793,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void pruneUnreachable() throws SMGInconsistentException {
     Set<SMGObject> unreachable = heap.pruneUnreachable();
     if (!unreachable.isEmpty()) {
-      invalidChain.addAll(unreachable);
-      setMemLeak();
-      setErrorDescription("Memory leak is detected");
+      setMemLeak("Memory leak is detected", unreachable);
     }
     //TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -1900,9 +1901,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // TODO Why do I do this here?
     Set<SMGObject> unreachable = heap.pruneUnreachable();
     if (!unreachable.isEmpty()) {
-      invalidChain.addAll(unreachable);
-      setMemLeak();
-      setErrorDescription("Memory leak is detected");
+      setMemLeak("Memory leak is detected", unreachable);
     }
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     return newSMGState;
