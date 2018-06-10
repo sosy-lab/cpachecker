@@ -83,7 +83,9 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
     SMGState state = getInitialSmgState();
     SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
-    state.addElementToCurrentChain(object);
+    if (object != null) {
+      state.addElementToCurrentChain(object);
+    }
 
     if (object == null && variableName.getDeclaration() != null) {
       CSimpleDeclaration dcl = variableName.getDeclaration();
