@@ -110,11 +110,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private final boolean blockEnded;
 
-  //TODO These flags are not enough, they should contain more about the nature of the error.
+  // TODO These flags are not enough, they should contain more about the nature of the error.
   private final boolean invalidWrite;
   private final boolean invalidRead;
   private final boolean invalidFree;
   private String errorDescription;
+
+  /**
+   * A flag signifying the edge leading to this state caused memory to be leaked TODO: Seems pretty
+   * arbitrary: perhaps we should have a more general solution, like a container with (type,
+   * message) error witness kind of thing?
+   */
+  private boolean hasMemoryLeak = false;
 
   private Set<Object> invalidChain = new LinkedHashSet<>();
   private Set<Object> currentChain = new LinkedHashSet<>();
@@ -163,6 +170,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
+    hasMemoryLeak = false;
     blockEnded = false;
   }
 
@@ -177,6 +185,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
+    hasMemoryLeak = false;
     explicitValues.putAll(pMergedExplicitValues);
     blockEnded = false;
   }
@@ -199,6 +208,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
+    hasMemoryLeak = pOriginalState.hasMemoryLeak;
     blockEnded = pOriginalState.blockEnded;
     errorDescription = pOriginalState.errorDescription;
     invalidChain.addAll(pOriginalState.invalidChain);
@@ -223,6 +233,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
+    hasMemoryLeak = pOriginalState.hasMemoryLeak;
     blockEnded = pBlockEnded;
     errorDescription = pOriginalState.errorDescription;
   }
@@ -239,6 +250,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     boolean pInvalidFree = pOriginalState.invalidFree;
     boolean pInvalidRead = pOriginalState.invalidRead;
     boolean pInvalidWrite = pOriginalState.invalidWrite;
+    boolean pHasLeaks = pOriginalState.hasMemoryLeak;
 
     switch (pProperty) {
       case INVALID_FREE:
@@ -251,6 +263,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         pInvalidWrite = true;
         break;
       case INVALID_HEAP:
+        pHasLeaks = true;
         break;
       default:
         throw new AssertionError();
@@ -259,6 +272,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pInvalidFree;
     invalidRead = pInvalidRead;
     invalidWrite = pInvalidWrite;
+    hasMemoryLeak = pHasLeaks;
   }
 
   public SMGState(SMGState pOriginalState, CLangSMG pDestSMG,
@@ -272,13 +286,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
+    hasMemoryLeak = pOriginalState.hasMemoryLeak;
     blockEnded = pOriginalState.blockEnded;
   }
 
   public SMGState withViolationsOf(SMGState pOther) {
     if (invalidFree == pOther.invalidFree
         && invalidRead == pOther.invalidRead
-        && invalidWrite == pOther.invalidWrite) {
+        && invalidWrite == pOther.invalidWrite
+        && hasMemoryLeak == pOther.hasMemoryLeak) {
       return this;
     }
     SMGState result =
@@ -291,6 +307,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
     if (pOther.invalidWrite) {
       result = new SMGState(result, Property.INVALID_WRITE);
+    }
+    if (pOther.hasMemoryLeak) {
+      result = new SMGState(result, Property.INVALID_HEAP);
     }
     return result;
   }
@@ -1493,7 +1512,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       s1.pruneUnreachable();
       s2.pruneUnreachable();
       logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
-      return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
+      return s1.hasMemoryLeak == s2.hasMemoryLeak;
 
     } else {
       return SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
@@ -1512,7 +1531,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     switch (pProperty) {
       case HAS_LEAKS:
-        if (heap.hasMemoryLeaks()) {
+        if (hasMemoryLeak) {
           //TODO: Give more information
           issueMemoryError("Memory leak found", false);
           return true;
@@ -1608,8 +1627,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
   }
 
+  /** Sets a flag indicating this SMGState is a successor over an edge causing a memory leak. */
   public void setMemLeak() {
-    heap.setMemoryLeak();
+    hasMemoryLeak = true;
   }
 
   public boolean containsValue(int value) {
@@ -1769,9 +1789,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void pruneUnreachable() throws SMGInconsistentException {
     Set<SMGObject> unreachable = heap.pruneUnreachable();
-    assert unreachable.isEmpty() || heap.hasMemoryLeaks() : "unreachable objects => memory leak";
-    invalidChain.addAll(unreachable);
-    if (heap.hasMemoryLeaks()) {
+    if (!unreachable.isEmpty()) {
+      invalidChain.addAll(unreachable);
+      setMemLeak();
       setErrorDescription("Memory leak is detected");
     }
     //TODO: Explicit values pruning
@@ -1879,9 +1899,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     // TODO Why do I do this here?
     Set<SMGObject> unreachable = heap.pruneUnreachable();
-    assert unreachable.isEmpty() || heap.hasMemoryLeaks() : "unreachable objects => memory leak";
-    invalidChain.addAll(unreachable);
-    if (heap.hasMemoryLeaks()) {
+    if (!unreachable.isEmpty()) {
+      invalidChain.addAll(unreachable);
+      setMemLeak();
       setErrorDescription("Memory leak is detected");
     }
     performConsistencyCheck(SMGRuntimeCheck.FULL);
@@ -2044,11 +2064,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public boolean hasMemoryErrors() {
-    return invalidFree || invalidRead || invalidWrite || heap.hasMemoryLeaks();
+    return invalidFree || invalidRead || invalidWrite || hasMemoryLeak;
   }
 
   public boolean hasMemoryLeaks() {
-    return heap.hasMemoryLeaks();
+    return hasMemoryLeak;
   }
 
   public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {

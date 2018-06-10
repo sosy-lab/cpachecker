@@ -479,4 +479,15 @@ public class SMGStateTest {
 
     state.getPointerFromValue(nonpointer.getAsInt());
   }
+
+  @Test
+  public void SMGStateMemoryLeaksTest() throws InvalidConfigurationException {
+    SMGState state =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+
+    Assert.assertFalse(state.hasMemoryLeaks());
+    state.setMemLeak();
+    Assert.assertTrue(state.hasMemoryLeaks());
+  }
 }

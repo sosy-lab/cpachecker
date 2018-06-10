@@ -88,13 +88,6 @@ public class CLangSMG extends SMG {
    */
   private PersistentMap<String, SMGRegion> global_objects;
 
-  /**
-   * A flag signifying the edge leading to this state caused memory to be leaked
-   * TODO: Seems pretty arbitrary: perhaps we should have a more general solution,
-   *       like a container with (type, message) error witness kind of thing?
-   */
-  private boolean has_leaks = false;
-
   /** logger is always NULL, except for JUnit-tests */
   private static LogManager logger = null;
 
@@ -187,7 +180,6 @@ public class CLangSMG extends SMG {
     stack_objects = pHeap.stack_objects;
     heap_objects = pHeap.heap_objects;
     global_objects = pHeap.global_objects;
-    has_leaks = pHeap.has_leaks;
   }
 
   /**
@@ -276,16 +268,6 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Sets a flag indicating this SMG is a successor over the edge causing a
-   * memory leak.
-   *
-   * Keeps consistency: yes
-   */
-  public void setMemoryLeak() {
-    has_leaks = true;
-  }
-
-  /**
    * Remove a top stack frame from the SMG, along with all objects in it, and
    * any edges leading from/to it.
    *
@@ -351,7 +333,6 @@ public class CLangSMG extends SMG {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           // TODO: report stray_object as error
           unreachableObjects.add(stray_object);
-          setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
         heap_objects = heap_objects.removeAndCopy(stray_object);
@@ -540,19 +521,6 @@ public class CLangSMG extends SMG {
    */
   public boolean isGlobal(SMGObject object) {
     return global_objects.containsValue(object);
-  }
-
-  /**
-   * Constant.
-   *
-   * @return True if the SMG is a successor over the edge causing some memory
-   * to be leaked. Returns false otherwise.
-   */
-  public boolean hasMemoryLeaks() {
-    // TODO: [MEMLEAK DETECTION] There needs to be a proper graph algorithm
-    //       in the future. Right now, we can discover memory leaks only
-    //       after unassigned malloc call result, so we know that immediately.
-    return has_leaks;
   }
 
   /**

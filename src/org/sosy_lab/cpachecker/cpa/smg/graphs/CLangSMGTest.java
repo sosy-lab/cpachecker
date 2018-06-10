@@ -308,15 +308,6 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void CLangSMGmemoryLeaksTest() {
-    CLangSMG smg = getNewCLangSMG64();
-
-    Assert.assertFalse(smg.hasMemoryLeaks());
-    smg.setMemoryLeak();
-    Assert.assertTrue(smg.hasMemoryLeaks());
-  }
-
-  @Test
   public void consistencyViolationDisjunctnessTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(64, "label");
