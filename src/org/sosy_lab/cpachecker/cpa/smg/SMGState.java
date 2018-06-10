@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -79,6 +80,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -113,6 +115,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidRead;
   private final boolean invalidFree;
   private String errorDescription;
+
+  private Set<Object> invalidChain = new LinkedHashSet<>();
+  private Set<Object> currentChain = new LinkedHashSet<>();
 
   private final LogManager logger;
   private final SMGOptions options;
@@ -196,6 +201,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pOriginalState.invalidWrite;
     blockEnded = pOriginalState.blockEnded;
     errorDescription = pOriginalState.errorDescription;
+    invalidChain.addAll(pOriginalState.invalidChain);
+    currentChain.addAll(pOriginalState.currentChain);
   }
 
   /**
@@ -1721,27 +1728,34 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   protected Set<Object> getInvalidChain() {
-    return heap.getInvalidChain();
+    return invalidChain;
   }
 
   public void addInvalidObject(SMGObject pSmgObject) {
-    heap.addInvalidElement(pSmgObject);
+    invalidChain.add(pSmgObject);
   }
 
   public void addElementToCurrentChain(Object elem) {
-    heap.addElementToCurrentChain(elem);
+    // Avoid to add Null element
+    if (elem instanceof SMGValue) {
+      SMGValue smgValue = (SMGValue) elem;
+      if (smgValue.getAsLong() == 0) {
+        return;
+      }
+    }
+    currentChain.add(elem);
   }
 
   protected Set<Object> getCurrentChain() {
-    return heap.getCurrentChain();
+    return currentChain;
   }
 
   protected void cleanCurrentChain() {
-    heap.cleanCurrentChain();
+    currentChain = new LinkedHashSet<>();
   }
 
   private void moveCurrentChainToInvalidChain() {
-    heap.moveCurrentChainToInvalidChain();
+    invalidChain.addAll(currentChain);
   }
 
   /**
@@ -1754,7 +1768,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void pruneUnreachable() throws SMGInconsistentException {
-    heap.pruneUnreachable();
+    Set<SMGObject> unreachable = heap.pruneUnreachable();
+    assert unreachable.isEmpty() || heap.hasMemoryLeaks() : "unreachable objects => memory leak";
+    invalidChain.addAll(unreachable);
     if (heap.hasMemoryLeaks()) {
       setErrorDescription("Memory leak is detected");
     }
@@ -1861,8 +1877,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     performConsistencyCheck(SMGRuntimeCheck.FULL);
-    //TODO Why do I do this here?
-    heap.pruneUnreachable();
+    // TODO Why do I do this here?
+    Set<SMGObject> unreachable = heap.pruneUnreachable();
+    assert unreachable.isEmpty() || heap.hasMemoryLeaks() : "unreachable objects => memory leak";
+    invalidChain.addAll(unreachable);
     if (heap.hasMemoryLeaks()) {
       setErrorDescription("Memory leak is detected");
     }
@@ -2067,7 +2085,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return addGlobalVariable(0, functionQualifiedSMGName);
   }
 
-  private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
+  private static String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
 
     StringBuilder functionName = new StringBuilder(pDeclaration.getQualifiedName());
 

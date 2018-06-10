@@ -33,6 +33,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -105,9 +106,6 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
-  private Set<Object> invalidChain = new HashSet<>();
-  private Set<Object> currentChain = new HashSet<>();
-
   public boolean containsInvalidElement(Object elem) {
     if (elem instanceof SMGObject) {
       SMGObject smgObject = (SMGObject) elem;
@@ -135,37 +133,6 @@ public class CLangSMG extends SMG {
       return getValues().contains(smgValue.getAsInt());
     }
     return false;
-  }
-
-  public void addInvalidElement(Object elem) {
-    invalidChain.add(elem);
-  }
-
-  public void addElementToCurrentChain(Object elem) {
-    // Avoid to add Null element
-    if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
-      if (smgValue.getAsLong() == 0) {
-        return;
-      }
-    }
-    currentChain.add(elem);
-  }
-
-  public void cleanCurrentChain() {
-    currentChain = new HashSet<>();
-  }
-
-  public Set<Object> getCurrentChain() {
-    return currentChain;
-  }
-
-  public void moveCurrentChainToInvalidChain() {
-    invalidChain.addAll(currentChain);
-  }
-
-  public Set<Object> getInvalidChain() {
-    return invalidChain;
   }
 
   public String getNoteMessageOnElement(Object elem) {
@@ -221,8 +188,6 @@ public class CLangSMG extends SMG {
     heap_objects = pHeap.heap_objects;
     global_objects = pHeap.global_objects;
     has_leaks = pHeap.has_leaks;
-    invalidChain.addAll(pHeap.invalidChain);
-    currentChain.addAll(pHeap.currentChain);
   }
 
   /**
@@ -343,14 +308,14 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Prune the SMG: remove all unreachable objects (heap ones: global and stack
-   * are always reachable) and values.
+   * Prune the SMG: remove all unreachable objects (heap ones: global and stack are always
+   * reachable) and values.
    *
-   * TODO: Too large. Refactor into fewer pieces
+   * <p>Keeps consistency: yes
    *
-   * Keeps consistency: yes
+   * @return all unreachable objects, e.g. all the objects that represent a memory leak.
    */
-  public void pruneUnreachable() {
+  public Set<SMGObject> pruneUnreachable() {
     Set<SMGObject> seen = new HashSet<>();
     Set<Integer> seen_values = new HashSet<>();
     collectReachableObjectsAndValues(seen, seen_values);
@@ -380,11 +345,12 @@ public class CLangSMG extends SMG {
     }
 
     // remove all unreachable objects
+    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
     for (SMGObject stray_object : stray_objects) {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           // TODO: report stray_object as error
-          addInvalidElement(stray_object);
+          unreachableObjects.add(stray_object);
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
@@ -407,6 +373,8 @@ public class CLangSMG extends SMG {
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
     }
+
+    return unreachableObjects;
   }
 
   private void collectReachableObjectsAndValues(
