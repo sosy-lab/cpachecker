@@ -862,7 +862,8 @@ public class SMGTransferRelation
     if (expressionEvaluator.isStructOrUnionType(rValueType)) {
       return assignStruct(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     } else {
-      return writeValue(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
+      return expressionEvaluator.writeValue(
+          newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     }
   }
 
@@ -935,63 +936,6 @@ public class SMGTransferRelation
     return Collections.singletonList(SMGAddressValueAndState.of(pSmgState));
   }
 
-  SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, long pFieldOffset,
-                      int pSizeType, SMGSymbolicValue pValue, CFAEdge pEdge)
-      throws UnrecognizedCCodeException, SMGInconsistentException {
-    return writeValue(pNewState, pMemoryOfField, pFieldOffset, AnonymousTypes.createTypeWithLength(pSizeType), pValue, pEdge);
-  }
-
-  public SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, long pFieldOffset,
-                             CType pRValueType, SMGSymbolicValue pValue, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
-
-    //FIXME Does not work with variable array length.
-    //TODO: write value with bit precise size
-    int memoryBitSize = pMemoryOfField.getSize();
-    int rValueTypeBitSize = expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState);
-    boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + rValueTypeBitSize > memoryBitSize;
-
-    if (doesNotFitIntoObject) {
-      // Field does not fit size of declared Memory
-      logger.log(Level.INFO, () ->
-            String.format("%s: Field (%d, %s) does not fit object %s.", pEdge.getFileLocation(),
-                pFieldOffset, pRValueType.toASTString(""), pMemoryOfField.toString()));
-      SMGState newState = pNewState.setInvalidWrite();
-      if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
-        if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
-          newState.setErrorDescription(
-              "Field with size " + rValueTypeBitSize + " bit can't be written at offset "
-                  + pFieldOffset + " bit of object " + memoryBitSize + " bit size");
-        } else {
-          newState.setErrorDescription("Field with size " + rValueTypeBitSize / 8 + " byte can't "
-              + "be written at offset " + pFieldOffset / 8 + " byte of object " +
-              memoryBitSize / 8 + " byte size");
-        }
-        newState.addInvalidObject(pMemoryOfField);
-      } else {
-        newState.setErrorDescription("NULL pointer dereference on write");
-      }
-      return newState;
-    }
-
-    if (pValue.isUnknown()) {
-      return pNewState;
-    }
-
-    if (pRValueType instanceof CPointerType && !(pValue instanceof SMGAddressValue)) {
-      if (pValue instanceof SMGKnownSymValue) {
-        SMGExplicitValue explicit = pNewState.getExplicit((SMGKnownSymValue) pValue);
-        if (!explicit.isUnknown()) {
-          pValue =
-              SMGKnownAddressValue.valueOf(
-                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, (SMGKnownSymValue) pValue);
-        }
-      }
-    }
-    return pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
-  }
-
   private List<SMGState> handleAssignmentToField(
       SMGState pState,
       CFAEdge cfaEdge,
@@ -1011,7 +955,8 @@ public class SMGTransferRelation
       SMGState otherState = new SMGState(pState);
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
       SMGState mallocFailState =
-          writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
+          expressionEvaluator.writeValue(
+              otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
       newStates.add(mallocFailState);
     }
 
@@ -1084,7 +1029,8 @@ public class SMGTransferRelation
         }
       } else {
         // Global variables without initializer are nullified in C
-        pState = writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+        pState =
+            expressionEvaluator.writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
       }
     }
 
@@ -1211,8 +1157,15 @@ public class SMGTransferRelation
         int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
         if (offset - pOffset < sizeOfType) {
-          newState = writeValue(newState, pNewObject, offset,
-              AnonymousTypes.createTypeWithLength(Math.toIntExact((sizeOfType - (offset - pOffset)))), SMGKnownSymValue.ZERO, pEdge);
+          newState =
+              expressionEvaluator.writeValue(
+                  newState,
+                  pNewObject,
+                  offset,
+                  AnonymousTypes.createTypeWithLength(
+                      Math.toIntExact((sizeOfType - (offset - pOffset)))),
+                  SMGKnownSymValue.ZERO,
+                  pEdge);
         }
 
         result.add(Pair.of(newState, offset));
@@ -1316,10 +1269,15 @@ public class SMGTransferRelation
 
           long offset = pOffset + listCounter * sizeOfElementType;
           if (offset - pOffset < sizeOfType) {
-            newState = writeValue(newState, pNewObject, offset,
-                AnonymousTypes.createTypeWithLength(
-                    Math.toIntExact(sizeOfType - (offset - pOffset))),
-                SMGKnownSymValue.ZERO, pEdge);
+            newState =
+                expressionEvaluator.writeValue(
+                    newState,
+                    pNewObject,
+                    offset,
+                    AnonymousTypes.createTypeWithLength(
+                        Math.toIntExact(sizeOfType - (offset - pOffset))),
+                    SMGKnownSymValue.ZERO,
+                    pEdge);
           }
         }
         result.add(newState);

@@ -179,13 +179,25 @@ public class SMGBuiltins {
 
     if (ch.equals(SMGKnownSymValue.ZERO)) {
       // Create one large edge
-      currentState = smgTransferRelation.writeValue(currentState, bufferMemory, offset, count * machineModel.getSizeofCharInBits(), ch, cfaEdge);
+      currentState = smgTransferRelation.expressionEvaluator.writeValue(
+      currentState,
+      bufferMemory,
+      offset,
+      AnonymousTypes.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
+      ch,
+      cfaEdge);
     } else {
       // We need to create many edges, one for each character written
       // memset() copies ch into the first count characters of buffer
       for (int c = 0; c < count; c++) {
-        currentState = smgTransferRelation.writeValue(currentState, bufferMemory, offset + (c  * machineModel.getSizeofCharInBits()),
-            CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
+        currentState =
+            smgTransferRelation.expressionEvaluator.writeValue(
+                currentState,
+                bufferMemory,
+                offset + (c * machineModel.getSizeofCharInBits()),
+                CNumericTypes.SIGNED_CHAR,
+                ch,
+                cfaEdge);
       }
 
       if (!expValue.isUnknown()) {
@@ -431,8 +443,14 @@ public class SMGBuiltins {
           allocation_label);
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        currentState = smgTransferRelation.writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
-            SMGKnownSymValue.ZERO, cfaEdge);
+        currentState =
+            smgTransferRelation.expressionEvaluator.writeValue(
+                currentState,
+                new_address.getObject(),
+                0,
+                AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+                SMGKnownSymValue.ZERO,
+                cfaEdge);
       }
       smgTransferRelation.possibleMallocFail = true;
       result.add(SMGAddressValueAndState.of(currentState, new_address));

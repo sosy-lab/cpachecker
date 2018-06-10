@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
@@ -39,8 +40,12 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGEx
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -136,6 +141,90 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);
+  }
+
+  /**
+   * Write a value into the SMG.
+   *
+   * @param pState state with the SMG to be modified.
+   * @param pMemoryOfField target-memory where to be written to.
+   * @param pFieldOffset offset in pMemoryOfField.
+   * @param pRValueType the type of the data to be written (should match into pMemoryOfField minus
+   *     pFieldOffset.
+   * @param pValue the new value
+   * @param pEdge edge for logging
+   */
+  public SMGState writeValue(
+      SMGState pState,
+      SMGObject pMemoryOfField,
+      long pFieldOffset,
+      CType pRValueType,
+      SMGSymbolicValue pValue,
+      CFAEdge pEdge)
+      throws SMGInconsistentException, UnrecognizedCCodeException {
+
+    // FIXME Does not work with variable array length.
+    // TODO: write value with bit precise size
+    int memoryBitSize = pMemoryOfField.getSize();
+    int rValueTypeBitSize = getBitSizeof(pEdge, pRValueType, pState);
+    boolean doesNotFitIntoObject =
+        pFieldOffset < 0 || pFieldOffset + rValueTypeBitSize > memoryBitSize;
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      logger.log(
+          Level.INFO,
+          () ->
+              String.format(
+                  "%s: Field (%d, %s) does not fit object %s.",
+                  pEdge.getFileLocation(),
+                  pFieldOffset,
+                  pRValueType.toASTString(""),
+                  pMemoryOfField));
+      SMGState newState = pState.setInvalidWrite();
+      if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
+        if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
+          newState.setErrorDescription(
+              "Field with size "
+                  + rValueTypeBitSize
+                  + " bit can't be written at offset "
+                  + pFieldOffset
+                  + " bit of object "
+                  + memoryBitSize
+                  + " bit size");
+        } else {
+          newState.setErrorDescription(
+              "Field with size "
+                  + rValueTypeBitSize / 8
+                  + " byte can't "
+                  + "be written at offset "
+                  + pFieldOffset / 8
+                  + " byte of object "
+                  + memoryBitSize / 8
+                  + " byte size");
+        }
+        newState.addInvalidObject(pMemoryOfField);
+      } else {
+        newState.setErrorDescription("NULL pointer dereference on write");
+      }
+      return newState;
+    }
+
+    if (pValue.isUnknown()) {
+      return pState;
+    }
+
+    if (pRValueType instanceof CPointerType
+        && !(pValue instanceof SMGAddressValue)
+        && pValue instanceof SMGKnownSymValue) {
+        SMGExplicitValue explicit = pState.getExplicit((SMGKnownSymValue) pValue);
+        if (!explicit.isUnknown()) {
+          pValue =
+              SMGKnownAddressValue.valueOf(
+                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, (SMGKnownSymValue) pValue);
+      }
+    }
+    return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
   }
 
   @Override
