@@ -23,8 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState.Property;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
  * Simple flags are not enough, this class contains more about the nature of the error.
@@ -38,27 +45,40 @@ class SMGErrorInfo {
   private final boolean invalidFree;
   private final boolean hasMemoryLeak;
   private final String errorDescription;
+  private final PersistentList<Object> invalidChain;
+  private final PersistentList<Object> currentChain;
 
   private SMGErrorInfo(
       boolean pInvalidWrite,
       boolean pInvalidRead,
       boolean pInvalidFree,
       boolean pHasMemoryLeak,
-      String pErrorDescription) {
+      String pErrorDescription,
+      PersistentList<Object> pInvalidChain,
+      PersistentList<Object> pCurrentChain) {
     invalidWrite = pInvalidWrite;
     invalidRead = pInvalidRead;
     invalidFree = pInvalidFree;
     hasMemoryLeak = pHasMemoryLeak;
     errorDescription = pErrorDescription;
+    invalidChain = pInvalidChain;
+    currentChain = pCurrentChain;
   }
 
   static SMGErrorInfo of() {
-    return new SMGErrorInfo(false, false, false, false, "");
+    return new SMGErrorInfo(
+        false, false, false, false, "", PersistentLinkedList.of(), PersistentLinkedList.of());
   }
 
   SMGErrorInfo withErrorMessage(String pErrorDescription) {
     return new SMGErrorInfo(
-        invalidWrite, invalidRead, invalidFree, hasMemoryLeak, pErrorDescription);
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        pErrorDescription,
+        invalidChain,
+        currentChain);
   }
 
   SMGErrorInfo withProperty(Property pProperty) {
@@ -84,7 +104,14 @@ class SMGErrorInfo {
         throw new AssertionError();
     }
 
-    return new SMGErrorInfo(pInvalidWrite, pInvalidRead, pInvalidFree, pHasLeaks, errorDescription);
+    return new SMGErrorInfo(
+        pInvalidWrite,
+        pInvalidRead,
+        pInvalidFree,
+        pHasLeaks,
+        errorDescription,
+        invalidChain,
+        currentChain);
   }
 
   boolean hasMemoryErrors() {
@@ -97,22 +124,63 @@ class SMGErrorInfo {
         invalidRead || pOther.invalidRead,
         invalidFree || pOther.invalidFree,
         hasMemoryLeak || pOther.hasMemoryLeak,
-        errorDescription);
+        errorDescription,
+        invalidChain,
+        currentChain);
   }
 
   SMGErrorInfo withClearChain() {
     return new SMGErrorInfo(
-        invalidWrite, invalidRead, invalidFree, hasMemoryLeak, errorDescription);
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        PersistentLinkedList.of(),
+        PersistentLinkedList.of());
   }
 
   SMGErrorInfo moveCurrentChainToInvalidChain() {
     return new SMGErrorInfo(
-        invalidWrite, invalidRead, invalidFree, hasMemoryLeak, errorDescription);
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        invalidChain.withAll(currentChain),
+        currentChain);
+  }
+
+  public SMGErrorInfo withObject(Object o) {
+    return new SMGErrorInfo(
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        invalidChain,
+        currentChain.with(o));
+  }
+
+  SMGErrorInfo withInvalidObject(SMGObject pSmgObject) {
+    return withInvalidObjects(Collections.singleton(pSmgObject));
+  }
+
+  public SMGErrorInfo withInvalidObjects(Collection<? extends Object> pObjects) {
+    return new SMGErrorInfo(
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        invalidChain.withAll(Lists.newArrayList(pObjects)),
+        currentChain);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(invalidWrite, invalidRead, invalidFree, hasMemoryLeak);
+    return Objects.hash(
+        invalidWrite, invalidRead, invalidFree, hasMemoryLeak, invalidChain, currentChain);
   }
 
   @Override
@@ -124,7 +192,9 @@ class SMGErrorInfo {
     return invalidWrite == o.invalidWrite
         && invalidRead == o.invalidRead
         && invalidFree == o.invalidFree
-        && hasMemoryLeak == o.hasMemoryLeak;
+        && hasMemoryLeak == o.hasMemoryLeak
+        && invalidChain.equals(o.invalidChain)
+        && currentChain.equals(o.currentChain);
   }
 
   @Override
@@ -164,5 +234,13 @@ class SMGErrorInfo {
 
   boolean hasMemoryLeak() {
     return hasMemoryLeak;
+  }
+
+  List<Object> getCurrentChain() {
+    return currentChain;
+  }
+
+  List<Object> getInvalidChain() {
+    return invalidChain;
   }
 }

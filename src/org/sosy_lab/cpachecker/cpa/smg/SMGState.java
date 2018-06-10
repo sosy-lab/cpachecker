@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -111,8 +110,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private final boolean blockEnded;
 
-  private Set<Object> invalidChain = new LinkedHashSet<>();
-  private Set<Object> currentChain = new LinkedHashSet<>();
   private SMGErrorInfo errorInfo;
 
   private final LogManager logger;
@@ -189,8 +186,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     explicitValues.putAll(pOriginalState.explicitValues);
     errorInfo = pOriginalState.errorInfo;
     blockEnded = pOriginalState.blockEnded;
-    invalidChain.addAll(pOriginalState.invalidChain);
-    currentChain.addAll(pOriginalState.currentChain);
   }
 
   /**
@@ -1561,8 +1556,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   /** Sets a flag indicating this SMGState is a successor over an edge causing a memory leak. */
   public void setMemLeak(String errorMsg, Collection<SMGObject> pUnreachableObjects) {
-    invalidChain.addAll(pUnreachableObjects);
-    errorInfo = errorInfo.withProperty(Property.INVALID_HEAP).withErrorMessage(errorMsg);
+    errorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_HEAP)
+            .withErrorMessage(errorMsg)
+            .withInvalidObjects(pUnreachableObjects);
   }
 
   public boolean containsValue(int value) {
@@ -1680,35 +1678,32 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.containsInvalidElement(elem);
   }
 
-  protected Set<Object> getInvalidChain() {
-    return invalidChain;
+  protected Collection<Object> getInvalidChain() {
+    return Collections.unmodifiableList(errorInfo.getInvalidChain());
   }
 
   public void addInvalidObject(SMGObject pSmgObject) {
-    invalidChain.add(pSmgObject);
+    errorInfo = errorInfo.withInvalidObject(pSmgObject);
   }
 
   public void addElementToCurrentChain(Object elem) {
     // Avoid to add Null element
-    if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
-      if (smgValue.getAsLong() == 0) {
-        return;
-      }
+    if (elem instanceof SMGValue && ((SMGValue) elem).getAsLong() == 0) {
+      return;
     }
-    currentChain.add(elem);
+    errorInfo = errorInfo.withObject(elem);
   }
 
-  protected Set<Object> getCurrentChain() {
-    return currentChain;
+  protected Collection<Object> getCurrentChain() {
+    return Collections.unmodifiableList(errorInfo.getCurrentChain());
   }
 
   protected void cleanCurrentChain() {
-    currentChain = new LinkedHashSet<>();
+    errorInfo = errorInfo.withClearChain();
   }
 
   private void moveCurrentChainToInvalidChain() {
-    invalidChain.addAll(currentChain);
+    errorInfo = errorInfo.moveCurrentChainToInvalidChain();
   }
 
   /**
