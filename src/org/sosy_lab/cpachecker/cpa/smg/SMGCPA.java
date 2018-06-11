@@ -323,7 +323,12 @@ public class SMGCPA
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
+  /**
+   * Get a new ID for a new memory location or region or whatever.
+   *
+   * <p>We never return ZERO here, because ZERO is used as an ID for NULL.
+   */
   public static int getNewValue() {
-    return idGenerator.getFreshId();
+    return idGenerator.getFreshId() + 1;
   }
 }
