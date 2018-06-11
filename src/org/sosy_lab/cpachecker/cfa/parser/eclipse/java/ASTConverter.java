@@ -717,15 +717,7 @@ class ASTConverter {
 
     @SuppressWarnings("unchecked")
     List<Expression> p = sCI.arguments();
-
-    List<JExpression> params;
-
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = Collections.emptyList();
-    }
+    List<JExpression> params = convert(p);
 
     String name;
     String simpleName;
@@ -1444,17 +1436,7 @@ class ASTConverter {
   private List<JExpression> getParameterExpressions(ClassInstanceCreation pCIC) {
     @SuppressWarnings("unchecked")
     List<Expression> p = pCIC.arguments();
-
-    List<JExpression> params;
-
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = Collections.emptyList();
-    }
-
-    return params;
+    return convert(p);
   }
 
 
@@ -1755,7 +1737,6 @@ class ASTConverter {
   }
 
   private List<JExpression> convert(List<Expression> el) {
-
     List<JExpression> result = new ArrayList<>(el.size());
     for (Expression expression : el) {
       result.add(convertExpressionWithoutSideEffects(expression));
