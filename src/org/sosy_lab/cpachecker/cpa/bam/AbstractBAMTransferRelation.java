@@ -264,20 +264,21 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
   protected boolean isCacheHit(
       ReachedSet cachedReached, Collection<AbstractState> cachedReturnStates) {
-    if (cachedReturnStates != null && !cachedReached.hasWaitingState()) {
-      // cache hit with finished reached-set, return element from cache.
-      return true;
-    }
+    if (cachedReturnStates != null) {
+      if (!cachedReached.hasWaitingState()) {
+        // cache hit with finished reached-set, return element from cache.
+        return true;
+      }
 
-    if (cachedReturnStates != null
-        && cachedReturnStates.size() == 1
-        && cachedReached.getLastState() != null
-        && AbstractStates.isTargetState(cachedReached.getLastState())) {
-      // cache hit with found target state, return element from cache.
-      // TODO we currently expect only one target state per reached-set.
-      assert Iterables.getOnlyElement(cachedReturnStates) == cachedReached.getLastState()
-          : "cache hit only allowed for finished reached-sets or target-states";
-      return true;
+      if (cachedReturnStates.size() == 1
+          && cachedReached.getLastState() != null
+          && AbstractStates.isTargetState(cachedReached.getLastState())) {
+        // cache hit with found target state, return element from cache.
+        // TODO we currently expect only one target state per reached-set.
+        assert Iterables.getOnlyElement(cachedReturnStates) == cachedReached.getLastState()
+            : "cache hit only allowed for finished reached-sets or target-states";
+        return true;
+      }
     }
 
     return false;
