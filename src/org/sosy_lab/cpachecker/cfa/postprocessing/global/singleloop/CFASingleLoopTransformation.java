@@ -194,10 +194,9 @@ public class CFASingleLoopTransformation {
    * @param pInputCFA the control flow automaton to be transformed.
    *
    * @return a new CFA with at most one loop.
-   * @throws InvalidConfigurationException if the configuration this transformer was created with is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  public MutableCFA apply(MutableCFA pInputCFA) throws InvalidConfigurationException, InterruptedException {
+  public MutableCFA apply(MutableCFA pInputCFA) throws InterruptedException {
 
     // If the transformation is not necessary, return the original graph
     if (pInputCFA.getLoopStructure().isPresent()) {

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -82,8 +81,7 @@ public class TestDataTools {
     return new CIdExpression(loc, decl);
   }
 
-  public static CFA makeCFA(String... lines)
-      throws IOException, ParserException, InterruptedException {
+  public static CFA makeCFA(String... lines) throws ParserException, InterruptedException {
     try {
       return makeCFA(configurationForTest().build(), lines);
     } catch (InvalidConfigurationException e) {
@@ -92,7 +90,7 @@ public class TestDataTools {
   }
 
   public static CFA makeCFA(Configuration config, String... lines)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
 
     CFACreator creator =
         new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
@@ -169,17 +167,14 @@ public class TestDataTools {
     return out;
   }
 
-  /**
-   * Convert a given string to a {@link CFA},
-   * assuming it is a body of a single function.
-   */
+  /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
   public static CFA toSingleFunctionCFA(CFACreator creator, String... parts)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
     return creator.parseSourceAndCreateCFA(getProgram(parts));
   }
 
   public static CFA toMultiFunctionCFA(CFACreator creator, String... parts)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
     return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(parts));
   }
 

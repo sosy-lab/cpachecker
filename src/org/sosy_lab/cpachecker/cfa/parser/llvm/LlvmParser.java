@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.file.Path;
@@ -61,8 +60,7 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename)
-      throws ParserException, IOException, InterruptedException {
+  public ParseResult parseFile(final String pFilename) throws ParserException {
     Module llvmModule = null;
     try {
       parseTimer.start();
@@ -132,8 +130,7 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode)
-      throws ParserException {
+  public ParseResult parseString(final String pFilename, final String pCode) {
     return null;
   }
 

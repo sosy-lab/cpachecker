@@ -174,7 +174,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
+  public ParseResult parseFile(List<String> pFilenames) throws CParserException {
 
     return parseSomething(
         Lists.transform(pFilenames, FileToParse::new),

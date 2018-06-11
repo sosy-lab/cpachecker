@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.truth.Truth;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayDeque;
@@ -69,9 +68,10 @@ public class CustomInstructionTest {
   private ARGState end;
 
   @Before
-  public void init() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException, IOException,
-      ParserException, InterruptedException {
+  public void init()
+      throws NoSuchMethodException, SecurityException, InstantiationException,
+          IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+          ParserException, InterruptedException {
     cfa =
         TestDataTools.makeCFA(
             "void main(int a) {",
@@ -275,8 +275,9 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException,
-    InterruptedException, IOException, ParserException, SecurityException, IllegalArgumentException {
+  public void testInspectAppliedCustomInstruction()
+      throws AppliedCustomInstructionParsingFailedException, InterruptedException, ParserException,
+          SecurityException, IllegalArgumentException {
     cfa =
         TestDataTools.makeCFA(
             "extern int f2(int);",
