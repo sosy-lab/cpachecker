@@ -1245,7 +1245,7 @@ public class PdrAlgorithm implements Algorithm {
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
-              ImmutableList.<BooleanFormula>of(cexFormula), model, branchingInformation);
+              ImmutableList.of(cexFormula), model, branchingInformation);
       CounterexampleInfo counterexample =
           pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);

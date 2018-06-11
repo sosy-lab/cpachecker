@@ -357,7 +357,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       try {
         Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
             precisionAdjustment.prec(
-                successor, precision, reachedSet, Functions.<AbstractState>identity(), successor);
+                successor, precision, reachedSet, Functions.identity(), successor);
         if (!precAdjustmentOptional.isPresent()) {
           continue;
         }

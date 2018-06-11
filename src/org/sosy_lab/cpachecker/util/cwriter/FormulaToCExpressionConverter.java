@@ -134,7 +134,7 @@ public class FormulaToCExpressionConverter {
 
           private String joinWithSeparator(String separator, List<Formula> args) {
             return args.stream()
-                .map(c -> recFormulaToCExpression(c).toString())
+                .map(c -> recFormulaToCExpression(c))
                 .collect(Collectors.joining(separator, "(", ")"));
           }
         });

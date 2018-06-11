@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -252,15 +251,13 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   private FunctionEntryNode dummyFunction(String name) {
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
-    FunctionEntryNode main = new CFunctionEntryNode(
-        FileLocation.DUMMY,
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, functionType, name,
-            Collections.<CParameterDeclaration>emptyList()
-        ),
-        new FunctionExitNode(name),
-        com.google.common.base.Optional.absent()
-    );
+    FunctionEntryNode main =
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            new CFunctionDeclaration(
+                FileLocation.DUMMY, functionType, name, Collections.emptyList()),
+            new FunctionExitNode(name),
+            com.google.common.base.Optional.absent());
 
     return main;
   }
