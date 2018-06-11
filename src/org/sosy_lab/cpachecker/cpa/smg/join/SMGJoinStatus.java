@@ -37,7 +37,7 @@ public enum SMGJoinStatus {
 
   private final String name;
 
-  private SMGJoinStatus(String pName) {
+  SMGJoinStatus(String pName) {
     name = pName;
   }
 
