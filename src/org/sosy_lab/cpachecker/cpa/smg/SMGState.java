@@ -654,8 +654,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
                 + "that leads to a sll has unexpected target specifier "
                 + pPointerToAbstractObject.getTargetSpecifier().toString()); }
 
-    SMGRegion newConcreteRegion = new SMGRegion(pListSeg.getSize(),
-        "concrete sll segment ID " + SMGValueFactory.getNewValue(), 0);
+    SMGRegion newConcreteRegion =
+        new SMGRegion(pListSeg.getSize(), "concrete sll segment ID " + SMGCPA.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
@@ -698,7 +698,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
         new SMGEdgePointsTo(oldPointerToSll, newConcreteRegion, hfo);
 
-    int newPointerToSll = SMGValueFactory.getNewValue();
+    int newPointerToSll = SMGCPA.getNewValue();
 
     /*If you can't find the pointer, use generic pointer type*/
     CType typeOfPointerToSll;
@@ -742,8 +742,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
 
-    SMGRegion newConcreteRegion = new SMGRegion(pListSeg.getSize(),
-        "concrete dll segment ID " + SMGValueFactory.getNewValue(), 0);
+    SMGRegion newConcreteRegion =
+        new SMGRegion(pListSeg.getSize(), "concrete dll segment ID " + SMGCPA.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
@@ -808,7 +808,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         new SMGEdgeHasValue(oldDllFieldToOldRegion.getType(), offsetPointingToRegion,
             newConcreteRegion, oldDllFieldToOldRegion.getValue());
 
-    int newPointerToDll = SMGValueFactory.getNewValue();
+    int newPointerToDll = SMGCPA.getNewValue();
 
     CType typeOfPointerToDll;
 
@@ -890,7 +890,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
             if (newValueMap.containsKey(subDlsValue)) {
               newVal = newValueMap.get(subDlsValue);
             } else {
-              newVal = SMGValueFactory.getNewValue();
+              newVal = SMGCPA.getNewValue();
               heap.addValue(newVal);
               newValueMap.put(subDlsValue, newVal);
 
@@ -970,7 +970,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           if (newValueMap.containsKey(subDlsValue)) {
             newVal = newValueMap.get(subDlsValue);
           } else {
-            newVal = SMGValueFactory.getNewValue();
+            newVal = SMGCPA.getNewValue();
             heap.addValue(newVal);
             newValueMap.put(subDlsValue, newVal);
 
@@ -1101,7 +1101,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
       } else {
-        Integer newValue = SMGValueFactory.getNewValue();
+        Integer newValue = SMGCPA.getNewValue();
         stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
       }
       return SMGValueAndState.of(stateAndNewEdge.getState(),
@@ -1186,7 +1186,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // If the value is not yet known by the SMG
     // create a unconstrained new symbolic value
     if (pValue.isUnknown()) {
-      value = SMGValueFactory.getNewValue();
+      value = SMGCPA.getNewValue();
     } else {
       value = pValue.getAsInt();
     }
@@ -1511,7 +1511,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGAddressValue addNewHeapAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    int new_value = SMGValueFactory.getNewValue();
+    int new_value = SMGCPA.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
@@ -1525,7 +1525,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   // TODO: refactore
     public SMGAddressValue addExternalAllocation(String pLabel) {
     SMGRegion new_object = new SMGRegion(options.getExternalAllocationSize(), pLabel);
-    int new_value = SMGValueFactory.getNewValue();
+    int new_value = SMGCPA.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, options.getExternalAllocationSize()/2 );
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
@@ -1545,7 +1545,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    int new_value = SMGValueFactory.getNewValue();
+    int new_value = SMGCPA.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addStackObject(new_object);
     heap.addValue(new_value);

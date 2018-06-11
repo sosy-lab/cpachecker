@@ -80,11 +80,11 @@ public class CLangSMGTest {
     SMGRegion obj1 = new SMGRegion(64, "obj1");
     SMGRegion obj2 = new SMGRegion(64, "obj2");
 
-    Integer val1 = Integer.valueOf(1);
-    Integer val2 = Integer.valueOf(2);
+    int val1 = 1;
+    int val2 = 2;
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2);
 
     smg.addValue(val1);
     smg.addValue(val2);
@@ -363,7 +363,7 @@ public class CLangSMGTest {
 
     smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
-    Integer some_value = Integer.valueOf(5);
+    int some_value = 5;
     CType type = mock(CType.class);
     when(type.getCanonicalType()).thenReturn(type);
     SMGEdgeHasValue edge = new SMGEdgeHasValue(type, 0, null_object, some_value);

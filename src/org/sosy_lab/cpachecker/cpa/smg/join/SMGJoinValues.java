@@ -29,11 +29,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -99,7 +99,7 @@ final class SMGJoinValues {
       if(pV1.equals(pV2)) {
         newValue = pV1;
       } else {
-        newValue = SMGValueFactory.getNewValue();
+        newValue = SMGCPA.getNewValue();
 
         if (pJV.smgState1 == null || pJV.smgState2 == null) {
           pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.INCOMPARABLE);
@@ -386,7 +386,7 @@ final class SMGJoinValues {
     ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
 
     /*Create pointer to optional object.*/
-    int resultPointer = SMGValueFactory.getNewValue();
+    int resultPointer = SMGCPA.getNewValue();
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
@@ -460,7 +460,7 @@ final class SMGJoinValues {
         if (pMapping1.containsKey(val) || val == 0) {
           newVal = val;
         } else {
-          newVal = SMGValueFactory.getNewValue();
+          newVal = SMGCPA.getNewValue();
           pMapping2.map(val, newVal);
           pDestSMG.addValue(newVal);
         }
@@ -622,7 +622,7 @@ final class SMGJoinValues {
     pDestSMG.setValidity(optionalObject, pInputSMG1.isObjectValid(pTarget));
 
     /*Create pointer to optional object.*/
-    int resultPointer = SMGValueFactory.getNewValue();
+    int resultPointer = SMGCPA.getNewValue();
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
@@ -695,7 +695,7 @@ final class SMGJoinValues {
         if (pMapping1.containsKey(val) || val == 0) {
           newVal = val;
         } else {
-          newVal = SMGValueFactory.getNewValue();
+          newVal = SMGCPA.getNewValue();
           pMapping1.map(val, newVal);
           pDestSMG.addValue(newVal);
         }
@@ -772,7 +772,7 @@ final class SMGJoinValues {
 
       if (!newMapping1.containsKey(pointer1)) {
 
-        Integer resultPointer = SMGValueFactory.getNewValue();
+        Integer resultPointer = SMGCPA.getNewValue();
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
@@ -856,7 +856,7 @@ final class SMGJoinValues {
     }
 
     if(resultPointer == null) {
-      resultPointer = SMGValueFactory.getNewValue();
+      resultPointer = SMGCPA.getNewValue();
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
@@ -999,7 +999,7 @@ final class SMGJoinValues {
 
       if (!mapping2.containsKey(pointer2)) {
 
-        Integer resultPointer = SMGValueFactory.getNewValue();
+        Integer resultPointer = SMGCPA.getNewValue();
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         destSMG.addValue(resultPointer);
         destSMG.addPointsToEdge(newJointPtEdge);
@@ -1082,7 +1082,7 @@ final class SMGJoinValues {
     }
 
     if(resultPointer == null) {
-      resultPointer = SMGValueFactory.getNewValue();
+      resultPointer = SMGCPA.getNewValue();
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       destSMG.addValue(resultPointer);
       destSMG.addPointsToEdge(newJointPtEdge);
@@ -1216,7 +1216,7 @@ final class SMGJoinValues {
             if(pMapping.containsKey(subDlsValue)) {
               newVal = pMapping.get(subDlsValue);
             } else {
-              newVal = SMGValueFactory.getNewValue();
+              newVal = SMGCPA.getNewValue();
               pDestSMG.addValue(newVal);
               pMapping.map(subDlsValue, newVal);
 
@@ -1289,7 +1289,7 @@ final class SMGJoinValues {
           if (pMapping.containsKey(subDlsValue)) {
             newVal = pMapping.get(subDlsValue);
           } else {
-            newVal = SMGValueFactory.getNewValue();
+            newVal = SMGCPA.getNewValue();
             pDestSMG.addValue(newVal);
             pMapping.map(subDlsValue, newVal);
 

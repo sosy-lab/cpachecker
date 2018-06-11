@@ -29,7 +29,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
-
 
 public class SMGJoinMatchObjectsTest {
 
@@ -145,10 +144,10 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     smg2.addObject(srcObj2);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 0, srcObj1, SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, srcObj2, SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGValueFactory.getNewValue());
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 0, srcObj1, SMGCPA.getNewValue());
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, srcObj2, SMGCPA.getNewValue());
+    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGCPA.getNewValue());
+    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGCPA.getNewValue());
 
     smg1.addHasValueEdge(hv1);
     smg1.addValue(hv1.getValue());
@@ -165,7 +164,7 @@ public class SMGJoinMatchObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());
 
-    mapping1.map(hvMatching1.getValue(), SMGValueFactory.getNewValue());
+    mapping1.map(hvMatching1.getValue(), SMGCPA.getNewValue());
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());
 
@@ -173,7 +172,7 @@ public class SMGJoinMatchObjectsTest {
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());
 
-    mapping2.map(hvMatching2.getValue(), SMGValueFactory.getNewValue());
+    mapping2.map(hvMatching2.getValue(), SMGCPA.getNewValue());
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertFalse(mo.isDefined());
   }

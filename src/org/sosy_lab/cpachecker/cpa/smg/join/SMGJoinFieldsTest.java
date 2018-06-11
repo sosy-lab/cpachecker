@@ -36,8 +36,8 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -53,8 +53,8 @@ public class SMGJoinFieldsTest {
   private SMG smg1;
   private SMG smg2;
 
-  final private Integer value1 = SMGValueFactory.getNewValue();
-  final private Integer value2 = SMGValueFactory.getNewValue();
+  private final int value1 = SMGCPA.getNewValue();
+  private final int value2 = SMGCPA.getNewValue();
 
   @Before
   public void setUp() {
@@ -302,8 +302,8 @@ public class SMGJoinFieldsTest {
       }
       assertThat(edge.getOffset()).isAnyOf(0L, 16L);
       assertThat(edge.getType()).isEqualTo(mockType4b);
-      assertThat(values).doesNotContain(Integer.valueOf(edge.getValue()));
-      values.add(Integer.valueOf(edge.getValue()));
+      assertThat(values).doesNotContain(edge.getValue());
+      values.add(edge.getValue());
     }
     Assert.assertTrue(seenZero);
     Assert.assertTrue(seenTwo);
@@ -321,7 +321,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
-    Integer value3 = SMGValueFactory.getNewValue();
+    int value3 = SMGCPA.getNewValue();
     smg1.addValue(value3);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
 
@@ -415,8 +415,8 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    Integer value3 = SMGValueFactory.getNewValue();
-    Integer value4 = SMGValueFactory.getNewValue();
+    int value3 = SMGCPA.getNewValue();
+    int value4 = SMGCPA.getNewValue();
 
     smg3.addObject(obj1);
     smg4.addObject(obj2);
@@ -456,7 +456,7 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    Integer value3 = SMGValueFactory.getNewValue();
+    int value3 = SMGCPA.getNewValue();
 
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
@@ -515,7 +515,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    Integer value4 = SMGValueFactory.getNewValue();
+    int value4 = SMGCPA.getNewValue();
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
@@ -530,8 +530,8 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
     SMGRegion obj3 = new SMGRegion(256, "Object 3");
 
-    Integer value3 = SMGValueFactory.getNewValue();
-    Integer value4 = SMGValueFactory.getNewValue();
+    int value3 = SMGCPA.getNewValue();
+    int value4 = SMGCPA.getNewValue();
 
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));

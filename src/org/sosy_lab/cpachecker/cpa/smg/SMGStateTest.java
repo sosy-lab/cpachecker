@@ -79,9 +79,8 @@ public class SMGStateTest {
 
     smg1.addStackFrame(functionDeclaration3);
 
-    SMGValueFactory.prepareForTest();
-    for (int i = 0; i < 15; i++) {
-      SMGValueFactory.getNewValue();
+    for (int i = 0; i < 20; i++) {
+      SMGCPA.getNewValue();
     }
 
     SMGRegion l1 = new SMGRegion(96, "l1");
@@ -164,9 +163,8 @@ public class SMGStateTest {
   @Test
   public void materialiseTest() throws SMGInconsistentException, InvalidConfigurationException {
 
-    SMGValueFactory.prepareForTest();
-    for (int i = 0; i < 15; i++) {
-      SMGValueFactory.getNewValue();
+    for (int i = 0; i < 20; i++) {
+      SMGCPA.getNewValue();
     }
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
@@ -366,7 +364,7 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b value into it
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+    SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -385,7 +383,7 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a *different* 16b value into it and assert that the state *did* change
-    SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+    SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
@@ -475,7 +473,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+    SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
     state.getPointerFromValue(nonpointer.getAsInt());

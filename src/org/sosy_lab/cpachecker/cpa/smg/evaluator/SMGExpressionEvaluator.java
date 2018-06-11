@@ -50,9 +50,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
@@ -690,7 +690,7 @@ public class SMGExpressionEvaluator {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGAddressValueAndState addressValueAndState : getAddress(pSmgState, pTarget, pOffset)) {
       if (addressValueAndState.getObject().isUnknown()) {
-        SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+        SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
         SMGKnownAddressValue addressValue =
             SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
         result.add(SMGAddressValueAndState.of(addressValueAndState.getSmgState(), addressValue));

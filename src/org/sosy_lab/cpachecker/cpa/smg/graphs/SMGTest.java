@@ -35,13 +35,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGTest {
   private LogManager logger = LogManager.createTestLogManager();
@@ -52,8 +51,8 @@ public class SMGTest {
   SMGObject obj1 = new SMGRegion(64, "object-1");
   SMGObject obj2 = new SMGRegion(64, "object-2");
 
-  Integer val1 = Integer.valueOf(1);
-  Integer val2 = Integer.valueOf(2);
+  int val1 = 1;
+  int val2 = 2;
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
   SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockType, 0, obj2, val2);
@@ -99,7 +98,7 @@ public class SMGTest {
 
   @Test
   public void replaceHVSetTest() {
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 16, obj1, val1.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 16, obj1, val1);
     Set<SMGEdgeHasValue> hvSet = new HashSet<>();
     hvSet.add(hv);
 
@@ -119,12 +118,12 @@ public class SMGTest {
 
 
     Assert.assertNotNull(nullObject);
-    Assert.assertTrue(nullObject == SMGNullObject.INSTANCE);
+    Assert.assertSame(nullObject, SMGNullObject.INSTANCE);
     assertThat(smg1.getObjects()).hasSize(1);
     assertThat(smg1.getObjects()).contains(nullObject);
 
     assertThat(smg1.getValues()).hasSize(1);
-    assertThat(smg1.getValues()).contains(Integer.valueOf(nullAddress));
+    assertThat(smg1.getValues()).contains(nullAddress);
 
     assertThat(smg1.getPTEdges().size()).isEqualTo(1);
     SMGObject target_object = smg1.getObjectPointedBy(nullAddress);
@@ -138,7 +137,7 @@ public class SMGTest {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
 
     SMGObject third_object = new SMGRegion(128, "object-3");
-    Integer third_value = Integer.valueOf(3);
+    int third_value = 3;
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value);
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
@@ -180,7 +179,7 @@ public class SMGTest {
   @Test
   public void removeObjectTest() {
     SMG smg1 = getNewSMG64();
-    Integer newValue = SMGValueFactory.getNewValue();
+    int newValue = SMGCPA.getNewValue();
 
     SMGObject object = new SMGRegion(64, "object");
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
@@ -204,7 +203,7 @@ public class SMGTest {
   @Test
   public void removeObjectAndEdgesTest() {
     SMG smg1 = getNewSMG64();
-    Integer newValue = SMGValueFactory.getNewValue();
+    int newValue = SMGCPA.getNewValue();
 
     SMGObject object = new SMGRegion(64, "object");
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
@@ -274,7 +273,7 @@ public class SMGTest {
 
     SMGObject object_2b = new SMGRegion(16, "object_2b");
     SMGObject object_4b = new SMGRegion(32, "object_4b");
-    Integer random_value = Integer.valueOf(6);
+    int random_value = 6;
 
     smg1.addObject(object_2b);
     smg2.addObject(object_4b);
@@ -301,8 +300,8 @@ public class SMGTest {
     SMGObject object_8b = new SMGRegion(64, "object_8b");
     SMGObject object_16b = new SMGRegion(80, "object_10b");
 
-    Integer first_value = Integer.valueOf(6);
-    Integer second_value = Integer.valueOf(8);
+    int first_value = 6;
+    int second_value = 8;
 
     // 1, 3, 4 are consistent (different offsets or object)
     // 2 is inconsistent with 1 (same object and offset, different value)
@@ -341,9 +340,9 @@ public class SMGTest {
     SMGObject object_8b = new SMGRegion(64, "object_8b");
     SMGObject object_16b = new SMGRegion(80, "object_10b");
 
-    Integer first_value = Integer.valueOf(6);
-    Integer second_value = Integer.valueOf(8);
-    Integer third_value = Integer.valueOf(10);
+    int first_value = 6;
+    int second_value = 8;
+    int third_value = 10;
 
     SMGEdgePointsTo edge1 = new SMGEdgePointsTo(first_value, object_8b, 0);
     SMGEdgePointsTo edge2 = new SMGEdgePointsTo(third_value, object_8b, 32);
@@ -443,9 +442,9 @@ public class SMGTest {
   @Test
   public void neqBasicTest() {
     NeqRelation nr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    int one = 1;
+    int two = 2;
+    int three = 3;
 
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
@@ -494,9 +493,9 @@ public class SMGTest {
   @Test
   public void neqRemoveValueTest() {
     NeqRelation nr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    int one = 1;
+    int two = 2;
+    int three = 3;
 
     nr = nr.addRelationAndCopy(one, two);
     nr = nr.addRelationAndCopy(one, three);
@@ -509,9 +508,9 @@ public class SMGTest {
   @Test
   public void neqMergeValuesTest() {
     NeqRelation nr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    int one = 1;
+    int two = 2;
+    int three = 3;
 
     nr = nr.addRelationAndCopy(one, three);
     nr = nr.mergeValuesAndCopy(two, three);
@@ -524,10 +523,10 @@ public class SMGTest {
   @Test
   public void neqMergeValuesTest2() {
     NeqRelation nr = new NeqRelation();
-    Integer zero = Integer.valueOf(0);
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    int zero = 0;
+    int one = 1;
+    int two = 2;
+    int three = 3;
 
     nr = nr.addRelationAndCopy(zero, three);
     nr = nr.addRelationAndCopy(one, three);

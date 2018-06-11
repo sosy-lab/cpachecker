@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -108,6 +109,7 @@ public class SMGCPA
   private final SMGStatistics stats = new SMGStatistics();
 
   private SMGPrecision precision;
+
 
   private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
@@ -277,9 +279,8 @@ public class SMGCPA
     // inject additional info for extended witness
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
-    Set<Object> invalidChain = new HashSet<>();
     SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    invalidChain.addAll(state.getInvalidChain());
+    Set<Object> invalidChain = new HashSet<>(state.getInvalidChain());
     String description = state.getErrorDescription();
     boolean isMemoryLeakError = state.hasMemoryLeaks();
     SMGState prevSMGState = state;
@@ -323,5 +324,11 @@ public class SMGCPA
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
     }
     return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+  }
+
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
+  public static int getNewValue() {
+    return idGenerator.getFreshId();
   }
 }

@@ -30,14 +30,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGJoinValuesTest {
   private SMG smg1;
@@ -49,9 +48,9 @@ public class SMGJoinValuesTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  final private Integer value1 = SMGValueFactory.getNewValue();
-  final private Integer value2 = SMGValueFactory.getNewValue();
-  final private Integer value3 = SMGValueFactory.getNewValue();
+  private final Integer value1 = SMGCPA.getNewValue();
+  private final Integer value2 = SMGCPA.getNewValue();
+  private final Integer value3 = SMGCPA.getNewValue();
 
   @Before
   public void setUp() throws InvalidConfigurationException {

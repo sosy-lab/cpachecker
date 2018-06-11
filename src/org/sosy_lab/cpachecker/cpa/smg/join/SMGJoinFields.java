@@ -30,8 +30,8 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -96,7 +96,8 @@ class SMGJoinFields {
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
       if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
-        returnSet.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGValueFactory.getNewValue()));
+        returnSet.add(
+            new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGCPA.getNewValue()));
       }
     }
 

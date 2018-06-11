@@ -170,7 +170,7 @@ public class SMGBuiltins {
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
-      ch = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+      ch = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     }
 
     SMGObject bufferMemory =  bufferAddress.getObject();
@@ -234,8 +234,12 @@ public class SMGBuiltins {
     List<SMGAddressValueAndState> result = new ArrayList<>();
 
     // TODO line numbers are not unique when we have multiple input files!
-    String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
-        + pFunctionCall.getFileLocation().getStartingLineNumber();
+    String allocation_label =
+        functionName
+            + "_ID"
+            + SMGCPA.getNewValue()
+            + "_Line:"
+            + pFunctionCall.getFileLocation().getStartingLineNumber();
     SMGAddressValue new_address = currentState.addExternalAllocation(allocation_label);
 
     result.add(SMGAddressValueAndState.of(currentState, new_address));
@@ -317,7 +321,7 @@ public class SMGBuiltins {
     }
 
     // TODO line numbers are not unique when we have multiple input files!
-    String allocation_label = "alloc_ID" + SMGValueFactory.getNewValue();
+    String allocation_label = "alloc_ID" + SMGCPA.getNewValue();
     SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt() *
         machineModel.getSizeofCharInBits(), allocation_label);
 
@@ -437,8 +441,12 @@ public class SMGBuiltins {
       currentState = sizeAndState.getSmgState();
 
       // TODO line numbers are not unique when we have multiple input files!
-      String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
-          + functionCall.getFileLocation().getStartingLineNumber();
+      String allocation_label =
+          functionName
+              + "_ID"
+              + SMGCPA.getNewValue()
+              + "_Line:"
+              + functionCall.getFileLocation().getStartingLineNumber();
       SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
           allocation_label);
 

@@ -306,7 +306,7 @@ public class SMGTransferRelation
 
         if (!address.isUnknown()) {
           if (rValue.isUnknown()) {
-            rValue = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+            rValue = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
           }
 
           SMGObject object = address.getObject();
@@ -779,7 +779,7 @@ public class SMGTransferRelation
       SMGSymbolicValue value = valueAndState.getObject();
 
       if (value.isUnknown()) {
-        value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+        value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
         valueAndState = SMGValueAndState.of(valueAndState.getSmgState(), value);
       }
       resultValueAndStates.add(valueAndState);
@@ -915,11 +915,7 @@ public class SMGTransferRelation
 
               SMGAddressValue newParamValue =
                   pSmgState.addExternalAllocation(
-                      calledFunctionName
-                          + "_Param_No_"
-                          + i
-                          + "_ID"
-                          + SMGValueFactory.getNewValue());
+                      calledFunctionName + "_Param_No_" + i + "_ID" + SMGCPA.getNewValue());
               pSmgState = assignFieldToState(pSmgState, pCfaEdge, object, offset.getAsLong(),
                   newParamValue, paramType);
             }
@@ -931,7 +927,7 @@ public class SMGTransferRelation
     CType returnValueType = expressionEvaluator.getRealExpressionType(pFunctionCallExpression.getExpressionType());
     if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
       SMGAddressValue returnValue =
-          pSmgState.addExternalAllocation(calledFunctionName + SMGValueFactory.getNewValue());
+          pSmgState.addExternalAllocation(calledFunctionName + SMGCPA.getNewValue());
       return Collections.singletonList(SMGAddressValueAndState.of(pSmgState, returnValue));
     }
     return Collections.singletonList(SMGAddressValueAndState.of(pSmgState));

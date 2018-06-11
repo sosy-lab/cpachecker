@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -84,8 +84,11 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
       MachineModel pMachineModel,
       Map<Integer, List<MaterlisationStep>> pMaterlisationSteps,
       Map<Integer, Integer> pAbstractToConcretePointerMap) {
-    return new GenericAbstraction(100 * pMachineModel.getSizeofCharInBits(), "generic abtraction ID " + SMGValueFactory.getNewValue(),
-        pMaterlisationSteps, pAbstractToConcretePointerMap);
+    return new GenericAbstraction(
+        100 * pMachineModel.getSizeofCharInBits(),
+        "generic abtraction ID " + SMGCPA.getNewValue(),
+        pMaterlisationSteps,
+        pAbstractToConcretePointerMap);
   }
 
   public List<SMG> materialize(SMG pSMG, int pointer) {
