@@ -844,10 +844,10 @@ public class CLangSMG extends SMG {
     }
   }
 
-  private static enum SMGObjectPosition {
+  private enum SMGObjectPosition {
     STACK,
     HEAP,
-    GLOBAL;
+    GLOBAL
   }
 
   /**

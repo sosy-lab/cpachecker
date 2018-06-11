@@ -336,7 +336,7 @@ public class SMGTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> paramDecl,
       String calledFunctionName)
-      throws CPATransferException, SMGInconsistentException {
+      throws CPATransferException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     SMGState initialNewState = new SMGState(state);
@@ -1038,9 +1038,15 @@ public class SMGTransferRelation
     return ImmutableList.of(pState);
   }
 
-  private List<SMGState> handleInitializer(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, long pOffset, CType pLValueType, CInitializer pInitializer)
-      throws UnrecognizedCCodeException, CPATransferException {
+  private List<SMGState> handleInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      CInitializer pInitializer)
+      throws CPATransferException {
 
     if (pInitializer instanceof CInitializerExpression) {
        return assignFieldToState(pNewState, pEdge, pNewObject,
@@ -1060,9 +1066,15 @@ public class SMGTransferRelation
     }
   }
 
-  private List<SMGState> handleInitializerList(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, long pOffset, CType pLValueType, CInitializerList pNewInitializer)
-      throws UnrecognizedCCodeException, CPATransferException {
+  private List<SMGState> handleInitializerList(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      CInitializerList pNewInitializer)
+      throws CPATransferException {
 
     CType realCType = pLValueType.getCanonicalType();
 
@@ -1136,10 +1148,14 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> handleInitializerList(
-      SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, long pOffset, CCompositeType pLValueType,
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CCompositeType pLValueType,
       CInitializerList pNewInitializer)
-      throws UnrecognizedCCodeException, CPATransferException {
+      throws CPATransferException {
 
     int listCounter = 0;
 
@@ -1232,10 +1248,14 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> handleInitializerList(
-      SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, long pOffset, CArrayType pLValueType,
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CArrayType pLValueType,
       CInitializerList pNewInitializer)
-      throws UnrecognizedCCodeException, CPATransferException {
+      throws CPATransferException {
 
     int listCounter = 0;
 

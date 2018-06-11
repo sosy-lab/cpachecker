@@ -72,7 +72,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
   }
 
   @Override
-  protected Void visitDefault(CExpression pExp) throws CPATransferException {
+  protected Void visitDefault(CExpression pExp) {
     return null;
   }
 

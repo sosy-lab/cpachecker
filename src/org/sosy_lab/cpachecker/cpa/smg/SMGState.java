@@ -1980,7 +1980,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGUnknownValue.getInstance();
   }
 
-  static enum Property {
+  enum Property {
     INVALID_READ,
     INVALID_WRITE,
     INVALID_FREE,

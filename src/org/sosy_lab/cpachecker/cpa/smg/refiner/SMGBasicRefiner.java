@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public class SMGBasicRefiner implements Refiner {
@@ -64,7 +63,7 @@ public class SMGBasicRefiner implements Refiner {
   }
 
   @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public boolean performRefinement(ReachedSet pReached) throws InterruptedException {
     final Map<ARGState, CounterexampleInfo> counterexamples =
         argCpa.getARGExporter().getAllCounterexamples(pReached);
 

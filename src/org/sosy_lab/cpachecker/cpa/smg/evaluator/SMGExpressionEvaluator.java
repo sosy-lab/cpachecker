@@ -215,7 +215,7 @@ public class SMGExpressionEvaluator {
     return SMGValueAndState.of(pSmgState, value);
   }
 
-  private SMGField getField(CType pOwnerType, String pFieldName) throws UnrecognizedCCodeException {
+  private SMGField getField(CType pOwnerType, String pFieldName) {
 
     if (pOwnerType instanceof CElaboratedType) {
 

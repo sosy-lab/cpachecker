@@ -25,21 +25,21 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
 public interface SMGExplicitValue extends SMGValue {
 
-  public SMGExplicitValue negate();
+  SMGExplicitValue negate();
 
-  public SMGExplicitValue xor(SMGExplicitValue pRVal);
+  SMGExplicitValue xor(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue or(SMGExplicitValue pRVal);
+  SMGExplicitValue or(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue and(SMGExplicitValue pRVal);
+  SMGExplicitValue and(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal);
+  SMGExplicitValue shiftLeft(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue multiply(SMGExplicitValue pRVal);
+  SMGExplicitValue multiply(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue divide(SMGExplicitValue pRVal);
+  SMGExplicitValue divide(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue subtract(SMGExplicitValue pRVal);
+  SMGExplicitValue subtract(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue add(SMGExplicitValue pRVal);
+  SMGExplicitValue add(SMGExplicitValue pRVal);
 }
