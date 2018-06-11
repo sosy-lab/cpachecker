@@ -945,25 +945,22 @@ public class ARGToCTranslator {
               decInfo = handleDecInfoForEdge(edgeM, parent, child, decInfo);
             }
           } else {
-            // checkEdge(edge, parent, child, listPerFunction.getLast());
             decInfo = handleDecInfoForEdge(edge, parent, child, current.getSecond());
           }
-
-          child = getCovering(child);
 
           // need to use the same exploration order as during code generation
           if (edge instanceof CAssumeEdge) {
             if (getRealTruthAssumption((CAssumeEdge) edge)) {
-              assumeInfo.add(0, Pair.of(child, decInfo));
-            } else {
               assumeInfo.add(Pair.of(child, decInfo));
+            } else {
+              assumeInfo.add(0, Pair.of(child, decInfo));
             }
           } else {
             waitlist.push(Pair.of(child, decInfo));
           }
 
-          if (child.getCoveredByThis() != null || child.getParents().size() > 0) {
-            decProblems.put(child, decInfo.currentFuncDecInfo);
+          if (child.isCovered() || child.getParents().size() > 0) {
+            decProblems.put(getCovering(child), decInfo.currentFuncDecInfo);
           }
         }
 
