@@ -1017,7 +1017,7 @@ public class ARGToCTranslator {
     }
     if (edge instanceof CDeclarationEdge
         && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
-        && !((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).isGlobal()) {
+        && !((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
       return decInfo.addNewDeclarationInfo(
           ((CDeclarationEdge) edge).getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
     }
@@ -1039,7 +1039,7 @@ public class ARGToCTranslator {
     public DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
       ImmutableMap<CDeclaration, String> newFunDecInfo;
       if (currentFuncDecInfo.containsKey(dec)) {
-        Builder<CDeclaration, String> builder = ImmutableMap.<CDeclaration, String>builder();
+        Builder<CDeclaration, String> builder = ImmutableMap.builder();
         builder.put(dec, decId);
         for (Entry<CDeclaration, String> entry : currentFuncDecInfo.entrySet()) {
           if (!entry.getKey().equals(dec)) {
@@ -1060,7 +1060,7 @@ public class ARGToCTranslator {
 
     public DeclarationInfo fromFunctionCall() {
       return new DeclarationInfo(
-          ImmutableMap.<CDeclaration, String>of(),
+          ImmutableMap.of(),
           ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
               .addAll(calleeFunDecInfos)
               .add(currentFuncDecInfo)

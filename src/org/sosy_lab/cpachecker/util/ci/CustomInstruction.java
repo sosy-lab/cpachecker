@@ -198,8 +198,7 @@ public class CustomInstruction{
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.<String> emptyList(),
-        "(define-fun ci() Bool true)");
+      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
@@ -397,8 +396,7 @@ public class CustomInstruction{
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.<String> emptyList(),
-        "(define-fun ci() Bool true)");
+      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
     }
 
     StringBuilder sb = new StringBuilder();

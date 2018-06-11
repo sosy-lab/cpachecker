@@ -190,7 +190,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
         mFunctionBodies.add(newFunction);
         functionStack.push(newFunction); // add function to current stack
       } else {
-        nonUniqueFunctions.put(lFunctionHeader, Pair.<CFunctionEntryNode, FunctionBody>of(functionStartNode, newFunction));
+        nonUniqueFunctions.put(lFunctionHeader, Pair.of(functionStartNode, newFunction));
       }
     }
 
@@ -239,9 +239,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
       // if this function is already handled we need to quit here and just push
       // the function onto the callstack
-      if (handledFunctions.contains(((CFunctionEntryNode)edge.getSuccessor()).getFunctionName())) {
-        callStack.push(((CFunctionEntryNode)edge.getSuccessor()).getFunctionName());
-        currentFunctionName = ((CFunctionEntryNode)edge.getSuccessor()).getFunctionName();
+      if (handledFunctions.contains(edge.getSuccessor().getFunctionName())) {
+        callStack.push(edge.getSuccessor().getFunctionName());
+        currentFunctionName = edge.getSuccessor().getFunctionName();
         return;
       }
       // if this is a function call edge we need to create a new state and push
@@ -372,7 +372,12 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     CFAEdge branch1 = pCFAEdge.getSuccessor().getLeavingEdge(0);
     CFAEdge branch2 = pCFAEdge.getSuccessor().getLeavingEdge(1);
 
-    CFANode ifEnd = findEndOfBranches(singletonList((CFANode)entryNode.getExitNode()), pCFAEdge.getPredecessor(), branch1.getSuccessor(), branch2.getSuccessor());
+    CFANode ifEnd =
+        findEndOfBranches(
+            singletonList(entryNode.getExitNode()),
+            pCFAEdge.getPredecessor(),
+            branch1.getSuccessor(),
+            branch2.getSuccessor());
 
     String elseLabel = createFreshLabelForIf(branch2, ifEnd);
     String outLabel = ifOutLabelEnd.peek().get(ifEnd);
@@ -478,7 +483,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
         CFAEdge leavingSummaryEdge = currentEdge.getSuccessor().getLeavingSummaryEdge();
 
         wholeLoopString.append(processSimpleWithLoop(realLeavingEdge, currentBlock, ""));
-        handledFunctions.add(((CFunctionEntryNode)realLeavingEdge.getSuccessor()).getFunctionName());
+        handledFunctions.add(realLeavingEdge.getSuccessor().getFunctionName());
         leaving = leaving.append(leavingSummaryEdge);
 
         // no function call just and ordinary statement, add it as it is

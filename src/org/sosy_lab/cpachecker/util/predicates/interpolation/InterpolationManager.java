@@ -275,8 +275,7 @@ public final class InterpolationManager {
 
   public CounterexampleTraceInfo buildCounterexampleTrace(
           final BlockFormulas pFormulas) throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(
-        pFormulas, Collections.<AbstractState>emptyList());
+    return buildCounterexampleTrace(pFormulas, Collections.emptyList());
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
@@ -421,7 +420,7 @@ public final class InterpolationManager {
               "Solver could not produce model, variable assignment of error path can not be dumped.");
           logger.logDebugException(modelException);
           return CounterexampleTraceInfo.feasible(
-              f.getFormulas(), ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+              f.getFormulas(), ImmutableList.of(), ImmutableMap.of());
         }
       } else {
         return CounterexampleTraceInfo.infeasibleNoItp();
@@ -667,8 +666,7 @@ public final class InterpolationManager {
     List<BooleanFormula> f = formulas.getFormulas();
 
     if (!formulas.hasBranchingFormula() || bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(
-          f, pProver.getModelAssignments(), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, pProver.getModelAssignments(), ImmutableMap.of());
     }
 
     // add formula to solver environment
@@ -690,8 +688,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(
-          f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, ImmutableList.of(), ImmutableMap.of());
     }
   }
 
@@ -762,7 +759,7 @@ public final class InterpolationManager {
       boolean spurious;
 
       if (pAbstractionStates.isEmpty()) {
-        pAbstractionStates = new ArrayList<>(Collections.<AbstractState>nCopies(formulas.getSize(), null));
+        pAbstractionStates = new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
       } else {
         assert formulas.hasBranchingFormula();
         //should be constructed in PredicateCPA refiner or in BAM predicate refiner strategy
@@ -785,7 +782,7 @@ public final class InterpolationManager {
 
       // initialize all interpolation group ids with "null"
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
-          new ArrayList<>(Collections.<Triple<BooleanFormula, AbstractState, T>>nCopies(formulas.getSize(), null));
+          new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
 
       try {
 

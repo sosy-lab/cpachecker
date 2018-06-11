@@ -132,7 +132,7 @@ public final class AbstractStates {
 
   public static Iterable<CFANode> extractLocations(AbstractState pState) {
     AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
-    return e == null ? ImmutableList.<CFANode>of() : e.getLocationNodes();
+    return e == null ? ImmutableList.of() : e.getLocationNodes();
   }
 
   public static FluentIterable<CFANode> extractLocations(Iterable<AbstractState> pStates) {

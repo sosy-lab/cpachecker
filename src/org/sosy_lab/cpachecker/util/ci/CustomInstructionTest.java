@@ -99,10 +99,15 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.createDummy());
 
     cis = new HashMap<>();
-    aci = new AppliedCustomInstruction(startNode, endNodes,
-        Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
-        Pair.of(Collections.<String> emptyList(), ""),
-        SSAMap.emptySSAMap());
+    aci =
+        new AppliedCustomInstruction(
+            startNode,
+            endNodes,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Pair.of(Collections.emptyList(), ""),
+            SSAMap.emptySSAMap());
 
     cis.put(startNode, aci);
 
@@ -184,8 +189,8 @@ public class CustomInstructionTest {
         new CustomInstruction(
             null,
             null,
-            Collections.<String>emptyList(),
-            Collections.<String>emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
             ShutdownNotifier.createDummy());
     Truth.assertThat(ci.getSignature()).isEqualTo("() -> ()");
 
@@ -213,8 +218,8 @@ public class CustomInstructionTest {
         new CustomInstruction(
             null,
             null,
-            Collections.<String>emptyList(),
-            Collections.<String>emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
             ShutdownNotifier.createDummy());
     Pair<List<String>, String> pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).isEmpty();
@@ -224,7 +229,7 @@ public class CustomInstructionTest {
     inputVars.add("var");
     ci =
         new CustomInstruction(
-            null, null, inputVars, Collections.<String>emptyList(), ShutdownNotifier.createDummy());
+            null, null, inputVars, Collections.emptyList(), ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
@@ -234,11 +239,7 @@ public class CustomInstructionTest {
     outputVars.add("var1");
     ci =
         new CustomInstruction(
-            null,
-            null,
-            Collections.<String>emptyList(),
-            outputVars,
-            ShutdownNotifier.createDummy());
+            null, null, Collections.emptyList(), outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1@1 () Int)");
@@ -391,8 +392,15 @@ public class CustomInstructionTest {
 
     List<String> inputVariables = new ArrayList<>(1);
     inputVariables.add("main::a");
-    aci = new AppliedCustomInstruction(startNode, endNodes, inputVariables, Collections.<String>emptyList(), inputVariables,
-        Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    aci =
+        new AppliedCustomInstruction(
+            startNode,
+            endNodes,
+            inputVariables,
+            Collections.emptyList(),
+            inputVariables,
+            Pair.of(Collections.emptyList(), ""),
+            SSAMap.emptySSAMap());
     Truth.assertThat(aci.getInputVariables()).containsExactly("main::a");
   }
 
@@ -402,8 +410,15 @@ public class CustomInstructionTest {
 
     List<String> outputVariables = new ArrayList<>(1);
     outputVariables.add("main::a");
-    aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(),  outputVariables, Collections.<String>emptyList(),
-        Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    aci =
+        new AppliedCustomInstruction(
+            startNode,
+            endNodes,
+            Collections.emptyList(),
+            outputVariables,
+            Collections.emptyList(),
+            Pair.of(Collections.emptyList(), ""),
+            SSAMap.emptySSAMap());
     Truth.assertThat(aci.getOutputVariables()).containsExactly("main::a");
   }
 
@@ -414,8 +429,15 @@ public class CustomInstructionTest {
     List<String> inputVarsAndConstants = new ArrayList<>(2);
     inputVarsAndConstants.add("main::a");
     inputVarsAndConstants.add("1");
-    aci = new AppliedCustomInstruction(startNode, endNodes,  Collections.singletonList("main::a"), Collections.<String>emptyList(),
-        inputVarsAndConstants, Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    aci =
+        new AppliedCustomInstruction(
+            startNode,
+            endNodes,
+            Collections.singletonList("main::a"),
+            Collections.emptyList(),
+            inputVarsAndConstants,
+            Pair.of(Collections.emptyList(), ""),
+            SSAMap.emptySSAMap());
     Truth.assertThat(aci.getInputVariablesAndConstants()).containsExactlyElementsIn(inputVarsAndConstants).inOrder();
   }
 }

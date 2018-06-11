@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -156,9 +155,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       if (isFeasible(pFormulas.getFormulas(), pAllStatesTrace)) {
         // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
-            pFormulas.getFormulas(),
-            ImmutableList.<ValueAssignment>of(),
-            ImmutableMap.<Integer, Boolean>of());
+            pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
       } else {
         List<BooleanFormula> predicates;
         switch (pathFormulAbstractionLevel) {

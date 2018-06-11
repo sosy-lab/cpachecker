@@ -46,12 +46,12 @@ public abstract class DefaultExpressionTreeVisitor<LeafType, T, E extends Throwa
 
   @Override
   public T visitTrue() throws E {
-    return visitDefault(ExpressionTrees.<LeafType>getTrue());
+    return visitDefault(ExpressionTrees.getTrue());
   }
 
   @Override
   public T visitFalse() throws E {
-    return visitDefault(ExpressionTrees.<LeafType>getFalse());
+    return visitDefault(ExpressionTrees.getFalse());
   }
 
 }
