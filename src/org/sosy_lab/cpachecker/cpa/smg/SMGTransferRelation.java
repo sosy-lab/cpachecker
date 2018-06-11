@@ -377,18 +377,16 @@ public class SMGTransferRelation
 
       List<SMGState> result = new ArrayList<>(4);
 
-      for(SMGState newState : newStates) {
+      for (SMGState newState : newStates) {
         // We want to write a possible new Address in the new State, but
         // explore the old state for the parameters
-        List<SMGValueAndState> stateValues = readValueToBeAssiged(newState, callEdge, exp);
-
-        for (SMGValueAndState stateValue : stateValues) {
+        for (SMGValueAndState stateValue : readValueToBeAssiged(newState, callEdge, exp)) {
           SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
           SMGSymbolicValue value = stateValue.getObject();
 
-          List<Pair<SMGState, SMGKnownSymValue>> newStatesWithExpVal = assignExplicitValueToSymbolicValue(newStateWithReadSymbolicValue, callEdge, value, exp);
-
-          for (Pair<SMGState, SMGKnownSymValue> newStateWithExpVal : newStatesWithExpVal) {
+          for (Pair<SMGState, SMGKnownSymValue> newStateWithExpVal :
+              assignExplicitValueToSymbolicValue(
+                  newStateWithReadSymbolicValue, callEdge, value, exp)) {
 
             SMGState curState = newStateWithExpVal.getFirst();
             if (!valuesMap.containsKey(curState)) {
@@ -421,7 +419,7 @@ public class SMGTransferRelation
       newStates = result;
     }
 
-    for(SMGState newState : newStates) {
+    for (SMGState newState : newStates) {
       newState.addStackFrame(functionDeclaration);
 
       // get value of actual parameter in caller function context
@@ -737,9 +735,7 @@ public class SMGTransferRelation
     List<SMGState> result = new ArrayList<>(4);
     LValueAssignmentVisitor visitor =
         expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, pState);
-    List<SMGAddressAndState> addressOfFieldAndStates = lValue.accept(visitor);
-
-    for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates) {
+    for (SMGAddressAndState addressOfFieldAndState : lValue.accept(visitor)) {
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
       pState = addressOfFieldAndState.getSmgState();
 
@@ -810,9 +806,14 @@ public class SMGTransferRelation
 
       for (Pair<SMGState, SMGKnownSymValue> currentNewStateWithMergedValue :
           assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue)) {
-        SMGState currentNewState = currentNewStateWithMergedValue.getFirst();
-        newState = assignFieldToState(currentNewState, cfaEdge, memoryOfField, fieldOffset, value, rValueType);
-        result.add(newState);
+        result.add(
+            assignFieldToState(
+                currentNewStateWithMergedValue.getFirst(),
+                cfaEdge,
+                memoryOfField,
+                fieldOffset,
+                value,
+                rValueType));
       }
     }
 
