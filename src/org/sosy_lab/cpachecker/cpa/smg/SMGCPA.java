@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -231,7 +231,6 @@ public class SMGCPA
     return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
   }
 
-
   public LogManager getLogger() {
     return logger;
   }
@@ -242,10 +241,6 @@ public class SMGCPA
 
   public CFA getCFA() {
     return cfa;
-  }
-
-  public SMGPrecision getPrecision() {
-    return precision;
   }
 
   public ShutdownNotifier getShutdownNotifier() {
