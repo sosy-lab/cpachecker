@@ -75,7 +75,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     }
 
     if (object == other.object
-        && getOffset() == ((SMGEdgeHasValue) other).getOffset()
+        && getOffset() == other.getOffset()
         && type == ((SMGEdgeHasValue) other).type) {
       return value == other.value;
     }

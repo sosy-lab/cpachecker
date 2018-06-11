@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -53,9 +52,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
-  static private final CFunctionDeclaration functionDeclaration2 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.<CParameterDeclaration>of());
-  static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
+  private static final CFunctionDeclaration functionDeclaration =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
+  private static final CFunctionDeclaration functionDeclaration2 =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.of());
+  private static final CFunctionDeclaration functionDeclaration3 =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.of());
 
   private SMGState dummyState;
 

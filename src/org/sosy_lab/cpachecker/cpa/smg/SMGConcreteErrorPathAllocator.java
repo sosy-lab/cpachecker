@@ -155,7 +155,7 @@ public class SMGConcreteErrorPathAllocator {
             new SingleConcreteState(
                 Iterables.getOnlyElement(edges),
                 new ConcreteState(
-                    ImmutableMap.<LeftHandSide, Object>of(),
+                    ImmutableMap.of(),
                     allocateAddresses(pSMGState, variableAddresses),
                     variableAddresses.getAddressMap(),
                     exp -> MEMORY_NAME)));
@@ -177,7 +177,7 @@ public class SMGConcreteErrorPathAllocator {
     if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
       state =
           new ConcreteState(
-              ImmutableMap.<LeftHandSide, Object>of(),
+              ImmutableMap.of(),
               allocateAddresses(pSMGState, variableAddresses),
               variableAddresses.getAddressMap(),
               exp -> MEMORY_NAME);
