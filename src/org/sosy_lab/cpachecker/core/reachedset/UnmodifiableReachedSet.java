@@ -39,12 +39,12 @@ import javax.annotation.Nullable;
  */
 public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
-  public Collection<AbstractState> asCollection();
+  Collection<AbstractState> asCollection();
 
   @Override
-  public Iterator<AbstractState> iterator();
+  Iterator<AbstractState> iterator();
 
-  public Collection<Precision> getPrecisions();
+  Collection<Precision> getPrecisions();
 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
@@ -61,7 +61,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @param state An abstract state for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
-  public Collection<AbstractState> getReached(AbstractState state)
+  Collection<AbstractState> getReached(AbstractState state)
     throws UnsupportedOperationException;
 
   /**
@@ -79,26 +79,26 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @param location A location
    * @return A subset of the reached set.
    */
-  public Collection<AbstractState> getReached(CFANode location);
+  Collection<AbstractState> getReached(CFANode location);
 
   /**
    * Returns the first state that was added to the reached set.
    * @throws IllegalStateException If the reached set is empty.
    */
-  public AbstractState getFirstState();
+  AbstractState getFirstState();
 
   /**
    * Returns the last state that was added to the reached set.
    * May be null if it is unknown, which state was added last.
    */
-  public @Nullable AbstractState getLastState();
+  @Nullable AbstractState getLastState();
 
-  public boolean hasWaitingState();
+  boolean hasWaitingState();
 
   /**
    * An unmodifiable view of the waitlist as an Collection.
    */
-  public Collection<AbstractState> getWaitlist();
+  Collection<AbstractState> getWaitlist();
 
   /**
    * Returns the precision for a state.
@@ -106,19 +106,19 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @return The precision for the state.
    * @throws IllegalArgumentException If the state is not in the reached set.
    */
-  public Precision getPrecision(AbstractState state)
+  Precision getPrecision(AbstractState state)
     throws UnsupportedOperationException;
 
   /**
    * Iterate over all (state, precision) pairs in the reached set and apply an action for them.
    */
-  public void forEach(BiConsumer<? super AbstractState, ? super Precision> action);
+  void forEach(BiConsumer<? super AbstractState, ? super Precision> action);
 
-  public boolean contains(AbstractState state);
+  boolean contains(AbstractState state);
 
-  public boolean isEmpty();
+  boolean isEmpty();
 
-  public int size();
+  int size();
 
   /**
    * Violation of some properties is determined by reached set itself, not by a single state. The
@@ -126,7 +126,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    *
    * @return Is any property violated
    */
-  public boolean hasViolatedProperties();
+  boolean hasViolatedProperties();
 
-  public Collection<Property> getViolatedProperties();
+  Collection<Property> getViolatedProperties();
 }

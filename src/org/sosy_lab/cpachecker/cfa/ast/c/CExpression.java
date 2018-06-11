@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface  CExpression  extends CRightHandSide, AExpression {
 
-  public  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise

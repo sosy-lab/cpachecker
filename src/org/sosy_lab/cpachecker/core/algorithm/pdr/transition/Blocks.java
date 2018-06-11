@@ -339,7 +339,7 @@ public final class Blocks {
 
   }
 
-  private static interface BlockToFormula {
+  private interface BlockToFormula {
 
     BooleanFormula apply(Block pBlock) throws InterruptedException, CPATransferException;
 

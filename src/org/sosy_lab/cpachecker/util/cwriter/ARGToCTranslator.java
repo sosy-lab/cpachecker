@@ -207,14 +207,14 @@ public class ARGToCTranslator {
     }
   }
 
-  public static enum TargetTreatment {
-    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA;
+  public enum TargetTreatment {
+    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA
   }
 
-  public static enum BlockTreatmentAtFunctionEnd {
+  public enum BlockTreatmentAtFunctionEnd {
     CLOSEFUNCTIONBLOCK,
     ADDNEWBLOCK,
-    KEEPBLOCK;
+    KEEPBLOCK
   }
 
   private final LogManager logger;

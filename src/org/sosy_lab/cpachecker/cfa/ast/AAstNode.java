@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface AAstNode extends Serializable {
 
-  public FileLocation getFileLocation();
+  FileLocation getFileLocation();
 
   /**
    * Constructs a String representation of the AST represented by this node. Depending on the
@@ -44,9 +44,9 @@ public interface AAstNode extends Serializable {
    *     local variable
    * @return AST string either using qualified names or pure names for local variables
    */
-  public String toASTString(boolean pQualified);
+  String toASTString(boolean pQualified);
 
-  public String toParenthesizedASTString(boolean pQualified);
+  String toParenthesizedASTString(boolean pQualified);
 
   default String toASTString() {
     return toASTString(false);

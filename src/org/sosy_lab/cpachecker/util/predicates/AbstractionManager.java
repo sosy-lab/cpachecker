@@ -490,7 +490,7 @@ public final class AbstractionManager {
     return rmgr;
   }
 
-  public static interface AbstractionPredicatesMXBean {
+  public interface AbstractionPredicatesMXBean {
 
     int getNumberOfPredicates();
 

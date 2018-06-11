@@ -316,8 +316,7 @@ class ASTLiteralConverter {
     return suffix;
   }
 
-  static enum Suffix {
-
+  enum Suffix {
     NONE {
 
       @Override

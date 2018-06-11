@@ -698,12 +698,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public static interface ReachedSetUpdateListener {
+  public interface ReachedSetUpdateListener {
 
     void updated(ReachedSet pReachedSet);
   }
 
-  public static interface ReachedSetUpdater {
+  public interface ReachedSetUpdater {
 
     void register(ReachedSetUpdateListener pReachedSetUpdateListener);
 
@@ -711,7 +711,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public static interface ConditionAdjustmentEventSubscriber {
+  public interface ConditionAdjustmentEventSubscriber {
 
     void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
 

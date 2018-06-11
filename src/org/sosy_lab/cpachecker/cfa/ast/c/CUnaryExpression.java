@@ -79,7 +79,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     return pV.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
+  public enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     MINUS  ("-"),
     AMPER  ("&"),
     TILDE  ("~"),
@@ -89,7 +89,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
     private final String mOp;
 
-    private UnaryOperator(String pOp) {
+    UnaryOperator(String pOp) {
       mOp = pOp;
     }
 

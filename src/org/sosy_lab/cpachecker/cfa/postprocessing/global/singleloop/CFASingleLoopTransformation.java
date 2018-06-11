@@ -1479,7 +1479,7 @@ public class CFASingleLoopTransformation {
    * This enum contains different strategies
    * that decide how large the individual parts of the body of the new loop become.
    */
-  private static enum SubGraphGrowthStrategy {
+  private enum SubGraphGrowthStrategy {
 
     /**
      * This growth strategy allows for infinite growth.

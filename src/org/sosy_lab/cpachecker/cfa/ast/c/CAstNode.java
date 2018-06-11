@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface CAstNode extends AAstNode {
 
-  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(CAstNodeVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise

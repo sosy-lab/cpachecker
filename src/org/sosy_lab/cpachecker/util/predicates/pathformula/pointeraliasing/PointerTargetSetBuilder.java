@@ -128,7 +128,7 @@ public interface PointerTargetSetBuilder {
    *
    * This class is not thread-safe.
    */
-  final static class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
+  final class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
     private final FormulaManagerView formulaManager;
     private final TypeHandlerWithPointerAliasing typeHandler;
@@ -802,7 +802,7 @@ public interface PointerTargetSetBuilder {
    * that throws an exception on all methods except for {@link #build()},
    * where it returns an empty {@link PointerTargetSet}.
    */
-  public static enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
+  enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
     INSTANCE;
 
     @Override

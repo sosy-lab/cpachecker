@@ -42,13 +42,13 @@ public interface Scope {
    * Global scope allow to register functions, types and global variables.
    * @return true, if the scope is a global scope, false otherwise.
    */
-  public boolean isGlobalScope();
+  boolean isGlobalScope();
 
   /**
    * Checks if the given name is already used
    * @param name the name to check
    */
-  public boolean variableNameInUse(String name);
+  boolean variableNameInUse(String name);
 
   /**
    * Returns the declaration of the variable with the given name, if the
@@ -59,7 +59,7 @@ public interface Scope {
    * or null, if the variable is not visible.
    */
   @Nullable
-  public CSimpleDeclaration lookupVariable(String name);
+  CSimpleDeclaration lookupVariable(String name);
 
   /**
    * Returns the declaration of the function with the given name.
@@ -68,14 +68,14 @@ public interface Scope {
    * @return returns the declaration for the function with the given name,
    * or null, if the declaration can't be found.
    */
-  public CFunctionDeclaration lookupFunction(String name);
+  CFunctionDeclaration lookupFunction(String name);
 
   /**
    * Look up {@link CComplexType}s by their name.
    * @param name The fully qualified name (e.g., "struct s").
    * @return The CComplexType instance or null.
    */
-  public CComplexType lookupType(String name);
+  CComplexType lookupType(String name);
 
   /**
    * Look up {@link CType}s by the names of their typedefs.
@@ -88,36 +88,36 @@ public interface Scope {
    * @param name typedef type name e.g. s_type
    * @return the type declared in typedef e.g. struct __anon_type_0
    */
-  public CType lookupTypedef(String name);
+  CType lookupTypedef(String name);
 
   /**
    * Adds the given declaration to the scope.
    *
    * @param declaration Adds this declaration to the scope.
    */
-  public void registerDeclaration(CSimpleDeclaration declaration);
+  void registerDeclaration(CSimpleDeclaration declaration);
 
   /**
    * Register a type, e.g., a new struct type.
    *
    * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
    */
-  public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
+  boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
 
   /**
    * Take a name and return a name qualified with the current function
    * (if we are in a function).
    */
-  public String createScopedNameOf(String name);
+  String createScopedNameOf(String name);
 
   /**
    * Returns the name for the type as it would be if it is renamed to a file
    * specific version.
    */
-  public String getFileSpecificTypeName(String type);
+  String getFileSpecificTypeName(String type);
 
   /**
    * Checks if a given type is the file specific version or not.
    */
-  public boolean isFileSpecificTypeName(String type);
+  boolean isFileSpecificTypeName(String type);
 }

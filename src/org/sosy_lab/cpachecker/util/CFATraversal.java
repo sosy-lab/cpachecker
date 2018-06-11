@@ -402,7 +402,6 @@ public class CFATraversal {
     }
   }
 
-
   // --- Types and classes for implementors of CFAVisitors
 
   /**
@@ -413,7 +412,7 @@ public class CFATraversal {
    *
    * @see CFATraversal
    */
-  public static interface CFAVisitor {
+  public interface CFAVisitor {
 
     /**
      * Called for each edge the traversal process encounters.
@@ -430,11 +429,8 @@ public class CFATraversal {
     TraversalProcess visitNode(CFANode node);
   }
 
-  /**
-   * An enum for possible actions a visitor can tell the traversal strategy to
-   * do next.
-   */
-  public static enum TraversalProcess {
+  /** An enum for possible actions a visitor can tell the traversal strategy to do next. */
+  public enum TraversalProcess {
    /**
      * Continue normally.
      */

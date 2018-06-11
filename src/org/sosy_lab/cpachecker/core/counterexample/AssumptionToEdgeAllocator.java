@@ -2053,12 +2053,13 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static interface ValueLiteral {
+  private interface ValueLiteral {
 
-    public CExpression getValueLiteral();
-    public boolean isUnknown();
+    CExpression getValueLiteral();
 
-    public ValueLiteral addCast(CSimpleType pType);
+    boolean isUnknown();
+
+    ValueLiteral addCast(CSimpleType pType);
   }
 
   private static class UnknownValueLiteral implements ValueLiteral {

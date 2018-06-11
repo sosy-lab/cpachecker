@@ -1373,7 +1373,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     }
   }
 
-  private static enum CONDITION {
+  private enum CONDITION {
     NORMAL,
     ALWAYS_FALSE,
     ALWAYS_TRUE

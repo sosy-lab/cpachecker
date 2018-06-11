@@ -46,7 +46,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class CandidateInvariantCombination {
 
-  private static interface Combination extends CandidateInvariant {
+  private interface Combination extends CandidateInvariant {
 
     Set<CandidateInvariant> getOperands();
 

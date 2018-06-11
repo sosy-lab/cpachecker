@@ -384,7 +384,7 @@ class PointerTargetSetManager {
   /**
    * A handler for merge conflicts that appear when merging bases.
    */
-  private static enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
+  private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
     /**

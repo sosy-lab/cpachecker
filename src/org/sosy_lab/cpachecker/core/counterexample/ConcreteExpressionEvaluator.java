@@ -44,7 +44,7 @@ public interface ConcreteExpressionEvaluator {
    * @return True, if the expression should be evaluated with this class, false, if the expression
    * should be evaluated based on the expression evaluation of the value analysis.
    */
-  public boolean shouldEvaluateExpressionWithThisEvaluator(AExpression exp);
+  boolean shouldEvaluateExpressionWithThisEvaluator(AExpression exp);
 
   /**
    * Evaluate binary expression with given concrete operators.
@@ -54,7 +54,7 @@ public interface ConcreteExpressionEvaluator {
    * @param op2 concrete value of op2
    * @return result of binary expression evaluation with concrete value of op1 and op2
    */
-  public Value evaluate(ABinaryExpression binExp, Value op1, Value op2);
+  Value evaluate(ABinaryExpression binExp, Value op1, Value op2);
 
   /**
    * Evaluate unary expression with given concrete operator.
@@ -63,7 +63,7 @@ public interface ConcreteExpressionEvaluator {
    * @param operand concrete value of operand
    * @return result of unary expression evaluation with concrete value of op1 and op2
    */
-  public Value evaluate(AUnaryExpression unaryExpression, Value operand);
+  Value evaluate(AUnaryExpression unaryExpression, Value operand);
 
   /**
    * Evaluate casr expression with given concrete operator.
@@ -72,5 +72,5 @@ public interface ConcreteExpressionEvaluator {
    * @param operand value of operand
    * @return result of a cast expression evaluation with concrete value of operand
    */
-  public Value evaluate(ACastExpression castExpression, Value operand);
+  Value evaluate(ACastExpression castExpression, Value operand);
 }

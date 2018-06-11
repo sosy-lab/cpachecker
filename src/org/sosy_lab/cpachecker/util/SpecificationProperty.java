@@ -28,7 +28,7 @@ import java.util.Optional;
 
 public class SpecificationProperty {
 
-  public static enum PropertyType {
+  public enum PropertyType {
     REACHABILITY_LABEL("G ! label(ERROR)"),
 
     REACHABILITY("G ! call(__VERIFIER_error())"),
@@ -48,7 +48,7 @@ public class SpecificationProperty {
 
     private final String representation;
 
-    private PropertyType(String pRepresentation) {
+    PropertyType(String pRepresentation) {
       representation = pRepresentation;
     }
 

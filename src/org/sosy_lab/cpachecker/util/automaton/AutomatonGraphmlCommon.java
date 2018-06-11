@@ -116,14 +116,13 @@ public class AutomatonGraphmlCommon {
   private static final String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
   public static final String SINK_NODE_ID = "sink";
 
-  public static enum AssumeCase {
-
+  public enum AssumeCase {
     THEN("condition-true"),
     ELSE("condition-false");
 
     private final String name;
 
-    private AssumeCase(String pName) {
+    AssumeCase(String pName) {
       this.name = pName;
     }
 
@@ -137,7 +136,7 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public static enum KeyDef {
+  public enum KeyDef {
     INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
     INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
     NAMED("named", ElementType.NODE, "namedValue", "string"),
@@ -188,11 +187,12 @@ public class AutomatonGraphmlCommon {
     /** The defaultValue is non-null, iff existent. */
     @Nullable public final String defaultValue;
 
-    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
+    KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
       this(id, pKeyFor, attrName, attrType, null);
     }
 
-    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType,
+    KeyDef(
+        String id, ElementType pKeyFor, String attrName, String attrType,
         @Nullable Object defaultValue) {
       this.id = Preconditions.checkNotNull(id);
       this.keyFor = Preconditions.checkNotNull(pKeyFor);
@@ -207,7 +207,7 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public static enum ElementType {
+  public enum ElementType {
     GRAPH,
     EDGE,
     NODE;
@@ -222,7 +222,7 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public static enum NodeFlag {
+  public enum NodeFlag {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
@@ -231,7 +231,7 @@ public class AutomatonGraphmlCommon {
 
     public final KeyDef key;
 
-    private NodeFlag(KeyDef key) {
+    NodeFlag(KeyDef key) {
       this.key = key;
     }
 
@@ -255,7 +255,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private WitnessType(String text) {
+    WitnessType(String text) {
       this.text = text;
     }
 
@@ -292,7 +292,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private NodeType(String text) {
+    NodeType(String text) {
       this.text = text;
     }
 
@@ -318,7 +318,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private GraphMLTag(String text) {
+    GraphMLTag(String text) {
       this.text = text;
     }
 

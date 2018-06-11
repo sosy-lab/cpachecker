@@ -1345,7 +1345,7 @@ public class PdrAlgorithm implements Algorithm {
     }
   }
 
-  private static enum LiftingStrategyFactories {
+  private enum LiftingStrategyFactories {
     NO_LIFTING {
       @Override
       Lifting createLifting(
@@ -1394,7 +1394,7 @@ public class PdrAlgorithm implements Algorithm {
     abstract Set<ProverOptions> getRequiredProverOptions();
   }
 
-  private static enum AbstractionStrategyFactories {
+  private enum AbstractionStrategyFactories {
     NO_ABSTRACTION {
       @Override
       AbstractionStrategy createAbstractionStrategy(
@@ -1427,8 +1427,7 @@ public class PdrAlgorithm implements Algorithm {
     abstract Set<ProverOptions> getRequiredProverOptions();
   }
 
-  static enum InvariantStrengtheningStrategies {
-
+  enum InvariantStrengtheningStrategies {
     NO_STRENGTHENING {
       @Override
       InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant>
@@ -1449,7 +1448,7 @@ public class PdrAlgorithm implements Algorithm {
         createRefinementStrategy(AbstractionStrategy pAbstractionStrategy);
   }
 
-  private static enum ConditionAdjustmentCriterion {
+  private enum ConditionAdjustmentCriterion {
     NEVER {
       @Override
       boolean shouldAdjustConditions() {

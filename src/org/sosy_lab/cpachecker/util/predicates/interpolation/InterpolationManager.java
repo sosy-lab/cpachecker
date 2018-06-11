@@ -148,7 +148,8 @@ public final class InterpolationManager {
           "\n- TREE_NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
           "\n- TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from 'Tree Interpolation in Vampire'.")
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
-  private static enum InterpolationStrategy {
+
+  private enum InterpolationStrategy {
     SEQ, SEQ_CPACHECKER,
     TREE,
     TREE_WELLSCOPED,

@@ -134,8 +134,8 @@ class EclipseCParser implements CParser {
     return wrapCode(pFileName, code);
   }
 
-  private static interface FileParseWrapper {
-    public FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
+  private interface FileParseWrapper {
+    FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
   }
 
   private ParseResult parseSomething(

@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface JExpression extends JRightHandSide, AExpression {
 
-  public  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
 
   @Override
   default <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> pV) throws X {
@@ -54,6 +54,5 @@ public interface JExpression extends JRightHandSide, AExpression {
   }
 
   @Override
-  public JType getExpressionType();
-
+  JType getExpressionType();
 }
