@@ -51,7 +51,7 @@ configuration-plot:
   dependencies: []
   artifacts:
     paths:
-      - "ConfigurationPlot.svg"
+      - "ConfigurationPlot.dot.svg"
 
 
 .python-unit-tests: &python-unit-tests
