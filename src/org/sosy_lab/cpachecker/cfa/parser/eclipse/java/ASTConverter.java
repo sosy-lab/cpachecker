@@ -1285,24 +1285,26 @@ class ASTConverter {
     if (constructorBinding != null) {
       final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
 
-      return new JConstructorDeclaration(getFileLocation(pCIC),
-                                         convertConstructorType(constructorBinding),
-                                         fullName,
-                                         simpleName,
-                                         Collections.<JParameterDeclaration>emptyList(),
-                                         mb.getVisibility(),
-                                         mb.isStrictFp(),
-                                         getDeclaringClassType(constructorBinding));
+      return new JConstructorDeclaration(
+          getFileLocation(pCIC),
+          convertConstructorType(constructorBinding),
+          fullName,
+          simpleName,
+          Collections.emptyList(),
+          mb.getVisibility(),
+          mb.isStrictFp(),
+          getDeclaringClassType(constructorBinding));
 
     } else {
-      return new JConstructorDeclaration(getFileLocation(pCIC),
-                                         JConstructorType.createUnresolvableConstructorType(),
-                                         fullName,
-                                         simpleName,
-                                         Collections.<JParameterDeclaration>emptyList(),
-                                         VisibilityModifier.NONE,
-                                         false,
-                                         JClassType.createUnresolvableType());
+      return new JConstructorDeclaration(
+          getFileLocation(pCIC),
+          JConstructorType.createUnresolvableConstructorType(),
+          fullName,
+          simpleName,
+          Collections.emptyList(),
+          VisibilityModifier.NONE,
+          false,
+          JClassType.createUnresolvableType());
     }
   }
 

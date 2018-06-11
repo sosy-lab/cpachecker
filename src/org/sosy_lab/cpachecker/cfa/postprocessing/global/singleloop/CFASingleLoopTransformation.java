@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -769,9 +768,12 @@ public class CFASingleLoopTransformation {
       Map<String, FunctionEntryNode> functions) throws InterruptedException {
     SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-    CFunctionDeclaration artificialFunctionDeclaration = new CFunctionDeclaration(
-        FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION,
-        ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, ImmutableList.<CParameterDeclaration>of());
+    CFunctionDeclaration artificialFunctionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            CFunctionType.NO_ARGS_VOID_FUNCTION,
+            ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
+            ImmutableList.of());
     FunctionEntryNode artificialFunctionEntryNode =
         new CFunctionEntryNode(
             FileLocation.DUMMY,

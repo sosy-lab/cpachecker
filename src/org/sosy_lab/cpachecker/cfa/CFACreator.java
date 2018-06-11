@@ -954,7 +954,7 @@ v.addInitializer(initializer);
                                          initializer);
 
             previouslyInitializedVariables.add(name);
-            iterator.set(Pair.<ADeclaration, String>of(v, p.getSecond())); // replace declaration
+            iterator.set(Pair.of(v, p.getSecond())); // replace declaration
           }
         }
       }

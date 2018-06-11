@@ -1465,8 +1465,7 @@ class ASTConverter {
         }
       }
       if (rhs != null) {
-        returnAssignment = Optional.<CAssignment>of(
-            new CExpressionAssignmentStatement(loc, lhs, rhs));
+        returnAssignment = Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
         returnAssignment = Optional.absent();
       }
