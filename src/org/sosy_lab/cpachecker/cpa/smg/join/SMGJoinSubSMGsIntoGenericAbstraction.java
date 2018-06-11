@@ -89,14 +89,14 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   public Optional<GenericAbstractionCandidate> joinSubSmgsIntoGenericAbstractionCandidate() {
 
     MatchResult matchResult = subSMGmatchSpecificShape(inputSMG1, rootObject1, mapping1, template,
-        new HashSet<SMGObject>());
+        new HashSet<>());
 
     if (!matchResult.isMatch()) {
       return Optional.empty();
     }
 
     MatchResult matchResult2 = subSMGmatchSpecificShape(inputSMG2, rootObject2, mapping2, template,
-        new HashSet<SMGObject>());
+        new HashSet<>());
 
     if (!matchResult.isMatch()) {
       return Optional.empty();

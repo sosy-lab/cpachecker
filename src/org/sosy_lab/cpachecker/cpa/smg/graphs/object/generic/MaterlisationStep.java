@@ -279,7 +279,7 @@ public class MaterlisationStep {
     SMGObjectTemplate objectTemplate = edgeOfPointerTemplate.getObjectTemplate();
 
     if (!pAbstractObjectToPointersMap.containsKey(objectTemplate)) {
-      pAbstractObjectToPointersMap.put(objectTemplate, new HashMap<Integer, Integer>());
+      pAbstractObjectToPointersMap.put(objectTemplate, new HashMap<>());
     }
 
     int abstractValue = edgeOfPointerTemplate.getAbstractValue();
