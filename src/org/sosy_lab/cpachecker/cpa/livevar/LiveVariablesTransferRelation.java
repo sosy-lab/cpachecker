@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -151,7 +152,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     BitSet addressedVars = new BitSet(noVars);
     if (pLang == Language.C) {
-      Set<String> addressedVarsSet = variableClassification.getAddressedVariables();
+      Set<String> addressedVarsSet =
+          Preconditions.checkNotNull(variableClassification).getAddressedVariables();
       for (int i=0; i<noVars; i++) {
         ASimpleDeclaration decl = checkNotNull(allDeclarations.get(i).get());
         if (addressedVarsSet.contains(decl.getQualifiedName())) {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -302,6 +303,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
+      Preconditions.checkNotNull(cachedReached);
       final Collection<AbstractState> cachedReturnStates = entry.getExitStates();
       assert cachedReturnStates == null || cachedReached != null
           : "there cannot be " + "result-states without reached-states";
