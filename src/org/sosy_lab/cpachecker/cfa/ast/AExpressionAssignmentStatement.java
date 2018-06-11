@@ -42,9 +42,11 @@ public abstract class AExpressionAssignmentStatement extends AbstractStatement i
   }
 
   @Override
-  public String toASTString() {
-    return leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString() + ";";
+  public String toASTString(boolean pQualified) {
+    return leftHandSide.toASTString(pQualified)
+        + " = "
+        + rightHandSide.toASTString(pQualified)
+        + ";";
   }
 
   @Override

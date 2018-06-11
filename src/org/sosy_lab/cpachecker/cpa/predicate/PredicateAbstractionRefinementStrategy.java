@@ -416,6 +416,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PredicatePrecision newPrecision = addPredicatesToPrecision(basePrecision);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
+    logger.log(Level.ALL, "Difference of predicates is", newPrecision.subtract(basePrecision));
 
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0
         : "We forgot predicates during refinement!";

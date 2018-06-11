@@ -72,6 +72,10 @@ public class SlicingPrecision implements WrapperPrecision  {
     return relevantEdges.contains(pEdge);
   }
 
+  public Set<CFAEdge> getRelevant() {
+    return relevantEdges;
+  }
+
   /** Returns the wrapped precision. */
   public Precision getWrappedPrec() {
     return wrappedPrec;

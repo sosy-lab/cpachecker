@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 
 public interface BAMDataManager {
 
@@ -45,10 +46,8 @@ public interface BAMDataManager {
   void replaceStateInCaches(
       AbstractState oldState, AbstractState newState, boolean oldStateMustExist);
 
-  /**
-   * Create a new reached-set with the given state as root and register it in the cache.
-   **/
-  ReachedSet createAndRegisterNewReachedSet(
+  /** Create a new reached-set with the given state as root and register it in the cache. */
+  BAMCacheEntry createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context);
 
   ReachedSetFactory getReachedSetFactory();
@@ -123,7 +122,7 @@ public interface BAMDataManager {
    *  then there is a way to clear all caches and to restore ARG completely. */
   void clear();
 
-  /** return a matching precision for the given state, or Null if state is not found. */
+  /** return a matching precision for the given expanded state, or Null if state is not found. */
   @Nullable
   Precision getExpandedPrecisionForState(AbstractState pState);
 

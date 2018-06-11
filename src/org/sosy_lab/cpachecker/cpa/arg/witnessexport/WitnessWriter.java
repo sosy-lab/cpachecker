@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -503,7 +504,7 @@ class WitnessWriter implements EdgeAppender {
       if (AutomatonGraphmlCommon.isPointerCallAssumption(assumeEdge)) {
         // If the assume edge is followed by a pointer call,
         // the assumption is artificial and should not be exported
-        if (!pGoesToSink) {
+        if (!pGoesToSink && isEmptyTransitionPossible(pAdditionalInfo)) {
           // remove all info from transitionCondition
           return TransitionCondition.empty();
         } else if (assumeEdge.getTruthAssumption() && witnessOptions.exportFunctionCallsAndReturns()) {
@@ -527,7 +528,9 @@ class WitnessWriter implements EdgeAppender {
               : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         } else {
-          return TransitionCondition.empty();
+          if (isEmptyTransitionPossible(pAdditionalInfo)) {
+            return TransitionCondition.empty();
+          }
         }
       }
     }
@@ -538,7 +541,8 @@ class WitnessWriter implements EdgeAppender {
         .getMainFunction(), pAdditionalInfo);
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
@@ -550,7 +554,8 @@ class WitnessWriter implements EdgeAppender {
 
     if (witnessOptions.exportOffset() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
@@ -563,18 +568,34 @@ class WitnessWriter implements EdgeAppender {
     }
 
     if (witnessOptions.exportSourcecode()) {
-      final String sourceCode;
+      String sourceCode;
       if (pIsDefaultCase && !pGoesToSink) {
         sourceCode = "default:";
       } else {
         sourceCode = pEdge.getRawStatement().trim();
       }
+      if (sourceCode.isEmpty()
+          && !isEmptyTransitionPossible(pAdditionalInfo)
+          && pEdge instanceof FunctionReturnEdge) {
+        sourceCode = ((FunctionReturnEdge) pEdge).getSummaryEdge().getRawStatement().trim();
+      }
+
       if (!sourceCode.isEmpty()) {
         result = result.putAndCopy(KeyDef.SOURCECODE, sourceCode);
       }
     }
 
     return result;
+  }
+
+  /**
+   * Method is used for additional check if TransitionCondition.empty() is applicable.
+   *
+   * @param pAdditionalInfo is used at {@link ExtendedWitnessWriter}
+   * @return true if TransitionCondition.empty is applicable.
+   */
+  protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return true;
   }
 
   protected Iterable<TransitionCondition> extractTransitionForStates(
@@ -1035,13 +1056,6 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
-    final GraphMlBuilder doc;
-    try {
-      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
-    }
-
     final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
     // Collect node flags in advance
@@ -1073,7 +1087,6 @@ class WitnessWriter implements EdgeAppender {
         isRelevantEdge,
         valueMap,
         additionalInfo,
-        doc,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
@@ -1095,6 +1108,12 @@ class WitnessWriter implements EdgeAppender {
     mergeRedundantSinkEdges();
 
     // Write elements
+    final GraphMlBuilder doc;
+    try {
+      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
     writeElementsOfGraphToDoc(doc, entryStateNodeId);
     doc.appendTo(pTarget);
   }
@@ -1789,8 +1808,8 @@ class WitnessWriter implements EdgeAppender {
       }
 
       @Override
-      public TraversalProcess visitEdge(CFAEdge pEdge) {
-        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)
+      public TraversalProcess visitEdge(CFAEdge pCfaEdge) {
+        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pCfaEdge)
             ? TraversalProcess.CONTINUE
             : TraversalProcess.SKIP;
       }

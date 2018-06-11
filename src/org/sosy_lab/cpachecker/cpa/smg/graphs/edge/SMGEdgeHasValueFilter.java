@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Set;
@@ -42,6 +43,7 @@ public class SMGEdgeHasValueFilter {
   private Long offset = null;
   private CType type = null;
 
+  @VisibleForTesting
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
     object = pObject;
     return this;
@@ -67,64 +69,6 @@ public class SMGEdgeHasValueFilter {
   public SMGEdgeHasValueFilter filterByType(CType pType) {
     type = pType;
     return this;
-  }
-
-  @Deprecated
-  public SMGObject filtersByObject() {
-    return object;
-  }
-
-  @Deprecated
-  public Integer filtersHavingValue() {
-    if (valueComplement) {
-      return null;
-    } else {
-      return value;
-    }
-  }
-
-  @Deprecated
-  public Integer filtersNotHavingValue() {
-    if (valueComplement) {
-      return value;
-    } else {
-      return null;
-    }
-  }
-
-  @Deprecated
-  public Long filtersAtOffset() {
-    return offset;
-  }
-
-  @Deprecated
-  public CType filtersByType() {
-    return type;
-  }
-
-  @Deprecated
-  public boolean isFilteringByObject() {
-    return object != null;
-  }
-
-  @Deprecated
-  public boolean isFilteringHavingValue() {
-    return value != null && !valueComplement;
-  }
-
-  @Deprecated
-  public boolean isFilteringNotHavingValue() {
-    return value != null && valueComplement;
-  }
-
-  @Deprecated
-  public boolean isFilteringAtOffset() {
-    return offset != null;
-  }
-
-  @Deprecated
-  public CType isFilteringAtType() {
-    return type;
   }
 
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
@@ -165,18 +109,9 @@ public class SMGEdgeHasValueFilter {
   }
 
   /** Info: Please use SMG.getHVEdges(filter) for better performance when filtering for objects. */
+  @VisibleForTesting
   public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {
     return Iterables.filter(pEdges, this::holdsFor);
-  }
-
-  public boolean edgeContainedIn(Iterable<SMGEdgeHasValue> pEdges) {
-
-    assert value != null;
-    assert object != null;
-    assert offset != null;
-    assert type != null;
-
-    return Iterables.any(pEdges, this::holdsFor);
   }
 
   public static SMGEdgeHasValueFilter valueFilter(Integer pValue) {

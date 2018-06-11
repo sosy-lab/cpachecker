@@ -144,7 +144,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             bamcpa,
             mainReachedSet,
             bamcpa.getBlockPartitioning().getMainBlock(),
-            mainReachedSet,
+            true,
             reachedSetMapping,
             pool,
             algorithmFactory,
@@ -251,6 +251,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     Throwable toThrow = error.get();
     if (toThrow != null) {
+      logger.logException(Level.WARNING, toThrow, null);
       throw new CPAException(toThrow.getMessage());
     }
 

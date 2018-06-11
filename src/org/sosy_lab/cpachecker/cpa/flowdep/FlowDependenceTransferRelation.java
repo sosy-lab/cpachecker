@@ -29,7 +29,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -96,16 +98,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.UnknownPointerDependence;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.UsedIdsCollector;
-import org.sosy_lab.cpachecker.util.expressions.IdExpressionCollector;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Transfer relation of {@link FlowDependenceCPA}.
@@ -114,31 +117,34 @@ class FlowDependenceTransferRelation
     extends SingleEdgeTransferRelation {
 
   private final TransferRelation delegate;
-  private final IdExpressionCollector idCollector;
+  private final Optional<VariableClassification> varClassification;
 
   private final LogManagerWithoutDuplicates logger;
 
-  FlowDependenceTransferRelation(final TransferRelation pDelegate, final LogManager pLogger) {
+  FlowDependenceTransferRelation(
+      final TransferRelation pDelegate,
+      final Optional<VariableClassification> pVarClassification,
+      final LogManager pLogger) {
     delegate = pDelegate;
-    idCollector = new IdExpressionCollector();
+    varClassification = pVarClassification;
 
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
-  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalizeReachingDefinitions(
+  private Multimap<MemoryLocation, ProgramDefinitionPoint> normalizeReachingDefinitions(
       ReachingDefState pState) {
 
-    Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalized = new HashMap<>();
+    Multimap<MemoryLocation, ProgramDefinitionPoint> normalized = HashMultimap.create();
 
     normalized.putAll(normalize(pState.getLocalReachingDefinitions()));
     normalized.putAll(normalize(pState.getGlobalReachingDefinitions()));
     return normalized;
   }
 
-  private Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalize(
+  private Multimap<MemoryLocation, ProgramDefinitionPoint> normalize(
       Map<MemoryLocation, Set<DefinitionPoint>> pDefs) {
 
-    Map<MemoryLocation, Collection<ProgramDefinitionPoint>> normalized = new HashMap<>();
+    Multimap<MemoryLocation, ProgramDefinitionPoint> normalized = HashMultimap.create();
     for (Map.Entry<MemoryLocation, Set<DefinitionPoint>> e : pDefs.entrySet()) {
       MemoryLocation varName = e.getKey();
       Set<DefinitionPoint> points = e.getValue();
@@ -150,7 +156,7 @@ class FlowDependenceTransferRelation
               .map(p -> (ProgramDefinitionPoint) p)
               .collect(Collectors.toList());
 
-      normalized.put(varName, defPoints);
+      normalized.putAll(varName, defPoints);
     }
     return normalized;
   }
@@ -171,7 +177,7 @@ class FlowDependenceTransferRelation
 
     CInitializer maybeInitializer = pDecl.getInitializer();
 
-    if (maybeInitializer != null && maybeInitializer instanceof CInitializerExpression) {
+    if (maybeInitializer instanceof CInitializerExpression) {
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
@@ -204,19 +210,25 @@ class FlowDependenceTransferRelation
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState) {
 
-    Map<MemoryLocation, Collection<ProgramDefinitionPoint>> defs =
+    Multimap<MemoryLocation, ProgramDefinitionPoint> defs =
         normalizeReachingDefinitions(pReachDefState);
 
-    Multimap<MemoryLocation, ProgramDefinitionPoint> dependences = HashMultimap.create();
-    for (MemoryLocation memLoc : pUses) {
-      Collection<ProgramDefinitionPoint> definitionPoints = defs.get(memLoc);
-      if (definitionPoints != null && !definitionPoints.isEmpty()) {
-        dependences.putAll(memLoc, definitionPoints);
-      } else {
-        logger.log(Level.WARNING, "No definition point for use ", memLoc, " at ", pCfaEdge);
+    FlowDependence dependences;
+    if (pUses == null) {
+      dependences = UnknownPointerDependence.getInstance();
+    } else {
+      // Keep only definitions of uses in the currently considered CFA edge
+      defs.keySet().retainAll(pUses);
+      if (defs.keySet().size() != pUses.size()) {
+        logger.log(
+            Level.WARNING,
+            "No definition point for at least one use in edge %s: %s",
+            pCfaEdge,
+            pReachDefState);
       }
+      dependences = FlowDependence.create(defs);
     }
-    if (!dependences.isEmpty()) {
+    if (dependences.isUnknownPointerDependence() || !dependences.isEmpty()) {
       pNextState.addDependence(pCfaEdge, pDef, dependences);
     }
 
@@ -225,7 +237,7 @@ class FlowDependenceTransferRelation
 
   private Set<MemoryLocation> getUsedVars(CAstNode pExpression, PointerState pPointerState)
       throws CPATransferException {
-    UsesCollector usesCollector = new UsesCollector(pPointerState, logger);
+    UsesCollector usesCollector = new UsesCollector(pPointerState, varClassification);
     return pExpression.accept(usesCollector);
   }
 
@@ -262,15 +274,39 @@ class FlowDependenceTransferRelation
   private Set<MemoryLocation> getDef(CLeftHandSide pLeftHandSide, PointerState pPointerState)
       throws CPATransferException {
     Set<MemoryLocation> decls;
+    UsesCollector collector = new UsesCollector(pPointerState, varClassification);
     if (pLeftHandSide instanceof CPointerExpression) {
-      return ReachingDefUtils.possiblePointees(pLeftHandSide, pPointerState);
+      return getPossibePointees(
+          (CPointerExpression) pLeftHandSide, pPointerState, varClassification);
 
     } else if (pLeftHandSide instanceof CArraySubscriptExpression) {
-      decls = ((CArraySubscriptExpression) pLeftHandSide).getArrayExpression().accept(idCollector);
+      decls = ((CArraySubscriptExpression) pLeftHandSide).getArrayExpression().accept(collector);
     } else {
-      decls = pLeftHandSide.accept(idCollector);
+      decls = pLeftHandSide.accept(collector);
     }
     return decls;
+  }
+
+  private static @Nullable Set<MemoryLocation> getPossibePointees(
+      CPointerExpression pExp,
+      PointerState pPointerState,
+      Optional<VariableClassification> pVarClassification) {
+    Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pPointerState);
+    if (pointees == null) {
+      pointees = new HashSet<>();
+      if (pVarClassification.isPresent()) {
+        Set<String> addressedVars = pVarClassification.get().getAddressedVariables();
+        for (String v : addressedVars) {
+          MemoryLocation m = MemoryLocation.valueOf(v);
+          pointees.add(m);
+        }
+      } else {
+        // if pointees are unknown and we can't derive them through the variable classification,
+        // any variable could be used.
+        return null;
+      }
+    }
+    return pointees;
   }
 
   protected FlowDependenceState handleAssumption(
@@ -549,40 +585,49 @@ class FlowDependenceTransferRelation
   private static class UsesCollector
       implements CAstNodeVisitor<Set<MemoryLocation>, CPATransferException> {
 
-    private final UsedIdsCollector idCollector = new UsedIdsCollector();
-
     private final PointerState pointerState;
-    private final LogManagerWithoutDuplicates logger;
+
+    private final Optional<VariableClassification> varClassification;
 
     public UsesCollector(
-        final PointerState pPointerState, final LogManagerWithoutDuplicates pLogger) {
+        final PointerState pPointerState,
+        final Optional<VariableClassification> pVarClassification) {
       pointerState = pPointerState;
-      logger = pLogger;
+      varClassification = pVarClassification;
+    }
+
+    private Set<MemoryLocation> combine(
+        final Set<MemoryLocation> pLhs, final Set<MemoryLocation> pRhs) {
+      if (pLhs == null || pRhs == null) {
+        return null;
+
+      } else {
+        // FIXME: Change to immutable sets for performance
+        Set<MemoryLocation> combined = new HashSet<>(pLhs);
+        combined.addAll(pRhs);
+        return combined;
+      }
     }
 
     @Override
     public Set<MemoryLocation> visit(CExpressionStatement pStmt) throws CPATransferException {
-      return pStmt.getExpression().accept(new UsedIdsCollector());
+      return pStmt.getExpression().accept(this);
     }
 
     @Override
     public Set<MemoryLocation> visit(CExpressionAssignmentStatement pStmt)
         throws CPATransferException {
-      Set<MemoryLocation> used = new HashSet<>();
-      used.addAll(pStmt.getRightHandSide().accept(this));
-      used.addAll(handleLeftHandSide(pStmt.getLeftHandSide()));
-
-      return used;
+      Set<MemoryLocation> lhs = handleLeftHandSide(pStmt.getLeftHandSide());
+      Set<MemoryLocation> rhs = pStmt.getRightHandSide().accept(this);
+      return combine(lhs, rhs);
     }
 
     @Override
     public Set<MemoryLocation> visit(CFunctionCallAssignmentStatement pStmt)
         throws CPATransferException {
-      Set<MemoryLocation> used = new HashSet<>();
-      used.addAll(pStmt.getRightHandSide().accept(this));
-      used.addAll(handleLeftHandSide(pStmt.getLeftHandSide()));
-
-      return used;
+      Set<MemoryLocation> lhs = handleLeftHandSide(pStmt.getLeftHandSide());
+      Set<MemoryLocation> rhs = pStmt.getRightHandSide().accept(this);
+      return combine(lhs, rhs);
     }
 
     private Set<MemoryLocation> handleLeftHandSide(final CLeftHandSide pLhs)
@@ -600,7 +645,7 @@ class FlowDependenceTransferRelation
     public Set<MemoryLocation> visit(CFunctionCallStatement pStmt) throws CPATransferException {
       Set<MemoryLocation> paramDecls = new HashSet<>();
      for (CExpression p : pStmt.getFunctionCallExpression().getParameterExpressions()) {
-       paramDecls.addAll(p.accept(this));
+       paramDecls = combine(paramDecls, p.accept(this));
      }
      return paramDecls;
     }
@@ -608,13 +653,15 @@ class FlowDependenceTransferRelation
     @Override
     public Set<MemoryLocation> visit(CArrayDesignator pArrayDesignator)
         throws CPATransferException {
-      return Collections.emptySet();
+      return pArrayDesignator.getSubscriptExpression().accept(this);
     }
 
     @Override
     public Set<MemoryLocation> visit(CArrayRangeDesignator pArrayRangeDesignator)
         throws CPATransferException {
-      return Collections.emptySet();
+      Set<MemoryLocation> fst = pArrayRangeDesignator.getCeilExpression().accept(this);
+      Set<MemoryLocation> snd = pArrayRangeDesignator.getFloorExpression().accept(this);
+      return combine(fst, snd);
     }
 
     @Override
@@ -625,39 +672,42 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CArraySubscriptExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      Set<MemoryLocation> fst = pExp.getArrayExpression().accept(this);
+      Set<MemoryLocation> snd = pExp.getSubscriptExpression().accept(this);
+
+      return combine(fst, snd);
     }
 
     @Override
     public Set<MemoryLocation> visit(CFieldReference pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return pExp.getFieldOwner().accept(this);
     }
 
     @Override
     public Set<MemoryLocation> visit(CIdExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      CSimpleDeclaration idDeclaration = pExp.getDeclaration();
+      if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
+        return Collections.singleton(MemoryLocation.valueOf(idDeclaration.getQualifiedName()));
+      } else {
+        return Collections.emptySet();
+      }
     }
 
     @Override
     public Set<MemoryLocation> visit(CPointerExpression pExp) throws CPATransferException {
-      Set<MemoryLocation> uses = new HashSet<>(pExp.accept(idCollector));
-      Set<MemoryLocation> pointees = ReachingDefUtils.possiblePointees(pExp, pointerState);
-      if (pointees == null) {
-        logger.logOnce(Level.WARNING, "Unhandled pointer dereference. Analysis may be unsound.");
-      } else {
-        uses.addAll(pointees);
-      }
-      return uses;
+      Set<MemoryLocation> uses = pExp.getOperand().accept(this);
+      Set<MemoryLocation> pointees = getPossibePointees(pExp, pointerState, varClassification);
+      return combine(uses, pointees);
     }
 
     @Override
     public Set<MemoryLocation> visit(CComplexCastExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return pExp.getOperand().accept(this);
     }
 
     @Override
     public Set<MemoryLocation> visit(CInitializerExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return pExp.accept(this);
     }
 
     @Override
@@ -665,73 +715,80 @@ class FlowDependenceTransferRelation
         throws CPATransferException {
       Set<MemoryLocation> uses = new HashSet<>();
       for (CInitializer i : pInitializerList.getInitializers()) {
-        uses.addAll(i.accept(this));
+        uses = combine(uses, i.accept(this));
       }
       return uses;
     }
 
     @Override
     public Set<MemoryLocation> visit(CDesignatedInitializer pExp) throws CPATransferException {
-      return Collections.emptySet();
+      Set<MemoryLocation> used = pExp.getRightHandSide().accept(this);
+      for (CDesignator d : pExp.getDesignators()) {
+        used = combine(used, d.accept(this));
+      }
+
+      return used;
     }
 
     @Override
     public Set<MemoryLocation> visit(CFunctionCallExpression pExp) throws CPATransferException {
-      Set<MemoryLocation> useds = new HashSet<>();
+      Set<MemoryLocation> uses = pExp.getFunctionNameExpression().accept(this);
       for (CExpression p : pExp.getParameterExpressions()) {
-        useds.addAll(p.accept(idCollector));
+        uses = combine(uses, p.accept(this));
       }
-      return useds;
+      return uses;
     }
 
     @Override
     public Set<MemoryLocation> visit(CBinaryExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return combine(
+          pExp.getOperand1().accept(this),
+          pExp.getOperand2().accept(this));
     }
 
     @Override
     public Set<MemoryLocation> visit(CCastExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return pExp.getOperand().accept(this);
     }
 
     @Override
     public Set<MemoryLocation> visit(CCharLiteralExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return Collections.emptySet();
     }
 
     @Override
     public Set<MemoryLocation> visit(CFloatLiteralExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return Collections.emptySet();
     }
 
     @Override
     public Set<MemoryLocation> visit(CIntegerLiteralExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return Collections.emptySet();
     }
 
     @Override
     public Set<MemoryLocation> visit(CStringLiteralExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return Collections.emptySet();
     }
 
     @Override
     public Set<MemoryLocation> visit(CTypeIdExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return Collections.emptySet();
     }
 
     @Override
     public Set<MemoryLocation> visit(CUnaryExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return pExp.getOperand().accept(this);
     }
 
     @Override
     public Set<MemoryLocation> visit(CImaginaryLiteralExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return Collections.emptySet();
     }
 
     @Override
     public Set<MemoryLocation> visit(CAddressOfLabelExpression pExp) throws CPATransferException {
-      return pExp.accept(idCollector);
+      return pExp.accept(this);
     }
 
     @Override
@@ -774,7 +831,7 @@ class FlowDependenceTransferRelation
       com.google.common.base.Optional<CExpression> ret = pNode.getReturnValue();
 
       if (ret.isPresent()) {
-        return ret.get().accept(idCollector);
+        return ret.get().accept(this);
       } else {
         return Collections.emptySet();
       }

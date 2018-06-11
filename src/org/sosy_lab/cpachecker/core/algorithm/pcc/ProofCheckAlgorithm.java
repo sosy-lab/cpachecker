@@ -98,7 +98,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     if (!proofFile.toFile().exists()) {
       throw new InvalidConfigurationException(
-        "Cannot find proof file. File " + proofFile.toString() + " does not exists.");
+          "Cannot find proof file. File " + proofFile + " does not exists.");
     }
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(

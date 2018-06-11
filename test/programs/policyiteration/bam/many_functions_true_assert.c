@@ -1,6 +1,6 @@
-#include<assert.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 
-#define BOUND 10
+const int BOUND = 10;
 
 int test(int input);
 

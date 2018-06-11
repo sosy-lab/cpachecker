@@ -74,6 +74,11 @@ final class PredefinedTypes {
         || isVerifierAssume(pDeclaration);
   }
 
+  public static boolean isPredefinedFunctionWithoutVerifierError(
+      @Nullable AFunctionDeclaration pDeclaration) {
+    return !isVerifierError(pDeclaration) && isPredefinedFunction(pDeclaration);
+  }
+
   public static Type getCanonicalType(Type pType) {
     if (pType instanceof CType) {
       return ((CType) pType).getCanonicalType();

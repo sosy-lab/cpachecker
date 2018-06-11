@@ -145,11 +145,11 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   private void createVisualization(
       final SingleIdentifier id, final UsageInfo usage, final Writer writer) throws IOException {
-    AbstractLockState Locks = usage.getLockState();
+    AbstractLockState locks = usage.getLockState();
 
     writer.append("Line 0:     N0 -{/*_____________________*/}-> N0\n");
-    if (Locks != null) {
-      writer.append("Line 0:     N0 -{/*" + Locks.toString() + "*/}-> N0\n");
+    if (locks != null) {
+      writer.append("Line 0:     N0 -{/*" + locks + "*/}-> N0\n");
     }
     if (usage.isLooped()) {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
@@ -191,7 +191,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
           && edge.toString().contains(id.getName())) {
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       }
-      writer.write(edge.toString() + "\n");
+      writer.write(edge + "\n");
     }
     for (int i = 0; i < callstackDepth; i++) {
       writer.append("Line 0:     N0 -{return;}-> N0\n");

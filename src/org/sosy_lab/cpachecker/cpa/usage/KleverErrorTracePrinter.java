@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,8 +36,12 @@ import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -65,7 +68,15 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Element;
 
+@Options(prefix="cpa.usage.export")
 public class KleverErrorTracePrinter extends ErrorTracePrinter {
+
+  @Option(secure=true, name="witnessTemplate",
+      description="export counterexample core as text file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
+
+  private static final String WARNING_MESSAGE = "Access was not found";
 
   private static class ThreadIterator implements Iterator<Integer> {
     private Set<Integer> usedThreadIds;
@@ -109,6 +120,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       LockTransferRelation lT)
       throws InvalidConfigurationException {
     super(c, pT, pCfa, pL, lT);
+    config.inject(this, KleverErrorTracePrinter.class);
   }
 
   int idCounter = 0;
@@ -140,7 +152,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       return;
     }
     try {
-      File name = new File("output/witness." + createUniqueName(pId) + ".graphml");
       String defaultSourcefileName =
           from(firstPath)
               .filter(FILTER_EMPTY_FILE_LOCATIONS)
@@ -208,10 +219,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
-      IO.writeFile(
-          Paths.get(name.getAbsolutePath()),
-          Charset.defaultCharset(),
-          (Appender) a -> builder.appendTo(a));
+      Path currentPath = errorPathFile.getPath(createUniqueName(pId));
+      IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
 
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
@@ -225,46 +234,23 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
-    SingleIdentifier pId = usage.getId();
-    List<CFAEdge> path = usage.getPath();
-    CFAEdge warning = null;
-
-    for (CFAEdge edge : path) {
-      if (edge.getPredecessor() == usage.getLine().getNode()) {
-        if (edge.toString().contains(pId.getName())) {
-          warning = edge;
-          break;
-        } else if (edge instanceof CFunctionCallEdge) {
-          // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
-          if (((CFunctionCallEdge) edge)
-              .getSummaryEdge()
-              .getRawStatement()
-              .contains(pId.getName())) {
-            warning = edge;
-            break;
-          }
-        }
-      }
-    }
-
-    if (warning == null) {
-      logger.log(Level.WARNING, "Can not determine an unsafe edge");
-    }
-
-    Element lastWarningEdge = null;
+    String pIdName = usage.getId().getName();
+    boolean warningIsPrinted = false;
 
     while (iterator.hasNext()) {
       CFAEdge pEdge = iterator.next();
 
       Element edge = printEdge(builder, pEdge);
 
-      if (pEdge == warning) {
-        lastWarningEdge = edge;
+      if (!warningIsPrinted
+          && pEdge.getPredecessor() == usage.getLine().getNode()
+          && containsId(pEdge, pIdName)) {
+        warningIsPrinted = true;
+        builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());
+      } else if (!warningIsPrinted && !iterator.hasNext()) {
+        logger.log(Level.WARNING, "Can not determine an unsafe edge");
+        builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE);
       }
-    }
-
-    if (lastWarningEdge != null) {
-      builder.addDataElementChild(lastWarningEdge, KeyDef.WARNING, usage.getWarningMessage());
     }
   }
 
@@ -344,5 +330,17 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       }
     }
     return null;
+  }
+
+  private boolean containsId(CFAEdge edge, String pIdName) {
+    if (edge.toString().contains(pIdName)) {
+      return true;
+    } else if (edge instanceof CFunctionCallEdge) {
+      // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
+      if (((CFunctionCallEdge) edge).getSummaryEdge().getRawStatement().contains(pIdName)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

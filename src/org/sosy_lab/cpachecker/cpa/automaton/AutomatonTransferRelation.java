@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -44,6 +45,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -152,10 +155,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
 
-    // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
+    // these transitions cannot be evaluated until last, because they might have sideeffects on
+    // other CPAs (dont want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
-    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<>(2);
+    List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken =
+        new ArrayList<>(2);
 
     for (AutomatonTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
@@ -170,7 +175,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
               "Automaton transition condition could not be evaluated", match);
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
+        return Collections.singleton(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -184,7 +189,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                   "Automaton transition assertions could not be evaluated", assertionsHold);
             }
             // cannot yet be evaluated
-            return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
+            return Collections.singleton(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -193,11 +198,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                     "Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
+              return Collections.singleton(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above
-            Map<Integer, String> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables());
+            Map<Integer, AAstNode> transitionVariables =
+                ImmutableMap.copyOf(exprArgs.getTransitionVariables());
             transitionsToBeTaken.add(Pair.of(t, transitionVariables));
 
           } else {
@@ -209,7 +215,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             AutomatonState errorState = AutomatonState.automatonStateFactory(
                 Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
 
-            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
+            logger.log(
+                Level.FINER,
+                "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
 
@@ -226,10 +234,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     if (edgeMatched) {
       // execute Transitions
-      for (Pair<AutomatonTransition, Map<Integer, String>> pair : transitionsToBeTaken) {
+      for (Pair<AutomatonTransition, Map<Integer, AAstNode>> pair : transitionsToBeTaken) {
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
-        Map<Integer, String> transitionVariables = pair.getSecond();
+        Map<Integer, AAstNode> transitionVariables = pair.getSecond();
         actionTime.start();
         Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
         exprArgs.setAutomatonVariables(newVars);
@@ -243,12 +251,16 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
         }
 
+        logger.log(Level.ALL, "Replace variables in automata assumptions");
+        ImmutableList<AExpression> instantiatedAssumes =
+            exprArgs.instantiateAssumptions(t.getAssumptions(edge, this.logger, this.machineModel));
+
         AutomatonState lSuccessor =
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
-                cpa,
-                t.getAssumptions(edge, logger, machineModel),
+                state.getAutomatonCPA(),
+                instantiatedAssumes,
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),

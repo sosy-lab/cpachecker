@@ -274,9 +274,8 @@ final class SMGJoinTargetObjects {
       Set<SMGObject> pToBeChecked, int pLevel, SMGNodeMapping pMapping) {
 
     pMapping.removeValue(pObjToCheck);
-    Set<SMGEdgeHasValue> hves = destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
-
-    for (SMGEdgeHasValue hve : hves) {
+    for (SMGEdgeHasValue hve :
+        destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       Integer val = hve.getValue();
 
       if (val != 0) {

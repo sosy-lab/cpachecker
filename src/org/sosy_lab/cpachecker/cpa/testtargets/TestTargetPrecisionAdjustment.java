@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class TestTargetPrecisionAdjustment extends SimplePrecisionAdjustment {
 
   @Override
-  public Action prec(AbstractState pState, Precision pPrecision) throws CPAException {
+  public Action prec(final AbstractState pState, final Precision pPrecision) throws CPAException {
     TestTargetState tState = AbstractStates.extractStateByType(pState, TestTargetState.class);
     return tState.isTarget() ? Action.BREAK : Action.CONTINUE;
   }

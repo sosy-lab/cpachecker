@@ -180,8 +180,14 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
         return;
       }
 
-      assignableState = smgRightHandSideEvaluator.smgTransferRelation.writeValue(assignableState, addressOfField.getObject(),
-          addressOfField.getOffset().getAsInt(), smgRightHandSideEvaluator.getRealExpressionType(lValue), rSymValue, edge);
+      assignableState =
+          smgRightHandSideEvaluator.writeValue(
+              assignableState,
+              addressOfField.getObject(),
+              addressOfField.getOffset().getAsInt(),
+              smgRightHandSideEvaluator.getRealExpressionType(lValue),
+              rSymValue,
+              edge);
     }
     int size = smgRightHandSideEvaluator.getBitSizeof(edge, smgRightHandSideEvaluator.getRealExpressionType(lValue), assignableState);
     assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);

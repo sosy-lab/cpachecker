@@ -349,6 +349,7 @@ public final class BAMPCCManager {
     toReplace.replaceInARGWith(replaceWith);
   }
 
+  @SuppressWarnings("deprecation")
   void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (data.getCache().getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");

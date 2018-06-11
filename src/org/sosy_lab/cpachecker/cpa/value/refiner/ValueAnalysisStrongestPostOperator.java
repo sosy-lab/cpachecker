@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
@@ -68,7 +70,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
             new SymbolicValueAssigner(pConfig),
-            new ConstraintsStrengthenOperator(pConfig),
+            new ConstraintsStrengthenOperator(pConfig, pLogger, pCfa.getMachineModel()),
             null);
   }
 
@@ -122,10 +124,9 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
         obtainExceedingMemoryLocations(pErrorPath);
 
     if (performAbstraction) {
-      for (MemoryLocation memoryLocation : pNext.getTrackedMemoryLocations()) {
-        if (!precision.isTracking(memoryLocation,
-            pNext.getTypeForMemoryLocation(memoryLocation),
-            pCurrNode)) {
+      for (Entry<MemoryLocation, ValueAndType> e : pNext.getConstants()) {
+        MemoryLocation memoryLocation = e.getKey();
+        if (!precision.isTracking(memoryLocation, e.getValue().getType(), pCurrNode)) {
           pNext.forget(memoryLocation);
         }
       }

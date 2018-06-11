@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -38,25 +36,16 @@ public class TestTargetCPA extends AbstractCPA {
 
   private final TestTargetPrecisionAdjustment precisionAdjustment;
   private final TransferRelation transferRelation;
-  private Set<CFAEdge> testTargets;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
 
-  public TestTargetCPA(CFA pCfa) {
+  public TestTargetCPA(final CFA pCfa) {
     super("sep", "sep", null);
 
-    TestTargetProvider testTargetProvider = TestTargetProvider.getInstance();
-    testTargetProvider.initializeOnceWithAssumeEdges(pCfa);
-    testTargets = testTargetProvider.getTestTargets();
-
     precisionAdjustment = new TestTargetPrecisionAdjustment();
-    transferRelation = new TestTargetTransferRelation(testTargets);
-  }
-
-  public Set<CFAEdge> getTestTargets() {
-    return testTargets;
+    transferRelation = new TestTargetTransferRelation(TestTargetProvider.getTestTargets(pCfa));
   }
 
   @Override
@@ -65,7 +54,7 @@ public class TestTargetCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+  public AbstractState getInitialState(final CFANode pNode, final StateSpacePartition pPartition)
       throws InterruptedException {
     return TestTargetState.NO_TARGET;
   }
@@ -74,4 +63,5 @@ public class TestTargetCPA extends AbstractCPA {
   public TestTargetPrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
+
 }

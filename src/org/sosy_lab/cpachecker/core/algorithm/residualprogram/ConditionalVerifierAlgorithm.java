@@ -76,6 +76,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path verifierConfig;
 
+
   @Option(secure = true, description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path generatorConfig;
@@ -215,8 +216,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             .clearOption("conditional.verifier.verifierConfig")
             .clearOption("conditional.verifier.generatorConfig")
             .loadFromFile(verifierConfig)
-            .setOption("analysis.entryFunction", pEntryFunctionName)
-            .setOption("parser.usePreprocessor", "true");
+            .setOption("analysis.entryFunction", pEntryFunctionName);
         Configuration config = configBuild.build();
         shutdown.shutdownIfNecessary();
 

@@ -37,7 +37,7 @@ public enum TestTargetState implements AbstractState, Targetable, Graphable {
 
   private final boolean isTarget;
 
-  TestTargetState(boolean isTarget) {
+  private TestTargetState(final boolean isTarget) {
     this.isTarget = isTarget;
   }
 

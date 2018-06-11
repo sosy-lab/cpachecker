@@ -27,6 +27,10 @@
           <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
         </Or>
     </Match>
+    <Match>
+        <!-- Ignore Antlr-generated files. -->
+        <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
+    </Match>
 
     <Match><And>
         <!-- Allow null checks for configuration-option fields,

@@ -23,18 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Maps;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,66 +47,61 @@ import org.sosy_lab.cpachecker.util.identifiers.GeneralLocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralStructureFieldIdentifier;
 
 public class PresisionParser {
-  private String file;
   private CFA cfa;
   private final LogManager logger;
-  private Map<Integer, CFANode> idToNodeMap;
 
-  PresisionParser(String filename, CFA pCfa, LogManager l) {
-    file = filename;
+  PresisionParser(CFA pCfa, LogManager l) {
     cfa = pCfa;
     logger = l;
-    idToNodeMap = new HashMap<>();
-    cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
   }
 
-  public UsagePrecision parse(UsagePrecision precision) {
-    try (BufferedReader reader =
-        Files.newBufferedReader(Paths.get(file), Charset.defaultCharset())) {
+  public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
+    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = Maps.newHashMap();
+    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
+    cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
+
+    try (BufferedReader reader = Files.newBufferedReader(file, Charset.defaultCharset())) {
       String line;
       CFANode node = null;
-      List<String> localSet;
-      DataType type;
       Map<GeneralIdentifier, DataType> info = null;
-      GeneralIdentifier id;
+      Pattern nodePattern = Pattern.compile("N[0-9]*$");
+
       while ((line = reader.readLine()) != null) {
-        if (line.startsWith("N")) {
+        Matcher matcher = nodePattern.matcher(line);
+        if (matcher.find()) {
           // N1 - it's node identifier
-          if (node != null && info != null) {
-            if (!precision.add(node, info)) {
-              logger.log(Level.WARNING, "Node " + node + " is already in presision");
-            }
-          }
-          node = getNode(Integer.parseInt(line.substring(1)));
+          // put all previous information into the map
+          putIntoMap(localStatistics, node, info);
+          // Get node number
+          String nodeId = matcher.group().substring(1);
+          node = idToNodeMap.get(Integer.parseInt(nodeId));
           info = new HashMap<>();
         } else if (line.length() > 0) {
           // it's information about local statistics
-          localSet = Splitter.on(";").splitToList(line);
+          List<String> localSet = Splitter.on(";").splitToList(line);
 
           if (shouldBeSkipped(localSet)) {
             continue;
           }
-          id = parseId(localSet.get(0), localSet.get(1), Integer.parseInt(localSet.get(2)));
-          Preconditions.checkNotNull(
-              id, line + " can not be parsed, please, move all checks to shouldBeSkipped()");
-          type = DataType.valueOf(localSet.get(3).toUpperCase());
+          GeneralIdentifier id = parseId(localSet);
+          DataType type = DataType.valueOf(localSet.get(3).toUpperCase());
           info.put(id, type);
         }
       }
-      if (node != null && info != null) {
-        if (!precision.add(node, info)) {
-          logger.log(Level.WARNING, "Node " + node + " is already in presision");
-        }
-      }
+      putIntoMap(localStatistics, node, info);
     } catch (FileNotFoundException e) {
       logger.log(Level.WARNING, "Cannot open file " + file);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during precision parsing: " + e.getMessage());
     }
-    return precision;
+    return localStatistics;
   }
 
-  private GeneralIdentifier parseId(String type, String name, Integer deref) {
+  private GeneralIdentifier parseId(List<String> splittedLine) {
+    String type = splittedLine.get(0);
+    String name = splittedLine.get(1);
+    int deref = Integer.parseInt(splittedLine.get(2));
+
     if (type.equalsIgnoreCase("g")) {
       // Global variable
       return new GeneralGlobalVariableIdentifier(name, deref);
@@ -115,9 +112,9 @@ public class PresisionParser {
       // Structure (field) identifier
       return new GeneralStructureFieldIdentifier(name, deref);
     } else {
-      logger.log(Level.WARNING, "Can't resolve such type: " + type);
+      throw new UnsupportedOperationException(
+          splittedLine + " can not be parsed, please, move all checks to shouldBeSkipped()");
     }
-    return null;
   }
 
   private boolean shouldBeSkipped(List<String> set) {
@@ -125,7 +122,16 @@ public class PresisionParser {
     return set.get(0).equalsIgnoreCase("r");
   }
 
-  private CFANode getNode(int id) {
-    return idToNodeMap.get(id);
+  private void putIntoMap(
+      Map<CFANode, Map<GeneralIdentifier, DataType>> map,
+      CFANode node,
+      Map<GeneralIdentifier, DataType> info) {
+    if (node != null && info != null) {
+      if (map.containsKey(node)) {
+        logger.log(Level.WARNING, "Node " + node + " is already in presision");
+      } else {
+        map.put(node, info);
+      }
+    }
   }
 }

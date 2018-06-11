@@ -83,7 +83,9 @@ public class FlowDependenceCPA extends AbstractSingleWrapperCPA {
     delegateCpa = (CompositeCPA) super.getWrappedCpa();
 
     domain = new FlowDependenceDomain();
-    transfer = new FlowDependenceTransferRelation(delegateCpa.getTransferRelation(), logger);
+    transfer =
+        new FlowDependenceTransferRelation(
+            delegateCpa.getTransferRelation(), pCfa.getVarClassification(), logger);
     merge = new MergeJoinOperator(domain);
     stop = new StopJoinOperator(domain);
 

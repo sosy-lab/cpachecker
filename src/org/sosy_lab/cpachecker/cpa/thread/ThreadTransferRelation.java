@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -38,27 +36,18 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 
 
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
-  private final TransferRelation locationTransfer;
-  private final CallstackTransferRelation callstackTransfer;
   private final ThreadCPAStatistics threadStatistics;
 
-  public ThreadTransferRelation(TransferRelation l, TransferRelation c) {
-    locationTransfer = l;
-    callstackTransfer = (CallstackTransferRelation) c;
+  public ThreadTransferRelation() {
     threadStatistics = new ThreadCPAStatistics();
   }
 
@@ -68,62 +57,37 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
     threadStatistics.transfer.start();
     ThreadState tState = (ThreadState)pState;
-    LocationState oldLocationState = tState.getLocationState();
-    CallstackState oldCallstackState = tState.getCallstackState();
 
     ThreadStateBuilder builder = tState.getBuilder();
     try {
-      threadStatistics.tSetTimer.start();
-      try {
-        if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          if (!handleFunctionCall((CFunctionCallEdge)pCfaEdge, builder)) {
-            //Try to join non-created thread
-            return Collections.emptySet();
-          }
-        } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
-          CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
-          if (isThreadCreateFunction(functionCall)) {
-            builder.handleParentThread((CThreadCreateStatement)functionCall);
-          }
-        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
-          if (stmnt instanceof CThreadJoinStatement) {
-            threadStatistics.threadJoins.inc();
-            if (!builder.joinThread((CThreadJoinStatement) stmnt)) {
-              return Collections.emptySet();
-            }
-          }
-        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
-          if (isThreadCreateFunction(functionCall)) {
+      if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        if (!handleFunctionCall((CFunctionCallEdge) pCfaEdge, builder)) {
+          // Try to join non-created thread
+          return Collections.emptySet();
+        }
+      } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
+        CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pCfaEdge).getFunctionCall();
+        if (isThreadCreateFunction(functionCall)) {
+          builder.handleParentThread((CThreadCreateStatement) functionCall);
+        }
+      } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
+        if (stmnt instanceof CThreadJoinStatement) {
+          threadStatistics.threadJoins.inc();
+          if (!builder.joinThread((CThreadJoinStatement) stmnt)) {
             return Collections.emptySet();
           }
         }
-      } catch (HandleCodeException e) {
-        return Collections.emptySet();
-      } finally {
-        threadStatistics.tSetTimer.stop();
-      }
-
-      threadStatistics.internalCPAtimer.start();
-      threadStatistics.internalLocationTimer.start();
-      Collection<? extends AbstractState> newLocationStates = locationTransfer.getAbstractSuccessorsForEdge(oldLocationState,
-          SingletonPrecision.getInstance(), pCfaEdge);
-      threadStatistics.internalLocationTimer.stop();
-      threadStatistics.internalCallstackTimer.start();
-      Collection<? extends AbstractState> newCallstackStates = callstackTransfer.getAbstractSuccessorsForEdge(oldCallstackState,
-          SingletonPrecision.getInstance(), pCfaEdge);
-      threadStatistics.internalCallstackTimer.stop();
-      threadStatistics.internalCPAtimer.stop();
-
-
-      Set<ThreadState> resultStates = new HashSet<>();
-      for (AbstractState lState : newLocationStates) {
-        for (AbstractState cState : newCallstackStates) {
-          resultStates.add(builder.build((LocationState)lState, (CallstackState)cState));
+      } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        CFunctionCall functionCall =
+            ((CFunctionReturnEdge) pCfaEdge).getSummaryEdge().getExpression();
+        if (isThreadCreateFunction(functionCall)) {
+          return Collections.emptySet();
         }
       }
-      return resultStates;
+      return Collections.singleton(builder.build());
+    } catch (HandleCodeException e) {
+      return Collections.emptySet();
     } finally {
       threadStatistics.transfer.stop();
     }
@@ -135,11 +99,12 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     boolean success = true;
     CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
     if (isThreadCreateFunction(fCall)) {
-      threadStatistics.threadCreates.inc();
-      threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName());
-      builder.handleChildThread((CThreadCreateStatement)fCall);
-      //Just to statistics
-      threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
+      builder.handleChildThread((CThreadCreateStatement) fCall);
+      if (threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName())) {
+        threadStatistics.threadCreates.inc();
+        // Just to statistics
+        threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
+      }
     } else if (isThreadJoinFunction(fCall)) {
       threadStatistics.threadJoins.inc();
       success = builder.joinThread((CThreadJoinStatement)fCall);

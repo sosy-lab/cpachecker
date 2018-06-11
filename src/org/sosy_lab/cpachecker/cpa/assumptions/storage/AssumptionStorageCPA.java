@@ -66,8 +66,6 @@ public class AssumptionStorageCPA
     return AutomaticCPAFactory.forType(AssumptionStorageCPA.class);
   }
 
-  private final AbstractDomain abstractDomain;
-  private final StopOperator stopOperator;
   private final AssumptionStorageTransferRelation transferRelation;
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
@@ -80,8 +78,6 @@ public class AssumptionStorageCPA
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
     CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
-    abstractDomain = new AssumptionStorageDomain(formulaManager);
-    stopOperator = new AssumptionStorageStop();
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
     transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
@@ -93,7 +89,7 @@ public class AssumptionStorageCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    return new AssumptionStorageDomain();
   }
 
   @Override
@@ -108,7 +104,7 @@ public class AssumptionStorageCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return new AssumptionStorageStop();
   }
 
   @Override

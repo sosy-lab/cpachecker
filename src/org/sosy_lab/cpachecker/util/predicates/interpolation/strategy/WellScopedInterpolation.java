@@ -25,28 +25,34 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
   /**
-   * This strategy returns a sequence of interpolants by computing
-   * each interpolant for i={0..n-1} for the partitions
-   * A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].
-   * The resulting interpolants are based on a tree-like scheme.
+   * This strategy returns a sequence of interpolants by computing each interpolant for i={0..n-1}
+   * for the partitions A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1
+   * .. n]. The resulting interpolants are based on a tree-like scheme. The approach is based on
+   * "Abstractions from Proofs (Henzinger, Jhala, Majumdar, McMillan)".
+   *
+   * <p>INFO: This interpolation strategy might not be sufficient for predicate analysis with an
+   * inductive sequence/tree of abstractions. In some cases we cannot exclude counterexamples from
+   * re-exploration.
    */
-  public WellScopedInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                                 FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
+  public WellScopedInterpolation(
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      FormulaManagerView pFmgr,
+      BooleanFormulaManager pBfmgr) {
     super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,19 +33,19 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.usage")
-public class UsageCPAStatistics extends AbstractStatistics {
+public class UsageCPAStatistics implements Statistics {
 
-  public static enum OutputFileType {
+  public enum OutputFileType {
     ETV,
     KLEVER,
     KLEVER_OLD
@@ -74,6 +74,8 @@ public class UsageCPAStatistics extends AbstractStatistics {
   private BAMCPA bamCpa;
 
   public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
+  public final StatTimer usagePreparationTimer = new StatTimer("Time for usage handling");
+  public final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
 
@@ -92,16 +94,16 @@ public class UsageCPAStatistics extends AbstractStatistics {
       final PrintStream out, final Result result, final UnmodifiableReachedSet reached) {
     try {
       printUnsafesTimer.start();
-      if (errPrinter == null) {
-        BAMMultipleCEXSubgraphComputer computer =
-            bamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
-        if (outputFileType == OutputFileType.KLEVER) {
-          errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-        } else if (outputFileType == OutputFileType.KLEVER_OLD) {
-          errPrinter = new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
-        } else if (outputFileType == OutputFileType.ETV) {
-          errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-        }
+      BAMMultipleCEXSubgraphComputer computer = null;
+      if (bamCpa != null) {
+        computer = bamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
+      }
+      if (outputFileType == OutputFileType.KLEVER) {
+        errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+      } else if (outputFileType == OutputFileType.KLEVER_OLD) {
+        errPrinter = new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
+      } else if (outputFileType == OutputFileType.ETV) {
+        errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
       }
       errPrinter.printErrorTraces(reached);
       printUnsafesTimer.stop();
@@ -109,6 +111,8 @@ public class UsageCPAStatistics extends AbstractStatistics {
       printStatisticsTimer.start();
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
       writer.put(transferRelationTimer);
+      writer.put(usagePreparationTimer);
+      writer.put(innerAnalysisTimer);
       writer.put(printStatisticsTimer);
       errPrinter.printStatistics(writer);
       UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.collect.Iterables;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -232,14 +233,13 @@ public class SMGIsLessOrEqual {
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
-    Iterable<SMGEdgeHasValue> HVE1 = pSMG1.getHVEdges(filterForSMG1);
-    Iterable<SMGEdgeHasValue> HVE2 = pSMG2.getHVEdges(filterForSMG2);
+    Set<SMGEdgeHasValue> HVE2 = pSMG2.getHVEdges(filterForSMG2);
 
-    //TODO Merge Zero.
-    for (SMGEdgeHasValue edge1 : HVE1) {
+    // TODO Merge Zero.
+    for (SMGEdgeHasValue edge1 : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge1.getOffset()).filterByType(edge1.getType()).filterHavingValue(edge1.getValue());
 
-      if (!filterForSMG2.edgeContainedIn(HVE2)) {
+      if (!Iterables.any(HVE2, filterForSMG2::holdsFor)) {
         return false;
       }
 

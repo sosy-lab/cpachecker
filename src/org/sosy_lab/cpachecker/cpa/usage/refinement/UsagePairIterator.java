@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.collect.Sets;
 import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -39,6 +43,8 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   private Iterator<UsageInfo> secondUsageIterator;
   private UsageInfo firstUsage = null;
   private UsageInfoSet secondUsageInfoSet;
+
+  private UnsafeDetector detector;
 
   public UsagePairIterator(ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper, LogManager l) {
     super(pWrapper);
@@ -90,10 +96,7 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   private Pair<UsageInfo, UsageInfo> checkSecondIterator() {
     while (secondUsageIterator.hasNext()) {
       UsageInfo secondUsage = secondUsageIterator.next();
-      if (!secondUsage.isReachable()) {
-        //It may happens if we refine to same sets (first == second)
-        //It is normal, just skip
-      } else {
+      if (detector.isUnsafe(Sets.newHashSet(firstUsage, secondUsage))) {
         return Pair.of(firstUsage, secondUsage);
       }
     }
@@ -105,15 +108,42 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     UsageInfo first = usagePair.getFirst();
     UsageInfo second = usagePair.getSecond();
 
-    if (!second.isReachable()) {
+    @SuppressWarnings("unchecked")
+    List<UsageInfo> unreachableUsages = (List<UsageInfo>) r.getInfo(PathPairIterator.class);
+
+    if (unreachableUsages.contains(second)) {
       logger.log(Level.FINE, "Usage " + secondUsageIterator + " is not reachable, remove it from container");
       secondUsageIterator.remove();
     }
-    if (!first.isReachable()) {
+    if (unreachableUsages.contains(first)) {
       logger.log(Level.FINE, "Usage " + firstUsageIterator + " is not reachable, remove it from container");
       firstUsageIterator.remove();
       firstUsage = null;
       secondUsageIterator = secondUsageInfoSet.iterator();
+    }
+    if ((first.isLooped() || second.isLooped()) && first.equals(second)) {
+      first.setAsLooped();
+      second.setAsLooped();
+    }
+  }
+
+  @Override
+  protected void
+      handleUpdateSignal(Class<? extends RefinementInterface> pCallerClass, Object pData) {
+    if (pCallerClass.equals(IdentifierIterator.class)) {
+      assert pData instanceof UsageContainer;
+      UsageContainer container = (UsageContainer) pData;
+      detector = container.getUnsafeDetector();
+    }
+  }
+
+  @Override
+  protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
+    if (pCallerClass.equals(IdentifierIterator.class)) {
+      firstUsageIterator = null;
+      secondUsageIterator = null;
+      firstUsage = null;
+      secondUsageInfoSet = null;
     }
   }
 }

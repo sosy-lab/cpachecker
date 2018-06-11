@@ -31,6 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -104,7 +105,11 @@ public abstract class ErrorTracePrinter {
     lockTransfer = lT;
     config.inject(this, ErrorTracePrinter.class);
     FILTER_EMPTY_FILE_LOCATIONS =
-        e -> (e.getFileLocation() != null && !e.getFileLocation().getFileName().equals("<none>"));
+        Predicates.and(
+            e -> e != null,
+            e ->
+                (e.getFileLocation() != null
+                    && !e.getFileLocation().getFileName().equals("<none>")));
 
     if (filterMissedFiles) {
       FILTER_EMPTY_FILE_LOCATIONS =
@@ -116,7 +121,7 @@ public abstract class ErrorTracePrinter {
     cfa = pCfa;
   }
 
-  private void createPath(UsageInfo usage) {
+  private List<CFAEdge> createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
     ARGState target = (ARGState) usage.getKeyState();
@@ -129,14 +134,13 @@ public abstract class ErrorTracePrinter {
     }
     if (path == null) {
       logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
-      return;
+      return Collections.emptyList();
     }
-    // path is transformed internally
-    usage.setRefinedPath(path.getInnerEdges());
+    return path.getInnerEdges();
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString(id.getName()).replace(" ", "_");
+    return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
@@ -183,8 +187,7 @@ public abstract class ErrorTracePrinter {
 
       if (!falseUnsafes.isEmpty()) {
         try (Writer writer =
-            Files.newBufferedWriter(
-                Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
+            Files.newBufferedWriter(outputFalseUnsafes, Charset.defaultCharset())) {
           logger.log(Level.FINE, "Print statistics about false unsafes");
 
           for (SingleIdentifier id : falseUnsafes) {
@@ -206,14 +209,15 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String getNoteFor(CFAEdge pEdge) {
-    return lockTransfer == null ? null : lockTransfer.doesChangeTheState(pEdge);
+    return lockTransfer == null || pEdge == null ? "" : lockTransfer.doesChangeTheState(pEdge);
   }
 
   protected List<CFAEdge> getPath(UsageInfo usage) {
-    if (usage.getPath() == null) {
-      createPath(usage);
-    }
     List<CFAEdge> path = usage.getPath();
+
+    if (usage.getPath() == null) {
+      path = createPath(usage);
+    }
 
     return path.isEmpty() ? null : path;
   }

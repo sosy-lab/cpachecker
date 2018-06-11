@@ -38,16 +38,21 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * This class causes the {@link CPAAlgorithm} to terminate when finding a missing block abstraction.
+ * Depending on the flag {@link #breakOnMissingBlock}, this class causes the {@link CPAAlgorithm} to
+ * terminate when finding a missing block abstraction, or just compute more states.
  */
 class BAMPrecisionAdjustmentWithBreakOnMissingBlock extends BAMPrecisionAdjustment {
+
+  private final boolean breakOnMissingBlock;
 
   public BAMPrecisionAdjustmentWithBreakOnMissingBlock(
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       BAMDataManager pData,
       LogManager pLogger,
-      BlockPartitioning pBlockPartitioning) {
+      BlockPartitioning pBlockPartitioning,
+      boolean pBreakForMissingBlock) {
     super(pWrappedPrecisionAdjustment, pData, null, pLogger, pBlockPartitioning);
+    breakOnMissingBlock = pBreakForMissingBlock;
   }
 
   @Override
@@ -60,7 +65,8 @@ class BAMPrecisionAdjustmentWithBreakOnMissingBlock extends BAMPrecisionAdjustme
       throws CPAException, InterruptedException {
 
     if (pElement instanceof MissingBlockAbstractionState) {
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK));
+      final Action action = breakOnMissingBlock ? Action.BREAK : Action.CONTINUE;
+      return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, action));
     }
 
     return super.prec(pElement, pPrecision, pElements, projection, fullState);

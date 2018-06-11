@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,7 +67,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-import org.sosy_lab.cpachecker.cpa.usage.BinderFunctionInfo.LinkerInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
@@ -86,22 +86,27 @@ public class UsageTransferRelation implements TransferRelation {
   private final UsageCPAStatistics statistics;
 
   @Option(description = "functions, which we don't analize", secure = true)
-  private Set<String> skippedfunctions = null;
+  private Set<String> skippedfunctions = ImmutableSet.of();
 
   @Option(
     description =
         "functions, which are used to bind variables (like list elements are binded to list variable)",
     secure = true
   )
-  private Set<String> binderFunctions = null;
+  private Set<String> binderFunctions = ImmutableSet.of();
+
+  @Option(description = "functions, which are marked as write access",
+      secure = true)
+  private Set<String> writeAccessFunctions = ImmutableSet.of();
 
   @Option(name = "abortfunctions", description = "functions, which stops analysis", secure = true)
-  private Set<String> abortfunctions;
+  private Set<String> abortFunctions = ImmutableSet.of();
 
   private final CallstackTransferRelation callstackTransfer;
   private final VariableSkipper varSkipper;
 
-  private Map<String, BinderFunctionInfo> binderFunctionInfo;
+  private final Map<String, BinderFunctionInfo> binderFunctionInfo;
+
   private final LogManager logger;
 
   private UsageState newState;
@@ -118,17 +123,22 @@ public class UsageTransferRelation implements TransferRelation {
     wrappedTransfer = pWrappedTransfer;
     callstackTransfer = transfer;
     statistics = s;
-
     logger = pLogger;
-    if (binderFunctions != null) {
-      binderFunctionInfo =
-          from(binderFunctions).toMap(name -> new BinderFunctionInfo(name, config, logger));
-      // BindedFunctions should not be analysed
-      skippedfunctions =
-          skippedfunctions == null
-              ? binderFunctions
-              : Sets.union(skippedfunctions, binderFunctions);
-    }
+
+    ImmutableMap.Builder<String, BinderFunctionInfo> binderFunctionInfoBuilder =
+        ImmutableMap.builder();
+
+    from(binderFunctions)
+        .forEach(
+            name ->
+                binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
+
+    BinderFunctionInfo dummy = new BinderFunctionInfo();
+    from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));
+    binderFunctionInfo = binderFunctionInfoBuilder.build();
+
+    // BindedFunctions should not be analysed
+    skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
 
     varSkipper = new VariableSkipper(config);
   }
@@ -166,48 +176,48 @@ public class UsageTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }*/
 
-    boolean needToReset = false;
-    if (shouldBeSkipped(pCfaEdge)) {
-      callstackTransfer.enableRecursiveContext();
-      needToReset = true;
-      currentEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
-      Preconditions.checkNotNull(
-          currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
-      logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
-    }
+    currentEdge = changeIfNeccessary(pCfaEdge);
 
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.copy();
     precision = (UsagePrecision) pPrecision;
-    handleEdge(pCfaEdge);
+    statistics.usagePreparationTimer.start();
+    handleEdge(currentEdge);
+    statistics.usagePreparationTimer.stop();
 
+    statistics.innerAnalysisTimer.start();
     Collection<? extends AbstractState> newWrappedStates =
         wrappedTransfer.getAbstractSuccessorsForEdge(
             oldWrappedState, precision.getWrappedPrecision(), currentEdge);
+    statistics.innerAnalysisTimer.stop();
 
     // Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
-      UsageState resultState = newState.copy(newWrappedState);
-      if (resultState != null) {
-        result.add(resultState);
-      }
+      result.add(newState.copy(newWrappedState));
     }
 
-    if (needToReset) {
+    if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
+    newState = null;
+    precision = null;
     statistics.transferRelationTimer.stop();
     return result;
   }
 
-  private boolean shouldBeSkipped(CFAEdge pCfaEdge) {
+  private CFAEdge changeIfNeccessary(CFAEdge pCfaEdge) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      String functionName = ((FunctionCallEdge) pCfaEdge).getSuccessor().getFunctionName();
-      if (skippedfunctions != null && skippedfunctions.contains(functionName)) {
-        return true;
+      String functionName = pCfaEdge.getSuccessor().getFunctionName();
+      if (skippedfunctions.contains(functionName)) {
+        CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
+        Preconditions.checkNotNull(
+            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+        logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
+        callstackTransfer.enableRecursiveContext();
+        return newEdge;
       }
     }
-    return false;
+    return pCfaEdge;
   }
 
   private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
@@ -311,31 +321,27 @@ public class UsageTransferRelation implements TransferRelation {
       final CExpression left, final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
-    if (binderFunctions != null && binderFunctions.contains(functionCallName)) {
+    if (binderFunctionInfo.containsKey(functionCallName)) {
       BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
       List<CExpression> params = fcExpression.getParameterExpressions();
 
-      assert params.size() == currentInfo.parameters;
-
-      linkVariables(left, params, currentInfo.linkInfo);
+      linkVariables(left, params, currentInfo);
 
       AbstractIdentifier id;
 
       for (int i = 0; i < params.size(); i++) {
-        id =
-            Identifiers.createIdentifier(
-                params.get(i), currentInfo.pInfo.get(i).dereference, getCurrentFunction());
+        id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction());
         id = newState.getLinksIfNecessary(id);
         UsageInfo usage =
             UsageInfo.createUsageInfo(
-                currentInfo.pInfo.get(i).access,
+                currentInfo.getBindedAccess(i),
                 fcExpression.getFileLocation().getStartingLineNumber(),
                 newState,
                 id);
         addUsageIfNeccessary(usage);
       }
 
-    } else if (abortfunctions.contains(functionCallName)) {
+    } else if (abortFunctions.contains(functionCallName)) {
       newState.asExitable();
     } else {
       fcExpression.getParameterExpressions().forEach(p -> visitStatement(p, Access.READ));
@@ -376,46 +382,24 @@ public class UsageTransferRelation implements TransferRelation {
   }
 
   private void linkVariables(
-      final CExpression left,
-      final List<CExpression> params,
-      final Pair<LinkerInfo, LinkerInfo> linkInfo) {
-    AbstractIdentifier leftId, rightId;
+      final CExpression left, final List<CExpression> params, final BinderFunctionInfo bInfo) {
 
-    if (linkInfo != null) {
+    if (bInfo.shouldBeLinked()) {
       // Sometimes these functions are used not only for linkings.
       // For example, sdlGetFirst also deletes element.
       // So, if we can't link (no left side), we skip it
-      leftId = getLinkedIdentifier(linkInfo.getFirst(), left, params);
-      rightId = getLinkedIdentifier(linkInfo.getSecond(), left, params);
-      linkId(leftId, rightId);
+      AbstractIdentifier idIn, idFrom;
+      idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
+      idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
+      if (idIn == null || idFrom == null) {
+        return;
+      }
+      if (newState.containsLinks(idFrom)) {
+        idFrom = newState.getLinksIfNecessary(idFrom);
+      }
+      logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
+      newState.put(idIn, idFrom);
     }
-  }
-
-  private AbstractIdentifier getLinkedIdentifier(
-      final LinkerInfo info, final CExpression left, final List<CExpression> params) {
-    CExpression expr;
-    if (info.num == 0 && left != null) {
-      expr = left;
-    } else if (info.num > 0) {
-      expr = params.get(info.num - 1);
-    } else {
-      /* f.e. sdlGetFirst(), which is used for deleting element
-       * we don't link, but it isn't an error
-       */
-      return null;
-    }
-    return Identifiers.createIdentifier(expr, info.dereference, getCurrentFunction());
-  }
-
-  private void linkId(final AbstractIdentifier idIn, AbstractIdentifier idFrom) {
-    if (idIn == null || idFrom == null) {
-      return;
-    }
-    if (newState.containsLinks(idFrom)) {
-      idFrom = newState.getLinksIfNecessary(idFrom);
-    }
-    logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
-    newState.put(idIn, idFrom);
   }
 
   private void visitStatement(final CExpression expression, final Access access) {
@@ -433,7 +417,6 @@ public class UsageTransferRelation implements TransferRelation {
   }
 
   private void addUsageIfNeccessary(UsageInfo usage) {
-
     // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
       return;

@@ -91,7 +91,7 @@ public class ValueAnalysisImpactRefiner
     final CFA cfa = valueAnalysisCpa.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.defaultConfiguration(), cfa);
 
     final PathExtractor pathExtractor = new PathExtractor(logger, config);
 

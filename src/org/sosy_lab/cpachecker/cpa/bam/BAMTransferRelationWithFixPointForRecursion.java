@@ -48,10 +48,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix="cpa.bam")
@@ -64,7 +64,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       + "The value '-1' disables this option.")
   private int maximalDepthForExplicitRecursion = -1;
 
-  private final BAMCPA bamCPA;
+  private final BAMCPA bamCpa;
 
   // flags of the fixpoint-algorithm for recursion
   private boolean recursionSeen = false;
@@ -74,13 +74,13 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,
-      BAMCPA bamCpa,
+      BAMCPA pBamCpa,
       ProofChecker wrappedChecker,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super(pConfig, bamCpa, wrappedChecker, pShutdownNotifier);
+    super(pConfig, pBamCpa, wrappedChecker, pShutdownNotifier);
     pConfig.inject(this);
-    bamCPA = bamCpa;
+    bamCpa = pBamCpa;
   }
 
   @Override
@@ -212,7 +212,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       if (level.getThird() == currentLevel.getThird()
           // && level.getSecond().equals(currentLevel.getSecond())
-          && bamCPA
+          && bamCpa
               .getWrappedCpa()
               .isCoveredByRecursiveState(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
@@ -253,7 +253,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       return true;
     }
     for (final AbstractState coveringState : coveringStates) {
-      if (bamCPA.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
+      if (bamCpa.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
         return true;
       }
     }
@@ -383,11 +383,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     // If no changes are found, we have found the fixpoint.
 
     // try to get previously computed states from cache
-    final Pair<ReachedSet, Collection<AbstractState>> pair =
-            //argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-            data.getCache().get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
-    final ReachedSet reached = pair.getFirst();
-    final Collection<AbstractState> previousResult = pair.getSecond();
+    final BAMCacheEntry entry =
+        // argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
+        data.getCache()
+            .get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
+    final ReachedSet reached = entry.getReachedSet();
+    final Collection<AbstractState> previousResult = entry.getExitStates();
     final Collection<AbstractState> reducedResult;
 
     assert reached != null : "cached entry has no reached set";

@@ -200,11 +200,11 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     }
 
     /**
-     * Increase containerOffset by properOffset, unset properOffset and set containerType.
-     * Useful for array subscript visitors.
+     * Increase containerOffset by properOffset, unset properOffset and set containerType. Useful
+     * for array subscript visitors.
      */
-    void shift(final CType containerType) {
-      this.containerType = containerType;
+    void shift(final CType pContainerType) {
+      this.containerType = pContainerType;
       if (containerOffset != null) {
         if (properOffset != null) {
           containerOffset += properOffset;

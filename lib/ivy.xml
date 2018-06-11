@@ -31,14 +31,13 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-256-gd9a00de" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-299-g894eab7" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="24.0-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="24.1-jre" conf="runtime->default; contrib->sources"/>
 
-        <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
-        <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.2" conf="runtime->runtime; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -71,15 +70,24 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.15.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.18.3" conf="test->default"/>
+
+        <!-- Antlr
+             Parser generator. -->
+        <dependency org="org.antlr" name="antlr4" rev="4.7.1" conf="build->default; contrib->sources"/>
+        <dependency org="org.antlr" name="antlr4-runtime" rev="4.7.1" conf="runtime->default"/>
+
+        <!-- JHOAFParser
+             Library for parsing strings and files in 'Hanoi Omega-Automata' (HOA) format. -->
+        <dependency org="jhoafparser" name="jhoafparser" rev="1.1.1" conf="runtime->runtime"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.39" conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.39" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth" name="truth" rev="0.40" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.40" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="24.0-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="24.1-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
@@ -88,8 +96,8 @@
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.2.0" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.2.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.3.1" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.3.1" conf="build->default; contrib->sources" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -97,7 +105,7 @@
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.5" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.6" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.2" conf="spotbugs->default"/>
@@ -130,7 +138,7 @@
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.2.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.1"/>
 
     </dependencies>
 </ivy-module>

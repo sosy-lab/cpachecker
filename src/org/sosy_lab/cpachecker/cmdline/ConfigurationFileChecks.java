@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -32,6 +33,7 @@ import static java.lang.Boolean.parseBoolean;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
@@ -48,9 +50,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -83,6 +84,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
 /**
  * Test that the bundled configuration files are all valid.
@@ -90,16 +92,19 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 @RunWith(Parameterized.class)
 public class ConfigurationFileChecks {
 
+  private static final Pattern INDICATES_MISSING_INPUT_FILE =
+      Pattern.compile(
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*",
+          Pattern.DOTALL);
+
   private static final Pattern ALLOWED_WARNINGS =
       Pattern.compile(
-          ".*File .* does not exist.*"
-              + "|The following configuration options were specified but are not used:.*"
+          "The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
               + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*"
-              + "|.*Witness file is missing in specification.*",
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -107,8 +112,8 @@ public class ConfigurationFileChecks {
           ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
-  private static final ImmutableList<String> UNUSED_OPTIONS =
-      ImmutableList.of(
+  private static final ImmutableSet<String> UNUSED_OPTIONS =
+      ImmutableSet.of(
           // always set by this test
           "java.sourcepath",
           // handled by code outside of CPAchecker class
@@ -337,6 +342,15 @@ public class ConfigurationFileChecks {
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
+    try (Reader r = Files.newBufferedReader(Paths.get("config/specification/TargetState.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/TargetState.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
   }
 
   @Test
@@ -353,6 +367,7 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
+    final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -386,6 +401,8 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/sv-comp-reachability.spc");
       }
+    } else if (isTestGenerationConfig) {
+      assertThat(spec).isAnyOf(null, "");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
@@ -425,8 +442,9 @@ public class ConfigurationFileChecks {
       return;
     }
 
+    CPAcheckerResult result;
     try {
-      cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().fail("Java frontend has a bug and cannot be run twice");
@@ -437,26 +455,46 @@ public class ConfigurationFileChecks {
       return;
     }
 
-    Stream<String> severeMessages = getSevereMessages(options, logHandler);
+    assert_()
+        .withMessage(
+            "Failure in CPAchecker run with following log\n%s\n",
+            formatLogRecords(logHandler.getStoredLogRecords()))
+        .about(streams())
+        .that(getSevereMessages(options, logHandler))
+        .named("log with level WARNING or higher")
+        .isEmpty();
 
-    if (severeMessages.count() > 0) {
+    assume()
+        .about(streams())
+        .that(
+            logHandler
+                .getStoredLogRecords()
+                .stream()
+                .map(LogRecord::getMessage)
+                .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
+        .named("messages indicating missing input files")
+        .isEmpty();
+
+    if (!isOptionEnabled(config, "analysis.disable")) {
       assert_()
-          .fail(
-              "Not true that log for config %s does not contain messages with level WARNING or higher:\n%s",
-              configFile,
-              logHandler
-                  .getStoredLogRecords()
-                  .stream()
-                  .map(ConsoleLogFormatter.withoutColors()::format)
-                  .collect(Collectors.joining())
-                  .trim());
+          .withMessage(
+              "Failure in CPAchecker run with following log\n%s\n",
+              formatLogRecords(logHandler.getStoredLogRecords()))
+          .that(result.getResult())
+          .named("analysis result '%s'", result.getResultString())
+          .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 
     if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
-      // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
-      Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
-      unusedOptions.removeAll(UNUSED_OPTIONS);
-      assertThat(unusedOptions).named("unused options specified in " + configFile).isEmpty();
+      // TODO find a solution how to check for unused properties correctly even with
+      // RestartAlgorithm
+      assert_()
+          .withMessage(
+              "Failure in CPAchecker run with following log\n%s\n",
+              formatLogRecords(logHandler.getStoredLogRecords()))
+          .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
+          .named("list of unused options")
+          .isEmpty();
     }
   }
 
@@ -534,7 +572,17 @@ public class ConfigurationFileChecks {
     return logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
+            .filter(s -> !INDICATES_MISSING_INPUT_FILE.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+  }
+
+  private static String formatLogRecords(Collection<? extends LogRecord> log) {
+    return log.stream()
+        .map(ConsoleLogFormatter.withoutColors()::format)
+        .flatMap(s -> Pattern.compile("\n").splitAsStream(s))
+        .map(s -> "| " + s)
+        .collect(Collectors.joining("\n"))
+        .trim();
   }
 
   private static boolean isOptionEnabled(Configuration config, String key) {

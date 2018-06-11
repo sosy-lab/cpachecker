@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class ProofSlicer {
   private int numNotCovered;
 
@@ -489,7 +488,7 @@ public class ProofSlicer {
       final Collection<String> necessaryVars) {
     ValueAnalysisState returnState = ValueAnalysisState.copyOf(vState);
 
-    for (MemoryLocation ml : vState.getConstantsMapView().keySet()) {
+    for (MemoryLocation ml : vState.getTrackedMemoryLocations()) {
       if (!necessaryVars.contains(getVarName(ml))) {
         returnState.forget(ml);
       }

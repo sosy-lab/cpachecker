@@ -103,15 +103,9 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     return this.clone(rootState.previousState);
   }
 
-  public LocalState reduce() {
-    return this.clone(null);
-  }
-
   private boolean checkIsAlwaysLocal(AbstractIdentifier name) {
     if (name instanceof SingleIdentifier) {
-      if (alwaysLocalData.contains(((SingleIdentifier) name).getName())) {
-        return true;
-      }
+      return alwaysLocalData.contains(((SingleIdentifier) name).getName());
     }
     return false;
   }
@@ -266,7 +260,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   @Override
   public String toString() {
     return from(DataInfo.keySet())
-        .transform(id -> id.toString() + " - " + getDataInfo(id))
+        .transform(id -> id + " - " + getDataInfo(id))
         .join(Joiner.on("\n"));
   }
 }

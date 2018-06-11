@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.flowdep;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.util.Optional;
@@ -35,10 +34,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerDomain;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
-import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -76,11 +75,15 @@ class FlowDependenceDomain implements AbstractDomain {
 
       joinedFlowDeps.addAll(((FlowDependenceState) pState1).getAll());
 
-      for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
-          e : ((FlowDependenceState) pState2).getAll().cellSet()) {
+      for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> e :
+          ((FlowDependenceState) pState2).getAll().cellSet()) {
 
         CFAEdge g = e.getRowKey();
         Optional<MemoryLocation> m = e.getColumnKey();
+        assert g != null : "Null value for CFA edge in flow dependences: "
+            + ((FlowDependenceState) pState2).getAll();
+        assert m != null : "Null value for memory location in flow dependences: "
+            + ((FlowDependenceState) pState2).getAll();
 
         joinedFlowDeps.addDependence(g, m, checkNotNull(e.getValue()));
       }

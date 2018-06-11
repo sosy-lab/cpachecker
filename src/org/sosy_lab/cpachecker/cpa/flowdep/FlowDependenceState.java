@@ -25,18 +25,23 @@ package org.sosy_lab.cpachecker.cpa.flowdep;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ForwardingMultimap;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -44,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -55,9 +61,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
 
-  private final Table<
-          CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
-      usedDefs;
+  /**
+   * Data-flow dependencies. Represented by a table with entries of the form (g, m, D). {@link
+   * FlowDependence} D is a set of tuples (d, g').
+   *
+   * <p>Read: A CFA edge g defines a memory location m, and since it uses d to do so, it is
+   * data-flow dependent on g'.
+   */
+  private final Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> usedDefs;
 
   private CompositeState reachDefState;
 
@@ -75,9 +86,9 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     return usedDefs.row(pForEdge).keySet();
   }
 
-  public Multimap<MemoryLocation, ProgramDefinitionPoint> getDependentDefs(
+  public FlowDependence getDefsDependingOn(
       final CFAEdge pEdge, final Optional<MemoryLocation> pDefinition) {
-    return ImmutableMultimap.copyOf(usedDefs.get(pEdge, pDefinition));
+    return usedDefs.get(pEdge, pDefinition);
   }
 
   /**
@@ -85,12 +96,10 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
    * definition point.
    */
   public void addDependence(
-      CFAEdge pEdge,
-      Optional<MemoryLocation> pDefines,
-      Multimap<MemoryLocation, ProgramDefinitionPoint> pUses) {
+      CFAEdge pEdge, Optional<MemoryLocation> pDefines, FlowDependence pUses) {
 
     if (usedDefs.contains(pEdge, pDefines)) {
-      usedDefs.get(pEdge, pDefines).putAll(pUses);
+      usedDefs.put(pEdge, pDefines, usedDefs.get(pEdge, pDefines).union(pUses));
     } else {
       usedDefs.put(pEdge, pDefines, pUses);
     }
@@ -100,14 +109,11 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     return reachDefState;
   }
 
-  void addAll(
-      Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
-          pUsedDefs) {
+  void addAll(Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> pUsedDefs) {
     usedDefs.putAll(pUsedDefs);
   }
 
-  Table<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
-      getAll() {
+  Table<CFAEdge, Optional<MemoryLocation>, FlowDependence> getAll() {
     return usedDefs;
   }
 
@@ -152,8 +158,7 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     if (!usedDefs.isEmpty()) {
       sb.append("\n");
     }
-    for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
-        e : usedDefs.cellSet()) {
+    for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> e : usedDefs.cellSet()) {
       sb.append("\t");
       sb.append(checkNotNull(e.getRowKey()).toString());
       Optional<MemoryLocation> possibleDef = checkNotNull(e.getColumnKey());
@@ -161,11 +166,7 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
         sb.append(" + ").append(possibleDef.toString());
       }
       sb.append(":\n");
-      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : checkNotNull(e.getValue()).entries()) {
-        sb.append("\t\t");
-        sb.append(memDefs.getKey().toString()).append(" <- ").append(memDefs.getValue());
-        sb.append("\n");
-      }
+      sb.append(e.getValue());
     }
     sb.append("};\n");
     sb.append(reachDefState.toString());
@@ -181,8 +182,7 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder("{");
     boolean first = true;
-    for (Cell<CFAEdge, Optional<MemoryLocation>, Multimap<MemoryLocation, ProgramDefinitionPoint>>
-        e : usedDefs.cellSet()) {
+    for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> e : usedDefs.cellSet()) {
       if (!first) {
         sb.append(", ");
       }
@@ -190,14 +190,14 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
 
       CFAEdge edge = checkNotNull(e.getRowKey());
       Optional<MemoryLocation> possibleDef = checkNotNull(e.getColumnKey());
-      Multimap<MemoryLocation, ProgramDefinitionPoint> uses = checkNotNull(e.getValue());
+      Multimap<MemoryLocation, CFAEdge> uses = checkNotNull(e.getValue());
       sb.append(edge.toString());
       if (possibleDef.isPresent()) {
         sb.append(" + ").append(possibleDef.toString());
       }
       sb.append(": [ ");
       boolean first2 = true;
-      for (Map.Entry<MemoryLocation, ProgramDefinitionPoint> memDefs : uses.entries()) {
+      for (Map.Entry<MemoryLocation, CFAEdge> memDefs : uses.entries()) {
         if (!first2) {
           sb.append(", ");
         }
@@ -214,5 +214,124 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  public static class FlowDependence extends ForwardingMultimap<MemoryLocation, CFAEdge> {
+
+    private Multimap<MemoryLocation, CFAEdge> useToDefinitions;
+
+    private FlowDependence() {
+      useToDefinitions = HashMultimap.create();
+    }
+
+    public static FlowDependence copyOf() {
+      return new FlowDependence();
+    }
+
+    public static FlowDependence copyOf(Multimap<MemoryLocation, CFAEdge> pMap) {
+      return new FlowDependence(pMap);
+    }
+
+    public static FlowDependence create(Multimap<MemoryLocation, ProgramDefinitionPoint> pMap) {
+      Multimap<MemoryLocation, CFAEdge> useToDefinitions = HashMultimap.create();
+      for (Entry<MemoryLocation, ProgramDefinitionPoint> e : pMap.entries()) {
+        boolean added = false;
+        ProgramDefinitionPoint defPoint = e.getValue();
+        CFANode start = defPoint.getDefinitionEntryLocation();
+        CFANode stop = defPoint.getDefinitionExitLocation();
+
+        for (CFAEdge g : CFAUtils.leavingEdges(start)) {
+          if (g.getSuccessor().equals(stop)) {
+            useToDefinitions.put(e.getKey(), g);
+            added = true;
+          }
+        }
+        assert added : "No edge added for nodes " + start + " to " + stop;
+      }
+      return copyOf(useToDefinitions);
+    }
+
+    private FlowDependence(Multimap<MemoryLocation, CFAEdge> pMap) {
+      useToDefinitions = pMap;
+    }
+
+    @Override
+    protected Multimap<MemoryLocation, CFAEdge> delegate() {
+      return useToDefinitions;
+    }
+
+    public boolean isUnknownPointerDependence() {
+      return false;
+    }
+
+    public FlowDependence union(final FlowDependence pOther) {
+      if (isUnknownPointerDependence() || pOther.isUnknownPointerDependence()) {
+        return UnknownPointerDependence.getInstance();
+      } else {
+        Multimap<MemoryLocation, CFAEdge> union =
+            MultimapBuilder.hashKeys().hashSetValues().build(useToDefinitions);
+        union.putAll(pOther.useToDefinitions);
+        return new FlowDependence(union);
+      }
+    }
+
+    @Override
+    public boolean putAll(MemoryLocation key, Iterable<? extends CFAEdge> values) {
+      throw new UnsupportedOperationException(
+          "Unsupported. Use method #union() to ensure correct"
+              + " handling of UnknownPointerDependence");
+    }
+
+    @Override
+    public boolean putAll(Multimap<? extends MemoryLocation, ? extends CFAEdge> multimap) {
+      throw new UnsupportedOperationException(
+          "Unsupported. Use method #union() to ensure correct"
+              + " handling of UnknownPointerDependence");
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      for (Entry<MemoryLocation, CFAEdge> memDefs : useToDefinitions.entries()) {
+        sb.append("\t\t");
+        sb.append(memDefs.getKey().toString()).append(" <- ").append(memDefs.getValue());
+        sb.append("\n");
+      }
+      return sb.toString();
+    }
+  }
+
+  public static class UnknownPointerDependence extends FlowDependence {
+
+    private static UnknownPointerDependence INSTANCE = new UnknownPointerDependence();
+
+    private UnknownPointerDependence() {
+      // It shouldn't be possible to add states to an UnknownPointerDependence
+      super(ImmutableMultimap.of());
+    }
+
+    public static UnknownPointerDependence getInstance() {
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isUnknownPointerDependence() {
+      return true;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+      return object instanceof UnknownPointerDependence;
+    }
+
+    @Override
+    public int hashCode() {
+      return 1;
+    }
+
+    @Override
+    public String toString() {
+      return "Dependence to unknown memory location";
+    }
   }
 }

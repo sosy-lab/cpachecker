@@ -40,11 +40,14 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
+
+  private static final long serialVersionUID = 1L;
 
   @Option(
     secure = true,
@@ -105,7 +108,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   )
   private boolean trackVariablesBesidesEqAddBool = true;
 
-  private final Optional<VariableClassification> vc;
+  private transient Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurablePrecision(
@@ -178,9 +181,21 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       // tracking variables and the rest of the variable classification is
       // the limiting factor
     } else {
+
       final boolean varIsBoolean = varClass.getIntBoolVars().contains(variableName);
+      if (trackBooleanVariables && varIsBoolean) {
+        return true;
+      }
+
       final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
+      if (trackIntEqualVariables && varIsIntEqual) {
+        return true;
+      }
+
       final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
+      if (trackIntAddVariables && varIsIntAdd) {
+        return true;
+      }
 
       // if the variable is not in a matching classification we have to check
       // if other variables should be tracked
@@ -188,11 +203,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         return trackVariablesBesidesEqAddBool;
       }
 
-      final boolean isTrackedBoolean = trackBooleanVariables && varIsBoolean;
-      final boolean isTrackedIntEqual = trackIntEqualVariables && varIsIntEqual;
-      final boolean isTrackedIntAdd = trackIntAddVariables && varIsIntAdd;
-
-      return isTrackedBoolean || isTrackedIntAdd || isTrackedIntEqual;
+      return false;
     }
   }
 
@@ -293,5 +304,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         .add("trackFloatVariables", trackFloatVariables)
         .add("trackAddressedVariables", trackAddressedVariables)
         .toString();
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    vc = GlobalInfo.getInstance().getCFAInfo().get().getCFA().getVarClassification();
   }
 }

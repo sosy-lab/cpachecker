@@ -39,7 +39,8 @@ public class InvariantsPrecision implements Precision {
         Collections.<CFAEdge>emptySet(),
         Collections.<MemoryLocation>emptySet(),
         0,
-        pAbstractionStrategy) {
+        pAbstractionStrategy,
+        false) {
 
       @Override
       public boolean isRelevant(CFAEdge pEdge) {
@@ -50,7 +51,6 @@ public class InvariantsPrecision implements Precision {
       public String toString() {
         return "no precision";
       }
-
     };
   }
 
@@ -62,23 +62,33 @@ public class InvariantsPrecision implements Precision {
 
   private final AbstractionStrategy abstractionStrategy;
 
-  public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
-      Set<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStrategy pAbstractionStrategy) {
+  private final boolean useMod2Template;
+
+  public InvariantsPrecision(
+      Set<CFAEdge> pRelevantEdges,
+      Set<MemoryLocation> pInterestingVariables,
+      int pMaximumFormulaDepth,
+      AbstractionStrategy pAbstractionStrategy,
+      boolean pUseMod2Template) {
     this(
         pRelevantEdges == null ? null : ImmutableSet.copyOf(pRelevantEdges),
         ImmutableSet.<MemoryLocation>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
-        pAbstractionStrategy);
+        pAbstractionStrategy,
+        pUseMod2Template);
   }
 
-  public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
-      ImmutableSet<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStrategy pAbstractionStrategy) {
+  public InvariantsPrecision(
+      ImmutableSet<CFAEdge> pRelevantEdges,
+      ImmutableSet<MemoryLocation> pInterestingVariables,
+      int pMaximumFormulaDepth,
+      AbstractionStrategy pAbstractionStrategy,
+      boolean pUseMod2Template) {
     this.relevantEdges = pRelevantEdges;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
     this.abstractionStrategy = pAbstractionStrategy;
+    this.useMod2Template = pUseMod2Template;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
@@ -119,5 +129,9 @@ public class InvariantsPrecision implements Precision {
 
   public AbstractionStrategy getAbstractionStrategy() {
     return this.abstractionStrategy;
+  }
+
+  public boolean shouldUseMod2Template() {
+    return useMod2Template;
   }
 }

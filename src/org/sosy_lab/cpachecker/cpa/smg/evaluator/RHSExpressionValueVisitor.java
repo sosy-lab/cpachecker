@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSExpressionValueVisitor extends ExpressionValueVisitor {
@@ -43,7 +45,7 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public SMGValueAndStateList visit(CFunctionCallExpression pIastFunctionCallExpression)
+  public List<? extends SMGValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
 
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
@@ -57,13 +59,14 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
         smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-        SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(
-            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+        List<SMGAddressValueAndState> configAllocEdge =
+            builtins.evaluateConfigurableAllocationFunction(
+                pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
         return configAllocEdge;
       }
       if (builtins.isExternalAllocationFunction(functionName)) {
-        SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(
-            pIastFunctionCallExpression, getInitialSmgState());
+        List<SMGAddressValueAndState> extAllocEdge =
+            builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
         return extAllocEdge;
       }
       switch (functionName) {
@@ -72,13 +75,15 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
         break;
       case "__builtin_alloca":
         smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-        SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return allocEdge;
+          List<SMGAddressValueAndState> allocEdge =
+              builtins.evaluateAlloca(
+                  pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+          return allocEdge;
       case "printf":
-        return SMGValueAndStateList.of(getInitialSmgState());
+          return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
       default:
         if (builtins.isNondetBuiltin(functionName)) {
-          return SMGValueAndStateList.of(getInitialSmgState());
+            return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
         } else {
           throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
         }
@@ -91,7 +96,7 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
                   + functionName
                   + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case ASSUME_SAFE:
-          return SMGValueAndStateList.of(getInitialSmgState());
+          return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
         case ASSUME_EXTERNAL_ALLOCATED:
           return smgRightHandSideEvaluator.smgTransferRelation.handleSafeExternFuction(
               pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
@@ -102,6 +107,6 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
       }
     }
 
-    return SMGValueAndStateList.of(getInitialSmgState());
+    return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
   }
 }

@@ -197,7 +197,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
     ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisionsLst);
     Block block = partitioning.getBlockForCallNode(AbstractStates.extractLocation(rootState));
 
-    data.getCache().remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
+    // override existing cache-entry
     data.getCache()
         .put(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block, clone);
   }

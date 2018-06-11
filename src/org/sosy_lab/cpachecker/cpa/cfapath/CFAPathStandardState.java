@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
@@ -135,9 +134,9 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
       return "<>";
     } else {
       if (getLength() == 1) {
-        return "< " + mCFAEdge.toString() + " >";
+        return "< " + mCFAEdge + " >";
       } else {
-        return "< ... " + mCFAEdge.toString() + " >";
+        return "< ... " + mCFAEdge + " >";
       }
     }
   }

@@ -37,8 +37,11 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -47,6 +50,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -210,6 +215,16 @@ public class CPAchecker {
     description = "use CBMC as an external tool from CPAchecker"
   )
   private boolean runCBMCasExternalTool = false;
+
+  @Option(
+    secure = true,
+    name = "analysis.serializedCfaFile",
+    description =
+        "if this option is used, the CFA will be loaded from the given file "
+            + "instead of parsed from sourcefile."
+  )
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path serializedCfaFile = null;
 
   @Option(
     secure = true,
@@ -400,6 +415,9 @@ public class CPAchecker {
       msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
 
+    } catch (ClassNotFoundException e) {
+      logger.logUserException(Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
+
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
 
@@ -438,12 +456,25 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-    // parse file and create CFA
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator);
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      ClassNotFoundException {
 
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+    final CFA cfa;
+    if (serializedCfaFile == null) {
+      // parse file and create CFA
+      CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+      stats.setCFACreator(cfaCreator);
+      cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+
+    } else {
+      // load CFA from serialization file
+      try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
+          InputStream gzipInputStream = new GZIPInputStream(inputStream);
+          ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
+        cfa = (CFA) ois.readObject();
+      }
+    }
+
     stats.setCFA(cfa);
     return cfa;
   }

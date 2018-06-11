@@ -158,12 +158,7 @@ public class SlicingAbstractionsTest {
   }
 
   private void check(String pFilename, Configuration config) throws Exception {
-    String fullPath;
-    if (pFilename.contains("test/programs/benchmarks")) {
-      fullPath = pFilename;
-    } else {
-      fullPath = Paths.get(TEST_DIR_PATH, pFilename).toString();
-    }
+    String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(config, fullPath);
     if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {

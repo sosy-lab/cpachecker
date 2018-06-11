@@ -256,13 +256,7 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(kind);
-    result = prime * result + Objects.hashCode(name);
-    return result;
+    return Objects.hash(isConst, isVolatile, kind, name);
   }
 
   /**

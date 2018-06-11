@@ -27,21 +27,17 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,7 +48,6 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,81 +55,43 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 
-@Options
+@Options(prefix = "testcase")
 public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static class TestCaseGeneratorAlgorithmStatistics implements Statistics {
-    private final ImmutableSet<CFAEdge> initialTestTargets;
-    private final Set<CFAEdge> coveredTestTargets;
-    private final Set<CFAEdge> uncoveredTestTargets;
+  private static UniqueIdGenerator id = new UniqueIdGenerator();
 
-    public TestCaseGeneratorAlgorithmStatistics() {
-      TestTargetProvider testTargetProvider = TestTargetProvider.getInstance();
-      initialTestTargets = testTargetProvider.getInitialTestTargets();
-      coveredTestTargets = testTargetProvider.getCoveredTestTargets();
-      uncoveredTestTargets = testTargetProvider.getTestTargets();
-    }
-
-    @Override
-    public @Nullable String getName() {
-      return "Test Case Generator Algorithm";
-    }
-
-    @Override
-    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      double testTargetCoverage =
-          initialTestTargets.size() == 0
-              ? 0
-              : (double) coveredTestTargets.size() / (double) initialTestTargets.size();
-      pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
-      pOut.println("Number of initial test targets: " + initialTestTargets.size());
-      pOut.println("Number of covered test targets: " + coveredTestTargets.size());
-      pOut.println(
-          "Number of uncovered test targets: "
-              + (initialTestTargets.size() - coveredTestTargets.size()));
-      pOut.println("Initial test targets: ");
-      for (CFAEdge edge : initialTestTargets) {
-        pOut.println(edge.toString());
-      }
-      pOut.println("Test targets that have been covered: ");
-      for (CFAEdge edge : coveredTestTargets) {
-        pOut.println(edge.toString());
-      }
-      assert Sets.difference(
-              Sets.difference(initialTestTargets, coveredTestTargets), uncoveredTestTargets)
-          .isEmpty();
-      pOut.println("Test targets that have not been covered: ");
-      for (CFAEdge edge : uncoveredTestTargets) {
-        pOut.println(edge.toString());
-      }
-    }
-  }
-
-  @Option(secure = true, name = "harness", description = "export test harness to file as code")
+  @Option(secure = true, name = "file", description = "export test harness to file as code")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testHarnessFile = null;
 
+  @Option(
+    secure = true,
+    name = "inStats",
+    description = "display all test targets and non-covered test targets in statistics"
+  )
+  private boolean printTestTargetInfoInStats = false;
+
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
-  private final TestTargetCPA testTargetCpa;
+  private final ConfigurableProgramAnalysis cpa;
   private final HarnessExporter harnessExporter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final TestCaseGeneratorAlgorithmStatistics stats;
   private Set<CFAEdge> testTargets;
 
   public TestCaseGeneratorAlgorithm(
@@ -145,118 +102,144 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
     CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, TestCaseGeneratorAlgorithm.class);
     algorithm = pAlgorithm;
-    assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(pConfig, pLogger, pCfa.getMachineModel());
-    testTargetCpa =
-        CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
+    cpa = pCpa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    testTargets = testTargetCpa.getTestTargets();
-    stats = new TestCaseGeneratorAlgorithmStatistics();
+    assumptionToEdgeAllocator =
+        AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
+    TestTargetCPA testTargetCpa =
+        CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
+    testTargets =
+        ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReached)
+  public AlgorithmStatus run(final ReachedSet pReached)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-    try {
-      while (!testTargets.isEmpty() && pReached.hasWaitingState()) {
-        shutdownNotifier.shutdownIfNecessary();
+    if (pReached.getWaitlist().size() > 1
+        || !pReached.getWaitlist().contains(pReached.getFirstState())) {
+      pReached
+          .getWaitlist()
+          .stream()
+          .filter(
+              (AbstractState state) -> {
+                return ((ARGState) state).getChildren().size() > 0;
+              })
+          .forEach(
+              (AbstractState state) -> {
+                ARGState argState = (ARGState) state;
+                List<ARGState> removedChildren = new ArrayList<>(2);
+                for (ARGState child : argState.getChildren()) {
+                  if (!pReached.contains(child)) {
+                    removedChildren.add(child);
+                  }
+                }
+                for (ARGState child : removedChildren) {
+                  child.removeFromARG();
+                }
+              });
+    }
+
+    while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
+
+      assert ARGUtils.checkARG(pReached);
+      assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
+
+      AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+      try {
+        status = algorithm.run(pReached);
+
+      } catch (CPAException e) {
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        status = status.withPrecise(false);
+        logger.logUserException(Level.WARNING, e, "Analysis not completed.");
+        if (!(e instanceof CounterexampleAnalysisFailed
+            || e instanceof RefinementFailedException
+            || e instanceof InfeasibleCounterexampleException)) {
+          throw e;
+        }
+      } catch (Exception e2) {
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        status = status.withPrecise(false);
+        throw e2;
+      } finally {
 
         assert ARGUtils.checkARG(pReached);
-        assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
+        assert (from(pReached).filter(IS_TARGET_STATE).size() < 2);
 
-        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
-        Set<AbstractState> oldReachedStates = new HashSet<>(pReached.asCollection());
-        try {
-          status = algorithm.run(pReached);
-        } catch (CPAException e) {
-          if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
-            status = status.withPrecise(false);
-          }
+        AbstractState reachedState = from(pReached).firstMatch(IS_TARGET_STATE).orNull();
+        if (reachedState != null) {
 
-          logger.logUserException(Level.WARNING, e, "Analysis not completed.");
+          ARGState argState = (ARGState) reachedState;
 
-        } finally {
+          Collection<ARGState> parentArgStates = argState.getParents();
 
-          if (!status.isSound()) {
-            Set<AbstractState> recentlyReachedStates =
-                Sets.difference(new HashSet<>(pReached.asCollection()), oldReachedStates);
-            for (AbstractState e : recentlyReachedStates) {
-              ((ARGState) e).removeFromARG();
-              pReached.remove(e);
-            }
-          }
-          assert ARGUtils.checkARG(pReached);
-          assert (from(pReached).filter(IS_TARGET_STATE).size() < 2);
+          assert (parentArgStates.size() == 1);
 
-          AbstractState reachedState = from(pReached).firstMatch(IS_TARGET_STATE).orNull();
-          if (reachedState != null) {
+          ARGState parentArgState = parentArgStates.iterator().next();
 
-            ARGState argState = (ARGState) reachedState;
+          CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
+          if (targetEdge != null) {
+            if (testTargets.contains(targetEdge)) {
 
-            Collection<ARGState> parentArgStates = argState.getParents();
+              if (status.isPrecise()) {
+                writeTestHarnessFile(argState);
 
-            assert (parentArgStates.size() == 1);
-
-            ARGState parentArgState = parentArgStates.iterator().next();
-
-            CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
-            if (targetEdge != null) {
-              if (testTargets.contains(targetEdge)) {
-
-                if (status.isPrecise()) {
-                  writeTestHarnessFile(targetEdge, argState);
-
-                  logger.log(Level.INFO, "Removing test target: " + targetEdge.toString());
-                  testTargets.remove(targetEdge);
-                  stats.coveredTestTargets.add(targetEdge);
-                } else {
-                  logger.log(
-                      Level.FINE,
-                      "Status was not precise. Current test target is not removed:"
-                          + targetEdge.toString());
-                }
+                logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
+                testTargets.remove(targetEdge);
               } else {
                 logger.log(
                     Level.FINE,
-                    "Found test target is not in provided set of test targets:"
+                    "Status was not precise. Current test target is not removed:"
                         + targetEdge.toString());
               }
             } else {
-              logger.log(Level.FINE, "Target edge was null.");
+              logger.log(
+                  Level.FINE,
+                  "Found test target is not in provided set of test targets:"
+                      + targetEdge.toString());
             }
-
-            argState.removeFromARG();
-            pReached.remove(reachedState);
-            pReached.reAddToWaitlist(parentArgState);
-
-            assert ARGUtils.checkARG(pReached);
           } else {
-            logger.log(Level.FINE, "There was no target state in the reached set.");
+            logger.log(Level.FINE, "Target edge was null.");
           }
-        }
-      }
-    } finally {
-      if (testTargets.isEmpty()) {
-        List<AbstractState> waitlist = new ArrayList<>(pReached.getWaitlist());
-        for (AbstractState state : waitlist) {
-          pReached.removeOnlyFromWaitlist(state);
+
+          argState.removeFromARG();
+          pReached.remove(reachedState);
+          pReached.reAddToWaitlist(parentArgState);
+
+          assert ARGUtils.checkARG(pReached);
+        } else {
+          logger.log(Level.FINE, "There was no target state in the reached set.");
         }
       }
     }
+
+    cleanUpIfNoTestTargetsRemain(pReached);
+
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private void writeTestHarnessFile(CFAEdge pTargetEdge, ARGState pArgState) {
+  private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {
+    if (testTargets.isEmpty()) {
+      List<AbstractState> waitlist = new ArrayList<>(pReached.getWaitlist());
+      for (AbstractState state : waitlist) {
+        pReached.removeOnlyFromWaitlist(state);
+      }
+    }
+  }
+
+  private void writeTestHarnessFile(final ARGState pTarget) {
     if (testHarnessFile != null) {
-      CounterexampleInfo cexInfo =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(
-                  pArgState, testTargetCpa, assumptionToEdgeAllocator)
-              .get();
-      Path file = testHarnessFile.getPath(pTargetEdge.getLineNumber());
+      CounterexampleInfo cexInfo = extractCexInfo(pTarget);
+
+      Path file = testHarnessFile.getPath(id.getFreshId());
       ARGPath targetPath = cexInfo.getTargetPath();
       Object content =
           (Appender)
@@ -275,8 +258,19 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     }
   }
 
+  private CounterexampleInfo extractCexInfo(final ARGState pTarget) {
+    // may not contain sufficient information to write test harness, e.g. ValueAnalysis uses
+    // special variant of counterexample check to generate sufficient information
+    if (pTarget.getCounterexampleInformation().isPresent()) {
+      return pTarget.getCounterexampleInformation().get();
+    }
+
+    return ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
+        .get();
+  }
+
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(final Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics(printTestTargetInfoInStats));
   }
 }

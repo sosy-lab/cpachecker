@@ -62,7 +62,7 @@ public final class MissingBlockAbstractionState extends AbstractSingleWrapperSta
       AbstractState pReducedState,
       Precision pReducedPrecision,
       Block pBlock,
-      ReachedSet pReachedSet) {
+      @Nullable ReachedSet pReachedSet) {
     super(checkNotNull(pState));
     reducedState = checkNotNull(pReducedState);
     reducedPrecision = checkNotNull(pReducedPrecision);

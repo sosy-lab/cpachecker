@@ -1,0 +1,90 @@
+include: /build/gitlab-ci.yml
+
+variables:
+  PROJECT_PATH: "sosy-lab/software/cpachecker"
+  GH_REF: "github.com/sosy-lab/cpachecker"
+
+
+.binary_check: &binary_check
+  stage: checks
+
+.configuration-checks: &configuration-checks
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS configuration-checks"
+  artifacts:
+    paths:
+      - "ConfigurationChecks.html"
+    when: always
+
+configuration-checks:jdk-8:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+configuration-checks:jdk-9:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-9
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+
+configuration-documentation:
+  <<: *binary_check
+  script:
+    - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
+    - "ant $ANT_PROPS_CHECKS build-documentation"
+    - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+
+configuration-plot:
+  stage: checks
+  script:
+    - "mkdir -p output"
+    - "touch output/AssumptionAutomaton.txt"
+    - "scripts/configViz.py > ConfigurationPlot.dot"
+    - "dot -Tsvg ConfigurationPlot.dot -O"
+  dependencies: []
+  artifacts:
+    paths:
+      - "ConfigurationPlot.svg"
+
+
+.python-unit-tests: &python-unit-tests
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS python-unit-tests"
+
+python-unit-tests:jdk-8:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+python-unit-tests:jdk-9:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-9
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+
+# No coverage is computed for CPAchecker
+unit-tests:jdk-8:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+unit-tests:jdk-9:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+# Disable some checks because they are not used for CPAchecker
+check-format:
+  only: []
+
+checkstyle:
+  only: []
+
+javadoc:
+  only: []

@@ -150,6 +150,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="use pointer-alias information in strengthening, if available.")
     private boolean usePointerAliasStrengthening = true;
+
+    @Option(secure = true, description = "use modulo-2 template during widening if applicable.")
+    public boolean useMod2Template = false;
   }
 
   /**
@@ -273,7 +276,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         compoundIntervalManagerFactory,
         machineModel,
         options.allowOverapproximationOfUnsupportedFeatures,
-        options.usePointerAliasStrengthening);
+        options.usePointerAliasStrengthening,
+        cfa.getVarClassification());
   }
 
   @Override
@@ -374,12 +378,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     relevantVariableLimitReached = interestingVariableLimit < 0 || interestingVariableLimit > interestingVariables.size();
 
-    InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
-        ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
-        options.maximumFormulaDepth,
-        options.abstractionStateFactory.createStrategy(
-            compoundIntervalManagerFactory,
-            machineModel));
+    InvariantsPrecision precision =
+        new InvariantsPrecision(
+            relevantEdges,
+            ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
+            options.maximumFormulaDepth,
+            options.abstractionStateFactory.createStrategy(
+                compoundIntervalManagerFactory, machineModel),
+            options.useMod2Template);
 
     initialPrecisionMap.put(pNode, precision);
 

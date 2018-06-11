@@ -281,11 +281,11 @@ public final class LoopStructure implements Serializable {
 
   private final ImmutableMultimap<String, Loop> loops;
 
-  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+  private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
   // computed lazily
-  private @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private @Nullable ImmutableSet<String> loopIncDecVariables;
+  private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
 
   private LoopStructure(ImmutableMultimap<String, Loop> pLoops) {
     loops = pLoops;

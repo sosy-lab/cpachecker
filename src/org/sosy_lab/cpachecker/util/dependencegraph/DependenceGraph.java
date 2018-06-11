@@ -23,25 +23,34 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Dependence graph that describes flow dependence and control dependence between expressions and
@@ -65,48 +74,61 @@ public class DependenceGraph implements Serializable {
     FLOW
   }
 
-  private final ImmutableTable<CFAEdge, Optional<MemoryLocation>, DGNode> nodes;
+  private final ImmutableNodeMap nodes;
   private ImmutableTable<DGNode, DGNode, DependenceType> adjacencyMatrix;
 
   private final transient ShutdownNotifier shutdownNotifier;
 
   DependenceGraph(
-      final Table<CFAEdge, Optional<MemoryLocation>, DGNode> pNodes,
+      final NodeMap pNodes,
       final Table<DGNode, DGNode, DependenceType> pEdges,
       final ShutdownNotifier pShutdownNotifier) {
 
-    nodes = ImmutableTable.copyOf(pNodes);
+    nodes = new ImmutableNodeMap(pNodes);
     adjacencyMatrix = ImmutableTable.copyOf(pEdges);
     shutdownNotifier = pShutdownNotifier;
   }
 
   public static DGBuilder builder(
-      final CFA pCfa,
+      final MutableCFA pCfa,
+      final Optional<VariableClassification> pVarClassification,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new DGBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
-  }
-
-  public boolean contains(final CFAEdge pNode, final Optional<MemoryLocation> pCause) {
-    return nodes.contains(pNode, pCause);
+    return new DGBuilder(pCfa, pVarClassification, pConfig, pLogger, pShutdownNotifier);
   }
 
   Table<DGNode, DGNode, DependenceType> getMatrix() {
     return adjacencyMatrix;
   }
 
-  public Collection<DGNode> getNodes() {
-    return nodes.values();
+  public Collection<DGNode> getAllNodes() {
+    return nodes.getAllNodes();
   }
 
   public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
+    return getReachable(pStart, pDirection, Collections.emptySet());
+  }
+
+  /**
+   * Return the reachable dependences of the given {@link CFAEdge} ignoring a set of given edges.
+   *
+   * @param pStart edge to get reachable dependences for
+   * @param pDirection direction of the search for reachability
+   * @param pEdgesToIgnore edges to ignore on the search. Edges in this collection are ignored in
+   *     the search.
+   * @return the set of reachable CFA edges from the given edge, traversing through the graph in the
+   *     given direction
+   */
+  public Collection<CFAEdge> getReachable(
+      CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
+      throws InterruptedException {
     Collection<CFAEdge> reachable = new HashSet<>();
     Collection<DGNode> visited = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
-    nodes.row(pStart).values().forEach(waitlist::offer);
+    nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
 
     while (!waitlist.isEmpty()) {
       if (shutdownNotifier.shouldShutdown()) {
@@ -116,9 +138,15 @@ public class DependenceGraph implements Serializable {
 
       if (!visited.contains(current)) {
         visited.add(current);
-        reachable.add(current.getCfaEdge());
-        Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
-        waitlist.addAll(adjacent);
+        // FIXME: this is a strong overapproximation: If an unknown pointer is used,
+        // we don't know anything, so we use the full program as slice
+        if (current.isUnknownPointerNode()) {
+          reachable.addAll(nodes.nodesForEdges.keys());
+        } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
+          reachable.add(current.getCfaEdge());
+          Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
+          waitlist.addAll(adjacent);
+        }
       }
     }
     return reachable;
@@ -170,7 +198,7 @@ public class DependenceGraph implements Serializable {
       return false;
     }
     DependenceGraph that = (DependenceGraph) pO;
-    // If these equal, the root nodes have to equal, too.
+    // If these equal, the root nodesForEdges have to equal, too.
     return Objects.equals(nodes, that.nodes)
         && Objects.equals(adjacencyMatrix, that.adjacencyMatrix);
   }
@@ -178,5 +206,118 @@ public class DependenceGraph implements Serializable {
   @Override
   public int hashCode() {
     return Objects.hash(nodes, adjacencyMatrix);
+  }
+
+  private static class ImmutableNodeMap implements Serializable {
+
+    private static final long serialVersionUID = 4311993821719514171L;
+
+    private ImmutableMultimap<CFAEdge, DGNode> nodesForEdges;
+    private ImmutableSet<DGNode> specialNodes;
+
+    public ImmutableNodeMap(NodeMap pNodeMap) {
+      // FIXME avoid iteration in O(n) here, there may be lots of nodes
+      ImmutableMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableMultimap.builder();
+      for (Cell<CFAEdge, Optional<MemoryLocation>, DGNode> c :
+          pNodeMap.getNodesForEdges().cellSet()) {
+        mapBuilder.put(checkNotNull(c.getRowKey()), checkNotNull(c.getValue()));
+      }
+      nodesForEdges = mapBuilder.build();
+      specialNodes = ImmutableSet.copyOf(pNodeMap.getSpecialNodes());
+    }
+
+    public Collection<DGNode> getNodesForEdge(CFAEdge pEdge) {
+      return nodesForEdges.get(pEdge);
+    }
+
+    public Collection<DGNode> getAllNodes() {
+      // FIXME: It should be able to represent this as a basic union in O(1) (or is it?)
+      return ImmutableSet.<DGNode>builder()
+          .addAll(nodesForEdges.values())
+          .addAll(specialNodes)
+          .build();
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      ImmutableNodeMap that = (ImmutableNodeMap) pO;
+      return Objects.equals(nodesForEdges, that.nodesForEdges)
+          && Objects.equals(specialNodes, that.specialNodes);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(nodesForEdges, specialNodes);
+    }
+
+    @Override
+    public String toString() {
+      return "ImmutableNodeMap{\n\t"
+          + "Nodes per CFA edge="
+          + nodesForEdges
+          + ",\n\tspecial nodes="
+          + specialNodes
+          + "\n}";
+    }
+  }
+
+  static class NodeMap {
+    private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodesForEdges =
+        HashBasedTable.create();
+    private Set<DGNode> specialNodes = new HashSet<>();
+
+    /** Returns the mutable Multimap of CFA edges and their corresponding dependence graph nodes. */
+    Table<CFAEdge, Optional<MemoryLocation>, DGNode> getNodesForEdges() {
+      return nodesForEdges;
+    }
+
+    /**
+     * Returns the mutable set special dependence graph nodes that are not specific to any CFA edge.
+     */
+    Set<DGNode> getSpecialNodes() {
+      return specialNodes;
+    }
+
+    int size() {
+      return nodesForEdges.size() + specialNodes.size();
+    }
+
+    public boolean containsANodeForEdge(CFAEdge pEdge) {
+      return nodesForEdges.containsRow(pEdge);
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      NodeMap nodeMap = (NodeMap) pO;
+      return Objects.equals(nodesForEdges, nodeMap.nodesForEdges)
+          && Objects.equals(specialNodes, nodeMap.specialNodes);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(nodesForEdges, specialNodes);
+    }
+
+    @Override
+    public String toString() {
+      return "NodeMap{\n\t"
+          + "Nodes per CFA edge="
+          + nodesForEdges
+          + ",\n\tspecial nodes="
+          + specialNodes
+          + "\n}";
+    }
   }
 }

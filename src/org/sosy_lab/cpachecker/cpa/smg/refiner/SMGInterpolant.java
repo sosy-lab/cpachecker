@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class SMGInterpolant {
 
   private static final SMGInterpolant FALSE = new SMGInterpolant();
@@ -244,15 +243,10 @@ public class SMGInterpolant {
     }
 
     public SMGPrecisionIncrement join(SMGPrecisionIncrement pInc2) {
-      Builder<SMGMemoryPath> pathsToTrack = ImmutableSet.builder();
-      pathsToTrack.addAll(this.pathsToTrack).addAll(pInc2.pathsToTrack);
-      Builder<SMGAbstractionBlock> abstractionBlock = ImmutableSet.builder();
-      abstractionBlock.addAll(this.abstractionBlock).addAll(pInc2.abstractionBlock);
-      Builder<MemoryLocation> stackVariablesToTrack = ImmutableSet.builder();
-      stackVariablesToTrack.addAll(this.stackVariablesToTrack).addAll(pInc2.stackVariablesToTrack);
-
       return new SMGPrecisionIncrement(
-          pathsToTrack.build(), abstractionBlock.build(), stackVariablesToTrack.build());
+          Sets.union(this.pathsToTrack, pInc2.pathsToTrack),
+          Sets.union(this.abstractionBlock, pInc2.abstractionBlock),
+          Sets.union(this.stackVariablesToTrack, pInc2.stackVariablesToTrack));
     }
   }
 }

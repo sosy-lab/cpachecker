@@ -47,36 +47,51 @@ public class UsageInfo implements Comparable<UsageInfo> {
     READ;
   }
 
+  private static class UsageCore {
+    private final LineInfo line;
+    private final Access accessType;
+    private AbstractState keyState;
+    private List<CFAEdge> path;
+    private final SingleIdentifier id;
+
+    private boolean isLooped;
+
+    private UsageCore() {
+      // Only for unsupported usage
+      line = null;
+      accessType = Access.WRITE;
+      keyState = null;
+      isLooped = false;
+      id = null;
+    }
+
+    private UsageCore(@Nonnull Access atype, @Nonnull LineInfo l, SingleIdentifier ident) {
+      line = l;
+      accessType = atype;
+      keyState = null;
+      isLooped = false;
+      id = ident;
+    }
+  }
+
   private static final UsageInfo IRRELEVANT_USAGE = new UsageInfo();
 
-  private final LineInfo line;
-  private final Access accessType;
-  private AbstractState keyState;
-  private List<CFAEdge> path;
-  private final SingleIdentifier id;
+  private final UsageCore core;
+
   // Can not be immutable due to reduce/expand - lock states are modified (may be smth else)
   private final Map<Class<? extends CompatibleState>, CompatibleState> compatibleStates =
       new LinkedHashMap<>();
-  private boolean isLooped;
-  private boolean isReachable;
 
   private UsageInfo() {
-    // Only for unsupported usage
-    line = null;
-    accessType = Access.WRITE;
-    keyState = null;
-    isLooped = false;
-    isReachable = false;
-    id = null;
+    core = new UsageCore();
   }
 
   private UsageInfo(@Nonnull Access atype, @Nonnull LineInfo l, SingleIdentifier ident) {
-    line = l;
-    accessType = atype;
-    keyState = null;
-    isLooped = false;
-    isReachable = true;
-    id = ident;
+    core = new UsageCore(atype, l, ident);
+  }
+
+  private UsageInfo(UsageCore pCore) {
+    core = pCore;
   }
 
   public static UsageInfo createUsageInfo(
@@ -89,7 +104,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
               (SingleIdentifier) ident);
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
-      if (states.allMatch(s -> s.isRelevantFor(result.id))) {
+      if (states.allMatch(s -> s.isRelevantFor(result.core.id))) {
         states.forEach(s -> result.compatibleStates.put(s.getClass(), s.prepareToStore()));
         return result;
       }
@@ -106,24 +121,24 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public @Nonnull Access getAccess() {
-    return accessType;
+    return core.accessType;
   }
 
   public @Nonnull LineInfo getLine() {
-    return line;
+    return core.line;
   }
 
   public @Nonnull SingleIdentifier getId() {
-    assert (id != null);
-    return id;
+    assert (core.id != null);
+    return core.id;
   }
 
   public void setAsLooped() {
-    isLooped = true;
+    core.isLooped = true;
   }
 
   public boolean isLooped() {
-    return isLooped;
+    return core.isLooped;
   }
 
   public boolean isRelevant() {
@@ -132,7 +147,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(accessType, line, compatibleStates);
+    return Objects.hash(core.accessType, core.line, compatibleStates);
   }
 
   @Override
@@ -144,8 +159,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
       return false;
     }
     UsageInfo other = (UsageInfo) obj;
-    return accessType == other.accessType
-        && Objects.equals(line, other.line)
+    return core.accessType == other.core.accessType
+        && Objects.equals(core.line, other.core.line)
         && Objects.equals(compatibleStates, other.compatibleStates);
   }
 
@@ -153,14 +168,14 @@ public class UsageInfo implements Comparable<UsageInfo> {
   public String toString() {
     StringBuilder sb = new StringBuilder();
 
-    if (id != null) {
+    if (core.id != null) {
       sb.append("Id ");
-      sb.append(id.toString());
+      sb.append(core.id.toString());
       sb.append(", ");
     }
     sb.append("line ");
-    sb.append(line.toString());
-    sb.append(" (" + accessType + ")");
+    sb.append(core.line.toString());
+    sb.append(" (" + core.accessType + ")");
     sb.append(", " + getLockState());
 
     return sb.toString();
@@ -169,11 +184,13 @@ public class UsageInfo implements Comparable<UsageInfo> {
   public String getWarningMessage() {
     StringBuilder sb = new StringBuilder();
 
-    sb.append(accessType);
+    sb.append(core.accessType);
     sb.append(" access to ");
-    sb.append(id);
+    sb.append(core.id);
     AbstractLockState locks = getLockState();
-    if (locks.getSize() == 0) {
+    if (locks == null) {
+      // Lock analysis is disabled
+    } else if (locks.getSize() == 0) {
       sb.append(" without locks");
     } else {
       sb.append(" with ");
@@ -184,21 +201,21 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public void setKeyState(AbstractState state) {
-    keyState = state;
+    core.keyState = state;
   }
 
   public void setRefinedPath(List<CFAEdge> p) {
-    keyState = null;
-    path = p;
+    core.keyState = null;
+    core.path = p;
   }
 
   public AbstractState getKeyState() {
-    return keyState;
+    return core.keyState;
   }
 
   public List<CFAEdge> getPath() {
     // assert path != null;
-    return path;
+    return core.path;
   }
 
   @Override
@@ -226,18 +243,18 @@ public class UsageInfo implements Comparable<UsageInfo> {
       }
     }
 
-    result = this.line.compareTo(pO.line);
+    result = this.core.line.compareTo(pO.core.line);
     if (result != 0) {
       return result;
     }
-    result = this.accessType.compareTo(pO.accessType);
+    result = this.core.accessType.compareTo(pO.core.accessType);
     if (result != 0) {
       return result;
     }
     /* We can't use key states for ordering, because the treeSets can't understand,
      * that old refined usage with zero key state is the same as new one
      */
-    if (this.id != null && pO.id != null) {
+    if (this.core.id != null && pO.core.id != null) {
       // Identifiers may not be equal here:
       // if (a.b > c.b)
       // FieldIdentifiers are the same (when we add to container),
@@ -248,20 +265,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return 0;
   }
 
-  public boolean isReachable() {
-    return isReachable;
-  }
-
-  public void setAsUnreachable() {
-    isReachable = false;
-  }
-
   public UsageInfo copy() {
-    UsageInfo result = new UsageInfo(accessType, line, id);
-    result.keyState = this.keyState;
-    result.path = this.path;
-    result.isLooped = this.isLooped;
-    result.isReachable = this.isReachable;
+    UsageInfo result = new UsageInfo(core);
     result.compatibleStates.putAll(this.compatibleStates);
     return result;
   }

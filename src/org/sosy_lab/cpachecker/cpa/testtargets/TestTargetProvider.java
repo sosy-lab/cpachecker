@@ -23,64 +23,82 @@
  */
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class TestTargetProvider {
+public class TestTargetProvider implements Statistics {
 
-  private static TestTargetProvider instance;
+  private static TestTargetProvider instance = null;
 
-  private CFA cfa;
-  private ImmutableSet<CFAEdge> initialTestTargets;
-  private Set<CFAEdge> testTargets;
-  private Set<CFAEdge> coveredTestTargets;
+  private final CFA cfa;
+  private final ImmutableSet<CFAEdge> initialTestTargets;
+  private final Set<CFAEdge> uncoveredTargets;
+  private boolean printTargets = false;
 
-  private TestTargetProvider() {
-    cfa = null;
-    initialTestTargets = null;
-    testTargets = null;
-    coveredTestTargets = null;
+  private TestTargetProvider(final CFA pCfa) {
+    cfa = pCfa;
+    uncoveredTargets = extractAssumeEdges();
+    initialTestTargets = ImmutableSet.copyOf(uncoveredTargets);
   }
 
-  public static TestTargetProvider getInstance() {
-    if (instance == null) {
-      instance = new TestTargetProvider();
-    }
-    return instance;
-  }
-
-  public void initializeOnceWithAssumeEdges(CFA pCfa) {
-    if (pCfa != cfa) {
-      cfa = pCfa;
-      testTargets = extractAssumeEdges(pCfa);
-      initialTestTargets = ImmutableSet.copyOf(testTargets);
-      coveredTestTargets = new HashSet<>();
-    }
-  }
-
-  private Set<CFAEdge> extractAssumeEdges(CFA pCfa) {
+  private Set<CFAEdge> extractAssumeEdges() {
     Set<CFAEdge> edges = new HashSet<>();
-    for (CFANode node : pCfa.getAllNodes()) {
+    for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(AssumeEdge.class).toSet());
     }
     return edges;
   }
 
-  public ImmutableSet<CFAEdge> getInitialTestTargets() {
-    return initialTestTargets;
+  public static Set<CFAEdge> getTestTargets(final CFA pCfa) {
+    if (instance == null || pCfa != instance.cfa) {
+      instance = new TestTargetProvider(pCfa);
+    }
+    return instance.uncoveredTargets;
   }
 
-  public Set<CFAEdge> getTestTargets() {
-    return testTargets;
+  public static Statistics getTestTargetStatisitics(boolean pPrintTestGoalInfo) {
+    Preconditions.checkState(instance != null);
+    instance.printTargets = pPrintTestGoalInfo;
+    return instance;
   }
 
-  public Set<CFAEdge> getCoveredTestTargets() {
-    return coveredTestTargets;
+  @Override
+  public @Nullable String getName() {
+    return "Testtargets";
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+    int numCovered = initialTestTargets.size() - uncoveredTargets.size();
+    double testTargetCoverage =
+        initialTestTargets.size() == 0 ? 0 : (double) numCovered / initialTestTargets.size();
+    pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
+    pOut.println("Number of total test targets: " + initialTestTargets.size());
+    pOut.println("Number of covered test targets: " + numCovered);
+    pOut.println("Number of uncovered test targets: " + (uncoveredTargets.size()));
+
+    if (printTargets) {
+    pOut.println("Initial test targets: ");
+    for (CFAEdge edge : initialTestTargets) {
+      pOut.println(edge.toString());
+    }
+
+    pOut.println("Test targets that have not been covered: ");
+    for (CFAEdge edge : uncoveredTargets) {
+      pOut.println(edge.toString());
+    }
+    }
   }
 }

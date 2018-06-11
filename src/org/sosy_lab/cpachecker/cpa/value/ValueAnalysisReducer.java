@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -57,14 +59,13 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
     // - not the variables of rootState used in the block -> just ignore those values
     ValueAnalysisState diffElement = ValueAnalysisState.copyOf(pReducedState);
 
-    for (MemoryLocation trackedVar : pRootState.getTrackedMemoryLocations()) {
+    for (Entry<MemoryLocation, ValueAndType> e : pRootState.getConstants()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
-      final String simpleName = trackedVar.getAsSimpleString();
+      final MemoryLocation memloc = e.getKey();
+      final ValueAndType valueAndType = e.getValue();
+      final String simpleName = memloc.getAsSimpleString();
       if (!pReducedContext.getVariables().contains(simpleName)) {
-        diffElement.assignConstant(
-            trackedVar,
-            pRootState.getValueFor(trackedVar),
-            pRootState.getTypeForMemoryLocation(trackedVar));
+        diffElement.assignConstant(memloc, valueAndType.getValue(), valueAndType.getType());
 
       //} else {
         // ignore this case, the variables are part of the reduced state

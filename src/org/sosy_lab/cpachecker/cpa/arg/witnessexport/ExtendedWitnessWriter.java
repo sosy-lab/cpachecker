@@ -100,4 +100,9 @@ public class ExtendedWitnessWriter extends WitnessWriter {
   protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge, pAdditionalInfo);
   }
+
+  @Override
+  protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return pAdditionalInfo == null || pAdditionalInfo.getInfos().isEmpty();
+  }
 }

@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 
 public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoException> {
 
-  private List<Pair<AbstractIdentifier, Access>> result;
-  protected Access accessMode;
-  private String fName;
+  private final List<Pair<AbstractIdentifier, Access>> result;
+  private final String fName;
+  private Access accessMode;
 
   public ExpressionHandler(Access mode, String functionName) {
     result = new ArrayList<>();

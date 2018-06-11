@@ -57,7 +57,7 @@ public abstract class ApronDelegatingRefiner implements Refiner {
     final CFA cfa = apronCPA.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.defaultConfiguration(), cfa);
 
     final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -457,6 +459,7 @@ final class VariableAndFieldRelevancyComputer {
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)
       throws UnrecognizedCCodeException {
+    checkNotNull(pCfa);
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
 
     switch (edge.getEdgeType()) {

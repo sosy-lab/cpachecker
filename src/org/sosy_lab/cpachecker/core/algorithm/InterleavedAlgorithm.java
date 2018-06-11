@@ -28,20 +28,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import javax.management.JMException;
+import javax.xml.transform.TransformerException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -52,13 +60,16 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -70,35 +81,36 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "interleavedAlgorithm")
 public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static class InterleavedAlgorithmStatistics implements Statistics {
+  private class InterleavedAlgorithmStatistics implements Statistics {
     private int noOfAlgorithms;
-    private final LogManager logger;
     private final Timer totalTimer;
-    private final List<Collection<Statistics>> subStats;
+    private final Collection<Statistics> currentSubStat;
     private final List<Timer> timersPerAlgorithm;
     private int noOfCurrentAlgorithm;
-    private int noOfSwitches;
+    private int noOfRounds = 1;
 
-    public InterleavedAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
-      noOfAlgorithms = pNoOfAlgorithms;
-      logger = checkNotNull(pLogger);
+    public InterleavedAlgorithmStatistics() {
+      noOfAlgorithms = configFiles.size();
       totalTimer = new Timer();
-      subStats = new ArrayList<>(noOfAlgorithms);
+      currentSubStat = new ArrayList<>();
       timersPerAlgorithm = new ArrayList<>(noOfAlgorithms);
       for (int i = 0; i < noOfAlgorithms; i++) {
         timersPerAlgorithm.add(new Timer());
-        subStats.add(new ArrayList<>());
       }
     }
 
@@ -107,15 +119,11 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       return "Interleaved Algorithm";
     }
 
-    private void printIntermediateStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    private void printIntermediateStatistics(
+        PrintStream pOut, Result pResult, ReachedSet pReached) {
 
       String text =
-          "Statistics for algorithm "
-              + noOfCurrentAlgorithm
-              + " of "
-              + noOfAlgorithms
-              + " after switch "
-              + noOfSwitches;
+          "Statistics for " + noOfRounds + ". execution of algorithm " + noOfCurrentAlgorithm;
       pOut.println(text);
       pOut.println(Strings.repeat("=", text.length()));
 
@@ -127,7 +135,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
 
       pOut.println("Number of algorithms provided:    " + noOfAlgorithms);
-      pOut.println("Number of switches:        " + noOfSwitches);
+      pOut.println("Maximal number of repetitions:        " + noOfRounds);
       pOut.println("Total time: " + totalTimer);
       pOut.println("Times per algorithm: ");
       for (int i = 0; i < noOfAlgorithms; i++) {
@@ -141,8 +149,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println();
       pOut.println(
-          "Statistics for the analysis part in iteration "
-              + (noOfSwitches + 1)
+          "Statistics for the analysis part in round "
+              + noOfRounds
               + " of "
               + getName()
               + " using algorithm "
@@ -150,54 +158,111 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
               + " of "
               + noOfAlgorithms);
 
-      for (Collection<Statistics> subStatsPerAlgorithm : subStats) {
-        for (Statistics s : subStatsPerAlgorithm) {
+         for (Statistics s : currentSubStat) {
           StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
         }
-      }
     }
 
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-      for (Statistics s : subStats.get(noOfCurrentAlgorithm - 1)) {
+      for (Statistics s : currentSubStat) {
         StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
       }
     }
 
     public Collection<Statistics> getSubStatistics() {
-      return subStats.get(noOfCurrentAlgorithm - 1);
+      return currentSubStat;
     }
 
     public void resetSubStatistics() {
-      subStats.get(noOfCurrentAlgorithm - 1).clear();
+      currentSubStat.clear();
     }
   }
 
   private static class AlgorithmContext {
-    private final AnnotatedValue<Path> configFile;
+    private enum REPETITIONMODE {
+      CONTINUE, NOREUSE, REUSEPRECISION;
+    }
+
+    private final Path configFile;
+    private final int timeLimit;
+    private final REPETITIONMODE mode;
+    private final Timer timer;
 
     private Algorithm algorithm;
     private @Nullable ConfigurableProgramAnalysis cpa;
     private Configuration config;
     private ShutdownManager localShutdownManager;
     private ReachedSet reached;
-    private boolean reuseComponents;
-    private Timer timer;
 
-    private AlgorithmContext(AnnotatedValue<Path> pConfigFile, Timer pTimer) {
-      configFile = pConfigFile;
+    private AlgorithmContext(
+        final AnnotatedValue<Path> pConfigFile, final Timer pTimer) {
+      configFile = pConfigFile.value();
       timer = pTimer;
+      timeLimit = extractLimitFromAnnotation(pConfigFile.annotation());
+      mode = extractModeFromAnnotation(pConfigFile.annotation());
+    }
+
+    private int extractLimitFromAnnotation(final Optional<String> annotation) {
+      if (annotation.isPresent()) {
+        String str = annotation.get();
+        if(str.contains("_")) {
+          try {
+            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1, str.length()));
+            if (limit > 0) {
+              return limit;
+            }
+          } catch(NumberFormatException e) {
+
+          }
+        }
+      }
+      return DEFAULT_TIME_LIMIT;
+    }
+
+    private REPETITIONMODE extractModeFromAnnotation(final Optional<String> annotation) {
+      String val = "";
+      if (annotation.isPresent()) {
+        val = annotation.get();
+        if (val.contains("_")) {
+          val = val.substring(0, val.indexOf("_"));
+        }
+        val = val.toLowerCase(Locale.ROOT);
+      }
+
+      switch (val) {
+        case "continue":
+          return REPETITIONMODE.CONTINUE;
+        case "reuse-precision":
+          return REPETITIONMODE.REUSEPRECISION;
+        default:
+          return REPETITIONMODE.NOREUSE;
+      }
+    }
+
+    private boolean reuseCPA() {
+      return mode == REPETITIONMODE.CONTINUE || reusePrecision();
+    }
+
+    private boolean reusePrecision() {
+      return mode == REPETITIONMODE.REUSEPRECISION;
     }
   }
+
+  private static final int DEFAULT_TIME_LIMIT = 10;
 
   @Option(
     secure = true,
     required = true,
     description =
-        "list of files with configurations to use. If a filename is suffixed with"
-            + " :reuse-components, reusable components like the cpa or the reached set of"
-            + " an analysis are taken and provided to the next part of this analysis when"
-            + " continuing after the next switch."
+        "list of files with configurations to use, which are optionally suffixed "
+            + "according to one of the followig schemes:"
+            + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
+            + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
+            + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
+            + "noreuse (i.e., start from scratch)."
+            + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
+            + "If no (correct) limit is given a default limit is used."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
@@ -217,6 +282,24 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             + " and not only the last one that is executed"
   )
   private boolean writeIntermediateOutputFiles = true;
+
+  @Option(
+    secure = true,
+    name = "initCondition",
+    description =
+        "Whether or not to create an initial condition, that excludes no paths, "
+            + "before first analysis is run."
+            + "Required when first analysis uses condition from conditional model checking"
+  )
+  private boolean generateInitialFalseCondition = false;
+
+  @Option(
+    secure = true,
+    name = "condition.file",
+    description = "where to store initial condition, when generated"
+  )
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
 
   private final CFA cfa;
   private final Configuration globalConfig;
@@ -244,7 +327,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     specification = checkNotNull(pSpecification);
-    stats = new InterleavedAlgorithmStatistics(configFiles.size(), pLogger);
+    stats = new InterleavedAlgorithmStatistics();
 
     logShutdownListener =
         reason ->
@@ -253,6 +336,23 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
                 "Shutdown of analysis %d requested (%s).",
                 stats.noOfCurrentAlgorithm,
                 reason);
+    if (generateInitialFalseCondition) {
+      generateInitialFalseCondition();
+    }
+  }
+
+  private void generateInitialFalseCondition() {
+    String condition =
+        "OBSERVER AUTOMATON AssumptionAutomaton\n\n"
+            + "INITIAL STATE __FALSE;\n\n"
+            + "STATE __FALSE :\n    TRUE -> GOTO __FALSE;\n\n"
+            + "END AUTOMATON\n";
+
+    try (Writer w = IO.openOutputFile(initialCondition, Charset.defaultCharset())) {
+      w.write(condition);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write initial condition to file");
+    }
   }
 
   @SuppressFBWarnings(
@@ -289,11 +389,12 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
       Iterator<AlgorithmContext> algorithmContextCycle =
           Iterables.cycle(algorithmContexts).iterator();
+      AlgorithmContext currentContext = null;
 
       while (!shutdownNotifier.shouldShutdown() && algorithmContextCycle.hasNext()) {
 
         // retrieve context from last execution of current algorithm
-        AlgorithmContext currentContext = algorithmContextCycle.next();
+        currentContext = algorithmContextCycle.next();
         boolean analysisFinishedWithResult = false;
 
         currentContext.timer.start();
@@ -301,7 +402,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
           if (stats.noOfCurrentAlgorithm == stats.noOfAlgorithms) {
             stats.noOfCurrentAlgorithm = 1;
-            stats.noOfSwitches++;
+            stats.noOfRounds++;
             logger.log(
                 Level.INFO, "InterleavedAlgorithm switches to the next interleave iteration...");
           } else {
@@ -390,30 +491,44 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           shutdownNotifier.shutdownIfNecessary();
 
         } finally {
-          currentContext.localShutdownManager.getNotifier().unregister(logShutdownListener);
-          currentContext.localShutdownManager.requestShutdown("Analysis terminated.");
+          if (currentContext.config != null) {
+            currentContext.localShutdownManager.getNotifier().unregister(logShutdownListener);
+            currentContext.localShutdownManager.requestShutdown("Analysis terminated.");
 
-          if (!analysisFinishedWithResult && !shutdownNotifier.shouldShutdown()) {
-            stats.resetSubStatistics();
+            if (!analysisFinishedWithResult
+                && !shutdownNotifier.shouldShutdown()
+                && algorithmContextCycle.hasNext()) {
+              stats.resetSubStatistics();
+
+              if (!currentContext.reuseCPA() && currentContext.cpa != null) {
+                CPAs.closeCpaIfPossible(currentContext.cpa, logger);
+              }
+
+              CPAs.closeIfPossible(currentContext.algorithm, logger);
+            }
           }
-
-          if (!currentContext.reuseComponents) {
-            CPAs.closeCpaIfPossible(currentContext.cpa, logger);
-          }
-
-          CPAs.closeIfPossible(currentContext.algorithm, logger);
 
           currentContext.timer.stop();
         }
       }
 
       for (AlgorithmContext context : algorithmContexts) {
-        CPAs.closeCpaIfPossible(context.cpa, logger);
+        if (context != currentContext && context != null && context.cpa != null) {
+          CPAs.closeCpaIfPossible(context.cpa, logger);
+        }
       }
 
       logger.log(Level.INFO, "Shutdown of interleaved algorithm, analysis not finished yet.");
       return status;
 
+    } catch (RuntimeException e2) {
+      if (e2.getCause() instanceof TransformerException || e2 instanceof IllegalStateException) {
+        logger.logUserException(
+            Level.FINE, e2, "Problem with one one the analysis, try to save result");
+        return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+      } else {
+        throw e2;
+      }
     } finally {
       stats.totalTimer.stop();
     }
@@ -421,7 +536,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
   private void readConfig(AlgorithmContext pContext) {
 
-    Path singleConfigFileName = pContext.configFile.value();
+    Path singleConfigFileName = pContext.configFile;
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("interleavedAlgorithm.configFiles");
@@ -435,6 +550,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           stats.noOfCurrentAlgorithm,
           singleConfigFileName);
 
+      pContext.config = singleConfigBuilder.build();
+
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
@@ -442,7 +559,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           "Skipping one analysis because the configuration file "
               + singleConfigFileName.toString()
               + " is invalid");
-      return;
+
     } catch (IOException e) {
       String message =
           "Skipping one analysis because the configuration file "
@@ -453,24 +570,6 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       } else {
         logger.logUserException(Level.WARNING, e, message);
       }
-      return;
-    }
-
-    pContext.config = singleConfigBuilder.build();
-
-    // check config for condition
-    Optional<String> condition = pContext.configFile.annotation();
-    if (condition.isPresent()) {
-      if (condition.get().equalsIgnoreCase("reuse-components")) {
-        pContext.reuseComponents = true;
-      } else {
-        pContext.reuseComponents = false;
-        logger.logf(
-            Level.WARNING,
-            "Ignoring invalid condition '%s' for file %s.",
-            condition.get(),
-            singleConfigFileName);
-      }
     }
   }
 
@@ -478,9 +577,17 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
     pContext.localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    ResourceLimitChecker singleLimits =
-        ResourceLimitChecker.fromConfiguration(
-            pContext.config, logger, pContext.localShutdownManager);
+    ArrayList<ResourceLimit> limits = new ArrayList<>();
+    try {
+      limits.add(ProcessCpuTimeLimit.fromNowOn(TimeSpan.ofSeconds(pContext.timeLimit)));
+    } catch (JMException e) {
+      logger.log(
+          Level.SEVERE,
+          "Your Java VM does not support measuring the cpu time. Ignore time limit.",
+          e);
+    }
+
+    ResourceLimitChecker singleLimits = new ResourceLimitChecker(pContext.localShutdownManager,limits);
     singleLimits.start();
     pContext.localShutdownManager.getNotifier().register(logShutdownListener);
 
@@ -489,25 +596,29 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         new CoreComponentsFactory(
             pContext.config, logger, pContext.localShutdownManager.getNotifier(), aggregateReached);
 
-    if (pContext.reuseComponents) {
-      if (pContext.cpa == null || pContext.reached == null) {
-        // create cpa and reached set only once
-
+    if (pContext.reuseCPA()) {
+      if (pContext.cpa == null) {
+        // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
         CoreComponentsFactory globalCoreComponents =
             new CoreComponentsFactory(pContext.config, logger, shutdownNotifier, aggregateReached);
         pContext.cpa = globalCoreComponents.createCPA(cfa, specification);
+        if (!pContext.reusePrecision()) {
+          // create reached set only once, continue analysis
+          pContext.reached =
+              createInitialReachedSet(pContext.cpa, pMainFunction, globalCoreComponents, null);
+        }
+      }
+      if (pContext.reusePrecision()) {
+        // start with new reached set each time, but precision from previous analysis if possible
         pContext.reached =
-            createInitialReachedSet(pContext.cpa, pMainFunction, globalCoreComponents, logger);
-      } else {
-        // reuse cpa and reached set
-
+            createInitialReachedSet(
+                pContext.cpa, pMainFunction, localCoreComponents, pContext.reached);
       }
     } else {
-      // do not reuse components
-
+      // do not reuse cpa, and, thus reached set
       pContext.cpa = localCoreComponents.createCPA(cfa, specification);
       pContext.reached =
-          createInitialReachedSet(pContext.cpa, pMainFunction, localCoreComponents, logger);
+          createInitialReachedSet(pContext.cpa, pMainFunction, localCoreComponents, null);
     }
 
     // always create algorithm with new "local" shutdown manager
@@ -525,22 +636,61 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ReachedSet createInitialReachedSet(
-      ConfigurableProgramAnalysis pCpa,
-      CFANode pMainFunction,
-      CoreComponentsFactory pFactory,
-      LogManager pLogger)
+      final ConfigurableProgramAnalysis pCpa,
+      final CFANode pMainFunction,
+      final CoreComponentsFactory pFactory,
+      final @Nullable ReachedSet previousReachedSet)
       throws InterruptedException {
 
-    pLogger.log(Level.FINE, "Creating initial reached set");
+    logger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState =
         pCpa.getInitialState(pMainFunction, StateSpacePartition.getDefaultPartition());
+
     Precision initialPrecision =
         pCpa.getInitialPrecision(pMainFunction, StateSpacePartition.getDefaultPartition());
+    if (previousReachedSet != null) {
+      initialPrecision = aggregatePrecisionsForReuse(previousReachedSet, initialPrecision);
+    }
 
     ReachedSet reached = pFactory.createReachedSet();
     reached.add(initialState, initialPrecision);
     return reached;
+  }
+
+  private Precision aggregatePrecisionsForReuse(
+      final ReachedSet pPreviousReachedSet, final Precision pInitialPrecision) {
+    Precision resultPrec = pInitialPrecision;
+
+    if (Precisions.extractPrecisionByType(resultPrec, VariableTrackingPrecision.class) != null) {
+      resultPrec =
+          Precisions.replaceByType(
+              resultPrec,
+              VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(
+                  pPreviousReachedSet),
+              Predicates.instanceOf(VariableTrackingPrecision.class));
+    }
+
+    PredicatePrecision predPrec;
+    predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+
+    if (predPrec != null) {
+      Collection<PredicatePrecision> predPrecs =
+          new HashSet<>(pPreviousReachedSet.getPrecisions().size());
+      predPrecs.add(predPrec);
+      for (Precision prec : pPreviousReachedSet.getPrecisions()) {
+        predPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+        predPrecs.add(predPrec);
+      }
+
+      resultPrec =
+          Precisions.replaceByType(
+              resultPrec,
+              PredicatePrecision.unionOf(predPrecs),
+              Predicates.instanceOf(PredicatePrecision.class));
+    }
+
+    return resultPrec;
   }
 
   @Override

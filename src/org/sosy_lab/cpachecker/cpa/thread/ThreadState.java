@@ -29,32 +29,23 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
-public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractStateWithLocation, Partitionable,
-    AbstractWrapperState, CompatibleNode {
+public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
 
   public static class ThreadStateBuilder {
-    private List<ThreadLabel> tSet;
-    private List<ThreadLabel> rSet;
+    private final List<ThreadLabel> tSet;
+    private final List<ThreadLabel> rSet;
 
     private ThreadStateBuilder(ThreadState state) {
       tSet = new ArrayList<>(state.threadSet);
@@ -69,14 +60,16 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       createThread(tCall, tCall.isSelfParallel() ? LabelStatus.SELF_PARALLEL_THREAD : LabelStatus.CREATED_THREAD);
     }
 
-    private void createThread(CThreadCreateStatement tCall, LabelStatus pParentThread) throws HandleCodeException {
+    private void createThread(CThreadCreateStatement tCall, LabelStatus pParentThread)
+        throws HandleCodeException {
       final String pVarName = tCall.getVariableName();
       //Just to info
       final String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
 
       if (from(tSet)
           .anyMatch(l -> l.getName().equals(pFunctionName) && l.getVarName().equals(pVarName))) {
-        throw new HandleCodeException("Can not create thread " + pFunctionName + ", it was already created");
+        throw new HandleCodeException(
+            "Can not create thread " + pFunctionName + ", it was already created");
       }
 
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);
@@ -87,25 +80,21 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       tSet.add(label);
     }
 
-    public ThreadState build(LocationState l, CallstackState c) {
-      //May be called several times per one builder
-      return new ThreadState(l, c, tSet, rSet);
+    public ThreadState build() {
+      return new ThreadState(tSet, rSet);
     }
 
     public boolean joinThread(CThreadJoinStatement jCall) {
-      String pVarName = jCall.getVariableName();
-      ThreadLabel result = null;
-      for (ThreadLabel tmpLabel : tSet) {
-        if (tmpLabel.getVarName().equals(pVarName)) {
-          assert result == null : "Found several threads with the same variable";
-          assert tmpLabel.isParentThread() : "Try to self-join";
-          result = tmpLabel;
-        }
-      }
-      if (result == null) {
-        return false;
+      // If we found several labels for different functions
+      // it means, that there are several thread created for one thread variable.
+      // Not a good situation, but it is not forbidden, so join the last assigned thread
+      Optional<ThreadLabel> result =
+          from(tSet).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
+      // Do not self-join
+      if (result.isPresent() && !result.get().isCreatedThread()) {
+        return tSet.remove(result.get());
       } else {
-        return tSet.remove(result);
+        return false;
       }
     }
 
@@ -115,34 +104,19 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
     }
   }
 
-  private final LocationState location;
-  private final CallstackState callstack;
   private final ImmutableList<ThreadLabel> threadSet;
+  // The removedSet is useless now, but it will be used in future in more complicated cases
+  // Do not remove it now
   private final ImmutableList<ThreadLabel> removedSet;
 
-  private ThreadState(LocationState l, CallstackState c, List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
-    location = l;
-    callstack = c;
+  private ThreadState(List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
     threadSet = ImmutableList.copyOf(Tset);
-    removedSet = Rset == null ? null : ImmutableList.copyOf(Rset);
-  }
-
-  public String getCurrentThreadName() {
-    //Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread =
-        from(threadSet)
-        .firstMatch(ThreadLabel::isCreatedThread);
-
-    if (createdThread.isPresent()) {
-      return createdThread.get().getName();
-    } else {
-      return "";
-    }
+    removedSet = ImmutableList.copyOf(Rset);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(callstack, location, removedSet, threadSet);
+    return Objects.hash(removedSet, threadSet);
   }
 
   @Override
@@ -155,62 +129,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       return false;
     }
     ThreadState other = (ThreadState) obj;
-    return Objects.equals(callstack, other.callstack)
-        && Objects.equals(location, other.location)
-        && Objects.equals(removedSet, other.removedSet)
+    return Objects.equals(removedSet, other.removedSet)
         && Objects.equals(threadSet, other.threadSet);
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    List<Object> keys = new ArrayList<>(2);
-    keys.add(location.getPartitionKey());
-    keys.add(callstack.getPartitionKey());
-    return keys;
-  }
-
-  @Override
-  public CFANode getLocationNode() {
-    return location.getLocationNode();
-  }
-
-  @Override
-  public Iterable<CFANode> getLocationNodes() {
-    return location.getLocationNodes();
-  }
-
-  @Override
-  public Iterable<CFAEdge> getOutgoingEdges() {
-    return location.getOutgoingEdges();
-  }
-
-  @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
-    return location.getIngoingEdges();
-  }
-
-  @Override
-  public Iterable<AbstractState> getWrappedStates() {
-    List<AbstractState> states = new ArrayList<>(2);
-    states.add(location);
-    states.add(callstack);
-    return states;
-  }
-
-  public List<ThreadLabel> getThreadSet() {
-    return threadSet;
-  }
-
-  public List<ThreadLabel> getRemovedSet() {
-    return removedSet;
-  }
-
-  public LocationState getLocationState() {
-    return location;
-  }
-
-  public CallstackState getCallstackState() {
-    return callstack;
   }
 
   @Override
@@ -231,8 +151,6 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
         return result;
       }
     }
-    //Use compare only for StoredThreadState
-    Preconditions.checkArgument(location == null && callstack == null);
     return 0;
   }
 
@@ -252,23 +170,28 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(null, null, this.threadSet, null);
+    return new ThreadState(this.threadSet, Collections.emptyList());
   }
 
   public ThreadStateBuilder getBuilder() {
     return new ThreadStateBuilder(this);
   }
 
-  public static ThreadState emptyState(LocationState l, CallstackState c) {
-    List<ThreadLabel> emptySet = new ArrayList<>();
-    return new ThreadState(l, c, emptySet, emptySet);
+  public static ThreadState emptyState() {
+    return new ThreadState(Collections.emptyList(), Collections.emptyList());
   }
 
   @Override
   public String toString() {
-    return location.toString() + "\n"
-            + callstack.toString() + "\n"
-            + getCurrentThreadName();
+    // Info method, in difficult cases may be wrong
+    Optional<ThreadLabel> createdThread =
+        from(threadSet).filter(ThreadLabel::isCreatedThread).last();
+
+    if (createdThread.isPresent()) {
+      return createdThread.get().getName();
+    } else {
+      return "";
+    }
   }
 
   @Override

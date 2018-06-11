@@ -26,58 +26,46 @@ package org.sosy_lab.cpachecker.cpa.local;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-public class LocalReducer implements Reducer {
+public class LocalReducer extends GenericReducer<LocalState, SingletonPrecision> {
 
   @Override
-  public AbstractState getVariableReducedState(
-      AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
-    LocalState localState = (LocalState) pExpandedState;
-    LocalState reducedState = localState.reduce();
-    return reducedState;
+  protected LocalState getVariableReducedState0(
+      LocalState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
+    return pExpandedState;
   }
 
   @Override
-  public AbstractState getVariableExpandedState(
-      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
-    LocalState newState = (LocalState) pReducedState;
-    return newState.expand((LocalState) pRootState);
+  protected LocalState getVariableExpandedState0(
+      LocalState pRootState, Block pReducedContext, LocalState pReducedState)
+      throws InterruptedException {
+    return pReducedState.expand(pRootState);
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
+  protected Object getHashCodeForState0(LocalState pStateKey, SingletonPrecision pPrecisionKey) {
+    return pStateKey.hashCode();
+  }
+
+  @Override
+  protected Precision getVariableReducedPrecision0(SingletonPrecision pPrecision, Block pContext) {
     return pPrecision;
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(
-      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
+  protected SingletonPrecision getVariableExpandedPrecision0(
+      SingletonPrecision pRootPrecision, Block pRootContext, SingletonPrecision pReducedPrecision) {
     return pRootPrecision;
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
-    return getHashCodeForState(pStateKey);
-  }
-
-  public Object getHashCodeForState(AbstractState pStateKey) {
-    LocalState state = (LocalState) pStateKey;
-    return state.hashCode();
-  }
-
-  @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
-  }
-
-  @Override
-  public AbstractState rebuildStateAfterFunctionCall(
-      AbstractState pRootState,
-      AbstractState pEntryState,
-      AbstractState pExpandedState,
+  protected LocalState rebuildStateAfterFunctionCall0(
+      LocalState pRootState,
+      LocalState pEntryState,
+      LocalState pExpandedState,
       FunctionExitNode pExitLocation) {
     return pExpandedState;
   }

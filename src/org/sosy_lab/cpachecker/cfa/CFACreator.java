@@ -25,13 +25,18 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -39,7 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -79,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -103,9 +109,9 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGBuilder;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -145,6 +151,15 @@ public class CFACreator {
       description="create all potential function pointer call edges")
   private boolean fptrCallEdges = true;
 
+  @Option(
+    secure = true,
+    name = "analysis.threadOperationsTransform",
+    description =
+        "Replace thread creation operations with a special function calls"
+            + "so, any analysis can go through the function"
+  )
+  private boolean enableThreadOperationsInstrumentation = false;
+
   @Option(secure=true, name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
@@ -174,6 +189,21 @@ public class CFACreator {
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
+
+  @Option(
+    secure = true,
+    name = "cfa.serialize",
+    description = "export CFA as .ser file (dump Java objects)"
+  )
+  private boolean serializeCfa = false;
+
+  @Option(
+    secure = true,
+    name = "cfa.serializeFile",
+    description = "export CFA as .ser file (dump Java objects)"
+  )
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path serializeCfaFile = Paths.get("cfa.ser.gz");
 
   @Option(
     secure = true,
@@ -258,11 +288,14 @@ private boolean classifyNodes = false;
     private Timer conversionTime;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
-    private final Timer variableClassificationTime = new Timer();
-    private final Timer dependenceGraphConstructionTime = new Timer();
     private final Timer exportTime = new Timer();
-    private @Nullable VariableClassificationStatistics varClassificationStats;
-    private Statistics dependenceGraphStats;
+    private final List<Statistics> statisticsCollection;
+    private final LogManager logger;
+
+    private CFACreatorStatistics(LogManager pLogger) {
+      logger = pLogger;
+      statisticsCollection = new ArrayList<>();
+    }
 
     @Override
     public String getName() {
@@ -277,32 +310,25 @@ private boolean classifyNodes = false;
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
-      if (variableClassificationTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for var class.:    " + variableClassificationTime);
-        if (varClassificationStats != null) {
-          varClassificationStats.printStatistics(out, pResult, pReached);
-        }
-      }
-      if (dependenceGraphConstructionTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for dep. graph:    " + dependenceGraphConstructionTime);
-        if (dependenceGraphStats != null) {
-          dependenceGraphStats.printStatistics(out, pResult, pReached);
-        }
-      }
+
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
+      }
+
+      for (Statistics st : statisticsCollection) {
+        StatisticsUtils.printStatistics(st, out, logger, pResult, pReached);
       }
     }
 
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-      if (varClassificationStats != null) {
-        varClassificationStats.writeOutputFiles(pResult, pReached);
+      for (Statistics st : statisticsCollection) {
+        StatisticsUtils.writeOutputFiles(st, logger, pResult, pReached);
       }
     }
   }
 
-  private final CFACreatorStatistics stats = new CFACreatorStatistics();
+  private final CFACreatorStatistics stats;
   private final Configuration config;
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
@@ -313,6 +339,7 @@ private boolean classifyNodes = false;
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
+    this.stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
 
@@ -370,6 +397,7 @@ private boolean classifyNodes = false;
       assert mainFunction != null : "program lacks main function.";
 
       CFA cfa = createCFA(parseResult, mainFunction);
+
       return cfa;
     } finally {
       stats.totalTime.stop();
@@ -492,14 +520,11 @@ private boolean classifyNodes = false;
     final Optional<VariableClassification> varClassification;
     if (language == Language.C) {
       try {
-        stats.variableClassificationTime.start();
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
         varClassification = Optional.of(builder.build(cfa));
-        stats.varClassificationStats = builder.getStatistics();
+        builder.collectStatistics(stats.statisticsCollection);
       } catch (UnrecognizedCCodeException e) {
         throw new CParserException(e);
-      } finally {
-        stats.variableClassificationTime.stop();
       }
     } else {
       varClassification = Optional.empty();
@@ -516,15 +541,19 @@ private boolean classifyNodes = false;
 
     Optional<DependenceGraph> depGraph;
     if (createDependenceGraph) {
+      if (!varClassification.isPresent()) {
+        logger.log(
+            Level.WARNING,
+            "Variable Classification not present. Consider turning this on "
+                + "to improve dependence graph construction.");
+      }
       try {
-        stats.dependenceGraphConstructionTime.start();
-        DGBuilder depGraphBuilder = DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
+        DGBuilder depGraphBuilder =
+            DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
-        stats.dependenceGraphStats = depGraphBuilder.getStatistics();
+        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       } catch (CPAException pE) {
         throw new CParserException(pE);
-      } finally {
-        stats.dependenceGraphConstructionTime.stop();
       }
     } else {
       depGraph = Optional.empty();
@@ -540,7 +569,9 @@ private boolean classifyNodes = false;
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-        || ((exportFunctionCallsFile != null) && exportFunctionCalls)) {
+        || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+        || ((serializeCfaFile != null) && serializeCfa)
+        || (exportCfaPixelFile != null)) {
       exportCFAAsync(immutableCFA);
     }
 
@@ -644,6 +675,13 @@ private boolean classifyNodes = false;
     if (language == Language.C && fptrCallEdges) {
       CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, globalDeclarations, config, logger);
       fptrResolver.resolveFunctionPointers();
+      fptrResolver.collectStatistics(stats.statisticsCollection);
+    }
+
+    // Transform pthread_create(.., &func) -> func()
+    if (enableThreadOperationsInstrumentation) {
+      ThreadCreateTransformer TCtransformer = new ThreadCreateTransformer(logger, config);
+      TCtransformer.transform(cfa);
     }
 
     if (useFunctionCallUnwinding) {
@@ -970,6 +1008,19 @@ v.addInitializer(initializer);
         new CFAToPixelsWriter(config).write(cfa.getMainFunction(), exportCfaPixelFile);
       } catch (IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA as pixel graphic.");
+      }
+    }
+
+    if (serializeCfa && serializeCfaFile != null) {
+      try {
+        MoreFiles.createParentDirectories(serializeCfaFile);
+        try (OutputStream outputStream = Files.newOutputStream(serializeCfaFile);
+            OutputStream gzipOutputStream = new GZIPOutputStream(outputStream);
+            ObjectOutputStream oos = new ObjectOutputStream(gzipOutputStream)) {
+          oos.writeObject(cfa);
+        }
+      } catch (IOException e) {
+        logger.logException(Level.WARNING, e, "Could not serialize CFA to file.");
       }
     }
 
