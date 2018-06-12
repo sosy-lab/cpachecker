@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
@@ -670,5 +671,27 @@ public class SMGBuiltins {
     }
 
     return SMGAddressValueAndState.of(currentState, targetStr1Address);
+  }
+
+  public List<SMGAddressValueAndState> handleUnknownFunction(
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String calledFunctionName,
+      SMGState pState)
+      throws CPATransferException, AssertionError {
+    switch (options.getHandleUnknownFunctions()) {
+      case STRICT:
+        throw new CPATransferException(
+            "Unknown function '"
+                + calledFunctionName
+                + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+      case ASSUME_SAFE:
+        return ImmutableList.of(SMGAddressValueAndState.of(pState));
+      case ASSUME_EXTERNAL_ALLOCATED:
+        return expressionEvaluator.handleSafeExternFuction(cFCExpression, pState, pCfaEdge);
+      default:
+        throw new AssertionError(
+            "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
+    }
   }
 }

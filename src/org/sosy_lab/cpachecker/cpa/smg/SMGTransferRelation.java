@@ -704,20 +704,8 @@ public class SMGTransferRelation
         }
 
       } else {
-        switch (options.getHandleUnknownFunctions()) {
-          case STRICT:
-            throw new CPATransferException(
-                "Unknown function '"
-                    + calledFunctionName
-                    + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-          case ASSUME_SAFE:
-            return ImmutableList.of(state);
-          case ASSUME_EXTERNAL_ALLOCATED:
-            return asSMGStateList(
-                expressionEvaluator.handleSafeExternFuction(cFCExpression, state, pCfaEdge));
-          default:
-          throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
-        }
+        return asSMGStateList(
+            builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, state));
       }
     } else {
       newStates = ImmutableList.of(state);
@@ -1285,7 +1273,7 @@ public class SMGTransferRelation
     kind = SMGTransferRelationKind.REFINEMENT;
   }
 
-  private static List<SMGState> asSMGStateList(List<? extends SMGValueAndState> valueAndStateList) {
+  static List<SMGState> asSMGStateList(List<? extends SMGValueAndState> valueAndStateList) {
     return Lists.transform(valueAndStateList, SMGValueAndState::getSmgState);
   }
 }
