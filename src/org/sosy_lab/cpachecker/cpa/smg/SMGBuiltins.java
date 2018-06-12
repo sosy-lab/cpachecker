@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -671,6 +672,47 @@ public class SMGBuiltins {
     }
 
     return SMGAddressValueAndState.of(currentState, targetStr1Address);
+  }
+
+  public List<SMGAddressValueAndState> handleBuiltinFunctionCall(
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String calledFunctionName,
+      SMGState newState,
+      boolean failOnAlloca)
+      throws CPATransferException {
+
+    if (isExternalAllocationFunction(calledFunctionName)) {
+      return evaluateExternalAllocation(cFCExpression, newState);
+    }
+
+    switch (calledFunctionName) {
+      case "__builtin_alloca":
+        if (failOnAlloca) {
+          smgTransferRelation.possibleMallocFail = true;
+        }
+        return evaluateAlloca(cFCExpression, newState, pCfaEdge);
+
+      case "memset":
+        return evaluateMemset(cFCExpression, newState, pCfaEdge);
+
+      case "memcpy":
+        return evaluateMemcpy(cFCExpression, newState, pCfaEdge);
+
+      case "__VERIFIER_BUILTIN_PLOT":
+        evaluateVBPlot(cFCExpression, newState);
+        // $FALL-THROUGH$
+      case "printf":
+        return ImmutableList.of(SMGAddressValueAndState.of(newState));
+
+      default:
+        if (isNondetBuiltin(calledFunctionName)) {
+          return Collections.singletonList(SMGAddressValueAndState.of(newState));
+        } else {
+          throw new AssertionError(
+              "Unexpected function handled as a builtin: " + calledFunctionName);
+        }
+    }
   }
 
   public List<SMGAddressValueAndState> handleUnknownFunction(

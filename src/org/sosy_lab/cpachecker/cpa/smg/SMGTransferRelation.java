@@ -634,14 +634,12 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
-    List<SMGState> newStates = null;
-
     if (cStmt instanceof CAssignment) {
       CAssignment cAssignment = (CAssignment) cStmt;
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
 
-      newStates = handleAssignment(state, pCfaEdge, lValue, rValue);
+      return handleAssignment(state, pCfaEdge, lValue, rValue);
     } else if (cStmt instanceof CFunctionCallStatement) {
 
       CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
@@ -651,67 +649,40 @@ public class SMGTransferRelation
 
       if (builtins.isABuiltIn(calledFunctionName)) {
         SMGState newState = new SMGState(state);
+
         if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
-          logger.log(
+          logger.logf(
               Level.INFO,
+              "%s: Calling '%s' and not using the result, resulting in memory leak.",
               pCfaEdge.getFileLocation(),
-              ":",
-              "Calling ",
-              calledFunctionName,
-              " and not using the result, resulting in memory leak.");
-          newStates =
+              calledFunctionName);
+          List<SMGState> newStates =
               asSMGStateList(
                   builtins.evaluateConfigurableAllocationFunction(
                       cFCExpression, newState, pCfaEdge));
-
           for (SMGState s : newStates) {
             s.setMemLeak(
                 "Calling '"
                     + calledFunctionName
-                    + "' and not using the result, "
-                    + "resulting in memory leak.",
+                    + "' and not using the result, resulting in memory leak.",
                 Collections.emptyList());
           }
+          return newStates;
         }
-
         if (builtins.isDeallocationFunction(calledFunctionName)) {
-          newStates = builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
+          return builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
-
-        if (builtins.isExternalAllocationFunction(calledFunctionName)) {
-          newStates = asSMGStateList(builtins.evaluateExternalAllocation(cFCExpression, newState));
-        }
-
-        switch (calledFunctionName) {
-        case "__VERIFIER_BUILTIN_PLOT":
-          builtins.evaluateVBPlot(cFCExpression, newState);
-          break;
-        case "__builtin_alloca":
-          logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
-              "Calling alloc and not using the result.");
-            newStates = asSMGStateList(builtins.evaluateAlloca(cFCExpression, newState, pCfaEdge));
-          break;
-        case "memset":
-            newStates = asSMGStateList(builtins.evaluateMemset(cFCExpression, newState, pCfaEdge));
-          break;
-        case "memcpy":
-            newStates = asSMGStateList(builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge));
-          break;
-          case "printf":
-            return ImmutableList.of(new SMGState(state));
-        default:
-          // nothing to do here
-        }
+        return asSMGStateList(
+            builtins.handleBuiltinFunctionCall(
+                pCfaEdge, cFCExpression, calledFunctionName, newState, false));
 
       } else {
         return asSMGStateList(
             builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, state));
       }
     } else {
-      newStates = ImmutableList.of(state);
+      return ImmutableList.of(state);
     }
-
-    return newStates;
   }
 
   private List<SMGState> handleAssignment(

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -61,31 +60,11 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
         return builtins.evaluateConfigurableAllocationFunction(
             pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
       }
-      if (builtins.isExternalAllocationFunction(functionName)) {
-        return builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
-      }
-      switch (functionName) {
-      case "__VERIFIER_BUILTIN_PLOT":
-        builtins.evaluateVBPlot(pIastFunctionCallExpression, getInitialSmgState());
-        break;
-      case "__builtin_alloca":
-        smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-          return builtins.evaluateAlloca(
-              pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-      case "printf":
-          return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
-      default:
-        if (builtins.isNondetBuiltin(functionName)) {
-            return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
-        } else {
-          throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
-        }
-      }
+      return builtins.handleBuiltinFunctionCall(
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), true);
     } else {
       return builtins.handleUnknownFunction(
           getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
     }
-
-    return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
   }
 }
