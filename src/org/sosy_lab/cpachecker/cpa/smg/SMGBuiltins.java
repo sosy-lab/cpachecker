@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class SMGBuiltins {
 
   private final SMGTransferRelation smgTransferRelation;
+  private final SMGRightHandSideEvaluator expressionEvaluator;
 
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -60,6 +62,7 @@ public class SMGBuiltins {
   SMGBuiltins(SMGTransferRelation pSmgTransferRelation, SMGOptions pOptions,
       SMGExportDotOption pExportSMGOptions, MachineModel pMachineModel, LogManager pLogger) {
     smgTransferRelation = pSmgTransferRelation;
+    expressionEvaluator = pSmgTransferRelation.expressionEvaluator;
     machineModel = pMachineModel;
     logger = pLogger;
     exportSMGOptions = pExportSMGOptions;
@@ -179,19 +182,20 @@ public class SMGBuiltins {
 
     if (ch.equals(SMGKnownSymValue.ZERO)) {
       // Create one large edge
-      currentState = smgTransferRelation.expressionEvaluator.writeValue(
-      currentState,
-      bufferMemory,
-      offset,
-      AnonymousTypes.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
-      ch,
-      cfaEdge);
+      currentState =
+          expressionEvaluator.writeValue(
+              currentState,
+              bufferMemory,
+              offset,
+              AnonymousTypes.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
+              ch,
+              cfaEdge);
     } else {
       // We need to create many edges, one for each character written
       // memset() copies ch into the first count characters of buffer
       for (int c = 0; c < count; c++) {
         currentState =
-            smgTransferRelation.expressionEvaluator.writeValue(
+            expressionEvaluator.writeValue(
                 currentState,
                 bufferMemory,
                 offset + (c * machineModel.getSizeofCharInBits()),
@@ -211,18 +215,17 @@ public class SMGBuiltins {
   protected List<? extends SMGValueAndState> evaluateExpressionValue(
       SMGState smgState, CFAEdge cfaEdge, CExpression rValue) throws CPATransferException {
 
-    return smgTransferRelation.expressionEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
+    return expressionEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
   }
 
   protected List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRValue)
       throws CPATransferException {
-
-    return smgTransferRelation.expressionEvaluator.evaluateExplicitValue(pState, pCfaEdge, pRValue);
+    return expressionEvaluator.evaluateExplicitValue(pState, pCfaEdge, pRValue);
   }
 
   protected List<SMGAddressValueAndState> evaluateAddress(
       SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRvalue) throws CPATransferException {
-    return smgTransferRelation.expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
+    return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
   }
 
   public final List<SMGAddressValueAndState> evaluateExternalAllocation(
@@ -283,7 +286,7 @@ public class SMGBuiltins {
 
       if (options.isGuessSizeOfUnknownMemorySize()) {
         SMGExplicitValueAndState forcedValueAndState =
-            smgTransferRelation.expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
+            expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
         currentState = forcedValueAndState.getSmgState();
 
         //Sanity check
@@ -303,7 +306,7 @@ public class SMGBuiltins {
 
         if (sizeValue.isUnknown()) {
 
-          if(smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
+          if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
             sizeValue = SMGKnownExpValue.ZERO;
           } else {
             throw new UnrecognizedCCodeException(
@@ -385,8 +388,8 @@ public class SMGBuiltins {
 
         if (options.isGuessSizeOfUnknownMemorySize()) {
           currentState = valueAndState.getSmgState();
-          SMGExplicitValueAndState forcedValueAndState = smgTransferRelation.expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
-
+          SMGExplicitValueAndState forcedValueAndState =
+              expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
 
           //Sanity check
 
@@ -452,7 +455,7 @@ public class SMGBuiltins {
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
         currentState =
-            smgTransferRelation.expressionEvaluator.writeValue(
+            expressionEvaluator.writeValue(
                 currentState,
                 new_address.getObject(),
                 0,
@@ -479,7 +482,7 @@ public class SMGBuiltins {
     }
 
     List<SMGAddressValueAndState> addressAndStates =
-        smgTransferRelation.expressionEvaluator.evaluateAddress(pState, cfaEdge, pointerExp);
+        expressionEvaluator.evaluateAddress(pState, cfaEdge, pointerExp);
 
     List<SMGState> resultStates = new ArrayList<>(addressAndStates.size());
 
@@ -590,8 +593,9 @@ public class SMGBuiltins {
           if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
             List<? extends SMGValueAndState> sizeSymbolicValueAndStates =
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr);
-            int symbolicValueSize = smgTransferRelation.expressionEvaluator.getBitSizeof(pCfaEdge,
-                sizeExpr.getExpressionType(), currentState);
+            int symbolicValueSize =
+                expressionEvaluator.getBitSizeof(
+                    pCfaEdge, sizeExpr.getExpressionType(), currentState);
             for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates) {
               SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
 

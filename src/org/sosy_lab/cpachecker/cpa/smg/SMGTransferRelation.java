@@ -96,13 +96,10 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -315,7 +312,9 @@ public class SMGTransferRelation
           //TODO cast value
           rValueType = expressionEvaluator.getRealExpressionType(lValue);
 
-          SMGState resultState = assignFieldToState(newState, functionReturnEdge, object, offset, rValue, rValueType);
+          SMGState resultState =
+              expressionEvaluator.assignFieldToState(
+                  newState, functionReturnEdge, object, offset, rValue, rValueType);
           result.add(resultState);
         } else {
           //TODO missingInformation, exception
@@ -455,7 +454,9 @@ public class SMGTransferRelation
 
         // We want to write a possible new Address in the new State, but
         // explore the old state for the parameters
-        newState = assignFieldToState(newState, callEdge, newObject, 0, symbolicValue, rValueType);
+        newState =
+            expressionEvaluator.assignFieldToState(
+                newState, callEdge, newObject, 0, symbolicValue, rValueType);
       }
     }
 
@@ -716,7 +717,8 @@ public class SMGTransferRelation
           case ASSUME_SAFE:
             return ImmutableList.of(state);
           case ASSUME_EXTERNAL_ALLOCATED:
-            return asSMGStateList(handleSafeExternFuction(cFCExpression, state, pCfaEdge));
+            return asSMGStateList(
+                expressionEvaluator.handleSafeExternFuction(cFCExpression, state, pCfaEdge));
           default:
           throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
         }
@@ -807,7 +809,7 @@ public class SMGTransferRelation
       for (Pair<SMGState, SMGKnownSymValue> currentNewStateWithMergedValue :
           assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue)) {
         result.add(
-            assignFieldToState(
+            expressionEvaluator.assignFieldToState(
                 currentNewStateWithMergedValue.getFirst(),
                 cfaEdge,
                 memoryOfField,
@@ -843,94 +845,6 @@ public class SMGTransferRelation
     }
 
     return result;
-  }
-
-  private SMGState assignFieldToState(SMGState newState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, long fieldOffset, SMGSymbolicValue value, CType rValueType)
-      throws UnrecognizedCCodeException, SMGInconsistentException {
-
-    int sizeOfField = expressionEvaluator.getBitSizeof(cfaEdge, rValueType, newState);
-
-    //FIXME Does not work with variable array length.
-    if (memoryOfField.getSize() < sizeOfField) {
-
-      logger.log(Level.INFO, () ->
-            String.format("%s: Attempting to write %d bytes into a field with size %d bytes: %s",
-                cfaEdge.getFileLocation(), sizeOfField, memoryOfField.getSize(),
-                cfaEdge.getRawStatement()));
-    }
-
-    if (expressionEvaluator.isStructOrUnionType(rValueType)) {
-      return assignStruct(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
-    } else {
-      return expressionEvaluator.writeValue(
-          newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
-    }
-  }
-
-  private SMGState assignStruct(SMGState pNewState, SMGObject pMemoryOfField,
-      long pFieldOffset, CType pRValueType, SMGSymbolicValue pValue,
-      CFAEdge pCfaEdge) throws SMGInconsistentException,
-      UnrecognizedCCodeException {
-
-    if (pValue instanceof SMGKnownAddressValue) {
-      SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
-
-      SMGObject source = structAddress.getObject();
-      long structOffset = structAddress.getOffset().getAsInt();
-
-      //FIXME Does not work with variable array length.
-      long structSize = structOffset + expressionEvaluator.getBitSizeof(pCfaEdge, pRValueType,
-          pNewState);
-      return pNewState.copy(source, pMemoryOfField,
-          structOffset, structSize, pFieldOffset);
-    }
-
-    return pNewState;
-  }
-
-  public List<SMGAddressValueAndState> handleSafeExternFuction(
-      CFunctionCallExpression pFunctionCallExpression, SMGState pSmgState, CFAEdge pCfaEdge)
-      throws CPATransferException {
-    String calledFunctionName = pFunctionCallExpression.getFunctionNameExpression().toString();
-    List<CExpression> parameters = pFunctionCallExpression.getParameterExpressions();
-    for (int i = 0; i < parameters.size(); i++) {
-      CExpression param = parameters.get(i);
-      CType paramType = expressionEvaluator.getRealExpressionType(param);
-      if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
-        // assign external value to param
-        for (SMGAddressValueAndState addressOfFieldAndState :
-            expressionEvaluator.evaluateAddress(pSmgState, pCfaEdge, param)) {
-          SMGAddress smgAddress = addressOfFieldAndState.getObject().getAddress();
-
-          //Check that write will be correct
-          if (!smgAddress.isUnknown()) {
-            SMGObject object = smgAddress.getObject();
-            SMGExplicitValue offset = smgAddress.getOffset();
-            SMGState smgState = addressOfFieldAndState.getSmgState();
-            if (!object.equals(SMGNullObject.INSTANCE)
-                && object.getSize() - offset.getAsLong() >= machineModel.getSizeofPtrInBits()
-                && (smgState.isObjectValid(object)
-                    || smgState.isObjectExternallyAllocated(object))) {
-
-              SMGAddressValue newParamValue =
-                  pSmgState.addExternalAllocation(
-                      calledFunctionName + "_Param_No_" + i + "_ID" + SMGCPA.getNewValue());
-              pSmgState = assignFieldToState(pSmgState, pCfaEdge, object, offset.getAsLong(),
-                  newParamValue, paramType);
-            }
-          }
-        }
-      }
-    }
-
-    CType returnValueType = expressionEvaluator.getRealExpressionType(pFunctionCallExpression.getExpressionType());
-    if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
-      SMGAddressValue returnValue =
-          pSmgState.addExternalAllocation(calledFunctionName + SMGCPA.getNewValue());
-      return Collections.singletonList(SMGAddressValueAndState.of(pSmgState, returnValue));
-    }
-    return Collections.singletonList(SMGAddressValueAndState.of(pSmgState));
   }
 
   private List<SMGState> handleAssignmentToField(

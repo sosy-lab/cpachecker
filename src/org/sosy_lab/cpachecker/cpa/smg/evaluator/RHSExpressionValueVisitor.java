@@ -98,7 +98,7 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
         case ASSUME_SAFE:
           return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
         case ASSUME_EXTERNAL_ALLOCATED:
-          return smgRightHandSideEvaluator.smgTransferRelation.handleSafeExternFuction(
+          return smgRightHandSideEvaluator.handleSafeExternFuction(
               pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
         default:
           throw new AssertionError(

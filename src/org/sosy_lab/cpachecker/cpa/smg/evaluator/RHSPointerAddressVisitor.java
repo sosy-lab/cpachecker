@@ -116,7 +116,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
         case ASSUME_SAFE:
           return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
         case ASSUME_EXTERNAL_ALLOCATED:
-          return smgRightHandSideEvaluator.smgTransferRelation.handleSafeExternFuction(
+          return smgRightHandSideEvaluator.handleSafeExternFuction(
               pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
         default:
           throw new AssertionError(
