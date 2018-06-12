@@ -216,7 +216,7 @@ public class SMGTransferRelation
     if (tmpFieldMemory != null) {
       CExpression returnExp =
           returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
-      CType expType = expressionEvaluator.getRealExpressionType(returnExp);
+      CType expType = SMGExpressionEvaluator.getRealExpressionType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
       if (returnAssignment.isPresent()) {
         expType = returnAssignment.get().getLeftHandSide().getExpressionType();
@@ -282,7 +282,9 @@ public class SMGTransferRelation
 
       // Assign the return value to the lValue of the functionCallAssignment
       CExpression lValue = ((CFunctionCallAssignmentStatement) exprOnSummary).getLeftHandSide();
-      CType rValueType = expressionEvaluator.getRealExpressionType(((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
+      CType rValueType =
+          SMGExpressionEvaluator.getRealExpressionType(
+              ((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
       SMGObject tmpMemory = newState.getFunctionReturnObject();
       SMGSymbolicValue rValue =
           expressionEvaluator
@@ -308,8 +310,8 @@ public class SMGTransferRelation
           SMGObject object = address.getObject();
           long offset = address.getOffset().getAsLong();
 
-          //TODO cast value
-          rValueType = expressionEvaluator.getRealExpressionType(lValue);
+          // TODO cast value
+          rValueType = SMGExpressionEvaluator.getRealExpressionType(lValue);
 
           SMGState resultState =
               expressionEvaluator.assignFieldToState(
@@ -361,7 +363,7 @@ public class SMGTransferRelation
       CExpression exp = arguments.get(i);
 
       String varName = paramDecl.get(i).getName();
-      CType cParamType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
+      CType cParamType = SMGExpressionEvaluator.getRealExpressionType(paramDecl.get(i));
 
       SMGRegion paramObj;
       // If parameter is a array, convert to pointer
@@ -426,8 +428,8 @@ public class SMGTransferRelation
         CExpression exp = arguments.get(i);
 
         String varName = paramDecl.get(i).getName();
-        CType cParamType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
-        CType rValueType = expressionEvaluator.getRealExpressionType(exp.getExpressionType());
+        CType cParamType = SMGExpressionEvaluator.getRealExpressionType(paramDecl.get(i));
+        CType rValueType = SMGExpressionEvaluator.getRealExpressionType(exp.getExpressionType());
         // if function declaration is in form 'int foo(char b[32])' then omit array length
         if (rValueType instanceof CArrayType) {
           rValueType = new CPointerType(rValueType.isConst(), rValueType.isVolatile(), ((CArrayType)rValueType).getType());
@@ -696,7 +698,7 @@ public class SMGTransferRelation
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
       pState = addressOfFieldAndState.getSmgState();
 
-      CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
+      CType fieldType = SMGExpressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
         SMGState resultState = new SMGState(pState);
@@ -748,7 +750,7 @@ public class SMGTransferRelation
           throws CPATransferException {
 
     List<SMGState> result = new ArrayList<>(4);
-    CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
+    CType rValueType = SMGExpressionEvaluator.getRealExpressionType(rValue);
     for (SMGValueAndState valueAndState : readValueToBeAssiged(pNewState, cfaEdge, rValue)) {
       SMGSymbolicValue value = valueAndState.getObject();
       SMGState newState = valueAndState.getSmgState();
@@ -817,7 +819,7 @@ public class SMGTransferRelation
     if (possibleMallocFail && options.isEnableMallocFailure()) {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(pState);
-      CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
+      CType rValueType = SMGExpressionEvaluator.getRealExpressionType(rValue);
       SMGState mallocFailState =
           expressionEvaluator.writeValue(
               otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
@@ -829,7 +831,7 @@ public class SMGTransferRelation
 
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
     String varName = pVarDecl.getName();
-    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
+    CType cType = SMGExpressionEvaluator.getRealExpressionType(pVarDecl);
 
     if (cType.isIncomplete() && cType instanceof CElaboratedType) {
       // for incomplete types, we do not add variables.
@@ -881,7 +883,7 @@ public class SMGTransferRelation
 
   private List<SMGState> handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
     CInitializer newInitializer = pVarDecl.getInitializer();
-    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
+    CType cType = SMGExpressionEvaluator.getRealExpressionType(pVarDecl);
 
     if (newInitializer != null) {
       return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);

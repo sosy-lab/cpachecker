@@ -90,14 +90,10 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
-
     if (pValue.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
-    SMGExplicitValue explicitValue = smgState.getExplicit((SMGKnownSymValue) pValue);
-
-    return explicitValue;
+    return smgState.getExplicit((SMGKnownSymValue) pValue);
   }
 
   protected void setSmgState(SMGState pSmgState) {

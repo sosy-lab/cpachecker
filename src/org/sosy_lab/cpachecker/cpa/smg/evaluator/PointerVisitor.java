@@ -97,7 +97,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
   @Override
   public List<? extends SMGValueAndState> visit(CIdExpression exp) throws CPATransferException {
 
-    CType c = smgExpressionEvaluator.getRealExpressionType(exp);
+    CType c = SMGExpressionEvaluator.getRealExpressionType(exp);
 
     if (c instanceof CArrayType) {
       // a == &a[0];
@@ -135,7 +135,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
   private List<? extends SMGValueAndState> handleAmper(CRightHandSide amperOperand)
       throws CPATransferException {
 
-    if (smgExpressionEvaluator.getRealExpressionType(amperOperand) instanceof CFunctionType
+    if (SMGExpressionEvaluator.getRealExpressionType(amperOperand) instanceof CFunctionType
         && amperOperand instanceof CIdExpression) {
       // function type &foo
       return createAddressOfFunction((CIdExpression) amperOperand);
@@ -201,7 +201,12 @@ public class PointerVisitor extends ExpressionValueVisitor {
           result.add(SMGAddressValueAndState.of(newState));
         } else {
           SMGExplicitValue arrayOffset = arrayAddress.getOffset();
-          int typeSize = smgExpressionEvaluator.getBitSizeof(getCfaEdge(), smgExpressionEvaluator.getRealExpressionType(lValue), newState, lValue);
+          int typeSize =
+              smgExpressionEvaluator.getBitSizeof(
+                  getCfaEdge(),
+                  SMGExpressionEvaluator.getRealExpressionType(lValue),
+                  newState,
+                  lValue);
           SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
           SMGExplicitValue offset = arrayOffset.add(subscriptValue.multiply(sizeOfType));
           List<SMGAddressValueAndState> resultAddressAndState =
@@ -267,8 +272,8 @@ public class PointerVisitor extends ExpressionValueVisitor {
 
     CExpression lVarInBinaryExp = binaryExp.getOperand1();
     CExpression rVarInBinaryExp = binaryExp.getOperand2();
-    CType lVarInBinaryExpType = smgExpressionEvaluator.getRealExpressionType(lVarInBinaryExp);
-    CType rVarInBinaryExpType = smgExpressionEvaluator.getRealExpressionType(rVarInBinaryExp);
+    CType lVarInBinaryExpType = SMGExpressionEvaluator.getRealExpressionType(lVarInBinaryExp);
+    CType rVarInBinaryExpType = SMGExpressionEvaluator.getRealExpressionType(rVarInBinaryExp);
 
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CPointerType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CPointerType;
@@ -296,7 +301,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
     "to be a pointer.", binaryExp);
     }
 
-    CType typeOfPointer = smgExpressionEvaluator.getRealExpressionType(addressType.getType());
+    CType typeOfPointer = SMGExpressionEvaluator.getRealExpressionType(addressType.getType());
 
     return smgExpressionEvaluator.handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
         address, pointerOffset, typeOfPointer, lVarIsAddress,

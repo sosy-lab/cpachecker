@@ -185,11 +185,11 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
               assignableState,
               addressOfField.getObject(),
               addressOfField.getOffset().getAsInt(),
-              smgRightHandSideEvaluator.getRealExpressionType(lValue),
+              SMGExpressionEvaluator.getRealExpressionType(lValue),
               rSymValue,
               edge);
     }
-    int size = smgRightHandSideEvaluator.getBitSizeof(edge, smgRightHandSideEvaluator.getRealExpressionType(lValue), assignableState);
+    int size = smgRightHandSideEvaluator.getBitSizeof(edge, SMGExpressionEvaluator.getRealExpressionType(lValue), assignableState);
     assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {

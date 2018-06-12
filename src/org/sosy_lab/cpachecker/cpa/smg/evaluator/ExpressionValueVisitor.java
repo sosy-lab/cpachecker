@@ -110,7 +110,13 @@ public class ExpressionValueVisitor
         continue;
       }
 
-      SMGValueAndState symbolicValueResultAndState = smgExpressionEvaluator.readValue(newState, address.getObject(), address.getOffset(), smgExpressionEvaluator.getRealExpressionType(exp), cfaEdge);
+      SMGValueAndState symbolicValueResultAndState =
+          smgExpressionEvaluator.readValue(
+              newState,
+              address.getObject(),
+              address.getOffset(),
+              SMGExpressionEvaluator.getRealExpressionType(exp),
+              cfaEdge);
       result.add(symbolicValueResultAndState);
     }
 
@@ -157,7 +163,7 @@ public class ExpressionValueVisitor
         continue;
       }
 
-      CType fieldType = smgExpressionEvaluator.getRealExpressionType(fieldReference);
+      CType fieldType = SMGExpressionEvaluator.getRealExpressionType(fieldReference);
 
       result.add(
           smgExpressionEvaluator.readValue(
@@ -203,8 +209,13 @@ public class ExpressionValueVisitor
           .getObjectForVisibleVariable(idExpression.getName());
 
       smgState.addElementToCurrentChain(variableObject);
-      SMGValueAndState result = smgExpressionEvaluator.readValue(smgState, variableObject, SMGKnownExpValue.ZERO,
-          smgExpressionEvaluator.getRealExpressionType(idExpression), cfaEdge);
+      SMGValueAndState result =
+          smgExpressionEvaluator.readValue(
+              smgState,
+              variableObject,
+              SMGKnownExpValue.ZERO,
+              SMGExpressionEvaluator.getRealExpressionType(idExpression),
+              cfaEdge);
       result.getSmgState().addElementToCurrentChain(result.getObject());
 
       return singletonList(result);
@@ -244,7 +255,12 @@ public class ExpressionValueVisitor
         return result;
 
     case SIZEOF:
-      int size = smgExpressionEvaluator.getBitSizeof(cfaEdge, smgExpressionEvaluator.getRealExpressionType(unaryOperand), getInitialSmgState(), unaryOperand);
+        int size =
+            smgExpressionEvaluator.getBitSizeof(
+                cfaEdge,
+                SMGExpressionEvaluator.getRealExpressionType(unaryOperand),
+                getInitialSmgState(),
+                unaryOperand);
       SMGSymbolicValue val = (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     case TILDE:
@@ -259,8 +275,8 @@ public class ExpressionValueVisitor
       throws CPATransferException {
 
     CExpression operand = pointerExpression.getOperand();
-    CType operandType = smgExpressionEvaluator.getRealExpressionType(operand);
-    CType expType = smgExpressionEvaluator.getRealExpressionType(pointerExpression);
+    CType operandType = SMGExpressionEvaluator.getRealExpressionType(operand);
+    CType expType = SMGExpressionEvaluator.getRealExpressionType(pointerExpression);
 
     if (operandType instanceof CPointerType) {
       return dereferencePointer(operand, expType);

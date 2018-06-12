@@ -341,7 +341,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSExpressionValueVisitor(this, pCfaEdge, pNewState);
+    return new RHSExpressionValueVisitor(this, smgTransferRelation, pCfaEdge, pNewState);
   }
 
   @Override
@@ -352,7 +352,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   @Override
   RHSCSizeOfVisitor getSizeOfVisitor(
       CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
-    return new RHSCSizeOfVisitor(this, pEdge, pState, pExpression);
+    return new RHSCSizeOfVisitor(this, smgTransferRelation, pEdge, pState, pExpression);
   }
 
   @Override

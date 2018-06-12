@@ -134,8 +134,8 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
      */
     CExpression operand = pointerExpression.getOperand();
 
-    assert smgExpressionEvaluator.getRealExpressionType(operand) instanceof CPointerType
-      || smgExpressionEvaluator.getRealExpressionType(operand) instanceof CArrayType;
+    assert SMGExpressionEvaluator.getRealExpressionType(operand) instanceof CPointerType
+        || SMGExpressionEvaluator.getRealExpressionType(operand) instanceof CArrayType;
 
     return asAddressAndStateList(
         smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), operand));

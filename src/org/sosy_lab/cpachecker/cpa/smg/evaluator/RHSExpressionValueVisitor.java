@@ -29,17 +29,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
-  private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
+  private final SMGTransferRelation smgTransferRelation;
 
-  public RHSExpressionValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      CFAEdge pEdge, SMGState pSmgState) {
+  public RHSExpressionValueVisitor(
+      SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      SMGTransferRelation pSmgTransferRelation,
+      CFAEdge pEdge,
+      SMGState pSmgState) {
     super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
-    smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
+    smgTransferRelation = pSmgTransferRelation;
   }
 
   @Override
@@ -53,10 +57,10 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
     // If Calloc and Malloc have not been properly declared,
     // they may be shown to return void
-    SMGBuiltins builtins = smgRightHandSideEvaluator.smgTransferRelation.builtins;
+    SMGBuiltins builtins = smgTransferRelation.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
-        smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
+        smgTransferRelation.possibleMallocFail = true;
         return builtins.evaluateConfigurableAllocationFunction(
             pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
       }

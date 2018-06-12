@@ -335,18 +335,19 @@ public class SMGBuiltins {
 
     if (options.getArrayAllocationFunctions().contains(functionName)) {
 
-      List<SMGExplicitValueAndState> result = new ArrayList<>(4);
-
-      List<SMGExplicitValueAndState> numValueAndStates =
-          getAllocateFunctionParameter(options.getMemoryArrayAllocationFunctionsNumParameter(),
-              functionCall, pState, cfaEdge);
-
-      for (SMGExplicitValueAndState numValueAndState : numValueAndStates) {
-        List<SMGExplicitValueAndState> elemSizeValueAndStates =
-            getAllocateFunctionParameter(options.getMemoryArrayAllocationFunctionsElemSizeParameter(),
-                functionCall, numValueAndState.getSmgState(), cfaEdge);
-
-        for (SMGExplicitValueAndState elemSizeValueAndState : elemSizeValueAndStates) {
+      List<SMGExplicitValueAndState> result = new ArrayList<>();
+      for (SMGExplicitValueAndState numValueAndState :
+          getAllocateFunctionParameter(
+              options.getMemoryArrayAllocationFunctionsNumParameter(),
+              functionCall,
+              pState,
+              cfaEdge)) {
+        for (SMGExplicitValueAndState elemSizeValueAndState :
+            getAllocateFunctionParameter(
+                options.getMemoryArrayAllocationFunctionsElemSizeParameter(),
+                functionCall,
+                numValueAndState.getSmgState(),
+                cfaEdge)) {
 
           SMGExplicitValue size = numValueAndState.getObject().multiply(elemSizeValueAndState.getObject());
           result.add(SMGExplicitValueAndState.of(elemSizeValueAndState.getSmgState(), size));

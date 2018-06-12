@@ -265,7 +265,7 @@ public class SMGExpressionEvaluator {
     return new SMGField(smgValue, resultType);
   }
 
-  public boolean isStructOrUnionType(CType rValueType) {
+  public static boolean isStructOrUnionType(CType rValueType) {
 
     if (rValueType instanceof CElaboratedType) {
       CElaboratedType type = (CElaboratedType) rValueType;
@@ -446,15 +446,15 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  public CType getRealExpressionType(CType type) {
+  public static CType getRealExpressionType(CType type) {
     return type.getCanonicalType();
   }
 
-  public CType getRealExpressionType(CSimpleDeclaration decl) {
+  public static CType getRealExpressionType(CSimpleDeclaration decl) {
     return getRealExpressionType(decl.getType());
   }
 
-  public CType getRealExpressionType(CRightHandSide exp) {
+  public static CType getRealExpressionType(CRightHandSide exp) {
     return getRealExpressionType(exp.getExpressionType());
   }
 
@@ -556,13 +556,12 @@ public class SMGExpressionEvaluator {
     for (SMGAddressValueAndState arrayAddressAndState :
         evaluateAddress(initialSmgState, cfaEdge, exp.getArrayExpression())) {
       SMGAddressValue arrayAddress = arrayAddressAndState.getObject();
-      SMGState newState = arrayAddressAndState.getSmgState();
 
       CExpression subscriptExpression = exp.getSubscriptExpression();
       for (SMGExplicitValueAndState subscriptValueAndState :
-          evaluateExplicitValue(newState, cfaEdge, subscriptExpression)) {
+          evaluateExplicitValue(arrayAddressAndState.getSmgState(), cfaEdge, subscriptExpression)) {
         SMGExplicitValue subscriptValue = subscriptValueAndState.getObject();
-        newState = subscriptValueAndState.getSmgState();
+        SMGState newState = subscriptValueAndState.getSmgState();
 
         if (subscriptValue.isUnknown()) {
           if (newState.isTrackPredicatesEnabled()  && !arrayAddress.isUnknown()) {

@@ -71,8 +71,8 @@ class ArrayVisitor extends AddressVisitor
 
     CExpression lVarInBinaryExp = binaryExp.getOperand1();
     CExpression rVarInBinaryExp = binaryExp.getOperand2();
-    CType lVarInBinaryExpType = smgExpressionEvaluator.getRealExpressionType(lVarInBinaryExp);
-    CType rVarInBinaryExpType = smgExpressionEvaluator.getRealExpressionType(rVarInBinaryExp);
+    CType lVarInBinaryExpType = SMGExpressionEvaluator.getRealExpressionType(lVarInBinaryExp);
+    CType rVarInBinaryExpType = SMGExpressionEvaluator.getRealExpressionType(rVarInBinaryExp);
 
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CArrayType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CArrayType;
@@ -121,7 +121,7 @@ class ArrayVisitor extends AddressVisitor
     // parameter declaration array types are converted to pointer
     if (pVariableName.getDeclaration() instanceof CParameterDeclaration) {
 
-      CType type = smgExpressionEvaluator.getRealExpressionType(pVariableName);
+      CType type = SMGExpressionEvaluator.getRealExpressionType(pVariableName);
       if (type instanceof CArrayType) {
         // if function declaration is in form 'int foo(char b[32])' then omit array length
         //TODO support C11 6.7.6.3 7:
@@ -130,8 +130,7 @@ class ArrayVisitor extends AddressVisitor
         type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
       }
 
-      List<SMGAddressAndState> result = new ArrayList<>(addressAndStates.size());
-
+      List<SMGAddressAndState> result = new ArrayList<>();
       for (SMGAddressAndState addressAndState : addressAndStates) {
 
         SMGAddress address = addressAndState.getObject();
