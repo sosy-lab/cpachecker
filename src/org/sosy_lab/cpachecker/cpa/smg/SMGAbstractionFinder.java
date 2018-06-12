@@ -35,6 +35,6 @@ public interface SMGAbstractionFinder {
   }
 
   Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> abstractionLocks)
+      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> abstractionBlocks)
       throws SMGInconsistentException;
 }

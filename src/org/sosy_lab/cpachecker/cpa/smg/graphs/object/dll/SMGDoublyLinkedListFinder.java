@@ -65,8 +65,9 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
-      Set<SMGAbstractionBlock> pAbstractionLocks) throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(
+      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      throws SMGInconsistentException {
     SMGJoinDllProgress progress = new SMGJoinDllProgress();
 
     for (SMGObject object : pSmg.getHeapObjects()) {
@@ -74,7 +75,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     Set<SMGDoublyLinkedListCandidateSequenceBlock> dllBlocks =
-        FluentIterable.from(pAbstractionLocks)
+        FluentIterable.from(pAbstractionBlocks)
             .filter(SMGDoublyLinkedListCandidateSequenceBlock.class)
             .toSet();
 

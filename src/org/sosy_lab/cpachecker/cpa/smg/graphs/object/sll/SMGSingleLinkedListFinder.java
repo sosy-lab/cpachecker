@@ -63,8 +63,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
-      Set<SMGAbstractionBlock> pAbstractionLocks) throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(
+      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      throws SMGInconsistentException {
     SMGJoinSllProgress pProgress = new SMGJoinSllProgress();
 
     for (SMGObject object : pSmg.getHeapObjects()) {
@@ -72,8 +73,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     Set<SMGSingleLinkedListCandidateSequenceBlock> sllBlocks =
-        FluentIterable.from(pAbstractionLocks)
-            .filter(SMGSingleLinkedListCandidateSequenceBlock.class).toSet();
+        FluentIterable.from(pAbstractionBlocks)
+            .filter(SMGSingleLinkedListCandidateSequenceBlock.class)
+            .toSet();
 
     return pProgress.getValidCandidates(seqLengthEqualityThreshold, seqLengthEntailmentThreshold, seqLengthIncomparableThreshold, pSmg, sllBlocks);
   }

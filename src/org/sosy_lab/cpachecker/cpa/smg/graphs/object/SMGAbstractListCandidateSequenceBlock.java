@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
-public class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbstractionBlock {
+public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbstractionBlock {
 
   private final S shape;
   private final int length;
