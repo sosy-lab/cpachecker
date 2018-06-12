@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
@@ -693,13 +692,10 @@ public class SMGTransferRelation
             newStates = asSMGStateList(builtins.evaluateAlloca(cFCExpression, newState, pCfaEdge));
           break;
         case "memset":
-            List<SMGAddressValueAndState> result =
-                builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
-            newStates = asSMGStateList(result);
+            newStates = asSMGStateList(builtins.evaluateMemset(cFCExpression, newState, pCfaEdge));
           break;
         case "memcpy":
-          result = builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge);
-            newStates = asSMGStateList(result);
+            newStates = asSMGStateList(builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge));
           break;
           case "printf":
             return ImmutableList.of(new SMGState(state));
@@ -751,15 +747,13 @@ public class SMGTransferRelation
         newStates.forEach(smgState -> smgState.unknownWrite());
         result.addAll(newStates);
       } else {
-        List<SMGState> newStates =
-            handleAssignmentToField(
-                pState,
-                cfaEdge,
-                addressOfField.getObject(),
-                addressOfField.getOffset().getAsLong(),
-                fieldType,
-                rValue);
-        result.addAll(newStates);
+        result.addAll(handleAssignmentToField(
+            pState,
+            cfaEdge,
+            addressOfField.getObject(),
+            addressOfField.getOffset().getAsLong(),
+            fieldType,
+            rValue));
       }
     }
 

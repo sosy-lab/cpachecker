@@ -59,15 +59,11 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
         smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-        List<SMGAddressValueAndState> configAllocEdge =
-            builtins.evaluateConfigurableAllocationFunction(
-                pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return configAllocEdge;
+        return builtins.evaluateConfigurableAllocationFunction(
+            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
       }
       if (builtins.isExternalAllocationFunction(functionName)) {
-        List<SMGAddressValueAndState> extAllocEdge =
-            builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
-        return extAllocEdge;
+        return builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
       }
       switch (functionName) {
       case "__VERIFIER_BUILTIN_PLOT":
@@ -75,10 +71,8 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
         break;
       case "__builtin_alloca":
         smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-          List<SMGAddressValueAndState> allocEdge =
-              builtins.evaluateAlloca(
-                  pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-          return allocEdge;
+          return builtins.evaluateAlloca(
+              pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
       case "printf":
           return Collections.singletonList(SMGValueAndState.of(getInitialSmgState()));
       default:
