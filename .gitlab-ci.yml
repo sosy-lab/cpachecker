@@ -14,6 +14,7 @@ variables:
   artifacts:
     paths:
       - "ConfigurationChecks.html"
+      - "hs_err_pid*.log"
     when: always
 
 configuration-checks:jdk-8:
