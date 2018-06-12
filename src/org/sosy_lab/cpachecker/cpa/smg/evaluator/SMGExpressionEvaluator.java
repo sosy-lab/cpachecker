@@ -255,7 +255,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    SMGExplicitValue smgValue = null;
+    final SMGExplicitValue smgValue;
     if (!resultType.equals(pOwnerType)) {
       smgValue = SMGKnownExpValue.valueOf(offset);
       resultType = getRealExpressionType(resultType);
@@ -389,8 +389,9 @@ public class SMGExpressionEvaluator {
     return rValue.accept(getAssumeVisitor(cfaEdge, newState));
   }
 
-  public SMGSymbolicValue evaluateAssumptionValueV2(SMGState newState,
-      CFAEdge cfaEdge, CExpression rValue) throws CPATransferException {
+  @Deprecated // unused
+  public SMGSymbolicValue evaluateAssumptionValueV2(
+      SMGState newState, CFAEdge cfaEdge, CExpression rValue) throws CPATransferException {
 
     List<? extends SMGValueAndState> result = evaluateAssumptionValue(newState, cfaEdge, rValue);
 
@@ -432,8 +433,9 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  public SMGAddressValue evaluateAddressV2(SMGState newState, CFAEdge cfaEdge,
-      CRightHandSide rValue) throws CPATransferException {
+  @Deprecated // unused
+  public SMGAddressValue evaluateAddressV2(
+      SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
 
     List<SMGAddressValueAndState> result = evaluateAddress(newState, cfaEdge, rValue);
 
