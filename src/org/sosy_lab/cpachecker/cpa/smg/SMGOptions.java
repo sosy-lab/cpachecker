@@ -60,7 +60,7 @@ public class SMGOptions {
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
-  public static enum UnknownFunctionHandling {
+  public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
     ASSUME_EXTERNAL_ALLOCATED
@@ -196,7 +196,7 @@ public class SMGOptions {
       description = "Handle extern variables with incomplete type (extern int array[]) as external allocation")
   private boolean handleExternVariableAsExternalAllocation = false;
 
-  public static enum SMGExportLevel {
+  public enum SMGExportLevel {
     NEVER,
     LEAF,
     INTERESTING,

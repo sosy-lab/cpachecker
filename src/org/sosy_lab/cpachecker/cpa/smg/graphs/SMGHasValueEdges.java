@@ -31,19 +31,18 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 /** An immutable collection of has-value-edges. */
 public interface SMGHasValueEdges {
 
-
   // Modifying methods
 
-  public SMGHasValueEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
+  SMGHasValueEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
 
-  public SMGHasValueEdges addEdgeAndCopy(SMGEdgeHasValue pEdge);
+  SMGHasValueEdges addEdgeAndCopy(SMGEdgeHasValue pEdge);
 
-  public SMGHasValueEdges removeEdgeAndCopy(SMGEdgeHasValue pEdge);
-
+  SMGHasValueEdges removeEdgeAndCopy(SMGEdgeHasValue pEdge);
 
   // Querying methods
 
-  public ImmutableSet<SMGEdgeHasValue> getHvEdges();
+  ImmutableSet<SMGEdgeHasValue> getHvEdges();
 
-  public @Nullable ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
+  @Nullable
+  ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
 }

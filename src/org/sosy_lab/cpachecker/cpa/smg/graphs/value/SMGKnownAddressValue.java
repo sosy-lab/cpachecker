@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,45 +32,30 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  * A class to represent a value which points to an address. This class is mainly used to store value
  * information.
  */
-public final class SMGKnownAddVal extends SMGKnownSymValue implements SMGAddressValue {
+public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGAddressValue {
 
   /** The address this value represents. */
-  private final SMGKnownAddress address;
+  private final SMGAddress address;
 
-  private SMGKnownAddVal(BigInteger pValue, SMGKnownAddress pAddress) {
+  private SMGKnownAddressValue(BigInteger pValue, SMGAddress pAddress) {
     super(pValue);
     checkNotNull(pAddress);
     address = pAddress;
   }
 
-  public static SMGKnownAddVal valueOf(
+  public static SMGKnownAddressValue valueOf(
       SMGObject pObject, SMGKnownExpValue pOffset, SMGKnownSymValue pAddress) {
-    return new SMGKnownAddVal(pAddress.getValue(), SMGKnownAddress.valueOf(pObject, pOffset));
+    return new SMGKnownAddressValue(pAddress.getValue(), SMGAddress.valueOf(pObject, pOffset));
+  }
+
+  public static SMGKnownAddressValue valueOf(int pValue, SMGObject object, long offset) {
+    return new SMGKnownAddressValue(
+        BigInteger.valueOf(pValue), SMGAddress.valueOf(object, SMGKnownExpValue.valueOf(offset)));
   }
 
   @Override
-  public SMGKnownAddress getAddress() {
+  public SMGAddress getAddress() {
     return address;
-  }
-
-  public static SMGKnownAddVal valueOf(BigInteger pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(pValue, pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(SMGKnownSymValue pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(pValue.getValue(), pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(int pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(long pValue, SMGKnownAddress pAddress) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), pAddress);
-  }
-
-  public static SMGKnownAddVal valueOf(int pValue, SMGObject object, long offset) {
-    return new SMGKnownAddVal(BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
   }
 
   @Override
@@ -80,7 +65,7 @@ public final class SMGKnownAddVal extends SMGKnownSymValue implements SMGAddress
 
   @Override
   public SMGKnownExpValue getOffset() {
-    return address.getOffset();
+    return (SMGKnownExpValue) address.getOffset();
   }
 
   @Override

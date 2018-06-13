@@ -34,7 +34,7 @@ public interface SMGAbstractionFinder {
     return traverse(pSmg, pSMGState, ImmutableSet.of());
   }
 
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
-      Set<SMGAbstractionBlock> abstractionLocks)
+  Set<SMGAbstractionCandidate> traverse(
+      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> abstractionBlocks)
       throws SMGInconsistentException;
 }

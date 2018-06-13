@@ -36,6 +36,5 @@ public interface ProgramCounterValueAssignmentEdge extends CFAEdge {
    *
    * @return the assigned program counter value.
    */
-  public int getProgramCounterValue();
-
+  int getProgramCounterValue();
 }

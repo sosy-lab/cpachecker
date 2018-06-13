@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-
 public interface InvariantSupplier {
 
   /**
@@ -62,7 +61,7 @@ public interface InvariantSupplier {
       @Nullable PathFormula pContext)
       throws InterruptedException;
 
-  static enum TrivialInvariantSupplier implements InvariantSupplier {
+  enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;
 
     @Override

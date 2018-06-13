@@ -146,7 +146,7 @@ enum StandardLiftings implements Lifting {
     return liftedBlockedCti;
   }
 
-  static interface UnsatCallback {
+  interface UnsatCallback {
 
     void unsat(
         SymbolicCandiateInvariant pLiftedCTI,
@@ -155,8 +155,7 @@ enum StandardLiftings implements Lifting {
         throws SolverException, InterruptedException;
   }
 
-  static enum DoNothingUnsatCallback implements UnsatCallback {
-
+  enum DoNothingUnsatCallback implements UnsatCallback {
     INSTANCE;
 
     @Override

@@ -40,7 +40,7 @@ enum EmptyAbstractionCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
-  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
+  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) {
     return pSMG;
   }
 

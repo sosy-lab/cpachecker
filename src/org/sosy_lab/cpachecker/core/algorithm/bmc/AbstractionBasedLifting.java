@@ -162,7 +162,7 @@ public class AbstractionBasedLifting implements Lifting {
     }
   }
 
-  static interface LiftingAbstractionFailureStrategy {
+  interface LiftingAbstractionFailureStrategy {
 
     SymbolicCandiateInvariant handleLAF(
         FormulaManagerView pFMGR,
@@ -176,7 +176,7 @@ public class AbstractionBasedLifting implements Lifting {
         throws CPATransferException, InterruptedException, SolverException;
   }
 
-  public static enum RefinementLAFStrategies implements LiftingAbstractionFailureStrategy {
+  public enum RefinementLAFStrategies implements LiftingAbstractionFailureStrategy {
     IGNORE {
 
       @Override
@@ -250,7 +250,7 @@ public class AbstractionBasedLifting implements Lifting {
         }
         return pBlockedConcreteCti;
       }
-    };
+    }
   }
 
   private static void refinePrecision(

@@ -411,7 +411,7 @@ class ASTConverter {
         && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper;
   }
 
-  static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
+  enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
   CONDITION getConditionKind(final CExpression condition) {
 
@@ -1465,8 +1465,7 @@ class ASTConverter {
         }
       }
       if (rhs != null) {
-        returnAssignment = Optional.<CAssignment>of(
-            new CExpressionAssignmentStatement(loc, lhs, rhs));
+        returnAssignment = Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
         returnAssignment = Optional.absent();
       }

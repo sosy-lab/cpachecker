@@ -49,10 +49,7 @@ class TestVector {
       inputVariableValues;
 
   private TestVector() {
-    this(
-        PathCopyingPersistentTreeMap
-            .<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>of(),
-        PathCopyingPersistentTreeMap.<ComparableVariableDeclaration, InitializerTestValue>of());
+    this(PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of());
   }
 
   private TestVector(

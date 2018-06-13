@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 @Options(prefix="analysis")
 public class ReachedSetFactory {
 
-  private static enum ReachedSetType {
+  private enum ReachedSetType {
     NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
   }
 

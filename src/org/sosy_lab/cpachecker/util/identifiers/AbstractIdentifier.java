@@ -27,23 +27,23 @@ import java.util.Collection;
 
 public interface AbstractIdentifier extends Comparable<AbstractIdentifier> {
   @Override
-  public boolean equals(Object other);
+  boolean equals(Object other);
 
   @Override
-  public int hashCode();
+  int hashCode();
 
   @Override
-  public String toString();
+  String toString();
 
-  public boolean isGlobal();
+  boolean isGlobal();
 
-  public AbstractIdentifier cloneWithDereference(int dereference);
+  AbstractIdentifier cloneWithDereference(int dereference);
 
-  public int getDereference();
+  int getDereference();
 
-  public boolean isPointer();
+  boolean isPointer();
 
-  public boolean isDereferenced();
+  boolean isDereferenced();
 
-  public Collection<AbstractIdentifier> getComposedIdentifiers();
+  Collection<AbstractIdentifier> getComposedIdentifiers();
 }

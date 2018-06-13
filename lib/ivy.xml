@@ -31,7 +31,7 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-262-g23bf767" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-299-g894eab7" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -117,10 +117,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-40-g94ea257f" conf="runtime->runtime; contrib->sources">
-          <!-- Old version of java-cup conflicts with our newer version of java-cup-runtime -->
-          <exclude org="net.sf.squirrel-sql.thirdparty-non-maven" module="java-cup"/>
-        </dependency>
+        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-87-g7e5572e" conf="runtime->runtime; contrib->sources"/>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->

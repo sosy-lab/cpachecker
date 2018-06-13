@@ -27,12 +27,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionCandidate {
 
-  public boolean isEmpty();
+  boolean isEmpty();
 
-  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
+  CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
 
-  public int getScore();
+  int getScore();
 
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState);
-
+  SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState);
 }

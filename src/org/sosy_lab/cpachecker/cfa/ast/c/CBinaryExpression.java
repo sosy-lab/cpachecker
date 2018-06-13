@@ -98,7 +98,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     return (BinaryOperator) super.getOperator();
   }
 
-  public static enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
+  public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     MULTIPLY      ("*"),
     DIVIDE        ("/"),
     MODULO        ("%"),
@@ -119,7 +119,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
     private final String op;
 
-    private BinaryOperator(String pOp) {
+    BinaryOperator(String pOp) {
       op = pOp;
     }
 

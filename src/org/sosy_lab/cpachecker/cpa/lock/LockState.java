@@ -82,7 +82,13 @@ public class LockState extends AbstractLockState {
     public boolean cover(CompatibleNode pNode) {
       Preconditions.checkArgument(pNode instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pNode;
-      return o.containsAll(this);
+
+      // empty locks do not cover all others (special case
+      if (this.isEmpty()) {
+        return o.isEmpty();
+      } else {
+        return o.containsAll(this);
+      }
     }
 
     @Override

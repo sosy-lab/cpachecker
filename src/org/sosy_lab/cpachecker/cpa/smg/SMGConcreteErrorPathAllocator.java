@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -154,7 +155,7 @@ public class SMGConcreteErrorPathAllocator {
             new SingleConcreteState(
                 Iterables.getOnlyElement(edges),
                 new ConcreteState(
-                    ImmutableMap.<LeftHandSide, Object>of(),
+                    ImmutableMap.of(),
                     allocateAddresses(pSMGState, variableAddresses),
                     variableAddresses.getAddressMap(),
                     exp -> MEMORY_NAME)));
@@ -176,7 +177,7 @@ public class SMGConcreteErrorPathAllocator {
     if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
       state =
           new ConcreteState(
-              ImmutableMap.<LeftHandSide, Object>of(),
+              ImmutableMap.of(),
               allocateAddresses(pSMGState, variableAddresses),
               variableAddresses.getAddressMap(),
               exp -> MEMORY_NAME);
@@ -326,7 +327,9 @@ public class SMGConcreteErrorPathAllocator {
         //TODO ugly, use common representation
         value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
-        value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
+        value =
+            BigInteger.valueOf(
+                pSMGState.getExplicit(SMGKnownSymValue.valueOf(symbolicValue)).getAsLong());
       } else {
         continue;
       }

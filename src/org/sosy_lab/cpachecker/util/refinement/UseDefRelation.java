@@ -202,7 +202,7 @@ public class UseDefRelation {
   }
 
   private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> uses) {
-    updateRelation(state, edge, Collections.<ASimpleDeclaration>emptySet(), uses);
+    updateRelation(state, edge, Collections.emptySet(), uses);
   }
 
   private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
@@ -336,14 +336,14 @@ public class UseDefRelation {
     }
 
     if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
-      addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
+      addUseDef(state, assumeEdge, operand, Collections.emptySet());
     }
 
     else {
       if(isInequality(assumeEdge, binaryExpression.getOperator())
           && hasUnresolvedUse(operand)
           && hasBooleanCharacter(operand)) {
-        addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
+        addUseDef(state, assumeEdge, operand, Collections.emptySet());
       }
     }
   }

@@ -1,0 +1,156 @@
+stages:
+  - dependencies
+  - build
+  - checks
+  - deploy
+
+image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
+variables:
+  IVY_CACHE_DIR: "${CI_PROJECT_DIR}/.ivy2"
+  ANT_PROPS_BUILD: "-Divy.disable=true"
+  ANT_PROPS_CHECKS: "-Divy.disable=true -DskipBuild=true"
+
+
+# Download dependencies and provide them to later stages
+build-dependencies:
+  stage: dependencies
+  script: "ant build-dependencies"
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - ".ivy2/"
+      - "lib/java/"
+  artifacts:
+    paths:
+      - "lib/java/"
+
+
+# Build binaries and provide them to later stages
+.build: &build
+  stage: build
+  script: "ant $ANT_PROPS_BUILD jar"
+  artifacts:
+    paths:
+      - "bin/"
+      - "*.jar"
+
+build:jdk-8:
+  <<: *build
+
+build:jdk-9:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+build:jdk-10:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+
+
+# For checks that need the binaries
+.binary_check: &binary_check
+  stage: checks
+
+# For checks that only need the source code, not the binaries
+.source_check: &source_check
+  stage: checks
+  dependencies:
+    - build-dependencies
+
+
+build-project-ecj:
+  <<: *source_check
+  script: "ant $ANT_PROPS_BUILD build-project-ecj"
+
+check-format:
+  <<: *source_check
+  script: "ant $ANT_PROPS_CHECKS format-source && git diff -s --exit-code"
+
+checkstyle:
+  <<: *source_check
+  script:
+    - "ant $ANT_PROPS_CHECKS checkstyle"
+    - "ant $ANT_PROPS_CHECKS run-checkstyle -Dcheckstyle.output=plain && cat Checkstyle*.xml && test $(cat Checkstyle*xml | grep -vic audit) -eq 0"
+  artifacts:
+    paths:
+      - "Checkstyle*html"
+    when: on_failure
+
+javadoc:
+  <<: *source_check
+  script: "ant $ANT_PROPS_CHECKS javadoc"
+  artifacts:
+    paths:
+      - "Javadoc/"
+
+spotbugs:
+  <<: *binary_check
+  script:
+    - 'ant $ANT_PROPS_CHECKS spotbugs'
+    - 'test \! -f SpotBugs.html'
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+  artifacts:
+    paths:
+      - "SpotBugs.html"
+    when: on_failure
+
+.unit-tests: &unit-tests
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS unit-tests-coverage"
+  artifacts:
+    paths:
+      - "JUnit.html"
+      - "JUnit-coverage/"
+      - "junit/coverage.xml"
+    when: always
+
+unit-tests:jdk-8:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+unit-tests:jdk-9:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-9
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+unit-tests:jdk-10:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+
+deploy-coverage:
+  stage: deploy
+  script: "build/deploy-coverage.sh"
+  dependencies:
+    - unit-tests:jdk-8
+  only:
+    refs:
+      - master
+    variables:
+      - $CODACY_PROJECT_TOKEN # required for job
+      - $GH_TOKEN # required for job
+      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
+  cache:
+    paths:
+      - "codacy-coverage-reporter-assembly*.jar"
+
+deploy-gh-pages:
+  stage: deploy
+  script: "build/deploy-gh-pages.sh"
+  dependencies:
+    - build:jdk-8
+    - javadoc
+  only:
+    refs:
+      - master
+    variables:
+      - $GH_TOKEN # required for job
+      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks

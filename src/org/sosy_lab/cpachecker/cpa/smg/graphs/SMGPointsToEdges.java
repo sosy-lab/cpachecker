@@ -32,20 +32,20 @@ public interface SMGPointsToEdges extends Iterable<SMGEdgePointsTo> {
 
   // Modifying methods
 
-  public SMGPointsToEdges addAndCopy(SMGEdgePointsTo pEdge);
+  SMGPointsToEdges addAndCopy(SMGEdgePointsTo pEdge);
 
-  public SMGPointsToEdges removeAndCopy(SMGEdgePointsTo pEdge);
+  SMGPointsToEdges removeAndCopy(SMGEdgePointsTo pEdge);
 
-  public SMGPointsToEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
+  SMGPointsToEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
 
-  public SMGPointsToEdges removeEdgeWithValueAndCopy(int pValue);
+  SMGPointsToEdges removeEdgeWithValueAndCopy(int pValue);
 
   // Querying methods
 
-  public boolean containsEdgeWithValue(Integer pValue);
+  boolean containsEdgeWithValue(Integer pValue);
 
-  public @Nullable SMGEdgePointsTo getEdgeWithValue(Integer pValue);
+  @Nullable
+  SMGEdgePointsTo getEdgeWithValue(Integer pValue);
 
-  public int size();
-
+  int size();
 }

@@ -286,11 +286,8 @@ public class SMGRefiner implements Refiner {
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InterruptedException may be thrown in subclass
-   * @throws CPAException may be thrown in subclass
    */
-  private CFAPathWithAssumptions createModel(ARGPath errorPath)
-      throws InterruptedException, CPAException {
+  private CFAPathWithAssumptions createModel(ARGPath errorPath) {
 
     //TODO Fix creating a model.
     return CFAPathWithAssumptions.empty();

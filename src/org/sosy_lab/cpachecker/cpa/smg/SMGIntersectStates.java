@@ -246,9 +246,7 @@ public final class SMGIntersectStates {
     pDestSMG.addHeapObject(pObject);
     pMapping.map(pObject, pObject);
 
-    Set<SMGEdgeHasValue> hves = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hve : hves) {
+    for (SMGEdgeHasValue hve : pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
       intersectHveEdgeWithTop(hve, pSmg, pDestSMG, pExplicitValues, pDestExplicitValues, pMapping);
     }
   }
@@ -265,16 +263,10 @@ public final class SMGIntersectStates {
     Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(hves1).uniqueIndex(
-            (SMGEdgeHasValue hve) -> {
-              return hve.getOffset();
-            });
+        FluentIterable.from(hves1).uniqueIndex(SMGEdgeHasValue::getOffset);
 
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(hves2).uniqueIndex(
-            (SMGEdgeHasValue hve) -> {
-              return hve.getOffset();
-            });
+        FluentIterable.from(hves2).uniqueIndex(SMGEdgeHasValue::getOffset);
 
     Set<Long> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
     offsetSet.addAll(offsetToHve1Map.keySet());

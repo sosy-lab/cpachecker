@@ -296,9 +296,9 @@ public class CFAUtils {
    */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
-    return (AssumeEdge)Iterables.getOnlyElement(
-        CFAUtils.leavingEdges(edge.getPredecessor())
-                .filter(not(Predicates.<CFAEdge>equalTo(edge))));
+    return (AssumeEdge)
+        Iterables.getOnlyElement(
+            CFAUtils.leavingEdges(edge.getPredecessor()).filter(not(Predicates.equalTo(edge))));
   }
 
   /**

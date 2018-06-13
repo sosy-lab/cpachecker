@@ -268,8 +268,7 @@ public class PathChecker {
             assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
         return Pair.of(
-            CounterexampleTraceInfo.feasible(
-                ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of()),
+            CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.of()),
             pathWithAssignments);
       }
     }

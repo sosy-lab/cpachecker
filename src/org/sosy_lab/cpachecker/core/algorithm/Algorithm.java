@@ -133,7 +133,7 @@ public interface Algorithm {
     }
   }
 
-  public static interface AlgorithmFactory {
-    public Algorithm newInstance();
+  interface AlgorithmFactory {
+    Algorithm newInstance();
   }
 }

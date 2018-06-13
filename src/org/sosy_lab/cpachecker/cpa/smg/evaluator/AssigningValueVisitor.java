@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
@@ -72,7 +72,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
   }
 
   @Override
-  protected Void visitDefault(CExpression pExp) throws CPATransferException {
+  protected Void visitDefault(CExpression pExp) {
     return null;
   }
 
@@ -164,7 +164,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
 
     if(rSymValue.isUnknown()) {
 
-      rSymValue = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+      rSymValue = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
 
       LValueAssignmentVisitor visitor = smgRightHandSideEvaluator.getLValueAssignmentVisitor(edge, assignableState);
 
@@ -180,10 +180,16 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
         return;
       }
 
-      assignableState = smgRightHandSideEvaluator.smgTransferRelation.writeValue(assignableState, addressOfField.getObject(),
-          addressOfField.getOffset().getAsInt(), smgRightHandSideEvaluator.getRealExpressionType(lValue), rSymValue, edge);
+      assignableState =
+          smgRightHandSideEvaluator.writeValue(
+              assignableState,
+              addressOfField.getObject(),
+              addressOfField.getOffset().getAsInt(),
+              SMGExpressionEvaluator.getRealExpressionType(lValue),
+              rSymValue,
+              edge);
     }
-    int size = smgRightHandSideEvaluator.getBitSizeof(edge, smgRightHandSideEvaluator.getRealExpressionType(lValue), assignableState);
+    int size = smgRightHandSideEvaluator.getBitSizeof(edge, SMGExpressionEvaluator.getRealExpressionType(lValue), assignableState);
     assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {

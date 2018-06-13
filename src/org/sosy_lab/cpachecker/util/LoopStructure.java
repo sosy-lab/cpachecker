@@ -459,7 +459,7 @@ public final class LoopStructure implements Serializable {
 
     // If the loop head cannot reach itself, there is no loop
     if (!reachableSuccessors.contains(pSingleLoopHead)) {
-      return new LoopStructure(ImmutableMultimap.<String, Loop>of());
+      return new LoopStructure(ImmutableMultimap.of());
     }
 
     /*
@@ -485,7 +485,7 @@ public final class LoopStructure implements Serializable {
     // A size of one means only the loop head is contained
     if (loopNodes.isEmpty()
         || (loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead))) {
-      return new LoopStructure(ImmutableMultimap.<String, Loop>of());
+      return new LoopStructure(ImmutableMultimap.of());
     }
 
     return new LoopStructure(ImmutableMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));

@@ -29,9 +29,11 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -86,14 +88,8 @@ public class CLangSMG extends SMG {
    */
   private PersistentMap<String, SMGRegion> global_objects;
 
-  /**
-   * A flag signifying the edge leading to this state caused memory to be leaked
-   * TODO: Seems pretty arbitrary: perhaps we should have a more general solution,
-   *       like a container with (type, message) error witness kind of thing?
-   */
-  private boolean has_leaks = false;
-
-  static private LogManager logger = null;
+  /** logger is always NULL, except for JUnit-tests */
+  private static LogManager logger = null;
 
   /**
    * A flag setting if the class should perform additional consistency checks.
@@ -102,9 +98,6 @@ public class CLangSMG extends SMG {
    * run the checks in the production build.
    */
   static private boolean perform_checks = false;
-
-  private Set<Object> invalidChain = new HashSet<>();
-  private Set<Object> currentChain = new HashSet<>();
 
   public boolean containsInvalidElement(Object elem) {
     if (elem instanceof SMGObject) {
@@ -133,37 +126,6 @@ public class CLangSMG extends SMG {
       return getValues().contains(smgValue.getAsInt());
     }
     return false;
-  }
-
-  public void addInvalidElement(Object elem) {
-    invalidChain.add(elem);
-  }
-
-  public void addElementToCurrentChain(Object elem) {
-    // Avoid to add Null element
-    if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
-      if (smgValue.getAsLong() == 0) {
-        return;
-      }
-    }
-    currentChain.add(elem);
-  }
-
-  public void cleanCurrentChain() {
-    currentChain = new HashSet<>();
-  }
-
-  public Set<Object> getCurrentChain() {
-    return currentChain;
-  }
-
-  public void moveCurrentChainToInvalidChain() {
-    invalidChain.addAll(currentChain);
-  }
-
-  public Set<Object> getInvalidChain() {
-    return invalidChain;
   }
 
   public String getNoteMessageOnElement(Object elem) {
@@ -218,9 +180,6 @@ public class CLangSMG extends SMG {
     stack_objects = pHeap.stack_objects;
     heap_objects = pHeap.heap_objects;
     global_objects = pHeap.global_objects;
-    has_leaks = pHeap.has_leaks;
-    invalidChain.addAll(pHeap.invalidChain);
-    currentChain.addAll(pHeap.currentChain);
   }
 
   /**
@@ -239,10 +198,6 @@ public class CLangSMG extends SMG {
     }
     heap_objects = heap_objects.addAndCopy(pObject);
     addObject(pObject);
-  }
-
-  public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
-    return getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(obj));
   }
 
   /**
@@ -313,16 +268,6 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Sets a flag indicating this SMG is a successor over the edge causing a
-   * memory leak.
-   *
-   * Keeps consistency: yes
-   */
-  public void setMemoryLeak() {
-    has_leaks = true;
-  }
-
-  /**
    * Remove a top stack frame from the SMG, along with all objects in it, and
    * any edges leading from/to it.
    *
@@ -345,14 +290,14 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Prune the SMG: remove all unreachable objects (heap ones: global and stack
-   * are always reachable) and values.
+   * Prune the SMG: remove all unreachable objects (heap ones: global and stack are always
+   * reachable) and values.
    *
-   * TODO: Too large. Refactor into fewer pieces
+   * <p>Keeps consistency: yes
    *
-   * Keeps consistency: yes
+   * @return all unreachable objects, e.g. all the objects that represent a memory leak.
    */
-  public void pruneUnreachable() {
+  public Set<SMGObject> pruneUnreachable() {
     Set<SMGObject> seen = new HashSet<>();
     Set<Integer> seen_values = new HashSet<>();
     collectReachableObjectsAndValues(seen, seen_values);
@@ -371,8 +316,7 @@ public class CLangSMG extends SMG {
     while (!workqueue2.isEmpty()) {
       SMGObject processed = workqueue2.remove();
       if (isObjectExternallyAllocated(processed)) {
-        for (SMGEdgeHasValue outbound :
-            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(processed))) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(processed))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
             setExternallyAllocatedFlag(pointedObject, true);
@@ -383,12 +327,12 @@ public class CLangSMG extends SMG {
     }
 
     // remove all unreachable objects
+    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
     for (SMGObject stray_object : stray_objects) {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           // TODO: report stray_object as error
-          addInvalidElement(stray_object);
-          setMemoryLeak();
+          unreachableObjects.add(stray_object);
         }
         removeObjectAndEdges(stray_object);
         heap_objects = heap_objects.removeAndCopy(stray_object);
@@ -410,23 +354,24 @@ public class CLangSMG extends SMG {
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
     }
+
+    return unreachableObjects;
   }
 
   private void collectReachableObjectsAndValues(
       Set<SMGObject> seenObjects, Set<Integer> seenValues) {
 
     // basis: get all direct reachabale objects
-    Queue<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
+    Deque<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
     for (CLangStackFrame frame : getStackFrames()) {
       workqueue.addAll(frame.getAllObjects());
     }
 
     // search all indirect reachable objects
     while (!workqueue.isEmpty()) {
-      SMGObject obj = workqueue.remove();
+      SMGObject obj = workqueue.pop();
       if (seenObjects.add(obj)) {
-        for (SMGEdgeHasValue outbound :
-            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(obj))) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if (pointedObject != null) {
             workqueue.add(pointedObject);
@@ -576,19 +521,6 @@ public class CLangSMG extends SMG {
    */
   public boolean isGlobal(SMGObject object) {
     return global_objects.containsValue(object);
-  }
-
-  /**
-   * Constant.
-   *
-   * @return True if the SMG is a successor over the edge causing some memory
-   * to be leaked. Returns false otherwise.
-   */
-  public boolean hasMemoryLeaks() {
-    // TODO: [MEMLEAK DETECTION] There needs to be a proper graph algorithm
-    //       in the future. Right now, we can discover memory leaks only
-    //       after unassigned malloc call result, so we know that immediately.
-    return has_leaks;
   }
 
   /**
@@ -861,13 +793,11 @@ public class CLangSMG extends SMG {
       Set<SMGObject> pReached, SMGObjectPosition pPos, SMGMemoryPath pParent, String pFunctionName,
       Integer pLocationOnStack, String pVariableName) {
 
-    Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
     List<Long> offsets = new ArrayList<>();
     Map<Long, SMGObject> offsetToRegion = new HashMap<>();
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
-
-    for (SMGEdgeHasValue objectHve : objectHves) {
+    for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
       Integer value = objectHve.getValue();
       long offset = objectHve.getOffset();
 
@@ -914,10 +844,10 @@ public class CLangSMG extends SMG {
     }
   }
 
-  private static enum SMGObjectPosition {
+  private enum SMGObjectPosition {
     STACK,
     HEAP,
-    GLOBAL;
+    GLOBAL
   }
 
   /**
@@ -1010,13 +940,12 @@ public class CLangSMG extends SMG {
       Set<SMGObject> pReached, SMGObjectPosition pPos, SMGMemoryPath pParent, String pFunctionName,
       Integer pLocationOnStack, String pVariableName) {
 
-    Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
     List<Long> offsets = new ArrayList<>();
     Map<Long, SMGObject> offsetToRegion = new HashMap<>();
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
-    for (SMGEdgeHasValue objectHve : objectHves) {
+    for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
       Integer value = objectHve.getValue();
 
       if (!isPointer(value)) {

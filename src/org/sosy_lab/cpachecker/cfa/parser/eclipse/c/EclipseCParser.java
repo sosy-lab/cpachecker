@@ -134,8 +134,8 @@ class EclipseCParser implements CParser {
     return wrapCode(pFileName, code);
   }
 
-  private static interface FileParseWrapper {
-    public FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
+  private interface FileParseWrapper {
+    FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
   }
 
   private ParseResult parseSomething(
@@ -174,7 +174,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
+  public ParseResult parseFile(List<String> pFilenames) throws CParserException {
 
     return parseSomething(
         Lists.transform(pFilenames, FileToParse::new),

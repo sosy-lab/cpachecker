@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,7 +38,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -66,7 +67,8 @@ public class SMGStateTest {
   static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
 
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
+  private final CFunctionDeclaration functionDeclaration3 =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.of());
   private CSimpleType unspecifiedType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
 
@@ -77,9 +79,8 @@ public class SMGStateTest {
 
     smg1.addStackFrame(functionDeclaration3);
 
-    SMGValueFactory.prepareForTest();
-    for (int i = 0; i < 15; i++) {
-      SMGValueFactory.getNewValue();
+    for (int i = 0; i < 20; i++) {
+      SMGCPA.getNewValue();
     }
 
     SMGRegion l1 = new SMGRegion(96, "l1");
@@ -162,9 +163,8 @@ public class SMGStateTest {
   @Test
   public void materialiseTest() throws SMGInconsistentException, InvalidConfigurationException {
 
-    SMGValueFactory.prepareForTest();
-    for (int i = 0; i < 15; i++) {
-      SMGValueFactory.getNewValue();
+    for (int i = 0; i < 20; i++) {
+      SMGCPA.getNewValue();
     }
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
@@ -257,20 +257,19 @@ public class SMGStateTest {
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGAddressValueAndStateList add = smg1State.getPointerFromValue(6);
+    List<SMGAddressValueAndState> add = smg1State.getPointerFromValue(6);
 
-    add.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGState newState = add.getValueAndStateList().get(1).getSmgState();
+    SMGState newState = add.get(1).getSmgState();
 
-    SMGAddressValueAndStateList add2 = newState.getPointerFromValue(7);
+    List<SMGAddressValueAndState> add2 = newState.getPointerFromValue(7);
 
-    add2.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add2.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
+    add2.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   @SuppressWarnings("unchecked")
@@ -365,7 +364,7 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b value into it
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+    SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -384,7 +383,7 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a *different* 16b value into it and assert that the state *did* change
-    SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+    SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
@@ -463,7 +462,8 @@ public class SMGStateTest {
 
     Integer pointer = pt.getValue().intValue();
 
-    SMGAddressValue pt_obtained = Iterables.getOnlyElement(state.getPointerFromValue(pointer).asAddressValueAndStateList()).getObject();
+    SMGAddressValue pt_obtained =
+        Iterables.getOnlyElement(state.getPointerFromValue(pointer)).getObject();
     Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
   }
 
@@ -473,9 +473,20 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+    SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
     state.getPointerFromValue(nonpointer.getAsInt());
+  }
+
+  @Test
+  public void SMGStateMemoryLeaksTest() throws InvalidConfigurationException {
+    SMGState state =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+
+    Assert.assertFalse(state.hasMemoryLeaks());
+    state.setMemLeak("", Collections.emptyList());
+    Assert.assertTrue(state.hasMemoryLeaks());
   }
 }

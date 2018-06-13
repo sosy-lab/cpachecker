@@ -89,14 +89,14 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   public Optional<GenericAbstractionCandidate> joinSubSmgsIntoGenericAbstractionCandidate() {
 
     MatchResult matchResult = subSMGmatchSpecificShape(inputSMG1, rootObject1, mapping1, template,
-        new HashSet<SMGObject>());
+        new HashSet<>());
 
     if (!matchResult.isMatch()) {
       return Optional.empty();
     }
 
     MatchResult matchResult2 = subSMGmatchSpecificShape(inputSMG2, rootObject2, mapping2, template,
-        new HashSet<SMGObject>());
+        new HashSet<>());
 
     if (!matchResult.isMatch()) {
       return Optional.empty();
@@ -217,8 +217,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       SMGRegion pRootObject, SMGNodeMapping pMapping, Set<SMGObject> pAlreadyVisited, GenericAbstractionCandidateTemplate pTemplate) {
 
     Set<SMGRegion> entryRegions = pMatStep.getEntryRegions();
-    Set<SMGObject> alreadyVisited = new HashSet<>();
-    alreadyVisited.addAll(pAlreadyVisited);
+    Set<SMGObject> alreadyVisited = new HashSet<>(pAlreadyVisited);
 
     MatchResult result;
 
@@ -822,7 +821,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     public MatchResult build() {
-      assert match == true;
+      assert match;
       return new MatchResult(this);
     }
 

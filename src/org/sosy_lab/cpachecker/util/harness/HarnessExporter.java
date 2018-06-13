@@ -809,7 +809,7 @@ public class HarnessExporter {
         FileLocation.DUMMY,
         CPointerType.POINTER_TO_VOID,
         new CIdExpression(FileLocation.DUMMY, functionDeclaration),
-        Collections.<CExpression>singletonList(pSize),
+        Collections.singletonList(pSize),
         functionDeclaration);
   }
 

@@ -27,12 +27,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGJoinMapTargetAddressTest {
 
@@ -42,13 +41,13 @@ public class SMGJoinMapTargetAddressTest {
   private SMGNodeMapping mapping2;
 
   final SMGRegion obj1 = new SMGRegion(64, "ze label");
-  final Integer value1 = SMGValueFactory.getNewValue();
+  final int value1 = SMGCPA.getNewValue();
   final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  final Integer value2 = SMGValueFactory.getNewValue();
+  final int value2 = SMGCPA.getNewValue();
 
   final SMGObject destObj = new SMGRegion(64, "destination");
-  final Integer destValue = SMGValueFactory.getNewValue();
+  final int destValue = SMGCPA.getNewValue();
 
   @Before
   public void setUp() {

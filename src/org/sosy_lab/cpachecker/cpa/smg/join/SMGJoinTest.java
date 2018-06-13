@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,14 +35,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -54,9 +52,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
-  static private final CFunctionDeclaration functionDeclaration2 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.<CParameterDeclaration>of());
-  static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
+  private static final CFunctionDeclaration functionDeclaration =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
+  private static final CFunctionDeclaration functionDeclaration2 =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.of());
+  private static final CFunctionDeclaration functionDeclaration3 =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.of());
 
   private SMGState dummyState;
 
@@ -174,8 +175,8 @@ public class SMGJoinTest {
   private void addGlobalWithValueToBoth(String pVarName) {
     SMGRegion global1 = new SMGRegion(64, pVarName);
     SMGRegion global2 = new SMGRegion(64, pVarName);
-    Integer value1 = SMGValueFactory.getNewValue();
-    Integer value2 = SMGValueFactory.getNewValue();
+    int value1 = SMGCPA.getNewValue();
+    int value2 = SMGCPA.getNewValue();
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, global1, value1);
     SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, global2, value2);
 
@@ -191,8 +192,8 @@ public class SMGJoinTest {
   private void addLocalWithValueToBoth(String pVarName) {
     SMGRegion local1 = new SMGRegion(64, pVarName);
     SMGRegion local2 = new SMGRegion(64, pVarName);
-    Integer value1 = SMGValueFactory.getNewValue();
-    Integer value2 = SMGValueFactory.getNewValue();
+    int value1 = SMGCPA.getNewValue();
+    int value2 = SMGCPA.getNewValue();
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, local1, value1);
     SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, local2, value2);
 
@@ -253,9 +254,8 @@ public class SMGJoinTest {
 
     SMGObject global = resultSMG.getGlobalObjects().get(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
-    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
-    SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
-    assertThat(resultSMG.getValues()).contains(Integer.valueOf(edge.getValue()));
+    SMGEdgeHasValue edge = Iterables.getOnlyElement(resultSMG.getHVEdges(filter));
+    assertThat(resultSMG.getValues()).contains(edge.getValue());
   }
 
   @Test
@@ -274,9 +274,8 @@ public class SMGJoinTest {
 
     SMGObject global = Iterables.get(resultSMG.getStackFrames(), 0).getVariable(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
-    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
-    SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
-    assertThat(resultSMG.getValues()).contains(Integer.valueOf(edge.getValue()));
+    SMGEdgeHasValue edge = Iterables.getOnlyElement(resultSMG.getHVEdges(filter));
+    assertThat(resultSMG.getValues()).contains(edge.getValue());
   }
 
   @Test

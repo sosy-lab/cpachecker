@@ -550,6 +550,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           stats.noOfCurrentAlgorithm,
           singleConfigFileName);
 
+      pContext.config = singleConfigBuilder.build();
+
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
@@ -557,7 +559,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           "Skipping one analysis because the configuration file "
               + singleConfigFileName.toString()
               + " is invalid");
-      return;
+
     } catch (IOException e) {
       String message =
           "Skipping one analysis because the configuration file "
@@ -568,10 +570,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       } else {
         logger.logUserException(Level.WARNING, e, message);
       }
-      return;
     }
-
-    pContext.config = singleConfigBuilder.build();
   }
 
   private void createNextAlgorithm(AlgorithmContext pContext, CFANode pMainFunction)

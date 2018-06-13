@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -817,7 +818,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_FLOOR));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.floor(number.floatValue()));
               } else if (number instanceof Double) {
@@ -835,7 +836,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_CEILING));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.ceil(number.floatValue()));
               } else if (number instanceof Double) {
@@ -854,8 +855,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(
-                    ((BigDecimal) number).setScale(0, BigDecimal.ROUND_HALF_UP));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f)) {
@@ -880,7 +880,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_DOWN));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
@@ -889,7 +889,7 @@ public abstract class AbstractExpressionValueVisitor
                 }
                 return new NumericValue(
                     BigDecimal.valueOf(number.floatValue())
-                        .setScale(0, BigDecimal.ROUND_DOWN)
+                        .setScale(0, RoundingMode.DOWN)
                         .floatValue());
               } else if (number instanceof Double) {
                 double d = number.doubleValue();
@@ -899,7 +899,7 @@ public abstract class AbstractExpressionValueVisitor
                 }
                 return new NumericValue(
                     BigDecimal.valueOf(number.doubleValue())
-                        .setScale(0, BigDecimal.ROUND_DOWN)
+                        .setScale(0, RoundingMode.DOWN)
                         .doubleValue());
               } else if (number instanceof NumericValue.NegativeNaN) {
                 return parameter;

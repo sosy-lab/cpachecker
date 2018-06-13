@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -36,10 +38,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class SMGBuiltins {
 
   private final SMGTransferRelation smgTransferRelation;
+  private final SMGRightHandSideEvaluator expressionEvaluator;
 
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -62,6 +64,7 @@ public class SMGBuiltins {
   SMGBuiltins(SMGTransferRelation pSmgTransferRelation, SMGOptions pOptions,
       SMGExportDotOption pExportSMGOptions, MachineModel pMachineModel, LogManager pLogger) {
     smgTransferRelation = pSmgTransferRelation;
+    expressionEvaluator = pSmgTransferRelation.expressionEvaluator;
     machineModel = pMachineModel;
     logger = pLogger;
     exportSMGOptions = pExportSMGOptions;
@@ -93,8 +96,9 @@ public class SMGBuiltins {
     }
   }
 
-  public final SMGAddressValueAndStateList evaluateMemset(CFunctionCallExpression functionCall,
-      SMGState pSMGState, CFAEdge cfaEdge) throws CPATransferException {
+  public final List<SMGAddressValueAndState> evaluateMemset(
+      CFunctionCallExpression functionCall, SMGState pSMGState, CFAEdge cfaEdge)
+      throws CPATransferException {
 
     //evaluate function: void *memset( void *buffer, int ch, size_t count );
 
@@ -125,36 +129,32 @@ public class SMGBuiltins {
 
     List<SMGAddressValueAndState> result = new ArrayList<>(4);
 
-    SMGAddressValueAndStateList bufferAddressAndStates = evaluateAddress(pSMGState, cfaEdge, bufferExpr);
+    for (SMGAddressValueAndState bufferAddressAndState :
+        evaluateAddress(pSMGState, cfaEdge, bufferExpr)) {
 
-    for (SMGAddressValueAndState bufferAddressAndState : bufferAddressAndStates.asAddressValueAndStateList()) {
-      SMGState currentState = bufferAddressAndState.getSmgState();
+      for (SMGExplicitValueAndState countValueAndState :
+          evaluateExplicitValue(bufferAddressAndState.getSmgState(), cfaEdge, countExpr)) {
 
-      List<SMGExplicitValueAndState> countValueAndStates = evaluateExplicitValue(currentState, cfaEdge, countExpr);
+        for (SMGValueAndState chAndState :
+            evaluateExpressionValue(countValueAndState.getSmgState(), cfaEdge, chExpr)) {
 
-      for (SMGExplicitValueAndState countValueAndState : countValueAndStates) {
-        currentState = countValueAndState.getSmgState();
+          for (SMGExplicitValueAndState expValueAndState :
+              evaluateExplicitValue(chAndState.getSmgState(), cfaEdge, chExpr)) {
 
-        SMGValueAndStateList chAndStates = evaluateExpressionValue(currentState,
-            cfaEdge, chExpr);
-
-        for (SMGValueAndState chAndState : chAndStates.getValueAndStateList()) {
-          currentState = chAndState.getSmgState();
-
-          List<SMGExplicitValueAndState> expValueAndStates = evaluateExplicitValue(currentState, cfaEdge, chExpr);
-
-          for (SMGExplicitValueAndState expValueAndState : expValueAndStates) {
-
-            SMGAddressValueAndState memsetResult =
-                evaluateMemset(expValueAndState.getSmgState(), cfaEdge, bufferAddressAndState.getObject(),
-                    countValueAndState.getObject(), chAndState.getObject(), expValueAndState.getObject());
-            result.add(memsetResult);
+            result.add(
+                evaluateMemset(
+                    expValueAndState.getSmgState(),
+                    cfaEdge,
+                    bufferAddressAndState.getObject(),
+                    countValueAndState.getObject(),
+                    chAndState.getObject(),
+                    expValueAndState.getObject()));
           }
         }
       }
     }
 
-    return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    return result;
   }
 
   private final SMGAddressValueAndState evaluateMemset(SMGState currentState, CFAEdge cfaEdge, SMGAddressValue bufferAddress, SMGExplicitValue countValue, SMGSymbolicValue ch, SMGExplicitValue expValue)
@@ -170,7 +170,7 @@ public class SMGBuiltins {
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
-      ch = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
+      ch = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     }
 
     SMGObject bufferMemory =  bufferAddress.getObject();
@@ -179,13 +179,26 @@ public class SMGBuiltins {
 
     if (ch.equals(SMGKnownSymValue.ZERO)) {
       // Create one large edge
-      currentState = smgTransferRelation.writeValue(currentState, bufferMemory, offset, count * machineModel.getSizeofCharInBits(), ch, cfaEdge);
+      currentState =
+          expressionEvaluator.writeValue(
+              currentState,
+              bufferMemory,
+              offset,
+              AnonymousTypes.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
+              ch,
+              cfaEdge);
     } else {
       // We need to create many edges, one for each character written
       // memset() copies ch into the first count characters of buffer
       for (int c = 0; c < count; c++) {
-        currentState = smgTransferRelation.writeValue(currentState, bufferMemory, offset + (c  * machineModel.getSizeofCharInBits()),
-            CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
+        currentState =
+            expressionEvaluator.writeValue(
+                currentState,
+                bufferMemory,
+                offset + (c * machineModel.getSizeofCharInBits()),
+                CNumericTypes.SIGNED_CHAR,
+                ch,
+                cfaEdge);
       }
 
       if (!expValue.isUnknown()) {
@@ -196,23 +209,23 @@ public class SMGBuiltins {
     return SMGAddressValueAndState.of(currentState, bufferAddress);
   }
 
-  protected SMGValueAndStateList evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge, CExpression rValue)
-      throws CPATransferException {
+  protected List<? extends SMGValueAndState> evaluateExpressionValue(
+      SMGState smgState, CFAEdge cfaEdge, CExpression rValue) throws CPATransferException {
 
-    return smgTransferRelation.expressionEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
+    return expressionEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
   }
 
   protected List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRValue)
       throws CPATransferException {
-
-    return smgTransferRelation.expressionEvaluator.evaluateExplicitValue(pState, pCfaEdge, pRValue);
+    return expressionEvaluator.evaluateExplicitValue(pState, pCfaEdge, pRValue);
   }
 
-  protected SMGAddressValueAndStateList evaluateAddress(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRvalue) throws CPATransferException {
-    return smgTransferRelation.expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
+  protected List<SMGAddressValueAndState> evaluateAddress(
+      SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRvalue) throws CPATransferException {
+    return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
   }
 
-  public final SMGAddressValueAndStateList evaluateExternalAllocation(
+  public final List<SMGAddressValueAndState> evaluateExternalAllocation(
       CFunctionCallExpression pFunctionCall, SMGState pState) {
     SMGState currentState = pState;
 
@@ -221,20 +234,26 @@ public class SMGBuiltins {
     List<SMGAddressValueAndState> result = new ArrayList<>();
 
     // TODO line numbers are not unique when we have multiple input files!
-    String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
-        + pFunctionCall.getFileLocation().getStartingLineNumber();
+    String allocation_label =
+        functionName
+            + "_ID"
+            + SMGCPA.getNewValue()
+            + "_Line:"
+            + pFunctionCall.getFileLocation().getStartingLineNumber();
     SMGAddressValue new_address = currentState.addExternalAllocation(allocation_label);
 
     result.add(SMGAddressValueAndState.of(currentState, new_address));
 
-    return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    return result;
   }
-  /** The method "alloca" (or "__builtin_alloca") allocates memory from the stack.
-   * The memory is automatically freed at function-exit.
+  /**
+   * The method "alloca" (or "__builtin_alloca") allocates memory from the stack. The memory is
+   * automatically freed at function-exit.
    */
-   // TODO possible property violation "stack-overflow through big allocation" is not handled
-  public final SMGAddressValueAndStateList evaluateAlloca(CFunctionCallExpression functionCall,
-      SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
+  // TODO possible property violation "stack-overflow through big allocation" is not handled
+  public final List<SMGAddressValueAndState> evaluateAlloca(
+      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
     CRightHandSide sizeExpr;
     SMGState currentState = pState;
 
@@ -245,15 +264,14 @@ public class SMGBuiltins {
       throw new UnrecognizedCCodeException("alloca argument not found.", cfaEdge, functionCall);
     }
 
-    List<SMGExplicitValueAndState> valueAndStates = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+    List<SMGAddressValueAndState> result = new ArrayList<>();
 
-    List<SMGAddressValueAndState> result = new ArrayList<>(valueAndStates.size());
-
-    for (SMGExplicitValueAndState valueAndState : valueAndStates) {
+    for (SMGExplicitValueAndState valueAndState :
+        evaluateExplicitValue(currentState, cfaEdge, sizeExpr)) {
       result.add(evaluateAlloca(valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
     }
 
-    return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    return result;
   }
 
   private SMGAddressValueAndState evaluateAlloca(SMGState currentState, SMGExplicitValue pSizeValue, CFAEdge cfaEdge, CRightHandSide sizeExpr) throws CPATransferException {
@@ -264,7 +282,7 @@ public class SMGBuiltins {
 
       if (options.isGuessSizeOfUnknownMemorySize()) {
         SMGExplicitValueAndState forcedValueAndState =
-            smgTransferRelation.expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
+            expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
         currentState = forcedValueAndState.getSmgState();
 
         //Sanity check
@@ -284,7 +302,7 @@ public class SMGBuiltins {
 
         if (sizeValue.isUnknown()) {
 
-          if(smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
+          if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
             sizeValue = SMGKnownExpValue.ZERO;
           } else {
             throw new UnrecognizedCCodeException(
@@ -302,7 +320,7 @@ public class SMGBuiltins {
     }
 
     // TODO line numbers are not unique when we have multiple input files!
-    String allocation_label = "alloc_ID" + SMGValueFactory.getNewValue();
+    String allocation_label = "alloc_ID" + SMGCPA.getNewValue();
     SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt() *
         machineModel.getSizeofCharInBits(), allocation_label);
 
@@ -317,18 +335,19 @@ public class SMGBuiltins {
 
     if (options.getArrayAllocationFunctions().contains(functionName)) {
 
-      List<SMGExplicitValueAndState> result = new ArrayList<>(4);
-
-      List<SMGExplicitValueAndState> numValueAndStates =
-          getAllocateFunctionParameter(options.getMemoryArrayAllocationFunctionsNumParameter(),
-              functionCall, pState, cfaEdge);
-
-      for (SMGExplicitValueAndState numValueAndState : numValueAndStates) {
-        List<SMGExplicitValueAndState> elemSizeValueAndStates =
-            getAllocateFunctionParameter(options.getMemoryArrayAllocationFunctionsElemSizeParameter(),
-                functionCall, numValueAndState.getSmgState(), cfaEdge);
-
-        for (SMGExplicitValueAndState elemSizeValueAndState : elemSizeValueAndStates) {
+      List<SMGExplicitValueAndState> result = new ArrayList<>();
+      for (SMGExplicitValueAndState numValueAndState :
+          getAllocateFunctionParameter(
+              options.getMemoryArrayAllocationFunctionsNumParameter(),
+              functionCall,
+              pState,
+              cfaEdge)) {
+        for (SMGExplicitValueAndState elemSizeValueAndState :
+            getAllocateFunctionParameter(
+                options.getMemoryArrayAllocationFunctionsElemSizeParameter(),
+                functionCall,
+                numValueAndState.getSmgState(),
+                cfaEdge)) {
 
           SMGExplicitValue size = numValueAndState.getObject().multiply(elemSizeValueAndState.getObject());
           result.add(SMGExplicitValueAndState.of(elemSizeValueAndState.getSmgState(), size));
@@ -354,11 +373,9 @@ public class SMGBuiltins {
       throw new UnrecognizedCCodeException(functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
-    List<SMGExplicitValueAndState> valueAndStates = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
-
-    List<SMGExplicitValueAndState> result = new ArrayList<>(valueAndStates.size());
-
-    for (SMGExplicitValueAndState valueAndState : valueAndStates) {
+    List<SMGExplicitValueAndState> result = new ArrayList<>();
+    for (SMGExplicitValueAndState valueAndState :
+        evaluateExplicitValue(currentState, cfaEdge, sizeExpr)) {
       SMGExplicitValueAndState resultValueAndState = valueAndState;
       SMGExplicitValue value = valueAndState.getObject();
 
@@ -366,8 +383,8 @@ public class SMGBuiltins {
 
         if (options.isGuessSizeOfUnknownMemorySize()) {
           currentState = valueAndState.getSmgState();
-          SMGExplicitValueAndState forcedValueAndState = smgTransferRelation.expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
-
+          SMGExplicitValueAndState forcedValueAndState =
+              expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
 
           //Sanity check
 
@@ -406,36 +423,44 @@ public class SMGBuiltins {
     return result;
   }
 
-  public SMGAddressValueAndStateList evaluateConfigurableAllocationFunction(
-      CFunctionCallExpression functionCall,
-      SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
+  public List<SMGAddressValueAndState> evaluateConfigurableAllocationFunction(
+      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
     SMGState currentState = pState;
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
-
-    List<SMGExplicitValueAndState> sizeAndStates = getAllocateFunctionSize(currentState, cfaEdge, functionCall);
-    List<SMGAddressValueAndState> result = new ArrayList<>(sizeAndStates.size());
-
-    for (SMGExplicitValueAndState sizeAndState : sizeAndStates) {
+    List<SMGAddressValueAndState> result = new ArrayList<>();
+    for (SMGExplicitValueAndState sizeAndState :
+        getAllocateFunctionSize(currentState, cfaEdge, functionCall)) {
 
       int size = sizeAndState.getObject().getAsInt();
       currentState = sizeAndState.getSmgState();
 
       // TODO line numbers are not unique when we have multiple input files!
-      String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
-          + functionCall.getFileLocation().getStartingLineNumber();
+      String allocation_label =
+          functionName
+              + "_ID"
+              + SMGCPA.getNewValue()
+              + "_Line:"
+              + functionCall.getFileLocation().getStartingLineNumber();
       SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
           allocation_label);
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        currentState = smgTransferRelation.writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
-            SMGKnownSymValue.ZERO, cfaEdge);
+        currentState =
+            expressionEvaluator.writeValue(
+                currentState,
+                new_address.getObject(),
+                0,
+                AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+                SMGKnownSymValue.ZERO,
+                cfaEdge);
       }
       smgTransferRelation.possibleMallocFail = true;
       result.add(SMGAddressValueAndState.of(currentState, new_address));
     }
 
-    return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    return result;
   }
 
   public final List<SMGState> evaluateFree(CFunctionCallExpression pFunctionCall, SMGState pState,
@@ -449,11 +474,9 @@ public class SMGBuiltins {
       throw new UnrecognizedCCodeException("Built-in free(): No parameter passed", cfaEdge, pFunctionCall);
     }
 
-    SMGAddressValueAndStateList addressAndStates = smgTransferRelation.expressionEvaluator.evaluateAddress(pState, cfaEdge, pointerExp);
-
-    List<SMGState> resultStates = new ArrayList<>(addressAndStates.size());
-
-    for (SMGAddressValueAndState addressAndState : addressAndStates.asAddressValueAndStateList()) {
+    List<SMGState> resultStates = new ArrayList<>();
+    for (SMGAddressValueAndState addressAndState :
+        expressionEvaluator.evaluateAddress(pState, cfaEdge, pointerExp)) {
       SMGAddressValue address = addressAndState.getObject();
       SMGState currentState = addressAndState.getSmgState();
 
@@ -505,8 +528,9 @@ public class SMGBuiltins {
     return options.getExternalAllocationFunction().contains(functionName);
   }
 
-  public SMGAddressValueAndStateList evaluateMemcpy(CFunctionCallExpression pFunctionCall,
-      SMGState pSmgState, CFAEdge pCfaEdge) throws CPATransferException {
+  public List<SMGAddressValueAndState> evaluateMemcpy(
+      CFunctionCallExpression pFunctionCall, SMGState pSmgState, CFAEdge pCfaEdge)
+      throws CPATransferException {
 
     //evaluate function: void *memcpy(void *str1, const void *str2, size_t n)
 
@@ -537,30 +561,26 @@ public class SMGBuiltins {
 
     List<SMGAddressValueAndState> result = new ArrayList<>(4);
 
-    SMGAddressValueAndStateList targetStr1AndStates = evaluateAddress(pSmgState, pCfaEdge, targetStr1Expr);
+    for (SMGAddressValueAndState targetStr1AndState :
+        evaluateAddress(pSmgState, pCfaEdge, targetStr1Expr)) {
 
-    for (SMGAddressValueAndState targetStr1AndState : targetStr1AndStates.asAddressValueAndStateList()) {
-      SMGState currentState = targetStr1AndState.getSmgState();
+      for (SMGAddressValueAndState sourceStr2AndState :
+          evaluateAddress(targetStr1AndState.getSmgState(), pCfaEdge, sourceStr2Expr)) {
 
-      SMGAddressValueAndStateList sourceStr2AndStates = evaluateAddress(currentState, pCfaEdge, sourceStr2Expr);
+        for (SMGExplicitValueAndState sizeValueAndState :
+            evaluateExplicitValue(sourceStr2AndState.getSmgState(), pCfaEdge, sizeExpr)) {
 
-      for (SMGAddressValueAndState sourceStr2AndState : sourceStr2AndStates.asAddressValueAndStateList()) {
-        currentState = sourceStr2AndState.getSmgState();
-
-        List<SMGExplicitValueAndState> sizeValueAndStates = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
-
-        for (SMGExplicitValueAndState sizeValueAndState : sizeValueAndStates) {
-          currentState = sizeValueAndState.getSmgState();
+          SMGState currentState = sizeValueAndState.getSmgState();
           SMGAddressValue targetObject = targetStr1AndState.getObject();
           SMGAddressValue sourceObject = sourceStr2AndState.getObject();
           SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
+
           if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
-            SMGValueAndStateList sizeSymbolicValueAndStates =
-                evaluateExpressionValue(currentState, pCfaEdge, sizeExpr);
-            int symbolicValueSize = smgTransferRelation.expressionEvaluator.getBitSizeof(pCfaEdge,
-                sizeExpr.getExpressionType(), currentState);
-            for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
-                .getValueAndStateList()) {
+            int symbolicValueSize =
+                expressionEvaluator.getBitSizeof(
+                    pCfaEdge, sizeExpr.getExpressionType(), currentState);
+            for (SMGValueAndState sizeSymbolicValueAndState :
+                evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
               SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
               int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
@@ -588,7 +608,7 @@ public class SMGBuiltins {
       }
     }
 
-    return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    return result;
   }
 
   private SMGAddressValueAndState evaluateMemcpy(SMGState currentState, SMGAddressValue targetStr1Address,
@@ -653,5 +673,68 @@ public class SMGBuiltins {
     }
 
     return SMGAddressValueAndState.of(currentState, targetStr1Address);
+  }
+
+  public List<SMGAddressValueAndState> handleBuiltinFunctionCall(
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String calledFunctionName,
+      SMGState newState,
+      boolean failOnAlloca)
+      throws CPATransferException {
+
+    if (isExternalAllocationFunction(calledFunctionName)) {
+      return evaluateExternalAllocation(cFCExpression, newState);
+    }
+
+    switch (calledFunctionName) {
+      case "__builtin_alloca":
+        if (failOnAlloca) {
+          smgTransferRelation.possibleMallocFail = true;
+        }
+        return evaluateAlloca(cFCExpression, newState, pCfaEdge);
+
+      case "memset":
+        return evaluateMemset(cFCExpression, newState, pCfaEdge);
+
+      case "memcpy":
+        return evaluateMemcpy(cFCExpression, newState, pCfaEdge);
+
+      case "__VERIFIER_BUILTIN_PLOT":
+        evaluateVBPlot(cFCExpression, newState);
+        // $FALL-THROUGH$
+      case "printf":
+        return ImmutableList.of(SMGAddressValueAndState.of(newState));
+
+      default:
+        if (isNondetBuiltin(calledFunctionName)) {
+          return Collections.singletonList(SMGAddressValueAndState.of(newState));
+        } else {
+          throw new AssertionError(
+              "Unexpected function handled as a builtin: " + calledFunctionName);
+        }
+    }
+  }
+
+  public List<SMGAddressValueAndState> handleUnknownFunction(
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String calledFunctionName,
+      SMGState pState)
+      throws CPATransferException, AssertionError {
+    switch (options.getHandleUnknownFunctions()) {
+      case STRICT:
+        throw new CPATransferException(
+            "Unknown function '"
+                + calledFunctionName
+                + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+      case ASSUME_SAFE:
+        return ImmutableList.of(SMGAddressValueAndState.of(pState));
+      case ASSUME_EXTERNAL_ALLOCATED:
+        return expressionEvaluator.handleSafeExternFuction(cFCExpression, pState, pCfaEdge);
+      default:
+        throw new AssertionError(
+            "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
+    }
   }
 }

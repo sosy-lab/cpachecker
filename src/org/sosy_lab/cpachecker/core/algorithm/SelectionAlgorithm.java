@@ -31,13 +31,14 @@ import java.io.PrintStream;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -46,12 +47,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -82,6 +90,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
     private final HashSet<String> functionNames = new HashSet<>();
+    private Set<String> arrayVariables = new HashSet<>();
+    private HashSet<String> floatVariables = new HashSet<>();
     private int functionCount = 0;
 
     @Override
@@ -97,6 +107,26 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
                 final AIdExpression id = (AIdExpression) exp;
                 functionNames.add(id.getName());
                 functionCount = functionCount + 1;
+              }
+            }
+            break;
+          }
+        case DeclarationEdge:
+          {
+            final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+            ADeclaration declaration = declarationEdge.getDeclaration();
+            Type declType = declaration.getType();
+            if (declType instanceof CArrayType || declType instanceof JArrayType) {
+              arrayVariables.add(declaration.getQualifiedName());
+            } else if (declType instanceof CSimpleType) {
+              CSimpleType simpleType = (CSimpleType) declType;
+              if (simpleType.getType().isFloatingPointType()) {
+                floatVariables.add(declaration.getQualifiedName());
+              }
+            } else if (declType instanceof JSimpleType) {
+              JSimpleType simpleType = (JSimpleType) declType;
+              if (simpleType.getType().isFloatingPointType()) {
+                floatVariables.add(declaration.getQualifiedName());
               }
             }
             break;
@@ -125,9 +155,11 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     private int containsExternalFunctionCalls = 0;
     // TODO: Change name
     private int numberOfAllRightFunctions = 0;
-    public int requiresAliasHandling = 0;
-    public int requiresLoopHandling = 0;
-    public int requiresCompositeTypeHandling = 0;
+    private int requiresAliasHandling = 0;
+    private int requiresLoopHandling = 0;
+    private int requiresCompositeTypeHandling = 0;
+    private int requiresArrayHandling = 0;
+    private int requiresFloatHandling = 0;
 
     @Override
     public String getName() {
@@ -144,6 +176,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Requires loop handling:                        " + requiresLoopHandling);
       out.println(
           "Requires composite-type handling:              " + requiresCompositeTypeHandling);
+      out.println("Requires array handling:                       " + requiresArrayHandling);
+      out.println("Requires float handling:                       " + requiresFloatHandling);
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -163,54 +197,46 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private Algorithm chosenAlgorithm;
   private final SelectionAlgorithmStatistics stats;
 
-  @Option(secure = true, required = true, description = "Configuration for loop-free programs.")
+  @Option(secure = true, description = "Configuration for loop-free programs.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> loopFreeConfig;
-
-  @Option(
-    secure = true,
-    required = true,
-    description = "Configuration for loop-free programs and complex datastructures."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> complexLoopFreeConfig;
+  private Path loopFreeConfig;
 
   @Option(secure = true, required = true, description = "Configuration for programs with loops.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> loopConfig;
-
-  @Option(
-    secure = true,
-    required = true,
-    description = "Configuration for programs with loops and complex datastructures."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> complexLoopConfig;
-
-  @Option(
-    secure = true,
-    required = true,
-    description = "Configuration for programs containing only relevant bool vars."
-  )
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> onlyBoolConfig;
+  private Path loopConfig;
 
   @Option(
       secure = true,
-      required = true,
-      description = "Configuration for programs containing more than @Option adressedRatio addressed vars."
-    )
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private AnnotatedValue<Path> addressedConfig;
+      description = "Configuration for programs with loops and complex datastructures.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path complexLoopConfig;
 
   @Option(
-    secure = true,
-    required = true,
-    description =
-        "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig."
-  )
+      secure = true,
+      description = "Configuration for programs containing only relevant bool vars.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private AnnotatedValue<Path> addressedRatio;
+  private Path onlyBoolConfig;
+
+  @Option(
+      secure = true,
+      description =
+          "Configuration for programs containing more than @Option adressedRatio addressed vars.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path addressedConfig;
+
+  @Option(secure = true, description = "Configuration for programs containing composite types.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path compositeTypeConfig;
+
+  @Option(secure = true, description = "Configuration for programs containing arrays.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path arrayConfig;
+
+  @Option(
+      secure = true,
+      description =
+          "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig.")
+  private double addressedRatio = 0;
 
   public SelectionAlgorithm(
       CFA pCfa,
@@ -297,33 +323,42 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     boolean requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
     stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling ? 1 : 0;
 
+    boolean requiresArrayHandling =
+        !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.arrayVariables)
+            || !Collections.disjoint(
+                variableClassification.getAddressedFields().values(), visitor.arrayVariables);
+    stats.requiresArrayHandling = requiresArrayHandling ? 1 : 0;
+
+    boolean requiresFloatHandling =
+        !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
+            || !Collections.disjoint(
+                variableClassification.getAddressedFields().values(), visitor.floatVariables);
+    stats.requiresFloatHandling = requiresFloatHandling ? 1 : 0;
+
+    stats.onlyRelevantBools = hasOnlyRelevantIntBoolVars ? 1 : 0;
+
     final Path chosenConfig;
 
     // Perform heuristic
-    if (hasOnlyRelevantIntBoolVars) {
+    if (!requiresLoopHandling && loopFreeConfig != null) {
+      // Run standard loop-free config
+      chosenConfig = loopFreeConfig;
+    } else if (hasOnlyRelevantIntBoolVars && onlyBoolConfig != null) {
       // Run bool only config
-      chosenConfig = onlyBoolConfig.value();
-      stats.onlyRelevantBools = 1;
-    } else if (stats.relevantAddressedRatio
-        > Double.parseDouble(addressedRatio.value().toString().substring(7))) {
-      chosenConfig = addressedConfig.value();
-
-    } else if (requiresLoopHandling) {
-      if (requiresAliasHandling) {
-        // Run complex loop config
-        chosenConfig = complexLoopConfig.value();
-      } else {
-        // Run standard loop config
-        chosenConfig = loopConfig.value();
-      }
+      chosenConfig = onlyBoolConfig;
+    } else if (requiresCompositeTypeHandling && compositeTypeConfig != null) {
+      chosenConfig = compositeTypeConfig;
+    } else if (stats.relevantAddressedRatio > addressedRatio && addressedConfig != null) {
+      chosenConfig = addressedConfig;
+    } else if (requiresArrayHandling && arrayConfig != null) {
+      chosenConfig = arrayConfig;
+    } else if ((requiresFloatHandling || requiresArrayHandling || requiresCompositeTypeHandling)
+        && complexLoopConfig != null) {
+      // Run complex loop config
+      chosenConfig = complexLoopConfig;
     } else {
-      if (requiresAliasHandling) {
-        // Run complex loop-free config
-        chosenConfig = complexLoopFreeConfig.value();
-      } else {
-        // Run standard loop-free config
-        chosenConfig = loopFreeConfig.value();
-      }
+      // Run standard loop config
+      chosenConfig = loopConfig;
     }
 
     stats.chosenConfig = chosenConfig.toString().substring(7);

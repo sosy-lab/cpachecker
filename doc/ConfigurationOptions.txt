@@ -2900,13 +2900,16 @@ heuristicSelection.addressedConfig = no default value
 
 # Ratio of addressed vars. Values bigger than the passed value lead to
 # @option addressedConfig.
-heuristicSelection.addressedRatio = no default value
+heuristicSelection.addressedRatio = 0
+
+# Configuration for programs containing arrays.
+heuristicSelection.arrayConfig = no default value
 
 # Configuration for programs with loops and complex datastructures.
 heuristicSelection.complexLoopConfig = no default value
 
-# Configuration for loop-free programs and complex datastructures.
-heuristicSelection.complexLoopFreeConfig = no default value
+# Configuration for programs containing composite types.
+heuristicSelection.compositeTypeConfig = no default value
 
 # Configuration for programs with loops.
 heuristicSelection.loopConfig = no default value

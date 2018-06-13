@@ -132,13 +132,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     this.logger = logger;
     this.innerAlgorithm = algo;
-    AssumptionStorageCPA cpa =
+    AssumptionStorageCPA asCpa =
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
     if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException(
           "ARGCPA needed for for export of assumption automaton in AssumptionCollectionAlgorithm");
     }
-    this.formulaManager = cpa.getFormulaManager();
+    this.formulaManager = asCpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
     this.cpa=pCpa;
@@ -204,8 +204,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return status;
   }
 
-  private AssumptionWithLocation collectLocationAssumptions(UnmodifiableReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
-    AssumptionWithLocation result = AssumptionWithLocation.copyOf(exceptionAssumptions);
+  private AssumptionWithLocation collectLocationAssumptions(
+      UnmodifiableReachedSet reached, AssumptionWithLocation pExceptionAssumptions) {
+    AssumptionWithLocation result = AssumptionWithLocation.copyOf(pExceptionAssumptions);
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");

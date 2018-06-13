@@ -65,8 +65,9 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
-      Set<SMGAbstractionBlock> pAbstractionLocks) throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(
+      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      throws SMGInconsistentException {
     SMGJoinDllProgress progress = new SMGJoinDllProgress();
 
     for (SMGObject object : pSmg.getHeapObjects()) {
@@ -74,7 +75,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     Set<SMGDoublyLinkedListCandidateSequenceBlock> dllBlocks =
-        FluentIterable.from(pAbstractionLocks)
+        FluentIterable.from(pAbstractionBlocks)
             .filter(SMGDoublyLinkedListCandidateSequenceBlock.class)
             .toSet();
 
@@ -395,15 +396,13 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     for (Integer val : nonSharedValues) {
-      Set<SMGEdgeHasValue> hves =
-          smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(val));
 
       /*Abstract simple fields when joining.*/
       if (!smg.isPointer(val)) {
         continue;
       }
 
-      for (SMGEdgeHasValue hve : hves) {
+      for (SMGEdgeHasValue hve : smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(val))) {
         if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
           return false;
         }
@@ -420,10 +419,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
     pObjects.add(pObject);
 
-    Set<SMGEdgeHasValue> hves = inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
       if (hve.getOffset() != pfo && hve.getOffset() != nfo) {
 
         int subSmgValue = hve.getValue();
@@ -457,10 +453,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
   private void getSubSmgOf(SMGObject pObjToCheck,
       Set<SMGObject> pToBeChecked,  CLangSMG pInputSmg, Set<SMGObject> pObjects, Set<Integer> pValues) {
 
-    Set<SMGEdgeHasValue> hves = pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       int subDlsValue = hve.getValue();
       pValues.add(subDlsValue);
 

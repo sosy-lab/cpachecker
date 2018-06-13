@@ -92,7 +92,7 @@ public class CPAs {
                 (ConfigurableProgramAnalysis cpa) ->
                     (cpa instanceof WrapperCPA)
                         ? ((WrapperCPA) cpa).getWrappedCPAs()
-                        : ImmutableList.<ConfigurableProgramAnalysis>of())
+                        : ImmutableList.of())
             .depthFirstPreOrder(pCpa));
   }
 

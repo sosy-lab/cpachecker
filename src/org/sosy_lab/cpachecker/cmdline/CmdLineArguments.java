@@ -136,8 +136,7 @@ class CmdLineArguments {
               .withDescription("set the classpath for the analysis of Java programs"),
           new CmdLineArgument1("-spec", "specification") {
             @Override
-            void handleArg(Map<String, String> properties, String arg)
-                throws InvalidCmdlineArgumentException {
+            void handleArg(Map<String, String> properties, String arg) {
               if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
                 arg = resolveSpecificationFileOrExit(arg);
               }
@@ -195,8 +194,8 @@ class CmdLineArguments {
 
             @SuppressFBWarnings("DM_EXIT")
             @Override
-            void apply0(Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt)
-                throws InvalidCmdlineArgumentException {
+            void apply0(
+                Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt) {
               boolean verbose = false;
               if (argsIt.hasNext()) {
                 final String nextArg = argsIt.next();
@@ -217,8 +216,7 @@ class CmdLineArguments {
             @SuppressFBWarnings("DM_EXIT")
             @Override
             void apply0(
-                Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt)
-                throws InvalidCmdlineArgumentException {
+                Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {
               printHelp(System.out);
               System.exit(0);
             }

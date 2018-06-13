@@ -205,8 +205,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
     }
   }
 
-
-  private static enum TreePosition {
+  private enum TreePosition {
     START,    // leaf-node with no children, start of a subtree
     MIDDLE,   // node with exactly one child, middle node in a sequence
     END       // node with several children, end of a subtree

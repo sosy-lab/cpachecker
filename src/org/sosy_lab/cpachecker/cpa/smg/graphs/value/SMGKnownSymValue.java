@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,10 +42,6 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGSymbolicValue 
   }
 
   public static SMGKnownSymValue valueOf(int pValue) {
-    return new SMGKnownSymValue(BigInteger.valueOf(pValue));
-  }
-
-  public static SMGKnownSymValue valueOf(long pValue) {
     return new SMGKnownSymValue(BigInteger.valueOf(pValue));
   }
 

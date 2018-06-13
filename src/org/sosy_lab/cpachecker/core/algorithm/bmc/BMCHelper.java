@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-
 public final class BMCHelper {
 
   public static final Predicate<AbstractState> END_STATE_FILTER =
@@ -433,7 +432,7 @@ public final class BMCHelper {
             });
   }
 
-  public static interface FormulaInContext {
+  public interface FormulaInContext {
 
     BooleanFormula getFormulaInContext(PathFormula pContext)
         throws CPATransferException, InterruptedException;

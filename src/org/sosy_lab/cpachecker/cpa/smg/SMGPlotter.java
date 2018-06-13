@@ -163,7 +163,7 @@ public final class SMGPlotter {
   public String smgAsDot(CLangSMG smg, String name, String location, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
+    sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
     offset += 2;
     sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
 
@@ -235,8 +235,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    Map<String, SMGRegion> to_print = new HashMap<>();
-    to_print.putAll(pStackFrame.getVariables());
+    Map<String, SMGRegion> to_print = new HashMap<>(pStackFrame.getVariables());
 
     SMGRegion returnObject = pStackFrame.getReturnObject();
     if (returnObject != null) {

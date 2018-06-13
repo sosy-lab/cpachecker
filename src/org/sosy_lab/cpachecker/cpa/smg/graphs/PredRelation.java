@@ -23,20 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -59,9 +57,11 @@ public class PredRelation {
   public void addRelation(SMGSymbolicValue pOne, int pCType1,
                           SMGSymbolicValue pTwo, int pCType2,
                           BinaryOperator pOperator) {
-    //TODO: track address values
-    if (!pOne.isUnknown() && !pTwo.isUnknown() &&
-        !(pOne instanceof SMGKnownAddVal) && !(pTwo instanceof SMGKnownAddVal)) {
+    // TODO: track address values
+    if (!pOne.isUnknown()
+        && !pTwo.isUnknown()
+        && !(pOne instanceof SMGKnownAddressValue)
+        && !(pTwo instanceof SMGKnownAddressValue)) {
       addRelation(pOne.getAsInt(), pTwo.getAsInt(), pOperator);
       addValueSize(pOne.getAsInt(), pCType1);
       addValueSize(pTwo.getAsInt(), pCType2);
@@ -138,7 +138,6 @@ public class PredRelation {
 
   /** Returns closure list of symbolic values which affects pRelation */
   public Set<Integer> closureDependencyFor(PredRelation pRelation) {
-    Set<Integer> result = new HashSet<>();
     Set<Integer> toAdd = new HashSet<>();
     for (Entry<Integer, Integer> entry : pRelation.smgValuesDependency.entries()) {
       Integer key = entry.getKey();
@@ -148,6 +147,7 @@ public class PredRelation {
         toAdd.add(value);
       }
     }
+    Set<Integer> result = new HashSet<>();
     while (!toAdd.isEmpty()) {
       result.addAll(toAdd);
       Set<Integer> tempAdd = new HashSet<>();
@@ -206,29 +206,16 @@ public class PredRelation {
     if (smgValuesRelation.size() > pPathPredicateRelation.smgValuesDependency.size()) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgValuesDependency, new FilterPredicate<>(pPathPredicateRelation.smgValuesDependency)).isEmpty()) {
+    if (!pPathPredicateRelation.smgValuesDependency.entries().containsAll(smgValuesDependency.entries())) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgExplicitValueRelation, new FilterPredicate<>(pPathPredicateRelation.smgExplicitValueRelation)).isEmpty()) {
+    if (!pPathPredicateRelation.smgExplicitValueRelation.entries().containsAll(smgExplicitValueRelation.entries())) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgValuesRelation, new FilterPredicate<>(pPathPredicateRelation.smgValuesRelation)).isEmpty()) {
+    if (!pPathPredicateRelation.smgValuesRelation.entries().containsAll(smgValuesRelation.entries())) {
       return false;
     }
     return true;
-  }
-
-  public static class FilterPredicate<K, V> implements Predicate<Entry<K, V>> {
-    private final Multimap<K, V> filterAgainst;
-
-    public FilterPredicate(Multimap<K, V> filterAgainst) {
-      this.filterAgainst = filterAgainst;
-    }
-
-    @Override
-    public boolean apply(Entry<K, V> arg0) {
-      return !filterAgainst.containsEntry(arg0.getKey(), arg0.getValue());
-    }
   }
 
   static public class SymbolicRelation {
@@ -267,26 +254,14 @@ public class PredRelation {
       }
 
       SymbolicRelation relation = (SymbolicRelation) pO;
-
-      if (!valueOne.equals(relation.valueOne)) {
-        return false;
-      }
-      if (!valueTwo.equals(relation.valueTwo)) {
-        return false;
-      }
-      if (operator != relation.operator) {
-        return false;
-      }
-
-      return true;
+      return valueOne.equals(relation.valueOne)
+          && valueTwo.equals(relation.valueTwo)
+          && operator == relation.operator;
     }
 
     @Override
     public int hashCode() {
-      int result = valueOne.hashCode();
-      result = 31 * result + valueTwo.hashCode();
-      result = 31 * result + operator.hashCode();
-      return result;
+      return Objects.hash(valueOne, valueTwo, operator);
     }
 
     @Override
@@ -336,26 +311,14 @@ public class PredRelation {
       }
 
       ExplicitRelation relation = (ExplicitRelation) pO;
-
-      if (!symbolicValue.equals(relation.symbolicValue)) {
-        return false;
-      }
-      if (!explicitValue.equals(relation.explicitValue)) {
-        return false;
-      }
-      if (operator != relation.operator) {
-        return false;
-      }
-
-      return true;
+      return symbolicValue.equals(relation.symbolicValue)
+          && explicitValue.equals(relation.explicitValue)
+          && operator == relation.operator;
     }
 
     @Override
     public int hashCode() {
-      int result = symbolicValue.hashCode();
-      result = 31 * result + explicitValue.hashCode();
-      result = 31 * result + operator.hashCode();
-      return result;
+      return Objects.hash(symbolicValue, explicitValue, operator);
     }
 
     @Override

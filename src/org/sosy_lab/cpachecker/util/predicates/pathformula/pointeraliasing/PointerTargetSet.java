@@ -232,10 +232,10 @@ public final class PointerTargetSet implements Serializable {
 
   private static final PointerTargetSet EMPTY_INSTANCE =
       new PointerTargetSet(
-          PathCopyingPersistentTreeMap.<String, CType>of(),
-          PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
-          PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
-          PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
+          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
+          PersistentLinkedList.of(),
+          PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           0);
 
@@ -301,8 +301,7 @@ public final class PointerTargetSet implements Serializable {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
-              Lists.<Formula, String>transform(
-                  pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
+              Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
 
@@ -311,8 +310,7 @@ public final class PointerTargetSet implements Serializable {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       PersistentList<Formula> highestAllocatedAddressesFormulas =
           PersistentLinkedList.copyOf(
-              Lists.<String, Formula>transform(
-                  highestAllocatedAddresses, mgr::parseArbitraryFormula));
+              Lists.transform(highestAllocatedAddresses, mgr::parseArbitraryFormula));
 
       return new PointerTargetSet(
           bases,

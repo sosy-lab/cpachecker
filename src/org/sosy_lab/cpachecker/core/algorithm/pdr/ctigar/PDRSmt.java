@@ -73,7 +73,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class PDRSmt {
 
-  private static enum ReductionMode {
+  private enum ReductionMode {
     CONSECUTION,
     LIFTING
   }

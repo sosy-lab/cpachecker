@@ -25,7 +25,7 @@ body {
 	border-bottom: solid 2px;
 	border-bottom-color: lightgrey;
 	padding: 7px;
-	padding-top: 5px; 
+	padding-top: 5px;
 	text-align: center;
 	justify-content: center;
 }
@@ -46,7 +46,7 @@ body {
 .header img.logo {
 	float: left;
 	height: 40px;
-	margin-left:10px;
+	margin-left: 10px;
 }
 
 .header h1 {
@@ -170,7 +170,7 @@ body {
 }
 
 #err-table tr td pre.make-pretty {
-	background-color: #696969;
+	background-color: #ffe5d5;
 }
 
 #err-table tr.clickedErrPathElement {
@@ -280,11 +280,11 @@ td:first-child {
 }
 
 .sourceContent tr:nth-child(odd) td pre.prettyprint {
-	background-color: #36486b;
+	background-color: #c6dce7;
 }
 
 .sourceContent tr:nth-child(even) td pre.prettyprint {
-	background-color: #618685;
+	background-color: #a8cfe2;
 }
 
 .edit-line {

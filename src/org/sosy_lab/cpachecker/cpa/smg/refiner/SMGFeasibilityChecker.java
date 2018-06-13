@@ -246,12 +246,14 @@ public class SMGFeasibilityChecker {
     }
 
     public Collection<SMGState> getLastState() {
-      assert isReachable == true : "Getting the last state of the path is only supported if the last state is reachable.";
+      assert isReachable
+          : "Getting the last state of the path is only supported if the last state is reachable.";
       return lastStates;
     }
 
     public CFAEdge getLastEdge() {
-      assert isReachable == true : "Getting the last edge of the path is only supported if the last state is reachable.";
+      assert isReachable
+          : "Getting the last edge of the path is only supported if the last state is reachable.";
       return lastEdge;
     }
 

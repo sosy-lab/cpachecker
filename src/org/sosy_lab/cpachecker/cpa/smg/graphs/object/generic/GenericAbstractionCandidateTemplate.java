@@ -26,20 +26,18 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
@@ -100,7 +98,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
       for (SMGEdgePointsToTemplate iPointerTemplate : targetAdressTemplateOfPointer) {
 
         int pointerTemplate = iPointerTemplate.getAbstractValue();
-        int uPointerTemplate = SMGValueFactory.getNewValue();
+        int uPointerTemplate = SMGCPA.getNewValue();
 
         uPointerToPointer.put(uPointerTemplate, pointerTemplate);
 
@@ -199,8 +197,9 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
   @Override
   public SMGObject createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap) {
-    return new GenericAbstraction(100 * machineModel.getSizeofCharInBits(),
-        "generic abtraction ID " + SMGValueFactory.getNewValue(),
+    return new GenericAbstraction(
+        100 * machineModel.getSizeofCharInBits(),
+        "generic abtraction ID " + SMGCPA.getNewValue(),
         abstractPointerToMaterlisationSteps,
         pAbstractToConcretePointerMap);
   }

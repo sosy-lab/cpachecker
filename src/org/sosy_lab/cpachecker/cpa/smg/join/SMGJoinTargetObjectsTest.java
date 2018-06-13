@@ -27,14 +27,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGJoinTargetObjectsTest {
   private SMG smg1;
@@ -45,11 +44,11 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping2;
 
   final private SMGObject obj1 = new SMGRegion(64, "ze label");
-  final private Integer value1 = SMGValueFactory.getNewValue();
+  private final int value1 = SMGCPA.getNewValue();
   final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
   final private SMGObject obj2 = new SMGRegion(64, "ze label");
-  final private Integer value2 = SMGValueFactory.getNewValue();
+  private final int value2 = SMGCPA.getNewValue();
   final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
   final private SMGObject destObj = new SMGRegion(64, "destination");
@@ -76,10 +75,10 @@ public class SMGJoinTargetObjectsTest {
 
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0,0, 0, false, null, null);
     Assert.assertSame(jto.getMapping1().get(obj1), jto.getMapping2().get(obj2));
-    //TODO investigate why they should not be the same, regions are immutable
-    //Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
-    Assert.assertEquals(((SMGRegion)jto.getMapping1().get(obj1)).getLabel(), ((SMGRegion)obj1).getLabel());
-    Assert.assertEquals(((SMGRegion)jto.getMapping1().get(obj1)).getSize(), ((SMGRegion)obj1).getSize());
+    // TODO investigate why they should not be the same, regions are immutable
+    // Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
+    Assert.assertEquals(jto.getMapping1().get(obj1).getLabel(), obj1.getLabel());
+    Assert.assertEquals(jto.getMapping1().get(obj1).getSize(), obj1.getSize());
   }
 
   @Test

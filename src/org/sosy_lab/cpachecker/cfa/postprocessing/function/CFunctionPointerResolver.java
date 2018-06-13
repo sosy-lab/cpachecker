@@ -194,8 +194,8 @@ public class CFunctionPointerResolver implements StatisticsProvider {
   }
 
   private TargetFunctionsProvider createMatchingFunctions(
-      List<Pair<ADeclaration, String>> pGlobalVars, Collection<FunctionSet> functionSets) {
-    if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
+      List<Pair<ADeclaration, String>> pGlobalVars, Collection<FunctionSet> pFunctionSets) {
+    if (pFunctionSets.contains(FunctionSet.USED_IN_CODE)) {
       CReferencedFunctionsCollector varCollector;
       Collection<FunctionEntryNode> candidateFunctions;
 
@@ -232,17 +232,17 @@ public class CFunctionPointerResolver implements StatisticsProvider {
         return new TargetFunctionsProvider(
             cfa.getMachineModel(),
             logger,
-            functionSets,
+            pFunctionSets,
             candidateFunctions,
             ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector).getFieldMatching(),
             ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector).getGlobalsMatching());
       } else {
         return new TargetFunctionsProvider(
-            cfa.getMachineModel(), logger, functionSets, candidateFunctions);
+            cfa.getMachineModel(), logger, pFunctionSets, candidateFunctions);
       }
     } else {
       return new TargetFunctionsProvider(
-          cfa.getMachineModel(), logger, functionSets, cfa.getAllFunctionHeads());
+          cfa.getMachineModel(), logger, pFunctionSets, cfa.getAllFunctionHeads());
     }
   }
 
