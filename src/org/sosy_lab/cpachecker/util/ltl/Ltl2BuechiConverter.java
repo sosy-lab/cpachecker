@@ -108,7 +108,7 @@ public class Ltl2BuechiConverter {
         String errMsg = convertProcessToStream(is).collect(Collectors.joining("\n"));
         throw new LtlParseException(
             String.format(
-                "Tool '%s' exited with error code %d. Message from tool:\n%s",
+                "Tool '%s' exited with error code %d. Message from tool:%n%s",
                 LTL3BA, exitvalue, errMsg));
       }
 
