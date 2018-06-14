@@ -30,11 +30,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -57,7 +59,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -116,17 +121,34 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
             final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
             ADeclaration declaration = declarationEdge.getDeclaration();
             Type declType = declaration.getType();
-            if (declType instanceof CArrayType || declType instanceof JArrayType) {
-              arrayVariables.add(declaration.getQualifiedName());
-            } else if (declType instanceof CSimpleType) {
-              CSimpleType simpleType = (CSimpleType) declType;
-              if (simpleType.getType().isFloatingPointType()) {
-                floatVariables.add(declaration.getQualifiedName());
+            Queue<Type> types = new ArrayDeque<>();
+            Set<Type> visitedTypes = new HashSet<>();
+            types.add(declType);
+            while (!types.isEmpty()) {
+              Type type = types.poll();
+              if (type instanceof CType) {
+                type = ((CType) type).getCanonicalType();
               }
-            } else if (declType instanceof JSimpleType) {
-              JSimpleType simpleType = (JSimpleType) declType;
-              if (simpleType.getType().isFloatingPointType()) {
-                floatVariables.add(declaration.getQualifiedName());
+              if (visitedTypes.add(type)) {
+                if (type instanceof CCompositeType) {
+                  CCompositeType compositeType = (CCompositeType) type;
+                  for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+                    types.offer(member.getType());
+                  }
+                }
+                if (type instanceof CArrayType || type instanceof JArrayType) {
+                  arrayVariables.add(declaration.getQualifiedName());
+                } else if (type instanceof CSimpleType) {
+                  CSimpleType simpleType = (CSimpleType) type;
+                  if (simpleType.getType().isFloatingPointType()) {
+                    floatVariables.add(declaration.getQualifiedName());
+                  }
+                } else if (type instanceof JSimpleType) {
+                  JSimpleType simpleType = (JSimpleType) type;
+                  if (simpleType.getType().isFloatingPointType()) {
+                    floatVariables.add(declaration.getQualifiedName());
+                  }
+                }
               }
             }
             break;
