@@ -1,6 +1,6 @@
 int main() {
-  int i = 0;
-  int a = 0;
+  double i = 0;
+  double a = 0;
 
   while (1) {
     if (i == 20) {

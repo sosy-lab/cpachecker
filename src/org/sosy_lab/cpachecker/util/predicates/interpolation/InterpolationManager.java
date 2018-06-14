@@ -87,6 +87,7 @@ import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -630,7 +631,10 @@ public final class InterpolationManager {
     List<BooleanFormula> my_interpolants;
 
 
+
+
     if (domainSpecificAbstractions) {
+
       Solver my_solver = null;
       try {
         my_solver = Solver.create(

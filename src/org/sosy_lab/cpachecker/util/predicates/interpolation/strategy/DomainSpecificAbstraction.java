@@ -55,10 +55,13 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 import com.google.common.base.Splitter;
+import java.util.Map;
+import org.sosy_lab.java_smt.api.Formula;
+import java.util.Iterator;
 
 
 
-
+@SuppressWarnings("rawtypes")
 public class DomainSpecificAbstraction<T> {
   protected final FormulaManagerView fmgr;
   protected FormulaManagerView oldFmgr;
@@ -67,6 +70,9 @@ public class DomainSpecificAbstraction<T> {
   private List<BooleanFormula> formulas;
   private Interpolator<T> myInterpolator;
   LogManager logger;
+  private HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<String,
+      List<FormulaType>>();
+  private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<String, FormulaType>();
   public DomainSpecificAbstraction(ShutdownNotifier pShutdownNotifier,
                                    FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr,
                                    FormulaManagerView oldFmgr0, Interpolator<T> pTInterpolator, LogManager pLogger) {
@@ -77,7 +83,7 @@ public class DomainSpecificAbstraction<T> {
   }
 
 
-
+@SuppressWarnings("rawtypes")
   public List<BooleanFormula> domainSpecificAbstractionsCheck(Solver mySolver,
                                                               List<BooleanFormula> oldFormulas)
       throws SolverException, InterruptedException {
@@ -98,19 +104,56 @@ public class DomainSpecificAbstraction<T> {
       formulas.add(oldFormulas.get(it + 1));
       final List<Set<String>> variablesInFormulas =
           Lists.newArrayListWithExpectedSize(formulas.size());
-    //  final HashMap<String, FormulaType> variableTypes = new HashMap<String, FormulaType>();
+      final List<Map<String, Formula>> variableTypes = Lists.newArrayListWithExpectedSize(oldFormulas.size()
+          - 1);
       for (BooleanFormula f : formulas) {
         variablesInFormulas.add(oldFmgr.extractVariableNames(f));
+        variableTypes.add(oldFmgr.extractVariables(f));
       }
       // extracting the variables that have to be renamed - make external function?
-      List<List<IntegerFormula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size());
+      /*List<List<IntegerFormula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
+          ()); */
+      List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
+          ());
       Set<String> variables1 = variablesInFormulas.get(0);
       Set<String> variables2 = variablesInFormulas.get(1);
       Set<String> variablesThatAreUsedInBothParts = Sets.intersection(variables1, variables2)
           .immutableCopy();
+      HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<String, FormulaType>();
       int m = 0;
-    /*  for (String s : variablesThatAreUsedInBothParts) {
-        variableTypes.put(s, oldFmgr.getFormulaType(oldFmgr.parse(s)));
+   /*   for (Map<String, Formula> s : variableTypes) {
+        s.get(variablesThatAreUsedInBothParts)
+      }  */
+/*   for(int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++){
+     Formula helperFormula;
+     FormulaType helperFormulaType;
+     for (Map<String, Formula> f : variableTypes){
+       helperFormula = f.get(arrayVariablesThatAreUsedInBothParts[i]);
+       helperFormulaType = oldFmgr.getFormulaType(helperFormula);
+       variablesUsedInBothPartsClasses.put(arrayVariablesThatAreUsedInBothParts[i],
+           helperFormulaType);
+     }
+   } */
+
+ /*
+      for (Iterator<String> myIt = variablesThatAreUsedInBothParts.iterator(); myIt.hasNext(); ) {
+        String lookupItem = myIt.next();
+          for (Map<String, Formula> f : variableTypes){
+            Formula helperFormula = f.get(lookupItem);
+
+
+            if (helperFormula.getClass().toString().contains("IntegerFormula")){
+              variablesUsedInBothPartsClasses.put(lookupItem, "IntegerFormula");
+            } else if (helperFormula.getClass().toString().contains("RationalFormula")){
+              variablesUsedInBothPartsClasses.put(lookupItem, "RationalFormula");
+            } */ /* else if (helperFormula.getClass().toString().contains("BooleanFormula")) {
+              variablesUsedInBothPartsClasses.put(lookupItem, "BooleanFormula");
+            } */
+  /*            else if (helperFormula.getClass().toString().contains("FloatingPointRoundingMode")){
+                variablesUsedInBothPartsClasses.put(lookupItem, "FloatingPointRoundingMode");
+              }
+
+          }
       } */
 
       String[] arrayVariables1 = variables1.toArray(new String[variables1.size()]);
@@ -118,6 +161,17 @@ public class DomainSpecificAbstraction<T> {
       arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
           String[variablesThatAreUsedInBothParts.size
           ()]);
+
+      for(int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++){
+        Formula helperFormula;
+        FormulaType helperFormulaType;
+        for (Map<String, Formula> f : variableTypes){
+          helperFormula = f.get(arrayVariablesThatAreUsedInBothParts[i]);
+          helperFormulaType = oldFmgr.getFormulaType(helperFormula);
+          variablesUsedInBothPartsClasses.put(arrayVariablesThatAreUsedInBothParts[i],
+              helperFormulaType);
+        }
+      }
       // not necessary, could be deleted
       for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++) {
         for (int j = 0; j < arrayVariables1.length; j++) {
@@ -143,6 +197,12 @@ public class DomainSpecificAbstraction<T> {
       double e = (double) 2;
       String[] fullLatticeNames = new String[(int) Math.pow(e, d)
           ];
+     //
+      //
+      // HashMap<String, FormulaType> latticeNamesTypes = new HashMap<String, FormulaType>();
+
+      /* HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<String,
+          List<FormulaType>>(); */
 
       latticeNames[0] = "root";
       List<BooleanFormula> relationAbstraction1Formula =
@@ -169,9 +229,11 @@ public class DomainSpecificAbstraction<T> {
               arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
               arrayVariablesThatAreUsedInBothParts[i] + "'" + " - " +
               arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
-    /*      FormulaType resultType1 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (resultType1.isIntegerType() & resultType2.isIntegerType()) { */
+          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+              (arrayVariablesThatAreUsedInBothParts[i]);
+          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+          (arrayVariablesThatAreUsedInBothParts[i + 1]);
+          if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
             IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -189,7 +251,7 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
             relationAbstraction1Formula.add(helperFormula5);
-       /*   } else if (resultType1.isRationalType() & resultType2.isRationalType()){
+          } else if (resultType1.isRationalType() && resultType2.isRationalType()){
             RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -207,7 +269,8 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
             relationAbstraction1Formula.add(helperFormula5);
-          } else if (resultType1.isFloatingPointRoundingModeType() & resultType2.isFloatingPointRoundingModeType()){
+          } else if (resultType1.isFloatingPointRoundingModeType() &&
+              resultType2.isFloatingPointRoundingModeType()){
             FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
@@ -226,10 +289,14 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
             relationAbstraction1Formula.add(helperFormula5);
-          } */
+          }
             latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 2] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1];
+            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            latticeNamesTypes.put(latticeNames[i + 2], resultType1);
+           /* latticeNamesTypes[i + 1] = resultType1;
+            latticeNamesTypes[i + 2] = resultType2; */
 
         }
         for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i = i + 2) {
@@ -239,9 +306,11 @@ public class DomainSpecificAbstraction<T> {
               arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
               arrayVariablesThatAreUsedInBothParts[i] + "''" + " - " +
               arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
-      /*    FormulaType resultType1 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (resultType1.isIntegerType() & resultType2.isIntegerType()) { */
+          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+          (arrayVariablesThatAreUsedInBothParts[i]);
+          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+          (arrayVariablesThatAreUsedInBothParts[i + 1]);
+          if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
             IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula
@@ -260,7 +329,7 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
             relationAbstraction2Formula.add(helperFormula5);
-       /*   } else if (resultType1.isRationalType() & resultType2.isRationalType()) {
+          } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
             RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula
@@ -279,7 +348,8 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
             relationAbstraction2Formula.add(helperFormula5);
-          } else if (resultType1.isFloatingPointRoundingModeType() & resultType2.isFloatingPointRoundingModeType()){
+          } else if (resultType1.isFloatingPointRoundingModeType() &&
+              resultType2.isFloatingPointRoundingModeType()){
             FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula
@@ -298,7 +368,7 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
             relationAbstraction2Formula.add(helperFormula5);
-          } */
+          }
         }
       } else {
         int i;
@@ -309,10 +379,12 @@ public class DomainSpecificAbstraction<T> {
               arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
               arrayVariablesThatAreUsedInBothParts[i] + "'" + " - " +
               arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
-     /*     FormulaType resultType1 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i +
+          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+          (arrayVariablesThatAreUsedInBothParts[i]);
+          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+          (arrayVariablesThatAreUsedInBothParts[i +
           1]);
-          if (resultType1.isIntegerType() & resultType2.isIntegerType()) { */
+          if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
             IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -330,7 +402,7 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
             relationAbstraction1Formula.add(helperFormula5);
-     /*     } else if (resultType1.isRationalType() & resultType2.isRationalType()){
+          } else if (resultType1.isRationalType() && resultType2.isRationalType()){
             RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -348,7 +420,8 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
             relationAbstraction1Formula.add(helperFormula5);
-          } else if (resultType1.isFloatingPointRoundingModeType() & resultType2.isFloatingPointRoundingModeType()){
+          } else if (resultType1.isFloatingPointRoundingModeType() &&
+              resultType2.isFloatingPointRoundingModeType()){
             FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -366,10 +439,14 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
             relationAbstraction1Formula.add(helperFormula5);
-          } */
+          }
           latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i];
           latticeNames[i + 2] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
               arrayVariablesThatAreUsedInBothParts[i + 1];
+          latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+          latticeNamesTypes.put(latticeNames[i + 2], resultType1);
+         /* latticeNamesTypes[i + 1] = resultType1;
+          latticeNamesTypes[i + 2] = resultType2; */
         }
 
         for (i = 0; i < arrayVariablesThatAreUsedInBothParts.length - 1; i = i + 2) {
@@ -379,9 +456,11 @@ public class DomainSpecificAbstraction<T> {
               arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
               arrayVariablesThatAreUsedInBothParts[i] + "''" + " - " +
               arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
-     /*     FormulaType resultType1 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variableTypes.get(arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (resultType1.isIntegerType() & resultType2.isIntegerType()) { */
+          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+              (arrayVariablesThatAreUsedInBothParts[i]);
+          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+          (arrayVariablesThatAreUsedInBothParts[i + 1]);
+          if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
             IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula
@@ -400,7 +479,7 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
             relationAbstraction2Formula.add(helperFormula5);
-    /*      } else if (resultType1.isRationalType() & resultType2.isRationalType()){
+          } else if (resultType1.isRationalType() && resultType2.isRationalType()){
             RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula
@@ -419,7 +498,8 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
             relationAbstraction2Formula.add(helperFormula5);
-          } else if (resultType1.isFloatingPointRoundingModeType() & resultType2.isFloatingPointRoundingModeType()){
+          } else if (resultType1.isFloatingPointRoundingModeType() &&
+               resultType2.isFloatingPointRoundingModeType()){
             FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula
@@ -438,17 +518,17 @@ public class DomainSpecificAbstraction<T> {
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
             relationAbstraction2Formula.add(helperFormula5);
-          } */
+          }
         }
         relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                 + ""
                 + " = " + arrayVariablesThatAreUsedInBothParts
                 [arrayVariablesThatAreUsedInBothParts.length - 1] + "'";
-    /*    FormulaType resultType1 = variableTypes.get
+        FormulaType resultType1 = variablesUsedInBothPartsClasses.get
             (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]);
-        if (resultType1.isBooleanType()) { */
-       /*   BooleanFormula helperFormula1, helperFormula2, helperFormula3;
+       /* if (resultType1.isBooleanType()) {
+          BooleanFormula helperFormula1, helperFormula2, helperFormula3;
           helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
               arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
                   - 1]);
@@ -456,7 +536,7 @@ public class DomainSpecificAbstraction<T> {
               fmgr.makeVariable(FormulaType.BooleanType, arrayVariablesThatAreUsedInBothParts
                   [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3); */
+          relationAbstraction1Formula.add(helperFormula3);
        IntegerFormula helperFormula1, helperFormula2;
        BooleanFormula helperFormula3;
        helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
@@ -466,7 +546,7 @@ public class DomainSpecificAbstraction<T> {
                 [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
         helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
         relationAbstraction1Formula.add(helperFormula3);
-    /*    } else if (resultType1.isIntegerType()){
+        } else */ if (resultType1.isIntegerType()){
           IntegerFormula helperFormula1, helperFormula2;
           BooleanFormula helperFormula3;
           helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
@@ -477,7 +557,7 @@ public class DomainSpecificAbstraction<T> {
                   [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
-        } else if (resultType1.isRationalType()){
+        } else if (resultType1.isIntegerType()){
           RationalFormula helperFormula1, helperFormula2;
           BooleanFormula helperFormula3;
           helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
@@ -499,15 +579,15 @@ public class DomainSpecificAbstraction<T> {
                   [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
-        } */
+        }
         relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                 + ""
                 + " = " + arrayVariablesThatAreUsedInBothParts
                 [arrayVariablesThatAreUsedInBothParts.length - 1] + "''";
-     /*   FormulaType resultType2 = variableTypes.get
+        FormulaType resultType2 = variablesUsedInBothPartsClasses.get
             (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]);
-        if (resultType2.isBooleanType()) { */
+      /*  if (resultType2.isBooleanType()) {  */
        /*   BooleanFormula helperFormula4, helperFormula5, helperFormula6;
           helperFormula4 = fmgr.makeVariable(FormulaType.BooleanType,
               arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
@@ -517,7 +597,7 @@ public class DomainSpecificAbstraction<T> {
                   [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6); */
-        IntegerFormula helperFormula4, helperFormula5;
+      /*  IntegerFormula helperFormula4, helperFormula5;
         BooleanFormula helperFormula6;
         helperFormula4 = fmgr.makeVariable(FormulaType.IntegerType,
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
@@ -527,7 +607,7 @@ public class DomainSpecificAbstraction<T> {
                 [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
         helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
         relationAbstraction2Formula.add(helperFormula6);
-      /*  } else if (resultType2.isIntegerType()){
+        } else */ if (resultType2.isIntegerType()){
           IntegerFormula helperFormula4, helperFormula5;
           BooleanFormula helperFormula6;
           helperFormula4 = fmgr.makeVariable(FormulaType.IntegerType,
@@ -560,14 +640,20 @@ public class DomainSpecificAbstraction<T> {
                   [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6);
-        } */
+        }
         latticeNames[latticeNames.length - 1] =
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1];
+        latticeNamesTypes.put(latticeNames[latticeNames.length - 1], resultType1);
+        //latticeNamesTypes[latticeNamesTypes.length - 1] = resultType1;
       }
 
       //generating the nodes of the lattice
+     /* FormulaType[] powersetBaseTypes = new FormulaType[arrayVariablesThatAreUsedInBothParts
+          .length]; */
+      HashMap<String, FormulaType> powersetBaseTypes = new HashMap<String, FormulaType>();
       for (int k = 1; k < latticeNames.length; k++){
         powersetBase[k - 1] = latticeNames[k];
+        powersetBaseTypes.put(latticeNames[k], latticeNamesTypes.get(latticeNames[k]));
       }
 
      for (int i = 0; i < fullLatticeNames.length; i++){
@@ -575,9 +661,18 @@ public class DomainSpecificAbstraction<T> {
          if ((i & (1 << j)) == 0){
            if (fullLatticeNames[i] == null) {
              fullLatticeNames[i] = powersetBase[j];
+             //fullLatticeNamesTypes[i] = powersetBaseTypes[j];
+             List<FormulaType> helperList = Lists.newArrayListWithExpectedSize
+                 (formulas.size());
+             helperList.add(powersetBaseTypes.get(fullLatticeNames[i]));
+             fullLatticeNamesTypes.put(fullLatticeNames[i], helperList);
            }
            else{
+             List<FormulaType> helperList = fullLatticeNamesTypes.get(fullLatticeNames[i]);
              fullLatticeNames[i] = fullLatticeNames[i] + " ," + powersetBase[j];
+             //fullLatticeNamesTypes[i] = fullLatticeNamesTypes[i] + " ," + powersetBaseTypes[j];
+             helperList.add(powersetBaseTypes.get(powersetBase[j]));
+             fullLatticeNamesTypes.put(fullLatticeNames[i], helperList);
            }
          }
        }
@@ -673,13 +768,15 @@ public class DomainSpecificAbstraction<T> {
 
         abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
         if (abstractionFeasible) {
-          List<List<IntegerFormula>> frontierListCopy = Lists.newArrayListWithExpectedSize(oldFormulas.size() - 1);;
-          for (List<IntegerFormula> s : frontierList){
+          /*List<List<IntegerFormula>> */ List<List<Formula>> frontierListCopy = Lists
+              .newArrayListWithExpectedSize(oldFormulas.size() - 1);;
+          for (/*List<IntegerFormula> */ List<Formula> s : frontierList){
             frontierListCopy.add(s);
           }
           isIncomparable = checkComparability(frontierListCopy, fullLatticeNames[h]);
           if (isIncomparable) {
-            List<IntegerFormula> new_frontier_elem = maximise(firstPartChanged, scndPartChanged,
+            /*List<IntegerFormula> */ List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                scndPartChanged,
                 relationAbstraction1,
                 relationAbstraction2, relationAbstraction1Formula,
                 relationAbstraction2Formula, lattice, fullLatticeNames, h, mySolver);
@@ -691,9 +788,9 @@ public class DomainSpecificAbstraction<T> {
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
 
-      for (List<IntegerFormula> x : frontierList) {
+      for (/*List<IntegerFormula> */ List<Formula> x : frontierList) {
 
-        for (IntegerFormula y : x) {
+        for (/*IntegerFormula*/ Formula y : x) {
 
           for (int k = 0; k < relationAbstraction1.length; k++) {
 
@@ -785,6 +882,7 @@ public class DomainSpecificAbstraction<T> {
 
   };
 
+@SuppressWarnings("rawtypes")
   private Boolean prove(BlockFormulas toCheckFormulaBlocked, Solver mySolver){
     Boolean abstractionFeasible = false;
     try (ProverEnvironment prover = mySolver
@@ -808,8 +906,9 @@ public class DomainSpecificAbstraction<T> {
     }
     return abstractionFeasible;
   }
-
-  private List<IntegerFormula> maximise(BooleanFormula firstPartChanged, BooleanFormula
+@SuppressWarnings("rawtypes")
+  private /*List<IntegerFormula> */ List<Formula> maximise(BooleanFormula firstPartChanged,
+                                                      BooleanFormula
       scndPartChanged, String[] relationAbstraction1, String[] relationAbstraction2,
                                   List<BooleanFormula> relationAbstraction1Formula,
                                   List<BooleanFormula>
@@ -825,7 +924,9 @@ public class DomainSpecificAbstraction<T> {
     BooleanFormula helperFormula2;
     Boolean hasFeasibleSuccessor = false;
     int feasibleSuccessorPosition = 0;
-    List<IntegerFormula> maximumFeasibleAbstraction = Lists.newArrayListWithExpectedSize(formulas
+    /*List<IntegerFormula>*/ List<Formula> maximumFeasibleAbstraction = Lists
+        .newArrayListWithExpectedSize
+        (formulas
         .size() - 1);
 
     for (int i = placeinlattice + 1; i < fullLatticeNames.length; i++){
@@ -880,12 +981,16 @@ public class DomainSpecificAbstraction<T> {
       if (hasFeasibleSuccessor) {
 
         maximumFeasibleAbstraction = StringtoIntegerFormulaList
-            (fullLatticeNames[feasibleSuccessorPosition] /*, formulas */);
+            (fullLatticeNames[feasibleSuccessorPosition], fullLatticeNamesTypes.get
+                (fullLatticeNames[feasibleSuccessorPosition]) /*,
+            formulas */);
 
       }
       else {
         maximumFeasibleAbstraction = StringtoIntegerFormulaList
-            (fullLatticeNames[placeinlattice] /*, formulas */);
+            (fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get
+                    (fullLatticeNames[placeinlattice])
+                /*, formulas */);
       }
 
     } else {
@@ -926,67 +1031,78 @@ public class DomainSpecificAbstraction<T> {
 
           //maximumFeasibleAbstraction = middleElement[counter/2] transformed into a Boolean Formula.
           maximumFeasibleAbstraction = StringtoIntegerFormulaList
-              (middleElement[counter/2]);
+              (middleElement[counter/2], fullLatticeNamesTypes.get(middleElement[counter/2]));
 
         } else {
 
           maximumFeasibleAbstraction = StringtoIntegerFormulaList
-              (fullLatticeNames[placeinlattice] /*, formulas */);
+              (fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get(fullLatticeNames[placeinlattice]) /*,
+               formulas */);
 
         }
     }
     return maximumFeasibleAbstraction;
   }
-
-  private List<IntegerFormula> StringtoIntegerFormulaList(String input){
-    IntegerFormula helperFormula1, helperFormula2, helperFormula3;
-    List<IntegerFormula> maximumFeasibleAbstraction = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+@SuppressWarnings({"rawtype", "unchecked"})
+  private List<Formula> StringtoIntegerFormulaList(String input, List<FormulaType>
+      formulaTypes){
+    Formula helperFormula1, helperFormula2, helperFormula3;
+    List<Formula> maximumFeasibleAbstraction = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
 
     String[] helperArray = new String[2];
-    int i = 0;
+
+    int i = 0, j = 0;
     Iterable<String> splitOperator = Splitter.on(" ,").split(input);
     for (String s : splitOperator) {
+      FormulaType currentType = formulaTypes.get(j);
       if (s.contains(" - ")){
         Iterable<String> splitOperator2 = Splitter.on(" - ").split(s);
         for (String t : splitOperator2){
           helperArray[i] = t;
           i++;
         }
-        helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType, helperArray[0]);
-        helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType, helperArray[1]);
+        helperFormula1 = fmgr.makeVariable(latticeNamesTypes.get(helperArray[0]),
+            helperArray[0]);
+        helperFormula2 = fmgr.makeVariable(latticeNamesTypes.get(helperArray[0]), helperArray[1]);
         helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
 
       }
       else {
-        helperFormula3 = fmgr.makeVariable(FormulaType.IntegerType, s);
+        helperFormula3 = fmgr.makeVariable(currentType, s);
       }
       maximumFeasibleAbstraction.add(helperFormula3);
+      j++;
     }
     return maximumFeasibleAbstraction;
   }
 
-  private Boolean checkComparability(List<List<IntegerFormula>> frontierListCopy, String
+  private Boolean checkComparability(/*List<List<IntegerFormula>> */ List<List<Formula>>
+      frontierListCopy,
+                                     String
       fullLatticeNames_h){
-    List<IntegerFormula> toCompareWith = StringtoIntegerFormulaList(fullLatticeNames_h);
-    List<List<IntegerFormula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
+    List<Formula> toCompareWith = StringtoIntegerFormulaList(fullLatticeNames_h,
+        fullLatticeNamesTypes.get(fullLatticeNames_h));
+    /*List<List<IntegerFormula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
+        1); */
+    List<List<Formula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
         1);
     Boolean isIncomparable = false;
     Boolean comparable = false;
     while (frontierListCopy.size() != 0) {
-      List<IntegerFormula> smallestList = frontierListCopy.get(0);
+      /*List<IntegerFormula> */ List<Formula> smallestList = frontierListCopy.get(0);
 
 
-      for (List<IntegerFormula> f : frontierListCopy) {
+      for (/*List<IntegerFormula> */ List<Formula> f : frontierListCopy) {
         if (f.size() < smallestList.size()) {
           smallestList = f;
         }
       }
       compareList.add(smallestList);
       frontierListCopy.remove(smallestList);
-      for (IntegerFormula f : toCompareWith) {
+      for (Formula f : toCompareWith) {
         comparable = false;
-        for (List<IntegerFormula> g : compareList) {
-          for (IntegerFormula h : g) {
+        for (/*List<IntegerFormula> */ List<Formula> g : compareList) {
+          for (/*IntegerFormula */ Formula h : g) {
 
             if (h.equals(f)) {
 
