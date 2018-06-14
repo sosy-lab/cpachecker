@@ -49,14 +49,14 @@ abstract class LtlParser extends LtlGrammarBaseVisitor<LtlFormula> {
     // For more informations, see https://stackoverflow.com/a/26573239/8204996
     lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
     // Add a fail-fast behavior for token errors
-    lexer.addErrorListener(ParserErrorListener.INSTANCE);
+    lexer.addErrorListener(LtlParserErrorListener.INSTANCE);
 
     CommonTokenStream tokens = new CommonTokenStream(lexer);
 
     // Parse the tokens
     LtlGrammarParser parser = new LtlGrammarParser(tokens);
     parser.removeErrorListeners();
-    parser.addErrorListener(ParserErrorListener.INSTANCE);
+    parser.addErrorListener(LtlParserErrorListener.INSTANCE);
 
     LtlFormulaTreeVisitor visitor = new LtlFormulaTreeVisitor();
     ParseTree tree = getParseTree(parser);
