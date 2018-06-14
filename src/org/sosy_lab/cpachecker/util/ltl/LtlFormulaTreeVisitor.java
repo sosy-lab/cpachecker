@@ -96,8 +96,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
     if (ctx.getChildCount() == 0) {
       throw new RuntimeException(
           String.format(
-              "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing was found",
-              ctx.getChildCount()));
+              "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing could be found"));
     }
 
     ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
@@ -124,8 +123,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
     if (ctx.getChildCount() == 0) {
       throw new RuntimeException(
           String.format(
-              "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing was found",
-              ctx.getChildCount()));
+              "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing could be found"));
     }
 
     ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
