@@ -30,6 +30,7 @@ import com.google.common.collect.FluentIterable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -220,13 +221,15 @@ public class UsageInfo implements Comparable<UsageInfo> {
     Preconditions.checkArgument(
         currentStateTypes.equals(otherStateTypes),
         "Different compatible states in usages are not supported");
-    for (Class<? extends CompatibleState> pClass : currentStateTypes) {
+    for (Entry<Class<? extends CompatibleState>, CompatibleState> entry :
+        compatibleStates.entrySet()) {
       // May be sorted not in the convenient order: Locks last
-      CompatibleState currentState = compatibleStates.get(pClass);
+      Class<? extends CompatibleState> currentClass = entry.getKey();
+      CompatibleState currentState = entry.getValue();
       if (currentState != null) {
         // Revert order to negate the result:
         // Usages without locks are more convenient to analyze
-        result = pO.compatibleStates.get(pClass).compareTo(currentState);
+        result = pO.compatibleStates.get(currentClass).compareTo(currentState);
         if (result != 0) {
           return result;
         }
