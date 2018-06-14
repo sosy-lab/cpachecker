@@ -24,19 +24,13 @@
 package org.sosy_lab.cpachecker.util.ltl;
 
 import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser;
 
 public class LtlFormulaParser extends LtlParser {
 
-  private LtlFormulaParser(CharStream input) {
+  LtlFormulaParser(CharStream input) {
     super(input);
-  }
-
-  public static LtlFormula parse(String input) {
-    return new LtlFormulaParser(CharStreams.fromString(input)).doParse();
   }
 
   @Override
