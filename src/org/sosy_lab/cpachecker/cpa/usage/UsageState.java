@@ -180,7 +180,7 @@ public class UsageState extends AbstractSingleWrapperState
     UsageState other = (UsageState) obj;
     return Objects.equals(variableBindingRelation, other.variableBindingRelation)
         && Objects.equals(recentUsages, other.recentUsages)
-        && super.equals(other);
+        && getWrappedState().equals(other.getWrappedState());
   }
 
   @Override
