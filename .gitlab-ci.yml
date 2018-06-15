@@ -36,6 +36,9 @@ configuration-checks:jdk-10:
     - build-dependencies
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  # Temporarily disabled until the segmentation fault is fixe
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  only: []
 
 
 configuration-documentation:
