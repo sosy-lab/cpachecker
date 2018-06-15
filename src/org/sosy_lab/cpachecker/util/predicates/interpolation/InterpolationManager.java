@@ -643,23 +643,29 @@ public final class InterpolationManager {
       } catch (InvalidConfigurationException pE) {
         logger.log(Level.WARNING, "Invalid Configuration!");
       }
-      FormulaManagerView new_fmgr = my_solver.getFormulaManager();
-      DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<T>(shutdownNotifier,
-          new_fmgr,
-          bfmgr, fmgr, pInterpolator, logger);
-      List<BooleanFormula> tocheck = Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+      if (my_solver != null) {
+        FormulaManagerView new_fmgr = my_solver.getFormulaManager();
+        DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<T>(shutdownNotifier,
+            new_fmgr,
+            bfmgr, fmgr, pInterpolator, logger);
+        List<BooleanFormula> tocheck =
+            Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
         my_interpolants = dsa.domainSpecificAbstractionsCheck
             (my_solver, tocheck);
 
-      //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
-      //    (my_solver, tocheck);
-      List<BooleanFormula> interpolantList = new ArrayList<>(formulasWithStatesAndGroupdIds.size());
-      for (BooleanFormula f : my_interpolants) {
-        BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
-        interpolantList.add(interpolant);
+        //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
+        //    (my_solver, tocheck);
+        List<BooleanFormula> interpolantList =
+            new ArrayList<>(formulasWithStatesAndGroupdIds.size());
+        for (BooleanFormula f : my_interpolants) {
+          BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
+          interpolantList.add(interpolant);
+        }
+        //return my_interpolants;
+        return interpolantList;
+      } else {
+        return Collections.emptyList();
       }
-      //return my_interpolants;
-      return interpolantList;
     } else {
       final ITPStrategy<T> itpStrategy;
       switch (strategy) {

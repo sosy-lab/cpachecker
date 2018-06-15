@@ -25,30 +25,22 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import edu.jas.arith.Rational;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.logging.Level;
-import jpl.Float;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager.Interpolator;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingModeFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -57,7 +49,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 import com.google.common.base.Splitter;
 import java.util.Map;
 import org.sosy_lab.java_smt.api.Formula;
-import java.util.Iterator;
 
 
 
@@ -65,14 +56,13 @@ import java.util.Iterator;
 public class DomainSpecificAbstraction<T> {
   protected final FormulaManagerView fmgr;
   protected FormulaManagerView oldFmgr;
-  String[] arrayVariablesThatAreUsedInBothParts;
-  public static String[] arrayVariablesForFormulas;
+  private String[] arrayVariablesThatAreUsedInBothParts;
+  private String[] arrayVariablesForFormulas;
   private List<BooleanFormula> formulas;
   private Interpolator<T> myInterpolator;
   LogManager logger;
-  private HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<String,
-      List<FormulaType>>();
-  private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<String, FormulaType>();
+  private HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<>();
+  private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
   public DomainSpecificAbstraction(ShutdownNotifier pShutdownNotifier,
                                    FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr,
                                    FormulaManagerView oldFmgr0, Interpolator<T> pTInterpolator, LogManager pLogger) {
@@ -192,9 +182,9 @@ public class DomainSpecificAbstraction<T> {
           (arrayVariablesThatAreUsedInBothParts.length))];
       String[] latticeNames = new String[(arrayVariablesThatAreUsedInBothParts.length) + 1];
       String[] powersetBase = new String[arrayVariablesThatAreUsedInBothParts.length];
-      double d = (double) (arrayVariablesThatAreUsedInBothParts
-          .length);
-      double e = (double) 2;
+      double d = arrayVariablesThatAreUsedInBothParts
+          .length;
+      double e = 2;
       String[] fullLatticeNames = new String[(int) Math.pow(e, d)
           ];
      //
@@ -650,7 +640,7 @@ public class DomainSpecificAbstraction<T> {
       //generating the nodes of the lattice
      /* FormulaType[] powersetBaseTypes = new FormulaType[arrayVariablesThatAreUsedInBothParts
           .length]; */
-      HashMap<String, FormulaType> powersetBaseTypes = new HashMap<String, FormulaType>();
+      HashMap<String, FormulaType> powersetBaseTypes = new HashMap<>();
       for (int k = 1; k < latticeNames.length; k++){
         powersetBase[k - 1] = latticeNames[k];
         powersetBaseTypes.put(latticeNames[k], latticeNamesTypes.get(latticeNames[k]));
@@ -707,8 +697,8 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       arrayVariablesForFormulas = arrayVariablesThatAreUsedInBothParts;
-      FirstPartRenamingFct renamer1 = new FirstPartRenamingFct();
-      ScndPartRenamingFct renamer2 = new ScndPartRenamingFct();
+      FirstPartRenamingFct renamer1 = new FirstPartRenamingFct(arrayVariablesThatAreUsedInBothParts);
+      ScndPartRenamingFct renamer2 = new ScndPartRenamingFct(arrayVariablesThatAreUsedInBothParts);
       BooleanFormula firstPart = formulas.get(0);
       BooleanFormula scndPart = formulas.get(1);
       BooleanFormula firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
@@ -769,7 +759,7 @@ public class DomainSpecificAbstraction<T> {
         abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
         if (abstractionFeasible) {
           /*List<List<IntegerFormula>> */ List<List<Formula>> frontierListCopy = Lists
-              .newArrayListWithExpectedSize(oldFormulas.size() - 1);;
+              .newArrayListWithExpectedSize(oldFormulas.size() - 1);
           for (/*List<IntegerFormula> */ List<Formula> s : frontierList){
             frontierListCopy.add(s);
           }
@@ -880,7 +870,7 @@ public class DomainSpecificAbstraction<T> {
    //return Collections.emptyList();
     return interpolants;
 
-  };
+  }
 
 @SuppressWarnings("rawtypes")
   private Boolean prove(BlockFormulas toCheckFormulaBlocked, Solver mySolver){
@@ -1122,5 +1112,6 @@ public class DomainSpecificAbstraction<T> {
     }
     return isIncomparable;
   }
+
 
 }
