@@ -77,8 +77,11 @@ checkstyle:
     when: on_failure
 
 javadoc:
-  <<: *source_check
+  <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS javadoc"
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
   artifacts:
     paths:
       - "Javadoc/"
