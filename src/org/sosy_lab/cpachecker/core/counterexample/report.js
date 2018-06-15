@@ -47,6 +47,19 @@ with considerably less effort */
 			$scope.$on("ChangeTab", function (event, tabIndex) {
 				$scope.setTab(tabIndex);
 			});
+			$scope.toggleErrorPathSection = function (e) {
+				$('#toggle_error_path').on('change', function () {
+					if ($(this).is(':checked')) {
+						d3.select("#errorpath_section").style("display", "inline");
+						d3.select("#externalFiles_section").style("width", "75%");
+						d3.select("#cfa-toolbar").style("width", "70%");
+					} else {
+						d3.select("#errorpath_section").style("display", "none");
+						d3.select("#externalFiles_section").style("width", "100%");
+						d3.select("#cfa-toolbar").style("width", "95%");
+					}
+				});
+			}
 			$scope.setTab = function (tabIndex) {
 				if (tabIndex === 1) {
 					if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
@@ -738,6 +751,8 @@ function init() {
 	// Setup section widths accordingly 
 	if (errorPath === undefined) {
 		d3.select("#errorpath_section").style("display", "none");
+		$("#toggle_button_error_path").hide();
+		$("#toggle_button_error_path_placeholder").hide();
 	} else {
 		d3.select("#externalFiles_section").style("width", "75%");
 		d3.select("#cfa-toolbar").style("width", "70%");

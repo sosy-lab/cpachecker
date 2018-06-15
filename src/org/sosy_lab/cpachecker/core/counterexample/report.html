@@ -114,6 +114,15 @@ with considerably less effort -->
     <section id="externalFiles_section">
 
       <ul class="nav nav-pills nav-tabs">
+        <li class="nav-item" id="toggle_button_error_path">
+          <label class="switch" style="margin-top:5px">
+            <input type="checkbox" checked id="toggle_error_path" ng-click="toggleErrorPathSection($event)">
+            <span class="slider round"></span>
+          </label>
+          <li class="nav-item" style="padding:10px;" id="toggle_button_error_path_placeholder">
+            <span class="badge badge-warning" style="font-size: 1.1em">Show Error Path Section</span>
+          </li>
+        </li>
         <li class="nav-item" ng-class="{active: tabIsSet(1)}">
           <a class="nav-link active" data-toggle="pill" href ng-click="setTab(1)" id="set-tab-1">CFA</a>
         </li>
