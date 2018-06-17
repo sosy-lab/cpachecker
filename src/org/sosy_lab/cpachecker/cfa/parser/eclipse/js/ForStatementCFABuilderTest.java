@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
 
-  private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
-  private ReturnValueCaptor<AbstractCFAEdge> expressionEdgeCaptor;
+  private ReturnValueCaptor<CFAEdge> bodyStatementEdgeCaptor;
+  private ReturnValueCaptor<CFAEdge> expressionEdgeCaptor;
   private JavaScriptCFABuilder loopBuilder;
 
   @Override
@@ -107,9 +107,9 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopBuilderScope.getParentScope()).isEqualTo(builder.getScope());
 
     Truth.assertThat(expressionEdgeCaptor.getTimesCalled()).isEqualTo(3);
-    final AbstractCFAEdge initializersEdge = expressionEdgeCaptor.getReturnValue(0);
-    final AbstractCFAEdge conditionEdge = expressionEdgeCaptor.getReturnValue(1);
-    final AbstractCFAEdge updatersEdge = expressionEdgeCaptor.getReturnValue(2);
+    final CFAEdge initializersEdge = expressionEdgeCaptor.getReturnValue(0);
+    final CFAEdge conditionEdge = expressionEdgeCaptor.getReturnValue(1);
+    final CFAEdge updatersEdge = expressionEdgeCaptor.getReturnValue(2);
 
     Truth.assertThat(entryNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
@@ -144,7 +144,7 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(bodyNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(bodyNode.getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(bodyStatementEdgeCaptor.getTimesCalled()).isEqualTo(1);
-    final AbstractCFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
+    final CFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
     Truth.assertThat(bodyNode.getLeavingEdge(0)).isEqualTo(bodyStatementEdge);
 
     final CFANode beforeUpdatersNode = bodyStatementEdge.getSuccessor();

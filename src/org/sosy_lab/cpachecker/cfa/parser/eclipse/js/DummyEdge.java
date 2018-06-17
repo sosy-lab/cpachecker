@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 class DummyEdge {
-  static BiFunction<CFANode, CFANode, AbstractCFAEdge> withDescription(final String pDescription) {
+  static BiFunction<CFANode, CFANode, CFAEdge> withDescription(final String pDescription) {
     return (final CFANode pPredecessor, final CFANode pSuccessor) ->
         new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, pDescription);
   }

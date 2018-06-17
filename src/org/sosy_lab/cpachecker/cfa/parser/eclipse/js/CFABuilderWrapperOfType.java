@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 interface CFABuilderWrapperOfType<T extends CFABuilderWrapperOfType<T>> extends CFABuilderWrapper {
@@ -56,14 +56,14 @@ interface CFABuilderWrapperOfType<T extends CFABuilderWrapperOfType<T>> extends 
 
   @Override
   @SuppressWarnings("unchecked")
-  default T appendEdge(final BiFunction<CFANode, CFANode, AbstractCFAEdge> pCreateEdge) {
+  default T appendEdge(final BiFunction<CFANode, CFANode, CFAEdge> pCreateEdge) {
     return (T) CFABuilderWrapper.super.appendEdge(pCreateEdge);
   }
 
   @Override
   @SuppressWarnings("unchecked")
   default T appendEdge(
-      final CFANode pNextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> pCreateEdge) {
+      final CFANode pNextNode, final BiFunction<CFANode, CFANode, CFAEdge> pCreateEdge) {
     return (T) CFABuilderWrapper.super.appendEdge(pNextNode, pCreateEdge);
   }
 }

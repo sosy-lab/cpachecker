@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
 
-  private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
-  private ReturnValueCaptor<AbstractCFAEdge> conditionEdgeCaptor;
+  private ReturnValueCaptor<CFAEdge> bodyStatementEdgeCaptor;
+  private ReturnValueCaptor<CFAEdge> conditionEdgeCaptor;
   private JavaScriptCFABuilder loopBuilder;
 
   @Override
@@ -91,7 +91,7 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(bodyNode.getNumEnteringEdges()).isEqualTo(2);
     Truth.assertThat(bodyNode.getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(bodyStatementEdgeCaptor.getTimesCalled()).isEqualTo(1);
-    final AbstractCFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
+    final CFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
     Truth.assertThat(bodyNode.getLeavingEdge(0)).isEqualTo(bodyStatementEdge);
 
     final CFANode loopStartNode = bodyStatementEdge.getSuccessor();
@@ -99,7 +99,7 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopBuilderScope.getLoopStartNode()).isEqualTo(loopStartNode);
     Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(conditionEdgeCaptor.getTimesCalled()).isEqualTo(1);
-    final AbstractCFAEdge conditionEdge = conditionEdgeCaptor.getReturnValue(0);
+    final CFAEdge conditionEdge = conditionEdgeCaptor.getReturnValue(0);
     Truth.assertThat(loopStartNode.getLeavingEdge(0)).isEqualTo(conditionEdge);
 
     final CFANode checkConditionNode = conditionEdge.getSuccessor();

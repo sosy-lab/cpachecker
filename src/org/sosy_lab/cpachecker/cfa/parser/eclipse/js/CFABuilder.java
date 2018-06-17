@@ -34,7 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
@@ -92,14 +92,14 @@ class CFABuilder implements FileLocationProvider {
     return this;
   }
 
-  public CFABuilder appendEdge(final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
+  public CFABuilder appendEdge(final BiFunction<CFANode, CFANode, CFAEdge> createEdge) {
     return appendEdge(new CFANode(functionName), createEdge);
   }
 
   public CFABuilder appendEdge(
-      final CFANode nextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
-    parseResult.getCFANodes().put(functionName, exitNode);
-    final AbstractCFAEdge edge = createEdge.apply(exitNode, nextNode);
+      final CFANode nextNode, final BiFunction<CFANode, CFANode, CFAEdge> createEdge) {
+    parseResult.getCFANodes().put(functionName, nextNode);
+    final CFAEdge edge = createEdge.apply(exitNode, nextNode);
     exitNode = nextNode;
     CFACreationUtils.addEdgeToCFA(edge, logger);
     return this;

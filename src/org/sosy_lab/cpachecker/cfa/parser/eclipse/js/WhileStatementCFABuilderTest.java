@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public final class WhileStatementCFABuilderTest extends CFABuilderTestBase {
 
-  private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
+  private ReturnValueCaptor<CFAEdge> bodyStatementEdgeCaptor;
   private JavaScriptCFABuilder loopBuilder;
 
   @Override
@@ -99,7 +99,7 @@ public final class WhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(bodyNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(bodyNode.getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(bodyStatementEdgeCaptor.getTimesCalled()).isEqualTo(1);
-    final AbstractCFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
+    final CFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
     Truth.assertThat(bodyNode.getLeavingEdge(0)).isEqualTo(bodyStatementEdge);
     Truth.assertThat(bodyStatementEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(bodyStatementEdge.getSuccessor().getLeavingEdge(0).getSuccessor())
