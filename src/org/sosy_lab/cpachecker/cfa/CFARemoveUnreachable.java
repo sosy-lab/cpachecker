@@ -32,9 +32,9 @@ import java.util.HashSet;
 import java.util.Queue;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.JumpExitEdge;
 
 /** Remove edges and nodes that are unreachable because of a {@link JumpExitEdge}. */
@@ -98,12 +98,7 @@ public class CFARemoveUnreachable {
   }
 
   private static boolean isFunctionExitNode(final CFANode pNode) {
-    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
-      if (pNode.getEnteringEdge(i) instanceof AReturnStatementEdge) {
-        return true;
-      }
-    }
-    return false;
+    return pNode instanceof FunctionExitNode;
   }
 
   @Nonnull
