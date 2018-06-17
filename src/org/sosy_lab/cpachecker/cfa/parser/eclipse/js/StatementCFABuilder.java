@@ -31,6 +31,7 @@ import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.ForStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
+import org.eclipse.wst.jsdt.core.dom.LabeledStatement;
 import org.eclipse.wst.jsdt.core.dom.ReturnStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
@@ -46,6 +47,7 @@ class StatementCFABuilder implements StatementAppendable {
   private ExpressionStatementAppendable expressionStatementAppendable;
   private ForStatementAppendable forStatementAppendable;
   private IfStatementAppendable ifStatementAppendable;
+  private LabeledStatementAppendable labeledStatementAppendable;
   private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
   private FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable;
   private ReturnStatementAppendable returnStatementAppendable;
@@ -80,6 +82,10 @@ class StatementCFABuilder implements StatementAppendable {
 
   void setIfStatementAppendable(final IfStatementAppendable pIfStatementAppendable) {
     ifStatementAppendable = pIfStatementAppendable;
+  }
+
+  void setLabeledStatementAppendable(final LabeledStatementAppendable pLabeledStatementAppendable) {
+    labeledStatementAppendable = pLabeledStatementAppendable;
   }
 
   void setVariableDeclarationStatementAppendable(
@@ -119,6 +125,8 @@ class StatementCFABuilder implements StatementAppendable {
       forStatementAppendable.append(pBuilder, (ForStatement) pStatement);
     } else if (pStatement instanceof IfStatement) {
       ifStatementAppendable.append(pBuilder, (IfStatement) pStatement);
+    } else if (pStatement instanceof LabeledStatement) {
+      labeledStatementAppendable.append(pBuilder, (LabeledStatement) pStatement);
     } else if (pStatement instanceof ReturnStatement) {
       returnStatementAppendable.append(pBuilder, (ReturnStatement) pStatement);
     } else if (pStatement instanceof VariableDeclarationStatement) {

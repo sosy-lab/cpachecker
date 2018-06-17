@@ -33,6 +33,7 @@ final class StatementAppendableFactory {
     builder.setForStatementAppendable(new ForStatementCFABuilder());
     builder.setFunctionDeclarationStatementAppendable(new FunctionDeclarationStatementCFABuilder());
     builder.setIfStatementAppendable(new IfStatementCFABuilder());
+    builder.setLabeledStatementAppendable(new LabeledStatementCFABuilder());
     builder.setReturnStatementAppendable(new ReturnStatementCFABuilder());
     builder.setVariableDeclarationStatementAppendable(new VariableDeclarationStatementCFABuilder());
     builder.setWhileStatementAppendable(new WhileStatementCFABuilder());
