@@ -454,7 +454,9 @@ private boolean classifyNodes = false;
     }
   }
 
-  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
+  @SuppressWarnings("DanglingJavadoc")
+  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
+      throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
 
@@ -468,6 +470,11 @@ private boolean classifyNodes = false;
             mainFunction,
             pParseResult.getFileNames(),
             language);
+
+    /** Only use in languages that make use of {@link JumpExitEdge}. */
+    if (language == Language.JAVASCRIPT) {
+      CFARemoveUnreachable.removeFrom(cfa);
+    }
 
     stats.checkTime.start();
 

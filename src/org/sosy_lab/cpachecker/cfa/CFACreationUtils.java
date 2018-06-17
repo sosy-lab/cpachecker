@@ -23,14 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.JumpExitEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-
-import java.util.logging.Level;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -55,14 +58,25 @@ public class CFACreationUtils {
     CFANode predecessor = edge.getPredecessor();
 
     // check control flow branching at predecessor
+    // The following leaving edge combinations are allowed:
+    //   - two assume edges and at most one JumpExitEdge
+    //   - one JumpExitEdge and another leaving edge
+    //   - single leaving edge
+    final long numLeavingAssumeEdges = getNumLeavingAssumeEdges(predecessor);
+    final long numLeavingJumpExitEdges = getNumLeavingJumpExitEdges(predecessor);
+    final int numLeavingEdges = predecessor.getNumLeavingEdges();
+    final long numOtherLeavingEdges =
+        numLeavingEdges - numLeavingAssumeEdges - numLeavingJumpExitEdges;
     if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      assert predecessor.getNumLeavingEdges() <= 1;
-      if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
-      }
-
+      assert numLeavingAssumeEdges + 1 <= 2 : "At most two assume edges can leave a node";
+      assert numOtherLeavingEdges == 0
+          : "Assume edge can not be added since another leaving edge already exists";
+    } else if (edge instanceof JumpExitEdge) {
+      assert numLeavingJumpExitEdges == 0
+          : "JumpExitEdge can not be added since another JumpExitEdge already exists";
     } else {
-      assert predecessor.getNumLeavingEdges() == 0;
+      assert numOtherLeavingEdges == 0
+          : "Edge can not be added since another leaving edge already exists";
     }
 
     // no check control flow merging at successor, we might have many incoming edges
@@ -140,5 +154,39 @@ public class CFACreationUtils {
   public static void removeEdgeFromNodes(CFAEdge e) {
     e.getPredecessor().removeLeavingEdge(e);
     e.getSuccessor().removeEnteringEdge(e);
+  }
+
+  static boolean hasLeavingJumpExitEdge(@Nonnull final CFANode pNode) {
+    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
+      if (pNode.getLeavingEdge(i) instanceof JumpExitEdge) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  static long getNumLeavingAssumeEdges(final CFANode pNode) {
+    return getLeavingEdges(pNode)
+        .stream()
+        .filter(leavingEdge -> leavingEdge.getEdgeType() == CFAEdgeType.AssumeEdge)
+        .count();
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  @Nonnull
+  static long getNumLeavingJumpExitEdges(final @Nonnull CFANode pNode) {
+    return getLeavingEdges(pNode)
+        .stream()
+        .filter(leavingEdge -> leavingEdge instanceof JumpExitEdge)
+        .count();
+  }
+
+  static Collection<CFAEdge> getLeavingEdges(@Nonnull final CFANode pNode) {
+    final Collection<CFAEdge> leavingEdges = new ArrayList<>();
+    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
+      leavingEdges.add(pNode.getLeavingEdge(i));
+    }
+    return leavingEdges;
   }
 }
