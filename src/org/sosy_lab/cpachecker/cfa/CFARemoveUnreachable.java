@@ -67,10 +67,9 @@ public class CFARemoveUnreachable {
       visited.add(current);
       if (hasUnreachableLeavingEdges(current)) {
         removeUnreachableLeavingEdges(current);
-      } else {
-        for (final CFAEdge leavingEdge : getLeavingEdges(current)) {
-          nodesToVisit.add(leavingEdge.getSuccessor());
-        }
+      }
+      for (final CFAEdge leavingEdge : getLeavingEdges(current)) {
+        nodesToVisit.add(leavingEdge.getSuccessor());
       }
     }
   }
