@@ -35,6 +35,7 @@ import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.LabeledStatement;
 import org.eclipse.wst.jsdt.core.dom.ReturnStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
+import org.eclipse.wst.jsdt.core.dom.SwitchStatement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.WhileStatement;
 
@@ -53,6 +54,7 @@ class StatementCFABuilder implements StatementAppendable {
   private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
   private FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable;
   private ReturnStatementAppendable returnStatementAppendable;
+  private SwitchStatementAppendable switchStatementAppendable;
   private WhileStatementAppendable whileStatementAppendable;
 
   void setBlockStatementAppendable(final BlockStatementAppendable pBlockStatementAppendable) {
@@ -112,6 +114,10 @@ class StatementCFABuilder implements StatementAppendable {
     returnStatementAppendable = pReturnStatementAppendable;
   }
 
+  void setSwitchStatementAppendable(final SwitchStatementAppendable pSwitchStatementAppendable) {
+    switchStatementAppendable = pSwitchStatementAppendable;
+  }
+
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final Statement pStatement) {
     if (pStatement instanceof Block) {
@@ -137,6 +143,8 @@ class StatementCFABuilder implements StatementAppendable {
       labeledStatementAppendable.append(pBuilder, (LabeledStatement) pStatement);
     } else if (pStatement instanceof ReturnStatement) {
       returnStatementAppendable.append(pBuilder, (ReturnStatement) pStatement);
+    } else if (pStatement instanceof SwitchStatement) {
+      switchStatementAppendable.append(pBuilder, (SwitchStatement) pStatement);
     } else if (pStatement instanceof VariableDeclarationStatement) {
       variableDeclarationStatementAppendable.append(
           pBuilder, (VariableDeclarationStatement) pStatement);
