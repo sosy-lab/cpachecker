@@ -37,6 +37,6 @@ public class JSContinueEdge extends BlankEdge implements JumpExitEdge {
       final FileLocation pFileLocation,
       final CFANode pPredecessor,
       final CFANode pSuccessor) {
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, "continue");
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pRawStatement);
   }
 }
