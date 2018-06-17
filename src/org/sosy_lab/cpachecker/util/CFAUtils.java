@@ -49,6 +49,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Function;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -299,6 +300,32 @@ public class CFAUtils {
     return (AssumeEdge)Iterables.getOnlyElement(
         CFAUtils.leavingEdges(edge.getPredecessor())
                 .filter(not(Predicates.<CFAEdge>equalTo(edge))));
+  }
+
+  public static AssumeEdges leavingAssumeEdges(final CFANode pNode) {
+    AssumeEdge trueEdge = null;
+    AssumeEdge falseEdge = null;
+    for (final AssumeEdge assumeEdge : leavingEdges(pNode).filter(AssumeEdge.class)) {
+      if (assumeEdge.getTruthAssumption()) {
+        trueEdge = assumeEdge;
+      } else {
+        falseEdge = assumeEdge;
+      }
+    }
+    assert trueEdge != null;
+    assert falseEdge != null;
+    return new AssumeEdges(trueEdge, falseEdge);
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  public static final class AssumeEdges {
+    @Nonnull public final AssumeEdge trueEdge;
+    @Nonnull public final AssumeEdge falseEdge;
+
+    private AssumeEdges(@Nonnull final AssumeEdge pTrueEdge, @Nonnull final AssumeEdge pFalseEdge) {
+      trueEdge = pTrueEdge;
+      falseEdge = pFalseEdge;
+    }
   }
 
   /**
