@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.Block;
+import org.eclipse.wst.jsdt.core.dom.BreakStatement;
 import org.eclipse.wst.jsdt.core.dom.ContinueStatement;
 import org.eclipse.wst.jsdt.core.dom.DoStatement;
 import org.eclipse.wst.jsdt.core.dom.EmptyStatement;
@@ -41,6 +42,7 @@ import org.eclipse.wst.jsdt.core.dom.WhileStatement;
 class StatementCFABuilder implements StatementAppendable {
 
   private BlockStatementAppendable blockStatementAppendable;
+  private BreakStatementAppendable breakStatementAppendable;
   private ContinueStatementAppendable continueStatementAppendable;
   private DoWhileStatementAppendable doWhileStatementAppendable;
   private EmptyStatementAppendable emptyStatementAppendable;
@@ -55,6 +57,10 @@ class StatementCFABuilder implements StatementAppendable {
 
   void setBlockStatementAppendable(final BlockStatementAppendable pBlockStatementAppendable) {
     blockStatementAppendable = pBlockStatementAppendable;
+  }
+
+  void setBreakStatementAppendable(final BreakStatementAppendable pBreakStatementAppendable) {
+    breakStatementAppendable = pBreakStatementAppendable;
   }
 
   void setContinueStatementAppendable(
@@ -110,6 +116,8 @@ class StatementCFABuilder implements StatementAppendable {
   public void append(final JavaScriptCFABuilder pBuilder, final Statement pStatement) {
     if (pStatement instanceof Block) {
       blockStatementAppendable.append(pBuilder, (Block) pStatement);
+    } else if (pStatement instanceof BreakStatement) {
+      breakStatementAppendable.append(pBuilder, (BreakStatement) pStatement);
     } else if (pStatement instanceof ContinueStatement) {
       continueStatementAppendable.append(pBuilder, (ContinueStatement) pStatement);
     } else if (pStatement instanceof DoStatement) {
