@@ -126,6 +126,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.js.JSStringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.js.JSUndefinedValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -2206,7 +2207,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSStringLiteralExpression pStringLiteralExpression)
       throws RuntimeException {
-    return UnknownValue.getInstance(); // TODO track string constant as known value
+    return JSStringValue.of(pStringLiteralExpression.getValue());
   }
 
   @Override
