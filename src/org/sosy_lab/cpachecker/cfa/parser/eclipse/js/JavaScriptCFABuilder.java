@@ -57,6 +57,8 @@ interface JavaScriptCFABuilder
 
   JavaScriptCFABuilder copy();
 
+  JavaScriptCFABuilder copyWith(Scope pScope);
+
   JavaScriptCFABuilder copyWith(JSFunctionEntryNode pEntryNode, FunctionScope pScope);
 
   JSExpression append(Expression pExpression);

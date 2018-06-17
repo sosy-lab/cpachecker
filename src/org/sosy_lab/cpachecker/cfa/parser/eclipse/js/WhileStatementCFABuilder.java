@@ -34,17 +34,22 @@ class WhileStatementCFABuilder implements WhileStatementAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final WhileStatement pNode) {
-    final CFANode entryNode = pBuilder.getExitNode();
+    final LoopScopeImpl loopScope = new LoopScopeImpl(pBuilder.getScope());
+    final JavaScriptCFABuilder loopBuilder = pBuilder.copyWith(loopScope);
+    final CFANode entryNode = loopBuilder.getExitNode();
     entryNode.setLoopStart();
-    final CFANode exitNode = pBuilder.createNode();
-    final JSExpression condition = pBuilder.append(pNode.getExpression());
-    pBuilder.addParseResult(
-        pBuilder
+    loopScope.setLoopStartNode(entryNode);
+    final CFANode exitNode = loopBuilder.createNode();
+    loopScope.setLoopExitNode(exitNode);
+    final JSExpression condition = loopBuilder.append(pNode.getExpression());
+    loopBuilder.addParseResult(
+        loopBuilder
             .copy()
             .appendEdge(assume(condition, true))
             .append(pNode.getBody())
             .appendEdge(entryNode, DummyEdge.withDescription(""))
             .getParseResult());
-    pBuilder.appendEdge(exitNode, assume(condition, false));
+    loopBuilder.appendEdge(exitNode, assume(condition, false));
+    loopBuilder.appendTo(pBuilder.getBuilder());
   }
 }

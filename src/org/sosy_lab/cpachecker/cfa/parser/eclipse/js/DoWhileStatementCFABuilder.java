@@ -34,13 +34,19 @@ class DoWhileStatementCFABuilder implements DoWhileStatementAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final DoStatement pNode) {
-    final CFANode entryNode = pBuilder.getExitNode();
-    final CFANode exitNode = pBuilder.createNode();
-    pBuilder.append(pNode.getBody());
-    pBuilder.getExitNode().setLoopStart();
-    final JSExpression condition = pBuilder.append(pNode.getExpression());
-    final JavaScriptCFABuilder loopEdgeBuilder = pBuilder.copy();
+    final LoopScopeImpl loopScope = new LoopScopeImpl(pBuilder.getScope());
+    final JavaScriptCFABuilder loopBuilder = pBuilder.copyWith(loopScope);
+    final CFANode entryNode = loopBuilder.getExitNode();
+    final CFANode exitNode = loopBuilder.createNode();
+    loopScope.setLoopExitNode(exitNode);
+    loopBuilder.append(pNode.getBody());
+    final CFANode loopStartNode = loopBuilder.getExitNode();
+    loopStartNode.setLoopStart();
+    loopScope.setLoopStartNode(loopStartNode);
+    final JSExpression condition = loopBuilder.append(pNode.getExpression());
+    final JavaScriptCFABuilder loopEdgeBuilder = loopBuilder.copy();
     loopEdgeBuilder.appendEdge(entryNode, assume(condition, true));
-    pBuilder.appendEdge(exitNode, assume(condition, false));
+    loopBuilder.appendEdge(exitNode, assume(condition, false));
+    loopBuilder.appendTo(pBuilder.getBuilder());
   }
 }

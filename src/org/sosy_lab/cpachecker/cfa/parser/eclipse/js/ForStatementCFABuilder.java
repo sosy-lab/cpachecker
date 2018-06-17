@@ -37,21 +37,26 @@ class ForStatementCFABuilder implements ForStatementAppendable {
   @SuppressWarnings("unchecked")
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final ForStatement pNode) {
-    final CFANode exitNode = pBuilder.createNode();
+    final LoopScopeImpl loopScope = new LoopScopeImpl(pBuilder.getScope());
+    final JavaScriptCFABuilder loopBuilder = pBuilder.copyWith(loopScope);
     for (final Expression initializer : (List<Expression>) pNode.initializers()) {
-      pBuilder.append(initializer);
+      loopBuilder.append(initializer);
     }
-    final CFANode loopStartNode = pBuilder.getExitNode();
+    final CFANode loopStartNode = loopBuilder.getExitNode();
     loopStartNode.setLoopStart();
-    final JSExpression condition = pBuilder.append(pNode.getExpression());
-    final JavaScriptCFABuilder loopEdgeBuilder = pBuilder.copy();
+    loopScope.setLoopStartNode(loopStartNode);
+    final JSExpression condition = loopBuilder.append(pNode.getExpression());
+    final JavaScriptCFABuilder loopEdgeBuilder = loopBuilder.copy();
     loopEdgeBuilder.appendEdge(assume(condition, true)).append(pNode.getBody());
     for (final Expression updater : (List<Expression>) pNode.updaters()) {
       loopEdgeBuilder.append(updater);
     }
     loopEdgeBuilder.appendEdge(
         loopStartNode, DummyEdge.withDescription("check for-loop condition after updaters"));
-    pBuilder.addParseResult(loopEdgeBuilder.getParseResult());
-    pBuilder.appendEdge(exitNode, assume(condition, false));
+    loopBuilder.addParseResult(loopEdgeBuilder.getParseResult());
+    final CFANode exitNode = loopBuilder.createNode();
+    loopScope.setLoopExitNode(exitNode);
+    loopBuilder.appendEdge(exitNode, assume(condition, false));
+    loopBuilder.appendTo(pBuilder.getBuilder());
   }
 }

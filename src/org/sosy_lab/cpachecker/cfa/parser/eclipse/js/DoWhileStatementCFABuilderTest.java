@@ -43,12 +43,14 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
 
   private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
   private ReturnValueCaptor<AbstractCFAEdge> conditionEdgeCaptor;
+  private JavaScriptCFABuilder loopBuilder;
 
   @Override
   public void init() throws InvalidConfigurationException {
     super.init();
     bodyStatementEdgeCaptor = new ReturnValueCaptor<>();
     conditionEdgeCaptor = new ReturnValueCaptor<>();
+    loopBuilder = null;
   }
 
   @Test
@@ -63,19 +65,27 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     final JSExpression condition =
         new JSIdExpression(FileLocation.DUMMY, "condition", mock(JSSimpleDeclaration.class));
     final StatementAppendable statementAppendable =
-        (builder, pStatement) ->
-            builder.appendEdge(
-                bodyStatementEdgeCaptor.captureReturn(
-                    DummyEdge.withDescription("dummy statement edge")));
+        (pStatementBuilder, pStatement) ->
+        {
+          loopBuilder = pStatementBuilder;
+          pStatementBuilder.appendEdge(
+              bodyStatementEdgeCaptor.captureReturn(
+                  DummyEdge.withDescription("dummy statement edge")));
+        };
     builder.setStatementAppendable(statementAppendable);
     builder.setExpressionAppendable(
-        (pBuilder, pExpression) -> {
-          builder.appendEdge(
+        (pExpressionBuilder, pExpression) -> {
+          Truth.assertThat(pExpressionBuilder.getScope()).isEqualTo(loopBuilder.getScope());
+          pExpressionBuilder.appendEdge(
               conditionEdgeCaptor.captureReturn(DummyEdge.withDescription("dummy condition edge")));
           return condition;
         });
 
     new DoWhileStatementCFABuilder().append(builder, whileStatement);
+
+    Truth.assertThat(loopBuilder.getScope()).isInstanceOf(LoopScope.class);
+    final LoopScope loopBuilderScope = (LoopScope) loopBuilder.getScope();
+    Truth.assertThat(loopBuilderScope.getParentScope()).isEqualTo(builder.getScope());
 
     final CFANode bodyNode = entryNode;
     Truth.assertThat(bodyNode.getNumEnteringEdges()).isEqualTo(2);
@@ -86,6 +96,7 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
 
     final CFANode loopStartNode = bodyStatementEdge.getSuccessor();
     Truth.assertThat(loopStartNode.isLoopStart()).isTrue();
+    Truth.assertThat(loopBuilderScope.getLoopStartNode()).isEqualTo(loopStartNode);
     Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(conditionEdgeCaptor.getTimesCalled()).isEqualTo(1);
     final AbstractCFAEdge conditionEdge = conditionEdgeCaptor.getReturnValue(0);
@@ -111,6 +122,7 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopExitNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(loopExitNode.getNumLeavingEdges()).isEqualTo(0);
     Truth.assertThat(loopExitNode).isEqualTo(builder.getExitNode());
+    Truth.assertThat(loopBuilderScope.getLoopExitNode()).isEqualTo(loopExitNode);
 
     Truth.assertThat(getAllCFANodes())
         .containsExactly(checkConditionNode, entryNode, loopExitNode, loopStartNode);

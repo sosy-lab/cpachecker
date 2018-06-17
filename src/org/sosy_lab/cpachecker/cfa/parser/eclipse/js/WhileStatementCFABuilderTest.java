@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 public final class WhileStatementCFABuilderTest extends CFABuilderTestBase {
 
   private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
+  private JavaScriptCFABuilder loopBuilder;
 
   @Override
   public void init() throws InvalidConfigurationException {
@@ -60,17 +61,28 @@ public final class WhileStatementCFABuilderTest extends CFABuilderTestBase {
     final JSExpression condition =
         new JSIdExpression(FileLocation.DUMMY, "condition", mock(JSSimpleDeclaration.class));
     final StatementAppendable statementAppendable =
-        (builder, pStatement) ->
-            builder.appendEdge(
-                bodyStatementEdgeCaptor.captureReturn(
-                    DummyEdge.withDescription("dummy statement edge")));
+        (pStatementBuilder, pStatement) ->
+        {
+          Truth.assertThat(pStatementBuilder.getScope()).isEqualTo(loopBuilder.getScope());
+          pStatementBuilder.appendEdge(
+              bodyStatementEdgeCaptor.captureReturn(
+                  DummyEdge.withDescription("dummy statement edge")));
+        };
     builder.setStatementAppendable(statementAppendable);
-    builder.setExpressionAppendable((pBuilder, pExpression) -> condition);
+    builder.setExpressionAppendable((pExpressionBuilder, pExpression) -> {
+      loopBuilder = pExpressionBuilder;
+      return condition;
+    });
 
     new WhileStatementCFABuilder().append(builder, whileStatement);
 
+    Truth.assertThat(loopBuilder.getScope()).isInstanceOf(LoopScope.class);
+    final LoopScope loopBuilderScope = (LoopScope) loopBuilder.getScope();
+    Truth.assertThat(loopBuilderScope.getParentScope()).isEqualTo(builder.getScope());
+
     final CFANode loopStartNode = this.entryNode;
     Truth.assertThat(loopStartNode.isLoopStart()).isTrue();
+    Truth.assertThat(loopBuilderScope.getLoopStartNode()).isEqualTo(loopStartNode);
     Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(2);
     final JSAssumeEdge firstEdge = (JSAssumeEdge) loopStartNode.getLeavingEdge(0);
     final JSAssumeEdge secondEdge = (JSAssumeEdge) loopStartNode.getLeavingEdge(1);
@@ -97,5 +109,6 @@ public final class WhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopExitNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(loopExitNode.getNumLeavingEdges()).isEqualTo(0);
     Truth.assertThat(loopExitNode).isEqualTo(builder.getExitNode());
+    Truth.assertThat(loopBuilderScope.getLoopExitNode()).isEqualTo(loopExitNode);
   }
 }

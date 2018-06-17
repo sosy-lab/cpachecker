@@ -45,12 +45,14 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
 
   private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
   private ReturnValueCaptor<AbstractCFAEdge> expressionEdgeCaptor;
+  private JavaScriptCFABuilder loopBuilder;
 
   @Override
   public void init() throws InvalidConfigurationException {
     super.init();
     bodyStatementEdgeCaptor = new ReturnValueCaptor<>();
     expressionEdgeCaptor = new ReturnValueCaptor<>();
+    loopBuilder = null;
   }
 
   @Test
@@ -69,23 +71,28 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     final JSExpression updaters =
         new JSIdExpression(FileLocation.DUMMY, "updaters", mock(JSSimpleDeclaration.class));
     final StatementAppendable statementAppendable =
-        (builder, pStatement) ->
-            builder.appendEdge(
-                bodyStatementEdgeCaptor.captureReturn(
-                    DummyEdge.withDescription("dummy statement edge")));
+        (pBuilder, pStatement) -> {
+          Truth.assertThat(pBuilder.getScope()).isEqualTo(loopBuilder.getScope());
+          pBuilder.appendEdge(
+              bodyStatementEdgeCaptor.captureReturn(
+                  DummyEdge.withDescription("dummy statement edge")));
+        };
     builder.setStatementAppendable(statementAppendable);
 
     final ExpressionAppendable expressionAppendable =
-        (builder, pExpression) -> {
-          builder.appendEdge(
+        (pBuilder, pExpression) -> {
+          pBuilder.appendEdge(
               expressionEdgeCaptor.captureReturn(
                   DummyEdge.withDescription("dummy expression edge")));
           switch (((SimpleName) pExpression).getIdentifier()) {
             case "condition":
+              Truth.assertThat(pBuilder.getScope()).isEqualTo(loopBuilder.getScope());
               return condition;
             case "initializers":
+              loopBuilder = pBuilder;
               return initializers;
             case "updaters":
+              Truth.assertThat(pBuilder.getScope()).isEqualTo(loopBuilder.getScope());
               return updaters;
             default:
               throw new CFAGenerationRuntimeException("Unexpected SimpleName expression");
@@ -94,6 +101,10 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     builder.setExpressionAppendable(expressionAppendable);
 
     new ForStatementCFABuilder().append(builder, forStatement);
+
+    Truth.assertThat(loopBuilder.getScope()).isInstanceOf(LoopScope.class);
+    final LoopScope loopBuilderScope = (LoopScope) loopBuilder.getScope();
+    Truth.assertThat(loopBuilderScope.getParentScope()).isEqualTo(builder.getScope());
 
     Truth.assertThat(expressionEdgeCaptor.getTimesCalled()).isEqualTo(3);
     final AbstractCFAEdge initializersEdge = expressionEdgeCaptor.getReturnValue(0);
@@ -106,6 +117,7 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
 
     final CFANode loopStartNode = initializersEdge.getSuccessor();
     Truth.assertThat(loopStartNode.isLoopStart()).isTrue();
+    Truth.assertThat(loopBuilderScope.getLoopStartNode()).isEqualTo(loopStartNode);
     Truth.assertThat(loopStartNode.getNumEnteringEdges()).isEqualTo(2);
     Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(1);
     Truth.assertThat(loopStartNode.getLeavingEdge(0)).isEqualTo(conditionEdge);
@@ -121,6 +133,7 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopExitNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(loopExitNode.getNumLeavingEdges()).isEqualTo(0);
     Truth.assertThat(loopExitNode).isEqualTo(builder.getExitNode());
+    Truth.assertThat(loopBuilderScope.getLoopExitNode()).isEqualTo(loopExitNode);
 
     Truth.assertThat(loopEntryEdge.getTruthAssumption()).isTrue();
     Truth.assertThat(loopExitEdge.getTruthAssumption()).isFalse();
