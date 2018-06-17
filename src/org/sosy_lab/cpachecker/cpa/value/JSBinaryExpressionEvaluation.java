@@ -45,6 +45,7 @@ final class JSBinaryExpressionEvaluation {
     operatorEvaluation = new HashMap<>();
     operatorEvaluation.put(BinaryOperator.EQUAL_EQUAL_EQUAL, new JSStrictEqualityEvaluation());
     operatorEvaluation.put(BinaryOperator.NOT_EQUAL_EQUAL, new JSStrictUnequalityEvaluation());
+    operatorEvaluation.put(BinaryOperator.LESS, new JSLessThanEvaluation());
     operatorEvaluation.put(BinaryOperator.PLUS, new JSAdditionOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.MINUS, new JSSubtractionOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.TIMES, new JSMultiplicationOperatorEvaluation());
@@ -94,6 +95,14 @@ abstract class JSNumericBinaryOperatorEvaluation implements BiFunction<Value, Va
     return pLeft.isUnknown() || pRight.isUnknown()
         ? UnknownValue.getInstance()
         : apply(Type.toNumber(pLeft), Type.toNumber(pRight));
+  }
+}
+
+final class JSLessThanEvaluation extends JSNumericBinaryOperatorEvaluation {
+
+  @Override
+  public Value apply(final NumericValue pLeft, final NumericValue pRight) {
+    return BooleanValue.valueOf(pLeft.doubleValue() < pRight.doubleValue());
   }
 }
 
