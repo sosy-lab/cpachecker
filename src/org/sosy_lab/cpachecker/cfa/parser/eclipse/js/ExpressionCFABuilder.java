@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import org.eclipse.wst.jsdt.core.dom.Assignment;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.eclipse.wst.jsdt.core.dom.Expression;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 
 class ExpressionCFABuilder implements ExpressionAppendable {
 
+  private AssignmentAppendable assignmentAppendable;
   private BooleanLiteralConverter booleanLiteralConverter;
   private ConditionalExpressionAppendable conditionalExpressionAppendable;
   private FunctionExpressionAppendable functionExpressionAppendable;
@@ -57,6 +59,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private StringLiteralConverter stringLiteralConverter;
   private UndefinedLiteralConverter undefinedLiteralConverter;
   private VariableDeclarationExpressionAppendable variableDeclarationExpressionAppendable;
+
+  void setAssignmentAppendable(final AssignmentAppendable pAssignmentAppendable) {
+    assignmentAppendable = pAssignmentAppendable;
+  }
 
   void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
     booleanLiteralConverter = pBooleanLiteralConverter;
@@ -123,7 +129,9 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
-    if (pExpression instanceof ConditionalExpression) {
+    if (pExpression instanceof Assignment) {
+      return assignmentAppendable.append(pBuilder, (Assignment) pExpression);
+    } else if (pExpression instanceof ConditionalExpression) {
       return conditionalExpressionAppendable.append(pBuilder, (ConditionalExpression) pExpression);
     } else if (pExpression instanceof FunctionExpression) {
       return functionExpressionAppendable.append(pBuilder, (FunctionExpression) pExpression);
