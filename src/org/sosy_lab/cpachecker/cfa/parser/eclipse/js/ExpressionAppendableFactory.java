@@ -40,6 +40,7 @@ final class ExpressionAppendableFactory {
     builder.setSimpleNameResolver(new SimpleNameResolverImpl());
     builder.setStringLiteralConverter(new StringLiteralConverterImpl());
     builder.setUndefinedLiteralConverter(new UndefinedLiteralConverterImpl());
+    builder.setVariableDeclarationExpressionAppendable(new VariableDeclarationExpressionCFABuilder());
     return builder;
   }
 }

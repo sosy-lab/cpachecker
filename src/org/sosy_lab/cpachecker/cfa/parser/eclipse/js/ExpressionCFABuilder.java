@@ -37,6 +37,7 @@ import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 
@@ -55,6 +56,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private SimpleNameResolver simpleNameResolver;
   private StringLiteralConverter stringLiteralConverter;
   private UndefinedLiteralConverter undefinedLiteralConverter;
+  private VariableDeclarationExpressionAppendable variableDeclarationExpressionAppendable;
 
   void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
     booleanLiteralConverter = pBooleanLiteralConverter;
@@ -115,6 +117,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     undefinedLiteralConverter = pUndefinedLiteralConverter;
   }
 
+  void setVariableDeclarationExpressionAppendable(final VariableDeclarationExpressionAppendable pVariableDeclarationExpressionAppendable) {
+    variableDeclarationExpressionAppendable = pVariableDeclarationExpressionAppendable;
+  }
+
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof ConditionalExpression) {
@@ -153,6 +159,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return booleanLiteralConverter.convert(pBuilder, (BooleanLiteral) pExpression);
     } else if (pExpression instanceof UndefinedLiteral) {
       return undefinedLiteralConverter.convert(pBuilder, (UndefinedLiteral) pExpression);
+    } else if (pExpression instanceof VariableDeclarationExpression) {
+      variableDeclarationExpressionAppendable.append(pBuilder,
+          (VariableDeclarationExpression) pExpression);
+      return null;
     } else if (pExpression == null) {
       // This might be caused by a bug in the eclipse parser,
       // for example: https://bugs.eclipse.org/bugs/show_bug.cgi?id=518324
