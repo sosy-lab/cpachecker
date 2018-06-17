@@ -35,15 +35,13 @@ class ContinueStatementCFABuilder implements ContinueStatementAppendable {
       final JavaScriptCFABuilder pBuilder, final ContinueStatement pContinueStatement) {
     final LoopScope loopScope = pBuilder.getScope().getScope(LoopScope.class);
     assert loopScope != null : "ContinueStatement has to be in a loop statement";
-    pBuilder
-        .copy()
-        .appendEdge(
-            loopScope.getLoopStartNode(),
-            (final CFANode pPredecessor, final CFANode pSuccessor) ->
-                new JSContinueEdge(
-                    pContinueStatement.toString(),
-                    pBuilder.getFileLocation(pContinueStatement),
-                    pPredecessor,
-                    pSuccessor));
+    pBuilder.appendJumpExitEdge(
+        loopScope.getLoopStartNode(),
+        (final CFANode pPredecessor, final CFANode pSuccessor) ->
+            new JSContinueEdge(
+                pContinueStatement.toString(),
+                pBuilder.getFileLocation(pContinueStatement),
+                pPredecessor,
+                pSuccessor));
   }
 }

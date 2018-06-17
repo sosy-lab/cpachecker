@@ -48,7 +48,7 @@ class ReturnStatementCFABuilder implements ReturnStatementAppendable {
             : new JSUndefinedLiteralExpression(FileLocation.DUMMY);
     final FunctionExitNode exitNode = pBuilder.getFunctionExitNode();
     final JSIdExpression returnVariableId = pBuilder.getReturnVariableId();
-    pBuilder.appendEdge(
+    pBuilder.appendJumpExitEdge(
         exitNode,
         (pPredecessor, pSuccessor) ->
             new JSReturnStatementEdge(

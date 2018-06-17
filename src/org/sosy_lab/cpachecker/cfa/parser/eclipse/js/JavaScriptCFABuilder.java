@@ -23,18 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.sosy_lab.cpachecker.cfa.CFARemoveUnreachable;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.JumpExitEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 interface JavaScriptCFABuilder
@@ -72,4 +76,26 @@ interface JavaScriptCFABuilder
   JSIdExpression getReturnVariableId();
 
   Scope getScope();
+
+  /**
+   * Add a {@link JumpExitEdge} and continue this builder in an unreachable node after the statement
+   * that jumped out of the regular control flow. This unreachable path is removed later by {@link
+   * CFARemoveUnreachable}. However, not the whole path might be unreachable since another reachable
+   * entering edge might be added to one of the nodes that are appended to this builder.
+   *
+   * @param pJumpExitNode The node to which the {@link JumpExitEdge} should exit.
+   * @param pCreateEdge Create the {@link JumpExitEdge} from the current exit edge of this builder
+   *     to {@code pJumpExitNode}.
+   * @return This builder.
+   */
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  default CFABuilderWrapper appendJumpExitEdge(
+      final CFANode pJumpExitNode, final BiFunction<CFANode, CFANode, JumpExitEdge> pCreateEdge) {
+    copy()
+        .appendEdge(
+            pJumpExitNode,
+            (pPredecessor, pSuccessor) -> pCreateEdge.apply(pPredecessor, pSuccessor));
+    appendEdge(DummyEdge.withDescription("unreachable due to JumpExitEdge"));
+    return this;
+  }
 }
