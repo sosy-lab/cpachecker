@@ -31,4 +31,4 @@ import org.sosy_lab.cpachecker.cfa.CFARemoveUnreachable;
  * continue-, break- and goto-edges. The edges that are never taken and their successors are removed
  * in post processing by {@link CFARemoveUnreachable}.
  */
-public interface JumpExitEdge {}
+public interface JumpExitEdge extends CFAEdge {}
