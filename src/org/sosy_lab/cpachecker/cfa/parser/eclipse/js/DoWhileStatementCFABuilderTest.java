@@ -111,5 +111,8 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopExitNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(loopExitNode.getNumLeavingEdges()).isEqualTo(0);
     Truth.assertThat(loopExitNode).isEqualTo(builder.getExitNode());
+
+    Truth.assertThat(getAllCFANodes())
+        .containsExactly(checkConditionNode, entryNode, loopExitNode, loopStartNode);
   }
 }
