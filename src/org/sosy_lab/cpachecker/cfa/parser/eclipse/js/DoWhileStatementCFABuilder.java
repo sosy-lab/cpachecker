@@ -37,8 +37,8 @@ class DoWhileStatementCFABuilder implements DoWhileStatementAppendable {
     final CFANode entryNode = pBuilder.getExitNode();
     final CFANode exitNode = pBuilder.createNode();
     pBuilder.append(pNode.getBody());
-    final JSExpression condition = pBuilder.append(pNode.getExpression());
     pBuilder.getExitNode().setLoopStart();
+    final JSExpression condition = pBuilder.append(pNode.getExpression());
     final JavaScriptCFABuilder loopEdgeBuilder = pBuilder.copy();
     loopEdgeBuilder.appendEdge(entryNode, assume(condition, true));
     pBuilder.appendEdge(exitNode, assume(condition, false));

@@ -42,20 +42,23 @@ import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
 
   private ReturnValueCaptor<AbstractCFAEdge> bodyStatementEdgeCaptor;
+  private ReturnValueCaptor<AbstractCFAEdge> conditionEdgeCaptor;
 
   @Override
   public void init() throws InvalidConfigurationException {
     super.init();
     bodyStatementEdgeCaptor = new ReturnValueCaptor<>();
+    conditionEdgeCaptor = new ReturnValueCaptor<>();
   }
 
   @Test
   public final void testDoWhile() {
     final DoStatement whileStatement =
-        parseStatement(DoStatement.class, "do { doSomething() } while (condition)");
-    // expected CFA: --> ((entryNode)) --{doSomething()}--> (loopStartNode) --[!condition]--> ()
-    //                         |                                   |
-    //                         \<--------------------[condition]--/
+        parseStatement(DoStatement.class, "do { body } while (condition)");
+    // expected CFA:
+    // --> (entryNode) --{body}--> (loopStartNode) --{condition}--> (checkNode) --[!condition]--> ()
+    //          |                                                        |
+    //          \<-----------------------------------------[condition]--/
 
     final JSExpression condition =
         new JSIdExpression(FileLocation.DUMMY, "condition", mock(JSSimpleDeclaration.class));
@@ -65,7 +68,12 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
                 bodyStatementEdgeCaptor.captureReturn(
                     DummyEdge.withDescription("dummy statement edge")));
     builder.setStatementAppendable(statementAppendable);
-    builder.setExpressionAppendable((pBuilder, pExpression) -> condition);
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> {
+          builder.appendEdge(
+              conditionEdgeCaptor.captureReturn(DummyEdge.withDescription("dummy condition edge")));
+          return condition;
+        });
 
     new DoWhileStatementCFABuilder().append(builder, whileStatement);
 
@@ -78,9 +86,16 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
 
     final CFANode loopStartNode = bodyStatementEdge.getSuccessor();
     Truth.assertThat(loopStartNode.isLoopStart()).isTrue();
-    Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(2);
-    final JSAssumeEdge firstEdge = (JSAssumeEdge) loopStartNode.getLeavingEdge(0);
-    final JSAssumeEdge secondEdge = (JSAssumeEdge) loopStartNode.getLeavingEdge(1);
+    Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(1);
+    Truth.assertThat(conditionEdgeCaptor.getTimesCalled()).isEqualTo(1);
+    final AbstractCFAEdge conditionEdge = conditionEdgeCaptor.getReturnValue(0);
+    Truth.assertThat(loopStartNode.getLeavingEdge(0)).isEqualTo(conditionEdge);
+
+    final CFANode checkConditionNode = conditionEdge.getSuccessor();
+    Truth.assertThat(checkConditionNode.getNumEnteringEdges()).isEqualTo(1);
+    Truth.assertThat(checkConditionNode.getNumLeavingEdges()).isEqualTo(2);
+    final JSAssumeEdge firstEdge = (JSAssumeEdge) checkConditionNode.getLeavingEdge(0);
+    final JSAssumeEdge secondEdge = (JSAssumeEdge) checkConditionNode.getLeavingEdge(1);
     Truth.assertThat(firstEdge.getTruthAssumption()).isNotEqualTo(secondEdge.getTruthAssumption());
     final JSAssumeEdge loopEntryEdge = firstEdge.getTruthAssumption() ? firstEdge : secondEdge;
     final JSAssumeEdge loopExitEdge = firstEdge.getTruthAssumption() ? secondEdge : firstEdge;
