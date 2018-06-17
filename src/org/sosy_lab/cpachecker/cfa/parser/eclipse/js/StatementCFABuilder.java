@@ -27,6 +27,7 @@ import org.eclipse.wst.jsdt.core.dom.Block;
 import org.eclipse.wst.jsdt.core.dom.DoStatement;
 import org.eclipse.wst.jsdt.core.dom.EmptyStatement;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
+import org.eclipse.wst.jsdt.core.dom.ForStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.ReturnStatement;
@@ -41,6 +42,7 @@ class StatementCFABuilder implements StatementAppendable {
   private DoWhileStatementAppendable doWhileStatementAppendable;
   private EmptyStatementAppendable emptyStatementAppendable;
   private ExpressionStatementAppendable expressionStatementAppendable;
+  private ForStatementAppendable forStatementAppendable;
   private IfStatementAppendable ifStatementAppendable;
   private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
   private FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable;
@@ -63,6 +65,10 @@ class StatementCFABuilder implements StatementAppendable {
   void setExpressionStatementAppendable(
       final ExpressionStatementAppendable pExpressionStatementAppendable) {
     expressionStatementAppendable = pExpressionStatementAppendable;
+  }
+
+  void setForStatementAppendable(final ForStatementAppendable pForStatementAppendable) {
+    forStatementAppendable = pForStatementAppendable;
   }
 
   void setIfStatementAppendable(final IfStatementAppendable pIfStatementAppendable) {
@@ -100,6 +106,8 @@ class StatementCFABuilder implements StatementAppendable {
       emptyStatementAppendable.append(pBuilder, (EmptyStatement) pStatement);
     } else if (pStatement instanceof ExpressionStatement) {
       expressionStatementAppendable.append(pBuilder, (ExpressionStatement) pStatement);
+    } else if (pStatement instanceof ForStatement) {
+      forStatementAppendable.append(pBuilder, (ForStatement) pStatement);
     } else if (pStatement instanceof IfStatement) {
       ifStatementAppendable.append(pBuilder, (IfStatement) pStatement);
     } else if (pStatement instanceof ReturnStatement) {
