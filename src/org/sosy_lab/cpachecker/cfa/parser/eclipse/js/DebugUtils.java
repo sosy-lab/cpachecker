@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,6 +37,15 @@ final class DebugUtils {
   }
 
   public static String getLeavingEdgesReport(final CFANode pNode) {
+    return getLeavingEdgesReport(pNode, new HashSet<>());
+  }
+
+  public static String getLeavingEdgesReport(
+      final CFANode pNode, final Set<CFANode> pExcludedNodes) {
+    if (pExcludedNodes.contains(pNode)) {
+      return "";
+    }
+    pExcludedNodes.add(pNode);
     final StringBuilder result = new StringBuilder();
     forEachLeavingEdge(
         pNode,
@@ -42,7 +53,7 @@ final class DebugUtils {
             result
                 .append(edge.toString())
                 .append('\n')
-                .append(getLeavingEdgesReport(edge.getSuccessor())));
+                .append(getLeavingEdgesReport(edge.getSuccessor(), pExcludedNodes)));
     return result.toString();
   }
 
