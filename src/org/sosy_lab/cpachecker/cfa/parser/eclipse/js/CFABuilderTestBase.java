@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.Collection;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.junit.Before;
@@ -64,5 +65,9 @@ public abstract class CFABuilderTestBase {
     final ExpressionStatement expressionStatement =
         (ExpressionStatement) createAST(pCode).statements().get(pIndex);
     return (E) expressionStatement.getExpression();
+  }
+
+  protected Collection<CFANode> getAllCFANodes() {
+    return builder.getParseResult().getCFANodes().get("dummy");
   }
 }
