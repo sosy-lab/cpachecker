@@ -26,17 +26,14 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-interface LoopScope extends Scope, BreakExitScope {
+/**
+ * Scope that can be exited by a break statement.
+ */
+interface BreakExitScope extends Scope {
 
+  /**
+   * @return The node to which the break statement should exit.
+   */
   @Nonnull
-  CFANode getLoopStartNode();
-
-  @Nonnull
-  CFANode getLoopExitNode();
-
-  @Nonnull
-  @Override
-  default CFANode getBreakExitNode() {
-    return getLoopExitNode();
-  }
+  CFANode getBreakExitNode();
 }

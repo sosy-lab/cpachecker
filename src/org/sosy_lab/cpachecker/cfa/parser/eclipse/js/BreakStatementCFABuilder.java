@@ -32,12 +32,12 @@ class BreakStatementCFABuilder implements BreakStatementAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final BreakStatement pBreakStatement) {
-    final LoopScope loopScope = pBuilder.getScope().getScope(LoopScope.class);
-    assert loopScope != null : "BreakStatement has to be in a loop statement";
+    final BreakExitScope breakExitScope = pBuilder.getScope().getScope(BreakExitScope.class);
+    assert breakExitScope != null : "BreakStatement has to be in a loop or switch statement";
     pBuilder
         .copy()
         .appendEdge(
-            loopScope.getLoopExitNode(),
+            breakExitScope.getBreakExitNode(),
             (final CFANode pPredecessor, final CFANode pSuccessor) ->
                 new JSBreakEdge(
                     pBreakStatement.toString(),
