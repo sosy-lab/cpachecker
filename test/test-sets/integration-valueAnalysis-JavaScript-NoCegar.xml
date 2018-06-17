@@ -11,8 +11,8 @@
 
     <tasks>
         <include>../programs/javascript/**.js</include>
-        <exclude>../programs/javascript/call-of-hoisted-function.js</exclude>
-        <exclude>../programs/javascript/closure.js</exclude>
-        <exclude>../programs/javascript/side-effects-in-expressions.js</exclude>
+        <exclude>../programs/javascript/call-of-hoisted-function_true_assert.js</exclude>
+        <exclude>../programs/javascript/closure_true_assert.js</exclude>
+        <exclude>../programs/javascript/side-effects-in-expressions_true_assert.js</exclude>
     </tasks>
 </benchmark>
