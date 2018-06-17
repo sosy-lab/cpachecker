@@ -31,8 +31,9 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.JumpExitEdge;
 
-public class JSReturnStatementEdge extends AReturnStatementEdge {
+public class JSReturnStatementEdge extends AReturnStatementEdge implements JumpExitEdge {
 
   private static final long serialVersionUID = 5236439106970614426L;
 
