@@ -47,6 +47,7 @@ final class JSBinaryExpressionEvaluation {
     operatorEvaluation.put(BinaryOperator.NOT_EQUAL_EQUAL, new JSStrictUnequalityEvaluation());
     operatorEvaluation.put(BinaryOperator.GREATER, new JSGreaterThanEvaluation());
     operatorEvaluation.put(BinaryOperator.LESS, new JSLessThanEvaluation());
+    operatorEvaluation.put(BinaryOperator.LESS_EQUALS, new JSLessThanOrEqualEvaluation());
     operatorEvaluation.put(BinaryOperator.PLUS, new JSAdditionOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.MINUS, new JSSubtractionOperatorEvaluation());
     operatorEvaluation.put(BinaryOperator.TIMES, new JSMultiplicationOperatorEvaluation());
@@ -112,6 +113,14 @@ final class JSLessThanEvaluation extends JSNumericBinaryOperatorEvaluation {
   @Override
   public Value apply(final NumericValue pLeft, final NumericValue pRight) {
     return BooleanValue.valueOf(pLeft.doubleValue() < pRight.doubleValue());
+  }
+}
+
+final class JSLessThanOrEqualEvaluation extends JSNumericBinaryOperatorEvaluation {
+
+  @Override
+  public Value apply(final NumericValue pLeft, final NumericValue pRight) {
+    return BooleanValue.valueOf(pLeft.doubleValue() <= pRight.doubleValue());
   }
 }
 
