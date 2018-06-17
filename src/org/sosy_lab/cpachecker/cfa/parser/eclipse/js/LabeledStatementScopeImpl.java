@@ -21,22 +21,40 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model.js;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.JumpExitEdge;
 
-public class JSBreakEdge extends BlankEdge implements JumpExitEdge {
+public class LabeledStatementScopeImpl
+    implements LabeledStatementScope, UnnamedScope, NoLocalDeclarationsScope {
+  @Nonnull private final CFANode breakExitNode;
+  @Nonnull private final String labelName;
+  @Nonnull private final Scope parentScope;
 
-  private static final long serialVersionUID = 1660651302310835239L;
+  LabeledStatementScopeImpl(
+      @Nonnull final Scope pParentScope,
+      @Nonnull final String pLabelName,
+      @Nonnull final CFANode pBreakExitNode) {
+    parentScope = pParentScope;
+    labelName = pLabelName;
+    breakExitNode = pBreakExitNode;
+  }
 
-  public JSBreakEdge(
-      final String pRawStatement,
-      final FileLocation pFileLocation,
-      final CFANode pPredecessor,
-      final CFANode pSuccessor) {
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pRawStatement);
+  @Nonnull
+  @Override
+  public CFANode getBreakExitNode() {
+    return breakExitNode;
+  }
+
+  @Nonnull
+  @Override
+  public String getLabelName() {
+    return labelName;
+  }
+
+  @Override
+  public Scope getParentScope() {
+    return parentScope;
   }
 }

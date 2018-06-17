@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.LabeledStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class LabeledStatementCFABuilder implements LabeledStatementAppendable {
@@ -31,6 +32,14 @@ class LabeledStatementCFABuilder implements LabeledStatementAppendable {
   @Override
   public void append(
       final JavaScriptCFABuilder pBuilder, final LabeledStatement pLabeledStatement) {
-    pBuilder.append(pLabeledStatement.getBody());
+    final CFANode breakExitNode = pBuilder.createNode();
+    final String labelName = pLabeledStatement.getLabel().getIdentifier();
+    pBuilder
+        .copyWith(new LabeledStatementScopeImpl(pBuilder.getScope(), labelName, breakExitNode))
+        .append(pLabeledStatement.getBody())
+        .appendEdge(
+            breakExitNode,
+            DummyEdge.withDescription("exit labeled statement \"" + labelName + "\""))
+        .appendTo(pBuilder.getBuilder());
   }
 }

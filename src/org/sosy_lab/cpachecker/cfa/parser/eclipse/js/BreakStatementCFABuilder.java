@@ -32,8 +32,9 @@ class BreakStatementCFABuilder implements BreakStatementAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final BreakStatement pBreakStatement) {
-    final BreakExitScope breakExitScope = pBuilder.getScope().getScope(BreakExitScope.class);
-    assert breakExitScope != null : "BreakStatement has to be in a loop or switch statement";
+    final BreakExitScope breakExitScope = findBreakExitScope(pBuilder, pBreakStatement);
+    assert breakExitScope != null
+        : "BreakStatement has to be in a loop, switch or labeled statement";
     pBuilder.appendJumpExitEdge(
         breakExitScope.getBreakExitNode(),
         (final CFANode pPredecessor, final CFANode pSuccessor) ->
@@ -42,5 +43,21 @@ class BreakStatementCFABuilder implements BreakStatementAppendable {
                 pBuilder.getFileLocation(pBreakStatement),
                 pPredecessor,
                 pSuccessor));
+  }
+
+  private BreakExitScope findBreakExitScope(
+      final JavaScriptCFABuilder pBuilder, final BreakStatement pBreakStatement) {
+    if (pBreakStatement.getLabel() == null) {
+      return pBuilder.getScope().getScope(BreakExitScope.class);
+    }
+    final String labelName = pBreakStatement.getLabel().getIdentifier();
+    LabeledStatementScope current = pBuilder.getScope().getScope(LabeledStatementScope.class);
+    assert current != null : "BreakStatement has to be in a loop, switch or labeled statement";
+    while (current != null && !current.getLabelName().equals(labelName)) {
+      current = current.getParentScope(LabeledStatementScope.class);
+    }
+    assert current != null && current.getLabelName().equals(labelName)
+        : "label \"" + labelName + "\" not found in " + pBuilder.getFileLocation(pBreakStatement);
+    return current;
   }
 }

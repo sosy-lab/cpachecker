@@ -21,22 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model.js;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.JumpExitEdge;
+import javax.annotation.Nonnull;
 
-public class JSBreakEdge extends BlankEdge implements JumpExitEdge {
+interface LabeledStatementScope extends Scope, BreakExitScope {
 
-  private static final long serialVersionUID = 1660651302310835239L;
-
-  public JSBreakEdge(
-      final String pRawStatement,
-      final FileLocation pFileLocation,
-      final CFANode pPredecessor,
-      final CFANode pSuccessor) {
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pRawStatement);
-  }
+  @Nonnull
+  String getLabelName();
 }
