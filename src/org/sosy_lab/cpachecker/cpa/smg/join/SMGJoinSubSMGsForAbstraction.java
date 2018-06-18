@@ -130,7 +130,7 @@ final public class SMGJoinSubSMGsForAbstraction {
       destLevel = destLevel + 1;
     }
 
-    CLangSMG inputSMG = new CLangSMG(smg);
+    CLangSMG inputSMG = smg.copyOf();
 
     /*Every value thats identical will be skipped, the join only iterates over non shared values, thats why we can introduce a
      * level map only for non shared objects*/

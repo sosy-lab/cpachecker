@@ -66,8 +66,8 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
 
       if (length > 1) {
         SMGJoinSubSMGsForAbstraction jointest =
-            new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSMG), prevObject, nextObject, candidate,
-                pSmgState);
+            new SMGJoinSubSMGsForAbstraction(
+                pSMG.copyOf(), prevObject, nextObject, candidate, pSmgState);
 
         if (!jointest.isDefined()) {
           return pSMG;

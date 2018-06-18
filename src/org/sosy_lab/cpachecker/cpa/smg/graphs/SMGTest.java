@@ -217,7 +217,7 @@ public class SMGTest {
     Assert.assertTrue(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
 
-    SMG smg_copy = new SMG(smg);
+    SMG smg_copy = smg.copyOf();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
 

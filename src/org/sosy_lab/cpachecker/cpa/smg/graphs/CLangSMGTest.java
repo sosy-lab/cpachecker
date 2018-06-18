@@ -96,7 +96,7 @@ public class CLangSMGTest {
 
     // Copy constructor
 
-    CLangSMG smg_copy = new CLangSMG(smg);
+    CLangSMG smg_copy = smg.copyOf();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg_copy));
 
     assertThat(smg_copy.getStackFrames()).hasSize(0);

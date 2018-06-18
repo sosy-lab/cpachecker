@@ -178,7 +178,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * new state
    */
   public SMGState(SMGState pOriginalState) {
-    heap = new CLangSMG(pOriginalState.heap);
+    heap = pOriginalState.heap.copyOf();
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
@@ -197,7 +197,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * new state
    */
   public SMGState(SMGState pOriginalState, boolean pBlockEnded) {
-    heap = new CLangSMG(pOriginalState.heap);
+    heap = pOriginalState.heap.copyOf();
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
@@ -208,7 +208,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
-    heap = new CLangSMG(pOriginalState.heap);
+    heap = pOriginalState.heap.copyOf();
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();

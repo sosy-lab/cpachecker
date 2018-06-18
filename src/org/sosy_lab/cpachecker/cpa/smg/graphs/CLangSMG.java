@@ -66,11 +66,10 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Extending SMG with notions specific for programs in C language:
- *  - separation of global, heap and stack objects
- *  - null object and value
+ * Extending SMG with notions specific for programs in C language: - separation of global, heap and
+ * stack objects - null object and value
  */
-public class CLangSMG extends SMG {
+public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   /**
    * A container for object found on the stack:
@@ -100,6 +99,7 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
+  @Override
   public boolean containsInvalidElement(Object elem) {
     if (elem instanceof SMGObject) {
       SMGObject smgObject = (SMGObject) elem;
@@ -129,6 +129,7 @@ public class CLangSMG extends SMG {
     return false;
   }
 
+  @Override
   public String getNoteMessageOnElement(Object elem) {
     if (elem instanceof SMGEdge) {
       return "Assign edge";
@@ -171,16 +172,21 @@ public class CLangSMG extends SMG {
   /**
    * Copy constructor.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pHeap The original CLangSMG
    */
-  public CLangSMG(CLangSMG pHeap) {
+  private CLangSMG(CLangSMG pHeap) {
     super(pHeap);
 
     stack_objects = pHeap.stack_objects;
     heap_objects = pHeap.heap_objects;
     global_objects = pHeap.global_objects;
+  }
+
+  @Override
+  public CLangSMG copyOf() {
+    return new CLangSMG(this);
   }
 
   /**
@@ -246,6 +252,7 @@ public class CLangSMG extends SMG {
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
+  @Override
   public boolean isStackEmpty() {
     return stack_objects.isEmpty();
   }
@@ -442,6 +449,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
+  @Override
   public SMGRegion getObjectForVisibleVariable(String pVariableName) {
     // Look in the local frame
     if (stack_objects.size() != 0) {
@@ -462,6 +470,7 @@ public class CLangSMG extends SMG {
    *
    * @return Stack of frames
    */
+  @Override
   public PersistentStack<CLangStackFrame> getStackFrames() {
     return stack_objects;
   }
@@ -498,8 +507,9 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable view of the set of the heap objects
    */
+  @Override
   public Set<SMGObject> getHeapObjects() {
-    return heap_objects.asSet();
+    return Collections.unmodifiableSet(heap_objects.asSet());
   }
 
   /**
@@ -511,6 +521,7 @@ public class CLangSMG extends SMG {
    * @return True, if the given object is referenced in the set of heap objects, false otherwise.
    *
    */
+  @Override
   public boolean isHeapObject(SMGObject object) {
     return heap_objects.contains(object);
   }
@@ -520,7 +531,8 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable map from variable names to global objects.
    */
-  public Map<String, SMGRegion> getGlobalObjects() {
+  @Override
+  public PersistentMap<String, SMGRegion> getGlobalObjects() {
     return global_objects;
   }
 
@@ -532,6 +544,7 @@ public class CLangSMG extends SMG {
    * @param object SMGObject to be checked.
    * @return True, if the given object is referenced in the set of global objects, false otherwise.
    */
+  @Override
   public boolean isGlobal(SMGObject object) {
     return global_objects.containsValue(object);
   }
@@ -541,6 +554,7 @@ public class CLangSMG extends SMG {
    *
    * @return a {@link SMGObject} for current function return value
    */
+  @Override
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
   }
@@ -560,6 +574,7 @@ public class CLangSMG extends SMG {
     removeObjectAndEdges(pObject);
   }
 
+  @Override
   public IDExpression createIDExpression(SMGObject pObject) {
 
     if (global_objects.containsValue(pObject)) {
@@ -631,6 +646,7 @@ public class CLangSMG extends SMG {
     }
   }
 
+  @Override
   public Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation) {
 
     Optional<SMGObject> initialRegion = getInitialRegion(pLocation);
@@ -746,16 +762,16 @@ public class CLangSMG extends SMG {
     return super.hashCode();
   }
 
+  @Override
   public Set<SMGMemoryPath> getMemoryPaths() {
 
     Set<SMGMemoryPath> result = new HashSet<>();
     Set<SMGObject> reached = new HashSet<>();
 
     getMemoryPathsFromGlobalVariables(result, reached);
-
     getMemoryPathsFromStack(result, reached);
 
-    return result;
+    return Collections.unmodifiableSet(result);
   }
 
   private void getMemoryPathsFromStack(Set<SMGMemoryPath> pResult, Set<SMGObject> pReached) {
@@ -893,6 +909,7 @@ public class CLangSMG extends SMG {
     heap_objects = heap_objects.addAndCopy(SMGNullObject.INSTANCE);
   }
 
+  @Override
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
 
     Map<SMGObject, SMGMemoryPath> result = new HashMap<>();
@@ -902,7 +919,7 @@ public class CLangSMG extends SMG {
 
     getHeapObjectMemoryPathsFromStack(result, reached);
 
-    return result;
+    return Collections.unmodifiableMap(result);
   }
 
   private void getHeapObjectMemoryPathsFromGlobalVariables(Map<SMGObject, SMGMemoryPath> pResult,

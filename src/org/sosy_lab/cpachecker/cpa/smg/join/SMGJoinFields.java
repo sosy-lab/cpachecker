@@ -50,8 +50,8 @@ class SMGJoinFields {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
     }
 
-    final SMG origSMG1 = new SMG(pSMG1);
-    final SMG origSMG2 = new SMG(pSMG2);
+    final SMG origSMG1 = pSMG1.copyOf();
+    final SMG origSMG2 = pSMG2.copyOf();
 
     setCompatibleHVEdgesToSMG(pSMG1, pSMG2, pObj1, pObj2);
     setCompatibleHVEdgesToSMG(pSMG2, pSMG1, pObj2, pObj1);

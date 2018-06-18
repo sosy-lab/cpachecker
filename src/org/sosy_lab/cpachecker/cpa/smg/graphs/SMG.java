@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
-public class SMG {
+public class SMG implements UnmodifiableSMG {
   private PersistentSet<SMGObject> objects;
   private PersistentSet<Integer> values;
   private SMGHasValueEdges hv_edges;
@@ -70,11 +70,11 @@ public class SMG {
   /**
    * Constructor.
    *
-   * Consistent after call: yes.
+   * <p>Consistent after call: yes.
    *
    * @param pMachineModel A machine model this SMG uses.
-   *
    */
+  @VisibleForTesting
   public SMG(final MachineModel pMachineModel) {
     objects = PersistentSet.of();
     values = PersistentSet.of();
@@ -91,11 +91,11 @@ public class SMG {
   /**
    * Copy constructor.
    *
-   * Consistent after call: yes if pHeap is consistent, no otherwise.
+   * <p>Consistent after call: yes if pHeap is consistent, no otherwise.
    *
    * @param pHeap Original SMG.
    */
-  public SMG(final SMG pHeap) {
+  protected SMG(final SMG pHeap) {
     machine_model = pHeap.machine_model;
     hv_edges = pHeap.hv_edges;
     pt_edges = pHeap.pt_edges;
@@ -106,6 +106,11 @@ public class SMG {
     externalObjectAllocation = pHeap.externalObjectAllocation;
     objects = pHeap.objects;
     values = pHeap.values;
+  }
+
+  @Override
+  public SMG copyOf() {
+    return new SMG(this);
   }
 
   @Override
@@ -311,10 +316,12 @@ public class SMG {
     neq = neq.addRelationAndCopy(pV1, pV2);
   }
 
+  @Override
   public PredRelation getPathPredicateRelation() {
     return pathPredicate;
   }
 
+  @Override
   public PredRelation getErrorPredicateRelation() {
     return errorPredicate;
   }
@@ -332,14 +339,16 @@ public class SMG {
    * Getter for obtaining unmodifiable view on values set. Constant.
    * @return Unmodifiable view on values set.
    */
+  @Override
   final public Set<Integer> getValues() {
-    return values.asSet();
+    return Collections.unmodifiableSet(values.asSet());
   }
 
   /**
    * Getter for obtaining unmodifiable view on objects set. Constant.
    * @return Unmodifiable view on objects set.
    */
+  @Override
   final public Set<SMGObject> getObjects() {
     return Collections.unmodifiableSet(objects.asSet());
   }
@@ -348,6 +357,7 @@ public class SMG {
    * Getter for obtaining unmodifiable view on Has-Value edges set. Constant.
    * @return Unmodifiable view on Has-Value edges set.
    */
+  @Override
   final public Set<SMGEdgeHasValue> getHVEdges() {
     return Collections.unmodifiableSet(hv_edges.getHvEdges());
   }
@@ -358,14 +368,17 @@ public class SMG {
    * @param pFilter Filtering object
    * @return A set of Has-Value edges for which the criteria in p hold
    */
+  @Override
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return ImmutableSet.copyOf(pFilter.filter(hv_edges));
   }
 
+  @Override
   public Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter) {
     return ImmutableSet.copyOf(pFilter.filter(pt_edges));
   }
 
+  @Override
   public SMGPointsToEdges getPTEdges() {
     return pt_edges;
   }
@@ -384,6 +397,7 @@ public class SMG {
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
    */
+  @Override
   public final @Nullable SMGObject getObjectPointedBy(Integer pValue) {
     Preconditions.checkArgument(values.contains(pValue), "Value [" + pValue + "] not in SMG");
     if (pt_edges.containsEdgeWithValue(pValue)) {
@@ -401,16 +415,18 @@ public class SMG {
    * @param pObject An object.
    * @return True if Object is valid, False if it is invalid.
    */
+  @Override
   final public boolean isObjectValid(SMGObject pObject) {
     Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return object_validity.get(pObject);
   }
 
   /**
-   * Getter for determing if the object pObject is externally allocated
-   * Throws {@link IllegalAccessException} if pObject is not present is the SMG
+   * Getter for determing if the object pObject is externally allocated Throws {@link
+   * IllegalAccessException} if pObject is not present is the SMG
    */
-  final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
+  @Override
+  public final boolean isObjectExternallyAllocated(SMGObject pObject) {
     Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return externalObjectAllocation.contains(pObject);
   }
@@ -419,6 +435,7 @@ public class SMG {
    * Getter for obtaining SMG machine model. Constant.
    * @return SMG machine model
    */
+  @Override
   final public MachineModel getMachineModel() {
     return machine_model;
   }
@@ -432,6 +449,7 @@ public class SMG {
    * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
    * object to null value
    */
+  @Override
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
     SMGEdgeHasValueFilter objectFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMG.NULL_ADDRESS);
@@ -470,6 +488,7 @@ public class SMG {
    * @return true, if the {@link SMGEdgePointsTo} edge with the source
    * value exists, otherwise false.
    */
+  @Override
   public boolean isPointer(Integer value) {
     return pt_edges.containsEdgeWithValue(value);
   }
@@ -482,14 +501,17 @@ public class SMG {
    * @return the {@link SMGEdgePointsTo} edge with the
    * value as source.
    */
+  @Override
   public SMGEdgePointsTo getPointer(Integer value) {
     return pt_edges.getEdgeWithValue(value);
   }
 
+  @Override
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
     return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
   }
 
+  @Override
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
     return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
   }
@@ -535,10 +557,12 @@ public class SMG {
     // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
   }
 
+  @Override
   public boolean haveNeqRelation(Integer pV1, Integer pV2) {
     return neq.neq_exists(pV1, pV2);
   }
 
+  @Override
   public Set<Integer> getNeqsForValue(Integer pV) {
     return neq.getNeqsForValue(pV);
   }

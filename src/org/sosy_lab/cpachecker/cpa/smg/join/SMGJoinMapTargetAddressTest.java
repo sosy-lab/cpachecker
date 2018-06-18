@@ -59,7 +59,7 @@ public class SMGJoinMapTargetAddressTest {
 
   @Test
   public void mapTargetAddressExistingNull() {
-    SMG origDestSMG = new SMG(destSMG);
+    SMG origDestSMG = destSMG.copyOf();
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMG.NULL_ADDRESS, SMG.NULL_ADDRESS);
@@ -83,7 +83,7 @@ public class SMGJoinMapTargetAddressTest {
     mapping1.map(obj1, destObj);
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
-    SMG origDestSMG = new SMG(destSMG);
+    SMG origDestSMG = destSMG.copyOf();
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
     Assert.assertEquals(origDestSMG, mta.getSMG());
@@ -103,7 +103,7 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
     SMGNodeMapping origMapping2 = new SMGNodeMapping(mapping2);
-    SMG origDestSMG = new SMG(destSMG);
+    SMG origDestSMG = destSMG.copyOf();
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertNotEquals(origDestSMG, mta.getSMG());

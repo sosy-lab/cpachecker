@@ -35,9 +35,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -325,13 +325,13 @@ public class SMGJoinFieldsTest {
     smg1.addValue(value3);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
 
-    SMGJoinFields jf = new SMGJoinFields(new SMG(smg1), new SMG(smg2), obj1, obj2);
+    SMGJoinFields jf = new SMGJoinFields(smg1.copyOf(), smg2.copyOf(), obj1, obj2);
     SMG resultSMG = jf.getSMG2();
 
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
     assertThat(edges.size()).isGreaterThan(0);
 
-    jf = new SMGJoinFields(new SMG(smg2), new SMG(smg1), obj2, obj1);
+    jf = new SMGJoinFields(smg2.copyOf(), smg1.copyOf(), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
@@ -343,10 +343,10 @@ public class SMGJoinFieldsTest {
     SMGRegion object = new SMGRegion(64, "Object");
     smg1.addObject(object);
 
-    SMG smg04 = new SMG(smg1);
-    SMG smg48 = new SMG(smg1);
-    SMG smg26 = new SMG(smg1);
-    SMG smg08 = new SMG(smg1);
+    SMG smg04 = smg1.copyOf();
+    SMG smg48 = smg1.copyOf();
+    SMG smg26 = smg1.copyOf();
+    SMG smg08 = smg1.copyOf();
 
     smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMG.NULL_ADDRESS));
     smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMG.NULL_ADDRESS));

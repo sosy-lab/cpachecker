@@ -45,8 +45,8 @@ final public class SMGJoin {
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
   public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
-    CLangSMG opSMG1 = new CLangSMG(pSMG1);
-    CLangSMG opSMG2 = new CLangSMG(pSMG2);
+    CLangSMG opSMG1 = pSMG1.copyOf();
+    CLangSMG opSMG2 = pSMG2.copyOf();
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
