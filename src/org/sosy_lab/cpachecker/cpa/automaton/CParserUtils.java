@@ -96,6 +96,8 @@ import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
 class CParserUtils {
 
+  private static final String CPACHECKER_TMP_PREFIX = "__CPAchecker_TMP";
+
   static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException {
     return parse(addFunctionDeclaration(pSource), parser, scope);
@@ -489,7 +491,7 @@ class CParserUtils {
           AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
           AExpression expression = assumeEdge.getExpression();
 
-          if (expression.toString().contains("__CPAchecker_TMP")) {
+          if (expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
             for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
               Map<AExpression, AExpression> tmpVariableValues =
                   collectCPAcheckerTMPValues(enteringEdge);
@@ -499,7 +501,7 @@ class CParserUtils {
               }
               final ExpressionTree<AExpression> newPath;
               if (assumeEdge.getTruthAssumption()
-                  && !expression.toString().contains("__CPAchecker_TMP")) {
+                  && !expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
                 newPath =
                     factory.and(
                         currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
@@ -578,7 +580,7 @@ class CParserUtils {
         AExpressionAssignmentStatement expAssignStmt = (AExpressionAssignmentStatement) statement;
         ALeftHandSide lhs = expAssignStmt.getLeftHandSide();
         if (lhs instanceof AIdExpression
-            && ((AIdExpression) lhs).getName().contains("__CPAchecker_TMP")) {
+            && ((AIdExpression) lhs).getName().contains(CPACHECKER_TMP_PREFIX)) {
           AExpression rhs = expAssignStmt.getRightHandSide();
           return Collections.<AExpression, AExpression> singletonMap(lhs, rhs);
         }
