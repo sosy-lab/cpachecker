@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
@@ -296,7 +297,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     List<CExpression> parameters = pFunctionCallExpression.getParameterExpressions();
     for (int i = 0; i < parameters.size(); i++) {
       CExpression param = parameters.get(i);
-      CType paramType = getRealExpressionType(param);
+      CType paramType = TypeUtils.getRealExpressionType(param);
       if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
         // assign external value to param
         for (SMGAddressValueAndState addressOfFieldAndState :
@@ -325,7 +326,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       }
     }
 
-    CType returnValueType = getRealExpressionType(pFunctionCallExpression.getExpressionType());
+    CType returnValueType =
+        TypeUtils.getRealExpressionType(pFunctionCallExpression.getExpressionType());
     if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
       SMGAddressValue returnValue =
           pSmgState.addExternalAllocation(calledFunctionName + SMGCPA.getNewValue());

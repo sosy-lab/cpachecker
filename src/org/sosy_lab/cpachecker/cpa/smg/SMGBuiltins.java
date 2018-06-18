@@ -190,7 +190,7 @@ public class SMGBuiltins {
               currentState,
               bufferMemory,
               offset,
-              AnonymousTypes.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
+              TypeUtils.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
               ch,
               cfaEdge);
     } else {
@@ -456,7 +456,7 @@ public class SMGBuiltins {
                 currentState,
                 new_address.getObject(),
                 0,
-                AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+                TypeUtils.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
                 SMGKnownSymValue.ZERO,
                 cfaEdge);
       }

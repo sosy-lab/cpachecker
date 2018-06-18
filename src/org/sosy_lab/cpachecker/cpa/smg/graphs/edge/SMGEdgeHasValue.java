@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -45,7 +45,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject, pOffset);
-    type = AnonymousTypes.createTypeWithLength(pSizeInBits);
+    type = TypeUtils.createTypeWithLength(pSizeInBits);
   }
 
   @Override

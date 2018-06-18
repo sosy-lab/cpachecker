@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -53,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
@@ -151,7 +151,7 @@ public class SMGExpressionEvaluator {
       throws CPATransferException {
 
     CExpression fieldOwner = fieldReference.getFieldOwner();
-    CType ownerType = getRealExpressionType(fieldOwner);
+    CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
     List<SMGAddressAndState> result = new ArrayList<>(4);
 
     /* Points to the start of this struct or union.
@@ -236,7 +236,7 @@ public class SMGExpressionEvaluator {
 
       CType type = ((CPointerType) pOwnerType).getType();
 
-      type = getRealExpressionType(type);
+      type = TypeUtils.getRealExpressionType(type);
 
       return getField(type, pFieldName);
     }
@@ -258,7 +258,7 @@ public class SMGExpressionEvaluator {
     final SMGExplicitValue smgValue;
     if (!resultType.equals(pOwnerType)) {
       smgValue = SMGKnownExpValue.valueOf(offset);
-      resultType = getRealExpressionType(resultType);
+      resultType = TypeUtils.getRealExpressionType(resultType);
     } else {
       smgValue = SMGUnknownValue.getInstance();
     }
@@ -359,7 +359,7 @@ public class SMGExpressionEvaluator {
   public List<? extends SMGValueAndState> evaluateExpressionValue(
       SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
 
-    CType expressionType = getRealExpressionType(rValue);
+    CType expressionType = TypeUtils.getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType
         || expressionType instanceof CArrayType
@@ -405,7 +405,7 @@ public class SMGExpressionEvaluator {
   public List<SMGAddressValueAndState> evaluateAddress(
       SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
 
-    CType expressionType = getRealExpressionType(rValue);
+    CType expressionType = TypeUtils.getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType
         || (expressionType instanceof CFunctionType
@@ -444,18 +444,6 @@ public class SMGExpressionEvaluator {
     } else {
       return SMGUnknownValue.getInstance();
     }
-  }
-
-  public static CType getRealExpressionType(CType type) {
-    return type.getCanonicalType();
-  }
-
-  public static CType getRealExpressionType(CSimpleDeclaration decl) {
-    return getRealExpressionType(decl.getType());
-  }
-
-  public static CType getRealExpressionType(CRightHandSide exp) {
-    return getRealExpressionType(exp.getExpressionType());
   }
 
   List<SMGAddressValueAndState> handlePointerArithmetic(

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
@@ -71,8 +72,8 @@ class ArrayVisitor extends AddressVisitor
 
     CExpression lVarInBinaryExp = binaryExp.getOperand1();
     CExpression rVarInBinaryExp = binaryExp.getOperand2();
-    CType lVarInBinaryExpType = SMGExpressionEvaluator.getRealExpressionType(lVarInBinaryExp);
-    CType rVarInBinaryExpType = SMGExpressionEvaluator.getRealExpressionType(rVarInBinaryExp);
+    CType lVarInBinaryExpType = TypeUtils.getRealExpressionType(lVarInBinaryExp);
+    CType rVarInBinaryExpType = TypeUtils.getRealExpressionType(rVarInBinaryExp);
 
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CArrayType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CArrayType;
@@ -121,7 +122,7 @@ class ArrayVisitor extends AddressVisitor
     // parameter declaration array types are converted to pointer
     if (pVariableName.getDeclaration() instanceof CParameterDeclaration) {
 
-      CType type = SMGExpressionEvaluator.getRealExpressionType(pVariableName);
+      CType type = TypeUtils.getRealExpressionType(pVariableName);
       if (type instanceof CArrayType) {
         // if function declaration is in form 'int foo(char b[32])' then omit array length
         //TODO support C11 6.7.6.3 7:

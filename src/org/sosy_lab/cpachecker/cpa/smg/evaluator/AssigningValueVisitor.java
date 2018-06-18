@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
@@ -185,11 +186,13 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
               assignableState,
               addressOfField.getObject(),
               addressOfField.getOffset().getAsInt(),
-              SMGExpressionEvaluator.getRealExpressionType(lValue),
+              TypeUtils.getRealExpressionType(lValue),
               rSymValue,
               edge);
     }
-    int size = smgRightHandSideEvaluator.getBitSizeof(edge, SMGExpressionEvaluator.getRealExpressionType(lValue), assignableState);
+    int size =
+        smgRightHandSideEvaluator.getBitSizeof(
+            edge, TypeUtils.getRealExpressionType(lValue), assignableState);
     assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {

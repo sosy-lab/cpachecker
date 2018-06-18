@@ -63,8 +63,8 @@ public class SMGStateTest {
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 
-  static private final CType mockType16b = AnonymousTypes.createTypeWithLength(16);
-  static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
+  static private final CType mockType16b = TypeUtils.createTypeWithLength(16);
+  static private final CType mockType8b = TypeUtils.createTypeWithLength(8);
 
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private final CFunctionDeclaration functionDeclaration3 =

@@ -31,14 +31,14 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class SMGEdgeHasValueTest {
 
-  CType mockType = AnonymousTypes.createTypeWithLength(32);
-  CType mockType12b = AnonymousTypes.createTypeWithLength(96);
+  CType mockType = TypeUtils.createTypeWithLength(32);
+  CType mockType12b = TypeUtils.createTypeWithLength(96);
 
   @Test
   public void testSMGEdgeHasValue() {

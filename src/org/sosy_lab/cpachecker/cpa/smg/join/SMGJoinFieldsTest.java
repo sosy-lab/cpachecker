@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinFieldsTest {
-  static private final CType mockType4b = AnonymousTypes.createTypeWithLength(32);
-  static private final CType mockType8b = AnonymousTypes.createTypeWithLength(64);
+  static private final CType mockType4b = TypeUtils.createTypeWithLength(32);
+  static private final CType mockType8b = TypeUtils.createTypeWithLength(64);
 
   private SMG smg1;
   private SMG smg2;

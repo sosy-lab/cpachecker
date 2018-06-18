@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -135,8 +136,8 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
      */
     CExpression operand = pointerExpression.getOperand();
 
-    assert SMGExpressionEvaluator.getRealExpressionType(operand) instanceof CPointerType
-        || SMGExpressionEvaluator.getRealExpressionType(operand) instanceof CArrayType;
+    assert TypeUtils.getRealExpressionType(operand) instanceof CPointerType
+        || TypeUtils.getRealExpressionType(operand) instanceof CArrayType;
 
     return asAddressAndStateList(
         smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), operand));

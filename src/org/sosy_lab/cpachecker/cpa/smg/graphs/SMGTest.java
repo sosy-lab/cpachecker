@@ -34,7 +34,7 @@ import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -46,7 +46,7 @@ public class SMGTest {
   private LogManager logger = LogManager.createTestLogManager();
 
   private SMG smg;
-  CType mockType = AnonymousTypes.createTypeWithLength(32);
+  CType mockType = TypeUtils.createTypeWithLength(32);
 
   SMGObject obj1 = new SMGRegion(64, "object-1");
   SMGObject obj2 = new SMGRegion(64, "object-2");

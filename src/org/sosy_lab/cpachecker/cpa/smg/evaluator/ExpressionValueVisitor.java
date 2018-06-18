@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
@@ -115,7 +116,7 @@ public class ExpressionValueVisitor
               newState,
               address.getObject(),
               address.getOffset(),
-              SMGExpressionEvaluator.getRealExpressionType(exp),
+              TypeUtils.getRealExpressionType(exp),
               cfaEdge);
       result.add(symbolicValueResultAndState);
     }
@@ -163,7 +164,7 @@ public class ExpressionValueVisitor
         continue;
       }
 
-      CType fieldType = SMGExpressionEvaluator.getRealExpressionType(fieldReference);
+      CType fieldType = TypeUtils.getRealExpressionType(fieldReference);
 
       result.add(
           smgExpressionEvaluator.readValue(
@@ -214,7 +215,7 @@ public class ExpressionValueVisitor
               smgState,
               variableObject,
               SMGKnownExpValue.ZERO,
-              SMGExpressionEvaluator.getRealExpressionType(idExpression),
+              TypeUtils.getRealExpressionType(idExpression),
               cfaEdge);
       result.getSmgState().addElementToCurrentChain(result.getObject());
 
@@ -258,7 +259,7 @@ public class ExpressionValueVisitor
         int size =
             smgExpressionEvaluator.getBitSizeof(
                 cfaEdge,
-                SMGExpressionEvaluator.getRealExpressionType(unaryOperand),
+                TypeUtils.getRealExpressionType(unaryOperand),
                 getInitialSmgState(),
                 unaryOperand);
       SMGSymbolicValue val = (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
@@ -275,8 +276,8 @@ public class ExpressionValueVisitor
       throws CPATransferException {
 
     CExpression operand = pointerExpression.getOperand();
-    CType operandType = SMGExpressionEvaluator.getRealExpressionType(operand);
-    CType expType = SMGExpressionEvaluator.getRealExpressionType(pointerExpression);
+    CType operandType = TypeUtils.getRealExpressionType(operand);
+    CType expType = TypeUtils.getRealExpressionType(pointerExpression);
 
     if (operandType instanceof CPointerType) {
       return dereferencePointer(operand, expType);
