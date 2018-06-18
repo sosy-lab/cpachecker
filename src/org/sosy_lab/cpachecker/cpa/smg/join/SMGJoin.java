@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -48,8 +48,8 @@ final public class SMGJoin {
   public SMGJoin(
       UnmodifiableCLangSMG pSMG1,
       UnmodifiableCLangSMG pSMG2,
-      SMGState pStateOfSmg1,
-      SMGState pStateOfSmg2)
+      UnmodifiableSMGState pStateOfSmg1,
+      UnmodifiableSMGState pStateOfSmg2)
       throws SMGInconsistentException {
     CLangSMG opSMG1 = pSMG1.copyOf();
     CLangSMG opSMG2 = pSMG2.copyOf();

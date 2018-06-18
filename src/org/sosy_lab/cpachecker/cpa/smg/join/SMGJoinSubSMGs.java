@@ -29,8 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-
 
 final class SMGJoinSubSMGs {
   static private boolean performChecks = false;
@@ -57,12 +56,22 @@ final class SMGJoinSubSMGs {
   private SMGNodeMapping mapping2 = null;
   private final List<SMGGenericAbstractionCandidate> subSmgAbstractionCandidates;
 
-  public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
-      SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+  public SMGJoinSubSMGs(
+      SMGJoinStatus initialStatus,
+      SMG pSMG1,
+      SMG pSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMap,
-      SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+      SMGObject pObj1,
+      SMGObject pObj2,
+      SMGObject pNewObject,
+      int pLDiff,
+      boolean identicalInputSmg,
+      UnmodifiableSMGState pSmgState1,
+      UnmodifiableSMGState pSmgState2)
+      throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
 

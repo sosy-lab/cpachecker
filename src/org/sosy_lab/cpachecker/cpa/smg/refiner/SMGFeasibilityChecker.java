@@ -77,8 +77,8 @@ public class SMGFeasibilityChecker {
   private ReachabilityResult isReachable(
       ARGPath pPath, SMGState pStartingPoint, SMGPrecision pPrecision) throws CPAException {
 
- // We don't want sideffects of smg transfer relation for smg state propagating.
-    SMGState start = new SMGState(pStartingPoint);
+    // We don't want sideffects of smg transfer relation for smg state propagating.
+    SMGState start = pStartingPoint.copyOf();
     Collection<SMGState> next = new ArrayList<>();
     next.add(start);
 
@@ -298,7 +298,7 @@ public class SMGFeasibilityChecker {
     }
 
     /*Prevent causing side effects when pruning.*/
-    SMGState state = new SMGState(pState);
+    SMGState state = pState.copyOf();
 
     return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState(),
         pAllTargets);

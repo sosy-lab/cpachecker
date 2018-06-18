@@ -330,7 +330,7 @@ public class SMGBuiltins {
 
     // TODO line numbers are not unique when we have multiple input files!
     String allocation_label = "alloc_ID" + SMGCPA.getNewValue();
-    SMGState state = new SMGState(currentState);
+    SMGState state = currentState.copyOf();
     SMGAddressValue addressValue =
         state.addNewStackAllocation(
             sizeValue.getAsInt() * machineModel.getSizeofCharInBits(), allocation_label);
@@ -341,8 +341,7 @@ public class SMGBuiltins {
     // If malloc can fail, handle fail with alternative state
     if (options.isEnableMallocFailure()) {
       result.add(
-          SMGAddressValueAndState.of(
-              new SMGState(currentState), SMGKnownAddressValue.ZERO_ADDRESS));
+          SMGAddressValueAndState.of(currentState.copyOf(), SMGKnownAddressValue.ZERO_ADDRESS));
     }
 
     return result;
@@ -482,8 +481,7 @@ public class SMGBuiltins {
       // If malloc can fail, handle fail with alternative state
       if (options.isEnableMallocFailure()) {
         result.add(
-            SMGAddressValueAndState.of(
-                new SMGState(currentState), SMGKnownAddressValue.ZERO_ADDRESS));
+            SMGAddressValueAndState.of(currentState.copyOf(), SMGKnownAddressValue.ZERO_ADDRESS));
       }
     }
 

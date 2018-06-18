@@ -180,7 +180,7 @@ public class SMGEdgeInterpolator {
 
       Set<SMGAbstractionBlock> abstractionBlocks = ImmutableSet.of();
       if (currentPrecision.allowsHeapAbstraction()) {
-        SMGState originalState = new SMGState(state);
+        SMGState originalState = state.copyOf();
         SMGHeapAbstractionInterpoaltionResult heapInterpoaltionResult =
             interpolateHeapAbstraction(state, remainingErrorPath,
                 currentEdge.getPredecessor(), currentEdge, pAllTargets, currentPrecision);

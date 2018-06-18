@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
 public final class SMGIntersectStates {
 
   /** constant data from input */
-  private final SMGState smgState1;
-  private final SMGState smgState2;
+  private final UnmodifiableSMGState smgState1;
+  private final UnmodifiableSMGState smgState2;
   private final UnmodifiableCLangSMG heap1;
   private final UnmodifiableCLangSMG heap2;
 
@@ -69,7 +69,7 @@ public final class SMGIntersectStates {
   private final BiMap<SMGKnownSymValue, SMGKnownExpValue> destExplicitValues = HashBiMap.create();
 
   /** initialize the intersection-process. */
-  SMGIntersectStates(SMGState pSmgState1, SMGState pSmgState2) {
+  SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
     smgState1 = pSmgState1;
     smgState2 = pSmgState2;
     heap1 = pSmgState1.getHeap();
@@ -194,7 +194,7 @@ public final class SMGIntersectStates {
       intersectHveEdgeWithTop(hve2, heap2, smgState2, mapping2);
     }
 
-    SMGState pIntersectResult = new SMGState(smgState1, destSMG, destExplicitValues);
+    SMGState pIntersectResult = smgState1.copyWith(destSMG, destExplicitValues);
 
     return new SMGIntersectionResult(smgState1, smgState2, pIntersectResult, true);
   }
@@ -202,7 +202,7 @@ public final class SMGIntersectStates {
   private void intersectHveEdgeWithTop(
       SMGEdgeHasValue pHve,
       UnmodifiableCLangSMG pSmg,
-      SMGState pSmgState,
+      UnmodifiableSMGState pSmgState,
       SMGNodeMapping pMapping) {
 
     SMGObject destObject = pMapping.get(pHve.getObject());
@@ -218,7 +218,7 @@ public final class SMGIntersectStates {
   private void intersectValueWithTop(
       int pValue,
       UnmodifiableCLangSMG pSmg,
-      SMGState pSmgState,
+      UnmodifiableSMGState pSmgState,
       SMGNodeMapping pMapping) {
 
     if(pMapping.containsKey(pValue)) {
@@ -240,14 +240,17 @@ public final class SMGIntersectStates {
   private void intersectPointerWithTop(
       SMGEdgePointsTo pPte,
       UnmodifiableCLangSMG pSmg,
-      SMGState pSmgState,
+      UnmodifiableSMGState pSmgState,
       SMGNodeMapping pMapping) {
     intersectObjectWithTop(pPte.getObject(), pSmg, pSmgState, pMapping);
     destSMG.addPointsToEdge(pPte);
   }
 
   private void intersectObjectWithTop(
-      SMGObject pObject, UnmodifiableCLangSMG pSmg, SMGState pSmgState, SMGNodeMapping pMapping) {
+      SMGObject pObject,
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGNodeMapping pMapping) {
 
     if(pMapping.containsKey(pObject)) {
       return;
@@ -545,12 +548,15 @@ public final class SMGIntersectStates {
 
   public static class SMGIntersectionResult {
     private static final SMGIntersectionResult NOT_DEFINED = new SMGIntersectionResult(null, null, null, false);
-    private final SMGState smg1;
-    private final SMGState smg2;
+    private final UnmodifiableSMGState smg1;
+    private final UnmodifiableSMGState smg2;
     private final SMGState combinationResult;
     private final boolean defined;
 
-    public SMGIntersectionResult(SMGState pSmg1, SMGState pSmg2, SMGState pJoinResult,
+    public SMGIntersectionResult(
+        UnmodifiableSMGState pSmg1,
+        UnmodifiableSMGState pSmg2,
+        SMGState pJoinResult,
         boolean pDefined) {
       super();
       smg1 = pSmg1;
@@ -559,11 +565,11 @@ public final class SMGIntersectStates {
       defined = pDefined;
     }
 
-    public SMGState getSmg1() {
+    public UnmodifiableSMGState getSmg1() {
       return smg1;
     }
 
-    public SMGState getSmg2() {
+    public UnmodifiableSMGState getSmg2() {
       return smg2;
     }
 

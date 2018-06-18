@@ -28,8 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -97,10 +97,23 @@ final class SMGJoinTargetObjects {
     return false;
   }
 
-  public SMGJoinTargetObjects(SMGJoinStatus pStatus,
-                              SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMapping,
-                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+  public SMGJoinTargetObjects(
+      SMGJoinStatus pStatus,
+      SMG pSMG1,
+      SMG pSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMapping,
+      Integer pAddress1,
+      Integer pAddress2,
+      int pLevel1,
+      int pLevel2,
+      int ldiff,
+      boolean identicalInputSmgs,
+      UnmodifiableSMGState pSmgState1,
+      UnmodifiableSMGState pSmgState2)
+      throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;

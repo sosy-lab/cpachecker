@@ -159,7 +159,7 @@ public class SMGCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return DelegateAbstractDomain.<SMGState>getInstance();
+    return DelegateAbstractDomain.<UnmodifiableSMGState>getInstance();
   }
 
   @Override

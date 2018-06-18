@@ -204,7 +204,7 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws CPATransferException {
-    SMGState smgState = new SMGState(state);
+    SMGState smgState = state.copyOf();
     Collection<SMGState> successors;
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
     if (tmpFieldMemory != null) {
@@ -268,7 +268,7 @@ public class SMGTransferRelation
 
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
-    SMGState newState = new SMGState(smgState);
+    SMGState newState = smgState.copyOf();
 
     assert newState.getStackFrame().getFunctionDeclaration().equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
@@ -333,7 +333,7 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-    SMGState initialNewState = new SMGState(state);
+    SMGState initialNewState = state.copyOf();
     CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
@@ -463,7 +463,7 @@ public class SMGTransferRelation
   protected void setInfo(
       AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
     super.setInfo(abstractState, abstractPrecision, cfaEdge);
-    state = new SMGState(state);
+    state = state.copyOf();
     state.cleanCurrentChain();
   }
 
@@ -551,7 +551,7 @@ public class SMGTransferRelation
 
         // Don't continuously create new states when strengthening.
         SMGState newState =
-            createNewStateIfNecessary ? new SMGState(explicitSmgState) : explicitSmgState;
+            createNewStateIfNecessary ? explicitSmgState.copyOf() : explicitSmgState;
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
           if (impliesEqOn) {
@@ -645,7 +645,7 @@ public class SMGTransferRelation
       String calledFunctionName = fileNameExpression.toASTString();
 
       if (builtins.isABuiltIn(calledFunctionName)) {
-        SMGState newState = new SMGState(state);
+        SMGState newState = state.copyOf();
 
         if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
           logger.logf(
@@ -696,7 +696,7 @@ public class SMGTransferRelation
       CType fieldType = TypeUtils.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        SMGState resultState = new SMGState(pState);
+        SMGState resultState = pState.copyOf();
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
             asSMGStateList(readValueToBeAssiged(resultState, cfaEdge, rValue));
@@ -807,7 +807,7 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     return assignFieldToState(
-        new SMGState(pState), cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
+        pState.copyOf(), cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
   }
 
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
@@ -858,7 +858,7 @@ public class SMGTransferRelation
       return ImmutableList.of(state);
     }
 
-    SMGState newState = new SMGState(state);
+    SMGState newState = state.copyOf();
     return handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
   }
 

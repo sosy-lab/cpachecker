@@ -31,9 +31,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -61,8 +61,8 @@ final class SMGJoinValues {
   private SMGNodeMapping mapping2;
   private boolean defined = false;
 
-  private final SMGState smgState1;
-  private final SMGState smgState2;
+  private final UnmodifiableSMGState smgState1;
+  private final UnmodifiableSMGState smgState2;
 
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
   private boolean recoverable;
@@ -170,10 +170,24 @@ final class SMGJoinValues {
     return false;
   }
 
-  public SMGJoinValues(SMGJoinStatus pStatus,
-                        final SMG pSMG1, final SMG pSMG2, SMG pDestSMG,
-                        SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMap,
-                        Integer pValue1, Integer pValue2, int pLDiff, boolean identicalInputSmg, int levelV1, int levelV2, int pPrevDestLevel, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
+  public SMGJoinValues(
+      SMGJoinStatus pStatus,
+      final SMG pSMG1,
+      final SMG pSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMap,
+      Integer pValue1,
+      Integer pValue2,
+      int pLDiff,
+      boolean identicalInputSmg,
+      int levelV1,
+      int levelV2,
+      int pPrevDestLevel,
+      UnmodifiableSMGState pStateOfSmg1,
+      UnmodifiableSMGState pStateOfSmg2)
+      throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGInterpolant {
@@ -51,7 +52,7 @@ public class SMGInterpolant {
   private final ImmutableSet<SMGAbstractionBlock> abstractionBlock;
   private final ImmutableSet<SMGMemoryPath> trackedMemoryPaths;
   private final ImmutableSet<MemoryLocation> trackedStackVariables;
-  private final ImmutableSet<SMGState> smgStates;
+  private final ImmutableSet<UnmodifiableSMGState> smgStates;
 
   private SMGInterpolant() {
     abstractionBlock = ImmutableSet.of();
@@ -60,18 +61,18 @@ public class SMGInterpolant {
     smgStates = ImmutableSet.of();
   }
 
-  public SMGInterpolant(Collection<SMGState> pStates) {
+  public SMGInterpolant(Collection<UnmodifiableSMGState> pStates) {
     this(pStates, Collections.emptySet());
   }
 
   public SMGInterpolant(
-      Collection<SMGState> pStates, Collection<SMGAbstractionBlock> pAbstractionBlock) {
+      Collection<UnmodifiableSMGState> pStates, Collection<SMGAbstractionBlock> pAbstractionBlock) {
     smgStates = ImmutableSet.copyOf(pStates);
     abstractionBlock = ImmutableSet.copyOf(pAbstractionBlock);
 
     Builder<SMGMemoryPath> memoryPaths = ImmutableSet.builder();
     Builder<MemoryLocation> stackVariables = ImmutableSet.builder();
-    for (SMGState state : smgStates) {
+    for (UnmodifiableSMGState state : smgStates) {
       memoryPaths.addAll(state.getMemoryPaths());
       stackVariables.addAll(state.getStackVariables().keySet());
     }
@@ -85,7 +86,7 @@ public class SMGInterpolant {
     if (isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      return new HashSet<>(Collections2.transform(smgStates, s -> new SMGState(s)));
+      return new HashSet<>(Collections2.transform(smgStates, s -> s.copyOf()));
     }
   }
 
@@ -113,13 +114,13 @@ public class SMGInterpolant {
       return SMGInterpolant.FALSE;
     }
 
-    Set<SMGState> joinResult = new HashSet<>();
-    Set<SMGState> originalStatesNotJoint = new HashSet<>(smgStates);
+    Set<UnmodifiableSMGState> joinResult = new HashSet<>();
+    Set<UnmodifiableSMGState> originalStatesNotJoint = new HashSet<>(smgStates);
 
-    for (SMGState otherState : pOtherInterpolant.smgStates) {
+    for (UnmodifiableSMGState otherState : pOtherInterpolant.smgStates) {
       SMGIntersectionResult result = SMGIntersectionResult.getNotDefinedInstance();
 
-      for (SMGState state : originalStatesNotJoint) {
+      for (UnmodifiableSMGState state : originalStatesNotJoint) {
         result = state.intersectStates(otherState);
 
         if (result.isDefined()) {
@@ -164,10 +165,14 @@ public class SMGInterpolant {
     if (isFalse()) {
       return "FALSE";
     } else {
-      return "Tracked memory paths: " + trackedMemoryPaths
-          + "\nAbstraction blocks: " + abstractionBlock
-          + "\nTracked stack variables: " + trackedStackVariables
-          + "\nBasic SMG states: " + Collections2.transform(smgStates, SMGState::getId);
+      return "Tracked memory paths: "
+          + trackedMemoryPaths
+          + "\nAbstraction blocks: "
+          + abstractionBlock
+          + "\nTracked stack variables: "
+          + trackedStackVariables
+          + "\nBasic SMG states: "
+          + Collections2.transform(smgStates, UnmodifiableSMGState::getId);
     }
   }
 
@@ -178,8 +183,8 @@ public class SMGInterpolant {
         "Can't create true interpolant from a false interpolant template.");
     }
 
-    SMGState templateState = template.smgStates.iterator().next();
-    SMGState newState = new SMGState(templateState);
+    UnmodifiableSMGState templateState = template.smgStates.iterator().next();
+    SMGState newState = templateState.copyOf();
     newState.clearValues();
     newState.clearObjects();
 

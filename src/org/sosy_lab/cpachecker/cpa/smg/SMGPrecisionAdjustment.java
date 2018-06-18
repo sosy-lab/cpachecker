@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
 
   // statistics
@@ -109,7 +108,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     totalAbstraction.start();
 
     SMGState result = pState;
-    SMGState newState = new SMGState(pState);
+    SMGState newState = pState.copyOf();
     CFANode node = location.getLocationNode();
 
     if (allowsStackAbstraction) {

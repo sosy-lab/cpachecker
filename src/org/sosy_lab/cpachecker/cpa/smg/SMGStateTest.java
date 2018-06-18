@@ -295,7 +295,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    SMGState inconsistentState = new SMGState(this.inconsistent_state);
+    SMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
@@ -306,7 +306,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    SMGState inconsistentState = new SMGState(this.inconsistent_state);
+    SMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -317,7 +317,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    SMGState inconsistentState = new SMGState(this.inconsistent_state);
+    SMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -328,7 +328,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    SMGState consistentState = new SMGState(this.consistent_state);
+    SMGState consistentState = this.consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -338,17 +338,17 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    SMGState consistentState = new SMGState(this.consistent_state);
+    SMGState consistentState = this.consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   @Test
   public void PredecessorsTest() throws InvalidConfigurationException {
     SMGState original = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
-    SMGState second = new SMGState(original);
+    SMGState second = original.copyOf();
     Assert.assertNotEquals(original.getId(), second.getId());
 
-    SMGState copy = new SMGState(original);
+    SMGState copy = original.copyOf();
     Assert.assertNotEquals(copy.getId(), original.getId());
     Assert.assertNotEquals(copy.getId(), second.getId());
 
