@@ -2293,4 +2293,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public boolean shouldBeHighlighted() {
     return false;
   }
+
+  public int getNumberOfHeapObjects() {
+    return heap.getObjects().size();
+  }
 }

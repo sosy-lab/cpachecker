@@ -353,6 +353,9 @@ analysis.traversal.useLoopIterationCount = false
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
+# handle abstract states with fewer heap objects first? (needs SMGCPA)
+analysis.traversal.useNumberOfHeapObjects = false
+
 # handle abstract states with fewer running threads first? (needs
 # ThreadingCPA)
 analysis.traversal.useNumberOfThreads = false
