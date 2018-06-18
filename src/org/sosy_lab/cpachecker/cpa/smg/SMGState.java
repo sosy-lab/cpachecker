@@ -130,7 +130,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public SMGState setErrorDescription(String pErrorDescription) {
+  public SMGState withErrorDescription(String pErrorDescription) {
     return new SMGState(this, errorInfo.withErrorMessage(pErrorDescription));
   }
 
@@ -1169,7 +1169,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       SMGState newState =
-          setInvalidRead().setErrorDescription("Try to read from deallocated object");
+          withInvalidRead().withErrorDescription("Try to read from deallocated object");
       newState.addInvalidObject(pObject);
       return SMGValueAndState.of(newState);
     }
@@ -1196,7 +1196,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public SMGState setInvalidRead() {
+  public SMGState withInvalidRead() {
     SMGState smgState = new SMGState(this, Property.INVALID_READ);
     smgState.moveCurrentChainToInvalidChain();
     return smgState;
@@ -1269,10 +1269,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
-      //Attempt to write to invalid object
-      SMGState newState = setInvalidWrite();
+      // Attempt to write to invalid object
+      SMGState newState = withInvalidWrite();
       newState
-          .setErrorDescription("Attempt to write to deallocated object")
+          .withErrorDescription("Attempt to write to deallocated object")
           .addInvalidObject(pObject);
       return new SMGStateEdgePair(newState);
     }
@@ -1395,12 +1395,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
-  /**
-   * Marks that an invalid write operation was performed on this smgState.
-   *
-   */
   @Override
-  public SMGState setInvalidWrite() {
+  public SMGState withInvalidWrite() {
     SMGState smgState = new SMGState(this, Property.INVALID_WRITE);
     smgState.moveCurrentChainToInvalidChain();
     return smgState;
@@ -1678,7 +1674,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.
       SMGState newState =
-          setInvalidFree().setErrorDescription("Invalid free of unallocated object is found");
+          withInvalidFree().withErrorDescription("Invalid free of unallocated object is found");
       newState.addInvalidObject(smgObject);
       return newState;
     }
@@ -1687,7 +1683,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       // you may not invoke free multiple times on
       // the same object
 
-      SMGState newState = setInvalidFree().setErrorDescription("Double free is found");
+      SMGState newState = withInvalidFree().withErrorDescription("Double free is found");
       newState.addInvalidObject(smgObject);
       return newState;
     }
@@ -1697,7 +1693,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       // didn't get through a malloc invocation.
       // TODO: externally allocated memory could be freed partially
 
-      SMGState newState = setInvalidFree();
+      SMGState newState = withInvalidFree();
       newState.addInvalidObject(smgObject);
       final String description;
       if (offset % 8 != 0) {
@@ -1705,7 +1701,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       } else {
         description = "Invalid free at " + offset / 8 + " byte offset from allocated is found";
       }
-      return newState.setErrorDescription(description);
+      return newState.withErrorDescription(description);
     }
 
     heap.setValidity(smgObject, false);
@@ -1773,11 +1769,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
-  /**
-   *  Signals an invalid free call.
-   */
   @Override
-  public SMGState setInvalidFree() {
+  public SMGState withInvalidFree() {
     return new SMGState(this, Property.INVALID_FREE);
   }
 
@@ -1884,12 +1877,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return newSMGState;
   }
 
-  /**
-   * Signals a dereference of a pointer or array
-   *  which could not be resolved.
-   */
   @Override
-  public SMGState setUnknownDereference() {
+  public SMGState withUnknownDereference() {
     // TODO: accurate define SMG change on unknown dereference with predicate knowledge
     if (options.isHandleUnknownDereferenceAsSafe() && isTrackPredicatesEnabled()) {
       // doesn't stop analysis on unknown dereference
@@ -1899,7 +1888,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
     SMGState smgState =
-        new SMGState(this, Property.INVALID_WRITE).setErrorDescription("Unknown dereference");
+        new SMGState(this, Property.INVALID_WRITE).withErrorDescription("Unknown dereference");
     return smgState;
   }
 

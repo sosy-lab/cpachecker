@@ -88,11 +88,49 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   String getErrorDescription();
 
-  UnmodifiableSMGState setErrorDescription(String pErrorDescription);
+  /**
+   * Marks that an invalid read operation was performed on this smgState.
+   *
+   * @return a new state with the corresponding violation property.
+   */
+  UnmodifiableSMGState withInvalidRead();
+
+  /**
+   * Marks that an invalid write operation was performed on this smgState.
+   *
+   * @return a new state with the corresponding violation property.
+   */
+  UnmodifiableSMGState withInvalidWrite();
+
+  /**
+   * Signals an invalid free call.
+   *
+   * @return a new state with the corresponding violation property.
+   */
+  UnmodifiableSMGState withInvalidFree();
+
+  /**
+   * Signals a dereference of a pointer or array which could not be resolved.
+   *
+   * @return a new state with the corresponding violation property.
+   */
+  UnmodifiableSMGState withUnknownDereference();
+
+  /**
+   * Copies the violated properties from one state into another (new) state.
+   *
+   * @return a new state with the corresponding violation properties.
+   */
+  SMGState withViolationsOf(SMGState pOther);
+
+  /**
+   * Stores a error-message in the state.
+   *
+   * @return a new state with the corresponding error description.
+   */
+  UnmodifiableSMGState withErrorDescription(String pErrorDescription);
 
   String getNoteMessageOnElement(Object elem);
-
-  SMGState withViolationsOf(SMGState pOther);
 
   SMGObject getFunctionReturnObject();
 
@@ -118,10 +156,6 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   Set<Entry<SMGKnownSymValue, SMGKnownExpValue>> getExplicitValues();
 
-  UnmodifiableSMGState setInvalidRead();
-
-  UnmodifiableSMGState setInvalidWrite();
-
   @Override
   UnmodifiableSMGState join(UnmodifiableSMGState reachedState) throws SMGInconsistentException;
 
@@ -140,13 +174,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   Collection<Object> getCurrentChain();
 
-  UnmodifiableSMGState setInvalidFree();
-
   Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter);
 
   Set<SMGEdgeHasValue> getHVEdges();
-
-  UnmodifiableSMGState setUnknownDereference();
 
   boolean isTrackPredicatesEnabled();
 

@@ -171,8 +171,8 @@ public class SMGBuiltins {
     if (bufferAddress.isUnknown() || countValue.isUnknown()) {
       currentState =
           currentState
-              .setInvalidWrite()
-              .setErrorDescription("Can't evaluate dst or count for memset");
+              .withInvalidWrite()
+              .withErrorDescription("Can't evaluate dst or count for memset");
       return SMGAddressValueAndState.of(currentState);
     }
 
@@ -513,8 +513,8 @@ public class SMGBuiltins {
             " is invalid, because the target of the address could not be calculated.");
         SMGState invalidFreeState =
             currentState
-                .setInvalidFree()
-                .setErrorDescription(
+                .withInvalidFree()
+                .withErrorDescription(
                     "Free on expression "
                         + pointerExp.toASTString()
                         + " is invalid, because the target of the address could not be calculated.");
@@ -657,24 +657,24 @@ public class SMGBuiltins {
         if (sizeValue.isUnknown()) {
           currentState =
               currentState
-                  .setInvalidWrite()
-                  .setInvalidRead()
-                  .setErrorDescription("Can't evaluate memcpy dst and src");
+                  .withInvalidWrite()
+                  .withInvalidRead()
+                  .withErrorDescription("Can't evaluate memcpy dst and src");
         } else if (targetStr1Address.isUnknown()) {
           currentState =
-              currentState.setInvalidWrite().setErrorDescription("Can't evaluate memcpy dst");
+              currentState.withInvalidWrite().withErrorDescription("Can't evaluate memcpy dst");
         } else {
           currentState =
-              currentState.setInvalidRead().setErrorDescription("Can't evaluate memcpy src");
+              currentState.withInvalidRead().withErrorDescription("Can't evaluate memcpy src");
         }
       }
       if (!sourceStr2Address.isUnknown() && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
         currentState =
-            currentState.setInvalidRead().setErrorDescription("Memcpy src is null pointer");
+            currentState.withInvalidRead().withErrorDescription("Memcpy src is null pointer");
       }
       if (!targetStr1Address.isUnknown() && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
         currentState =
-            currentState.setInvalidWrite().setErrorDescription("Memcpy to null pointer dst");
+            currentState.withInvalidWrite().withErrorDescription("Memcpy to null pointer dst");
       }
 
       if (targetStr1Address.isUnknown()) {
@@ -696,10 +696,10 @@ public class SMGBuiltins {
     long targetOffset = targetStr1Address.getOffset().getAsLong();
 
     if (sourceLastCopyBitOffset > source.getSize()) {
-      currentState = currentState.setInvalidRead().setErrorDescription("Overread on memcpy");
+      currentState = currentState.withInvalidRead().withErrorDescription("Overread on memcpy");
     } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
         .getSizeofCharInBits())) {
-      currentState = currentState.setInvalidWrite().setErrorDescription("Overwrite on memcpy");
+      currentState = currentState.withInvalidWrite().withErrorDescription("Overwrite on memcpy");
     } else {
       currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
     }

@@ -113,7 +113,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
-          pSmgState.setInvalidRead().setErrorDescription("Can't evaluate offset or object");
+          pSmgState.withInvalidRead().withErrorDescription("Can't evaluate offset or object");
       return SMGValueAndState.of(errState);
     }
 
@@ -126,7 +126,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
-      SMGState errState = pSmgState.setInvalidRead();
+      SMGState errState = pSmgState.withInvalidRead();
       // Field does not fit size of declared Memory
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
@@ -148,7 +148,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       } else {
         description = "NULL pointer dereference on read";
       }
-      errState = errState.setErrorDescription(description);
+      errState = errState.withErrorDescription(description);
       return SMGValueAndState.of(errState);
     }
 
@@ -193,11 +193,11 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                   pFieldOffset,
                   pRValueType.toASTString(""),
                   pMemoryOfField));
-      SMGState newState = pState.setInvalidWrite();
+      SMGState newState = pState.withInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
         if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
           newState =
-              newState.setErrorDescription(
+              newState.withErrorDescription(
                   "Field with size "
                       + rValueTypeBitSize
                       + " bit can't be written at offset "
@@ -207,7 +207,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                       + " bit size");
         } else {
           newState =
-              newState.setErrorDescription(
+              newState.withErrorDescription(
                   "Field with size "
                       + rValueTypeBitSize / 8
                       + " byte can't "
@@ -219,7 +219,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         }
         newState.addInvalidObject(pMemoryOfField);
       } else {
-        newState = newState.setErrorDescription("NULL pointer dereference on write");
+        newState = newState.withErrorDescription("NULL pointer dereference on write");
       }
       return newState;
     }
@@ -366,6 +366,6 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   protected SMGValueAndState handleUnknownDereference(SMGState pSmgState, CFAEdge pEdge) {
-    return super.handleUnknownDereference(pSmgState.setUnknownDereference(), pEdge);
+    return super.handleUnknownDereference(pSmgState.withUnknownDereference(), pEdge);
   }
 }
