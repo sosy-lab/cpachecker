@@ -43,7 +43,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
   private final MachineModel machineModel;
 
-  private Map<Integer, List<MaterlisationStep>> abstractPointerToMaterlisationSteps;
+  private final Map<Integer, List<MaterlisationStep>> abstractPointerToMaterlisationSteps;
 
   private GenericAbstractionCandidateTemplate(MachineModel pMachineModel,
       Map<Integer, List<MaterlisationStep>> pMaterlisationStep) {
@@ -183,15 +183,9 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
   public Set<MaterlisationStep> getMaterlisationSteps() {
     Set<MaterlisationStep> result = new HashSet<>();
-
     for (List<MaterlisationStep> steps : abstractPointerToMaterlisationSteps.values()) {
-      for (MaterlisationStep step : steps) {
-        if (!result.contains(step)) {
-          result.add(step);
-        }
-      }
+      result.addAll(steps);
     }
-
     return result;
   }
 

@@ -79,9 +79,9 @@ public class ExpressionValueVisitor
     extends DefaultCExpressionVisitor<List<? extends SMGValueAndState>, CPATransferException>
     implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 
-  protected final SMGExpressionEvaluator smgExpressionEvaluator;
-  protected final CFAEdge cfaEdge;
-  protected final SMGState initialSmgState;
+  final SMGExpressionEvaluator smgExpressionEvaluator;
+  final CFAEdge cfaEdge;
+  private final SMGState initialSmgState;
 
   public ExpressionValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     smgExpressionEvaluator = pSmgExpressionEvaluator;
@@ -447,7 +447,7 @@ public class ExpressionValueVisitor
     return smgExpressionEvaluator.evaluateExpressionValue(getInitialSmgState(), getCfaEdge(), cast.getOperand());
   }
 
-  protected List<? extends SMGValueAndState> dereferenceArray(CExpression exp, CType derefType)
+  private List<? extends SMGValueAndState> dereferenceArray(CExpression exp, CType derefType)
       throws CPATransferException {
 
     List<SMGValueAndState> result = new ArrayList<>(2);
@@ -480,8 +480,8 @@ public class ExpressionValueVisitor
     return result;
   }
 
-  protected final List<? extends SMGValueAndState> dereferencePointer(
-      CExpression exp, CType derefType) throws CPATransferException {
+  private List<? extends SMGValueAndState> dereferencePointer(CExpression exp, CType derefType)
+      throws CPATransferException {
 
     List<SMGValueAndState> result = new ArrayList<>(2);
 
@@ -519,11 +519,11 @@ public class ExpressionValueVisitor
     return singletonList(SMGValueAndState.of(getInitialSmgState()));
   }
 
-  public SMGState getInitialSmgState() {
+  SMGState getInitialSmgState() {
     return initialSmgState;
   }
 
-  public CFAEdge getCfaEdge() {
+  CFAEdge getCfaEdge() {
     return cfaEdge;
   }
 }

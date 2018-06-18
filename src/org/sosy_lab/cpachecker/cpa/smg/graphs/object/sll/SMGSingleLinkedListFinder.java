@@ -247,9 +247,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     objectsOfSubSmg2.remove(nextObject);
 
     // TODO Investigate, is this okay?
-    if(nonSharedValues2.contains(pValue)) {
-      nonSharedValues2.remove(pValue);
-    }
+    nonSharedValues2.remove(pValue);
 
     // Third, calculate if the respective nfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,

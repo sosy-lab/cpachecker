@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 
 final class SMGJoinMapTargetAddress {
-  private SMG smg;
-  private SMGNodeMapping mapping1;
-  private SMGNodeMapping mapping2;
-  private Integer value;
+  private final SMG smg;
+  private final SMGNodeMapping mapping1;
+  private final SMGNodeMapping mapping2;
+  private final Integer value;
 
   public SMGJoinMapTargetAddress(SMG pSMG1, SMG pSMG2, SMG destSMG, SMGNodeMapping pMapping1,
                              SMGNodeMapping pMapping2, Integer pAddress1,

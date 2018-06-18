@@ -92,10 +92,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, Graphable {
 
   // Properties:
-  public static final String HAS_INVALID_FREES = "has-invalid-frees";
-  public static final String HAS_INVALID_READS = "has-invalid-reads";
-  public static final String HAS_INVALID_WRITES = "has-invalid-writes";
-  public static final String HAS_LEAKS = "has-leaks";
+  private static final String HAS_INVALID_FREES = "has-invalid-frees";
+  private static final String HAS_INVALID_READS = "has-invalid-reads";
+  private static final String HAS_INVALID_WRITES = "has-invalid-writes";
+  private static final String HAS_LEAKS = "has-leaks";
 
   private static final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
 
@@ -295,12 +295,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pTypeSize Size of the type of the new variable
    * @param pVarName Name of the local variable
    * @param smgObject object of local variable
-   * @return given object
    *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject)
+  public void addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject)
       throws SMGInconsistentException {
     SMGRegion new_object2 = new SMGRegion(pTypeSize, pVarName);
 
@@ -312,7 +311,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return smgObject;
   }
 
   /**
@@ -514,9 +512,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       heap.mergeValues(pointerValue, edge.getValue());
     }
 
-    List<SMGAddressValueAndState> result = getPointerFromValue(pointerValue);
-
-    return result;
+    return getPointerFromValue(pointerValue);
   }
 
   private SMGAddressValueAndState materialiseOptionalObject(SMGOptionalObject pOptionalObject,

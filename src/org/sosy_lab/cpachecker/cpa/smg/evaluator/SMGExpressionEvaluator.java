@@ -81,8 +81,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class SMGExpressionEvaluator {
 
-  protected final LogManagerWithoutDuplicates logger;
-  protected final MachineModel machineModel;
+  final LogManagerWithoutDuplicates logger;
+  final MachineModel machineModel;
 
   public SMGExpressionEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
     logger = pLogger;
@@ -384,7 +384,7 @@ public class SMGExpressionEvaluator {
     return rValue.accept(getExpressionValueVisitor(cfaEdge, newState));
   }
 
-  protected List<? extends SMGValueAndState> evaluateAssumptionValue(
+  List<? extends SMGValueAndState> evaluateAssumptionValue(
       SMGState newState, CFAEdge cfaEdge, CExpression rValue) throws CPATransferException {
     return rValue.accept(getAssumeVisitor(cfaEdge, newState));
   }
@@ -684,7 +684,7 @@ public class SMGExpressionEvaluator {
     return smgState.getPointerFromValue(pAddressValue.getAsInt());
   }
 
-  protected List<SMGAddressValueAndState> createAddress(
+  List<SMGAddressValueAndState> createAddress(
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
 
@@ -703,7 +703,7 @@ public class SMGExpressionEvaluator {
     return result;
   }
 
-  List<SMGAddressValueAndState> getAddress(
+  private List<SMGAddressValueAndState> getAddress(
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
 
@@ -739,7 +739,7 @@ public class SMGExpressionEvaluator {
    */
 
   /** @param edge the edge to handle */
-  protected SMGValueAndState handleUnknownDereference(SMGState smgState, CFAEdge edge) {
+  SMGValueAndState handleUnknownDereference(SMGState smgState, CFAEdge edge) {
     return SMGValueAndState.of(smgState);
   }
 

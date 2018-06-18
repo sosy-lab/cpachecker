@@ -81,7 +81,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return smgState;
   }
 
-  public CFAEdge getEdge() {
+  CFAEdge getEdge() {
     return edge;
   }
 
@@ -96,7 +96,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return smgState.getExplicit((SMGKnownSymValue) pValue);
   }
 
-  protected void setSmgState(SMGState pSmgState) {
+  void setSmgState(SMGState pSmgState) {
     smgState = pSmgState;
   }
 

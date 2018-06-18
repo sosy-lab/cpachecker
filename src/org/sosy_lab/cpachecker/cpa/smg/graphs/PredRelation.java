@@ -219,7 +219,7 @@ public class PredRelation {
   }
 
   static public class SymbolicRelation {
-    Integer valueOne;
+    final Integer valueOne;
     Integer valueTwo;
     BinaryOperator operator;
 

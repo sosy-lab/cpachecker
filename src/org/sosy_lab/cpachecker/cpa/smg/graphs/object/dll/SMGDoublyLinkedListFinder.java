@@ -293,15 +293,11 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
 
-    if(nonSharedValues2.contains(pValue)) {
-      nonSharedValues2.remove(pValue);
-    }
+    nonSharedValues2.remove(pValue);
 
     int prevValue = Iterables.getOnlyElement(pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo))).getValue();
 
-    if(nonSharedValues1.contains(prevValue)) {
-      nonSharedValues1.remove(prevValue);
-    }
+    nonSharedValues1.remove(prevValue);
 
     // Third, calculate if the respective nfo,pfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,

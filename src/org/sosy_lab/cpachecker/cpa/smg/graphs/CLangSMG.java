@@ -143,9 +143,9 @@ public class CLangSMG extends SMG {
     return null;
   }
 
-  static public void setPerformChecks(boolean pSetting, LogManager logger) {
+  public static void setPerformChecks(boolean pSetting, LogManager pLogger) {
     CLangSMG.perform_checks = pSetting;
-    CLangSMG.logger = logger;
+    CLangSMG.logger = pLogger;
   }
 
   static public boolean performChecks() {

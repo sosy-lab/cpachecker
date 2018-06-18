@@ -46,8 +46,8 @@ final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
   private boolean defined = false;
   private boolean recoverable = false;
-  private SMG inputSMG1;
-  private SMG inputSMG2;
+  private final SMG inputSMG1;
+  private final SMG inputSMG2;
   private SMG destSMG;
   private Integer value;
   private SMGNodeMapping mapping1;

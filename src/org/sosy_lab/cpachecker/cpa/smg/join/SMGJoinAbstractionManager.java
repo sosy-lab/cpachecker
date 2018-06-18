@@ -26,13 +26,17 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
@@ -40,12 +44,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstractionC
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstractionCandidateTemplate;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 public class SMGJoinAbstractionManager {
 
@@ -170,9 +168,7 @@ public class SMGJoinAbstractionManager {
       }
     }
 
-    Pair<Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>>, Set<SMGEdgePointsTo>> result =
-        Pair.of(sharedIPointer, nonSharedIPointer);
-    return result;
+    return Pair.of(sharedIPointer, nonSharedIPointer);
   }
 
   private Triple<Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>> assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(

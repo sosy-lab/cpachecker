@@ -77,9 +77,9 @@ class ArrayVisitor extends AddressVisitor
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CArrayType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CArrayType;
 
-    CExpression address = null;
-    CExpression arrayOffset = null;
-    CType addressType = null;
+    CExpression address;
+    CExpression arrayOffset;
+    CType addressType;
 
     if (lVarIsAddress == rVarIsAddress) {
       return Collections.singletonList(

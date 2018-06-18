@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AssumeVisitor extends ExpressionValueVisitor {
 
-  private Map<SMGState,BinaryRelationResult> relations = new HashMap<>();
+  private final Map<SMGState, BinaryRelationResult> relations = new HashMap<>();
 
   public AssumeVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
@@ -257,7 +257,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
     for (SMGValueAndState operand1AndState : getOperand(pNewState, pV1)) {
       SMGKnownSymValue operand1 = (SMGKnownSymValue) operand1AndState.getObject();
-      SMGState newState = operand1AndState.getSmgState();
+      SMGState newState;
 
       for (SMGValueAndState operand2AndState : getOperand(pNewState, pV2)) {
         SMGKnownSymValue operand2 = (SMGKnownSymValue) operand2AndState.getObject();
@@ -332,11 +332,16 @@ public class AssumeVisitor extends ExpressionValueVisitor {
      * @param pImpliesNeqWhenTrue if boolean expression is true, operands are unequal
      * @param pVal1 operand 1 of boolean expression
      * @param pVal2 operand 2 of boolean expression
-     *
      */
-    public BinaryRelationResult(boolean pIsTrue, boolean pIsFalse, boolean pImpliesEqWhenFalse,
-        boolean pImpliesNeqWhenFalse, boolean pImpliesEqWhenTrue, boolean pImpliesNeqWhenTrue,
-        SMGSymbolicValue pVal1, SMGSymbolicValue pVal2) {
+    BinaryRelationResult(
+        boolean pIsTrue,
+        boolean pIsFalse,
+        boolean pImpliesEqWhenFalse,
+        boolean pImpliesNeqWhenFalse,
+        boolean pImpliesEqWhenTrue,
+        boolean pImpliesNeqWhenTrue,
+        SMGSymbolicValue pVal1,
+        SMGSymbolicValue pVal2) {
       isTrue = pIsTrue;
       isFalse = pIsFalse;
       impliesEqWhenFalse = pImpliesEqWhenFalse;
@@ -357,19 +362,19 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       return isFalse;
     }
 
-    public boolean impliesEq(boolean pTruth) {
+    boolean impliesEq(boolean pTruth) {
       return pTruth ? impliesEqWhenTrue : impliesEqWhenFalse;
     }
 
-    public boolean impliesNeq(boolean pTruth) {
+    boolean impliesNeq(boolean pTruth) {
       return pTruth ? impliesNeqWhenTrue : impliesNeqWhenFalse;
     }
 
-    public SMGSymbolicValue getVal2() {
+    SMGSymbolicValue getVal2() {
       return val2;
     }
 
-    public SMGSymbolicValue getVal1() {
+    SMGSymbolicValue getVal1() {
       return val1;
     }
   }

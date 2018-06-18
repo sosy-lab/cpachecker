@@ -57,8 +57,8 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
   private SMGState assignableState;
-  private boolean truthValue = false;
-  private CFAEdge edge;
+  private final boolean truthValue;
+  private final CFAEdge edge;
 
   public AssigningValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGState pSMGState, boolean pTruthvalue, CFAEdge pEdge) {
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;

@@ -157,8 +157,8 @@ public class PointerVisitor extends ExpressionValueVisitor {
     }
   }
 
-  protected List<SMGAddressValueAndState> createAddressOfFunction(
-      CIdExpression idFunctionExpression) throws SMGInconsistentException {
+  List<SMGAddressValueAndState> createAddressOfFunction(CIdExpression idFunctionExpression)
+      throws SMGInconsistentException {
 
     SMGState state = getInitialSmgState();
 
@@ -278,9 +278,9 @@ public class PointerVisitor extends ExpressionValueVisitor {
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CPointerType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CPointerType;
 
-    CExpression address = null;
-    CExpression pointerOffset = null;
-    CPointerType addressType = null;
+    CExpression address;
+    CExpression pointerOffset;
+    CPointerType addressType;
 
     if (lVarIsAddress == rVarIsAddress) {
       return Collections.singletonList(

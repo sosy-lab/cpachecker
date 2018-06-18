@@ -55,7 +55,7 @@ public class SMG {
   private PersistentSet<SMGObject> externalObjectAllocation;
   private NeqRelation neq = new NeqRelation();
 
-  private PredRelation pathPredicate = new PredRelation();
+  private final PredRelation pathPredicate = new PredRelation();
   private PredRelation errorPredicate = new PredRelation();
 
 

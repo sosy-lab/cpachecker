@@ -157,8 +157,14 @@ public class SMGBuiltins {
     return result;
   }
 
-  private final SMGAddressValueAndState evaluateMemset(SMGState currentState, CFAEdge cfaEdge, SMGAddressValue bufferAddress, SMGExplicitValue countValue, SMGSymbolicValue ch, SMGExplicitValue expValue)
-          throws CPATransferException {
+  private SMGAddressValueAndState evaluateMemset(
+      SMGState currentState,
+      CFAEdge cfaEdge,
+      SMGAddressValue bufferAddress,
+      SMGExplicitValue countValue,
+      SMGSymbolicValue ch,
+      SMGExplicitValue expValue)
+      throws CPATransferException {
 
     if (bufferAddress.isUnknown() || countValue.isUnknown()) {
       currentState = currentState.setInvalidWrite();
@@ -227,7 +233,6 @@ public class SMGBuiltins {
 
   public final List<SMGAddressValueAndState> evaluateExternalAllocation(
       CFunctionCallExpression pFunctionCall, SMGState pState) {
-    SMGState currentState = pState;
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 
@@ -240,9 +245,9 @@ public class SMGBuiltins {
             + SMGCPA.getNewValue()
             + "_Line:"
             + pFunctionCall.getFileLocation().getStartingLineNumber();
-    SMGAddressValue new_address = currentState.addExternalAllocation(allocation_label);
+    SMGAddressValue new_address = pState.addExternalAllocation(allocation_label);
 
-    result.add(SMGAddressValueAndState.of(currentState, new_address));
+    result.add(SMGAddressValueAndState.of(pState, new_address));
 
     return result;
   }
@@ -255,7 +260,6 @@ public class SMGBuiltins {
       CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     CRightHandSide sizeExpr;
-    SMGState currentState = pState;
 
     try {
       sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
@@ -267,7 +271,7 @@ public class SMGBuiltins {
     List<SMGAddressValueAndState> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState valueAndState :
-        evaluateExplicitValue(currentState, cfaEdge, sizeExpr)) {
+        evaluateExplicitValue(pState, cfaEdge, sizeExpr)) {
       result.add(evaluateAlloca(valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
     }
 

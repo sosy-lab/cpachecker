@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   final SMGTransferRelation smgTransferRelation;
-  final SMGOptions options;
+  private final SMGOptions options;
 
   public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation,
       LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
