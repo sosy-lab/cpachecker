@@ -169,8 +169,10 @@ public class SMGBuiltins {
       throws CPATransferException {
 
     if (bufferAddress.isUnknown() || countValue.isUnknown()) {
-      currentState = currentState.setInvalidWrite();
-      currentState.setErrorDescription("Can't evaluate dst or count for memset");
+      currentState =
+          currentState
+              .setInvalidWrite()
+              .setErrorDescription("Can't evaluate dst or count for memset");
       return SMGAddressValueAndState.of(currentState);
     }
 
@@ -509,9 +511,13 @@ public class SMGBuiltins {
       if (address.isUnknown()) {
         logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
             " is invalid, because the target of the address could not be calculated.");
-        SMGState invalidFreeState = currentState.setInvalidFree();
-        invalidFreeState.setErrorDescription("Free on expression " + pointerExp.toASTString() +
-            " is invalid, because the target of the address could not be calculated.");
+        SMGState invalidFreeState =
+            currentState
+                .setInvalidFree()
+                .setErrorDescription(
+                    "Free on expression "
+                        + pointerExp.toASTString()
+                        + " is invalid, because the target of the address could not be calculated.");
         resultStates.add(invalidFreeState);
         continue;
       }
@@ -649,24 +655,26 @@ public class SMGBuiltins {
 
       if (!currentState.isTrackPredicatesEnabled()) {
         if (sizeValue.isUnknown()) {
-          currentState = currentState.setInvalidWrite();
-          currentState = currentState.setInvalidRead();
-          currentState.setErrorDescription("Can't evaluate memcpy dst and src");
+          currentState =
+              currentState
+                  .setInvalidWrite()
+                  .setInvalidRead()
+                  .setErrorDescription("Can't evaluate memcpy dst and src");
         } else if (targetStr1Address.isUnknown()) {
-          currentState = currentState.setInvalidWrite();
-          currentState.setErrorDescription("Can't evaluate memcpy dst");
+          currentState =
+              currentState.setInvalidWrite().setErrorDescription("Can't evaluate memcpy dst");
         } else {
-          currentState = currentState.setInvalidRead();
-          currentState.setErrorDescription("Can't evaluate memcpy src");
+          currentState =
+              currentState.setInvalidRead().setErrorDescription("Can't evaluate memcpy src");
         }
       }
       if (!sourceStr2Address.isUnknown() && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
-        currentState = currentState.setInvalidRead();
-        currentState.setErrorDescription("Memcpy src is null pointer");
+        currentState =
+            currentState.setInvalidRead().setErrorDescription("Memcpy src is null pointer");
       }
       if (!targetStr1Address.isUnknown() && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
-        currentState = currentState.setInvalidWrite();
-        currentState.setErrorDescription("Memcpy to null pointer dst");
+        currentState =
+            currentState.setInvalidWrite().setErrorDescription("Memcpy to null pointer dst");
       }
 
       if (targetStr1Address.isUnknown()) {
@@ -688,12 +696,10 @@ public class SMGBuiltins {
     long targetOffset = targetStr1Address.getOffset().getAsLong();
 
     if (sourceLastCopyBitOffset > source.getSize()) {
-      currentState = currentState.setInvalidRead();
-      currentState.setErrorDescription("Overread on memcpy");
+      currentState = currentState.setInvalidRead().setErrorDescription("Overread on memcpy");
     } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
         .getSizeofCharInBits())) {
-      currentState = currentState.setInvalidWrite();
-      currentState.setErrorDescription("Overwrite on memcpy");
+      currentState = currentState.setInvalidWrite().setErrorDescription("Overwrite on memcpy");
     } else {
       currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
     }

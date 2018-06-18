@@ -514,8 +514,8 @@ public class SMGTransferRelation
 
   private SMGState checkAndSetErrorRelation(SMGState smgState) {
     if (smgPredicateManager.isErrorPathFeasible(smgState)) {
-      smgState = smgState.setInvalidRead().setInvalidWrite();
-      smgState.setErrorDescription("Possible overflow");
+      smgState =
+          smgState.setInvalidRead().setInvalidWrite().setErrorDescription("Possible overflow");
     }
     return smgState.resetErrorRelation();
   }

@@ -112,8 +112,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       throws SMGInconsistentException, UnrecognizedCCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
-      SMGState errState = pSmgState.setInvalidRead();
-      errState.setErrorDescription("Can't evaluate offset or object");
+      SMGState errState =
+          pSmgState.setInvalidRead().setErrorDescription("Can't evaluate offset or object");
       return SMGValueAndState.of(errState);
     }
 
@@ -131,21 +131,24 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
+      final String description;
       if (!pObject.equals(SMGNullObject.INSTANCE)) {
         if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
-          errState.setErrorDescription("Field with " + typeBitSize
-              + " bit size can't be read from offset " + fieldOffset + " bit of "
-              + "object " + objectBitSize + " bit size");
+          description =
+              String.format(
+                  "Field with %d  bit size can't be read from offset %s bit of object %d bit size",
+                  typeBitSize, fieldOffset, objectBitSize);
         } else {
-          errState.setErrorDescription("Field with " + typeBitSize / 8
-              + " byte size can't be read from offset " + fieldOffset / 8 + " byte of "
-              + "object " + objectBitSize / 8 + " byte size");
-
+          description =
+              String.format(
+                  "Field with %d  byte size can't be read from offset %s byte of object %d byte size",
+                  typeBitSize / 8, fieldOffset / 8, objectBitSize / 8);
         }
         errState.addInvalidObject(pObject);
       } else {
-        errState.setErrorDescription("NULL pointer dereference on read");
+        description = "NULL pointer dereference on read";
       }
+      errState = errState.setErrorDescription(description);
       return SMGValueAndState.of(errState);
     }
 
@@ -193,28 +196,30 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGState newState = pState.setInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
         if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
-          newState.setErrorDescription(
-              "Field with size "
-                  + rValueTypeBitSize
-                  + " bit can't be written at offset "
-                  + pFieldOffset
-                  + " bit of object "
-                  + memoryBitSize
-                  + " bit size");
+          newState =
+              newState.setErrorDescription(
+                  "Field with size "
+                      + rValueTypeBitSize
+                      + " bit can't be written at offset "
+                      + pFieldOffset
+                      + " bit of object "
+                      + memoryBitSize
+                      + " bit size");
         } else {
-          newState.setErrorDescription(
-              "Field with size "
-                  + rValueTypeBitSize / 8
-                  + " byte can't "
-                  + "be written at offset "
-                  + pFieldOffset / 8
-                  + " byte of object "
-                  + memoryBitSize / 8
-                  + " byte size");
+          newState =
+              newState.setErrorDescription(
+                  "Field with size "
+                      + rValueTypeBitSize / 8
+                      + " byte can't "
+                      + "be written at offset "
+                      + pFieldOffset / 8
+                      + " byte of object "
+                      + memoryBitSize / 8
+                      + " byte size");
         }
         newState.addInvalidObject(pMemoryOfField);
       } else {
-        newState.setErrorDescription("NULL pointer dereference on write");
+        newState = newState.setErrorDescription("NULL pointer dereference on write");
       }
       return newState;
     }

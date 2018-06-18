@@ -88,6 +88,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   String getErrorDescription();
 
+  UnmodifiableSMGState setErrorDescription(String pErrorDescription);
+
   String getNoteMessageOnElement(Object elem);
 
   SMGState withViolationsOf(SMGState pOther);

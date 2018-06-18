@@ -129,8 +129,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return errorInfo.getErrorDescription();
   }
 
-  public void setErrorDescription(String pErrorDescription) {
-    errorInfo = errorInfo.withErrorMessage(pErrorDescription);
+  @Override
+  public SMGState setErrorDescription(String pErrorDescription) {
+    return new SMGState(this, errorInfo.withErrorMessage(pErrorDescription));
   }
 
   @Override
@@ -235,6 +236,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pCombinedMap);
     errorInfo = pOriginalState.errorInfo;
+    blockEnded = pOriginalState.blockEnded;
+  }
+
+  private SMGState(SMGState pOriginalState, SMGErrorInfo errorMessage) {
+    heap = pOriginalState.heap.copyOf();
+    logger = pOriginalState.logger;
+    options = pOriginalState.options;
+    predecessorId = pOriginalState.getId();
+    id = ID_COUNTER.getAndIncrement();
+    explicitValues.putAll(pOriginalState.explicitValues);
+    errorInfo = errorMessage;
     blockEnded = pOriginalState.blockEnded;
   }
 
@@ -1156,8 +1168,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGValueAndState readValue(SMGObject pObject, long pOffset, CType pType)
       throws SMGInconsistentException {
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
-      SMGState newState = setInvalidRead();
-      newState.setErrorDescription("Try to read from deallocated object");
+      SMGState newState =
+          setInvalidRead().setErrorDescription("Try to read from deallocated object");
       newState.addInvalidObject(pObject);
       return SMGValueAndState.of(newState);
     }
@@ -1259,8 +1271,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       //Attempt to write to invalid object
       SMGState newState = setInvalidWrite();
-      newState.setErrorDescription("Attempt to write to deallocated object");
-      newState.addInvalidObject(pObject);
+      newState
+          .setErrorDescription("Attempt to write to deallocated object")
+          .addInvalidObject(pObject);
       return new SMGStateEdgePair(newState);
     }
 
@@ -1664,9 +1677,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.
-      SMGState newState = setInvalidFree();
+      SMGState newState =
+          setInvalidFree().setErrorDescription("Invalid free of unallocated object is found");
       newState.addInvalidObject(smgObject);
-      newState.setErrorDescription("Invalid free of unallocated object is found");
       return newState;
     }
 
@@ -1674,9 +1687,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       // you may not invoke free multiple times on
       // the same object
 
-      SMGState newState = setInvalidFree();
+      SMGState newState = setInvalidFree().setErrorDescription("Double free is found");
       newState.addInvalidObject(smgObject);
-      newState.setErrorDescription("Double free is found");
       return newState;
     }
 
@@ -1687,14 +1699,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
       SMGState newState = setInvalidFree();
       newState.addInvalidObject(smgObject);
+      final String description;
       if (offset % 8 != 0) {
-        newState.setErrorDescription("Invalid free at " + offset + " bit offset from allocated is "
-            + "found");
+        description = "Invalid free at " + offset + " bit offset from allocated is found";
       } else {
-        newState.setErrorDescription("Invalid free at " + offset / 8 + " byte offset from "
-            + "allocated is found");
+        description = "Invalid free at " + offset / 8 + " byte offset from allocated is found";
       }
-      return newState;
+      return newState.setErrorDescription(description);
     }
 
     heap.setValidity(smgObject, false);
@@ -1887,8 +1898,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
-    SMGState smgState = new SMGState(this, Property.INVALID_WRITE);
-    smgState.setErrorDescription("Unknown dereference");
+    SMGState smgState =
+        new SMGState(this, Property.INVALID_WRITE).setErrorDescription("Unknown dereference");
     return smgState;
   }
 
