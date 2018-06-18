@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -69,9 +70,7 @@ public final class SMGIntersectStates {
 
     BiMap<SMGKnownSymValue, SMGKnownExpValue> destExplicitValues = HashBiMap.create();
 
-    Set<String> globalVars = new HashSet<>();
-    globalVars.addAll(globals_in_smg1.keySet());
-    globalVars.addAll(globals_in_smg2.keySet());
+    Set<String> globalVars = Sets.union(globals_in_smg1.keySet(), globals_in_smg2.keySet());
 
     for (String globalVar : globalVars) {
       SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
@@ -92,9 +91,8 @@ public final class SMGIntersectStates {
 
       destSMG.addStackFrame(frameInSMG1.getFunctionDeclaration());
 
-      Set<String> localVars = new HashSet<>();
-      localVars.addAll(frameInSMG1.getVariables().keySet());
-      localVars.addAll(frameInSMG2.getVariables().keySet());
+      Set<String> localVars =
+          Sets.union(frameInSMG1.getVariables().keySet(), frameInSMG2.getVariables().keySet());
 
       for (String localVar : localVars) {
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
@@ -136,9 +134,8 @@ public final class SMGIntersectStates {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
-      Set<String> localVars = new HashSet<>();
-      localVars.addAll(frameInSMG1.getVariables().keySet());
-      localVars.addAll(frameInSMG2.getVariables().keySet());
+      Set<String> localVars =
+          Sets.union(frameInSMG1.getVariables().keySet(), frameInSMG2.getVariables().keySet());
 
       for (String localVar : localVars) {
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
@@ -268,9 +265,7 @@ public final class SMGIntersectStates {
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
         FluentIterable.from(hves2).uniqueIndex(SMGEdgeHasValue::getOffset);
 
-    Set<Long> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
-    offsetSet.addAll(offsetToHve1Map.keySet());
-    offsetSet.addAll(offsetToHve2Map.keySet());
+    Set<Long> offsetSet = Sets.union(offsetToHve1Map.keySet(), offsetToHve2Map.keySet());
 
     for (long offset : offsetSet) {
       if (offsetToHve1Map.containsKey(offset)) {
