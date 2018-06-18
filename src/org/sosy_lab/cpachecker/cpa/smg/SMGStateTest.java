@@ -295,7 +295,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    UnmodifiableSMGState inconsistentState = this.inconsistent_state.copyOf();
+    SMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
@@ -306,7 +306,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    UnmodifiableSMGState inconsistentState = this.inconsistent_state.copyOf();
+    SMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -317,7 +317,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    UnmodifiableSMGState inconsistentState = this.inconsistent_state.copyOf();
+    SMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -328,7 +328,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    UnmodifiableSMGState consistentState = this.consistent_state.copyOf();
+    SMGState consistentState = this.consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -338,7 +338,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    UnmodifiableSMGState consistentState = this.consistent_state.copyOf();
+    SMGState consistentState = this.consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 

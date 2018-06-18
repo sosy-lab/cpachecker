@@ -43,7 +43,7 @@ public class SMGSortedWaitlist extends AbstractSortedWaitlist<Integer> {
     SMGState state = AbstractStates.extractStateByType(pState, SMGState.class);
 
     // negate size so that the highest key corresponds to the smallest map
-    return (state == null) ? 0 : -state.getNumberOfHeapObjects();
+    return (state == null) ? 0 : -state.getHeap().getHeapObjects().size();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

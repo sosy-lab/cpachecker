@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -73,7 +74,7 @@ public class SMGInterpolant {
     Builder<SMGMemoryPath> memoryPaths = ImmutableSet.builder();
     Builder<MemoryLocation> stackVariables = ImmutableSet.builder();
     for (UnmodifiableSMGState state : smgStates) {
-      memoryPaths.addAll(state.getMemoryPaths());
+      memoryPaths.addAll(state.getHeap().getMemoryPaths());
       stackVariables.addAll(state.getStackVariables().keySet());
     }
 
@@ -121,7 +122,7 @@ public class SMGInterpolant {
       SMGIntersectionResult result = SMGIntersectionResult.getNotDefinedInstance();
 
       for (UnmodifiableSMGState state : originalStatesNotJoint) {
-        result = state.intersectStates(otherState);
+        result = new SMGIntersectStates(state, otherState).intersect();
 
         if (result.isDefined()) {
           break;

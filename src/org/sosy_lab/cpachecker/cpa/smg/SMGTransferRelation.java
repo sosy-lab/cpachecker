@@ -29,6 +29,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -211,7 +212,7 @@ public class SMGTransferRelation
       throws CPATransferException {
     SMGState smgState = state.copyOf();
     Collection<SMGState> successors;
-    SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
+    SMGObject tmpFieldMemory = smgState.getHeap().getFunctionReturnObject();
     if (tmpFieldMemory != null) {
       CExpression returnExp =
           returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
@@ -276,7 +277,9 @@ public class SMGTransferRelation
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
     SMGState newState = smgState.copyOf();
 
-    assert newState.getStackFrame().getFunctionDeclaration().equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
+    assert Iterables.getLast(newState.getHeap().getStackFrames())
+        .getFunctionDeclaration()
+        .equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
 
@@ -285,7 +288,7 @@ public class SMGTransferRelation
       CType rValueType =
           TypeUtils.getRealExpressionType(
               ((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
-      SMGObject tmpMemory = newState.getFunctionReturnObject();
+      SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
       SMGSymbolicValue rValue =
           expressionEvaluator
               .readValue(newState, tmpMemory, SMGKnownExpValue.ZERO, rValueType, functionReturnEdge)
@@ -828,7 +831,7 @@ public class SMGTransferRelation
       return ImmutableList.of(pState);
     }
 
-    SMGObject newObject = pState.getObjectForVisibleVariable(varName);
+    SMGObject newObject = pState.getHeap().getObjectForVisibleVariable(varName);
       /*
      *  The variable is not null if we seen the declaration already, for example in loops. Invalid
      *  occurrences (variable really declared twice) should be caught for us by the parser. If we

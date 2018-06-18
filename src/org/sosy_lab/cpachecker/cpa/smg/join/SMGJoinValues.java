@@ -105,10 +105,18 @@ final class SMGJoinValues {
         if (pJV.smgState1 == null || pJV.smgState2 == null) {
           pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.INCOMPARABLE);
         } else {
-          SMGJoinStatus v1isLessOrEqualV2 = pJV.smgState1.valueIsLessOrEqual(
-              SMGKnownSymValue.valueOf(pV1), SMGKnownSymValue.valueOf(pV2), pJV.smgState2);
-          SMGJoinStatus v2isLessOrEqualV1 = pJV.smgState2.valueIsLessOrEqual(
-              SMGKnownSymValue.valueOf(pV2), SMGKnownSymValue.valueOf(pV1), pJV.smgState1);
+          SMGJoinStatus v1isLessOrEqualV2 =
+              valueIsLessOrEqual(
+                  SMGKnownSymValue.valueOf(pV1),
+                  SMGKnownSymValue.valueOf(pV2),
+                  pJV.smgState1,
+                  pJV.smgState2);
+          SMGJoinStatus v2isLessOrEqualV1 =
+              valueIsLessOrEqual(
+                  SMGKnownSymValue.valueOf(pV2),
+                  SMGKnownSymValue.valueOf(pV1),
+                  pJV.smgState2,
+                  pJV.smgState1);
 
           if (v1isLessOrEqualV2 != SMGJoinStatus.INCOMPARABLE) {
             pJV.status = SMGJoinStatus.updateStatus(pJV.status, v1isLessOrEqualV2);
@@ -135,6 +143,61 @@ final class SMGJoinValues {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Check if symbolic value1 of this smgState is less or equal to value2 of smgsState2.
+   *
+   * <p>A value is less or equal if every concrete value represented by value1 is also represented
+   * by value2.
+   *
+   * <p>This check may be imprecise, but only insofar that equal symbolic values or symbolic values
+   * that entail each other may be identified as incomparable, never the other way around.
+   *
+   * @param value1 Value of this smgState.
+   * @param value2 Value of smgState2.
+   * @param state1 this State.
+   * @param state2 Another SMG State.
+   * @return SMGJoinStatus.RIGHT_ENTAIL iff all values represented by value1 are also represented by
+   *     value2. SMGJoinStatus.EQUAL iff values represented by value1 and value2 are equal.
+   *     SMGJoinStatus.INCOMPARABLE otherwise.
+   */
+  private static SMGJoinStatus valueIsLessOrEqual(
+      SMGKnownSymValue value1,
+      SMGKnownSymValue value2,
+      UnmodifiableSMGState state1,
+      UnmodifiableSMGState state2) {
+
+    if (value1.equals(value2)) {
+      return SMGJoinStatus.EQUAL;
+    }
+
+    if (state2.isExplicit(value2)) {
+      if (!state1.isExplicit(value1)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+
+      if (!state2.getExplicit(value2).equals(state1.getExplicit(value1))) {
+        return SMGJoinStatus.INCOMPARABLE;
+      } else {
+        // Same explicit values
+        return SMGJoinStatus.EQUAL;
+      }
+    }
+
+    for (Integer neqToVal2 : state2.getHeap().getNeqsForValue(value2.getAsInt())) {
+      if (!state1.getHeap().haveNeqRelation(value1.getAsInt(), neqToVal2)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+    }
+
+    if (state1.isExplicit(value1)
+        || !state1.getHeap().getNeqsForValue(value1.getAsInt()).isEmpty()) {
+      return SMGJoinStatus.RIGHT_ENTAIL;
+    }
+
+    // Both values represent top
+    return SMGJoinStatus.EQUAL;
   }
 
   private static boolean joinValuesMixedPointers(SMGJoinValues pJV, Integer pV1, Integer pV2) {

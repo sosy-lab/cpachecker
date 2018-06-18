@@ -69,7 +69,7 @@ public final class SMGIntersectStates {
   private final BiMap<SMGKnownSymValue, SMGKnownExpValue> destExplicitValues = HashBiMap.create();
 
   /** initialize the intersection-process. */
-  SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
+  public SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
     smgState1 = pSmgState1;
     smgState2 = pSmgState2;
     heap1 = pSmgState1.getHeap();

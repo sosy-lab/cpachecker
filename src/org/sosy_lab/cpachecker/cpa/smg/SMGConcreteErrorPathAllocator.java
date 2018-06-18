@@ -310,7 +310,7 @@ public class SMGConcreteErrorPathAllocator {
   private Map<Address, Object> createHeapValues(SMGState pSMGState,
       SMGObjectAddressMap pAdresses) {
 
-    Set<SMGEdgeHasValue> symbolicValues = pSMGState.getHVEdges();
+    Set<SMGEdgeHasValue> symbolicValues = pSMGState.getHeap().getHVEdges();
 
     Map<Address, Object> result = new HashMap<>();
 
@@ -321,8 +321,8 @@ public class SMGConcreteErrorPathAllocator {
 
       if (symbolicValue == 0) {
         value = BigInteger.ZERO;
-      } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGEdgePointsTo pointer = pSMGState.getPointsToEdge(symbolicValue);
+      } else if (pSMGState.getHeap().isPointer(symbolicValue)) {
+        SMGEdgePointsTo pointer = pSMGState.getHeap().getPointer(symbolicValue);
 
         //TODO ugly, use common representation
         value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
@@ -353,7 +353,7 @@ public class SMGConcreteErrorPathAllocator {
       // Create a new base address for the object if necessary
       if (!objectAddressMap.containsKey(pObject)) {
         objectAddressMap.put(pObject, nextAlloc);
-        IDExpression lhs = pSMGState.createIDExpression(pObject);
+        IDExpression lhs = pSMGState.getHeap().createIDExpression(pObject);
         if (lhs != null) {
           variableAddressMap.put(lhs, nextAlloc);
         }

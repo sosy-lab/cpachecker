@@ -125,7 +125,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
 
   @Override
   public SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState) {
-    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
+    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeap().getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
     return new SMGSingleLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);

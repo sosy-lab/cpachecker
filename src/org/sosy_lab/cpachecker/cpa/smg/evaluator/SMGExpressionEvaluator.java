@@ -557,8 +557,8 @@ public class SMGExpressionEvaluator {
                 evaluateNonAddressValue(newState, cfaEdge, subscriptExpression)) {
               SMGSymbolicValue value = symbolicValueAndState.getObject();
               newState = subscriptValueAndState.getSmgState();
-              if (!value.isUnknown() && !newState
-                  .isObjectExternallyAllocated(arrayAddress.getObject())) {
+              if (!value.isUnknown()
+                  && !newState.getHeap().isObjectExternallyAllocated(arrayAddress.getObject())) {
                 int arrayBitSize = arrayAddress.getObject().getSize();
                 int typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
                 int maxIndex = arrayBitSize / typeBitSize;
@@ -665,7 +665,7 @@ public class SMGExpressionEvaluator {
       return singletonList(SMGAddressValueAndState.of(smgState));
     }
 
-    if (!smgState.isPointer(pAddressValue.getAsInt())) {
+    if (!smgState.getHeap().isPointer(pAddressValue.getAsInt())) {
       return singletonList(SMGAddressValueAndState.of(smgState));
     }
 

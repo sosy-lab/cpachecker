@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -48,7 +49,7 @@ public class SMGInterpolantManager {
   }
 
   public SMGInterpolant createInterpolant(UnmodifiableSMGState pState) {
-    return pState.createInterpolant();
+    return new SMGInterpolant(ImmutableSet.of(pState));
   }
 
   public SMGInterpolant getFalseInterpolant() {
@@ -61,6 +62,6 @@ public class SMGInterpolantManager {
 
   public SMGInterpolant createInterpolant(
       UnmodifiableSMGState pState, Set<SMGAbstractionBlock> pAbstractionBlocks) {
-    return pState.createInterpolant(pAbstractionBlocks);
+    return new SMGInterpolant(ImmutableSet.of(pState), pAbstractionBlocks);
   }
 }

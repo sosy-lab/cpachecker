@@ -211,14 +211,10 @@ public final class SMGUtils {
   public static void dumpSMGPlot(
       LogManager pLogger, UnmodifiableSMGState currentState, String location, Path pOutputFile) {
     try {
-      String dot = getDot(currentState, location);
+      String dot = currentState.toDot("SMG" + currentState.getId(), location);
       IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
       pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }
-  }
-
-  private static String getDot(UnmodifiableSMGState pCurrentState, String pLocation) {
-    return pCurrentState.toDot("SMG" + pCurrentState.getId(), pLocation);
   }
 }

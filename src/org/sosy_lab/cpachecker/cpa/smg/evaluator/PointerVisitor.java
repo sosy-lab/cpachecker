@@ -248,7 +248,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
 
     SMGState state = getInitialSmgState();
 
-    SMGObject variableObject = state.getObjectForVisibleVariable(idExpression.getName());
+    SMGObject variableObject = state.getHeap().getObjectForVisibleVariable(idExpression.getName());
 
     if (variableObject == null) {
       return Collections.singletonList(SMGAddressValueAndState.of(state));

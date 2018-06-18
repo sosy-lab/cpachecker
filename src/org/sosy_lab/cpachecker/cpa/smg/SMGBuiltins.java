@@ -624,11 +624,11 @@ public class SMGBuiltins {
               int availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
-                if (!currentState.isObjectExternallyAllocated(sourceObject.getObject())) {
+                if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {
                   currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
                       .valueOf(availableSource), symbolicValueSize, pCfaEdge);
                 }
-                if (!currentState.isObjectExternallyAllocated(targetObject.getObject())) {
+                if (!currentState.getHeap().isObjectExternallyAllocated(targetObject.getObject())) {
                   currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
                       .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
                 }

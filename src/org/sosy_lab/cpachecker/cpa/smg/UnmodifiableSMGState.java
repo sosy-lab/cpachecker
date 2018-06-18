@@ -32,23 +32,16 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -80,9 +73,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   int getPredecessorId();
 
+  /** returns an unmodifiable view of the heap. */
   UnmodifiableCLangSMG getHeap();
-
-  void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException;
 
   String toDot(String pName, String pLocation);
 
@@ -130,29 +122,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    */
   UnmodifiableSMGState withErrorDescription(String pErrorDescription);
 
-  String getNoteMessageOnElement(Object elem);
-
-  SMGObject getFunctionReturnObject();
-
-  public SMGObject getObjectForVisibleVariable(String pVariableName);
-
   List<SMGAddressValueAndState> getPointerFromValue(Integer pValue) throws SMGInconsistentException;
 
-  boolean isPointer(Integer pValue);
-
-  boolean isObjectExternallyAllocated(SMGObject pObject);
-
-  boolean isObjectValid(SMGObject pObject);
-
-  boolean isGlobal(String variable);
-
-  boolean isGlobal(SMGObject object);
-
-  boolean isHeapObject(SMGObject object);
-
   boolean isBlockEnded();
-
-  boolean containsValue(int value);
 
   Set<Entry<SMGKnownSymValue, SMGKnownExpValue>> getExplicitValues();
 
@@ -162,21 +134,33 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
   @Override
   boolean isLessOrEqual(UnmodifiableSMGState reachedState) throws SMGInconsistentException;
 
+  /**
+   * Get the symbolic value, that represents the address pointing to the given memory with the given
+   * offset, if it exists.
+   *
+   * @param memory get address belonging to this memory.
+   * @param offset get address with this offset relative to the beginning of the memory.
+   * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
+   */
   @Nullable
-  Integer getAddress(SMGRegion memory, long offset);
+  default Integer getAddress(SMGRegion memory, long offset) {
+    return getAddress(memory, offset, null);
+  }
 
+  /**
+   * Get the symbolic value, that represents the address pointing to the given memory with the given
+   * offset, if it exists.
+   *
+   * @param memory get address belonging to this memory.
+   * @param offset get address with this offset relative to the beginning of the memory.
+   * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
+   */
   @Nullable
   public Integer getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
-
-  boolean containsInvalidElement(Object elem);
 
   Collection<Object> getInvalidChain();
 
   Collection<Object> getCurrentChain();
-
-  Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter);
-
-  Set<SMGEdgeHasValue> getHVEdges();
 
   boolean isTrackPredicatesEnabled();
 
@@ -196,24 +180,5 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration);
 
-  SMGJoinStatus valueIsLessOrEqual(
-      SMGKnownSymValue value1, SMGKnownSymValue value2, UnmodifiableSMGState smgState2);
-
-  SMGEdgePointsTo getPointsToEdge(int pSymbolicValue);
-
-  int sizeOfHveEdges();
-
-  Set<SMGMemoryPath> getMemoryPaths();
-
-  SMGInterpolant createInterpolant(Set<SMGAbstractionBlock> pAbstractionBlocks);
-
-  SMGInterpolant createInterpolant();
-
-  SMGIntersectionResult intersectStates(UnmodifiableSMGState pOtherState);
-
-  Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths();
-
   Map<MemoryLocation, SMGRegion> getStackVariables();
-
-  CLangStackFrame getStackFrame();
 }

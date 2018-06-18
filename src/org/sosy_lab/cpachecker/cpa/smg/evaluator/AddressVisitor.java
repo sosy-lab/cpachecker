@@ -84,7 +84,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
   public List<SMGAddressAndState> visit(CIdExpression variableName) throws CPATransferException {
 
     SMGState state = getInitialSmgState();
-    SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
+    SMGObject object = state.getHeap().getObjectForVisibleVariable(variableName.getName());
     if (object != null) {
       state.addElementToCurrentChain(object);
     }

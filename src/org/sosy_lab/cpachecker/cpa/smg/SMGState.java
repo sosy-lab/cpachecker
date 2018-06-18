@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -52,16 +53,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -132,11 +131,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public SMGState withErrorDescription(String pErrorDescription) {
     return new SMGState(this, errorInfo.withErrorMessage(pErrorDescription));
-  }
-
-  @Override
-  public String getNoteMessageOnElement(Object elem) {
-    return heap.getNoteMessageOnElement(elem);
   }
 
   /**
@@ -382,39 +376,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Constant.
+   * Based on the current setting of runtime check level, it either performs a full consistency
+   * check or not. If the check is performed and the state is deemed inconsistent, a {@link
+   * SMGInconsistentException} is thrown.
    *
-   * @return A {@link SMGObject} for current function return value storage.
+   * <p>Constant.
+   *
+   * @param pLevel A level of the check request. When e.g. HALF is passed, it means "perform the
+   *     check if the setting is HALF or finer.
    */
-  @Override
-  final public SMGObject getFunctionReturnObject() {
-    return heap.getFunctionReturnObject();
-  }
-
-  /**
-   * Get memory of variable with the given name.
-   *
-   * @param pVariableName A name of the desired variable
-   * @return An object corresponding to the variable name
-   */
-  @Override
-  public SMGObject getObjectForVisibleVariable(String pVariableName) {
-    return heap.getObjectForVisibleVariable(pVariableName);
-  }
-
-  /**
-   * Based on the current setting of runtime check level, it either performs
-   * a full consistency check or not. If the check is performed and the
-   * state is deemed inconsistent, a {@link SMGInconsistentException} is thrown.
-   *
-   * Constant.
-   *
-   * @param pLevel A level of the check request. When e.g. HALF is passed, it
-   * means "perform the check if the setting is HALF or finer.
-   */
-  @Override
-  final public void performConsistencyCheck(SMGRuntimeCheck pLevel)
-      throws SMGInconsistentException {
+  @VisibleForTesting
+  final void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     if (pLevel == null || options.getRuntimeCheck().isFinerOrEqualThan(pLevel)) {
       if (!CLangSMGConsistencyVerifier.verifyCLangSMG(logger,
           heap)) { throw new SMGInconsistentException(
@@ -1099,21 +1071,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Checks, if a symbolic value is an address.
-   *
-   * Constant.
-   *
-   * @param pValue A value for which to return the Points-To edge
-   * @return True, if the smg contains a {@link SMGEdgePointsTo} edge
-   * with pValue as source, false otherwise.
-   *
-   */
-  @Override
-  public boolean isPointer(Integer pValue) {
-    return heap.isPointer(pValue);
-  }
-
-  /**
    * Read Value in field (object, type) of an Object. If a Value cannot be determined,
    * but the given object and field is a valid place to read a value, a new value will be
    * generated and returned. (Does not create a new State but modifies this state).
@@ -1131,8 +1088,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (valueAndState.getObject().isUnknown()
         && !valueAndState.getSmgState().errorInfo.isInvalidRead()) {
       SMGStateEdgePair stateAndNewEdge;
-      if (valueAndState.getSmgState().isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
-          instanceof CPointerType) {
+      if (valueAndState.getSmgState().getHeap().isObjectExternallyAllocated(pObject)
+          && pType.getCanonicalType() instanceof CPointerType) {
         SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
       } else {
@@ -1246,7 +1203,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public void addPointsToEdge(SMGObject pObject, long pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
-    if (!containsValue(pValue)) {
+    if (!heap.getValues().contains(pValue)) {
       heap.addValue(pValue);
     }
 
@@ -1318,16 +1275,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new SMGStateEdgePair(this, new_edge);
-  }
-
-  @Override
-  public boolean isObjectExternallyAllocated(SMGObject pObject) {
-    return heap.isObjectExternallyAllocated(pObject);
-  }
-
-  @Override
-  public boolean isObjectValid(SMGObject pObject) {
-    return heap.isObjectValid(pObject);
   }
 
   @Override
@@ -1532,21 +1479,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addGlobalObject(newObject);
   }
 
-  @Override
-  public boolean isGlobal(String variable) {
-    return heap.isGlobal(heap.getObjectForVisibleVariable(variable));
-  }
-
-  @Override
-  public boolean isGlobal(SMGObject object) {
-    return heap.isGlobal(object);
-  }
-
-  @Override
-  public boolean isHeapObject(SMGObject object) {
-    return heap.isHeapObject(object);
-  }
-
   /** memory allocated in the heap has to be freed by the user,
    * otherwise this is a memory-leak. */
   public SMGAddressValue addNewHeapAllocation(int pSize, String pLabel)
@@ -1604,41 +1536,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             .withInvalidObjects(pUnreachableObjects);
   }
 
-  @Override
-  public boolean containsValue(int value) {
-    return heap.getValues().contains(value);
-  }
-
-  /**
-   * Get the symbolic value, that represents the address
-   * pointing to the given memory with the given offset, if it exists.
-   *
-   * @param memory
-   *          get address belonging to this memory.
-   * @param offset
-   *          get address with this offset relative to the beginning of the
-   *          memory.
-   * @return Address of the given field, or null, if such an address does not
-   *         yet exist in the SMG.
-   */
-  @Override
-  @Nullable
-  public Integer getAddress(SMGRegion memory, long offset) {
-    return getAddress(memory, offset, null);
-  }
-
-  /**
-   * Get the symbolic value, that represents the address
-   * pointing to the given memory with the given offset, if it exists.
-   *
-   * @param memory
-   *          get address belonging to this memory.
-   * @param offset
-   *          get address with this offset relative to the beginning of the
-   *          memory.
-   * @return Address of the given field, or null, if such an address does not
-   *         yet exist in the SMG.
-   */
   @Override
   @Nullable
   public Integer getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg) {
@@ -1717,11 +1614,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public boolean containsInvalidElement(Object elem) {
-    return heap.containsInvalidElement(elem);
-  }
-
-  @Override
   public Collection<Object> getInvalidChain() {
     return Collections.unmodifiableList(errorInfo.getInvalidChain());
   }
@@ -1774,14 +1666,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return new SMGState(this, Property.INVALID_FREE);
   }
 
-  @Override
-  public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+  @VisibleForTesting
+  Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return heap.getHVEdges(pFilter);
-  }
-
-  @Override
-  public Set<SMGEdgeHasValue> getHVEdges() {
-    return heap.getHVEdges();
   }
 
   /**
@@ -2053,10 +1940,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
-  IDExpression createIDExpression(SMGObject pObject) {
-    return heap.createIDExpression(pObject);
-  }
-
   @Override
   public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
 
@@ -2120,80 +2003,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return change;
   }
 
-  /**
-   * Check if symbolic value1 of this smgState is less or equal to value2
-   * of smgsState2.
-   *
-   * A value is less or equal if every concrete value represented by value1 is also
-   * represented by value2.
-   *
-   * This check may be imprecise, but only insofar that equal symbolic values or
-   * symbolic values that entail each other may be identified as incomparable, never the other way around.
-   *
-   * @param value1 Value of this smgState.
-   * @param value2 Value of smgState2.
-   * @param smgState2 Another SMG State.
-   * @return SMGJoinStatus.RIGHT_ENTAIL iff all values represented by value1 are also represented by value2.
-   * SMGJoinStatus.EQUAL iff values represented by value1 and value2 are equal.
-   * SMGJoinStatus.INCOMPARABLE otherwise.
-   */
-  @Override
-  public SMGJoinStatus valueIsLessOrEqual(
-      SMGKnownSymValue value1, SMGKnownSymValue value2, UnmodifiableSMGState smgState2) {
-
-    if (value1.equals(value2)) { return SMGJoinStatus.EQUAL; }
-
-    if (smgState2.isExplicit(value2)) {
-      if (!explicitValues.containsKey(value1)) { return SMGJoinStatus.INCOMPARABLE; }
-
-      if (!smgState2.getExplicit(value2).equals(explicitValues.get(value1))) {
-        return SMGJoinStatus.INCOMPARABLE;
-      } else {
-        // Same explicit values
-        return SMGJoinStatus.EQUAL;
-      }
-    }
-
-    for (Integer neqToVal2 : smgState2.getHeap().getNeqsForValue(value2.getAsInt())) {
-      if (!heap.haveNeqRelation(value1.getAsInt(),
-          neqToVal2)) { return SMGJoinStatus.INCOMPARABLE; }
-    }
-
-    if (explicitValues.containsKey(value1) || !heap.getNeqsForValue(value1.getAsInt()).isEmpty()) {
-      return SMGJoinStatus.RIGHT_ENTAIL;
-    }
-
-    // Both values represent top
-    return SMGJoinStatus.EQUAL;
-  }
-
-  @Override
-  public SMGEdgePointsTo getPointsToEdge(int pSymbolicValue) {
-    return heap.getPointer(pSymbolicValue);
-  }
-
-  @Override
-  public int sizeOfHveEdges() {
-    return heap.getHVEdges().size();
-  }
-
-  @Override
-  public Set<SMGMemoryPath> getMemoryPaths() {
-    return heap.getMemoryPaths();
-  }
-
   public Optional<SMGEdgeHasValue> forget(SMGMemoryPath location) {
     return heap.forget(location);
-  }
-
-  @Override
-  public SMGInterpolant createInterpolant(Set<SMGAbstractionBlock> pAbstractionBlocks) {
-    return new SMGInterpolant(ImmutableSet.of(this), pAbstractionBlocks);
-  }
-
-  @Override
-  public SMGInterpolant createInterpolant() {
-    return new SMGInterpolant(ImmutableSet.of(this));
   }
 
   public void clearValues() {
@@ -2208,22 +2019,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.clearObjects();
   }
 
-  @Override
-  public SMGIntersectionResult intersectStates(UnmodifiableSMGState pOtherState) {
-    return new SMGIntersectStates(this, pOtherState).intersect();
-  }
-
   public SMGAbstractionCandidate executeHeapAbstractionOneStep(Set<SMGAbstractionBlock> pResult)
       throws SMGInconsistentException {
     SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, pResult, 2, 2, 2);
     SMGAbstractionCandidate result = manager.executeOneStep();
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return result;
-  }
-
-  @Override
-  public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
-    return heap.getHeapObjectMemoryPaths();
   }
 
   public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) {
@@ -2344,11 +2145,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public CLangStackFrame getStackFrame() {
-    return Iterables.getLast(heap.getStackFrames());
-  }
-
-  @Override
   public String toDOTLabel() {
     return toString();
   }
@@ -2358,12 +2154,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return false;
   }
 
-  public int getNumberOfHeapObjects() {
-    return heap.getObjects().size();
-  }
-
   @Override
-  public CLangSMG getHeap() {
+  public UnmodifiableCLangSMG getHeap() {
     return heap;
   }
 

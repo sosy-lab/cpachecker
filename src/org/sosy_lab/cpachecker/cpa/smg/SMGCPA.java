@@ -298,7 +298,7 @@ public class SMGCPA
       Set<Object> toCheck = new HashSet<>();
       for (Object elem : invalidChain) {
         if (!visitedElems.contains(elem)) {
-          if (!smgState.containsInvalidElement(elem)) {
+          if (!smgState.getHeap().containsInvalidElement(elem)) {
             visitedElems.add(elem);
             for (Object additionalElem : prevSMGState.getCurrentChain()) {
               if (!visitedElems.contains(additionalElem)
@@ -307,7 +307,7 @@ public class SMGCPA
               }
             }
             edgeWithAdditionalInfo.addInfo(
-                SMGConvertingTags.NOTE, prevSMGState.getNoteMessageOnElement(elem));
+                SMGConvertingTags.NOTE, prevSMGState.getHeap().getNoteMessageOnElement(elem));
 
           } else {
             toCheck.add(elem);

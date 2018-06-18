@@ -206,8 +206,8 @@ public class ExpressionValueVisitor
         || decl instanceof CParameterDeclaration) {
       SMGState smgState = getInitialSmgState();
 
-      SMGObject variableObject = smgState
-          .getObjectForVisibleVariable(idExpression.getName());
+      SMGObject variableObject =
+          smgState.getHeap().getObjectForVisibleVariable(idExpression.getName());
 
       smgState.addElementToCurrentChain(variableObject);
       SMGValueAndState result =

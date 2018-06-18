@@ -239,7 +239,7 @@ public class SMGEdgeInterpolator {
 
     SMGState state = pState;
 
-    for (SMGEdgeHasValue currentHveEdge : state.getHVEdges()) {
+    for (SMGEdgeHasValue currentHveEdge : state.getHeap().getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 
       //TODO Robust heap abstracion?

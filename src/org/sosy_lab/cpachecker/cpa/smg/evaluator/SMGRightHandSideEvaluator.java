@@ -318,8 +318,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
             SMGState smgState = addressOfFieldAndState.getSmgState();
             if (!object.equals(SMGNullObject.INSTANCE)
                 && object.getSize() - offset.getAsLong() >= machineModel.getSizeofPtrInBits()
-                && (smgState.isObjectValid(object)
-                    || smgState.isObjectExternallyAllocated(object))) {
+                && (smgState.getHeap().isObjectValid(object)
+                    || smgState.getHeap().isObjectExternallyAllocated(object))) {
 
               SMGAddressValue newParamValue =
                   pSmgState.addExternalAllocation(
