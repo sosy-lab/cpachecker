@@ -98,6 +98,9 @@ public class SymbolicLocationsUtility {
         formula = fmgr.makeOr(formula, makeProgramCounter(node));
       }
     }
+    if (formula == null) {
+      return fmgr.getBooleanFormulaManager().makeFalse();
+    }
     return formula;
   }
 

@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.SLABCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
 import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
@@ -114,6 +115,7 @@ public class CPAsTest {
     cpas.remove(PowerSetCPA.class);
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
+    cpas.remove(SLABCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
