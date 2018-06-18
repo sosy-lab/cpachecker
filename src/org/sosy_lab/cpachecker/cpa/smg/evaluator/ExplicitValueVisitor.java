@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -93,7 +94,13 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     if (pValue.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-    return smgState.getExplicit((SMGKnownSymValue) pValue);
+    Preconditions.checkState(pValue instanceof SMGKnownSymValue, "known value has invalid type");
+    if (!smgState.isExplicit((SMGKnownSymValue) pValue)) {
+      return SMGUnknownValue.getInstance();
+    }
+    return Preconditions.checkNotNull(
+        smgState.getExplicit((SMGKnownSymValue) pValue),
+        "known and existing value cannot be read from state");
   }
 
   void setSmgState(SMGState pSmgState) {

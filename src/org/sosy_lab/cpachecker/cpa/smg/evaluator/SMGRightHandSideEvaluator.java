@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -225,11 +226,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     if (pRValueType instanceof CPointerType
         && !(pValue instanceof SMGAddressValue)
         && pValue instanceof SMGKnownSymValue) {
-        SMGExplicitValue explicit = pState.getExplicit((SMGKnownSymValue) pValue);
-        if (!explicit.isUnknown()) {
+      SMGKnownSymValue knownValue = (SMGKnownSymValue) pValue;
+      if (pState.isExplicit(knownValue)) {
+        SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
           pValue =
               SMGKnownAddressValue.valueOf(
-                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, (SMGKnownSymValue) pValue);
+                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, knownValue);
       }
     }
     return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();

@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
@@ -1964,16 +1963,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     explicitValues.remove(pKey);
   }
 
-  boolean isExplicit(int value) {
-    return explicitValues.containsKey(SMGKnownSymValue.valueOf(value));
+  public boolean isExplicit(SMGKnownSymValue value) {
+    return explicitValues.containsKey(value);
   }
 
+  @Nullable
   public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
-    if (explicitValues.containsKey(pKey)) {
-      return explicitValues.get(pKey);
-    }
-
-    return SMGUnknownValue.getInstance();
+    return explicitValues.get(pKey);
   }
 
   enum Property {

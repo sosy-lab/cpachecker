@@ -326,7 +326,7 @@ public class SMGConcreteErrorPathAllocator {
 
         //TODO ugly, use common representation
         value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
-      } else if (pSMGState.isExplicit(symbolicValue)) {
+      } else if (pSMGState.isExplicit(SMGKnownSymValue.valueOf(symbolicValue))) {
         value =
             BigInteger.valueOf(
                 pSMGState.getExplicit(SMGKnownSymValue.valueOf(symbolicValue)).getAsLong());
