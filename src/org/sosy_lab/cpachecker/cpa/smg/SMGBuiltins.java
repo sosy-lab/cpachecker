@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -272,13 +273,17 @@ public class SMGBuiltins {
 
     for (SMGExplicitValueAndState valueAndState :
         evaluateExplicitValue(pState, cfaEdge, sizeExpr)) {
-      result.add(evaluateAlloca(valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
+      result.addAll(
+          evaluateAlloca(
+              valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
     }
 
     return result;
   }
 
-  private SMGAddressValueAndState evaluateAlloca(SMGState currentState, SMGExplicitValue pSizeValue, CFAEdge cfaEdge, CRightHandSide sizeExpr) throws CPATransferException {
+  private List<SMGAddressValueAndState> evaluateAlloca(
+      SMGState currentState, SMGExplicitValue pSizeValue, CFAEdge cfaEdge, CRightHandSide sizeExpr)
+      throws CPATransferException {
 
     SMGExplicitValue sizeValue = pSizeValue;
 
@@ -325,11 +330,22 @@ public class SMGBuiltins {
 
     // TODO line numbers are not unique when we have multiple input files!
     String allocation_label = "alloc_ID" + SMGCPA.getNewValue();
-    SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt() *
-        machineModel.getSizeofCharInBits(), allocation_label);
+    SMGState state = new SMGState(currentState);
+    SMGAddressValue addressValue =
+        state.addNewStackAllocation(
+            sizeValue.getAsInt() * machineModel.getSizeofCharInBits(), allocation_label);
 
-    smgTransferRelation.possibleMallocFail = true;
-    return SMGAddressValueAndState.of(currentState, addressValue);
+    ArrayList<SMGAddressValueAndState> result = new ArrayList<>(2);
+    result.add(SMGAddressValueAndState.of(state, addressValue));
+
+    // If malloc can fail, handle fail with alternative state
+    if (options.isEnableMallocFailure()) {
+      result.add(
+          SMGAddressValueAndState.of(
+              new SMGState(currentState), SMGKnownAddressValue.ZERO_ADDRESS));
+    }
+
+    return result;
   }
 
   private List<SMGExplicitValueAndState> getAllocateFunctionSize(SMGState pState, CFAEdge cfaEdge,
@@ -446,11 +462,13 @@ public class SMGBuiltins {
               + SMGCPA.getNewValue()
               + "_Line:"
               + functionCall.getFileLocation().getStartingLineNumber();
-      SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
-          allocation_label);
+      SMGAddressValue new_address =
+          currentState.addNewHeapAllocation(
+              size * machineModel.getSizeofCharInBits(), allocation_label);
 
+      SMGState newState = currentState;
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        currentState =
+        newState =
             expressionEvaluator.writeValue(
                 currentState,
                 new_address.getObject(),
@@ -459,8 +477,14 @@ public class SMGBuiltins {
                 SMGKnownSymValue.ZERO,
                 cfaEdge);
       }
-      smgTransferRelation.possibleMallocFail = true;
-      result.add(SMGAddressValueAndState.of(currentState, new_address));
+      result.add(SMGAddressValueAndState.of(newState, new_address));
+
+      // If malloc can fail, handle fail with alternative state
+      if (options.isEnableMallocFailure()) {
+        result.add(
+            SMGAddressValueAndState.of(
+                new SMGState(currentState), SMGKnownAddressValue.ZERO_ADDRESS));
+      }
     }
 
     return result;

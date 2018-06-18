@@ -124,12 +124,6 @@ public class SMGTransferRelation
 
   final SMGRightHandSideEvaluator expressionEvaluator;
 
-  /**
-   * Indicates whether the executed statement could result
-   * in a failure of the malloc function.
-   */
-  public boolean possibleMallocFail;
-
   public SMGTransferRelationKind kind;
 
   public final SMGBuiltins builtins;
@@ -811,22 +805,8 @@ public class SMGTransferRelation
       CRightHandSide rValue)
       throws CPATransferException {
 
-    SMGState newState = new SMGState(pState);
-    List<SMGState> newStates = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
-
-    // If Assignment contained malloc, handle possible fail with
-    // alternate State (don't create state if not enabled)
-    if (possibleMallocFail && options.isEnableMallocFailure()) {
-      possibleMallocFail = false;
-      SMGState otherState = new SMGState(pState);
-      CType rValueType = TypeUtils.getRealExpressionType(rValue);
-      SMGState mallocFailState =
-          expressionEvaluator.writeValue(
-              otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
-      newStates.add(mallocFailState);
-    }
-
-    return newStates;
+    return assignFieldToState(
+        new SMGState(pState), cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
   }
 
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
@@ -1200,7 +1180,6 @@ public class SMGTransferRelation
       }
     }
 
-    possibleMallocFail = false;
     return result;
   }
 
