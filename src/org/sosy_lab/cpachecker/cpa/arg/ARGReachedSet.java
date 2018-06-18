@@ -162,12 +162,13 @@ public class ARGReachedSet {
         toRemove.add((ARGState) inOldReached);
       }
     }
-    mReached.removeAll(toRemove);
     for (ARGState state : toRemove) {
       if (!state.isDestroyed()) {
+        removeCoverageOf(state);
         state.removeFromARG();
       }
     }
+    mReached.removeAll(toRemove);
   }
 
   /**
