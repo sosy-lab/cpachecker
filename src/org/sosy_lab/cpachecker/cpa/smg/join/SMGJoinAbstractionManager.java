@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -53,13 +54,20 @@ public class SMGJoinAbstractionManager {
   private final SMGObject smgObject2;
   private final SMGObject destObject;
 
-  private final SMG inputSMG1;
-  private final SMG inputSMG2;
+  private final UnmodifiableSMG inputSMG1;
+  private final UnmodifiableSMG inputSMG2;
+
   @SuppressWarnings("unused")
   private final SMG destSMG;
 
-  public SMGJoinAbstractionManager(MachineModel pMachineModel, SMGObject pRootInSMG1, SMGObject pRootInSMG2, SMG pInputSMG1,
-      SMG pInputSMG2, SMGObject pDestObject, SMG pDestSMG) {
+  public SMGJoinAbstractionManager(
+      MachineModel pMachineModel,
+      SMGObject pRootInSMG1,
+      SMGObject pRootInSMG2,
+      UnmodifiableSMG pInputSMG1,
+      UnmodifiableSMG pInputSMG2,
+      SMGObject pDestObject,
+      SMG pDestSMG) {
     machineModel = pMachineModel;
     smgObject1 = pRootInSMG1;
     smgObject2 = pRootInSMG2;

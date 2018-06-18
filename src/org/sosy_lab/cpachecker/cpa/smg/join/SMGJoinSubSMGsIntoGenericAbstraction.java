@@ -36,6 +36,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -56,9 +57,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   private final MachineModel machineModel;
 
   private final GenericAbstractionCandidateTemplate template;
-  private final SMG inputSMG1;
+  private final UnmodifiableSMG inputSMG1;
 
-  private final SMG inputSMG2;
+  private final UnmodifiableSMG inputSMG2;
 
   private final SMGObject rootObject1;
 
@@ -70,10 +71,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   private Map<Integer, List<GenericAbstractionCandidate>> previouslyMatched;
 
-  public SMGJoinSubSMGsIntoGenericAbstraction(MachineModel pMachineModel,
-      SMG pInputSMG1, SMG pInputSMG2,
-      GenericAbstractionCandidateTemplate pTemplate, SMGObject pRootObject1, SMGObject pRootObject2,
-      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+  public SMGJoinSubSMGsIntoGenericAbstraction(
+      MachineModel pMachineModel,
+      UnmodifiableSMG pInputSMG1,
+      UnmodifiableSMG pInputSMG2,
+      GenericAbstractionCandidateTemplate pTemplate,
+      SMGObject pRootObject1,
+      SMGObject pRootObject2,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
       Map<Integer, List<GenericAbstractionCandidate>> pValueAbstractionCandidates) {
     machineModel = pMachineModel;
     template = pTemplate;
@@ -149,13 +155,17 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
             destres.getAbstractToConcretePointerMap(), template.getMaterlisationStepMap(), score));
   }
 
-  private MatchResult subSMGmatchSpecificShape(SMG pInputSMG, SMGObject pRootObject,
-      SMGNodeMapping pMapping, GenericAbstractionCandidateTemplate pTemplate, Set<SMGObject> pAlreadyVisited) {
+  private MatchResult subSMGmatchSpecificShape(
+      UnmodifiableSMG pInputSMG,
+      SMGObject pRootObject,
+      SMGNodeMapping pMapping,
+      GenericAbstractionCandidateTemplate pTemplate,
+      Set<SMGObject> pAlreadyVisited) {
 
     if (pRootObject instanceof GenericAbstraction) {
       return subSMGmatchSpecificShape((GenericAbstraction) pRootObject, pTemplate, pAlreadyVisited);
     } else if (pRootObject instanceof SMGRegion) {
-      return subSMGmatchSpecificShape(pInputSMG, (SMGRegion) pRootObject, pMapping, pTemplate, pAlreadyVisited);
+      return subSMGmatchSpecificShape(pInputSMG, pRootObject, pMapping, pTemplate, pAlreadyVisited);
     } else {
       return MatchResult.getUnknownInstance();
     }

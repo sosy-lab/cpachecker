@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -53,8 +54,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
-  private SMG inputSMG1;
-  private SMG inputSMG2;
+  private UnmodifiableSMG inputSMG1;
+  private UnmodifiableSMG inputSMG2;
   private SMG destSMG;
   private Integer value;
   private SMGNodeMapping mapping1;
@@ -141,10 +142,23 @@ final class SMGJoinValues {
   }
 
   private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmg, SMGLevelMapping pLevelMap) throws SMGInconsistentException {
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
-                                                        pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
-                                                        pJV.mapping1, pJV.mapping2, pLevelMap,
-                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, pJV.smgState1, pJV.smgState2);
+    SMGJoinTargetObjects jto =
+        new SMGJoinTargetObjects(
+            pJV.status,
+            pJV.inputSMG1,
+            pJV.inputSMG2,
+            pJV.destSMG,
+            pJV.mapping1,
+            pJV.mapping2,
+            pLevelMap,
+            pV1,
+            pV2,
+            pLevel1,
+            pLevel2,
+            ldiff,
+            identicalInputSmg,
+            pJV.smgState1,
+            pJV.smgState2);
     if (jto.isDefined()) {
       pJV.status = jto.getStatus();
       pJV.inputSMG1 = jto.getInputSMG1();
@@ -172,8 +186,8 @@ final class SMGJoinValues {
 
   public SMGJoinValues(
       SMGJoinStatus pStatus,
-      final SMG pSMG1,
-      final SMG pSMG2,
+      final UnmodifiableSMG pNewInputSMG1,
+      final UnmodifiableSMG pNewInputSMG2,
       SMG pDestSMG,
       SMGNodeMapping pMapping1,
       SMGNodeMapping pMapping2,
@@ -191,8 +205,8 @@ final class SMGJoinValues {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;
-    inputSMG1 = pSMG1;
-    inputSMG2 = pSMG2;
+    inputSMG1 = pNewInputSMG1;
+    inputSMG2 = pNewInputSMG2;
     destSMG = pDestSMG;
     smgState1 = pStateOfSmg1;
     smgState2 = pStateOfSmg2;
@@ -309,10 +323,23 @@ final class SMGJoinValues {
     recoverable = false;
   }
 
-  private Pair<Boolean, Boolean> insertRightObjectAsOptional(SMGJoinStatus pStatus, SMG pInputSMG1,
-      SMG pInputSMG2, SMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMap,
-      Integer pValue1, Integer pValue2, SMGObject pTarget, int pLDiff, int pLevelV1, int pLevelV2,
-      boolean pIdenticalInputSmg, int pPrevDestLevel) throws SMGInconsistentException {
+  private Pair<Boolean, Boolean> insertRightObjectAsOptional(
+      SMGJoinStatus pStatus,
+      UnmodifiableSMG pInputSMG1,
+      UnmodifiableSMG pInputSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMap,
+      Integer pValue1,
+      Integer pValue2,
+      SMGObject pTarget,
+      int pLDiff,
+      int pLevelV1,
+      int pLevelV2,
+      boolean pIdenticalInputSmg,
+      int pPrevDestLevel)
+      throws SMGInconsistentException {
 
     switch (pTarget.getKind()) {
       case REG:
@@ -488,7 +515,13 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private int getLevelOfOptionalObject(int pDisplacedValue, SMGLevelMapping pLevelMap, SMG pDisplacedValueSmg, SMGNodeMapping pDisplacedValueNodeMapping, int pLevelV1, int pLevelV2) {
+  private int getLevelOfOptionalObject(
+      int pDisplacedValue,
+      SMGLevelMapping pLevelMap,
+      UnmodifiableSMG pInputSMG1,
+      SMGNodeMapping pDisplacedValueNodeMapping,
+      int pLevelV1,
+      int pLevelV2) {
 
     /*If the target of an optional object insertion is 0,
      * always increase the level in case of a join with an abstract
@@ -497,7 +530,8 @@ final class SMGJoinValues {
       return pLevelMap.get(SMGJoinLevel.valueOf(pLevelV1, pLevelV2));
     } else {
 
-      Set<SMGEdgeHasValue> edges = pDisplacedValueSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pDisplacedValue));
+      Set<SMGEdgeHasValue> edges =
+          pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pDisplacedValue));
 
       SMGObject sourceObject = edges.iterator().next().getObject();
       for(SMGEdgeHasValue edge : edges) {
@@ -543,10 +577,23 @@ final class SMGJoinValues {
     }
   }
 
-  private Pair<Boolean, Boolean> insertLeftObjectAsOptional(SMGJoinStatus pStatus, SMG pInputSMG1,
-      SMG pInputSMG2, SMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMapping,
-      Integer pValue1, Integer pValue2, SMGObject pTarget, int pLDiff, int pLevelV1, int pLevelV2,
-      boolean pIdenticalInputSmg, int pPrevDestLevel) throws SMGInconsistentException {
+  private Pair<Boolean, Boolean> insertLeftObjectAsOptional(
+      SMGJoinStatus pStatus,
+      UnmodifiableSMG pInputSMG1,
+      UnmodifiableSMG pInputSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMapping,
+      Integer pValue1,
+      Integer pValue2,
+      SMGObject pTarget,
+      int pLDiff,
+      int pLevelV1,
+      int pLevelV2,
+      boolean pIdenticalInputSmg,
+      int pPrevDestLevel)
+      throws SMGInconsistentException {
 
     switch (pTarget.getKind()) {
       case REG:
@@ -723,12 +770,28 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private Pair<Boolean, Boolean> insertLeftListAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1 , SMG  pInputSMG2 , SMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMap, Integer pointer1, Integer pointer2, SMGObject pTarget, int ldiff, int level1, int level2, boolean identicalInputSmg, int pPrevDestLevel) throws SMGInconsistentException {
+  private Pair<Boolean, Boolean> insertLeftListAndJoin(
+      SMGJoinStatus pStatus,
+      UnmodifiableSMG pInputSMG1,
+      UnmodifiableSMG pInputSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMap,
+      Integer pointer1,
+      Integer pointer2,
+      SMGObject pTarget,
+      int ldiff,
+      int level1,
+      int level2,
+      boolean identicalInputSmg,
+      int pPrevDestLevel)
+      throws SMGInconsistentException {
 
     SMGEdgePointsTo ptEdge = pInputSMG1.getPointer(pointer1);
     SMGJoinStatus newStatus = pStatus;
-    SMG newInputSMG1 = pInputSMG1;
-    SMG newInputSMG2 = pInputSMG2;
+    UnmodifiableSMG newInputSMG1 = pInputSMG1;
+    UnmodifiableSMG newInputSMG2 = pInputSMG2;
     SMG newDestSMG = pDestSMG;
     SMGNodeMapping newMapping1 = pMapping1;
     SMGNodeMapping newMapping2 = pMapping2;
@@ -938,7 +1001,7 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private CType getType(SMGObject pTarget, long pNf, SMG pInputSMG1) {
+  private CType getType(SMGObject pTarget, long pNf, UnmodifiableSMG pInputSMG1) {
     Set<SMGEdgeHasValue> oldNfEdge =
         pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
@@ -950,12 +1013,28 @@ final class SMGJoinValues {
     }
   }
 
-  private Pair<Boolean, Boolean> insertRightListAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1, SMG  pInputSMG2, SMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMap, Integer pointer1, Integer pointer2, SMGObject pTarget, int ldiff, int level1, int level2, boolean identicalInputSmg, int pPrevDestLevel) throws SMGInconsistentException {
+  private Pair<Boolean, Boolean> insertRightListAndJoin(
+      SMGJoinStatus pStatus,
+      UnmodifiableSMG pInputSMG1,
+      UnmodifiableSMG pInputSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMap,
+      Integer pointer1,
+      Integer pointer2,
+      SMGObject pTarget,
+      int ldiff,
+      int level1,
+      int level2,
+      boolean identicalInputSmg,
+      int pPrevDestLevel)
+      throws SMGInconsistentException {
 
     SMGEdgePointsTo ptEdge = pInputSMG2.getPointer(pointer2);
     SMGJoinStatus newStatus = pStatus;
-    SMG newInputSMG1 = pInputSMG1;
-    SMG newInputSMG2 = pInputSMG2;
+    UnmodifiableSMG newInputSMG1 = pInputSMG1;
+    UnmodifiableSMG newInputSMG2 = pInputSMG2;
     SMG newDestSMG = pDestSMG;
     SMGNodeMapping nodeMapping1 = pMapping1;
     SMGNodeMapping nodeMapping2 = pMapping2;
@@ -1163,7 +1242,12 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private void copyDlsSubSmgToDestSMG(SMGObject pList, SMGNodeMapping pMapping, SMG pInputSMG1, SMG pDestSMG, int pLevelDiff) {
+  private void copyDlsSubSmgToDestSMG(
+      SMGObject pList,
+      SMGNodeMapping pMapping,
+      UnmodifiableSMG pInputSMG1,
+      SMG pDestSMG,
+      int pLevelDiff) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
 
@@ -1267,8 +1351,13 @@ final class SMGJoinValues {
     }
   }
 
-  private void copyObjectAndNodesIntoDestSMG(SMGObject pObjToCheck,
-      Set<SMGObject> pToBeChecked, SMGNodeMapping pMapping, SMG pInputSMG1, SMG pDestSMG, int pLevelDiff) {
+  private void copyObjectAndNodesIntoDestSMG(
+      SMGObject pObjToCheck,
+      Set<SMGObject> pToBeChecked,
+      SMGNodeMapping pMapping,
+      UnmodifiableSMG pInputSMG1,
+      SMG pDestSMG,
+      int pLevelDiff) {
 
     SMGObject newObj = pMapping.get(pObjToCheck);
 
@@ -1333,11 +1422,11 @@ final class SMGJoinValues {
     return status;
   }
 
-  public SMG getInputSMG1() {
+  public UnmodifiableSMG getInputSMG1() {
     return inputSMG1;
   }
 
-  public SMG getInputSMG2() {
+  public UnmodifiableSMG getInputSMG2() {
     return inputSMG2;
   }
 

@@ -27,9 +27,9 @@ import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -63,8 +63,8 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  private static boolean checkConsistentObjects(SMGObject pObj1, SMGObject pObj2,
-                                                      SMG pSMG1, SMG pSMG2) {
+  private static boolean checkConsistentObjects(
+      SMGObject pObj1, SMGObject pObj2, UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2) {
     if ((pObj1.getSize() != pObj2.getSize()) ||
         (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
       return true;
@@ -73,9 +73,13 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  private static boolean checkConsistentFields(SMGObject pObj1, SMGObject pObj2,
-      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-      SMG pSMG1, SMG pSMG2) {
+  private static boolean checkConsistentFields(
+      SMGObject pObj1,
+      SMGObject pObj2,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      UnmodifiableSMG pSMG1,
+      UnmodifiableSMG pSMG2) {
 
     List<SMGEdgeHasValue> fields = new ArrayList<>();
 
@@ -134,9 +138,14 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  public SMGJoinMatchObjects(SMGJoinStatus pStatus, SMG pSMG1, SMG pSMG2,
-                             SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                             SMGObject pObj1, SMGObject pObj2) {
+  public SMGJoinMatchObjects(
+      SMGJoinStatus pStatus,
+      UnmodifiableSMG pSMG1,
+      UnmodifiableSMG pSMG2,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGObject pObj1,
+      SMGObject pObj2) {
     if ((! pSMG1.getObjects().contains(pObj1)) || (! pSMG2.getObjects().contains(pObj2))) {
       throw new IllegalArgumentException();
     }

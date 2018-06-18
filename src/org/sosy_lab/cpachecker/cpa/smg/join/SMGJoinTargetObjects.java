@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -46,8 +47,8 @@ final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
   private boolean defined = false;
   private boolean recoverable = false;
-  private final SMG inputSMG1;
-  private final SMG inputSMG2;
+  private final UnmodifiableSMG inputSMG1;
+  private final UnmodifiableSMG inputSMG2;
   private SMG destSMG;
   private Integer value;
   private SMGNodeMapping mapping1;
@@ -99,8 +100,8 @@ final class SMGJoinTargetObjects {
 
   public SMGJoinTargetObjects(
       SMGJoinStatus pStatus,
-      SMG pSMG1,
-      SMG pSMG2,
+      UnmodifiableSMG pSMG1,
+      UnmodifiableSMG pSMG2,
       SMG pDestSMG,
       SMGNodeMapping pMapping1,
       SMGNodeMapping pMapping2,
@@ -319,7 +320,7 @@ final class SMGJoinTargetObjects {
     return status;
   }
 
-  public SMG getInputSMG1() {
+  public UnmodifiableSMG getInputSMG1() {
     return inputSMG1;
   }
 
@@ -339,7 +340,7 @@ final class SMGJoinTargetObjects {
     return recoverable;
   }
 
-  public SMG getInputSMG2() {
+  public UnmodifiableSMG getInputSMG2() {
     return inputSMG2;
   }
 

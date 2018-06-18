@@ -38,6 +38,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
@@ -78,10 +79,9 @@ public final class SMGPlotter {
 
   private static final class SMGNodeDotVisitor implements SMGObjectVisitor<SMGObjectNode> {
 
-    private final CLangSMG smg;
+    private final UnmodifiableCLangSMG smg;
 
-
-    public SMGNodeDotVisitor(CLangSMG pSmg) {
+    public SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
       smg = pSmg;
     }
 
@@ -160,7 +160,11 @@ public final class SMGPlotter {
     return original.replaceAll("[:]", "_");
   }
 
-  public String smgAsDot(CLangSMG smg, String name, String location, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+  public String smgAsDot(
+      UnmodifiableCLangSMG smg,
+      String name,
+      String location,
+      Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
@@ -215,7 +219,7 @@ public final class SMGPlotter {
     return sb.toString();
   }
 
-  private void addStackSubgraph(CLangSMG pSmg, StringBuilder pSb) {
+  private void addStackSubgraph(UnmodifiableCLangSMG pSmg, StringBuilder pSb) {
     pSb.append(newLineWithOffset("subgraph cluster_stack {"));
     offset += 2;
     pSb.append(newLineWithOffset("label=\"Stack\";"));
@@ -272,7 +276,7 @@ public final class SMGPlotter {
     return sb.toString();
   }
 
-  private void addGlobalObjectSubgraph(CLangSMG pSmg, StringBuilder pSb) {
+  private void addGlobalObjectSubgraph(UnmodifiableCLangSMG pSmg, StringBuilder pSb) {
     if (pSmg.getGlobalObjects().size() > 0) {
       pSb.append(newLineWithOffset("subgraph cluster_global{"));
       offset += 2;
@@ -288,7 +292,7 @@ public final class SMGPlotter {
     return "value_null_" + SMGPlotter.nulls;
   }
 
-  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, CLangSMG pSMG) {
+  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, UnmodifiableCLangSMG pSMG) {
     if (pEdge.getValue() == 0) {
       String newNull = newNullLabel();
       return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject())

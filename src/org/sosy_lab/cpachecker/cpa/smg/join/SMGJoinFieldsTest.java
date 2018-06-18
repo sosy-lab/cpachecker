@@ -124,10 +124,8 @@ public class SMGJoinFieldsTest {
     fieldMap2.put(64L, Pair.of(value2, 64));
     fieldMap2.put(72L, Pair.of(-1, 56));
 
-    checkFields(smg1, fieldMap1, obj1);
-    checkFields(smg2, fieldMap2, obj2);
-
-
+    checkFields(join.getSMG1(), fieldMap1, obj1);
+    checkFields(join.getSMG2(), fieldMap2, obj2);
   }
 
   private void checkFields(SMG pSmg, Map<Long, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
