@@ -270,7 +270,7 @@ final class SMGJoinSubSMGs {
     return inputSMG2;
   }
 
-  public SMG getDestSMG() {
+  public UnmodifiableSMG getDestSMG() {
     return destSMG;
   }
 

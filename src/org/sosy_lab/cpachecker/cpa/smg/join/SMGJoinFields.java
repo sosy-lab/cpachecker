@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 class SMGJoinFields {
-  private final SMG newSMG1;
-  private final SMG newSMG2;
+  private final UnmodifiableSMG newSMG1;
+  private final UnmodifiableSMG newSMG2;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
   public SMGJoinFields(
@@ -80,11 +80,11 @@ class SMGJoinFields {
     return status;
   }
 
-  public SMG getSMG1() {
+  public UnmodifiableSMG getSMG1() {
     return newSMG1;
   }
 
-  public SMG getSMG2() {
+  public UnmodifiableSMG getSMG2() {
     return newSMG2;
   }
 

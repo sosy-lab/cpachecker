@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -128,7 +129,8 @@ public class SMGJoinFieldsTest {
     checkFields(join.getSMG2(), fieldMap2, obj2);
   }
 
-  private void checkFields(SMG pSmg, Map<Long, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
+  private void checkFields(
+      UnmodifiableSMG pSmg, Map<Long, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
 
     SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     Set<SMGEdgeHasValue> edges = pSmg.getHVEdges(filterOnSMG);
@@ -324,7 +326,7 @@ public class SMGJoinFieldsTest {
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
 
     SMGJoinFields jf = new SMGJoinFields(smg1.copyOf(), smg2.copyOf(), obj1, obj2);
-    SMG resultSMG = jf.getSMG2();
+    UnmodifiableSMG resultSMG = jf.getSMG2();
 
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
     assertThat(edges.size()).isGreaterThan(0);
@@ -450,7 +452,7 @@ public class SMGJoinFieldsTest {
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest1() throws SMGInconsistentException {
     SMG smg3 = new SMG(MachineModel.LINUX64);
-    SMG smg4 = new SMG(MachineModel.LINUX32);
+    UnmodifiableSMG smg4 = new SMG(MachineModel.LINUX32);
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
@@ -540,7 +542,7 @@ public class SMGJoinFieldsTest {
   @SuppressWarnings("unused")
   @Test(expected = IllegalArgumentException.class)
   public void nonMemberObjectTest1() {
-    SMG smg3 = new SMG(MachineModel.LINUX64);
+    UnmodifiableSMG smg3 = new SMG(MachineModel.LINUX64);
     SMG smg4 = new SMG(MachineModel.LINUX32);
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
@@ -554,7 +556,7 @@ public class SMGJoinFieldsTest {
   @Test(expected = IllegalArgumentException.class)
   public void nonMemberObjectTest2() {
     SMG smg3 = new SMG(MachineModel.LINUX64);
-    SMG smg4 = new SMG(MachineModel.LINUX32);
+    UnmodifiableSMG smg4 = new SMG(MachineModel.LINUX32);
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");

@@ -34,7 +34,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -58,7 +57,7 @@ public class SMGJoinAbstractionManager {
   private final UnmodifiableSMG inputSMG2;
 
   @SuppressWarnings("unused")
-  private final SMG destSMG;
+  private final UnmodifiableSMG destSMG;
 
   public SMGJoinAbstractionManager(
       MachineModel pMachineModel,
@@ -67,7 +66,7 @@ public class SMGJoinAbstractionManager {
       UnmodifiableSMG pInputSMG1,
       UnmodifiableSMG pInputSMG2,
       SMGObject pDestObject,
-      SMG pDestSMG) {
+      UnmodifiableSMG pDestSMG) {
     machineModel = pMachineModel;
     smgObject1 = pRootInSMG1;
     smgObject2 = pRootInSMG2;

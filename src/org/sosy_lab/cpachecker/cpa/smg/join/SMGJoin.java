@@ -51,8 +51,8 @@ final public class SMGJoin {
       UnmodifiableSMGState pStateOfSmg1,
       UnmodifiableSMGState pStateOfSmg2)
       throws SMGInconsistentException {
-    CLangSMG opSMG1 = pSMG1.copyOf();
-    CLangSMG opSMG2 = pSMG2.copyOf();
+    UnmodifiableCLangSMG opSMG1 = pSMG1.copyOf();
+    UnmodifiableCLangSMG opSMG2 = pSMG2.copyOf();
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
