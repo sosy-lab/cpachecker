@@ -394,16 +394,19 @@ class CParserUtils {
 
   private static String replaceResultVar(
       Optional<String> pResultFunction, Scope pScope, String assumeCode) {
-    if (pResultFunction.isPresent() && pScope instanceof CProgramScope) {
-      CProgramScope scope = (CProgramScope) pScope;
+    if (pResultFunction.isPresent()) {
       String resultFunctionName = pResultFunction.get();
-      if (scope.hasFunctionReturnVariable(resultFunctionName)) {
-        CSimpleDeclaration functionReturnVariable =
-            scope.getFunctionReturnVariable(resultFunctionName);
-        return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
+      if (pScope instanceof CProgramScope) {
+        CProgramScope scope = (CProgramScope) pScope;
+        if (scope.hasFunctionReturnVariable(resultFunctionName)) {
+          CSimpleDeclaration functionReturnVariable =
+              scope.getFunctionReturnVariable(resultFunctionName);
+          return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
+        }
       }
+      return assumeCode.replace("\\result", String.format(" %s() ", resultFunctionName));
     }
-    return assumeCode.replace("\\result", " ___CPAchecker_foo() ");
+    return assumeCode.replace("\\result", " __CPAchecker_ACSL_result() ");
   }
 
   private static ExpressionTree<AExpression> parseExpression(
