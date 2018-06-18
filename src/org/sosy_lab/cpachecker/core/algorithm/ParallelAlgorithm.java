@@ -30,6 +30,8 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -45,6 +47,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -119,6 +122,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
+
+  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+      new CopyOnWriteArrayList<>();
 
   public ParallelAlgorithm(
       Configuration config,
@@ -316,7 +322,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return () -> {
       final Algorithm algorithm;
       final ConfigurableProgramAnalysis cpa;
-      singleAnalysisOverallLimit.start();
 
       cpa = coreComponents.createCPA(cfa, specification);
 
@@ -325,6 +330,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      }
+
+      singleAnalysisOverallLimit.start();
 
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider) cpa).collectStatistics(subStats);
@@ -382,17 +392,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               public void updated(ReachedSet pReachedSet) {
                 singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
                 ReachedSet oldReachedSet = oldReached.get();
-                ReachedSet currentReached = coreComponents.createReachedSet();
+                ReachedSet newReached = coreComponents.createReachedSet();
                 for (AbstractState as : pReachedSet) {
-                  currentReached.add(as, pReachedSet.getPrecision(as));
-                  currentReached.removeOnlyFromWaitlist(as);
+                  newReached.add(as, pReachedSet.getPrecision(as));
+                  newReached.removeOnlyFromWaitlist(as);
                 }
                 if (oldReachedSet != null) {
-                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
+                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);
                 } else {
-                  aggregatedReachedSetManager.addReachedSet(currentReached);
+                  aggregatedReachedSetManager.addReachedSet(newReached);
                 }
-                oldReached.set(currentReached);
+                oldReached.set(newReached);
               }
             });
       }
@@ -410,6 +420,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               break;
             }
           }
+
+          Preconditions.checkState(status != null, "algorithm should run at least once.");
 
           // check if we could prove the program to be safe
           if (status.isSound()
@@ -430,7 +442,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               CPAs.asIterable(cpa).filter(ReachedSetAdjustingCPA.class)) {
             if (innerCpa.adjustPrecision()) {
               singleLogger.log(Level.INFO, "Adjusting precision for CPA", innerCpa);
+
               stopAnalysis = false;
+            }
+          }
+          for (ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber :
+              conditionAdjustmentEventSubscribers) {
+            if (stopAnalysis) {
+              conditionAdjustmentEventSubscriber.adjustmentRefused(cpa);
+            } else {
+              conditionAdjustmentEventSubscriber.adjustmentSuccessful(cpa);
             }
           }
 
@@ -470,7 +491,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Nullable
-  private Configuration createSingleConfig(Path singleConfigFileName, LogManager logger) {
+  private Configuration createSingleConfig(Path singleConfigFileName, LogManager pLogger) {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
@@ -483,7 +504,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
-      logger.logUserException(
+      pLogger.logUserException(
           Level.WARNING,
           e,
           "Skipping one analysis because the configuration file "
@@ -587,7 +608,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         pOut.println();
         String title = "Statistics for: " + subStats.name;
         pOut.println(title);
-        pOut.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
+        pOut.println(Strings.repeat("=", title.length()));
         if (subStats.rLimit != null) {
           pOut.println(
               "Time spent in analysis thread "
@@ -677,16 +698,23 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public static interface ReachedSetUpdateListener {
+  public interface ReachedSetUpdateListener {
 
     void updated(ReachedSet pReachedSet);
   }
 
-  public static interface ReachedSetUpdater {
+  public interface ReachedSetUpdater {
 
     void register(ReachedSetUpdateListener pReachedSetUpdateListener);
 
     void unregister(ReachedSetUpdateListener pReachedSetUpdateListener);
 
+  }
+
+  public interface ConditionAdjustmentEventSubscriber {
+
+    void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
+
+    void adjustmentRefused(ConfigurableProgramAnalysis pCpa);
   }
 }

@@ -98,7 +98,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     return (BinaryOperator) super.getOperator();
   }
 
-  public static enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
+  public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     MULTIPLY      ("*"),
     DIVIDE        ("/"),
     MODULO        ("%"),
@@ -119,7 +119,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
     private final String op;
 
-    private BinaryOperator(String pOp) {
+    BinaryOperator(String pOp) {
       op = pOp;
     }
 
@@ -179,10 +179,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(calculationType);
-    return result * prime + super.hashCode();
+    return Objects.hashCode(calculationType) * 31 + super.hashCode();
   }
 
   @Override

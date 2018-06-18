@@ -81,7 +81,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   public BooleanFormula createFormula(final Constraint pConstraint)
       throws UnrecognizedCCodeException, InterruptedException {
 
-    return createFormula(pConstraint, new IdentifierAssignment());
+    return createFormula(pConstraint, IdentifierAssignment.empty());
   }
 
 

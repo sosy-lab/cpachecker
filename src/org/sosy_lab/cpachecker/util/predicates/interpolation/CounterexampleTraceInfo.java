@@ -25,15 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.List;
-import java.util.Map;
-
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
+import java.util.List;
+import java.util.Map;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * A class that stores information about a counterexample trace.
@@ -60,33 +57,24 @@ public class CounterexampleTraceInfo {
     }
 
     public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
-      return new CounterexampleTraceInfo(true,
-          ImmutableList.copyOf(pInterpolants),
-          null,
-          ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
-          );
+    return new CounterexampleTraceInfo(
+        true, ImmutableList.copyOf(pInterpolants), null, ImmutableList.of(), ImmutableMap.of());
     }
 
     public static CounterexampleTraceInfo infeasibleNoItp() {
-      return new CounterexampleTraceInfo(true,
-          null,
-          null,
-          ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
-          );
+    return new CounterexampleTraceInfo(true, null, null, ImmutableList.of(), ImmutableMap.of());
     }
 
   public static CounterexampleTraceInfo feasible(
       List<BooleanFormula> pCounterexampleFormula,
       Iterable<ValueAssignment> pModel,
       Map<Integer, Boolean> preds) {
-      return new CounterexampleTraceInfo(false,
-          ImmutableList.<BooleanFormula>of(),
-          ImmutableList.copyOf(pModel),
-          ImmutableList.copyOf(pCounterexampleFormula),
-          ImmutableMap.copyOf(preds)
-          );
+    return new CounterexampleTraceInfo(
+        false,
+        ImmutableList.of(),
+        ImmutableList.copyOf(pModel),
+        ImmutableList.copyOf(pCounterexampleFormula),
+        ImmutableMap.copyOf(preds));
     }
 
     /**

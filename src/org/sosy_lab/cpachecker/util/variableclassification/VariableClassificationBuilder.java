@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,16 +95,17 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 @Options(prefix = "cfa.variableClassification")
-public class VariableClassificationBuilder {
+public class VariableClassificationBuilder implements StatisticsProvider {
 
   @Option(secure=true, name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -147,8 +148,9 @@ public class VariableClassificationBuilder {
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
 
-  public static class VariableClassificationStatistics extends AbstractStatistics {
+  public static class VariableClassificationStatistics implements Statistics {
 
+    private final StatTimer variableClassificationTimer = new StatTimer("Time for var class.");
     private final StatTimer collectTimer = new StatTimer("Time for collecting variables");
     private final StatTimer dependencyTimer = new StatTimer("Time for solving dependencies");
     private final StatTimer hierarchyTimer = new StatTimer("Time for building hierarchy");
@@ -162,11 +164,14 @@ public class VariableClassificationBuilder {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      put(out, 4, collectTimer);
-      put(out, 4, dependencyTimer);
-      put(out, 4, hierarchyTimer);
-      put(out, 4, buildTimer);
-      put(out, 4, exportTimer);
+      if (variableClassificationTimer.getUpdateCount() > 0) {
+        put(out, 3, variableClassificationTimer);
+        put(out, 4, collectTimer);
+        put(out, 4, dependencyTimer);
+        put(out, 4, hierarchyTimer);
+        put(out, 4, buildTimer);
+        put(out, 4, exportTimer);
+      }
     }
   }
 
@@ -175,8 +180,9 @@ public class VariableClassificationBuilder {
     config.inject(this);
   }
 
-  public VariableClassificationStatistics getStatistics() {
-    return stats;
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
   /** This function does the whole work:
@@ -185,6 +191,7 @@ public class VariableClassificationBuilder {
   public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
+    stats.variableClassificationTimer.start();
     // fill maps
     stats.collectTimer.start();
     collectVars(cfa);
@@ -295,6 +302,7 @@ public class VariableClassificationBuilder {
       dumpDomainTypeStatistics(domainTypeStatisticsFile, result);
     }
     stats.exportTimer.stop();
+    stats.variableClassificationTimer.stop();
 
     return result;
   }
@@ -405,7 +413,9 @@ public class VariableClassificationBuilder {
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge, cfa);
-        varFieldDependencies = varFieldDependencies.withDependencies(VariableAndFieldRelevancyComputer.handleEdge(edge));
+        varFieldDependencies =
+            varFieldDependencies.withDependencies(
+                VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
     addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
@@ -774,11 +784,12 @@ public class VariableClassificationBuilder {
   }
 
   static String scopeVar(@Nullable final String function, final String var) {
+    checkNotNull(var);
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
   static boolean isGlobal(CExpression exp) {
-    if (exp instanceof CIdExpression) {
+    if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
@@ -788,6 +799,7 @@ public class VariableClassificationBuilder {
   /** returns the value of a (nested) IntegerLiteralExpression
    * or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
+    checkNotNull(exp);
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 

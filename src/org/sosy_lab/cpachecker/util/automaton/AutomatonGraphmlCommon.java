@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -115,14 +116,13 @@ public class AutomatonGraphmlCommon {
   private static final String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
   public static final String SINK_NODE_ID = "sink";
 
-  public static enum AssumeCase {
-
+  public enum AssumeCase {
     THEN("condition-true"),
     ELSE("condition-false");
 
     private final String name;
 
-    private AssumeCase(String pName) {
+    AssumeCase(String pName) {
       this.name = pName;
     }
 
@@ -136,7 +136,7 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public static enum KeyDef {
+  public enum KeyDef {
     INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
     INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
     NAMED("named", ElementType.NODE, "namedValue", "string"),
@@ -175,7 +175,9 @@ public class AutomatonGraphmlCommon {
     CFAPREDECESSORNODE("predecessor", ElementType.EDGE, "predecessor", "string"),
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
     WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
-    INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string");
+    INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string"),
+    NOTE("note", ElementType.EDGE, "note", "string"),
+    WARNING("warning", ElementType.EDGE, "warning", "string");
 
     public final String id;
     public final ElementType keyFor;
@@ -185,11 +187,12 @@ public class AutomatonGraphmlCommon {
     /** The defaultValue is non-null, iff existent. */
     @Nullable public final String defaultValue;
 
-    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
+    KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
       this(id, pKeyFor, attrName, attrType, null);
     }
 
-    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType,
+    KeyDef(
+        String id, ElementType pKeyFor, String attrName, String attrType,
         @Nullable Object defaultValue) {
       this.id = Preconditions.checkNotNull(id);
       this.keyFor = Preconditions.checkNotNull(pKeyFor);
@@ -204,7 +207,7 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public static enum ElementType {
+  public enum ElementType {
     GRAPH,
     EDGE,
     NODE;
@@ -219,7 +222,7 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public static enum NodeFlag {
+  public enum NodeFlag {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
@@ -228,7 +231,7 @@ public class AutomatonGraphmlCommon {
 
     public final KeyDef key;
 
-    private NodeFlag(KeyDef key) {
+    NodeFlag(KeyDef key) {
       this.key = key;
     }
 
@@ -252,7 +255,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private WitnessType(String text) {
+    WitnessType(String text) {
       this.text = text;
     }
 
@@ -289,7 +292,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private NodeType(String text) {
+    NodeType(String text) {
       this.text = text;
     }
 
@@ -315,7 +318,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private GraphMLTag(String text) {
+    GraphMLTag(String text) {
       this.text = text;
     }
 
@@ -374,8 +377,10 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
 
+      int nSpecs = 0;
       for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
         graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
+        ++nSpecs;
       }
 
       for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
@@ -383,7 +388,13 @@ public class AutomatonGraphmlCommon {
             createDataElement(
                 KeyDef.SPECIFICATION,
                 MoreFiles.asCharSource(specFile, Charsets.UTF_8).read().trim()));
+        ++nSpecs;
       }
+
+      if (nSpecs == 0) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, "TRUE"));
+      }
+
       for (Path inputWitness : pVerificationTaskMetaData.getInputWitnessFiles()) {
         graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, computeHash(inputWitness)));
       }
@@ -503,6 +514,14 @@ public class AutomatonGraphmlCommon {
       }
     }
 
+  }
+
+  public static boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo
+      pAdditionalInfo) {
+    if (pAdditionalInfo != null && !pAdditionalInfo.getInfos().isEmpty()) {
+      return false;
+    }
+    return handleAsEpsilonEdge(pEdge);
   }
 
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
@@ -634,10 +653,25 @@ public class AutomatonGraphmlCommon {
     return architecture;
   }
 
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
+      return Collections.emptySet();
+    }
+    return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
+  }
+
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
       return Collections.emptySet();
     }
+    return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
+  }
+
+  public static Set<FileLocation> getFileLocationsFromCfaEdge0(CFAEdge pEdge, FunctionEntryNode
+    pMainEntry) {
+
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
@@ -712,13 +746,15 @@ public class AutomatonGraphmlCommon {
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
   }
 
-  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
     return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
   }
 
-  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode
+      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
     return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
   }
 

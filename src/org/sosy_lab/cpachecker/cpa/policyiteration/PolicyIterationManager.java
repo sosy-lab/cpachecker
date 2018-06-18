@@ -627,7 +627,9 @@ public class PolicyIterationManager {
     statistics.valueDeterminationTimer.start();
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
-      valDetConstraints.constraints.forEach(c -> optEnvironment.addConstraint(c));
+      for (BooleanFormula c : valDetConstraints.constraints) {
+        optEnvironment.addConstraint(c);
+      }
 
       for (Entry<Template, PolicyBound> entry : updated.entrySet()) {
         shutdownNotifier.shutdownIfNecessary();

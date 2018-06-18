@@ -134,8 +134,8 @@ class EclipseCParser implements CParser {
     return wrapCode(pFileName, code);
   }
 
-  private static interface FileParseWrapper {
-    public FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
+  private interface FileParseWrapper {
+    FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
   }
 
   private ParseResult parseSomething(
@@ -174,7 +174,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
+  public ParseResult parseFile(List<String> pFilenames) throws CParserException {
 
     return parseSomething(
         Lists.transform(pFilenames, FileToParse::new),
@@ -301,10 +301,8 @@ class EclipseCParser implements CParser {
     return nodeList;
   }
 
-  protected static final int PARSER_OPTIONS =
-            ILanguage.OPTION_IS_SOURCE_UNIT     // our code files are always source files, not header files
-          | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
-          ;
+  // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
+  protected static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
   private IASTTranslationUnit parse(FileContent codeReader, ParseContext parseContext)
       throws CParserException {

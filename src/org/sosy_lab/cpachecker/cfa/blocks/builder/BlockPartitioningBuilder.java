@@ -155,7 +155,10 @@ public class BlockPartitioningBuilder {
         break;
       }
     }
-
+    if (registerNode == null) {
+      //It means, that there is no entry in this block. Don't add it
+      return;
+    }
     referencedVariablesMap.put(registerNode, referencedVariables);
     callNodesMap.put(registerNode, callNodes);
     returnNodesMap.put(registerNode, returnNodes);

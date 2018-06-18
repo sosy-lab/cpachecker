@@ -22,10 +22,10 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.ast;
+
 import com.google.common.base.Strings;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-
 
 /**
  * This interface represents the core components that occur in each declaration:
@@ -64,9 +64,14 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
   }
 
   @Override
-  public String toASTString() {
-    String name = Strings.nullToEmpty(getName());
-    return getType().toASTString(name) + ";";
+  public String toASTString(boolean pQualified) {
+    String nameAsString;
+    if (pQualified) {
+      nameAsString = Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
+    } else {
+      nameAsString = Strings.nullToEmpty(getName());
+    }
+    return getType().toASTString(nameAsString) + ";";
   }
 
   @Override

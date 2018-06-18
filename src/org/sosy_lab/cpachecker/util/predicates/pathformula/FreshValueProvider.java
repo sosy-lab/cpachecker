@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.annotations.VisibleForTesting;
-
+import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
-
-import java.io.Serializable;
 
 /**
  * Generator of new fresh to-be-returned values for {@link SSAMap}.
@@ -72,11 +70,9 @@ public class FreshValueProvider implements Serializable {
     if (vars.isEmpty() && other.vars.isEmpty()) {
       return this;
     }
-    PersistentSortedMap<String, Integer> vars =
+    return new FreshValueProvider(
         PersistentSortedMaps.merge(
-            this.vars, other.vars,
-            PersistentSortedMaps.getMaximumMergeConflictHandler());
-    return new FreshValueProvider(vars);
+            this.vars, other.vars, PersistentSortedMaps.getMaximumMergeConflictHandler()));
   }
 
   public void put(String variable, int index) {

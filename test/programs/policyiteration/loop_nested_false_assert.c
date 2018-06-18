@@ -1,4 +1,4 @@
-#include<assert.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 
 int main() {
   for (int i=0; i<100; i++) {

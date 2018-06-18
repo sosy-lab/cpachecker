@@ -67,8 +67,7 @@ public class PropertyFileParser {
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
   private static Map<String, PropertyType> AVAILABLE_PROPERTIES =
-      Maps.<String, PropertyType>uniqueIndex(
-          EnumSet.allOf(PropertyType.class), PropertyType::toString);
+      Maps.uniqueIndex(EnumSet.allOf(PropertyType.class), PropertyType::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {
     propertyFile = pPropertyFile;

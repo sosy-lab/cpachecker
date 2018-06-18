@@ -20,6 +20,11 @@
     <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
 
+    <!-- TODO: disable reference-equality check because commonly used in CPAchecker -->
+    <property name="errorprone.options" value="
+        -Xep:ReferenceEquality:OFF
+        "/>
+
     <import file="build/build-ivy.xml"/>
     <import file="build/build-version.xml"/>
     <import file="build/build-compile.xml"/>
@@ -52,6 +57,7 @@
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
     </target>
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
@@ -83,6 +89,8 @@
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
             <echo message="Generate precision-rewriting parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
+            <echo message="Generate antlr4 parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" inheritAll="false"/>
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>

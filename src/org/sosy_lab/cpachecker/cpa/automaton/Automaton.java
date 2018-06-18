@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -93,9 +92,10 @@ public class Automaton {
 
   /**
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
+   *
    * @param pOut the appendable to write to
    */
-  void writeDotFile(Appendable pOut) throws IOException {
+  public void writeDotFile(Appendable pOut) throws IOException {
     pOut.append("digraph " + name + "{\n");
 
     boolean errorState = false;
@@ -186,9 +186,16 @@ public class Automaton {
     str.append("INITIAL STATE ").append(initState).append(";\n\n");
 
     for (AutomatonInternalState s : states) {
-      str.append("STATE ").append(s.getName()).append(":\n    ");
-      Joiner.on("\n    ").appendTo(str, s.getTransitions());
-      str.append("\n\n");
+      str.append("STATE ").append(s.getName()).append(":\n");
+      for (AutomatonTransition t : s.getTransitions()) {
+        str.append("    ").append(t);
+        if (t.getFollowState() != AutomatonInternalState.BOTTOM
+            && t.getFollowState() != AutomatonInternalState.ERROR) {
+          str.append("GOTO ");
+        }
+        str.append(t.getFollowState()).append(";\n");
+      }
+      str.append("\n");
     }
 
     str.append("END AUTOMATON\n");

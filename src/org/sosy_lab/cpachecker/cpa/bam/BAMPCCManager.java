@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -103,17 +104,15 @@ public final class BAMPCCManager {
     return areAbstractSuccessors0(pState, pSuccessors, partitioning.getMainBlock());
   }
 
-  private boolean areAbstractSuccessors0(AbstractState pState,
-                                         Collection<? extends AbstractState> pSuccessors, final Block currentBlock)
-      throws CPATransferException,
-             InterruptedException {
+  private boolean areAbstractSuccessors0(
+      AbstractState pState, Collection<? extends AbstractState> pSuccessors, final Block pBlock)
+      throws CPATransferException, InterruptedException {
     // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
     boolean successorExists;
 
     CFANode node = extractLocation(pState);
 
-    if (partitioning.isCallNode(node)
-        && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+    if (partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(pBlock)) {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);
       try {
@@ -163,8 +162,12 @@ public final class BAMPCCManager {
         if (!notFoundSuccessors.isEmpty()) { return false; }
 
       } catch (CPAException e) {
-        throw new CPATransferException("Checking ARG with root " + ((BAMARGBlockStartState) pState).getAnalyzedBlock()
-            + " for block " + currentBlock + "failed.");
+        throw new CPATransferException(
+            "Checking ARG with root "
+                + ((BAMARGBlockStartState) pState).getAnalyzedBlock()
+                + " for block "
+                + pBlock
+                + "failed.");
       }
     } else {
       Set<CFAEdge> usedEdges = new HashSet<>();
@@ -178,14 +181,17 @@ public final class BAMPCCManager {
         // edge leads to node in inner block
         @SuppressWarnings("deprecation")
         Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
-        if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
+        if (currentNodeBlock != null
+            && !pBlock.equals(currentNodeBlock)
             && currentNodeBlock.getNodes().contains(leavingEdge.getSuccessor())) {
           if (usedEdges.contains(leavingEdge)) { return false; }
           continue;
         }
-        // edge leaves block, do not analyze, check for call node since if call node is also return node analysis will go beyond current block
-        if (!currentBlock.isCallNode(node) && currentBlock.isReturnNode(node)
-            && !currentBlock.getNodes().contains(leavingEdge.getSuccessor())) {
+        // edge leaves block, do not analyze, check for call node since if call node is also return
+        // node analysis will go beyond current block
+        if (!pBlock.isCallNode(node)
+            && pBlock.isReturnNode(node)
+            && !pBlock.getNodes().contains(leavingEdge.getSuccessor())) {
           if (usedEdges.contains(leavingEdge)) { return false; }
           continue;
         }
@@ -197,8 +203,7 @@ public final class BAMPCCManager {
     return true;
   }
 
-  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode,
-                                                            final Block currentBlock)
+  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, final Block pBlock)
       throws CPAException, InterruptedException {
     Collection<ARGState> returnNodes = new ArrayList<>();
     Set<ARGState> waitingForUnexploredParents = new HashSet<>();
@@ -252,11 +257,11 @@ public final class BAMPCCManager {
       }
 
       CFANode node = extractLocation(current);
-      if (currentBlock.isReturnNode(node)) {
+      if (pBlock.isReturnNode(node)) {
         returnNodes.add(current);
       }
 
-      if (!areAbstractSuccessors0(current, current.getChildren(), currentBlock)) {
+      if (!areAbstractSuccessors0(current, current.getChildren(), pBlock)) {
         returnNodes = Collections.emptyList();
         return Pair.of(false, returnNodes);
       }
@@ -344,6 +349,7 @@ public final class BAMPCCManager {
     toReplace.replaceInARGWith(replaceWith);
   }
 
+  @SuppressWarnings("deprecation")
   void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (data.getCache().getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");

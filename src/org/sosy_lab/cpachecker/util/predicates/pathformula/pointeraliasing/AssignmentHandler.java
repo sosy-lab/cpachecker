@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -222,7 +222,7 @@ class AssignmentHandler {
             = PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
         finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
-        assert updatedRegions.isEmpty();
+        assert updatedRegions != null && updatedRegions.isEmpty();
       }
     }
 
@@ -1141,12 +1141,12 @@ class AssignmentHandler {
    * Updates the SSA map for memory UFs.
    *
    * @param regions A set of regions that should be added to the SSA map.
-   * @param ssa The current SSA map.
+   * @param pSsa The current SSA map.
    */
-  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder ssa) {
+  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder pSsa) {
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
-      conv.makeFreshIndex(ufName, region.getType(), ssa);
+      conv.makeFreshIndex(ufName, region.getType(), pSsa);
     }
   }
 }

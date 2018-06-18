@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.BiFunction;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-import java.util.List;
+class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Serializable {
 
-class CompositePrecision implements WrapperPrecision {
+  private static final long serialVersionUID = 1L;
 
   private final ImmutableList<Precision> precisions;
 
@@ -116,5 +120,50 @@ class CompositePrecision implements WrapperPrecision {
   @Override
   public ImmutableList<Precision> getWrappedPrecisions() {
     return precisions;
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
+    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.add(b));
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
+    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.subtract(b));
+  }
+
+  private AdjustablePrecision adjustPrecisionWith(
+      AdjustablePrecision pOtherPrecision,
+      BiFunction<AdjustablePrecision, AdjustablePrecision, AdjustablePrecision> adjustFunction) {
+
+    ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
+
+    for (int i = 0; i < this.precisions.size(); i++) {
+      Precision currentPrecision = this.get(i);
+      Precision adjustedPrecision;
+
+      if (pOtherPrecision instanceof CompositePrecision) {
+        CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+        adjustedPrecision = precisionToAdjust.get(i);
+      } else if (pOtherPrecision.getClass() == currentPrecision.getClass()) {
+        adjustedPrecision = pOtherPrecision;
+      } else {
+        newPrecisions.add(currentPrecision);
+        continue;
+      }
+
+      Preconditions.checkArgument(
+              currentPrecision instanceof AdjustablePrecision,
+              "Precision " + currentPrecision + "does not support adjusting precision");
+      Preconditions.checkArgument(
+              adjustedPrecision instanceof AdjustablePrecision,
+              "Precision " + adjustedPrecision + "does not support adjusting precision");
+
+      Precision newPrecision =
+              adjustFunction.apply(
+                      (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
+      newPrecisions.add(newPrecision);
+    }
+    return new CompositePrecision(newPrecisions.build());
   }
 }

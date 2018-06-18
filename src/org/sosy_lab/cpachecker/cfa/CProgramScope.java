@@ -30,6 +30,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -483,7 +484,7 @@ public class CProgramScope implements Scope {
   }
 
   private static boolean equals(CType pA, CType pB) {
-    return equals(pA, pB, Sets.<Pair<CType, CType>>newHashSet());
+    return equals(pA, pB, Sets.newHashSet());
   }
 
   private static boolean equals(@Nullable CType pA, @Nullable CType pB, Set<Pair<CType, CType>> pResolved) {
@@ -841,11 +842,11 @@ public class CProgramScope implements Scope {
       return false;
     }
     String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
-    String[] parts = qualifiedName.split("::");
-    if (parts.length < 2) {
+    List<String> parts = Splitter.on("::").splitToList(qualifiedName);
+    if (parts.size() < 2) {
       return false;
     }
-    return parts[1].equals(ARTIFICIAL_RETVAL_NAME + parts[0] + "__");
+    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.get(0) + "__");
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {

@@ -43,6 +43,6 @@ public interface AssumptionReportingState {
    *         representing the assumptions to generate
    *         for the given state
    */
-  public List<CExpression> getAssumptions();
+  List<CExpression> getAssumptions();
 
 }

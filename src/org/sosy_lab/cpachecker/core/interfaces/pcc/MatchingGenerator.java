@@ -39,5 +39,5 @@ public interface MatchingGenerator {
    * @param wGraph the graph, on which a matching is computed
    * @return  the computed matching
    */
-  public Map<Integer, Integer> computeMatching(WeightedGraph wGraph);
+  Map<Integer, Integer> computeMatching(WeightedGraph wGraph);
 }

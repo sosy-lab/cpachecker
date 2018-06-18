@@ -36,7 +36,7 @@ public enum VisibilityModifier {
 
   private final String mod;
 
-  private VisibilityModifier(String pMod) {
+  VisibilityModifier(String pMod) {
     mod = pMod;
   }
 

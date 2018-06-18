@@ -136,7 +136,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
-    locationCPA = new LocationCPA(pCfa, pConfig);
+    locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger, pCfa);
     logger = new LogManagerWithoutDuplicates(pLogger);
   }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -33,7 +35,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,8 +45,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-
-
 
 public final class ExpressionTrees {
 
@@ -146,7 +145,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -170,7 +169,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -199,7 +198,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -218,7 +217,7 @@ public final class ExpressionTrees {
             new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
 
               @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExpressionTree) {
+              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
                 return false;
               }
 
@@ -339,9 +338,8 @@ public final class ExpressionTrees {
                   new Function<ExpressionTree<LeafType>, ExpressionTree<LeafType>>() {
 
                     @Override
-                    public ExpressionTree<LeafType> apply(
-                        ExpressionTree<LeafType> pExpressionTree) {
-                      return toDNF(pExpressionTree);
+                    public ExpressionTree<LeafType> apply(ExpressionTree<LeafType> pExprTree) {
+                      return toDNF(pExprTree);
                     }
                   }));
     }
@@ -373,8 +371,7 @@ public final class ExpressionTrees {
     Collection<ExpressionTree<LeafType>> newClauses = new ArrayList<>();
     for (ExpressionTree<LeafType> combinatorA : combinatorsA) {
       for (ExpressionTree<LeafType> combinatorB : combinatorsB) {
-        newClauses.add(
-            And.of(ImmutableList.<ExpressionTree<LeafType>>of(combinatorA, combinatorB)));
+        newClauses.add(And.of(ImmutableList.of(combinatorA, combinatorB)));
       }
     }
     return Or.of(newClauses);
@@ -392,9 +389,8 @@ public final class ExpressionTrees {
                   new Function<ExpressionTree<LeafType>, ExpressionTree<LeafType>>() {
 
                     @Override
-                    public ExpressionTree<LeafType> apply(
-                        ExpressionTree<LeafType> pExpressionTree) {
-                      return toCNF(pExpressionTree);
+                    public ExpressionTree<LeafType> apply(ExpressionTree<LeafType> pExprTree) {
+                      return toCNF(pExprTree);
                     }
                   }));
     }
@@ -426,7 +422,7 @@ public final class ExpressionTrees {
     Collection<ExpressionTree<LeafType>> newClauses = new ArrayList<>();
     for (ExpressionTree<LeafType> combinatorA : combinatorsA) {
       for (ExpressionTree<LeafType> combinatorB : combinatorsB) {
-        newClauses.add(Or.of(ImmutableList.<ExpressionTree<LeafType>>of(combinatorA, combinatorB)));
+        newClauses.add(Or.of(ImmutableList.of(combinatorA, combinatorB)));
       }
     }
     return And.of(newClauses);
@@ -443,13 +439,13 @@ public final class ExpressionTrees {
   public static <LeafType> FluentIterable<ExpressionTree<LeafType>> getChildren(
       ExpressionTree<LeafType> pExpressionTree) {
     return FluentIterable.from(
-        pExpressionTree.<Iterable<ExpressionTree<LeafType>>, RuntimeException>accept(
+        pExpressionTree.accept(
             new DefaultExpressionTreeVisitor<
                 LeafType, Iterable<ExpressionTree<LeafType>>, RuntimeException>() {
 
               @Override
               protected Iterable<ExpressionTree<LeafType>> visitDefault(
-                  ExpressionTree<LeafType> pExpressionTree) {
+                  ExpressionTree<LeafType> pExprTree) {
                 return Collections.emptySet();
               }
 
@@ -466,7 +462,7 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> Simplifier<LeafType> newSimplifier() {
-    return newSimplifier(ExpressionTrees.<LeafType>newCachingFactory());
+    return newSimplifier(ExpressionTrees.newCachingFactory());
   }
 
   public static <LeafType> Simplifier<LeafType> newSimplifier(
@@ -481,31 +477,19 @@ public final class ExpressionTrees {
       @Override
       public ExpressionTree<LeafType> simplify(ExpressionTree<LeafType> pExpressionTree) {
         return ExpressionTrees.simplify(
-            pExpressionTree,
-            Collections.<ExpressionTree<LeafType>>emptySet(),
-            simplificationVisitors,
-            pFactory,
-            true);
+            pExpressionTree, Collections.emptySet(), simplificationVisitors, pFactory, true);
       }
     };
   }
 
   public static <LeafType> ExpressionTree<LeafType> simplify(
       ExpressionTree<LeafType> pExpressionTree) {
-    return simplify(pExpressionTree, ExpressionTrees.<LeafType>newCachingFactory());
+    return simplify(pExpressionTree, ExpressionTrees.newCachingFactory());
   }
 
   public static <LeafType> ExpressionTree<LeafType> simplify(
       ExpressionTree<LeafType> pExpressionTree, ExpressionTreeFactory<LeafType> pFactory) {
-    return simplify(
-        pExpressionTree,
-        Collections.<ExpressionTree<LeafType>>emptySet(),
-        Maps
-            .<Set<ExpressionTree<LeafType>>,
-                ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>>
-                newHashMap(),
-        pFactory,
-        true);
+    return simplify(pExpressionTree, Collections.emptySet(), Maps.newHashMap(), pFactory, true);
   }
 
   private static <LeafType> ExpressionTree<LeafType> simplify(
@@ -571,7 +555,7 @@ public final class ExpressionTrees {
                         if (current instanceof LeafExpression && other instanceof LeafExpression) {
                           if (current.equals(other)) {
                             simplifiedCurrent = getTrue();
-                          } else if (((LeafExpression<?>) current).equals(other)) {
+                          } else if (current.equals(other)) {
                             simplifiedCurrent = getFalse();
                           } else {
                             simplifiedCurrent = current;
@@ -705,7 +689,7 @@ public final class ExpressionTrees {
                                 .equals(
                                     simplify(
                                         op,
-                                        Collections.<ExpressionTree<LeafType>>singleton(negated),
+                                        Collections.singleton(negated),
                                         pVisitors,
                                         pFactory,
                                         false))) {
@@ -724,7 +708,7 @@ public final class ExpressionTrees {
                               .equals(
                                   simplify(
                                       op,
-                                      Collections.<ExpressionTree<LeafType>>singleton(operand),
+                                      Collections.singleton(operand),
                                       pVisitors,
                                       pFactory,
                                       false))) {
@@ -744,12 +728,11 @@ public final class ExpressionTrees {
               return pFactory.or(operands);
             }
 
-            private Iterable<ExpressionTree<LeafType>> asFacts(
-                ExpressionTree<LeafType> pExpressionTree) {
-              if (isAnd(pExpressionTree)) {
-                return getChildren(pExpressionTree);
+            private Iterable<ExpressionTree<LeafType>> asFacts(ExpressionTree<LeafType> pExprTree) {
+              if (isAnd(pExprTree)) {
+                return getChildren(pExprTree);
               }
-              return Collections.singleton(pExpressionTree);
+              return Collections.singleton(pExprTree);
             }
 
             @Override
@@ -799,7 +782,7 @@ public final class ExpressionTrees {
           @Override
           public ExpressionTree<T> cacheMissLeaf(LeafExpression<S> pLeafExpression) {
             return LeafExpression.of(
-                (T) pLeafConverter.apply(pLeafExpression.getExpression()),
+                checkNotNull((T) pLeafConverter.apply(pLeafExpression.getExpression())),
                 pLeafExpression.assumeTruth());
           }
 
@@ -964,7 +947,7 @@ public final class ExpressionTrees {
               (ExpressionTreeVisitor<LeafType, Integer, RuntimeException>) TYPE_ORDER_VISITOR);
       final int typeOrderComp = Integer.compare(typeOrder1, typeOrder2);
       final Ordering<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
-          Ordering.<ExpressionTree<LeafType>>from(this).lexicographical();
+          Ordering.from(this).lexicographical();
       return pO1.accept(
           new CachingVisitor<LeafType, Integer, RuntimeException>() {
 

@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,15 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 
 /**
  * CPA-Transfer-Relation for enforcing a Security Policy
@@ -208,7 +206,7 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     assert(pState instanceof PolicyEnforcementState);
     @SuppressWarnings("unchecked")
-    PolicyEnforcementState<E> state=((PolicyEnforcementState<E>) pState);
+    PolicyEnforcementState<E> policyState = ((PolicyEnforcementState<E>) pState);
 
     for(AbstractState aState: pOtherStates){
 
@@ -221,14 +219,14 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
         for(Entry<Variable, SortedSet<Variable>> entry: deps.entrySet()){
           Variable var=entry.getKey();
           SortedSet<E> history = new TreeSet<>();
-          //Reflexivity
-          history.add(state.getAllowedsecurityclassmapping().get(var));
+          // Reflexivity
+          history.add(policyState.getAllowedsecurityclassmapping().get(var));
           SortedSet<Variable> vardep=deps.get(var);
           //Add Dependancies to history
           for(Variable d: vardep){
-            history.add(state.getAllowedsecurityclassmapping().get(d));
+            history.add(policyState.getAllowedsecurityclassmapping().get(d));
           }
-          state.getContentsecurityclasslevels().put(var, history);
+          policyState.getContentsecurityclasslevels().put(var, history);
         }
       }
       //Set if the state should be checked for Security Violation
@@ -236,13 +234,13 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
         if(statestocheck==1){
           LocationState otherstate=(LocationState)aState;
           if(otherstate.getLocationNode().getNumLeavingEdges()!=0){
-            state.setCheckthis(false);
+            policyState.setCheckthis(false);
           }
         }
       }
 
     }
-    return Collections.singleton(state);
+    return Collections.singleton(policyState);
   }
 
 }

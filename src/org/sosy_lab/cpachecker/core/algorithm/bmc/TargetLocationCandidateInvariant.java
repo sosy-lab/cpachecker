@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -42,22 +42,22 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
   @Override
   public BooleanFormula getFormula(
-      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
-      throws CPATransferException, InterruptedException {
+      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext) {
     return pFMGR.getBooleanFormulaManager().makeFalse();
   }
 
   @Override
   public BooleanFormula getAssertion(
-      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
-    Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
+      Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
+      throws InterruptedException {
+    Iterable<AbstractState> targetStates = filterApplicable(pReachedSet);
     return pFMGR.getBooleanFormulaManager().not(
         BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));
   }
 
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
-    Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE).toList();
+    Iterable<AbstractState> targetStates = filterApplicable(pReachedSet).toList();
     pReachedSet.removeAll(targetStates);
     for (ARGState s : from(targetStates).filter(ARGState.class)) {
       s.removeFromARG();
@@ -74,4 +74,8 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
     return true;
   }
 
+  @Override
+  public FluentIterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
+    return from(pStates).filter(AbstractStates.IS_TARGET_STATE);
+  }
 }

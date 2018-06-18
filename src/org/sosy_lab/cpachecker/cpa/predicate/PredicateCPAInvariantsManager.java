@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,10 +115,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -131,7 +129,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
 class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
 
-  private static enum InvariantGenerationStrategy {
+  private enum InvariantGenerationStrategy {
     /**
      * Applies inductive weakening on the pathformula (which is converted to a CNF like form)
      * to filter out the invariant part.
@@ -308,21 +306,22 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   public BooleanFormula getInvariantFor(
       CFANode pNode,
       Optional<CallstackStateEqualsWrapper> pCallstackInformation,
-      FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       PathFormula pContext)
       throws InterruptedException {
-    BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
+    BooleanFormulaManager bfManager = pFormulaManager.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
-    BooleanFormula globalInvariant = bfmgr.makeTrue();
+    BooleanFormula globalInvariant = bfManager.makeTrue();
 
     if (useGlobalInvariants) {
-      globalInvariant = globalInvariants.getInvariantFor(
-          pNode, pCallstackInformation, pFmgr, pPfmgr, pContext);
+      globalInvariant =
+          globalInvariants.getInvariantFor(
+              pNode, pCallstackInformation, pFormulaManager, pPathFormulaManager, pContext);
     }
 
-    return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
+    return bfManager.and(globalInvariant, bfManager.and(localInvariants));
   }
 
   /**
@@ -359,7 +358,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
-                invariantShutdown, Collections.<ResourceLimit>singletonList(l));
+                invariantShutdown, Collections.singletonList(l));
         limits.start();
       }
 
@@ -455,7 +454,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
-                invariantShutdown, Collections.<ResourceLimit>singletonList(l));
+                invariantShutdown, Collections.singletonList(l));
         limits.start();
       }
 
@@ -637,12 +636,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           new StaticCandidateProvider(
               from(conjuncts)
                   .transform(
-                      (Function<BooleanFormula, CandidateInvariant>)
-                          pInput -> {
-                            String dumpedFormula = fmgr.dumpFormula(pInput).toString();
-                            formulaToRegion.put(dumpedFormula, pInput);
-                            return makeLocationInvariant(pLocation, dumpedFormula);
-                          }));
+                      pInput -> {
+                        String dumpedFormula = fmgr.dumpFormula(pInput).toString();
+                        formulaToRegion.put(dumpedFormula, pInput);
+                        return makeLocationInvariant(pLocation, dumpedFormula);
+                      }));
 
       new KInductionInvariantChecker(
               config,
@@ -893,8 +891,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 try {
                   List<BooleanFormula> pathFormula = pInput.getPathFormulae();
                   BlockFormulas formulas =
-                      new BlockFormulas(pathFormula).withBranchingFormula(
-                          imgr.buildBranchingFormula(elementsOnPath));
+                      new BlockFormulas(pathFormula, pfmgr.buildBranchingFormula(elementsOnPath));
                   // the prefix is not filled up with trues if it is shorter than
                   // the path so we need to do it ourselves
                   while (pathFormula.size() < abstractionStatesTrace.size()) {
@@ -902,8 +899,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   }
                   interpolants =
                       imgr.buildCounterexampleTrace(
-                              formulas,
-                              ImmutableList.copyOf(abstractionStatesTrace))
+                              formulas, ImmutableList.copyOf(abstractionStatesTrace))
                           .getInterpolants();
 
                 } catch (CPAException | InterruptedException e) {
@@ -943,7 +939,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     @Override
     public Iterator<CandidateInvariant> iterator() {
       if (trieNum == 0) {
-        return Collections.<CandidateInvariant>emptyIterator();
+        return Collections.emptyIterator();
       }
       return candidates.iterator();
     }
@@ -1062,7 +1058,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
   }
 
-  private class Stats extends AbstractStatistics {
+  private class Stats implements Statistics {
     private final StatTimer invgenTime = new StatTimer("Total time for invariant generation");
     private final StatTimer rfKindTime =
         new StatTimer("Time for checking interpolants with k-induction");
@@ -1090,13 +1086,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
             .beginLevel()
             .put(terminatingInvGenTries)
             .put(successfulInvGenTries)
-            .put(
-                "Used strategies per generation try",
-                String.format(
-                    "%11.2f (max: %d, min: %d)",
-                    usedStrategiesPerTrie.getAverage(),
-                    usedStrategiesPerTrie.getMax(),
-                    usedStrategiesPerTrie.getMin()))
+            .put(usedStrategiesPerTrie)
             .endLevel()
             .spacer()
             .put(invgenTime)

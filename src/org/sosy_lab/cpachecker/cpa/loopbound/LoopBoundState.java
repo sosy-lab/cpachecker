@@ -110,7 +110,7 @@ public class LoopBoundState
 
   @Override
   public Object getPartitionKey() {
-    return this;
+    return this.setStop(false);
   }
 
   @Override
@@ -120,7 +120,12 @@ public class LoopBoundState
 
   @Override
   public String toString() {
-    return loopStack.peek().toString() + ", stack depth " + getDepth() + " [" + Integer.toHexString(System.identityHashCode(loopStack.pop())) + "]";
+    return loopStack.peek()
+        + ", stack depth "
+        + getDepth()
+        + " ["
+        + Integer.toHexString(System.identityHashCode(loopStack.pop()))
+        + "]";
   }
 
   @Override

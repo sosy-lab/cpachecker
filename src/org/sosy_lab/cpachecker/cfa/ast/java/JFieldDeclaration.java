@@ -75,7 +75,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
     if (visibility != null) {
@@ -90,11 +90,15 @@ public final class JFieldDeclaration extends JVariableDeclaration {
     lASTString.append("static ");
     }
 
-    lASTString.append(getType().toASTString(getName()));
+    if (pQualified) {
+      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else {
+      lASTString.append(getType().toASTString(getName()));
+    }
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString());
+      lASTString.append(getInitializer().toASTString(pQualified));
     }
 
     lASTString.append(";");

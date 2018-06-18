@@ -56,7 +56,7 @@ final class SMGConsistencyVerifier {
    * @param pSmg A SMG to verify
    * @return True, if pSmg satisfies all consistency criteria
    */
-  static private boolean verifyNullObject(LogManager pLogger, SMG pSmg) {
+  private static boolean verifyNullObject(LogManager pLogger, UnmodifiableSMG pSmg) {
     Integer null_value = null;
 
     // Find a null value in values
@@ -116,7 +116,8 @@ final class SMGConsistencyVerifier {
    * @param pSmg A SMG to verify
    * @return True, if pSmg satisfies all consistency criteria.
    */
-  static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG pSmg) {
+  private static boolean verifyInvalidRegionsHaveNoHVEdges(
+      LogManager pLogger, UnmodifiableSMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
       if (pSmg.isObjectValid(obj) || pSmg.isObjectExternallyAllocated(obj)) {
         continue;
@@ -142,7 +143,8 @@ final class SMGConsistencyVerifier {
    * @param pSmg A SMG to verify
    * @return True, if Object in pSmg satisfies all consistency criteria. False otherwise.
    */
-  static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG pSmg) {
+  private static boolean checkSingleFieldConsistency(
+      LogManager pLogger, SMGObject pObject, UnmodifiableSMG pSmg) {
 
     // For all fields in the object, verify that sizeof(type)+field_offset < object_size
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
@@ -164,7 +166,7 @@ final class SMGConsistencyVerifier {
    * @param pSmg A SMG to verify
    * @return True, if pSmg satisfies all consistency criteria. False otherwise.
    */
-  static private boolean verifyFieldConsistency(LogManager pLogger, SMG pSmg) {
+  private static boolean verifyFieldConsistency(LogManager pLogger, UnmodifiableSMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
       if (! checkSingleFieldConsistency(pLogger, obj, pSmg)) {
         return false;
@@ -182,7 +184,8 @@ final class SMGConsistencyVerifier {
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Iterable<? extends SMGEdge> pEdges) {
+  private static boolean verifyEdgeConsistency(
+      LogManager pLogger, UnmodifiableSMG pSmg, Iterable<? extends SMGEdge> pEdges) {
     Deque<SMGEdge> to_verify = Queues.newArrayDeque(pEdges);
 
     while (!to_verify.isEmpty()) {
@@ -224,7 +227,7 @@ final class SMGConsistencyVerifier {
     return true;
   }
 
-  static private boolean verifyObjectConsistency(LogManager pLogger, SMG pSmg) {
+  private static boolean verifyObjectConsistency(LogManager pLogger, UnmodifiableSMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
       try {
         pSmg.isObjectValid(obj);
@@ -249,7 +252,7 @@ final class SMGConsistencyVerifier {
    * @param pSmg A SMG to verify
    * @return True, if pSmg satisfies all consistency criteria
    */
-  static public boolean verifySMG(LogManager pLogger, SMG pSmg) {
+  public static boolean verifySMG(LogManager pLogger, UnmodifiableSMG pSmg) {
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
 

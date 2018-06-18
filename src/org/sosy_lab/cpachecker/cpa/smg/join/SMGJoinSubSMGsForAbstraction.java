@@ -29,10 +29,11 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -45,11 +46,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
-
 final public class SMGJoinSubSMGsForAbstraction {
 
   private final SMGJoinStatus status;
-  private final CLangSMG resultSMG;
+  private final UnmodifiableCLangSMG resultSMG;
   private final SMGObject newAbstractObject;
   private final Set<Integer> nonSharedValuesFromSMG1;
   private final Set<Integer> nonSharedValuesFromSMG2;
@@ -57,9 +57,14 @@ final public class SMGJoinSubSMGsForAbstraction {
   private final Set<SMGObject> nonSharedObjectsFromSMG2;
   private final boolean defined;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate<?> pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(
+      CLangSMG smg,
+      SMGObject obj1,
+      SMGObject obj2,
+      SMGListCandidate<?> pListCandidate,
+      UnmodifiableSMGState pStateOfSmg)
+      throws SMGInconsistentException {
 
-    CLangSMG smg = pInputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
     Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
 
@@ -130,7 +135,7 @@ final public class SMGJoinSubSMGsForAbstraction {
       destLevel = destLevel + 1;
     }
 
-    CLangSMG inputSMG = new CLangSMG(smg);
+    CLangSMG inputSMG = smg.copyOf();
 
     /*Every value thats identical will be skipped, the join only iterates over non shared values, thats why we can introduce a
      * level map only for non shared objects*/
@@ -260,7 +265,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     return status;
   }
 
-  public CLangSMG getResultSMG() {
+  public UnmodifiableCLangSMG getResultSMG() {
     return resultSMG;
   }
 

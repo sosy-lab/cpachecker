@@ -31,7 +31,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -51,6 +50,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -147,24 +147,24 @@ public final class LoopStructure implements Serializable {
         return;
       }
 
-      Set<CFAEdge> incomingEdges = new HashSet<>();
-      Set<CFAEdge> outgoingEdges = new HashSet<>();
+      Set<CFAEdge> newIncomingEdges = new HashSet<>();
+      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
-        CFAUtils.enteringEdges(n).copyInto(incomingEdges);
-        CFAUtils.leavingEdges(n).copyInto(outgoingEdges);
+        CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
+        CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
       }
 
-      innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
-      incomingEdges.removeAll(innerLoopEdges);
-      incomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
-      outgoingEdges.removeAll(innerLoopEdges);
-      outgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
+      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+      newIncomingEdges.removeAll(innerLoopEdges);
+      newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
+      newOutgoingEdges.removeAll(innerLoopEdges);
+      newOutgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
 
-      assert !incomingEdges.isEmpty() : "Unreachable loop?";
+      assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      this.incomingEdges = ImmutableSet.copyOf(incomingEdges);
-      this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
+      this.incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
+      this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
     }
 
     private void addNodes(Loop l) {
@@ -281,11 +281,11 @@ public final class LoopStructure implements Serializable {
 
   private final ImmutableMultimap<String, Loop> loops;
 
-  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+  private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
   // computed lazily
-  private @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private @Nullable ImmutableSet<String> loopIncDecVariables;
+  private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
 
   private LoopStructure(ImmutableMultimap<String, Loop> pLoops) {
     loops = pLoops;
@@ -459,7 +459,7 @@ public final class LoopStructure implements Serializable {
 
     // If the loop head cannot reach itself, there is no loop
     if (!reachableSuccessors.contains(pSingleLoopHead)) {
-      return new LoopStructure(ImmutableMultimap.<String, Loop>of());
+      return new LoopStructure(ImmutableMultimap.of());
     }
 
     /*
@@ -485,7 +485,7 @@ public final class LoopStructure implements Serializable {
     // A size of one means only the loop head is contained
     if (loopNodes.isEmpty()
         || (loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead))) {
-      return new LoopStructure(ImmutableMultimap.<String, Loop>of());
+      return new LoopStructure(ImmutableMultimap.of());
     }
 
     return new LoopStructure(ImmutableMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));

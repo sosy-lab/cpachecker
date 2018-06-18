@@ -41,7 +41,7 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
 
   @Ignore
   @Override
-  public void testEquals() throws Exception {
+  public void testEquals() {
     // equals methods of CTypes are not testable with PackageSanityTest
     // because of field origName
   }

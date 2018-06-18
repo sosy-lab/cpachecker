@@ -33,19 +33,19 @@ public class SMGEdgePointsToTest {
 
   @Test
   public void testSMGEdgePointsTo() {
-    Integer val = Integer.valueOf(6);
+    int val = 6;
     SMGObject obj = new SMGRegion(64, "object");
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
-    Assert.assertEquals(val.intValue(), edge.getValue());
+    Assert.assertEquals(val, edge.getValue());
     Assert.assertEquals(obj, edge.getObject());
     Assert.assertEquals(0, edge.getOffset());
   }
 
   @Test
   public void testIsConsistentWith() {
-    Integer val1 = Integer.valueOf(1);
-    Integer val2 = Integer.valueOf(2);
+    int val1 = 1;
+    int val2 = 2;
     SMGObject obj = new SMGRegion(64, "object");
     SMGObject obj2 = new SMGRegion(64, "object2");
 

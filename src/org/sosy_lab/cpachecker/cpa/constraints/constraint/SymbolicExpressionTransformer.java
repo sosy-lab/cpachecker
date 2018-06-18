@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -78,6 +77,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
+ *
+ * @see org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer
  */
 public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression> {
 

@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -62,8 +61,7 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
   ) {
     checkNotNull(pValueInfo);
     checkNotNull(pConstraints);
-    valueInterpolant = new ValueAnalysisInterpolant(pValueInfo.getAssignments(),
-                                                    pValueInfo.getLocationTypes());
+    valueInterpolant = new ValueAnalysisInterpolant(pValueInfo.getAssignments());
     constraintsInformation = pConstraints;
   }
 

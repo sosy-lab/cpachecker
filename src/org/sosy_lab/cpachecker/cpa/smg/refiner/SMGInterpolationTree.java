@@ -23,24 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
-
-import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -55,6 +43,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SMGInterpolationTree {
 
@@ -177,11 +174,7 @@ public class SMGInterpolationTree {
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(new Function<ARGPath, ARGState>() {
-      @Override
-      public ARGState apply(ARGPath targetsPath) {
-        return targetsPath.getLastState();
-      }}).toSet();
+    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
   }
 
   public ARGState getRoot() {
@@ -376,13 +369,13 @@ public class SMGInterpolationTree {
     /**
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
-    private boolean isValidInterpolationRoot(ARGState root) {
-      return !stateHasFalseInterpolant(root);
+    private boolean isValidInterpolationRoot(ARGState pRoot) {
+      return !stateHasFalseInterpolant(pRoot);
     }
 
     @Override
-    public SMGInterpolant getInitialInterpolantForRoot(ARGState root) {
-      SMGInterpolant initialInterpolant = interpolants.get(root);
+    public SMGInterpolant getInitialInterpolantForRoot(ARGState pRoot) {
+      SMGInterpolant initialInterpolant = interpolants.get(pRoot);
 
       if (initialInterpolant == null) {
         initialInterpolant = interpolantManager.createInitialInterpolant();
@@ -440,7 +433,7 @@ public class SMGInterpolationTree {
     }
 
     @Override
-    public SMGInterpolant getInitialInterpolantForRoot(ARGState root) {
+    public SMGInterpolant getInitialInterpolantForRoot(ARGState pRoot) {
       return interpolantManager.createInitialInterpolant();
     }
 
@@ -459,20 +452,25 @@ public class SMGInterpolationTree {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
-        StringBuilder sb = new StringBuilder();
 
-        sb.append("itp is " + interpolants.get(current.getKey()));
-
-        result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");
+        result.append(current.getKey().getStateId()).append(" [label=\"")
+            .append(current.getKey().getStateId()).append(" / ")
+            .append(AbstractStates.extractLocation(current.getKey())).append(" has itp ")
+            .append("itp is ").append(interpolants.get(current.getKey())).append("\"]")
+            .append("\n");
+        result.append(current.getKey().getStateId()).append(" -> ")
+            .append(current.getValue().getStateId()).append("\n");
 
       } else {
-        result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");
+        result.append(current.getKey().getStateId()).append(" [label=\"")
+            .append(current.getKey().getStateId()).append(" has itp NA\"]").append("\n");
+        result.append(current.getKey().getStateId()).append(" -> ")
+            .append(current.getValue().getStateId()).append("\n");
       }
 
       if (current.getValue().isTarget()) {
-        result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
+        result.append(current.getValue().getStateId()).append(" [style=filled, fillcolor=\"red\"]")
+            .append("\n");
       }
 
       assert (!current.getKey().isTarget());

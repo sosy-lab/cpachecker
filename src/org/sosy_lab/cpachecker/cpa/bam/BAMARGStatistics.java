@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -69,38 +70,17 @@ public class BAMARGStatistics extends ARGStatistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-
-    if (!(cpa instanceof ARGCPA)) {
-      logger.log(Level.WARNING, "statistic export needs ARG-CPA");
-      return; // invalid CPA, nothing to do
-    }
-
-    if (pReached.size() <= 1) {
-      // interrupt, timeout -> no CEX available, ignore reached-set
-      logger.log(Level.WARNING, "could not compute full reached set graph, there is no exit state");
+    if (!isValidContext(pReached)) {
       return;
     }
-
-    // create pseudo-reached-set for export.
-    // it will be sufficient for exporting a CEX (error-path, error-witness, harness)
 
     // TODO create 'full' reached-set to export correctness witnesses.
     // This might cause a lot of overhead, because of missing blocks,
     // aggressive caching, and multi-usage of blocks.
 
-    ARGReachedSet pMainReachedSet =
-        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
-    ARGState root = (ARGState)pReached.getFirstState();
-    Collection<ARGState> targets = Collections2.filter(root.getSubgraph(),
-        s -> s.getChildren().isEmpty() && !s.isCovered()
-        // sometimes we find leaf-states that are at block-entry-locations,
-        // and it seems that those states are "not" contained in the reachedSet.
-        // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
-        // Possible case: entry state of an infinite loop, loop is a block without exit-state.
-        // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
-        );
+    final Collection<ARGState> frontierStates = getFrontierStates(pReached);
 
-    if (targets.isEmpty()) {
+    if (frontierStates.isEmpty()) {
       if (pResult.equals(Result.FALSE)) {
         logger.log(
             Level.INFO,
@@ -114,37 +94,107 @@ public class BAMARGStatistics extends ARGStatistics {
       return;
     }
 
+    final UnmodifiableReachedSet bamReachedSetView = createReachedSetView(pReached, frontierStates);
+    if (bamReachedSetView == null) {
+      return;
+    } else {
+      super.printStatistics(pOut, pResult, bamReachedSetView);
+    }
+  }
+
+  @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    if (!isValidContext(pReached)) {
+      return;
+    }
+
+    final Collection<ARGState> frontierStates = getFrontierStates(pReached);
+
+    if (frontierStates.isEmpty()) {
+      if (pResult.equals(Result.FALSE)) {
+        logger.log(
+            Level.INFO,
+            "could not compute full reached set graph (missing block), "
+                + "some output or statistics might be missing");
+        // invalid ARG, ignore output.
+      } else if (pResult.equals(Result.TRUE)) {
+        // In case of TRUE verdict we do not need a target to print super statistics
+        super.writeOutputFiles(pResult, pReached);
+      }
+      return;
+    }
+
+    final UnmodifiableReachedSet bamReachedSetView = createReachedSetView(pReached, frontierStates);
+    if (bamReachedSetView == null) {
+      return;
+    } else {
+      super.writeOutputFiles(pResult, bamReachedSetView);
+    }
+  }
+
+  private @Nullable UnmodifiableReachedSet createReachedSetView(
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates) {
+    // create pseudo-reached-set for export.
+    // it will be sufficient for exporting a CEX (error-path, error-witness, harness)
+
     // assertion disabled, because it happens with BAM-parallel (reason unknown).
     // assert targets.contains(pReached.getLastState()) : String.format(
     //   "Last state %s of reachedset with root %s is not in target states %s",
     //   pReached.getLastState(), pReached.getFirstState(), targets);
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
+    ARGReachedSet pMainReachedSet =
+        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates);
     final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
 
     Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph = null;
     try {
-      rootAndTargetsOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(targets, pMainReachedSet);
+      rootAndTargetsOfSubgraph =
+          cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
     } catch (MissingBlockException e) {
       logger.log(
           Level.INFO,
           "could not compute full reached set graph (missing block), "
               + "some output or statistics might be missing");
-      return; // invalid ARG, ignore output.
+      return null; // invalid ARG, ignore output.
 
     } catch (InterruptedException e) {
       logger.log(Level.WARNING, "could not compute full reached set graph:", e);
-      return; // invalid ARG, ignore output
+      return null; // invalid ARG, ignore output
     }
 
     ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
     StatTimer dummyTimer = new StatTimer("dummy");
     BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
-
     UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
-
     readdCounterexampleInfo(pReached, rootAndTargetsOfSubgraph.getSecond());
+    return bamReachedSetView;
+  }
 
-    super.printStatistics(pOut, pResult, bamReachedSetView);
+  private Collection<ARGState> getFrontierStates(UnmodifiableReachedSet pReached) {
+    return Collections2.filter(
+        ((ARGState) pReached.getFirstState()).getSubgraph(),
+        s -> s.getChildren().isEmpty() && !s.isCovered()
+        // sometimes we find leaf-states that are at block-entry-locations,
+        // and it seems that those states are "not" contained in the reachedSet.
+        // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
+        // Possible case: entry state of an infinite loop, loop is a block without exit-state.
+        // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
+        );
+  }
+
+  private boolean isValidContext(UnmodifiableReachedSet pReached) {
+    if (!(cpa instanceof ARGCPA)) {
+      logger.log(Level.WARNING, "statistic export needs ARG-CPA");
+      return false; // invalid CPA, nothing to do
+    }
+
+    if (pReached.size() <= 1) {
+      // interrupt, timeout -> no CEX available, ignore reached-set
+      logger.log(Level.WARNING, "could not compute full reached set graph, there is no exit state");
+      return false;
+    }
+
+    return true;
   }
 
   /**

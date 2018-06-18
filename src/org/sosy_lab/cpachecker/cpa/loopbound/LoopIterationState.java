@@ -161,17 +161,19 @@ interface LoopIterationState {
       if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      PersistentSortedMap<ComparableLoop, LoopIteration> iterations = this.iterations;
-      for (Map.Entry<ComparableLoop, LoopIteration> entry : iterations.entrySet()) {
+      PersistentSortedMap<ComparableLoop, LoopIteration> iters = this.iterations;
+      for (Map.Entry<ComparableLoop, LoopIteration> entry : iters.entrySet()) {
         ComparableLoop loop = entry.getKey();
         LoopIteration oldIterationCount = entry.getValue();
         if (oldIterationCount.getCount() > pLoopIterationsBeforeAbstraction) {
-          iterations = iterations.putAndCopy(
-              loop,
-              new LoopIteration(oldIterationCount.getLoopEntryPoint(), pLoopIterationsBeforeAbstraction));
+          iters =
+              iters.putAndCopy(
+                  loop,
+                  new LoopIteration(
+                      oldIterationCount.getLoopEntryPoint(), pLoopIterationsBeforeAbstraction));
         }
       }
-      return new UndeterminedLoopIterationState(iterations, pLoopIterationsBeforeAbstraction, true);
+      return new UndeterminedLoopIterationState(iters, pLoopIterationsBeforeAbstraction, true);
     }
 
     public static LoopIterationState newState() {
@@ -295,7 +297,7 @@ interface LoopIterationState {
 
     @Override
     public String toString() {
-      return loopEntry.toString() + " in iteration " + getMaxIterationCount();
+      return loopEntry + " in iteration " + getMaxIterationCount();
     }
 
     @Override

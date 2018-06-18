@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -38,8 +39,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -71,18 +72,19 @@ class ArrayVisitor extends AddressVisitor
 
     CExpression lVarInBinaryExp = binaryExp.getOperand1();
     CExpression rVarInBinaryExp = binaryExp.getOperand2();
-    CType lVarInBinaryExpType = smgExpressionEvaluator.getRealExpressionType(lVarInBinaryExp);
-    CType rVarInBinaryExpType = smgExpressionEvaluator.getRealExpressionType(rVarInBinaryExp);
+    CType lVarInBinaryExpType = TypeUtils.getRealExpressionType(lVarInBinaryExp);
+    CType rVarInBinaryExpType = TypeUtils.getRealExpressionType(rVarInBinaryExp);
 
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CArrayType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CArrayType;
 
-    CExpression address = null;
-    CExpression arrayOffset = null;
-    CType addressType = null;
+    CExpression address;
+    CExpression arrayOffset;
+    CType addressType;
 
     if (lVarIsAddress == rVarIsAddress) {
-      return SMGAddressAndState.listOf(getInitialSmgState()); // If both or neither are Addresses,
+      return Collections.singletonList(
+          SMGAddressAndState.of(getInitialSmgState())); // If both or neither are Addresses,
       //  we can't evaluate the address this pointer stores.
     } else if (lVarIsAddress) {
       address = lVarInBinaryExp;
@@ -100,10 +102,15 @@ class ArrayVisitor extends AddressVisitor
     }
 
     // a = &a[0]
-    SMGAddressValueAndStateList result =
-        smgExpressionEvaluator.handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
-            address, arrayOffset, addressType, lVarIsAddress, binaryExp);
-    return result.asAddressAndStateList();
+    return asAddressAndStateList(
+        smgExpressionEvaluator.handlePointerArithmetic(
+            getInitialSmgState(),
+            getCfaEdge(),
+            address,
+            arrayOffset,
+            addressType,
+            lVarIsAddress,
+            binaryExp));
   }
 
   @Override
@@ -115,7 +122,7 @@ class ArrayVisitor extends AddressVisitor
     // parameter declaration array types are converted to pointer
     if (pVariableName.getDeclaration() instanceof CParameterDeclaration) {
 
-      CType type = smgExpressionEvaluator.getRealExpressionType(pVariableName);
+      CType type = TypeUtils.getRealExpressionType(pVariableName);
       if (type instanceof CArrayType) {
         // if function declaration is in form 'int foo(char b[32])' then omit array length
         //TODO support C11 6.7.6.3 7:
@@ -124,8 +131,7 @@ class ArrayVisitor extends AddressVisitor
         type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
       }
 
-      List<SMGAddressAndState> result = new ArrayList<>(addressAndStates.size());
-
+      List<SMGAddressAndState> result = new ArrayList<>();
       for (SMGAddressAndState addressAndState : addressAndStates) {
 
         SMGAddress address = addressAndState.getObject();
@@ -135,9 +141,9 @@ class ArrayVisitor extends AddressVisitor
             smgExpressionEvaluator.readValue(newState, address.getObject(),
                 address.getOffset(), type, getCfaEdge());
 
-        SMGAddressValueAndStateList trueAddressAndState = smgExpressionEvaluator.getAddressFromSymbolicValue(pointerAndState);
-
-        result.addAll(trueAddressAndState.asAddressAndStateList());
+        result.addAll(
+            asAddressAndStateList(
+                smgExpressionEvaluator.getAddressFromSymbolicValue(pointerAndState)));
       }
 
       return result;
@@ -154,8 +160,8 @@ class ArrayVisitor extends AddressVisitor
     if (op.getExpressionType() instanceof CArrayType) {
       return cast.getOperand().accept(this);
     } else {
-      //TODO cast reinterpretation
-      return SMGAddressAndState.listOf(getInitialSmgState());
+      // TODO cast reinterpretation
+      return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
     }
   }
 

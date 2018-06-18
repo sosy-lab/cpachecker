@@ -611,9 +611,12 @@ public class ReportGenerator {
       for (CFAEdge edge : edges) {
         if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           edgeLabel.append("\n");
-          edgeLabel.append(getEdgeText(edge).split(":")[0]);
-          edgeLabel.append("\n");
-          edgeLabel.append(getEdgeText(edge).split(":")[1]);
+          List<String> edgeText = Splitter.on(':').limit(2).splitToList(getEdgeText(edge));
+          edgeLabel.append(edgeText.get(0));
+          if (edgeText.size() > 1) {
+            edgeLabel.append("\n");
+            edgeLabel.append(edgeText.get(1));
+          }
         } else {
           edgeLabel.append("\n");
           edgeLabel.append(getEdgeText(edge));

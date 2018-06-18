@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-
 public class CustomInstructionApplications {
 
   private final Map<CFANode, AppliedCustomInstruction> cis;
@@ -152,7 +151,7 @@ public class CustomInstructionApplications {
   @Options(prefix = "custominstructions")
   public static abstract class CustomInstructionApplicationBuilder {
 
-    public static enum CIDescriptionType {MANUAL, OPERATOR}
+    public enum CIDescriptionType {MANUAL, OPERATOR}
 
     @Option(
         secure = true,

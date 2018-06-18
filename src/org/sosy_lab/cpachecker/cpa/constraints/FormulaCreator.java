@@ -30,7 +30,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
-
 /**
  * Class for creating {@link Formula}s out of {@link Constraint}s
  */

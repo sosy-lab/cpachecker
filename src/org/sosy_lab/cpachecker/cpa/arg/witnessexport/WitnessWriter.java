@@ -37,7 +37,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
@@ -79,24 +81,13 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -109,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -116,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -186,10 +179,10 @@ class WitnessWriter implements EdgeAppender {
       new Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions>() {
 
         @Override
-        @Nullable
-        public CFAEdgeWithAssumptions apply(@Nullable CFAEdgeWithAssumptions pEdgeWithAssumptions) {
+        public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
           int originalSize = pEdgeWithAssumptions.getExpStmts().size();
-          List<AExpressionStatement> expressionStatements = Lists.newArrayListWithCapacity(originalSize);
+          List<AExpressionStatement> expressionStatements =
+              Lists.newArrayListWithCapacity(originalSize);
           for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
             AExpression assumption = expressionStatement.getExpression();
             if (!(assumption instanceof CBinaryExpression)) {
@@ -207,13 +200,18 @@ class WitnessWriter implements EdgeAppender {
                 boolean equalTypes = leftType.equals(rightType);
 
                 FluentIterable<Class<? extends CType>> acceptedTypes =
-                    FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
+                    FluentIterable.from(
+                        Collections.<Class<? extends CType>>singleton(CSimpleType.class));
 
-                boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
-                    pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
+                boolean leftIsAccepted =
+                    equalTypes
+                        || acceptedTypes.anyMatch(
+                            pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
 
-                boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
-                    pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
+                boolean rightIsAccepted =
+                    equalTypes
+                        || acceptedTypes.anyMatch(
+                            pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
 
                 if (leftIsAccepted && rightIsAccepted) {
                   boolean leftIsConstant = isConstant(leftSide);
@@ -238,134 +236,48 @@ class WitnessWriter implements EdgeAppender {
         }
 
         private boolean isConstant(CExpression pLeftSide) {
-          return pLeftSide.accept(new CExpressionVisitor<Boolean, RuntimeException>() {
-
-            @Override
-            public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-                throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CFieldReference pIastFieldReference) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CIdExpression pIastIdExpression) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CPointerExpression pPointerExpression) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CComplexCastExpression pComplexCastExpression)
-                throws RuntimeException {
-              return pComplexCastExpression.getOperand().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-              return pIastBinaryExpression.getOperand1().accept(this)
-                  && pIastBinaryExpression.getOperand2().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
-              return pIastCastExpression.getOperand().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
-              return false;
-            }
-
-            @Override
-            public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
-              return pIastUnaryExpression.getOperand().accept(this);
-            }
-
-            @Override
-            public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression)
-                throws RuntimeException {
-              return true;
-            }
-
-            @Override
-            public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-                throws RuntimeException {
-              return false;
-            }
-
-          });
+          return pLeftSide.accept(IsConstantExpressionVisitor.INSTANCE);
         }
 
         private boolean isEffectivelyPointer(CExpression pLeftSide) {
-          return pLeftSide.accept(new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
+          return pLeftSide.accept(
+              new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
 
-            @Override
-            public Boolean visit(CComplexCastExpression pComplexCastExpression)
-                throws RuntimeException {
-              return pComplexCastExpression.getOperand().accept(this);
-            }
+                @Override
+                public Boolean visit(CComplexCastExpression pComplexCastExpression) {
+                  return pComplexCastExpression.getOperand().accept(this);
+                }
 
-            @Override
-            public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-              return pIastBinaryExpression.getOperand1().accept(this)
-                  || pIastBinaryExpression.getOperand2().accept(this);
-            }
+                @Override
+                public Boolean visit(CBinaryExpression pIastBinaryExpression) {
+                  return pIastBinaryExpression.getOperand1().accept(this)
+                      || pIastBinaryExpression.getOperand2().accept(this);
+                }
 
-            @Override
-            public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
-              return pIastCastExpression.getOperand().accept(this);
-            }
+                @Override
+                public Boolean visit(CCastExpression pIastCastExpression) {
+                  return pIastCastExpression.getOperand().accept(this);
+                }
 
-            @Override
-            public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
-              if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE).contains(pIastUnaryExpression.getOperator())) {
-                return pIastUnaryExpression.getOperand().accept(this);
-              }
-              if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-                return true;
-              }
-              return visitDefault(pIastUnaryExpression);
-            }
+                @Override
+                public Boolean visit(CUnaryExpression pIastUnaryExpression) {
+                  if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE)
+                      .contains(pIastUnaryExpression.getOperator())) {
+                    return pIastUnaryExpression.getOperand().accept(this);
+                  }
+                  if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+                    return true;
+                  }
+                  return visitDefault(pIastUnaryExpression);
+                }
 
-            @Override
-            protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
-              return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
-            }
-
-          });
+                @Override
+                protected Boolean visitDefault(CExpression pExp) {
+                  return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
+                }
+              });
         }
-  };
+      };
 
   private final WitnessOptions witnessOptions;
   private final CFA cfa;
@@ -399,6 +311,7 @@ class WitnessWriter implements EdgeAppender {
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
   private boolean isFunctionScope = false;
+  protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
 
   WitnessWriter(
       WitnessOptions pOptions,
@@ -425,12 +338,13 @@ class WitnessWriter implements EdgeAppender {
       final String pTo,
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
-      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     attemptSwitchToFunctionScope(pEdge);
 
     Iterable<TransitionCondition> transitions =
-        constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
+        constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap, pAdditionalInfo);
 
     String from = pFrom;
     Iterator<TransitionCondition> transitionIterator = transitions.iterator();
@@ -482,8 +396,9 @@ class WitnessWriter implements EdgeAppender {
       String pFrom,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
-      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-    appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap, pAdditionalInfo);
   }
 
   private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
@@ -504,9 +419,10 @@ class WitnessWriter implements EdgeAppender {
       final String pTo,
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
-      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
-    if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+    if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
       return Collections.singletonList(TransitionCondition.empty());
     }
 
@@ -523,20 +439,41 @@ class WitnessWriter implements EdgeAppender {
             pEdge,
             goesToSink,
             isDefaultCase,
-            Optional.empty());
+            Optional.empty(),
+            pAdditionalInfo);
 
     if (pFromState.isPresent()) {
       return extractTransitionForStates(
-          pFrom, pTo, pEdge, pFromState.get(), pValueMap, result, goesToSink, isDefaultCase);
+          pFrom,
+          pTo,
+          pEdge,
+          pFromState.get(),
+          pValueMap,
+          pAdditionalInfo,
+          result,
+          goesToSink,
+          isDefaultCase);
     }
     return Collections.singletonList(result);
+  }
+
+  /**
+   * Check whether edge should absence at witness or not
+   *
+   * @param pEdge edge to be checked
+   * @param pAdditionalInfo additional info corresponds to edge
+   * @return true is edge considered as absence
+   */
+  protected boolean handleAsEpsilonEdge(CFAEdge pEdge, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return !isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
   }
 
   private TransitionCondition getSourceCodeGuards(
       CFAEdge pEdge,
       boolean pGoesToSink,
       boolean pIsDefaultCase,
-      Optional<String> pAlternativeFunctionEntry) {
+      Optional<String> pAlternativeFunctionEntry,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     TransitionCondition result = TransitionCondition.empty();
 
     if (entersLoop(pEdge, false).isPresent()) {
@@ -567,7 +504,7 @@ class WitnessWriter implements EdgeAppender {
       if (AutomatonGraphmlCommon.isPointerCallAssumption(assumeEdge)) {
         // If the assume edge is followed by a pointer call,
         // the assumption is artificial and should not be exported
-        if (!pGoesToSink) {
+        if (!pGoesToSink && isEmptyTransitionPossible(pAdditionalInfo)) {
           // remove all info from transitionCondition
           return TransitionCondition.empty();
         } else if (assumeEdge.getTruthAssumption() && witnessOptions.exportFunctionCallsAndReturns()) {
@@ -591,16 +528,21 @@ class WitnessWriter implements EdgeAppender {
               : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         } else {
-          return TransitionCondition.empty();
+          if (isEmptyTransitionPossible(pAdditionalInfo)) {
+            return TransitionCondition.empty();
+          }
         }
       }
     }
 
-    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa.getMainFunction());
-    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa.getMainFunction());
+    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa
+        .getMainFunction(), pAdditionalInfo);
+    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa
+        .getMainFunction(), pAdditionalInfo);
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
@@ -612,7 +554,8 @@ class WitnessWriter implements EdgeAppender {
 
     if (witnessOptions.exportOffset() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
@@ -625,12 +568,18 @@ class WitnessWriter implements EdgeAppender {
     }
 
     if (witnessOptions.exportSourcecode()) {
-      final String sourceCode;
+      String sourceCode;
       if (pIsDefaultCase && !pGoesToSink) {
         sourceCode = "default:";
       } else {
         sourceCode = pEdge.getRawStatement().trim();
       }
+      if (sourceCode.isEmpty()
+          && !isEmptyTransitionPossible(pAdditionalInfo)
+          && pEdge instanceof FunctionReturnEdge) {
+        sourceCode = ((FunctionReturnEdge) pEdge).getSummaryEdge().getRawStatement().trim();
+      }
+
       if (!sourceCode.isEmpty()) {
         result = result.putAndCopy(KeyDef.SOURCECODE, sourceCode);
       }
@@ -639,12 +588,23 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  private Iterable<TransitionCondition> extractTransitionForStates(
+  /**
+   * Method is used for additional check if TransitionCondition.empty() is applicable.
+   *
+   * @param pAdditionalInfo is used at {@link ExtendedWitnessWriter}
+   * @return true if TransitionCondition.empty is applicable.
+   */
+  protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return true;
+  }
+
+  protected Iterable<TransitionCondition> extractTransitionForStates(
       final String pFrom,
       final String pTo,
       final CFAEdge pEdge,
       final Collection<ARGState> pFromStates,
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo,
       final TransitionCondition pTransitionCondition,
       final boolean pGoesToSink,
       final boolean pIsDefaultCase) {
@@ -654,7 +614,7 @@ class WitnessWriter implements EdgeAppender {
     Optional<AIdExpression> resultVariable = Optional.empty();
     Optional<String> resultFunction = Optional.empty();
     String functionName = pEdge.getPredecessor().getFunctionName();
-    boolean isFunctionScope = this.isFunctionScope;
+    boolean functionScope = this.isFunctionScope;
 
     for (ARGState state : pFromStates) {
 
@@ -716,7 +676,7 @@ class WitnessWriter implements EdgeAppender {
               if (declaration.getName().contains("static")
                   && !declaration.getOrigName().contains("static")
                   && qualified.contains("::")) {
-                isFunctionScope = true;
+                functionScope = true;
                 functionName = qualified.substring(0, qualified.indexOf("::"));
               }
             }
@@ -823,7 +783,7 @@ class WitnessWriter implements EdgeAppender {
       }
 
       result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
-      if (isFunctionScope) {
+      if (functionScope) {
         if (witnessOptions.revertThreadFunctionRenaming()) {
           functionName = CFACloner.extractFunctionName(functionName);
         }
@@ -834,15 +794,29 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
+    result = addAdditionalInfo(result, pAdditionalInfo);
+
     // TODO: For correctness witnesses, there may be multiple (disjoint) states for one location
     // available; it is not clear how we should handle thread information there.
     if (witnessOptions.exportThreadId() && pFromStates.size() == 1) {
       ARGState state = pFromStates.iterator().next();
       result = exportThreadId(result, pEdge, state);
-      return exportThreadManagement(result, pEdge, state, pGoesToSink, pIsDefaultCase);
+      return exportThreadManagement(result, pEdge, state, pGoesToSink, pIsDefaultCase, pAdditionalInfo);
     }
 
     return Collections.singleton(result);
+  }
+
+  /**
+   * Overwritten at {@link ExtendedWitnessWriter}
+   *
+   * @param pCondition current {@link TransitionCondition}
+   * @param pAdditionalInfo exported additional info
+   * @return TransitionCondition with additional info
+   */
+  protected TransitionCondition addAdditionalInfo(
+      TransitionCondition pCondition, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+    return pCondition;
   }
 
   /**
@@ -872,7 +846,8 @@ class WitnessWriter implements EdgeAppender {
       final CFAEdge pEdge,
       ARGState pState,
       boolean pGoesToSink,
-      boolean pIsDefaultCase) {
+      boolean pIsDefaultCase,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
 
@@ -927,7 +902,7 @@ class WitnessWriter implements EdgeAppender {
     // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
       TransitionCondition extraTransition =
-          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName);
+          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName, pAdditionalInfo);
       if (spawnedThreadId.isPresent()) {
         extraTransition =
             extraTransition.putAndCopy(
@@ -1030,7 +1005,8 @@ class WitnessWriter implements EdgeAppender {
 
             // Get all children
             FluentIterable<ARGState> children =
-                FluentIterable.from(pSuccessorFunction.apply(parent))
+                FluentIterable.of(parent)
+                    .transformAndConcat(pSuccessorFunction)
                     .transform(COVERED_TO_COVERING)
                     .filter(parent.getChildren()::contains);
 
@@ -1066,6 +1042,8 @@ class WitnessWriter implements EdgeAppender {
 
     Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
+    additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
     if (pCounterExample.isPresent()) {
       if (pCounterExample.get().isPreciseCounterExample()) {
@@ -1076,13 +1054,6 @@ class WitnessWriter implements EdgeAppender {
       } else {
         isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
       }
-    }
-
-    final GraphMlBuilder doc;
-    try {
-      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
     }
 
     final String entryStateNodeId = pGraphBuilder.getId(pRootState);
@@ -1115,7 +1086,7 @@ class WitnessWriter implements EdgeAppender {
         pIsRelevantState,
         isRelevantEdge,
         valueMap,
-        doc,
+        additionalInfo,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
@@ -1137,8 +1108,36 @@ class WitnessWriter implements EdgeAppender {
     mergeRedundantSinkEdges();
 
     // Write elements
+    final GraphMlBuilder doc;
+    try {
+      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
     writeElementsOfGraphToDoc(doc, entryStateNodeId);
     doc.appendTo(pTarget);
+  }
+
+  /**
+   * Getter for additional information. Overwritten at {@link ExtendedWitnessWriter}
+   *
+   * @param pCounterExample current {@link CounterexampleInfo}
+   * @return additional information
+   */
+  protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(
+      Optional<CounterexampleInfo> pCounterExample) {
+    return ImmutableMap.of();
+  }
+
+  /**
+   * Getter of {@link AdditionalInfoConverter}. Overwritten at {@link ExtendedWitnessWriter}
+   *
+   * @param pCounterExample current {@link CounterexampleInfo}
+   * @return set of InfoConverters
+   */
+  protected Set<AdditionalInfoConverter> getAdditionalInfoConverters(
+      Optional<CounterexampleInfo> pCounterExample) {
+    return ImmutableSet.of();
   }
 
   /** Remove edges that lead to the sink but have a sibling edge that has the same label.
@@ -1150,10 +1149,10 @@ class WitnessWriter implements EdgeAppender {
    */
   private void removeUnnecessarySinkEdges() {
     final Collection<Edge> toRemove = Sets.newIdentityHashSet();
-    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
-      for (Edge edge : leavingEdges) {
+    for (Collection<Edge> leavingEdgesCollection : leavingEdges.asMap().values()) {
+      for (Edge edge : leavingEdgesCollection) {
         if (edge.getTarget().equals(SINK_NODE_ID)) {
-          for (Edge otherEdge : leavingEdges) {
+          for (Edge otherEdge : leavingEdgesCollection) {
             // ignore the edge itself, as well as already handled edges.
             if (edge != otherEdge && !toRemove.contains(otherEdge)) {
               // remove edges with either identical labels or redundant edge-transition
@@ -1174,13 +1173,13 @@ class WitnessWriter implements EdgeAppender {
 
   /** Merge sibling edges (with the same source) that lead to the sink if possible. */
   private void mergeRedundantSinkEdges() {
-    for (Collection<Edge> leavingEdges : leavingEdges.asMap().values()) {
+    for (Collection<Edge> leavingEdgesCollection : leavingEdges.asMap().values()) {
       // We only need to do something if we have siblings
-      if (leavingEdges.size() > 1) {
+      if (leavingEdgesCollection.size() > 1) {
 
         // Determine all siblings that go to the sink
         List<Edge> toSink =
-            leavingEdges
+            leavingEdgesCollection
                 .stream()
                 .filter(e -> e.getTarget().equals(SINK_NODE_ID))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -1780,9 +1779,9 @@ class WitnessWriter implements EdgeAppender {
 
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
-        LoopEntryInfo loopEntryInfo = loopEntryInfoMemo.get(pEdge);
-        if (loopEntryInfo != null) {
-          this.loopEntryInfo = loopEntryInfo;
+        LoopEntryInfo loopEntryInformation = loopEntryInfoMemo.get(pEdge);
+        if (loopEntryInformation != null) {
+          this.loopEntryInfo = loopEntryInformation;
           return TraversalProcess.ABORT;
         }
         if (pNode.isLoopStart()) {
@@ -1809,8 +1808,8 @@ class WitnessWriter implements EdgeAppender {
       }
 
       @Override
-      public TraversalProcess visitEdge(CFAEdge pEdge) {
-        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)
+      public TraversalProcess visitEdge(CFAEdge pCfaEdge) {
+        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pCfaEdge)
             ? TraversalProcess.CONTINUE
             : TraversalProcess.SKIP;
       }

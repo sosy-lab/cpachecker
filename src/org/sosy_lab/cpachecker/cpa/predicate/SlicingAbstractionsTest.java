@@ -179,22 +179,17 @@ public class SlicingAbstractionsTest {
     check(filename, extraOptions);
   }
 
-  private void check(String filename, Map<String, String> extra) throws Exception {
-    check(filename, getProperties(configname, extra));
+  private void check(String pFilename, Map<String, String> extra) throws Exception {
+    check(pFilename, getProperties(configname, extra));
   }
 
-  private void check(String filename, Configuration config) throws Exception {
-    String fullPath;
-    if (filename.contains("test/programs/benchmarks")) {
-      fullPath = filename;
-    } else {
-      fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
-    }
+  private void check(String pFilename, Configuration config) throws Exception {
+    String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(config, fullPath);
-    if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
+    if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
       results.assertIsSafe();
-    } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
+    } else if (pFilename.contains("_false_assert") || pFilename.contains("_false-unreach")) {
       results.assertIsUnsafe();
     }
   }

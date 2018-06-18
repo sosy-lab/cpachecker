@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -1472,12 +1473,11 @@ public class AssumptionToEdgeAllocator {
       }
 
 
-      String value = pValue.toString();
       BigDecimal val;
 
       //TODO support rationals
       try {
-        val = new BigDecimal(value);
+        val = new BigDecimal(pValue.toString());
       } catch (NumberFormatException e) {
 
         logger.log(Level.INFO, "Can't parse " + value + " as value for the counter-example path.");
@@ -1496,20 +1496,20 @@ public class AssumptionToEdgeAllocator {
 
     private ValueLiteral handleIntegerNumbers(Object pValue, CSimpleType pType) {
 
-      String value = pValue.toString();
+      String valueStr = pValue.toString();
 
-      if (value.matches("((-)?)\\d*")) {
-        BigInteger integerValue = new BigInteger(value);
+      if (valueStr.matches("((-)?)\\d*")) {
+        BigInteger integerValue = new BigInteger(valueStr);
 
         return handlePotentialIntegerOverflow(integerValue, pType);
       } else {
-        String[] numberParts = value.split("\\.");
+        List<String> numberParts = Splitter.on('.').splitToList(valueStr);
 
-        if (numberParts.length == 2 &&
-            numberParts[1].matches("0*") &&
-            numberParts[0].matches("((-)?)\\d*")) {
+        if (numberParts.size() == 2
+            && numberParts.get(1).matches("0*")
+            && numberParts.get(0).matches("((-)?)\\d*")) {
 
-          BigInteger integerValue = new BigInteger(numberParts[0]);
+          BigInteger integerValue = new BigInteger(numberParts.get(0));
 
           return handlePotentialIntegerOverflow(integerValue, pType);
         }
@@ -1549,14 +1549,15 @@ public class AssumptionToEdgeAllocator {
             logger instanceof LogManagerWithoutDuplicates
                 ? (LogManagerWithoutDuplicates) logger
                 : new LogManagerWithoutDuplicates(logger);
-        Value value =
+        Number number =
             AbstractExpressionValueVisitor.castCValue(
-                new NumericValue(pIntegerValue),
-                pType,
-                machineModel,
-                logManager,
-                FileLocation.DUMMY);
-        Number number = value.asNumericValue().getNumber();
+                    new NumericValue(pIntegerValue),
+                    pType,
+                    machineModel,
+                    logManager,
+                    FileLocation.DUMMY)
+                .asNumericValue()
+                .getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger) {
           valueAsBigInt = (BigInteger) number;
@@ -1638,13 +1639,7 @@ public class AssumptionToEdgeAllocator {
       @Override
       public @Nullable Void visit(CCompositeType compType) {
 
-        if (compType.getKind() == ComplexTypeKind.ENUM) {
-          // TODO Enum
-        }
-
-        if (compType.getKind() == ComplexTypeKind.UNION) {
-          //TODO Union
-        }
+        // TODO handle enums and unions
 
         if (compType.getKind() == ComplexTypeKind.STRUCT) {
           handleStruct(compType);
@@ -1727,8 +1722,8 @@ public class AssumptionToEdgeAllocator {
 
         if (!valueLiteral.isUnknown()) {
           visited.add(visits);
-          SubExpressionValueLiteral subExpression = new SubExpressionValueLiteral(valueLiteral, fieldReference);
-          valueLiterals.addSubExpressionValueLiteral(subExpression);
+          valueLiterals.addSubExpressionValueLiteral(
+              new SubExpressionValueLiteral(valueLiteral, fieldReference));
         }
 
         if (valueAddress != null) {
@@ -1774,7 +1769,8 @@ public class AssumptionToEdgeAllocator {
           return false;
         }
 
-        Address address = pArrayAddress.addOffset(BigInteger.valueOf(subscriptOffset));
+        Address arrayAddressWithOffset =
+            pArrayAddress.addOffset(BigInteger.valueOf(subscriptOffset));
 
         BigInteger subscript = BigInteger.valueOf(pSubscript);
         CIntegerLiteralExpression litExp =
@@ -1782,16 +1778,16 @@ public class AssumptionToEdgeAllocator {
         CArraySubscriptExpression arraySubscript =
             new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType, subExpression, litExp);
 
-        Object value;
+        Object concreteValue;
 
         if (isStructOrUnionType(pExpectedType) || pExpectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
-          value = address;
+          concreteValue = arrayAddressWithOffset;
         } else {
-          value = concreteState.getValueFromMemory(arraySubscript, address);
+          concreteValue = concreteState.getValueFromMemory(arraySubscript, arrayAddressWithOffset);
         }
 
-        if (value == null) {
+        if (concreteValue == null) {
           return false;
         }
 
@@ -1799,9 +1795,9 @@ public class AssumptionToEdgeAllocator {
         Address valueAddress = Address.getUnknownAddress();
 
         if (pExpectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) pExpectedType), value);
+          valueLiteral = getValueLiteral(((CSimpleType) pExpectedType), concreteValue);
         } else {
-          valueAddress = Address.valueOf(value);
+          valueAddress = Address.valueOf(concreteValue);
 
           if(valueAddress.isUnknown()) {
             return false;
@@ -1842,17 +1838,17 @@ public class AssumptionToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
-        Object value;
+        Object concreteValue;
 
         if (isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
 
-          value = address;
+          concreteValue = address;
         } else {
-          value = concreteState.getValueFromMemory(pointerExp, address);
+          concreteValue = concreteState.getValueFromMemory(pointerExp, address);
         }
 
-        if (value == null) {
+        if (concreteValue == null) {
           return null;
         }
 
@@ -1860,9 +1856,9 @@ public class AssumptionToEdgeAllocator {
         Address valueAddress = Address.getUnknownAddress();
 
         if (expectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) expectedType), value);
+          valueLiteral = getValueLiteral(((CSimpleType) expectedType), concreteValue);
         } else {
-          valueAddress = Address.valueOf(value);
+          valueAddress = Address.valueOf(concreteValue);
 
           if(valueAddress.isUnknown()) {
             return null;
@@ -2057,12 +2053,13 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static interface ValueLiteral {
+  private interface ValueLiteral {
 
-    public CExpression getValueLiteral();
-    public boolean isUnknown();
+    CExpression getValueLiteral();
 
-    public ValueLiteral addCast(CSimpleType pType);
+    boolean isUnknown();
+
+    ValueLiteral addCast(CSimpleType pType);
   }
 
   private static class UnknownValueLiteral implements ValueLiteral {

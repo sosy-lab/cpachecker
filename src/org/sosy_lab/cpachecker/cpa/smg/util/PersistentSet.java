@@ -52,12 +52,16 @@ public class PersistentSet<K> implements Iterable<K> {
     return new PersistentSet<>(delegate.removeAndCopy(key));
   }
 
-  public boolean contains(Object key) {
+  public boolean contains(K key) {
     return delegate.containsKey(key);
   }
 
   public int size() {
     return delegate.size();
+  }
+
+  public boolean isEmpty() {
+    return delegate.isEmpty();
   }
 
   public Set<K> asSet() {

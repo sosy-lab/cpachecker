@@ -453,7 +453,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       AlgorithmStatus result = algorithm.run(reached);
 
       if (result.isPrecise()) {
-        if (!from(reached).filter(IS_TARGET_STATE).isEmpty()) {
+        if (!reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Recurrent set is reachable.");
           return true;
         }
@@ -645,7 +645,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       }
 
       // check that no sink state is reachable from recurrent set
-      if (from(reached).anyMatch(IS_TARGET_STATE)) {
+      if (reached.hasViolatedProperties()) {
         logger.log(Level.INFO, "May leave recurrent set in current check.");
       return false;
     }

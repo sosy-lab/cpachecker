@@ -51,13 +51,17 @@ public class CArrayRangeDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString() {
-    return "[" + rangeFloor.toASTString() + " ... " + rangeCeiling.toASTString() + "]";
+  public String toASTString(boolean pQualified) {
+    return "["
+        + rangeFloor.toASTString(pQualified)
+        + " ... "
+        + rangeCeiling.toASTString(pQualified)
+        + "]";
   }
 
   @Override
-  public String toParenthesizedASTString() {
-    return toASTString();
+  public String toParenthesizedASTString(boolean pQualified) {
+    return toASTString(pQualified);
   }
 
   @Override

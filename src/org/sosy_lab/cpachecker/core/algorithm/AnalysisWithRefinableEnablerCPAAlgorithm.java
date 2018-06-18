@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -138,7 +137,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     private final Class<? extends AbstractState> stateClass;
     private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-    private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
+    Enabler(
+        Class<? extends AbstractState> pStateClassOfEnabler,
         Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {
       stateClass = pStateClassOfEnabler;
       cpaClass = pCPAClassOfEnabler;
@@ -204,7 +204,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!allowLazyRefinement) {
       restartFromScratchAfterRefinement(pReachedSet);
     } else {
-      if(from(pReachedSet).anyMatch(IS_TARGET_STATE)) {
+      if (pReachedSet.hasViolatedProperties()) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null);
       }
     }

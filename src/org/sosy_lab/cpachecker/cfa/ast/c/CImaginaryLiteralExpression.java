@@ -62,15 +62,12 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression implem
 
   @Override
   public String toASTString() {
-    return getValue().toString() + "i";
+    return getValue() + "i";
   }
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(value);
-    return prime * result + super.hashCode();
+    return Objects.hashCode(value) * 31 + super.hashCode();
   }
 
   @Override

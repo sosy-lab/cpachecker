@@ -56,6 +56,8 @@ public interface Value extends Serializable {
   /** Return the long value if this is a long value, null otherwise. **/
   public Long asLong(CType type);
 
+  <T> T accept(ValueVisitor<T> pVisitor);
+
   /** Singleton class used to signal that the value is unknown (could be anything). **/
   public static final class UnknownValue implements Value, Serializable {
 
@@ -85,6 +87,11 @@ public interface Value extends Serializable {
     public Long asLong(CType type) {
       checkNotNull(type);
       return null;
+    }
+
+    @Override
+    public <T> T accept(ValueVisitor<T> pVisitor) {
+      return pVisitor.visit(this);
     }
 
     @Override

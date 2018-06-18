@@ -25,7 +25,16 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -74,17 +83,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
@@ -200,8 +198,7 @@ public class CustomInstruction{
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.<String> emptyList(),
-        "(define-fun ci() Bool true)");
+      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
@@ -399,8 +396,7 @@ public class CustomInstruction{
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.<String> emptyList(),
-        "(define-fun ci() Bool true)");
+      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
     }
 
     StringBuilder sb = new StringBuilder();
@@ -824,7 +820,14 @@ public class CustomInstruction{
           if (!ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())) {
             ciVarToAciVar.put(ciExp.getDeclaration().getQualifiedName(), aciExpValue.toString());
           } else if (!ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName()).equals(aciExpValue.toString())) {
-            throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getDeclaration().getQualifiedName() + " with the value " + ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName()) + ", which is different to " + aciExpValue.toString() + ".");
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The mapping is not clear. The map contains "
+                    + ciExp.getDeclaration().getQualifiedName()
+                    + " with the value "
+                    + ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName())
+                    + ", which is different to "
+                    + aciExpValue
+                    + ".");
           }
         } else {
           throw new AppliedCustomInstructionParsingFailedException("The simpleType of the ci " + ciExp + " is not a valid one.");

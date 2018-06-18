@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -79,10 +78,10 @@ public class ARGPathTest {
 
     for (int i = 0; i < 10 ; i++) {
       CFANode secondNode = new CFANode("test");
-      CFAEdge edge = new BlankEdge("", FileLocation.DUMMY, firstNode, secondNode, "test");
-      edges.add(edge);
-      firstNode.addLeavingEdge(edge);
-      secondNode.addEnteringEdge(edge);
+      CFAEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, secondNode, "test");
+      edges.add(dummyEdge);
+      firstNode.addLeavingEdge(dummyEdge);
+      secondNode.addEnteringEdge(dummyEdge);
       firstNode = secondNode;
     }
 
@@ -148,11 +147,11 @@ public class ARGPathTest {
     List<ARGState> states = new ArrayList<>();
     states.add(state);
     states.add(secondState);
-    List<CFAEdge> edges = new ArrayList<>();
-    edges.add(edge);
-    ARGPath path = new ARGPath(states, edges);
+    List<CFAEdge> newEdges = new ArrayList<>();
+    newEdges.add(edge);
+    ARGPath newPath = new ARGPath(states, newEdges);
 
-    assertThat(builder.build(secondState)).isEqualTo(path);
+    assertThat(builder.build(secondState)).isEqualTo(newPath);
     assertThat(builder.edges).containsExactly(edge);
     assertThat(builder.states).containsExactly(state);
   }
@@ -169,11 +168,11 @@ public class ARGPathTest {
     List<ARGState> states = new ArrayList<>();
     states.add(state);
     states.add(secondState);
-    List<CFAEdge> edges = new ArrayList<>();
-    edges.add(edge);
-    ARGPath path = new ARGPath(states, edges);
+    List<CFAEdge> newEdges = new ArrayList<>();
+    newEdges.add(edge);
+    ARGPath newPath = new ARGPath(states, newEdges);
 
-    assertThat(builder.build(state)).isEqualTo(path);
+    assertThat(builder.build(state)).isEqualTo(newPath);
     assertThat(builder.edges).containsExactly(edge);
     assertThat(builder.states).containsExactly(secondState);
   }
@@ -196,8 +195,7 @@ public class ARGPathTest {
 
   @Test
   public void testGetInnerEdges() {
-    List<CFAEdge> innerEdges = path.getInnerEdges();
-    assertThat(innerEdges).isEqualTo(this.innerEdges);
+    assertThat(path.getInnerEdges()).isEqualTo(this.innerEdges);
 
   }
 
@@ -255,8 +253,7 @@ public class ARGPathTest {
     // test fullPath iterator
     PathIterator pathIt = path.fullPathIterator();
     for (int i = 0; i < edges.size(); i++) {
-      CFAEdge edge = edges.get(i);
-      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edge);
+      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edges.get(i));
 
       if (i == STATE_POS_1) {
         try {
@@ -347,8 +344,7 @@ public class ARGPathTest {
     // pathIt is on the last state, we want the outgoing edge of it, so we adance it once
     pathIt.advance();
     for (int i = edges.size()-1; i >= 0; i--) {
-      CFAEdge edge = edges.get(i);
-      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edge);
+      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edges.get(i));
 
       if (i == STATE_POS_1) {
         try {
@@ -418,8 +414,7 @@ public class ARGPathTest {
     // pathIt is on the last state, we want the outgoing edge of it, so we adance it once
     pathIt.rewind();
     for (int i = edges.size() - 1; i >= 0; i--) {
-      CFAEdge edge = edges.get(i);
-      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edge);
+      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edges.get(i));
 
       if (i == STATE_POS_1) {
         try {
@@ -484,8 +479,7 @@ public class ARGPathTest {
     }
 
     for (int i = 0; i < edges.size(); i++) {
-      CFAEdge edge = edges.get(i);
-      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edge);
+      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edges.get(i));
 
       if (i == STATE_POS_1) {
         try {

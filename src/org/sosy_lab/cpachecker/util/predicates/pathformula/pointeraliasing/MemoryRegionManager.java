@@ -37,13 +37,13 @@ public interface MemoryRegionManager {
    * @param pRegion - a memory region
    * @return the uninterpreted function name
    */
-  public String getPointerAccessName(final MemoryRegion pRegion);
+  String getPointerAccessName(final MemoryRegion pRegion);
   /**
    * Creates a memory region for a given type
    * @param pType - type used to create a region
    * @return New region for the given type
    */
-  public MemoryRegion makeMemoryRegion(CType pType);
+  MemoryRegion makeMemoryRegion(CType pType);
   /**
    * Creates a region for the field access
    * @param pFieldOwnerType - the type of the field owner structure
@@ -51,7 +51,7 @@ public interface MemoryRegionManager {
    * @param pFieldName - name of the field
    * @return New memory region for the given field
    */
-  public MemoryRegion makeMemoryRegion(CType pFieldOwnerType, CType pExpressionType, String pFieldName);
+  MemoryRegion makeMemoryRegion(CType pFieldOwnerType, CType pExpressionType, String pFieldName);
 
   /**
    * Creates a region for accessing a given field
@@ -60,7 +60,7 @@ public interface MemoryRegionManager {
    * @param pField the field to access
    * @return New memory region for the given field
    */
-  public MemoryRegion makeMemoryRegion(
+  MemoryRegion makeMemoryRegion(
       CType pFieldOwnerType, CCompositeTypeMemberDeclaration pField);
 
   /**
@@ -70,10 +70,10 @@ public interface MemoryRegionManager {
    * @param pUfName - name of the region (uninterpreted function)
    * @param pTarget - pointer target belonging to the region
    */
-  public void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget);
+  void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget);
   /**
    * Prints statistics to the specified output
    * @param out - output stream where statistics is printed
    */
-  public void printStatistics(PrintStream out);
+  void printStatistics(PrintStream out);
 }

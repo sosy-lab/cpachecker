@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -72,7 +73,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -93,6 +93,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
+
+  @Option(
+    secure = true,
+    description = "compress the produced assumption automaton using GZIP compression."
+  )
+  private boolean compressAutomaton = false;
 
   @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
@@ -126,13 +132,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     this.logger = logger;
     this.innerAlgorithm = algo;
-    AssumptionStorageCPA cpa =
+    AssumptionStorageCPA asCpa =
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
     if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException(
           "ARGCPA needed for for export of assumption automaton in AssumptionCollectionAlgorithm");
     }
-    this.formulaManager = cpa.getFormulaManager();
+    this.formulaManager = asCpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
     this.cpa=pCpa;
@@ -198,8 +204,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return status;
   }
 
-  private AssumptionWithLocation collectLocationAssumptions(UnmodifiableReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
-    AssumptionWithLocation result = AssumptionWithLocation.copyOf(exceptionAssumptions);
+  private AssumptionWithLocation collectLocationAssumptions(
+      UnmodifiableReachedSet reached, AssumptionWithLocation pExceptionAssumptions) {
+    AssumptionWithLocation result = AssumptionWithLocation.copyOf(pExceptionAssumptions);
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
@@ -528,7 +535,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }
 
-  private class AssumptionCollectionStatistics extends AbstractStatistics {
+  private class AssumptionCollectionStatistics implements Statistics {
     @Override
     public String getName() {
       return "Assumption Collection algorithm";
@@ -550,11 +557,27 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         }
 
         if (assumptionAutomatonFile != null) {
-          try (Writer w = IO.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
-           produceAssumptionAutomaton(w, pReached);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+
+          if (!compressAutomaton) {
+            try (Writer w = IO.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
+              produceAssumptionAutomaton(w, pReached);
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            }
+          } else {
+            assumptionAutomatonFile =
+                assumptionAutomatonFile.resolveSibling(
+                    assumptionAutomatonFile.getFileName() + ".gz");
+            try {
+              IO.writeGZIPFile(
+                  assumptionAutomatonFile,
+                  Charset.defaultCharset(),
+                  (Appender) appendable -> produceAssumptionAutomaton(appendable, pReached));
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            }
           }
+
           put(out, "Number of states in automaton", automatonStates);
         }
       }

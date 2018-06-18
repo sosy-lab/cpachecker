@@ -23,22 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
-
 import java.util.Optional;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula.
- */
-class OptimizationProverEnvironmentView implements OptimizationProverEnvironment {
+/** Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula. */
+class OptimizationProverEnvironmentView extends BasicProverEnvironmentView<Void>
+    implements OptimizationProverEnvironment {
 
   private final OptimizationProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
@@ -47,14 +40,9 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
       OptimizationProverEnvironment pDelegate,
       FormulaManagerView pFormulaManager
   ) {
+    super(pDelegate, pFormulaManager.getFormulaWrappingHandler());
     delegate = pDelegate;
     wrappingHandler = pFormulaManager.getFormulaWrappingHandler();
-  }
-
-
-  @Override
-  public Void addConstraint(BooleanFormula constraint) {
-    return delegate.addConstraint(constraint);
   }
 
   @Override
@@ -74,26 +62,6 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
   }
 
   @Override
-  public void push() {
-    delegate.push();
-  }
-
-  @Override
-  public Void push(BooleanFormula f) {
-    return delegate.push(f);
-  }
-
-  @Override
-  public void pop() {
-    delegate.pop();
-  }
-
-  @Override
-  public boolean isUnsat() throws SolverException, InterruptedException {
-    return delegate.isUnsat();
-  }
-
-  @Override
   public Optional<Rational> upper(int handle, Rational epsilon) {
     return delegate.upper(handle, epsilon);
   }
@@ -101,25 +69,5 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
   @Override
   public Optional<Rational> lower(int handle, Rational epsilon) {
     return delegate.lower(handle, epsilon);
-  }
-
-  @Override
-  public Model getModel() throws SolverException {
-    return new ModelView(delegate.getModel(), wrappingHandler);
-  }
-
-  @Override
-  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
-    return ProverEnvironmentView.fixModelAssignments(delegate.getModelAssignments());
-  }
-
-  @Override
-  public void close() {
-    delegate.close();
-  }
-
-  @Override
-  public String toString() {
-    return delegate.toString();
   }
 }

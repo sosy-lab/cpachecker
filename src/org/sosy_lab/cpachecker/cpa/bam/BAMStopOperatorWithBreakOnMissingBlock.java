@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.collect.Collections2;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractWrapperStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,6 +45,8 @@ public class BAMStopOperatorWithBreakOnMissingBlock extends AbstractWrapperStopO
     if (pState instanceof MissingBlockAbstractionState) {
       return false;
     }
-    return super.stop(pState, pReached, pPrecision);
+    Collection<AbstractState> filteredReached =
+        Collections2.filter(pReached, s -> !(s instanceof MissingBlockAbstractionState));
+    return super.stop(pState, filteredReached, pPrecision);
   }
 }

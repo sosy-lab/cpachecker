@@ -114,20 +114,20 @@ public class CounterexampleCheckAlgorithm
     case CBMC:
       checker = new CBMCChecker(config, logger, cfa);
       break;
-      case CPACHECKER:
-        AssumptionToEdgeAllocator assumptionToEdgeAllocator =
-            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-        checker =
-            new CounterexampleCPAChecker(
-                config,
-                pSpecification,
-                logger,
-                pShutdownNotifier,
-                cfa,
-                s ->
-                    ARGUtils.tryGetOrCreateCounterexampleInformation(
-                        s, pCpa, assumptionToEdgeAllocator));
-        break;
+    case CPACHECKER:
+      AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+          AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+      checker =
+          new CounterexampleCPAChecker(
+              config,
+              pSpecification,
+              logger,
+              pShutdownNotifier,
+              cfa,
+              s ->
+                  ARGUtils.tryGetOrCreateCounterexampleInformation(
+                      s, pCpa, assumptionToEdgeAllocator));
+      break;
     case CONCRETE_EXECUTION:
       checker = new ConcretePathExecutionChecker(config, logger, cfa);
       break;

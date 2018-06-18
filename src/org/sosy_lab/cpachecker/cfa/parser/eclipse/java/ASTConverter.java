@@ -150,7 +150,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
 class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
@@ -429,8 +428,8 @@ class ASTConverter {
 
     // update initializer (can't be constructed while generating the Declaration)
     if (preSideAssignments.size() != 0 || postSideAssignments.size() != 0) {
-      logger.log(Level.WARNING, "Sideeffects of initializer of field "
-          + fieldName + "will be ignored");
+      logger.log(
+          Level.WARNING, "Sideeffects of initializer of field " + fieldName + " will be ignored");
       preSideAssignments.clear();
       postSideAssignments.clear();
     }
@@ -718,15 +717,7 @@ class ASTConverter {
 
     @SuppressWarnings("unchecked")
     List<Expression> p = sCI.arguments();
-
-    List<JExpression> params;
-
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = Collections.emptyList();
-    }
+    List<JExpression> params = convert(p);
 
     String name;
     String simpleName;
@@ -1294,24 +1285,26 @@ class ASTConverter {
     if (constructorBinding != null) {
       final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
 
-      return new JConstructorDeclaration(getFileLocation(pCIC),
-                                         convertConstructorType(constructorBinding),
-                                         fullName,
-                                         simpleName,
-                                         Collections.<JParameterDeclaration>emptyList(),
-                                         mb.getVisibility(),
-                                         mb.isStrictFp(),
-                                         getDeclaringClassType(constructorBinding));
+      return new JConstructorDeclaration(
+          getFileLocation(pCIC),
+          convertConstructorType(constructorBinding),
+          fullName,
+          simpleName,
+          Collections.emptyList(),
+          mb.getVisibility(),
+          mb.isStrictFp(),
+          getDeclaringClassType(constructorBinding));
 
     } else {
-      return new JConstructorDeclaration(getFileLocation(pCIC),
-                                         JConstructorType.createUnresolvableConstructorType(),
-                                         fullName,
-                                         simpleName,
-                                         Collections.<JParameterDeclaration>emptyList(),
-                                         VisibilityModifier.NONE,
-                                         false,
-                                         JClassType.createUnresolvableType());
+      return new JConstructorDeclaration(
+          getFileLocation(pCIC),
+          JConstructorType.createUnresolvableConstructorType(),
+          fullName,
+          simpleName,
+          Collections.emptyList(),
+          VisibilityModifier.NONE,
+          false,
+          JClassType.createUnresolvableType());
     }
   }
 
@@ -1445,17 +1438,7 @@ class ASTConverter {
   private List<JExpression> getParameterExpressions(ClassInstanceCreation pCIC) {
     @SuppressWarnings("unchecked")
     List<Expression> p = pCIC.arguments();
-
-    List<JExpression> params;
-
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = Collections.emptyList();
-    }
-
-    return params;
+    return convert(p);
   }
 
 
@@ -1756,7 +1739,6 @@ class ASTConverter {
   }
 
   private List<JExpression> convert(List<Expression> el) {
-
     List<JExpression> result = new ArrayList<>(el.size());
     for (Expression expression : el) {
       result.add(convertExpressionWithoutSideEffects(expression));
@@ -2062,8 +2044,7 @@ class ASTConverter {
     } else if (op.equals(PrefixExpression.Operator.MINUS)) {
       return UnaryOperator.MINUS;
     } else {
-      throw new CFAGenerationRuntimeException(
-          "Could not proccess Operator:"  + op.toString() + ".");
+      throw new CFAGenerationRuntimeException("Could not proccess Operator:" + op + ".");
     }
   }
 
@@ -2294,8 +2275,7 @@ class ASTConverter {
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
     if (!(iterable instanceof JIdExpression)) {
-      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly processed.",
-          pExpr);
+      throw new CFAGenerationRuntimeException(pExpr + " was not correctly processed.", pExpr);
     }
 
     FileLocation fileLoc = getFileLocation(pExpr);

@@ -246,19 +246,20 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   }
 
   /**
-   * If only one literal is the complete boolean expression, we only need to check
-   * this literal if it is equal to zero, depending on the truth assumption we
-   * either return the unchanged state or null if the following branch is not reachable.
+   * If only one literal is the complete boolean expression, we only need to check this literal if
+   * it is equal to zero, depending on the truth assumption we either return the unchanged state or
+   * null if the following branch is not reachable.
    *
    * @param value The long value of the CLiteralExpression
    * @param truthAssumption indicates if we are in the then or else branch of the assumption
    * @return an OctState or null
    */
-  private Set<OctagonState> handleLiteralBooleanExpression(long value, boolean truthAssumption, OctagonState state) {
+  private Set<OctagonState> handleLiteralBooleanExpression(
+      long value, boolean truthAssumption, OctagonState pState) {
     if ((value == 0) == truthAssumption) {
       return Collections.emptySet();
     } else {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     }
   }
 
@@ -272,10 +273,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     }
   }
 
-  /**
-   * This method handles all binary boolean expressions.
-   */
-  private Set<OctagonState> handleBinaryBooleanExpression(CBinaryExpression binExp, boolean truthAssumption, OctagonState state) throws CPATransferException {
+  /** This method handles all binary boolean expressions. */
+  private Set<OctagonState> handleBinaryBooleanExpression(
+      CBinaryExpression binExp, boolean truthAssumption, OctagonState pState)
+      throws CPATransferException {
 
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
     // condition, (this simplification is added in the cfa creation phase)
@@ -287,7 +288,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     case SHIFT_LEFT:
     case SHIFT_RIGHT:
     case MODULO:
-      return Collections.singleton(state);
+        return Collections.singleton(pState);
 
     // for the following cases we first create a temporary variable where
     // the result of the operation is saved, afterwards, the equality with == 0
@@ -300,7 +301,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
             MemoryLocation.valueOf(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         COctagonCoefficientVisitor coeffVisitor =
-            new COctagonCoefficientVisitor(state, functionName);
+            new COctagonCoefficientVisitor(pState, functionName);
         Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList = binExp.accept(coeffVisitor);
         Set<OctagonState> possibleStates = new HashSet<>();
         for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsList) {
@@ -308,7 +309,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
         // we have an undefined value, so there is no need to make any assumptions about it
         if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-          return Collections.singleton(state);
+            return Collections.singleton(pState);
         }
 
         OctagonState tmp = pairs.getSecond().declareVariable(tempVarName,
@@ -335,13 +336,13 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       BinaryOperator op = binExp.getOperator();
 
       if (!isHandleableVariable(left) || !isHandleableVariable(right)) {
-        return Collections.singleton(state);
+          return Collections.singleton(pState);
       }
 
       if (left instanceof CLiteralExpression || right instanceof CLiteralExpression) {
-        return handleBinaryAssumptionWithLiteral(left, right, op, truthAssumption, state);
+          return handleBinaryAssumptionWithLiteral(left, right, op, truthAssumption, pState);
       } else {
-        return handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, state);
+          return handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, pState);
       }
 
     default:
@@ -350,16 +351,22 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   }
 
   /**
-   * This method is a helper method for handleBinaryBooleanExpression. It handles
-   * all Assumptions with one literal and one variable or with two literals.
-   * (p.e. a < 4; 4 < a; 3 < 4)
+   * This method is a helper method for handleBinaryBooleanExpression. It handles all Assumptions
+   * with one literal and one variable or with two literals. (p.e. a < 4; 4 < a; 3 < 4)
    */
-  private Set<OctagonState> handleBinaryAssumptionWithLiteral(CExpression left, CExpression right, BinaryOperator op,
-      boolean truthAssumption, OctagonState state) throws CPATransferException {
+  private Set<OctagonState> handleBinaryAssumptionWithLiteral(
+      CExpression left,
+      CExpression right,
+      BinaryOperator op,
+      boolean truthAssumption,
+      OctagonState pState)
+      throws CPATransferException {
 
     // we cannot cope with string literals so we do not know anything about the assumption
     // => just return the previous state
-    if (left instanceof CStringLiteralExpression || right instanceof CStringLiteralExpression) { return Collections.singleton(state); }
+    if (left instanceof CStringLiteralExpression || right instanceof CStringLiteralExpression) {
+      return Collections.singleton(pState);
+    }
 
     // both are literals
     if (left instanceof CLiteralExpression && right instanceof CLiteralExpression) {
@@ -385,16 +392,18 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       default:
           break;
       }
-      return handleBinaryAssumptionWithOneLiteral(right, (CLiteralExpression) left, op, truthAssumption, state);
+      return handleBinaryAssumptionWithOneLiteral(
+          right, (CLiteralExpression) left, op, truthAssumption, pState);
 
       // literal is on the right position, variable on the left;
     } else if (right instanceof CLiteralExpression) {
-      return handleBinaryAssumptionWithOneLiteral(left, (CLiteralExpression) right, op, truthAssumption, state);
+      return handleBinaryAssumptionWithOneLiteral(
+          left, (CLiteralExpression) right, op, truthAssumption, pState);
     }
 
     // if we did not return anything up to now we were not able to handle it
     // => just return the previous state
-    return Collections.singleton(state);
+    return Collections.singleton(pState);
   }
 
   private boolean isHandleableVariable(CExpression var) {
@@ -423,22 +432,26 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   }
 
   /**
-   * This method assumes the literal is on the righthandside! So take care while
-   * calling this method, and if necessary change the operator to its opposite.
-   * (p.e. a < 4)
+   * This method assumes the literal is on the righthandside! So take care while calling this
+   * method, and if necessary change the operator to its opposite. (p.e. a < 4)
    */
-  private Set<OctagonState> handleBinaryAssumptionWithOneLiteral(CExpression left, CLiteralExpression right, BinaryOperator op,
-      boolean truthAssumption, OctagonState state) throws CPATransferException {
+  private Set<OctagonState> handleBinaryAssumptionWithOneLiteral(
+      CExpression left,
+      CLiteralExpression right,
+      BinaryOperator op,
+      boolean truthAssumption,
+      OctagonState pState)
+      throws CPATransferException {
 
     // we cannot handle pointers, so just ignore them
     if (left.getExpressionType() instanceof CPointerType
         || (left instanceof CFieldReference && ((CFieldReference) left).isPointerDereference())) {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     }
 
     MemoryLocation leftVarName = null;
     List<OctagonState> states = new ArrayList<>();
-    states.add(state);
+    states.add(pState);
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
@@ -446,7 +459,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
       // create a temp var for the left side of the expression
     } else {
-      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
+      COctagonCoefficientVisitor coeffVisitor =
+          new COctagonCoefficientVisitor(pState, functionName);
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
@@ -458,7 +472,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
         // we cannot do any comparison with an unknown value, so just quit here
         if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-          return Collections.singleton(state);
+          return Collections.singleton(pState);
         }
 
         OctagonState tmpState = pairs.getSecond().declareVariable(tempLeft, getCorrespondingOctStateType(left.getExpressionType()));
@@ -478,7 +492,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     // we cannot handle strings, so just return the previous state
     } else {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     }
 
     Set<OctagonState> possibleStates = new HashSet<>();
@@ -597,7 +611,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
    * This method handles all binary assumptions without literals (p.e. a < b)
     */
   private Set<OctagonState> handleBinaryAssumptionWithoutLiteral(CBinaryExpression binExp, boolean truthAssumption,
-      CExpression left, CExpression right, OctagonState state)
+      CExpression left, CExpression right, OctagonState pState)
       throws CPATransferException {
     CBinaryExpression.BinaryOperator op = binExp.getOperator();
     MemoryLocation leftVarName = null;
@@ -606,11 +620,11 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     // we cannot handle pointers, so just ignore them
     // TODO make program unsafe?
     if (!isHandleableVariable(left) || !isHandleableVariable(right)) {
-      return Collections.singleton(state);
+      return Collections.singleton(pState);
     }
 
     Set<OctagonState> states = new HashSet<>();
-    states.add(state);
+    states.add(pState);
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
@@ -618,7 +632,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
       // create a temp var for the left side of the expression
     } else {
-      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
+      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(pState, functionName);
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
@@ -630,7 +644,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
         // we cannot do any comparison with an unknown value, so just quit here
         if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-          return Collections.singleton(state);
+          return Collections.singleton(pState);
         }
 
         OctagonState tmp = pairs.getSecond().declareVariable(tempLeft, getCorrespondingOctStateType(left.getExpressionType()));
@@ -662,7 +676,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
           // we cannot do any comparison with an unknown value, so just quit here
           if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-            return Collections.singleton(state);
+            return Collections.singleton(pState);
           }
 
           OctagonState tmp = pairs.getSecond().declareVariable(tempRight, getCorrespondingOctStateType(right.getExpressionType()));
@@ -680,7 +694,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case GREATER_EQUAL:
       case LESS_EQUAL:
        if (truthAssumption) {
-         return Collections.singleton(state);
+         return Collections.singleton(pState);
        } else {
          return Collections.emptySet();
        }
@@ -690,7 +704,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         if (truthAssumption) {
           return Collections.emptySet();
         } else {
-          return Collections.singleton(state);
+          return Collections.singleton(pState);
         }
       default:
       }
@@ -757,17 +771,18 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   }
 
   /**
-   * This method handles all expressions which are assumptions without beeing
-   * binary expressions (p.e if(1) or if(1+2) or if (a))
+   * This method handles all expressions which are assumptions without beeing binary expressions
+   * (p.e if(1) or if(1+2) or if (a))
    */
-  private Set<OctagonState> handleSingleBooleanExpression(MemoryLocation variableName, boolean truthAssumption, OctagonState state) {
+  private Set<OctagonState> handleSingleBooleanExpression(
+      MemoryLocation variableName, boolean truthAssumption, OctagonState pState) {
     // if (a)
     if (truthAssumption) {
-      return state.addIneqConstraint(variableName, OctagonIntValue.ZERO);
+      return pState.addIneqConstraint(variableName, OctagonIntValue.ZERO);
 
       // if (!a)
     } else {
-      return Collections.singleton(state.addEqConstraint(variableName, OctagonIntValue.ZERO));
+      return Collections.singleton(pState.addEqConstraint(variableName, OctagonIntValue.ZERO));
     }
   }
 
@@ -1023,7 +1038,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     throw new UnrecognizedCCodeException("unknown statement", cfaEdge, statement);
   }
 
-  private MemoryLocation buildVarName(CLeftHandSide left, String functionName) {
+  private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
 
     String variableName = null;
     if (left instanceof CArraySubscriptExpression) {
@@ -1037,7 +1052,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(functionName, variableName);
+      return MemoryLocation.valueOf(pFunctionName, variableName);
     } else {
       return MemoryLocation.valueOf(variableName);
     }
@@ -1166,21 +1181,33 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         for (Pair<IOctagonCoefficients, Set<Pair<IOctagonCoefficients, OctagonState>>> pairs : right) {
           IOctagonCoefficients leftCoeffs = pairs.getFirst();
           for (Pair<IOctagonCoefficients, OctagonState> rightPair : pairs.getSecond()) {
-            OctagonState visitorState = rightPair.getSecond();
+                OctagonState rightVisitorState = rightPair.getSecond();
             IOctagonCoefficients rightCoeffs = rightPair.getFirst();
 
-            // shortcut for statements like x == x
-            if (leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState).equals(rightCoeffs)) {
+                // shortcut for statements like x == x
+                if (leftCoeffs
+                    .expandToSize(rightVisitorState.sizeOfVariables(), rightVisitorState)
+                    .equals(rightCoeffs)) {
               switch (binOp) {
               case EQUALS:
               case GREATER_EQUAL:
               case LESS_EQUAL:
-                returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+                      returnCoefficients.add(
+                          Pair.of(
+                              (IOctagonCoefficients)
+                                  OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                                      rightVisitorState.sizeOfVariables(), rightVisitorState),
+                              rightVisitorState));
                 break;
               case NOT_EQUALS:
               case LESS_THAN:
               case GREATER_THAN:
-                returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+                      returnCoefficients.add(
+                          Pair.of(
+                              (IOctagonCoefficients)
+                                  OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                                      rightVisitorState.sizeOfVariables(), rightVisitorState),
+                              rightVisitorState));
                 break;
                // unused default statements, all possible values for this switch
                // statement are handled above
@@ -1193,11 +1220,14 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
             // we do not need to create a temporary variable if the left or
             // right coefficients are already a variable
             if (leftCoeffs.hasOnlyOneValue() && !leftCoeffs.hasOnlyConstantValue()) {
-              tempVarLeft = visitorState.getVariableNameFor(leftCoeffs.getVariableIndex());
+                  tempVarLeft = rightVisitorState.getVariableNameFor(leftCoeffs.getVariableIndex());
 
             } else if (rightCoeffs.hasOnlyOneValue() && !rightCoeffs.hasOnlyConstantValue()) {
-              tempVarLeft = visitorState.getVariableNameFor(rightCoeffs.getVariableIndex());
-              rightCoeffs = leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
+                  tempVarLeft =
+                      rightVisitorState.getVariableNameFor(rightCoeffs.getVariableIndex());
+                  rightCoeffs =
+                      leftCoeffs.expandToSize(
+                          rightVisitorState.sizeOfVariables(), rightVisitorState);
 
               //because we change the sides of the operands, we have to change the
               //operator, too
@@ -1210,12 +1240,22 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
               }
 
             } else {
-              visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
-              visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
-              rightCoeffs = rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
+                  rightVisitorState =
+                      rightVisitorState.declareVariable(
+                          tempVarLeft,
+                          getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+                  rightVisitorState =
+                      rightVisitorState.makeAssignment(
+                          tempVarLeft,
+                          leftCoeffs.expandToSize(
+                              rightVisitorState.sizeOfVariables(), rightVisitorState));
+                  rightCoeffs =
+                      rightCoeffs.expandToSize(
+                          rightVisitorState.sizeOfVariables(), rightVisitorState);
             }
 
-            returnCoefficients.addAll(handleLogicalOperators(tempVarLeft, binOp, visitorState, rightCoeffs));
+                returnCoefficients.addAll(
+                    handleLogicalOperators(tempVarLeft, binOp, rightVisitorState, rightCoeffs));
           }
         }
         return returnCoefficients;
@@ -1229,51 +1269,77 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
           IOctagonCoefficients leftCoeffs = pairs.getFirst();
           for (Pair<IOctagonCoefficients, OctagonState> rightPair : pairs.getSecond()) {
             IOctagonCoefficients rightCoeffs = rightPair.getFirst();
-            OctagonState visitorState = rightPair.getSecond();
+                OctagonState rightVisitorState = rightPair.getSecond();
 
             if (leftCoeffs.size() < rightCoeffs.size()) {
-              leftCoeffs = leftCoeffs.expandToSize(rightCoeffs.size(), visitorState);
+                  leftCoeffs = leftCoeffs.expandToSize(rightCoeffs.size(), rightVisitorState);
             } else {
-              rightCoeffs = rightCoeffs.expandToSize(leftCoeffs.size(), visitorState);
+                  rightCoeffs = rightCoeffs.expandToSize(leftCoeffs.size(), rightVisitorState);
             }
             if (e.getOperator() == BinaryOperator.MINUS) {
-              returnCoefficients.add(Pair.of(leftCoeffs.sub(rightCoeffs), visitorState));
+                  returnCoefficients.add(Pair.of(leftCoeffs.sub(rightCoeffs), rightVisitorState));
             } else if (e.getOperator() == BinaryOperator.PLUS) {
-              returnCoefficients.add(Pair.of(leftCoeffs.add(rightCoeffs), visitorState));
+                  returnCoefficients.add(Pair.of(leftCoeffs.add(rightCoeffs), rightVisitorState));
 
               // TODO these are some more or less untested optimizations which should mostly
               // be necessary for floats, after some testing this should be enabled by default
             } else if (e.getOperator() == BinaryOperator.MULTIPLY) {
 
               if (leftCoeffs.hasOnlyOneValue() || rightCoeffs.hasOnlyOneValue()) {
-                returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), visitorState));
+                    returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), rightVisitorState));
               } else {
                 MemoryLocation tempVarLeft = MemoryLocation.valueOf(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
                 temporaryVariableCounter++;
-                visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
-                visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
-                returnCoefficients.add(Pair.of(new OctagonSimpleCoefficients(visitorState.sizeOfVariables(),
-                                                                         visitorState.getVariableIndexFor(tempVarLeft),
-                                                                         OctagonIntValue.ONE,
-                                                                         visitorState).mul(rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState)),
-                                                visitorState));
+                    rightVisitorState =
+                        rightVisitorState.declareVariable(
+                            tempVarLeft,
+                            getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+                    rightVisitorState =
+                        rightVisitorState.makeAssignment(
+                            tempVarLeft,
+                            leftCoeffs.expandToSize(
+                                rightVisitorState.sizeOfVariables(), rightVisitorState));
+                    returnCoefficients.add(
+                        Pair.of(
+                            new OctagonSimpleCoefficients(
+                                    rightVisitorState.sizeOfVariables(),
+                                    rightVisitorState.getVariableIndexFor(tempVarLeft),
+                                    OctagonIntValue.ONE,
+                                    rightVisitorState)
+                                .mul(
+                                    rightCoeffs.expandToSize(
+                                        rightVisitorState.sizeOfVariables(), rightVisitorState)),
+                            rightVisitorState));
               }
 
             } else if (e.getOperator() == BinaryOperator.DIVIDE) {
 
               if (rightCoeffs.hasOnlyOneValue()) {
-                returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), visitorState));
+                    returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), rightVisitorState));
               } else {
                 MemoryLocation tempVarRight = MemoryLocation.valueOf(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
                 temporaryVariableCounter++;
-                visitorState = visitorState.declareVariable(tempVarRight, getCorrespondingOctStateType(e.getOperand2().getExpressionType()));
-                visitorState = visitorState.makeAssignment(tempVarRight, rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
-                IOctagonCoefficients expandedleftCoeffs = leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
-                returnCoefficients.add(Pair.of(expandedleftCoeffs.div(new OctagonSimpleCoefficients(visitorState.sizeOfVariables(),
-                                                                                        visitorState.getVariableIndexFor(tempVarRight),
-                                                                                        OctagonIntValue.ONE,
-                                                                                        visitorState)),
-                                                visitorState));
+                    rightVisitorState =
+                        rightVisitorState.declareVariable(
+                            tempVarRight,
+                            getCorrespondingOctStateType(e.getOperand2().getExpressionType()));
+                    rightVisitorState =
+                        rightVisitorState.makeAssignment(
+                            tempVarRight,
+                            rightCoeffs.expandToSize(
+                                rightVisitorState.sizeOfVariables(), rightVisitorState));
+                    IOctagonCoefficients expandedleftCoeffs =
+                        leftCoeffs.expandToSize(
+                            rightVisitorState.sizeOfVariables(), rightVisitorState);
+                    returnCoefficients.add(
+                        Pair.of(
+                            expandedleftCoeffs.div(
+                                new OctagonSimpleCoefficients(
+                                    rightVisitorState.sizeOfVariables(),
+                                    rightVisitorState.getVariableIndexFor(tempVarRight),
+                                    OctagonIntValue.ONE,
+                                    rightVisitorState)),
+                            rightVisitorState));
               }
             }
           }
@@ -1286,25 +1352,39 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       }
     }
 
-    private Set<Pair<IOctagonCoefficients, OctagonState>> handleLogicalOperators(MemoryLocation pTempVarLeft, BinaryOperator binOp, OctagonState state, IOctagonCoefficients constraintCoeffs) {
+    private Set<Pair<IOctagonCoefficients, OctagonState>> handleLogicalOperators(
+        MemoryLocation pTempVarLeft,
+        BinaryOperator binOp,
+        OctagonState pState,
+        IOctagonCoefficients constraintCoeffs) {
       Set<Pair<IOctagonCoefficients, OctagonState>> returnCoefficients = new HashSet<>();
       OctagonState tmpState;
       switch (binOp) {
       case EQUALS:
-        tmpState = state.addEqConstraint(pTempVarLeft, constraintCoeffs);
+          tmpState = pState.addEqConstraint(pTempVarLeft, constraintCoeffs);
         if (tmpState.isEmpty()) {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                            pState.sizeOfVariables(), pState),
+                    pState));
         } else {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                            pState.sizeOfVariables(), tmpState),
+                    tmpState));
 
-          // just because we know the value may be equal to the rightcoeffs, it does not
-          // have to be equal, so we need to check on smaller/greater rightCoeffs
-          // and eventually return more states
-          OctagonState smaller = state.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
+            // just because we know the value may be equal to the rightcoeffs, it does not
+            // have to be equal, so we need to check on smaller/greater rightCoeffs
+            // and eventually return more states
+            OctagonState smaller = pState.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
           if (!smaller.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
           } else {
-            OctagonState greater = state.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
+              OctagonState greater = pState.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
             if (!greater.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
             }
@@ -1312,74 +1392,113 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         }
         break;
       case GREATER_EQUAL:
-        tmpState = state.addGreaterEqConstraint(pTempVarLeft, constraintCoeffs);
+          tmpState = pState.addGreaterEqConstraint(pTempVarLeft, constraintCoeffs);
         if (tmpState.isEmpty()) {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                            pState.sizeOfVariables(), pState),
+                    pState));
         } else {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                            pState.sizeOfVariables(), tmpState),
+                    tmpState));
 
-
-          // just because we know the value may be greater equal than the rightcoeffs, it does not
-          // have to be greater equal, so we need to check on smaller rightCoeffs
-          // and eventually return more states
-          OctagonState smaller = state.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
+            // just because we know the value may be greater equal than the rightcoeffs, it does not
+            // have to be greater equal, so we need to check on smaller rightCoeffs
+            // and eventually return more states
+            OctagonState smaller = pState.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
           if (!smaller.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
           }
         }
         break;
       case GREATER_THAN:
-        tmpState = state.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
+          tmpState = pState.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
         if (tmpState.isEmpty()) {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                            pState.sizeOfVariables(), pState),
+                    pState));
         } else {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                            pState.sizeOfVariables(), tmpState),
+                    tmpState));
 
-          // just because we know the value may be greater than the rightcoeffs, it does not
-          // have to be greater, so we need to check on smaller equal rightCoeffs
-          // and eventually return more states
-          OctagonState smaller = state.addSmallerEqConstraint(pTempVarLeft, constraintCoeffs);
+            // just because we know the value may be greater than the rightcoeffs, it does not
+            // have to be greater, so we need to check on smaller equal rightCoeffs
+            // and eventually return more states
+            OctagonState smaller = pState.addSmallerEqConstraint(pTempVarLeft, constraintCoeffs);
           if (!smaller.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
           }
         }
         break;
       case LESS_EQUAL:
-        tmpState = state.addSmallerEqConstraint(pTempVarLeft, constraintCoeffs);
+          tmpState = pState.addSmallerEqConstraint(pTempVarLeft, constraintCoeffs);
         if (tmpState.isEmpty()) {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                            pState.sizeOfVariables(), pState),
+                    pState));
         } else {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                            pState.sizeOfVariables(), tmpState),
+                    tmpState));
 
-          // just because we know the value may be smaller equal than the rightcoeffs, it does not
-          // have to be smaller equal, so we need to check on greater rightCoeffs
-          // and eventually return more states
-          OctagonState greater = state.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
+            // just because we know the value may be smaller equal than the rightcoeffs, it does not
+            // have to be smaller equal, so we need to check on greater rightCoeffs
+            // and eventually return more states
+            OctagonState greater = pState.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
           if (!greater.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
           }
         }
         break;
       case LESS_THAN:
-        tmpState = state.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
+          tmpState = pState.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
         if (tmpState.isEmpty()) {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                            pState.sizeOfVariables(), pState),
+                    pState));
         } else {
-          returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+            returnCoefficients.add(
+                Pair.of(
+                    (IOctagonCoefficients)
+                        OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                            pState.sizeOfVariables(), tmpState),
+                    tmpState));
 
-          // just because we know the value may be smaller than the rightcoeffs, it does not
-          // have to be smaller, so we need to check on greater equal rightCoeffs
-          // and eventually return more states
-          OctagonState greater = state.addGreaterEqConstraint(pTempVarLeft, constraintCoeffs);
+            // just because we know the value may be smaller than the rightcoeffs, it does not
+            // have to be smaller, so we need to check on greater equal rightCoeffs
+            // and eventually return more states
+            OctagonState greater = pState.addGreaterEqConstraint(pTempVarLeft, constraintCoeffs);
           if (!greater.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
           }
         }
         break;
       case NOT_EQUALS:
-        OctagonState smaller = state.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
-        OctagonState bigger = state.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
-        OctagonState equal = state.addEqConstraint(pTempVarLeft, constraintCoeffs);
+          OctagonState smaller = pState.addSmallerConstraint(pTempVarLeft, constraintCoeffs);
+          OctagonState bigger = pState.addGreaterConstraint(pTempVarLeft, constraintCoeffs);
+          OctagonState equal = pState.addEqConstraint(pTempVarLeft, constraintCoeffs);
 
         if (!smaller.isEmpty()) {
           returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolTRUECoeffs(smaller.sizeOfVariables(), smaller), smaller));
@@ -1477,15 +1596,24 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFunctionCallExpression e) throws CPATransferException {
+      IOctagonCoefficients coefficients = OctagonUniversalCoefficients.INSTANCE;
       if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        String functionName = ((CIdExpression)e.getFunctionNameExpression()).getName();
-        if (functionName.equals("__VERIFIER_nondet_uint")) {
-          return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonIntervalCoefficients.getNondetUIntCoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-        } else if (functionName.equals("__VERIFIER_nondet_bool")) {
-          return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonIntervalCoefficients.getNondetBoolCoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+          case "__VERIFIER_nondet_uint":
+            coefficients =
+                OctagonIntervalCoefficients.getNondetUIntCoeffs(
+                    visitorState.sizeOfVariables(), visitorState);
+            break;
+          case "__VERIFIER_nondet_bool":
+            coefficients =
+                OctagonIntervalCoefficients.getNondetBoolCoeffs(
+                    visitorState.sizeOfVariables(), visitorState);
+            break;
+          default:
+            // $FALL-THROUGH$
         }
       }
-      return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+      return Collections.singleton(Pair.of(coefficients, visitorState));
     }
   }
 

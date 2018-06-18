@@ -387,7 +387,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         // do not have a body
         // if the function is already declared it will not be redeclared
       } else if (newD instanceof CFunctionDeclaration) {
-        if (scope.lookupFunction(((CFunctionDeclaration)newD).getName()) == null) {
+        if (scope.lookupFunction(newD.getName()) == null) {
           scope.registerLocalFunction((CFunctionDeclaration)newD);
         } else {
           return prevNode;
@@ -395,7 +395,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       if (newD.isGlobal()) {
-        globalDeclarations.add(Pair.<ADeclaration, String>of(newD, rawSignature));
+        globalDeclarations.add(Pair.of(newD, rawSignature));
 
       } else {
         CFANode nextNode = newCFANode();
@@ -1234,17 +1234,17 @@ class CFAFunctionBuilder extends ASTVisitor {
               new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, elseNode, "");
         addToCFA(falseEdge);
 
-        // reset side assignments which are not necessary
-        return Optional.<CExpression>of(CIntegerLiteralExpression.ZERO);
+          // reset side assignments which are not necessary
+          return Optional.of(CIntegerLiteralExpression.ZERO);
 
       case ALWAYS_TRUE:
           final BlankEdge trueEdge =
               new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, thenNode, "");
         addToCFA(trueEdge);
 
-        // no edge connecting prevNode with elseNode,
-        // so the "else" branch won't be connected to the rest of the CFA
-        return Optional.<CExpression>of(CIntegerLiteralExpression.ONE);
+          // no edge connecting prevNode with elseNode,
+          // so the "else" branch won't be connected to the rest of the CFA
+          return Optional.of(CIntegerLiteralExpression.ONE);
 
       default:
         throw new AssertionError();
@@ -1300,7 +1300,7 @@ class CFAFunctionBuilder extends ASTVisitor {
             !flippedThenElse,
             pInnerNodes);
 
-        return Optional.<CExpression>of(exp);
+        return Optional.of(exp);
       }
     }
   }

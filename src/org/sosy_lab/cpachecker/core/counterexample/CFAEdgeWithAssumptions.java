@@ -150,8 +150,7 @@ public class CFAEdgeWithAssumptions {
    */
   public String prettyPrint() {
     String expStmt = this.prettyPrintCode(0);
-    String comment = this.getComment();
-    return expStmt + comment;
+    return expStmt + getComment();
   }
 
   /**
@@ -166,7 +165,7 @@ public class CFAEdgeWithAssumptions {
 
   @Override
   public String toString() {
-    return edge.toString() + " " + expressionStmts.toString();
+    return edge + " " + expressionStmts;
   }
 
   @Nullable

@@ -28,10 +28,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,10 +46,12 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -54,17 +59,17 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Extending SMG with notions specific for programs in C language:
- *  - separation of global, heap and stack objects
- *  - null object and value
+ * Extending SMG with notions specific for programs in C language: - separation of global, heap and
+ * stack objects - null object and value
  */
-public class CLangSMG extends SMG {
+public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   /**
    * A container for object found on the stack:
@@ -83,14 +88,8 @@ public class CLangSMG extends SMG {
    */
   private PersistentMap<String, SMGRegion> global_objects;
 
-  /**
-   * A flag signifying the edge leading to this state caused memory to be leaked
-   * TODO: Seems pretty arbitrary: perhaps we should have a more general solution,
-   *       like a container with (type, message) error witness kind of thing?
-   */
-  private boolean has_leaks = false;
-
-  static private LogManager logger = null;
+  /** logger is always NULL, except for JUnit-tests */
+  private static LogManager logger = null;
 
   /**
    * A flag setting if the class should perform additional consistency checks.
@@ -100,19 +99,55 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
-  private List<SMGObject> invalidObjects = new ArrayList<>();
-
-  public void reportInvalidObject(SMGObject pSMGObject) {
-    invalidObjects.add(pSMGObject);
+  @Override
+  public boolean containsInvalidElement(Object elem) {
+    if (elem instanceof SMGObject) {
+      SMGObject smgObject = (SMGObject) elem;
+      return isHeapObject(smgObject) || isGlobal(smgObject) || isStackObject(smgObject);
+    } else if (elem instanceof SMGEdgeHasValue) {
+      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
+              .filterAtOffset(edgeHasValue.getOffset())
+              .filterHavingValue(edgeHasValue.getValue());
+      Set<SMGEdgeHasValue> edges = getHVEdges(filter);
+      return !edges.isEmpty();
+    } else if (elem instanceof SMGEdgePointsTo) {
+      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
+      SMGEdgePointsToFilter filter =
+          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
+              .filterAtTargetOffset(edgePointsTo.getOffset())
+              .filterHavingValue(edgePointsTo.getValue());
+      Set<SMGEdgePointsTo> edges = getPtEdges(filter);
+      return !edges.isEmpty();
+    } else if (elem instanceof Integer) {
+      return getValues().contains(elem);
+    } else if (elem instanceof SMGValue) {
+      SMGValue smgValue = (SMGValue) elem;
+      return getValues().contains(smgValue.getAsInt());
+    }
+    return false;
   }
 
-  public List<SMGObject> getInvalidObjects() {
-    return invalidObjects;
+  @Override
+  public String getNoteMessageOnElement(Object elem) {
+    if (elem instanceof SMGEdge) {
+      return "Assign edge";
+    } else if (elem instanceof Integer || elem instanceof SMGValue) {
+      return "Assign value";
+    } else if (elem instanceof SMGObject) {
+      SMGObject smgObject = (SMGObject) elem;
+      if (isFunctionParameter(smgObject)) {
+        return "Function parameter";
+      }
+      return "Object creation";
+    }
+    return null;
   }
 
-  static public void setPerformChecks(boolean pSetting, LogManager logger) {
+  public static void setPerformChecks(boolean pSetting, LogManager pLogger) {
     CLangSMG.perform_checks = pSetting;
-    CLangSMG.logger = logger;
+    CLangSMG.logger = pLogger;
   }
 
   static public boolean performChecks() {
@@ -137,17 +172,21 @@ public class CLangSMG extends SMG {
   /**
    * Copy constructor.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pHeap The original CLangSMG
    */
-  public CLangSMG(CLangSMG pHeap) {
+  private CLangSMG(CLangSMG pHeap) {
     super(pHeap);
 
     stack_objects = pHeap.stack_objects;
     heap_objects = pHeap.heap_objects;
     global_objects = pHeap.global_objects;
-    has_leaks = pHeap.has_leaks;
+  }
+
+  @Override
+  public CLangSMG copyOf() {
+    return new CLangSMG(this);
   }
 
   /**
@@ -166,10 +205,6 @@ public class CLangSMG extends SMG {
     }
     heap_objects = heap_objects.addAndCopy(pObject);
     addObject(pObject);
-  }
-
-  public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
-    return getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(obj));
   }
 
   /**
@@ -217,6 +252,7 @@ public class CLangSMG extends SMG {
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
+  @Override
   public boolean isStackEmpty() {
     return stack_objects.isEmpty();
   }
@@ -237,16 +273,6 @@ public class CLangSMG extends SMG {
       super.addObject(newFrame.getReturnObject());
     }
     stack_objects = stack_objects.pushAndCopy(newFrame);
-  }
-
-  /**
-   * Sets a flag indicating this SMG is a successor over the edge causing a
-   * memory leak.
-   *
-   * Keeps consistency: yes
-   */
-  public void setMemoryLeak() {
-    has_leaks = true;
   }
 
   /**
@@ -272,14 +298,14 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Prune the SMG: remove all unreachable objects (heap ones: global and stack
-   * are always reachable) and values.
+   * Prune the SMG: remove all unreachable objects (heap ones: global and stack are always
+   * reachable) and values.
    *
-   * TODO: Too large. Refactor into fewer pieces
+   * <p>Keeps consistency: yes
    *
-   * Keeps consistency: yes
+   * @return all unreachable objects, e.g. all the objects that represent a memory leak.
    */
-  public void pruneUnreachable() {
+  public Set<SMGObject> pruneUnreachable() {
     Set<SMGObject> seen = new HashSet<>();
     Set<Integer> seen_values = new HashSet<>();
     collectReachableObjectsAndValues(seen, seen_values);
@@ -294,66 +320,80 @@ public class CLangSMG extends SMG {
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
 
     // Mark all reachable from ExternallyAllocated objects as safe for remove
-    Queue<SMGObject> workqueue2 = new ArrayDeque<>(stray_objects);
-    while (!workqueue2.isEmpty()) {
-      SMGObject processed = workqueue2.remove();
-      if (isObjectExternallyAllocated(processed)) {
-        for (SMGEdgeHasValue outbound :
-            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(processed))) {
-          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
-          if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
-            setExternallyAllocatedFlag(pointedObject, true);
-            workqueue2.add(pointedObject);
-          }
-        }
-      }
-    }
+    markExternallyAllocatedObjects(stray_objects);
 
-    // remove all unreachable objects
-    for (SMGObject stray_object : stray_objects) {
-      if (stray_object != SMGNullObject.INSTANCE) {
-        if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
-          //TODO: report stray_object as error
-          reportInvalidObject(stray_object);
-          setMemoryLeak();
-        }
-        removeObjectAndEdges(stray_object);
-        heap_objects = heap_objects.removeAndCopy(stray_object);
-      }
-    }
-
-    // remove all unreachable values
-    for (Integer stray_value : Sets.difference(getValues(), seen_values)) {
-      if (stray_value != SMG.NULL_ADDRESS) {
-        // Here, we can't just remove stray value, we also have to remove the points-to edge
-        if (isPointer(stray_value)) {
-          removePointsToEdge(stray_value);
-        }
-
-        removeValue(stray_value);
-      }
-    }
+    Set<SMGObject> unreachableObjects = removeObjects(stray_objects);
+    removeValues(Sets.difference(getValues(), seen_values));
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+
+    return unreachableObjects;
+  }
+
+  /**
+   * remove the given valid non-external objects from the heap.
+   *
+   * @return all removed valid objects, that are not externally allocated and might leak memory.
+   */
+  private Set<SMGObject> removeObjects(Collection<SMGObject> objects) {
+    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
+    for (SMGObject object : objects) {
+      if (object != SMGNullObject.INSTANCE) {
+        if (isObjectValid(object) && !isObjectExternallyAllocated(object)) {
+          unreachableObjects.add(object);
+        }
+        removeHeapObjectAndEdges(object);
+      }
+    }
+    return unreachableObjects;
+  }
+
+  /** remove the given valid values and also pointers from those values. */
+  private void removeValues(Collection<Integer> values) {
+    for (Integer value : values) {
+      if (value != SMG.NULL_ADDRESS) {
+        // Here, we can't just remove stray value, we also have to remove the points-to edge
+        if (isPointer(value)) {
+          removePointsToEdge(value);
+        }
+        removeValue(value);
+      }
+    }
+  }
+
+  /** mark all children reachable from externally allocated objects as externally allocated. */
+  private void markExternallyAllocatedObjects(Collection<SMGObject> objects) {
+    Queue<SMGObject> workqueue = new ArrayDeque<>(objects);
+    while (!workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if (isObjectExternallyAllocated(processed)) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(processed))) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+          if (objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
+            setExternallyAllocatedFlag(pointedObject, true);
+            workqueue.add(pointedObject);
+          }
+        }
+      }
     }
   }
 
   private void collectReachableObjectsAndValues(
       Set<SMGObject> seenObjects, Set<Integer> seenValues) {
 
-    // basis: get all direct reachabale objects
-    Queue<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
+    // basis: get all direct reachable objects
+    Deque<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
     for (CLangStackFrame frame : getStackFrames()) {
       workqueue.addAll(frame.getAllObjects());
     }
 
     // search all indirect reachable objects
     while (!workqueue.isEmpty()) {
-      SMGObject obj = workqueue.remove();
+      SMGObject obj = workqueue.pop();
       if (seenObjects.add(obj)) {
-        for (SMGEdgeHasValue outbound :
-            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(obj))) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if (pointedObject != null) {
             workqueue.add(pointedObject);
@@ -409,6 +449,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
+  @Override
   public SMGRegion getObjectForVisibleVariable(String pVariableName) {
     // Look in the local frame
     if (stack_objects.size() != 0) {
@@ -429,8 +470,36 @@ public class CLangSMG extends SMG {
    *
    * @return Stack of frames
    */
+  @Override
   public PersistentStack<CLangStackFrame> getStackFrames() {
     return stack_objects;
+  }
+
+  private boolean isStackObject(SMGObject pObject) {
+
+    String regionLabel = pObject.getLabel();
+
+    for (CLangStackFrame frame : stack_objects) {
+      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)
+          || pObject == frame.getReturnObject()) {
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private boolean isFunctionParameter(SMGObject pObject) {
+    String regionLabel = pObject.getLabel();
+    for (CLangStackFrame frame : stack_objects) {
+      for (CParameterDeclaration parameter : frame.getFunctionDeclaration().getParameters()) {
+        if (parameter.getName().equals(regionLabel) && frame.getVariable(regionLabel) == pObject) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -438,8 +507,9 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable view of the set of the heap objects
    */
+  @Override
   public Set<SMGObject> getHeapObjects() {
-    return heap_objects.asSet();
+    return Collections.unmodifiableSet(heap_objects.asSet());
   }
 
   /**
@@ -451,6 +521,7 @@ public class CLangSMG extends SMG {
    * @return True, if the given object is referenced in the set of heap objects, false otherwise.
    *
    */
+  @Override
   public boolean isHeapObject(SMGObject object) {
     return heap_objects.contains(object);
   }
@@ -460,21 +531,22 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable map from variable names to global objects.
    */
-  public Map<String, SMGRegion> getGlobalObjects() {
+  @Override
+  public PersistentMap<String, SMGRegion> getGlobalObjects() {
     return global_objects;
   }
 
   /**
    * Constant.
    *
-   * @return True if the SMG is a successor over the edge causing some memory
-   * to be leaked. Returns false otherwise.
+   * <p>Checks whether given object is global.
+   *
+   * @param object SMGObject to be checked.
+   * @return True, if the given object is referenced in the set of global objects, false otherwise.
    */
-  public boolean hasMemoryLeaks() {
-    // TODO: [MEMLEAK DETECTION] There needs to be a proper graph algorithm
-    //       in the future. Right now, we can discover memory leaks only
-    //       after unassigned malloc call result, so we know that immediately.
-    return has_leaks;
+  @Override
+  public boolean isGlobal(SMGObject object) {
+    return global_objects.containsValue(object);
   }
 
   /**
@@ -482,6 +554,7 @@ public class CLangSMG extends SMG {
    *
    * @return a {@link SMGObject} for current function return value
    */
+  @Override
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
   }
@@ -501,6 +574,7 @@ public class CLangSMG extends SMG {
     removeObjectAndEdges(pObject);
   }
 
+  @Override
   public IDExpression createIDExpression(SMGObject pObject) {
 
     if (global_objects.containsValue(pObject)) {
@@ -572,6 +646,7 @@ public class CLangSMG extends SMG {
     }
   }
 
+  @Override
   public Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation) {
 
     Optional<SMGObject> initialRegion = getInitialRegion(pLocation);
@@ -687,16 +762,16 @@ public class CLangSMG extends SMG {
     return super.hashCode();
   }
 
+  @Override
   public Set<SMGMemoryPath> getMemoryPaths() {
 
     Set<SMGMemoryPath> result = new HashSet<>();
     Set<SMGObject> reached = new HashSet<>();
 
     getMemoryPathsFromGlobalVariables(result, reached);
-
     getMemoryPathsFromStack(result, reached);
 
-    return result;
+    return Collections.unmodifiableSet(result);
   }
 
   private void getMemoryPathsFromStack(Set<SMGMemoryPath> pResult, Set<SMGObject> pReached) {
@@ -747,13 +822,11 @@ public class CLangSMG extends SMG {
       Set<SMGObject> pReached, SMGObjectPosition pPos, SMGMemoryPath pParent, String pFunctionName,
       Integer pLocationOnStack, String pVariableName) {
 
-    Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
     List<Long> offsets = new ArrayList<>();
     Map<Long, SMGObject> offsetToRegion = new HashMap<>();
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
-
-    for (SMGEdgeHasValue objectHve : objectHves) {
+    for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
       Integer value = objectHve.getValue();
       long offset = objectHve.getOffset();
 
@@ -800,10 +873,10 @@ public class CLangSMG extends SMG {
     }
   }
 
-  private static enum SMGObjectPosition {
+  private enum SMGObjectPosition {
     STACK,
     HEAP,
-    GLOBAL;
+    GLOBAL
   }
 
   /**
@@ -836,6 +909,7 @@ public class CLangSMG extends SMG {
     heap_objects = heap_objects.addAndCopy(SMGNullObject.INSTANCE);
   }
 
+  @Override
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
 
     Map<SMGObject, SMGMemoryPath> result = new HashMap<>();
@@ -845,7 +919,7 @@ public class CLangSMG extends SMG {
 
     getHeapObjectMemoryPathsFromStack(result, reached);
 
-    return result;
+    return Collections.unmodifiableMap(result);
   }
 
   private void getHeapObjectMemoryPathsFromGlobalVariables(Map<SMGObject, SMGMemoryPath> pResult,
@@ -896,13 +970,12 @@ public class CLangSMG extends SMG {
       Set<SMGObject> pReached, SMGObjectPosition pPos, SMGMemoryPath pParent, String pFunctionName,
       Integer pLocationOnStack, String pVariableName) {
 
-    Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
     List<Long> offsets = new ArrayList<>();
     Map<Long, SMGObject> offsetToRegion = new HashMap<>();
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
-    for (SMGEdgeHasValue objectHve : objectHves) {
+    for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
       Integer value = objectHve.getValue();
 
       if (!isPointer(value)) {

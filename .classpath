@@ -27,8 +27,10 @@
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-util.jar" sourcepath="lib/java-contrib/ultimate-util-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-smt-solver-bridge.jar" sourcepath="lib/java-contrib/ultimate-smt-solver-bridge-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-core.jar" sourcepath="lib/java-contrib/ultimate-core-sources.jar"/>
-	<referencedentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/checker-compat-qual.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jhoafparser.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/byte-buddy.jar"/>
@@ -49,7 +51,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/jna.jar"/>
-	<classpathentry kind="lib" path="lib/llvm-j.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/llvm-j.jar" sourcepath="lib/java-contrib/llvm-j-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-awt-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-constants.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-dom.jar" sourcepath="lib/java-contrib/batik-dom-sources.jar"/>
@@ -58,5 +60,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/batik-svggen.jar" sourcepath="lib/java-contrib/batik-svggen-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-xml.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/princess_2.12.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

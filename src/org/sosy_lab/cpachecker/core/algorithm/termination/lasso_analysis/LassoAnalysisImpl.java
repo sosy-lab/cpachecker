@@ -106,7 +106,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     private final AnalysisType analysisType;
 
-    private LassoAnalysisType(AnalysisType pAnalysisType) {
+    LassoAnalysisType(AnalysisType pAnalysisType) {
       analysisType = pAnalysisType;
     }
 

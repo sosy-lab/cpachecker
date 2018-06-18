@@ -123,13 +123,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   @Override
-  protected Collection<BDDState> preCheck(BDDState state, VariableTrackingPrecision precision) {
+  protected Collection<BDDState> preCheck(BDDState pState, VariableTrackingPrecision pPrecision) {
     // no variables should be tracked
-    if (precision.isEmpty()) {
-      return Collections.singleton(state);
+    if (pPrecision.isEmpty()) {
+      return Collections.singleton(pState);
     }
     // the path is not fulfilled
-    if (state.getRegion().isFalse()) {
+    if (pState.getRegion().isFalse()) {
       return Collections.emptyList();
     }
     return null;
@@ -703,13 +703,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState state, List<AbstractState> states, CFAEdge cfaEdge, Precision precision)
+      AbstractState pState, List<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
       throws CPATransferException {
-    BDDState bddState = (BDDState) state;
+    BDDState bddState = (BDDState) pState;
 
     for (AbstractState otherState : states) {
       if (otherState instanceof PointerState) {
-        super.setInfo(bddState, precision, cfaEdge);
+        super.setInfo(bddState, pPrecision, cfaEdge);
         bddState = strengthenWithPointerInformation(bddState, (PointerState) otherState, cfaEdge);
         super.resetInfo();
         if (bddState == null) {

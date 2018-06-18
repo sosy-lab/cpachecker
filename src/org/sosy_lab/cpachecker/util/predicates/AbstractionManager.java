@@ -258,10 +258,8 @@ public final class AbstractionManager {
         predicateOrdering.addAll(randomListOfVarIDs);
       } else if (multiplePartitions) {
         Set<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
-        for (PredicatePartition partition : partitions) {
-          List<AbstractionPredicate> predicates = partition.getPredicates();
-
-          for (AbstractionPredicate predicate : predicates) {
+        for (PredicatePartition part : partitions) {
+          for (AbstractionPredicate predicate : part.getPredicates()) {
             predicateOrdering.add(predicate.getVariableNumber());
           }
         }
@@ -492,7 +490,7 @@ public final class AbstractionManager {
     return rmgr;
   }
 
-  public static interface AbstractionPredicatesMXBean {
+  public interface AbstractionPredicatesMXBean {
 
     int getNumberOfPredicates();
 

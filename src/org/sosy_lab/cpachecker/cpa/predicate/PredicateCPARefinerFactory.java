@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Optional;
-
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
-import javax.annotation.Nullable;
 
 /**
  * Factory for {@link PredicateCPARefiner}, the base class for most refiners for the PredicateCPA.
@@ -66,6 +65,9 @@ public class PredicateCPARefinerFactory {
     description = "use heuristic to extract predicates from the CFA statically on first refinement"
   )
   private boolean performInitialStaticRefinement = false;
+
+  @Option(secure = true, description = "recompute block formula from ARG path edges")
+  private boolean recomputeBlockFormulas = false;
 
   private final PredicateCPA predicateCpa;
 
@@ -161,6 +163,8 @@ public class PredicateCPARefinerFactory {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
         bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
+      } else if (recomputeBlockFormulas) {
+        bfs = new RecomputeBlockFormulaStrategy(pfmgr);
       } else {
         bfs = new BlockFormulaStrategy();
       }

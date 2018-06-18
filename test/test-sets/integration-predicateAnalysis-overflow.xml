@@ -13,6 +13,7 @@
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
     <option name="-64"/>
+    <exclude>../programs/benchmarks/termination-crafted/NestedRecursion_1d_true-no-overflow_true-termination_true-valid-memsafety.c</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="Systems_BusyBox_Overflows">
     <includesfile>../programs/benchmarks/Systems_BusyBox_NoOverflows.set</includesfile>

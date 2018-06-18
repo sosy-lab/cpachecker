@@ -26,11 +26,13 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
+import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -74,19 +76,10 @@ final class CompositeTransferRelation implements TransferRelation {
     aggregateBasicBlocks = pAggregateBasicBlocks;
 
     // prepare special case handling if both predicates and assumptions are used
-    int predicatesIndex = -1;
-    int assumptionIndex = -1;
-    for (int i = 0; i < size; i++) {
-      TransferRelation t = pTransferRelations.get(i);
-      if (t instanceof PredicateTransferRelation) {
-        predicatesIndex = i;
-      }
-      if (t instanceof AssumptionStorageTransferRelation) {
-        assumptionIndex = i;
-      }
-    }
-    this.predicatesIndex = predicatesIndex;
-    this.assumptionIndex = assumptionIndex;
+    this.predicatesIndex =
+        indexOf(pTransferRelations, Predicates.instanceOf(PredicateTransferRelation.class));
+    this.assumptionIndex =
+        indexOf(pTransferRelations, Predicates.instanceOf(AssumptionStorageTransferRelation.class));
   }
 
   @Override

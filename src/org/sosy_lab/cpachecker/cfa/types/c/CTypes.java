@@ -422,13 +422,13 @@ public final class CTypes {
     return pType;
   }
 
-  private static enum ForceConstVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private enum ForceConstVisitor implements CTypeVisitor<CType, RuntimeException> {
     FALSE(false),
     TRUE(true);
 
     private final boolean constValue;
 
-    private ForceConstVisitor(boolean pConstValue) {
+    ForceConstVisitor(boolean pConstValue) {
       constValue = pConstValue;
     }
 
@@ -494,13 +494,13 @@ public final class CTypes {
     }
   }
 
-  private static enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
     FALSE(false),
     TRUE(true);
 
     private final boolean volatileValue;
 
-    private ForceVolatileVisitor(boolean pVolatileValue) {
+    ForceVolatileVisitor(boolean pVolatileValue) {
       volatileValue = pVolatileValue;
     }
 

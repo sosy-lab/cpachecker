@@ -27,12 +27,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 
 import apache.harmony.math.BigInteger;
-
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -40,15 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 
 public class BVConverter extends Converter {
@@ -201,8 +198,8 @@ public class BVConverter extends Converter {
 
     // simplify numerals, use the correct size directly instead of expensive casting
     if (term.matches("(\\(_\\sbv\\d+\\s\\d+\\))")) {
-      String[] splitted = term.split(" ");
-      BigInteger num = BigInteger.valueOf(splitted[1].substring(2));
+      List<String> splitted = Splitter.on(' ').splitToList(term);
+      BigInteger num = BigInteger.valueOf(splitted.get(1).substring(2));
       assert num.bitLength() <= neededBitsize:
         format("numeral %s does not fit into bitvector of length %d", num, neededBitsize);
       return getNumber(num, neededBitsize);
@@ -257,7 +254,7 @@ public class BVConverter extends Converter {
       // we convert "((_ divisible N) X)" into "(= (_ bv0 32) (bvmod X (_ bvN 32))"
       assert op.getSecond() == null : "type of MODULO should be unknown.";
       // extract number N from "(_ divisible (_ bvN M)"
-      int N = Integer.parseInt(op.getFirst().split(" ")[3].substring(2));
+      int N = Integer.parseInt(Splitter.on(' ').splitToList(op.getFirst()).get(3).substring(2));
       int bitsize = getBVsize(Iterables.getOnlyElement(terms).getSecond().getReturnType());
       return Pair.of(
           format("(= (_ bv0 %d) (bvsrem %s (_ bv%d %d)))",
@@ -267,7 +264,9 @@ public class BVConverter extends Converter {
     } else if (terms.size() == 1 && "__string__".equals(op.getFirst())) {
       // we convert "(__string__ (_ bvN M))" into "(__string__ N)",
       // extract number N from "(_ bvN 32)", we want the "N" from "bvN"
-      int n = Integer.parseInt(terms.get(0).getFirst().split(" ")[1].substring(2));
+      int n =
+          Integer.parseInt(
+              Splitter.on(' ').splitToList(terms.get(0).getFirst()).get(1).substring(2));
       return Pair.of(
           format("(__string__ %d)", n),
           new Type<FormulaType<?>>(op.getSecond().getReturnType()));
@@ -314,7 +313,7 @@ public class BVConverter extends Converter {
       Pair<String, Type<FormulaType<?>>> cond = terms.get(0);
       Pair<String, Type<FormulaType<?>>> eIf = terms.get(1);
       Pair<String, Type<FormulaType<?>>> eElse = terms.get(2);
-      if (Type.BOOL.equals(eIf.getSecond())) {
+      if (FormulaType.BooleanType.equals(eIf.getSecond().getReturnType())) {
         return Pair.of(format("(ite %s %s %s)",
             cond.getFirst(),
             eIf.getFirst(),

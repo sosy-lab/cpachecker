@@ -124,7 +124,9 @@ public interface PathFormulaManager {
    * @param parentFormulasOnPath TODO.
    * @return A formula containing a predicate for each branching.
    */
-  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
+  BooleanFormula buildBranchingFormula(
+      Set<ARGState> elementsOnPath,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException;
 
   /**
@@ -140,6 +142,13 @@ public interface PathFormulaManager {
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
 
   /**
+   * Clear all internal caches.
+   * Some launches are so huge, that may lead to memory limit,
+   * so, in some case it ise useful to reset outdated (and, maybe, necessary) information
+   */
+  void clearCaches();
+
+  /**
    * Convert a simple C expression to a formula consistent with the
    * current state of the {@code pFormula}.
    *
@@ -148,7 +157,8 @@ public interface PathFormulaManager {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  public Formula expressionToFormula(PathFormula pFormula,
+  Formula expressionToFormula(
+      PathFormula pFormula,
       CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException;
 
@@ -164,14 +174,16 @@ public interface PathFormulaManager {
    * @param pF2 path formula which covers
    * @return pF1.getFormula() and assumptions and not pF2.getFormula()
    */
-  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
+  BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   /**
    * Prints some information about the PathFormulaManager.
    */
-  public void printStatistics(PrintStream out);
+  void printStatistics(PrintStream out);
 
-  public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
+  BooleanFormula addBitwiseAxiomsIfNeeded(
+      BooleanFormula pMainFormula,
+      BooleanFormula pEsxtractionFormula);
 
   default PathFormulaBuilder createNewPathFormulaBuilder() {
     return new PathFormulaBuilder();
@@ -184,6 +196,6 @@ public interface PathFormulaManager {
    * @param pPostcond Postcondition
    * @return Created precondition
    */
-  public BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
+  BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
       throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException;
 }

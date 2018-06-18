@@ -844,9 +844,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // converts the RHS to make it compatible with the LHS, but in this case *both* sides should
     // be converted to pointers
     CType lhsType = typeHandler.getSimplifiedType(lhs);
-    if (lhs instanceof CIdExpression
-        && ((CIdExpression) lhs).getDeclaration() instanceof CParameterDeclaration
-        && lhsType instanceof CArrayType) {
+    if (isArrayAssignment(lhs, lhsType)) {
       lhsType =
           new CPointerType(
               lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
@@ -858,6 +856,26 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+  }
+
+  /** Is the left-hand-side an array and do we allow to assign a value to it? */
+  private boolean isArrayAssignment(final CLeftHandSide lhs, final CType lhsType) {
+    if (lhs instanceof CIdExpression && lhsType instanceof CArrayType) {
+      CSimpleDeclaration declaration = ((CIdExpression) lhs).getDeclaration();
+
+      // in function-calls we allow LHS to be of array-type.
+      if (declaration instanceof CParameterDeclaration) {
+        return true;
+      }
+
+      // when encoding global variables (maybe of array-type), we also allow re-assignments.
+      if (options.useParameterVariablesForGlobals()
+          && declaration instanceof CVariableDeclaration
+          && ((CVariableDeclaration) declaration).isGlobal()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

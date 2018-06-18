@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.

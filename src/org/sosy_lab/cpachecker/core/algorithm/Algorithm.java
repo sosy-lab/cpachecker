@@ -126,5 +126,14 @@ public interface Algorithm {
       return isPrecise == other.isPrecise
           && isSound == other.isSound;
     }
+
+    @Override
+    public String toString() {
+      return "AlgorithmStatus [isPrecise=" + isPrecise + ", isSound=" + isSound + "]";
+    }
+  }
+
+  interface AlgorithmFactory {
+    Algorithm newInstance();
   }
 }

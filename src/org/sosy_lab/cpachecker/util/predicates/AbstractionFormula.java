@@ -26,7 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -34,14 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -178,9 +175,11 @@ public class AbstractionFormula implements Serializable {
       BooleanFormula notInstantiated = mgr.uninstantiate(instantiatedFormula);
       return new AbstractionFormula(
           mgr,
-          GlobalInfo.getInstance().getAbstractionManager()
-          .convertFormulaToRegion(notInstantiated), notInstantiated,
-          instantiatedFormula, blockFormula, ImmutableSet.<Integer> of());
+          GlobalInfo.getInstance().getAbstractionManager().convertFormulaToRegion(notInstantiated),
+          notInstantiated,
+          instantiatedFormula,
+          blockFormula,
+          ImmutableSet.of());
     }
   }
 }

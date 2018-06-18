@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -97,33 +96,15 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
       PathIterator iterator = pPath.fullPathIterator();
       while (iterator.hasNext()) {
         final CFAEdge edge = iterator.getOutgoingEdge();
+        Optional<S> maybeNext = strongestPostOp.step(next, edge, precision, pCallstack, pPath);
 
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          next = strongestPostOp.handleFunctionCall(next, edge, pCallstack);
-        }
-
-        // we leave a function, so rebuild return-state before assigning the return-value.
-        if (!pCallstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          next = strongestPostOp.handleFunctionReturn(next, edge, pCallstack);
-        }
-
-        Optional<S> successors =
-            strongestPostOp.getStrongestPost(next, precision, edge);
-
-        // no successors => path is infeasible
-        if (!successors.isPresent()) {
-          logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(),
+        if (!maybeNext.isPresent()) {
+          logger.log(Level.FINE, "found path to be infeasible: ", edge,
               " did not yield a successor");
-
           return false;
+        } else {
+          next = maybeNext.get();
         }
-
-        // extract singleton successor state
-        next = successors.get();
-
-        // some variables might be blacklisted or tracked by BDDs
-        // so perform abstraction computation here
-          next = strongestPostOp.performAbstraction(next, iterator.getOutgoingEdge().getSuccessor(), pPath, precision);
 
         iterator.advance();
       }

@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -84,7 +85,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 
 public class ProofSlicer {
   private int numNotCovered;
@@ -452,7 +452,10 @@ public class ProofSlicer {
 
     ReachedSet returnReached;
     try {
-      returnReached = new ReachedSetFactory(Configuration.defaultConfiguration()).create();
+      returnReached =
+          new ReachedSetFactory(
+                  Configuration.defaultConfiguration(), LogManager.createNullLogManager())
+              .create();
       // add root
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements
@@ -485,7 +488,7 @@ public class ProofSlicer {
       final Collection<String> necessaryVars) {
     ValueAnalysisState returnState = ValueAnalysisState.copyOf(vState);
 
-    for (MemoryLocation ml : vState.getConstantsMapView().keySet()) {
+    for (MemoryLocation ml : vState.getTrackedMemoryLocations()) {
       if (!necessaryVars.contains(getVarName(ml))) {
         returnState.forget(ml);
       }

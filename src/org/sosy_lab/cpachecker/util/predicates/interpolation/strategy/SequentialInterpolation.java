@@ -51,7 +51,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
   private static final String UNEXPECTED_DIRECTION_MSG =
       "unexpected direction for sequential interpolation";
 
-  public static enum SeqInterpolationStrategy {
+  public enum SeqInterpolationStrategy {
     FWD,
     FWD_FALLBACK,
     BWD,

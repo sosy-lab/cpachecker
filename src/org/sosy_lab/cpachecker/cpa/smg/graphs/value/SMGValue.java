@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  */
 public interface SMGValue {
 
-  public boolean isUnknown();
+  boolean isUnknown();
 
-  public BigInteger getValue();
+  BigInteger getValue();
 
-  public int getAsInt();
+  int getAsInt();
 
-  public long getAsLong();
+  long getAsLong();
 }

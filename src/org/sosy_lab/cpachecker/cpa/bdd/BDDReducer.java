@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,65 +27,46 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 
+/**
+ * This reducer is nearly a {@link NoOpReducer}.
+ *
+ * <p>The key is the unwrapped BDD and analyzing recursive procedures (rebuild) is not supported.
+ */
 class BDDReducer extends GenericReducer<BDDState, Precision> {
 
-  private final PredicateManager predmgr;
+  // TODO This implementation is simple, sound and guarantees progress.
+  // Maybe we could add some heuristics like in BAMPredicateReducer and
+  // existentially quantify "block-inner" variables from formulas like "outer==inner".
+  // This is sound, but leads to weaker formulas, maybe to weak for a useful analysis.
+  // This would require a refinement step after repeated CEX, similar to
+  // BAMPredicateAbstractionRefinementStrategy.
 
-  BDDReducer(PredicateManager pPredmgr) {
-    predmgr = pPredmgr;
-  }
+  BDDReducer() {}
 
   @Override
   protected BDDState getVariableReducedState0(
-      BDDState pExpandedState, Block pBlock, CFANode pCallNode) {
-    BDDState state = pExpandedState;
-
-    for (final String var : predmgr.getTrackedVars()) {
-      if (!pBlock.getVariables().contains(var)) {
-        state = state.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
-      }
-    }
-
-    return state;
+      BDDState pExpandedState, Block pContext, CFANode pCallNode) {
+    return pExpandedState;
   }
 
   @Override
   protected BDDState getVariableExpandedState0(
-      BDDState pRootState, Block reducedContext, BDDState pReducedState) {
-    BDDState state = pRootState;
-    BDDState reducedState = pReducedState;
-
-    // remove all vars, that are used in the block
-    for (final String var : predmgr.getTrackedVars()) {
-      if (reducedContext.getVariables().contains(var)) {
-        state = state.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
-      }
-    }
-
-    // TODO maybe we have to add some heuristics like in BAMPredicateReducer,
-    // because we existentially quantify "block-inner" variables from formulas like "outer==inner".
-    // This is sound, but leads to weaker formulas, maybe to weak for a useful analysis.
-    // Or simpler solution: We could replace this Reducer with a NoOpReducer.
-
-    // add information from block to state
-    state = state.addConstraint(reducedState.getRegion());
-
-    return state;
+      BDDState pRootState, Block pReducedContext, BDDState pReducedState) {
+    return pReducedState;
   }
 
   @Override
   protected Precision getVariableReducedPrecision0(Precision precision, Block context) {
-    // TODO what to do?
     return precision;
   }
 
   @Override
   protected Precision getVariableExpandedPrecision0(
       Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    // TODO what to do?
     return reducedPrecision;
   }
 

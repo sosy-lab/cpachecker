@@ -28,7 +28,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 /**
  * This is the abstract Class for all Expressions with two Operands and one Operator.
  */
@@ -65,9 +64,12 @@ public abstract class ABinaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString() {
-    return operand1.toParenthesizedASTString() + " "
-        + operator.getOperator() + " " + operand2.toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    return operand1.toParenthesizedASTString(pQualified)
+        + " "
+        + operator.getOperator()
+        + " "
+        + operand2.toParenthesizedASTString(pQualified);
   }
 
   /* (non-Javadoc)
@@ -114,10 +116,8 @@ public abstract class ABinaryExpression extends AbstractExpression {
         "], operator=[" + getOperator() + "]";
   }
 
-  public static  interface ABinaryOperator {
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
-    public String getOperator();
+  public interface ABinaryOperator {
+    /** Returns the string representation of this operator (e.g. "*", "+"). */
+    String getOperator();
   }
 }

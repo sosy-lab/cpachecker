@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another
  * instance but caches results of some methods.
@@ -194,6 +195,15 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public void clearCaches() {
+    andFormulaWithConditionsCache.clear();
+    andFormulaCache.clear();
+    orFormulaCache.clear();
+    emptyFormulaCache.clear();
+    delegate.clearCaches();
+  }
+
+  @Override
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {
     return delegate.expressionToFormula(pFormula, expr, edge);
@@ -206,9 +216,15 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    int pathFormulaCacheHits = this.pathFormulaCacheHits;
-    int totalPathFormulaComputations = this.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
-    out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
+    int cacheHits = this.pathFormulaCacheHits;
+    int totalPathFormulaComputations =
+        this.pathFormulaComputationTimer.getNumberOfIntervals() + cacheHits;
+    out.println(
+        "Number of path formula cache hits:   "
+            + cacheHits
+            + " ("
+            + toPercent(cacheHits, totalPathFormulaComputations)
+            + ")");
     out.println();
 
     out.println("Inside post operator:                  ");

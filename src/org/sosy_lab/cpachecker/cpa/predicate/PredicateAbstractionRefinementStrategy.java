@@ -337,7 +337,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   }
 
   @Override
-  protected final void finishRefinementOfPath(
+  protected void finishRefinementOfPath(
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
@@ -416,6 +416,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PredicatePrecision newPrecision = addPredicatesToPrecision(basePrecision);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
+    logger.log(Level.ALL, "Difference of predicates is", newPrecision.subtract(basePrecision));
 
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0
         : "We forgot predicates during refinement!";
@@ -481,7 +482,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     return basePrecision;
   }
 
-  private PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
+  protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
     PredicatePrecision newPrecision;
     switch (predicateSharing) {
     case GLOBAL:
@@ -551,7 +552,17 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
     // best to use strategy one iff newPredicatesFound.
-    boolean newPredicatesFound = !targetStatePrecision.getLocalPredicates().entries().containsAll(newPredicates.entries());
+    // TODO right now this works only with location-specific predicates, not with other values of
+    // cpa.predicate.precision.sharing
+    boolean newPredicatesFound = false;
+    for (Map.Entry<LocationInstance, AbstractionPredicate> entry : newPredicates.entries()) {
+      if (!targetStatePrecision
+          .getLocalPredicates()
+          .containsEntry(entry.getKey().getLocation(), entry.getValue())) {
+        newPredicatesFound = true;
+        break;
+      }
+    }
 
     ARGState firstInterpolationPoint = pAffectedStates.get(0);
     if (!newPredicatesFound) {

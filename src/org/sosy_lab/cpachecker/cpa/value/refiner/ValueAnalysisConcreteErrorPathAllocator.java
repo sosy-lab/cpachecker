@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -381,9 +382,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       ValueAnalysisState pState, Multimap<IDExpression, MemoryLocation> memoryLocationMap) {
     ValueAnalysisState valueState = pState;
 
-    for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
+    for (MemoryLocation loc : valueState.getTrackedMemoryLocations()) {
       IDExpression idExp = createBaseIdExpresssion(loc);
-
       if (!memoryLocationMap.containsEntry(idExp, loc)) {
         memoryLocationMap.put(idExp, loc);
       }
@@ -410,13 +410,11 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   private static Map<Address, Object> createHeapValues(ValueAnalysisState pValueState,
       Map<LeftHandSide, Address> pVariableAddressMap) {
 
-    Map<MemoryLocation, Value> valueView = pValueState.getConstantsMapView();
-
     Map<Address, Object> result = new HashMap<>();
 
-    for (Entry<MemoryLocation, Value> entry : valueView.entrySet()) {
+    for (Entry<MemoryLocation, ValueAndType> entry : pValueState.getConstants()) {
       MemoryLocation heapLoc = entry.getKey();
-      Value valueAsValue = entry.getValue();
+      Value valueAsValue = entry.getValue().getValue();
 
       if (!valueAsValue.isNumericValue()) {
         // Skip non numerical values for now

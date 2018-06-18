@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
@@ -51,6 +50,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
@@ -1317,13 +1317,13 @@ public class FormulaManagerView {
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
@@ -1336,6 +1336,19 @@ public class FormulaManagerView {
     result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
+  }
+
+  /**
+   * Extract the Variables in a given Formula
+   *
+   * <p>Has the advantage compared to extractVariableNames, that the Type information still is
+   * intact in the formula.
+   *
+   * @param pFormula The formula to extract the variables from
+   * @return A Map of the variable names to their corresponding formulas.
+   */
+  public Map<String, Formula> extractVariables(Formula pFormula) {
+    return manager.extractVariables(pFormula);
   }
 
   /**
@@ -1405,13 +1418,13 @@ public class FormulaManagerView {
     final AtomicBoolean containsITE = new AtomicBoolean(false);
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.ITE) {
@@ -1440,21 +1453,21 @@ public class FormulaManagerView {
 
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
-      public TraversalProcess visitConstant(Formula f, Object value) {
+      public TraversalProcess visitConstant(Formula pF, Object value) {
         if (value instanceof Number) {
-          allLiterals.add(f);
+          allLiterals.add(pF);
         }
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
@@ -73,11 +74,36 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
+
+  /**
+   * The trigger can be any AutomatonBoolExpr. If a trigger is matching, the transfer-relation is
+   * applied. If no trigger is satisfied, the AutomatonState does not change with the
+   * transfer-relation and remains identical. If a developer wants a transfer relation to be either
+   * fully applied or stop (cut off a branch), all possible conditions (i.e., positive and negative)
+   * must be part of the automaton, such that at least one of them has a matching trigger.
+   */
   private final AutomatonBoolExpr trigger;
+
+  /**
+   * The assertion can be any AutomatonBoolExpr. It is checked when executing the transfer-relation.
+   * If an assertion fails, the transfer-relation returns an error state that may terminate the
+   * analysis and may be reported towards the user.
+   */
   private final AutomatonBoolExpr assertion;
+
+  /**
+   * Assumptions contain additional code fragments that can be evaluated in the analysis.
+   * Assumptions do not directly influence the transfer-relation of the AutomatonCPA, but can
+   * provide information for other CPAs (that can cut off the ARG by themselves by returning a
+   * bottom state).
+   */
   private final ImmutableList<AExpression> assumptions;
+
   private final ExpressionTree<AExpression> candidateInvariants;
+
+  /** The actions are applied after the assertion are checked successfully. */
   private final ImmutableList<AutomatonAction> actions;
+
   private final StringExpression violatedPropertyDescription;
 
   /**
@@ -275,7 +301,7 @@ class AutomatonTransition {
       }
       return null;
     }
-    return (String)violatedPropertyDescription.eval(pArgs).getValue();
+    return violatedPropertyDescription.eval(pArgs).getValue();
   }
 
   @Override
@@ -288,12 +314,16 @@ class AutomatonTransition {
       sb.append(assertion);
       sb.append(" ");
     }
+    if (!assumptions.isEmpty()) {
+      sb.append("ASSUME {");
+      sb.append(
+          Joiner.on("; ").join(Collections2.transform(assumptions, AExpression::toASTString)));
+      sb.append("} ");
+    }
     if (!actions.isEmpty()) {
       Joiner.on(" ").appendTo(sb, actions);
       sb.append(" ");
     }
-    sb.append(followState);
-    sb.append(";");
     return sb.toString();
   }
 

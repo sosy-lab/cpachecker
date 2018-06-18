@@ -150,8 +150,11 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
   }
 
   @Override
-  public String toASTString() {
-    String left = (owner instanceof CFieldReference) ? owner.toASTString() : owner.toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    String left =
+        (owner instanceof CFieldReference)
+            ? owner.toASTString(pQualified)
+            : owner.toParenthesizedASTString(pQualified);
     String op = isPointerDereference ? "->" : ".";
     return left + op  + name;
   }
@@ -161,13 +164,7 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
    */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + (isPointerDereference ? 1231 : 1237);
-    result = prime * result + Objects.hashCode(name);
-    result = prime * result + Objects.hashCode(owner);
-    result = prime * result + super.hashCode();
-    return result;
+    return Objects.hash(isPointerDereference, name, owner) * 31 + super.hashCode();
   }
 
   /* (non-Javadoc)

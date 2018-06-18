@@ -31,7 +31,12 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -40,13 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 public class CompositeState
     implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable,
@@ -137,7 +135,7 @@ public class CompositeState
   }
 
   @Override
-  public List<AbstractState> getWrappedStates() {
+  public ImmutableList<AbstractState> getWrappedStates() {
     return states;
   }
 
@@ -202,7 +200,9 @@ public class CompositeState
     return pseudoHashCode;
   }
 
-  private static final class CompositePartitionKey {
+  private static final class CompositePartitionKey implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Object[] keys;
 
@@ -236,7 +236,9 @@ public class CompositeState
 
   @SuppressWarnings("rawtypes")
   private static final class CompositePseudoPartitionKey
-      implements Comparable<CompositePseudoPartitionKey> {
+      implements Comparable<CompositePseudoPartitionKey>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Comparable<?>[] keys;
 

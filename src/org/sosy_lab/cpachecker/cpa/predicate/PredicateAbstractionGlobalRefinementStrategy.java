@@ -213,17 +213,17 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   private VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+      ARGState pRefinementRoot, UnmodifiableReachedSet pReached) {
 
     VariableTrackingPrecision rootPrecision =
         Precisions.extractPrecisionByType(
-            reached.getPrecision(refinementRoot), VariableTrackingPrecision.class);
+            pReached.getPrecision(pRefinementRoot), VariableTrackingPrecision.class);
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot)) {
+    for (ARGState state : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       // covered states are not in reached set
-      precisions.add(reached.getPrecision(state));
+      precisions.add(pReached.getPrecision(state));
     }
 
     for (Precision prec : precisions) {

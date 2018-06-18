@@ -115,7 +115,6 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   @Override
   protected final ARGPath computePath(
       ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
-    assert pLastElement.isTarget();
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
     assert BAMReachedSetValidator.validateData(
         bamCpa.getData(), bamCpa.getBlockPartitioning(), pMainReachedSet);

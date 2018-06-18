@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import java.io.Serializable;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
-public class SingletonPrecision implements Precision {
+public class SingletonPrecision implements AdjustablePrecision, Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   private final static SingletonPrecision mInstance = new SingletonPrecision();
 
@@ -40,5 +43,19 @@ public class SingletonPrecision implements Precision {
   @Override
   public String toString() {
     return "no precision";
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
+    return this;
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
+    return this;
+  }
+
+  protected Object readResolve() {
+    return getInstance();
   }
 }

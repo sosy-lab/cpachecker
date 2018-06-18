@@ -70,7 +70,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     if (initializer != null) {
       return initializer.toASTString();
     } else {
@@ -79,7 +79,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
 
       for (JExpression exp : length) {
         astString.append("[");
-        astString.append(exp.toASTString());
+        astString.append(exp.toASTString(pQualified));
         astString.append("]");
       }
 

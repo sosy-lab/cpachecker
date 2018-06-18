@@ -185,39 +185,53 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             SymbolicInterpolantManager.getInstance(),
             config, logger, shutdownNotifier, cfa);
 
-    return new SymbolicDelegatingRefiner(argCpa,
+    return new SymbolicDelegatingRefiner(
+        argCpa,
         feasibilityChecker,
+        cfa,
         pathInterpolator,
         explicitFeasibilityChecker,
+        symbolicStrongestPost,
         explicitPathInterpolator,
         config,
         logger);
   }
 
-
-  public SymbolicDelegatingRefiner(final ARGCPA pArgCPA,
+  public SymbolicDelegatingRefiner(
+      final ARGCPA pArgCPA,
       final SymbolicFeasibilityChecker pSymbolicFeasibilityChecker,
+      final CFA pCfa,
       final SymbolicPathInterpolator pSymbolicInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pExplicitFeasibilityChecker,
+      final SymbolicStrongestPostOperator pSymbolicStrongestPost,
       final PathInterpolator<SymbolicInterpolant> pExplicitInterpolator,
       final Configuration pConfig,
-      final LogManager pLogger) throws InvalidConfigurationException {
+      final LogManager pLogger)
+      throws InvalidConfigurationException {
 
     // Two different instances of PathExtractor have to be used, otherwise,
     // RepeatedCounterexample error will occur when symbolicRefiner starts refinement.
-    symbolicRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
-                                                       pSymbolicFeasibilityChecker,
-                                                       pSymbolicInterpolator,
-                                                       new PathExtractor(pLogger, pConfig),
-                                                       pConfig,
-                                                       pLogger);
+    symbolicRefiner =
+        new SymbolicValueAnalysisRefiner(
+            pArgCPA,
+            pCfa,
+            pSymbolicFeasibilityChecker,
+            pSymbolicStrongestPost,
+            pSymbolicInterpolator,
+            new PathExtractor(pLogger, pConfig),
+            pConfig,
+            pLogger);
 
-    explicitRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
-                                                       pExplicitFeasibilityChecker,
-                                                       pExplicitInterpolator,
-                                                       new PathExtractor(pLogger, pConfig),
-                                                       pConfig,
-                                                       pLogger);
+    explicitRefiner =
+        new SymbolicValueAnalysisRefiner(
+            pArgCPA,
+            pCfa,
+            pExplicitFeasibilityChecker,
+            pSymbolicStrongestPost,
+            pExplicitInterpolator,
+            new PathExtractor(pLogger, pConfig),
+            pConfig,
+            pLogger);
     logger = pLogger;
   }
 

@@ -32,6 +32,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -55,6 +56,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -66,8 +68,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -88,11 +94,15 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
-  @Option(secure=true, name="pixelGraphicFile",
-      description="Export final ARG as pixel graphic to the given file name. The suffix is added "
-          + " corresponding"
-          + " to the value of option cpa.arg.pixelgraphic.format"
-          + "If set to 'null', no pixel graphic is exported.")
+  @Option(
+    secure = true,
+    name = "pixelGraphicFile",
+    description =
+        "Export final ARG as pixel graphic to the given file name. The suffix is added "
+            + " corresponding"
+            + " to the value of option pixelgraphic.export.format"
+            + "If set to 'null', no pixel graphic is exported."
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pixelGraphicFile = Paths.get("ARG");
 
@@ -127,9 +137,30 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argCFile = Paths.get("ARG.c");
 
+  @Option(
+      secure = true,
+      name = "automaton.export",
+      description = "translate final ARG into an automaton")
+  private boolean exportAutomaton = false;
+
+  @Option(
+      secure = true,
+      name = "automaton.exportSpcFile",
+      description = "translate final ARG into an automaton, depends on 'automaton.export=true'")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate automatonSpcFile = PathTemplate.ofFormatString("ARG_parts/ARG.%03d.spc");
+
+  @Option(
+      secure = true,
+      name = "automaton.exportDotFile",
+      description = "translate final ARG into an automaton, depends on 'automaton.export=true'")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate automatonSpcDotFile =
+      PathTemplate.ofFormatString("ARG_parts/ARG.%03d.spc.dot");
 
   protected final ConfigurableProgramAnalysis cpa;
 
+  private final CEXExportOptions counterexampleOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
@@ -137,6 +168,7 @@ public class ARGStatistics implements Statistics {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private final ARGToPixelsWriter argToBitmapExporter;
+  private ARGToAutomatonConverter argToAutomatonSplitter;
   protected final LogManager logger;
 
   public ARGStatistics(
@@ -148,20 +180,46 @@ public class ARGStatistics implements Statistics {
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
+    counterexampleOptions = new CEXExportOptions(config);
     argToBitmapExporter = new ARGToPixelsWriter(config);
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
-    cexExporter = new CEXExporter(config, logger, cfa, cpa, argWitnessExporter);
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null
-        && proofWitness == null && pixelGraphicFile == null) {
+    if (argFile == null
+        && simplifiedArgFile == null
+        && refinementGraphFile == null
+        && proofWitness == null
+        && pixelGraphicFile == null
+        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))) {
       exportARG = false;
     }
 
+    if ((proofWitness == null || !exportARG) && counterexampleOptions.disabledCompletely()) {
+      argWitnessExporter = null;
+    } else {
+      argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+    }
+
+    if (counterexampleOptions.disabledCompletely()) {
+      cexExporter = null;
+    } else {
+      ExtendedWitnessExporter extendedWitnessExporter =
+          new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
+      cexExporter =
+          new CEXExporter(
+              config,
+              counterexampleOptions,
+              logger,
+              cfa,
+              cpa,
+              argWitnessExporter,
+              extendedWitnessExporter);
+    }
+
     argToCExporter = new ARGToCTranslator(logger, config);
+    argToAutomatonSplitter = new ARGToAutomatonConverter(config);
 
     if (argCFile == null) {
       translateARG = false;
@@ -214,13 +272,18 @@ public class ARGStatistics implements Statistics {
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if (cexExporter.dumpErrorPathImmediately() && !exportARG) {
+    if ((counterexampleOptions.disabledCompletely()
+            || counterexampleOptions.dumpErrorPathImmediately())
+        && !exportARG
+        && !translateARG) {
       return;
     }
 
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
+    if (!counterexampleOptions.disabledCompletely()
+        && !counterexampleOptions.dumpErrorPathImmediately()
+        && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
@@ -232,8 +295,7 @@ public class ARGStatistics implements Statistics {
 
     if (translateARG) {
       try (Writer writer = IO.openOutputFile(argCFile, Charset.defaultCharset())) {
-        writer.write(
-            argToCExporter.translateARG((ARGState) pReached.getFirstState()));
+        writer.write(argToCExporter.translateARG((ARGState) pReached.getFirstState(), true));
       } catch (IOException | CPAException e) {
         logger.logUserException(Level.WARNING, e, "Could not write C translation of ARG to file");
       }
@@ -357,9 +419,52 @@ public class ARGStatistics implements Statistics {
         logger.logUserException(Level.WARNING, e, "Could not write refinement graph to file");
       }
     }
+
+    if (exportAutomaton && (automatonSpcFile != null || automatonSpcDotFile != null)) {
+      ARGToAutomatonConverter argToAutomatonConverter;
+      try {
+        argToAutomatonConverter = new ARGToAutomatonConverter(null);
+      } catch (InvalidConfigurationException e) {
+        throw new AssertionError("should not happen");
+      }
+      try {
+        Automaton automaton =
+            Iterables.getOnlyElement(argToAutomatonConverter.getAutomata(rootState));
+        if (automatonSpcFile != null) {
+          IO.writeFile(automatonSpcFile.getPath(-1), Charset.defaultCharset(), automaton);
+        }
+        if (automatonSpcDotFile != null) {
+          try (Writer w =
+              IO.openOutputFile(automatonSpcDotFile.getPath(-1), Charset.defaultCharset())) {
+            automaton.writeDotFile(w);
+          }
+        }
+      } catch (IOException io) {
+        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      }
+      int counter = 0;
+      try {
+        for (Automaton automaton : argToAutomatonSplitter.getAutomata(rootState)) {
+          counter++;
+          if (automatonSpcFile != null) {
+            IO.writeFile(automatonSpcFile.getPath(counter), Charset.defaultCharset(), automaton);
+          }
+          if (automatonSpcDotFile != null) {
+            try (Writer w =
+                IO.openOutputFile(automatonSpcDotFile.getPath(counter), Charset.defaultCharset())) {
+              automaton.writeDotFile(w);
+            }
+          }
+        }
+        logger.log(Level.INFO, "Number of exported automata after splitting:", counter);
+      } catch (IOException io) {
+        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      }
+    }
   }
 
-  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
+  public Map<ARGState, CounterexampleInfo> getAllCounterexamples(
+      final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
@@ -380,7 +485,8 @@ public class ARGStatistics implements Statistics {
 
   public void exportCounterexampleOnTheFly(
       ARGState pTargetState, CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
-    if (cexExporter.dumpErrorPathImmediately()) {
+    if (!counterexampleOptions.disabledCompletely()
+        && counterexampleOptions.dumpErrorPathImmediately()) {
       cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
     }
   }

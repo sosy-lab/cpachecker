@@ -63,7 +63,7 @@ public class ProofStatesInfoCollector implements Statistics {
     for (AbstractState state : partialProofStates) {
       vState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
       if (vState != null) {
-        numValuesInValueAnalysisStates += vState.getConstantsMapView().size();
+        numValuesInValueAnalysisStates += vState.getSize();
       }
     }
   }

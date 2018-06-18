@@ -326,7 +326,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           currentReached = currentAlg.getThird();
           provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Skipping one analysis because the configuration file "
+                  + singleConfigFileName
+                  + " is invalid");
           continue;
         } catch (IOException e) {
           String message =
@@ -359,7 +364,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
-          if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+          if (currentReached.hasViolatedProperties() && status.isPrecise()) {
 
             // If the algorithm is not _precise_, verdict "false" actually means "unknown".
             return status;
@@ -368,7 +373,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           if (!status.isSound()) {
             // if the analysis is not sound and we can proceed with
             // another algorithm, continue with the next algorithm
-            logger.log(
+            logger.logf(
                 Level.INFO,
                 "Analysis %d terminated, but result is unsound.",
                 stats.noOfAlgorithmsUsed);
@@ -376,7 +381,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           } else if (currentReached.hasWaitingState()) {
             // if there are still states in the waitlist, the result is unknown
             // continue with the next algorithm
-            logger.log(
+            logger.logf(
                 Level.INFO,
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfAlgorithmsUsed);

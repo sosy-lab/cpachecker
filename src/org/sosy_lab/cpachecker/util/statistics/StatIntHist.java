@@ -50,7 +50,6 @@ public class StatIntHist extends StatInt {
 
   @Override
   public String toString() {
-    return super.toString() + " " + hist.toString();
+    return super.toString() + " " + hist;
   }
-
 }

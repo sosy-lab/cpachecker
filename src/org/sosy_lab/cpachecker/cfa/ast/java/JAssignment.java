@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 public interface JAssignment extends AAssignment, JStatement {
 
   @Override
-  public JLeftHandSide getLeftHandSide();
+  JLeftHandSide getLeftHandSide();
 
   @Override
-  public JRightHandSide getRightHandSide();
+  JRightHandSide getRightHandSide();
 }

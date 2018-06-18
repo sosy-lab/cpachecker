@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -55,6 +57,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   private final SortedSet<String> vars = new TreeSet<>();
   private final SortedSet<BigInteger> values = new TreeSet<>();
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
@@ -64,8 +67,8 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   Partition(
       Map<String, Partition> varToPartition, Table<CFAEdge, Integer, Partition> edgeToPartition) {
-    this.varToPartition = varToPartition;
-    this.edgeToPartition = edgeToPartition;
+    this.varToPartition = checkNotNull(varToPartition);
+    this.edgeToPartition = checkNotNull(edgeToPartition);
     index = idGenerator.getFreshId();
   }
 
@@ -127,7 +130,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   @Override
   public String toString() {
-    return vars.toString() + " --> " + Arrays.toString(values.toArray());
+    return vars + " --> " + Arrays.toString(values.toArray());
   }
 
   @Override

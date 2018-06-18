@@ -122,6 +122,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -1482,6 +1483,9 @@ public class ValueAnalysisTransferRelation
         MemoryLocation otherVariable = locationIterator.next();
         if (!locationIterator.hasNext()) {
           target = otherVariable;
+          if (type == null && pValueState.contains(target)) {
+            type = pValueState.getTypeForMemoryLocation(target);
+          }
           shouldAssign = true;
         }
       }
@@ -1509,11 +1513,12 @@ public class ValueAnalysisTransferRelation
             ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
             Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
             MemoryLocation otherVariableLocation = pointsToIterator.next();
-            if (!pointsToIterator.hasNext()) {
+            if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
 
-              Type otherVariableType = pValueState.getTypeForMemoryLocation(otherVariableLocation);
+              ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
+              Type otherVariableType = valueAndType.getType();
               if (otherVariableType != null) {
-                Value otherVariableValue = pValueState.getValueFor(otherVariableLocation);
+                Value otherVariableValue = valueAndType.getValue();
                 if (otherVariableValue != null) {
                   if (variableType.equals(otherVariableType)
                       || (variableType.equals(CNumericTypes.FLOAT)

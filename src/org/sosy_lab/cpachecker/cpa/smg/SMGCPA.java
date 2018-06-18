@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -47,6 +55,7 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -56,14 +65,19 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 @Options(prefix = "cpa.smg")
 public class SMGCPA
     implements ConfigurableProgramAnalysis,
         ConfigurableProgramAnalysisWithConcreteCex,
+        ConfigurableProgramAnalysisWithAdditionalInfo,
         StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -95,6 +109,7 @@ public class SMGCPA
   private final SMGStatistics stats = new SMGStatistics();
 
   private SMGPrecision precision;
+
 
   private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
@@ -144,7 +159,7 @@ public class SMGCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return DelegateAbstractDomain.<SMGState>getInstance();
+    return DelegateAbstractDomain.<UnmodifiableSMGState>getInstance();
   }
 
   @Override
@@ -184,7 +199,7 @@ public class SMGCPA
   }
 
   @Override
-  public SMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public UnmodifiableSMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     SMGState initState = new SMGState(logger, machineModel, options);
 
     try {
@@ -228,10 +243,6 @@ public class SMGCPA
     return cfa;
   }
 
-  public SMGPrecision getPrecision() {
-    return precision;
-  }
-
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
@@ -251,5 +262,73 @@ public class SMGCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public AdditionalInfoConverter exportAdditionalInfoConverter() {
+    return new SMGAdditionalInfoConverter();
+  }
+
+  @Override
+  public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
+    // inject additional info for extended witness
+    PathIterator rIterator = pPath.reverseFullPathIterator();
+    ARGState lastArgState = rIterator.getAbstractState();
+    UnmodifiableSMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
+    Set<Object> invalidChain = new HashSet<>(state.getInvalidChain());
+    String description = state.getErrorDescription();
+    boolean isMemoryLeakError = state.hasMemoryLeaks();
+    UnmodifiableSMGState prevSMGState = state;
+    Set<Object> visitedElems = new HashSet<>();
+    List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
+
+    while (rIterator.hasNext()) {
+      rIterator.advance();
+      ARGState argState = rIterator.getAbstractState();
+      UnmodifiableSMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
+      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
+          CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
+      // Move memory leak on return edge
+      if (!isMemoryLeakError && description != null && !description.isEmpty()) {
+        edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
+        description = null;
+      }
+
+      isMemoryLeakError = false;
+      Set<Object> toCheck = new HashSet<>();
+      for (Object elem : invalidChain) {
+        if (!visitedElems.contains(elem)) {
+          if (!smgState.getHeap().containsInvalidElement(elem)) {
+            visitedElems.add(elem);
+            for (Object additionalElem : prevSMGState.getCurrentChain()) {
+              if (!visitedElems.contains(additionalElem)
+                  && !invalidChain.contains(additionalElem)) {
+                toCheck.add(additionalElem);
+              }
+            }
+            edgeWithAdditionalInfo.addInfo(
+                SMGConvertingTags.NOTE, prevSMGState.getHeap().getNoteMessageOnElement(elem));
+
+          } else {
+            toCheck.add(elem);
+          }
+        }
+      }
+      invalidChain = toCheck;
+      prevSMGState = smgState;
+      pathWithExtendedInfo.add(edgeWithAdditionalInfo);
+    }
+    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+  }
+
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
+  /**
+   * Get a new ID for a new memory location or region or whatever.
+   *
+   * <p>We never return ZERO here, because ZERO is used as an ID for NULL.
+   */
+  public static int getNewValue() {
+    return idGenerator.getFreshId() + 1;
   }
 }
