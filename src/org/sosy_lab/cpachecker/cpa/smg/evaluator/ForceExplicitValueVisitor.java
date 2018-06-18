@@ -52,14 +52,13 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
   public ForceExplicitValueVisitor(
       SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      SMGExpressionEvaluator pSmgExpressionEvaluator,
       SMGState pSmgState,
       String pFunctionName,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFAEdge pEdge,
       SMGOptions pOptions) {
-    super(pSmgExpressionEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
+    super(pSmgRightHandSideEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
     guessSize = SMGKnownExpValue.valueOf(pOptions.getGuessSize());
   }

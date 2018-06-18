@@ -85,7 +85,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     ForceExplicitValueVisitor v =
         new ForceExplicitValueVisitor(
-            this, this, smgState, null, machineModel, logger, pCfaEdge, options);
+            this, smgState, null, machineModel, logger, pCfaEdge, options);
 
     Value val = rVal.accept(v);
 
@@ -343,7 +343,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSExpressionValueVisitor(this, smgTransferRelation, pCfaEdge, pNewState);
+    return new RHSExpressionValueVisitor(this, smgTransferRelation.builtins, pCfaEdge, pNewState);
   }
 
   @Override

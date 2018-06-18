@@ -34,8 +34,8 @@ import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
@@ -94,19 +94,6 @@ public class SMGTest {
 
     TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
     assertThat(nullEdges).containsExactly(32L, 32);
-  }
-
-  @Test
-  public void replaceHVSetTest() {
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 16, obj1, val1);
-    Set<SMGEdgeHasValue> hvSet = new HashSet<>();
-    hvSet.add(hv);
-
-    smg.replaceHVSet(hvSet);
-
-    Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
-
-    assertThat(newHVSet).isEqualTo(hvSet);
   }
 
   @Test

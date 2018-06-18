@@ -29,21 +29,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
-  private final SMGTransferRelation smgTransferRelation;
+  private final SMGBuiltins builtins;
 
   public RHSExpressionValueVisitor(
       SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      SMGTransferRelation pSmgTransferRelation,
+      SMGBuiltins pBuiltins,
       CFAEdge pEdge,
       SMGState pSmgState) {
     super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
-    smgTransferRelation = pSmgTransferRelation;
+    builtins = pBuiltins;
   }
 
   @Override
@@ -57,7 +56,6 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
     // If Calloc and Malloc have not been properly declared,
     // they may be shown to return void
-    SMGBuiltins builtins = smgTransferRelation.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
         return builtins.evaluateConfigurableAllocationFunction(

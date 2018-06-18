@@ -545,12 +545,13 @@ public class SMGTransferRelation
         expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression)) {
 
       SMGExplicitValue explicitValue = explicitValueAndState.getObject();
-      smgState = explicitValueAndState.getSmgState();
+      SMGState explicitSmgState = explicitValueAndState.getSmgState();
 
       if (explicitValue.isUnknown()) {
 
         // Don't continuously create new states when strengthening.
-        SMGState newState = createNewStateIfNecessary ? new SMGState(smgState) : smgState;
+        SMGState newState =
+            createNewStateIfNecessary ? new SMGState(explicitSmgState) : explicitSmgState;
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
           if (impliesEqOn) {
@@ -576,7 +577,7 @@ public class SMGTransferRelation
         }
       } else if ((truthValue && !explicitValue.equals(SMGKnownExpValue.ZERO))
           || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
-        result.add(smgState);
+        result.add(explicitSmgState);
       } else {
         // This signals that there are no new States reachable from this State i. e. the
         // Assumption does not hold.
