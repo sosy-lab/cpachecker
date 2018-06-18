@@ -194,7 +194,7 @@ public final class SMGIntersectStates {
       intersectHveEdgeWithTop(hve2, heap2, smgState2, mapping2);
     }
 
-    SMGState pIntersectResult = smgState1.copyWith(destSMG, destExplicitValues);
+    UnmodifiableSMGState pIntersectResult = smgState1.copyWith(destSMG, destExplicitValues);
 
     return new SMGIntersectionResult(smgState1, smgState2, pIntersectResult, true);
   }
@@ -550,13 +550,13 @@ public final class SMGIntersectStates {
     private static final SMGIntersectionResult NOT_DEFINED = new SMGIntersectionResult(null, null, null, false);
     private final UnmodifiableSMGState smg1;
     private final UnmodifiableSMGState smg2;
-    private final SMGState combinationResult;
+    private final UnmodifiableSMGState combinationResult;
     private final boolean defined;
 
     public SMGIntersectionResult(
         UnmodifiableSMGState pSmg1,
         UnmodifiableSMGState pSmg2,
-        SMGState pJoinResult,
+        UnmodifiableSMGState pJoinResult,
         boolean pDefined) {
       super();
       smg1 = pSmg1;
@@ -577,7 +577,7 @@ public final class SMGIntersectStates {
       return defined;
     }
 
-    public SMGState getCombinationResult() {
+    public UnmodifiableSMGState getCombinationResult() {
       return combinationResult;
     }
 

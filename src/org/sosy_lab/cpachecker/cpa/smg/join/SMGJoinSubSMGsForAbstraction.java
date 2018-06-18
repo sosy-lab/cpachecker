@@ -29,9 +29,9 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedListCand
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-
 
 final public class SMGJoinSubSMGsForAbstraction {
 
@@ -63,7 +62,7 @@ final public class SMGJoinSubSMGsForAbstraction {
       SMGObject obj1,
       SMGObject obj2,
       SMGListCandidate<?> pListCandidate,
-      SMGState pStateOfSmg)
+      UnmodifiableSMGState pStateOfSmg)
       throws SMGInconsistentException {
 
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());

@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -66,7 +66,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
       throws SMGInconsistentException {
     SMGJoinDllProgress progress = new SMGJoinDllProgress();
 
@@ -83,8 +83,12 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
         seqLengthSubGraphEntailmentThreshold, seqLengthSubGraphIncomparabilityThreshold, pSmg, dllBlocks);
   }
 
-  private void startTraversal(SMGObject pObject, CLangSMG pSmg, SMGState pSmgState,
-      SMGJoinDllProgress pProgress) throws SMGInconsistentException {
+  private void startTraversal(
+      SMGObject pObject,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGJoinDllProgress pProgress)
+      throws SMGInconsistentException {
     if (pProgress.containsCandidateMap(pObject)) {
       // Processed already in continueTraversal
       return;
@@ -93,8 +97,12 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     createCandidatesOfObject(pObject, pSmg, pSmgState, pProgress);
   }
 
-  private void createCandidatesOfObject(SMGObject pObject, CLangSMG pSmg, SMGState pSMGState,
-      SMGJoinDllProgress pProgress) throws SMGInconsistentException {
+  private void createCandidatesOfObject(
+      SMGObject pObject,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      SMGJoinDllProgress pProgress)
+      throws SMGInconsistentException {
 
     if (!pSmg.isObjectValid(pObject)) {
       return;
@@ -206,8 +214,12 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
   }
 
-  private void continueTraversal(int pValue, SMGDoublyLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg, SMGState pSmgState, SMGJoinDllProgress pProgress)
+  private void continueTraversal(
+      int pValue,
+      SMGDoublyLinkedListCandidate pPrevCandidate,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
 
     // the next object is doubly linked with the prev object, which was checked in start traversal.

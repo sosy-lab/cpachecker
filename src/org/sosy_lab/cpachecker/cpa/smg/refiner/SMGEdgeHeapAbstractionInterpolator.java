@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -104,8 +105,12 @@ public class SMGEdgeHeapAbstractionInterpolator {
     }
   }
 
-  private boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pAbstractionTest,
-      CFAEdge pCurrentEdge, boolean pAllTargets) throws CPAException, InterruptedException {
+  private boolean isRemainingPathFeasible(
+      ARGPath pRemainingErrorPath,
+      UnmodifiableSMGState pAbstractionTest,
+      CFAEdge pCurrentEdge,
+      boolean pAllTargets)
+      throws CPAException, InterruptedException {
 
     return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge, pAllTargets);
   }

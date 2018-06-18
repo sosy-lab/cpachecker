@@ -90,7 +90,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   String getNoteMessageOnElement(Object elem);
 
-  UnmodifiableSMGState withViolationsOf(SMGState pOther);
+  SMGState withViolationsOf(SMGState pOther);
 
   SMGObject getFunctionReturnObject();
 

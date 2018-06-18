@@ -183,24 +183,33 @@ public final class SMGUtils {
     }
   }
 
-  public static void plotWhenConfigured(String pSMGName, SMGState pState, String pLocation,
-      LogManager pLogger, SMGExportLevel pLevel, SMGExportDotOption pExportOption) {
+  public static void plotWhenConfigured(
+      String pSMGName,
+      UnmodifiableSMGState pState,
+      String pLocation,
+      LogManager pLogger,
+      SMGExportLevel pLevel,
+      SMGExportDotOption pExportOption) {
 
     if (pExportOption.exportSMG(pLevel)) {
       dumpSMGPlot(pLogger, pSMGName, pState, pLocation, pExportOption);
     }
   }
 
-  private static void dumpSMGPlot(LogManager pLogger, String pSMGName, SMGState pCurrentState,
-      String pLocation, SMGExportDotOption pExportOption) {
+  private static void dumpSMGPlot(
+      LogManager pLogger,
+      String pSMGName,
+      UnmodifiableSMGState pCurrentState,
+      String pLocation,
+      SMGExportDotOption pExportOption) {
     if (pCurrentState != null && pExportOption.hasExportPath()) {
       Path outputFile = pExportOption.getOutputFilePath(pSMGName);
       dumpSMGPlot(pLogger, pCurrentState, pLocation, outputFile);
     }
   }
 
-  public static void dumpSMGPlot(LogManager pLogger, SMGState currentState,
-      String location, Path pOutputFile) {
+  public static void dumpSMGPlot(
+      LogManager pLogger, UnmodifiableSMGState currentState, String location, Path pOutputFile) {
     try {
       String dot = getDot(currentState, location);
       IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
@@ -209,7 +218,7 @@ public final class SMGUtils {
     }
   }
 
-  private static String getDot(SMGState pCurrentState, String pLocation) {
+  private static String getDot(UnmodifiableSMGState pCurrentState, String pLocation) {
     return pCurrentState.toDot("SMG" + pCurrentState.getId(), pLocation);
   }
 }

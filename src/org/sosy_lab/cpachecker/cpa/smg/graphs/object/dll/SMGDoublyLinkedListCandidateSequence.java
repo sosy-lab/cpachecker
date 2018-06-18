@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -126,7 +127,7 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
   }
 
   @Override
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
+  public SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState) {
     Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
     return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getShape(), length,

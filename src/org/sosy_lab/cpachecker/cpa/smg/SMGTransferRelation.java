@@ -173,22 +173,26 @@ public class SMGTransferRelation
     successors =
         Collections2.transform(
             successors, s -> s.copyWithBlockEnd(blockOperator.isBlockEnd(edge.getSuccessor(), 0)));
-    logger.log(Level.ALL, "state with id", state.getId(), "has successors with ids",
-        Collections2.transform(successors, SMGState::getId));
+    logger.log(
+        Level.ALL,
+        "state with id",
+        state.getId(),
+        "has successors with ids",
+        Collections2.transform(successors, UnmodifiableSMGState::getId));
     // Verify predicate on error feasibility
     successors = Collections2.transform(successors, this::checkAndSetErrorRelation);
     return successors;
   }
 
   private void plotWhenConfigured(
-      Collection<SMGState> pStates, String pLocation, SMGExportLevel pLevel) {
-    for (SMGState s : pStates) {
+      Collection<? extends UnmodifiableSMGState> pStates, String pLocation, SMGExportLevel pLevel) {
+    for (UnmodifiableSMGState s : pStates) {
       SMGUtils.plotWhenConfigured(
           getDotExportFileName(s), s, pLocation, logger, pLevel, exportSMGOptions);
     }
   }
 
-  private String getDotExportFileName(SMGState pState) {
+  private String getDotExportFileName(UnmodifiableSMGState pState) {
     if (pState.getPredecessorId() == 0) {
       return String.format("initial-%03d", pState.getId());
     } else {
@@ -264,8 +268,9 @@ public class SMGTransferRelation
     return successors;
   }
 
-  private List<SMGState> handleFunctionReturn(SMGState smgState,
-      CFunctionReturnEdge functionReturnEdge) throws CPATransferException {
+  private List<SMGState> handleFunctionReturn(
+      UnmodifiableSMGState smgState, CFunctionReturnEdge functionReturnEdge)
+      throws CPATransferException {
 
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
@@ -342,7 +347,7 @@ public class SMGTransferRelation
       assert (paramDecl.size() == arguments.size());
     }
 
-    Map<SMGState, List<Pair<SMGRegion,SMGSymbolicValue>>> valuesMap = new HashMap<>();
+    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap = new HashMap<>();
 
     //TODO Refactor, ugly
 
@@ -799,7 +804,7 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> handleAssignmentToField(
-      SMGState pState,
+      UnmodifiableSMGState pState,
       CFAEdge cfaEdge,
       SMGObject memoryOfField,
       long fieldOffset,

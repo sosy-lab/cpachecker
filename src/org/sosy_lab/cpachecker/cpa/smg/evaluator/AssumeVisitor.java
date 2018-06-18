@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AssumeVisitor extends ExpressionValueVisitor {
 
-  private final Map<SMGState, BinaryRelationResult> relations = new HashMap<>();
+  private final Map<UnmodifiableSMGState, BinaryRelationResult> relations = new HashMap<>();
 
   public AssumeVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
@@ -101,7 +102,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private boolean isPointer(SMGState pNewSmgState, SMGSymbolicValue symVal) {
+  private boolean isPointer(UnmodifiableSMGState pNewSmgState, SMGSymbolicValue symVal) {
 
     if (symVal.isUnknown()) {
       return false;
@@ -118,8 +119,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private boolean isUnequal(SMGState pNewState, SMGSymbolicValue pValue1,
-      SMGSymbolicValue pValue2, boolean isPointerOp1,
+  private boolean isUnequal(
+      UnmodifiableSMGState pNewState,
+      SMGSymbolicValue pValue1,
+      SMGSymbolicValue pValue2,
+      boolean isPointerOp1,
       boolean isPointerOp2) {
 
     int value1 = pValue1.getAsInt();
@@ -280,25 +284,25 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
   }
 
-  public boolean impliesEqOn(boolean pTruth, SMGState pState) {
+  public boolean impliesEqOn(boolean pTruth, UnmodifiableSMGState pState) {
     if (!relations.containsKey(pState)) {
       return false;
     }
     return relations.get(pState).impliesEq(pTruth);
   }
 
-  public boolean impliesNeqOn(boolean pTruth, SMGState pState) {
+  public boolean impliesNeqOn(boolean pTruth, UnmodifiableSMGState pState) {
     if (!relations.containsKey(pState)) {
       return false;
     }
     return relations.get(pState).impliesNeq(pTruth);
   }
 
-  public SMGSymbolicValue impliesVal1(SMGState pState) {
+  public SMGSymbolicValue impliesVal1(UnmodifiableSMGState pState) {
     return relations.get(pState).getVal1();
   }
 
-  public SMGSymbolicValue impliesVal2(SMGState pState) {
+  public SMGSymbolicValue impliesVal2(UnmodifiableSMGState pState) {
     return relations.get(pState).getVal2();
   }
 

@@ -263,7 +263,7 @@ public class SMGStateTest {
 
     add.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGState newState = add.get(1).getSmgState();
+    UnmodifiableSMGState newState = add.get(1).getSmgState();
 
     List<SMGAddressValueAndState> add2 = newState.getPointerFromValue(7);
 
@@ -295,7 +295,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    SMGState inconsistentState = this.inconsistent_state.copyOf();
+    UnmodifiableSMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
@@ -306,7 +306,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    SMGState inconsistentState = this.inconsistent_state.copyOf();
+    UnmodifiableSMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -317,7 +317,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    SMGState inconsistentState = this.inconsistent_state.copyOf();
+    UnmodifiableSMGState inconsistentState = this.inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -328,7 +328,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    SMGState consistentState = this.consistent_state.copyOf();
+    UnmodifiableSMGState consistentState = this.consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -338,17 +338,19 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    SMGState consistentState = this.consistent_state.copyOf();
+    UnmodifiableSMGState consistentState = this.consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   @Test
   public void PredecessorsTest() throws InvalidConfigurationException {
-    SMGState original = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
-    SMGState second = original.copyOf();
+    UnmodifiableSMGState original =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+    UnmodifiableSMGState second = original.copyOf();
     Assert.assertNotEquals(original.getId(), second.getId());
 
-    SMGState copy = original.copyOf();
+    UnmodifiableSMGState copy = original.copyOf();
     Assert.assertNotEquals(copy.getId(), original.getId());
     Assert.assertNotEquals(copy.getId(), second.getId());
 

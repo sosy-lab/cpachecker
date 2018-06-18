@@ -34,5 +34,5 @@ public interface SMGAbstractionCandidate {
 
   int getScore();
 
-  SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState);
+  SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState);
 }

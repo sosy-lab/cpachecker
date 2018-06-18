@@ -29,12 +29,12 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionFinder {
 
-  default Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState)
+  default Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, UnmodifiableSMGState pSMGState)
       throws SMGInconsistentException {
     return traverse(pSmg, pSMGState, ImmutableSet.of());
   }
 
   Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> abstractionBlocks)
+      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> abstractionBlocks)
       throws SMGInconsistentException;
 }

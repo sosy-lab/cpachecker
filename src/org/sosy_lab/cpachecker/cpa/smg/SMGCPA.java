@@ -199,7 +199,7 @@ public class SMGCPA
   }
 
   @Override
-  public SMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public UnmodifiableSMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     SMGState initState = new SMGState(logger, machineModel, options);
 
     try {
@@ -274,18 +274,18 @@ public class SMGCPA
     // inject additional info for extended witness
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
-    SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
+    UnmodifiableSMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
     Set<Object> invalidChain = new HashSet<>(state.getInvalidChain());
     String description = state.getErrorDescription();
     boolean isMemoryLeakError = state.hasMemoryLeaks();
-    SMGState prevSMGState = state;
+    UnmodifiableSMGState prevSMGState = state;
     Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
 
     while (rIterator.hasNext()) {
       rIterator.advance();
       ARGState argState = rIterator.getAbstractState();
-      SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
+      UnmodifiableSMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
           CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
       // Move memory leak on return edge

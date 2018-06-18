@@ -46,7 +46,7 @@ enum EmptyAbstractionCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
+  public SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState) {
     throw new IllegalArgumentException(
         "Can't create abstraction block of empty abstraction candidate.");
   }

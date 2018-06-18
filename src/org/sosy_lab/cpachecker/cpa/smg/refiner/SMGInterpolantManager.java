@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 
 public class SMGInterpolantManager {
 
@@ -47,7 +47,7 @@ public class SMGInterpolantManager {
     return initalInterpolant;
   }
 
-  public SMGInterpolant createInterpolant(SMGState pState) {
+  public SMGInterpolant createInterpolant(UnmodifiableSMGState pState) {
     return pState.createInterpolant();
   }
 
@@ -59,8 +59,8 @@ public class SMGInterpolantManager {
     return SMGInterpolant.getTrueInterpolant(pTemplate);
   }
 
-  public SMGInterpolant createInterpolant(SMGState pState,
-      Set<SMGAbstractionBlock> pAbstractionBlocks) {
+  public SMGInterpolant createInterpolant(
+      UnmodifiableSMGState pState, Set<SMGAbstractionBlock> pAbstractionBlocks) {
     return pState.createInterpolant(pAbstractionBlocks);
   }
 }

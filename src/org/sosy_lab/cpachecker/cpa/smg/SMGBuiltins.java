@@ -90,7 +90,8 @@ public class SMGBuiltins {
           "printf"
       );
 
-  public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
+  public final void evaluateVBPlot(
+      CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
     String name = functionCall.getParameterExpressions().get(0).toASTString();
     if(exportSMGOptions.hasExportPath() && currentState != null) {
       SMGUtils.dumpSMGPlot(logger, currentState, functionCall.toASTString(), exportSMGOptions.getOutputFilePath(name));

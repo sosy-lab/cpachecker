@@ -198,7 +198,7 @@ public class SMGPredicateManager {
     }
   }
 
-  public boolean isErrorPathFeasible(SMGState pState) {
+  public boolean isErrorPathFeasible(UnmodifiableSMGState pState) {
     if (!verifyPredicates) {
       return false;
     }
