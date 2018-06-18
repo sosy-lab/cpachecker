@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -165,6 +166,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     predecessorId = pPredId;
     id = ID_COUNTER.getAndIncrement();
     errorInfo = SMGErrorInfo.of();
+    Preconditions.checkArgument(!pMergedExplicitValues.containsKey(null));
+    Preconditions.checkArgument(!pMergedExplicitValues.containsValue(null));
     explicitValues.putAll(pMergedExplicitValues);
     blockEnded = false;
   }
@@ -1984,6 +1987,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @return explicit value merged with pKey, or Null if not merged
    */
   public SMGKnownSymValue putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+    Preconditions.checkNotNull(pKey);
+    Preconditions.checkNotNull(pValue);
 
     if (explicitValues.inverse().containsKey(pValue)) {
       SMGKnownSymValue symValue = explicitValues.inverse().get(pValue);
