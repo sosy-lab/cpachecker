@@ -2144,8 +2144,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGIntersectionResult intersectStates(SMGState pOtherState) {
-    return SMGIntersectStates.intersect(this, heap, pOtherState, pOtherState.heap, explicitValues,
-        pOtherState.explicitValues);
+    return new SMGIntersectStates(this, pOtherState).intersect();
   }
 
   public SMGAbstractionCandidate executeHeapAbstractionOneStep(Set<SMGAbstractionBlock> pResult)
@@ -2292,5 +2291,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public int getNumberOfHeapObjects() {
     return heap.getObjects().size();
+  }
+
+  public CLangSMG getHeap() {
+    return heap;
   }
 }
