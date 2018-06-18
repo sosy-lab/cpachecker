@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -49,7 +50,7 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 final public class SMGJoinSubSMGsForAbstraction {
 
   private final SMGJoinStatus status;
-  private final CLangSMG resultSMG;
+  private final UnmodifiableCLangSMG resultSMG;
   private final SMGObject newAbstractObject;
   private final Set<Integer> nonSharedValuesFromSMG1;
   private final Set<Integer> nonSharedValuesFromSMG2;
@@ -57,9 +58,14 @@ final public class SMGJoinSubSMGsForAbstraction {
   private final Set<SMGObject> nonSharedObjectsFromSMG2;
   private final boolean defined;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate<?> pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(
+      CLangSMG smg,
+      SMGObject obj1,
+      SMGObject obj2,
+      SMGListCandidate<?> pListCandidate,
+      SMGState pStateOfSmg)
+      throws SMGInconsistentException {
 
-    CLangSMG smg = pInputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
     Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
 
@@ -260,7 +266,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     return status;
   }
 
-  public CLangSMG getResultSMG() {
+  public UnmodifiableCLangSMG getResultSMG() {
     return resultSMG;
   }
 

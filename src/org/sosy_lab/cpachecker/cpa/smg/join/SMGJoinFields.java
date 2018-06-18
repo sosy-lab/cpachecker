@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -86,7 +87,8 @@ class SMGJoinFields {
     return newSMG2;
   }
 
-  public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(
+      UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> returnSet = new HashSet<>();
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
@@ -104,8 +106,12 @@ class SMGJoinFields {
     return Collections.unmodifiableSet(returnSet);
   }
 
-  public static SMGJoinStatus joinFieldsRelaxStatus(SMG pOrigSMG, SMG pNewSMG,
-      SMGJoinStatus pCurStatus, SMGJoinStatus pNewStatus, SMGObject pObject) {
+  public static SMGJoinStatus joinFieldsRelaxStatus(
+      UnmodifiableSMG pOrigSMG,
+      UnmodifiableSMG pNewSMG,
+      SMGJoinStatus pCurStatus,
+      SMGJoinStatus pNewStatus,
+      SMGObject pObject) {
     TreeMap<Long, Integer> origNullEdges = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
     TreeMap<Long, Integer> newNullEdges = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
     for (Entry<Long, Integer> origEdge : origNullEdges.entrySet()) {
@@ -118,7 +124,8 @@ class SMGJoinFields {
     return pCurStatus;
   }
 
-  static public void setCompatibleHVEdgesToSMG(SMG pSMG, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public static void setCompatibleHVEdgesToSMG(
+      SMG pSMG, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj1);
     nullValueFilter.filterHavingValue(SMG.NULL_ADDRESS);
 
@@ -137,7 +144,8 @@ class SMGJoinFields {
     }
   }
 
-  static public Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
+      UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
 
     SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
@@ -178,7 +186,8 @@ class SMGJoinFields {
     return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, SMG.NULL_ADDRESS);
   }
 
-  static public Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
+      UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
     TreeMap<Long, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Long, Integer> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
@@ -200,8 +209,13 @@ class SMGJoinFields {
     return Collections.unmodifiableSet(retset);
   }
 
-  private static void checkResultConsistencySingleSide(SMG pSMG1, SMGEdgeHasValueFilter nullEdges1,
-                                                       SMG pSMG2, SMGObject pObj2, TreeMap<Long, Integer> nullEdgesInSMG2) throws SMGInconsistentException {
+  private static void checkResultConsistencySingleSide(
+      UnmodifiableSMG pSMG1,
+      SMGEdgeHasValueFilter nullEdges1,
+      UnmodifiableSMG pSMG2,
+      SMGObject pObj2,
+      TreeMap<Long, Integer> nullEdgesInSMG2)
+      throws SMGInconsistentException {
     for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
       long start = edgeInSMG1.getOffset();
       long byte_after_end = start + edgeInSMG1.getSizeInBits(pSMG1.getMachineModel());
@@ -226,7 +240,9 @@ class SMGJoinFields {
     }
   }
 
-  public static void checkResultConsistency(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) throws SMGInconsistentException {
+  public static void checkResultConsistency(
+      UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2)
+      throws SMGInconsistentException {
     SMGEdgeHasValueFilter nullEdges1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMG.NULL_ADDRESS);
     SMGEdgeHasValueFilter nullEdges2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterHavingValue(SMG.NULL_ADDRESS);
     TreeMap<Long, Integer> nullEdgesInSMG1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);

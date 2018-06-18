@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
@@ -44,7 +45,12 @@ final public class SMGJoin {
   private final CLangSMG smg;
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
-  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
+  public SMGJoin(
+      UnmodifiableCLangSMG pSMG1,
+      UnmodifiableCLangSMG pSMG2,
+      SMGState pStateOfSmg1,
+      SMGState pStateOfSmg2)
+      throws SMGInconsistentException {
     CLangSMG opSMG1 = pSMG1.copyOf();
     CLangSMG opSMG2 = pSMG2.copyOf();
     smg = new CLangSMG(opSMG1.getMachineModel());

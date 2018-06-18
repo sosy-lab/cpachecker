@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -205,7 +206,7 @@ public class SMGJoinTest {
     smg2.addHasValueEdge(hv2);
   }
 
-  private void assertObjectCounts(CLangSMG pSMG, int pGlobals, int pHeap, int pFrames) {
+  private void assertObjectCounts(UnmodifiableCLangSMG pSMG, int pGlobals, int pHeap, int pFrames) {
     assertThat(pSMG.getGlobalObjects()).hasSize(pGlobals);
     assertThat(pSMG.getHeapObjects()).hasSize(pHeap);
     assertThat(pSMG.getStackFrames()).hasSize(pFrames);
@@ -219,7 +220,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
-    CLangSMG resultSMG = join.getJointSMG();
+    UnmodifiableCLangSMG resultSMG = join.getJointSMG();
     assertThat(resultSMG.getGlobalObjects()).containsKey(varName);
     assertObjectCounts(resultSMG, 1, 1, 0);
   }
@@ -235,7 +236,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
-    CLangSMG resultSMG = join.getJointSMG();
+    UnmodifiableCLangSMG resultSMG = join.getJointSMG();
     Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
   }
@@ -248,7 +249,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
-    CLangSMG resultSMG = join.getJointSMG();
+    UnmodifiableCLangSMG resultSMG = join.getJointSMG();
     assertThat(resultSMG.getGlobalObjects()).containsKey(varName);
     assertObjectCounts(resultSMG, 1, 1, 0);
 
@@ -268,7 +269,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
-    CLangSMG resultSMG = join.getJointSMG();
+    UnmodifiableCLangSMG resultSMG = join.getJointSMG();
     Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
 
