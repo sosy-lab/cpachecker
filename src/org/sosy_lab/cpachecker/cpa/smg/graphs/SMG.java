@@ -34,8 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import javax.annotation.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -51,7 +49,10 @@ public class SMG implements UnmodifiableSMG {
   private PersistentSet<Integer> values;
   private SMGHasValueEdges hv_edges;
   private SMGPointsToEdges pt_edges;
-  private PersistentMap<SMGObject, Boolean> object_validity;
+
+  /** {@link #validObjects} is a subset of {@link #objects} */
+  private PersistentSet<SMGObject> validObjects;
+
   private PersistentSet<SMGObject> externalObjectAllocation;
   private NeqRelation neq = new NeqRelation();
 
@@ -80,7 +81,7 @@ public class SMG implements UnmodifiableSMG {
     values = PersistentSet.of();
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
-    object_validity = PathCopyingPersistentTreeMap.of();
+    validObjects = PersistentSet.of();
     externalObjectAllocation = PersistentSet.of();
     machine_model = pMachineModel;
 
@@ -102,7 +103,7 @@ public class SMG implements UnmodifiableSMG {
     neq = pHeap.neq;
     pathPredicate.putAll(pHeap.pathPredicate);
     errorPredicate.putAll(pHeap.errorPredicate);
-    object_validity = pHeap.object_validity;
+    validObjects = pHeap.validObjects;
     externalObjectAllocation = pHeap.externalObjectAllocation;
     objects = pHeap.objects;
     values = pHeap.values;
@@ -115,14 +116,7 @@ public class SMG implements UnmodifiableSMG {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        machine_model,
-        hv_edges,
-        neq,
-        object_validity,
-        objects,
-        pt_edges,
-        values);
+    return Objects.hash(machine_model, hv_edges, neq, validObjects, objects, pt_edges, values);
   }
 
   @Override
@@ -140,7 +134,7 @@ public class SMG implements UnmodifiableSMG {
     return machine_model == other.machine_model
         && Objects.equals(hv_edges, other.hv_edges)
         && Objects.equals(neq, other.neq)
-        && Objects.equals(object_validity, other.object_validity)
+        && Objects.equals(validObjects, other.validObjects)
         && Objects.equals(objects, other.objects)
         && Objects.equals(pt_edges, other.pt_edges)
         && Objects.equals(values, other.values)
@@ -185,7 +179,7 @@ public class SMG implements UnmodifiableSMG {
   @VisibleForTesting
   final public void removeObject(final SMGObject pObj) {
     objects = objects.removeAndCopy(pObj);
-    object_validity = object_validity.removeAndCopy(pObj);
+    validObjects = validObjects.removeAndCopy(pObj);
     externalObjectAllocation = externalObjectAllocation.removeAndCopy(pObj);
   }
 
@@ -214,7 +208,7 @@ public class SMG implements UnmodifiableSMG {
    */
   final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
     objects = objects.addAndCopy(pObj);
-    object_validity = object_validity.putAndCopy(pObj, pValidity);
+    setValidity(pObj, pValidity);
     setExternallyAllocatedFlag(pObj, pExternal);
   }
 
@@ -286,7 +280,11 @@ public class SMG implements UnmodifiableSMG {
    */
   public void setValidity(SMGObject pObject, boolean pValidity) {
     Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
-    object_validity = object_validity.putAndCopy(pObject, pValidity);
+    if (pValidity) {
+      validObjects = validObjects.addAndCopy(pObject);
+    } else {
+      validObjects = validObjects.removeAndCopy(pObject);
+    }
   }
 
   /**
@@ -418,7 +416,7 @@ public class SMG implements UnmodifiableSMG {
   @Override
   final public boolean isObjectValid(SMGObject pObject) {
     Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
-    return object_validity.get(pObject);
+    return validObjects.contains(pObject);
   }
 
   /**
@@ -583,12 +581,11 @@ public class SMG implements UnmodifiableSMG {
 
   public void clearObjects() {
     objects = PersistentSet.of();
-    object_validity = PathCopyingPersistentTreeMap.of();
+    validObjects = PersistentSet.of();
     initializeNullObject();
   }
 
   private void initializeNullObject() {
-    addObject(SMGNullObject.INSTANCE);
-    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
+    objects = objects.addAndCopy(SMGNullObject.INSTANCE);
   }
 }
