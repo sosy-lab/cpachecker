@@ -130,7 +130,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   public SMGState withErrorDescription(String pErrorDescription) {
-    return new SMGState(this, errorInfo.withErrorMessage(pErrorDescription));
+    return new SMGState(
+        logger,
+        options,
+        heap.copyOf(),
+        id,
+        explicitValues,
+        errorInfo.withErrorMessage(pErrorDescription),
+        blockEnded);
   }
 
   /**
@@ -142,69 +149,37 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @param pMachineModel A machine model for the underlying SMGs
    */
   public SMGState(LogManager pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
-    heap = new CLangSMG(pMachineModel);
-    logger = pLogger;
-    options = pOptions;
-
-    predecessorId = ID_COUNTER.getAndIncrement();
-    id = ID_COUNTER.getAndIncrement();
-    errorInfo = SMGErrorInfo.of();
-    blockEnded = false;
+    this(
+        pLogger,
+        pOptions,
+        new CLangSMG(pMachineModel),
+        ID_COUNTER.getAndIncrement(),
+        Collections.emptyMap());
   }
 
   public SMGState(LogManager pLogger, SMGOptions pOptions, CLangSMG pHeap,
       int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
-    // merge
+    this(pLogger, pOptions, pHeap, pPredId, pMergedExplicitValues, SMGErrorInfo.of(), false);
+  }
+
+  /** Copy constructor. */
+  private SMGState(
+      LogManager pLogger,
+      SMGOptions pOptions,
+      CLangSMG pHeap,
+      int pPredId,
+      Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+      SMGErrorInfo pErrorInfo,
+      boolean pBlockEnded) {
     options = pOptions;
     heap = pHeap;
     logger = pLogger;
     predecessorId = pPredId;
     id = ID_COUNTER.getAndIncrement();
-    errorInfo = SMGErrorInfo.of();
-    Preconditions.checkArgument(!pMergedExplicitValues.containsKey(null));
-    Preconditions.checkArgument(!pMergedExplicitValues.containsValue(null));
-    explicitValues.putAll(pMergedExplicitValues);
-    blockEnded = false;
-  }
-
-  /**
-   * Copy constructor.
-   *
-   * <p>Keeps consistency: yes
-   *
-   * @param pOriginalState Original state. Will be the predecessor of the new state
-   */
-  private SMGState(SMGState pOriginalState) {
-    heap = pOriginalState.heap.copyOf();
-    logger = pOriginalState.logger;
-    options = pOriginalState.options;
-    predecessorId = pOriginalState.getId();
-    id = ID_COUNTER.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
-    errorInfo = pOriginalState.errorInfo;
-    blockEnded = pOriginalState.blockEnded;
-  }
-
-  @Override
-  public SMGState copyOf() {
-    return new SMGState(this);
-  }
-
-  /**
-   * Copy constructor.
-   *
-   * <p>Keeps consistency: yes
-   *
-   * @param pOriginalState Original state. Will be the predecessor of the new state
-   */
-  private SMGState(SMGState pOriginalState, boolean pBlockEnded) {
-    heap = pOriginalState.heap.copyOf();
-    logger = pOriginalState.logger;
-    options = pOriginalState.options;
-    predecessorId = pOriginalState.getId();
-    id = ID_COUNTER.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
-    errorInfo = pOriginalState.errorInfo;
+    Preconditions.checkArgument(!pExplicitValues.containsKey(null));
+    Preconditions.checkArgument(!pExplicitValues.containsValue(null));
+    explicitValues.putAll(pExplicitValues);
+    errorInfo = pErrorInfo;
     blockEnded = pBlockEnded;
   }
 
@@ -219,39 +194,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     errorInfo = pOriginalState.errorInfo.withProperty(pProperty);
   }
 
-  private SMGState(
-      SMGState pOriginalState,
-      CLangSMG pDestSMG,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pCombinedMap) {
-    heap = pDestSMG;
-    logger = pOriginalState.logger;
-    options = pOriginalState.options;
-    predecessorId = pOriginalState.getId();
-    id = ID_COUNTER.getAndIncrement();
-    explicitValues.putAll(pCombinedMap);
-    errorInfo = pOriginalState.errorInfo;
-    blockEnded = pOriginalState.blockEnded;
-  }
-
-  private SMGState(SMGState pOriginalState, SMGErrorInfo errorMessage) {
-    heap = pOriginalState.heap.copyOf();
-    logger = pOriginalState.logger;
-    options = pOriginalState.options;
-    predecessorId = pOriginalState.getId();
-    id = ID_COUNTER.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
-    errorInfo = errorMessage;
-    blockEnded = pOriginalState.blockEnded;
+  @Override
+  public SMGState copyOf() {
+    return new SMGState(logger, options, heap.copyOf(), id, explicitValues, errorInfo, blockEnded);
   }
 
   @Override
   public SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymValue, SMGKnownExpValue> pValues) {
-    return new SMGState(this, pSmg, pValues);
+    return new SMGState(logger, options, pSmg, id, pValues, errorInfo, blockEnded);
   }
 
   @Override
   public SMGState copyWithBlockEnd(boolean isBlockEnd) {
-    return new SMGState(this, isBlockEnd);
+    return new SMGState(logger, options, heap.copyOf(), id, explicitValues, errorInfo, isBlockEnd);
   }
 
   @Override
@@ -464,7 +419,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         SMGDoublyLinkedList dllListSeg = (SMGDoublyLinkedList) pSmgAbstractObject;
         if (dllListSeg.getMinimumLength() == 0) {
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
-          result.addAll(new SMGState(this).removeDls(dllListSeg, pointerToAbstractObject));
+          result.addAll(copyOf().removeDls(dllListSeg, pointerToAbstractObject));
           result.add(materialiseDls(dllListSeg, pointerToAbstractObject));
           return result;
         } else {
@@ -474,7 +429,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         SMGSingleLinkedList sllListSeg = (SMGSingleLinkedList) pSmgAbstractObject;
         if (sllListSeg.getMinimumLength() == 0) {
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
-          result.addAll(new SMGState(this).removeSll(sllListSeg, pointerToAbstractObject));
+          result.addAll(copyOf().removeSll(sllListSeg, pointerToAbstractObject));
           result.add(materialiseSll(sllListSeg, pointerToAbstractObject));
           return result;
         } else {
@@ -483,7 +438,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       case OPTIONAL:
         List<SMGAddressValueAndState> result = new ArrayList<>(2);
         SMGOptionalObject optionalObject = (SMGOptionalObject) pSmgAbstractObject;
-        result.addAll(new SMGState(this).removeOptionalObject(optionalObject));
+        result.addAll(copyOf().removeOptionalObject(optionalObject));
         result.add(materialiseOptionalObject(optionalObject, pointerToAbstractObject));
         return result;
       default:
@@ -1866,7 +1821,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public SMGState resetErrorRelation() {
-    SMGState newState = new SMGState(this);
+    SMGState newState = copyOf();
     newState.heap.resetErrorRelation();
     return newState;
   }
