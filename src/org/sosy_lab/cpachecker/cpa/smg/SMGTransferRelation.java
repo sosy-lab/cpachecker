@@ -676,7 +676,7 @@ public class SMGTransferRelation
         }
         return asSMGStateList(
             builtins.handleBuiltinFunctionCall(
-                pCfaEdge, cFCExpression, calledFunctionName, newState, false));
+                pCfaEdge, cFCExpression, calledFunctionName, newState));
 
       } else {
         return asSMGStateList(

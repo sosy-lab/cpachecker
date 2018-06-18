@@ -60,12 +60,11 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
     SMGBuiltins builtins = smgTransferRelation.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
-        smgTransferRelation.possibleMallocFail = true;
         return builtins.evaluateConfigurableAllocationFunction(
             pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
       }
       return builtins.handleBuiltinFunctionCall(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), true);
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
     } else {
       return builtins.handleUnknownFunction(
           getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());

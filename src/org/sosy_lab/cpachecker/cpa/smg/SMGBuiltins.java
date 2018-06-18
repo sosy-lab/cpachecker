@@ -682,8 +682,7 @@ public class SMGBuiltins {
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
-      SMGState newState,
-      boolean failOnAlloca)
+      SMGState newState)
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
@@ -692,9 +691,6 @@ public class SMGBuiltins {
 
     switch (calledFunctionName) {
       case "__builtin_alloca":
-        if (failOnAlloca) {
-          smgTransferRelation.possibleMallocFail = true;
-        }
         return evaluateAlloca(cFCExpression, newState, pCfaEdge);
 
       case "memset":

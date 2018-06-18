@@ -69,12 +69,11 @@ class RHSPointerAddressVisitor extends PointerVisitor {
     SMGBuiltins builtins = smgRightHandSideEvaluator.smgTransferRelation.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
-        smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
         return builtins.evaluateConfigurableAllocationFunction(
             pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
       }
       return builtins.handleBuiltinFunctionCall(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), true);
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
     } else {
       return builtins.handleUnknownFunction(
           getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
