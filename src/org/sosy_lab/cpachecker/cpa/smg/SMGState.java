@@ -198,12 +198,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Copy constructor.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
-   * @param pOriginalState Original state. Will be the predecessor of the
-   * new state
+   * @param pOriginalState Original state. Will be the predecessor of the new state
    */
-  public SMGState(SMGState pOriginalState, boolean pBlockEnded) {
+  private SMGState(SMGState pOriginalState, boolean pBlockEnded) {
     heap = pOriginalState.heap.copyOf();
     logger = pOriginalState.logger;
     options = pOriginalState.options;
@@ -242,6 +241,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymValue, SMGKnownExpValue> pValues) {
     return new SMGState(this, pSmg, pValues);
+  }
+
+  @Override
+  public SMGState copyWithBlockEnd(boolean isBlockEnd) {
+    return new SMGState(this, isBlockEnd);
   }
 
   @Override

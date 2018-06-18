@@ -70,6 +70,12 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    */
   SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymValue, SMGKnownExpValue> pValues);
 
+  /**
+   * Returns mutable instance of subclass, with the flag for blockEnd. Changes to the returned
+   * instance are independent of this immutable instance and do not change it.
+   */
+  SMGState copyWithBlockEnd(boolean isBlockEnd);
+
   int getId();
 
   int getPredecessorId();

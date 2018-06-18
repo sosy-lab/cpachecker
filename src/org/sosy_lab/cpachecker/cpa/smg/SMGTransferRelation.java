@@ -170,8 +170,9 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> successors, CFAEdge edge) {
     plotWhenConfigured(successors, edge.getDescription(), SMGExportLevel.INTERESTING);
-    successors = Collections2.transform(successors,
-        s -> new SMGState(s, blockOperator.isBlockEnd(edge.getSuccessor(), 0)));
+    successors =
+        Collections2.transform(
+            successors, s -> s.copyWithBlockEnd(blockOperator.isBlockEnd(edge.getSuccessor(), 0)));
     logger.log(Level.ALL, "state with id", state.getId(), "has successors with ids",
         Collections2.transform(successors, SMGState::getId));
     // Verify predicate on error feasibility
