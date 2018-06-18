@@ -430,15 +430,14 @@ public class SMGBuiltins {
   public List<SMGAddressValueAndState> evaluateConfigurableAllocationFunction(
       CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
-    SMGState currentState = pState;
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGExplicitValueAndState sizeAndState :
-        getAllocateFunctionSize(currentState, cfaEdge, functionCall)) {
+        getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
       int size = sizeAndState.getObject().getAsInt();
-      currentState = sizeAndState.getSmgState();
+      SMGState currentState = sizeAndState.getSmgState();
 
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label =

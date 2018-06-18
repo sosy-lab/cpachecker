@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -312,44 +313,10 @@ public class CLangSMG extends SMG {
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
 
     // Mark all reachable from ExternallyAllocated objects as safe for remove
-    Queue<SMGObject> workqueue2 = new ArrayDeque<>(stray_objects);
-    while (!workqueue2.isEmpty()) {
-      SMGObject processed = workqueue2.remove();
-      if (isObjectExternallyAllocated(processed)) {
-        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(processed))) {
-          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
-          if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
-            setExternallyAllocatedFlag(pointedObject, true);
-            workqueue2.add(pointedObject);
-          }
-        }
-      }
-    }
+    markExternallyAllocatedObjects(stray_objects);
 
-    // remove all unreachable objects
-    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
-    for (SMGObject stray_object : stray_objects) {
-      if (stray_object != SMGNullObject.INSTANCE) {
-        if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
-          // TODO: report stray_object as error
-          unreachableObjects.add(stray_object);
-        }
-        removeObjectAndEdges(stray_object);
-        heap_objects = heap_objects.removeAndCopy(stray_object);
-      }
-    }
-
-    // remove all unreachable values
-    for (Integer stray_value : Sets.difference(getValues(), seen_values)) {
-      if (stray_value != SMG.NULL_ADDRESS) {
-        // Here, we can't just remove stray value, we also have to remove the points-to edge
-        if (isPointer(stray_value)) {
-          removePointsToEdge(stray_value);
-        }
-
-        removeValue(stray_value);
-      }
-    }
+    Set<SMGObject> unreachableObjects = removeObjects(stray_objects);
+    removeValues(Sets.difference(getValues(), seen_values));
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
@@ -358,10 +325,58 @@ public class CLangSMG extends SMG {
     return unreachableObjects;
   }
 
+  /**
+   * remove the given valid non-external objects from the heap.
+   *
+   * @return all removed valid objects, that are not externally allocated and might leak memory.
+   */
+  private Set<SMGObject> removeObjects(Collection<SMGObject> objects) {
+    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
+    for (SMGObject object : objects) {
+      if (object != SMGNullObject.INSTANCE) {
+        if (isObjectValid(object) && !isObjectExternallyAllocated(object)) {
+          unreachableObjects.add(object);
+        }
+        removeHeapObjectAndEdges(object);
+      }
+    }
+    return unreachableObjects;
+  }
+
+  /** remove the given valid values and also pointers from those values. */
+  private void removeValues(Collection<Integer> values) {
+    for (Integer value : values) {
+      if (value != SMG.NULL_ADDRESS) {
+        // Here, we can't just remove stray value, we also have to remove the points-to edge
+        if (isPointer(value)) {
+          removePointsToEdge(value);
+        }
+        removeValue(value);
+      }
+    }
+  }
+
+  /** mark all children reachable from externally allocated objects as externally allocated. */
+  private void markExternallyAllocatedObjects(Collection<SMGObject> objects) {
+    Queue<SMGObject> workqueue = new ArrayDeque<>(objects);
+    while (!workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if (isObjectExternallyAllocated(processed)) {
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(processed))) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+          if (objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
+            setExternallyAllocatedFlag(pointedObject, true);
+            workqueue.add(pointedObject);
+          }
+        }
+      }
+    }
+  }
+
   private void collectReachableObjectsAndValues(
       Set<SMGObject> seenObjects, Set<Integer> seenValues) {
 
-    // basis: get all direct reachabale objects
+    // basis: get all direct reachable objects
     Deque<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
     for (CLangStackFrame frame : getStackFrames()) {
       workqueue.addAll(frame.getAllObjects());
@@ -468,10 +483,8 @@ public class CLangSMG extends SMG {
 
   private boolean isFunctionParameter(SMGObject pObject) {
     String regionLabel = pObject.getLabel();
-
     for (CLangStackFrame frame : stack_objects) {
-      List<CParameterDeclaration> parameters = frame.getFunctionDeclaration().getParameters();
-      for (CParameterDeclaration parameter : parameters) {
+      for (CParameterDeclaration parameter : frame.getFunctionDeclaration().getParameters()) {
         if (parameter.getName().equals(regionLabel) && frame.getVariable(regionLabel) == pObject) {
           return true;
         }
