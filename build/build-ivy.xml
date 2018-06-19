@@ -5,7 +5,10 @@
 
     <!-- Targets for managing dependencies with Ivy. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
 
     <!-- These properties can be overridden from including file. -->
     <property name="ivy.target_version" value="2.4.0"/> <!-- Change version number here to use a newer version of Ivy. -->
