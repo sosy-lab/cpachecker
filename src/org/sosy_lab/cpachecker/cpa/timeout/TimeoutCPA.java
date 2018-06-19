@@ -44,7 +44,7 @@ public class TimeoutCPA extends AbstractCPA {
   // @Option(secure = true, name = "walltime", description = "Set the timeout length in seconds")
   private long walltime = -1;
 
-  private final TimeoutPrecisionAdjustment precisionAdjustment;
+  private TimeoutPrecisionAdjustment precisionAdjustment;
   private WalltimeLimit limit;
   private TimeoutTransferRelation transferRelation;
 
@@ -54,6 +54,10 @@ public class TimeoutCPA extends AbstractCPA {
 
   public void setWalltime(long pWalltime) {
     walltime = pWalltime;
+    if (walltime > 0) {
+      limit = WalltimeLimit.fromNowOn(walltime, TimeUnit.SECONDS);
+      precisionAdjustment = new TimeoutPrecisionAdjustment(limit);
+    }
   }
 
 
@@ -63,10 +67,8 @@ public class TimeoutCPA extends AbstractCPA {
     transferRelation = new TimeoutTransferRelation();
     if (walltime > 0) {
       limit = WalltimeLimit.fromNowOn(walltime, TimeUnit.SECONDS);
+      precisionAdjustment = new TimeoutPrecisionAdjustment(limit);
     }
-    precisionAdjustment = new TimeoutPrecisionAdjustment(limit);
-
-
   }
 
   @Override

@@ -153,6 +153,76 @@ public class TestGoalUtils {
     return lGoalPatterns;
   }
 
+  private String proprocessFQLGoal(String goal) {
+    String fql = null;
+    if (goal.contains("<->")) {
+      return GoalsToEdges(permute(goal.split("<->"), "->", 0));
+    } else if (goal.contains("||")) {
+      return GoalsToEdges(combine(goal.split("\\|\\|"), "<->"));
+    } else {
+      fql = "(\"EDGES(ID)*\"";
+      for (String singleGoal : goal.trim().split("->")) {
+        fql += ".(EDGES(@LABEL(" + singleGoal.trim() + "))).\"EDGES(ID)*\"";
+      }
+      fql += ")";
+    }
+    return fql;
+  }
+
+  static String combine(String[] a, String combinator) {
+    String goals = "";
+    for (int i = 0; i < a.length; i++) {
+      for (int x = i + 1; x < a.length; x++) {
+        goals += a[i] + combinator + a[x] + ",";
+      }
+    }
+    goals = goals.substring(0, goals.length() - 1);
+    return goals;
+  }
+
+
+  static String permute(String[] a, String combinator, int k) {
+
+    if (k == a.length) {
+      String goals = "";
+      for (int i = 0; i < a.length; i++) {
+        goals += a[i].trim() + combinator;
+      }
+      goals = goals.substring(0, goals.length() - combinator.length());
+      return goals;
+    } else {
+      String allGoals = "";
+      for (int i = k; i < a.length; i++) {
+        String temp = a[k];
+        a[k] = a[i];
+        a[i] = temp;
+
+        allGoals += permute(a, combinator, k + 1) + ",";
+
+        temp = a[k];
+        a[k] = a[i];
+        a[i] = temp;
+      }
+      allGoals = allGoals.substring(0, allGoals.length() - 1);
+      return allGoals;
+    }
+  }
+
+  private String GoalsToEdges(String goalString) {
+    String fql = "";
+    String[] goalList = goalString.split(",");
+    boolean first = true;
+    for (String goal : goalList) {
+      if (!first) {
+        fql += "+";
+      }
+      fql += proprocessFQLGoal(goal);
+      first = false;
+    }
+
+    return fql;
+  }
+
   public String preprocessFQL(String fqlString) {
     String goals = "goals:";
     if (!fqlString.trim().toLowerCase().startsWith(goals)) {
@@ -161,16 +231,7 @@ public class TestGoalUtils {
     try {
       String fql = "COVER ";
       String goalListString = fqlString.trim().substring(goals.length());
-      String[] goalList = goalListString.split(",");
-      boolean first = true;
-      for (String goal : goalList) {
-        if (!first) {
-          fql += "+";
-        }
-        fql += "(\"EDGES(ID)*\".(EDGES(@LABEL(" + goal.trim() + "))).\"EDGES(ID)*\")";
-        first = false;
-      }
-
+      fql += GoalsToEdges(goalListString);
       return fql;
     } catch (Exception ex) {
       return fqlString;
