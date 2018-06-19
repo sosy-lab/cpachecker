@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class ExceptionHandlingAlgorithm
     implements Algorithm, StatisticsProvider, ReachedSetUpdater {
@@ -205,7 +205,7 @@ public class ExceptionHandlingAlgorithm
 
         // handle occurrence of unsupported code. We can still check all remaining
         // paths in the program for errors
-      } catch (UnsupportedCodeException e) {
+      } catch (UnrecognizedCCodeException e) {
         // we don't want to continue, so no handling is necessary
         if (!options.continueAfterUnsupportedCode || e.getParentState() == null) {
           throw e;
