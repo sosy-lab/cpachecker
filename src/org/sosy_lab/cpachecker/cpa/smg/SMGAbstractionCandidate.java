@@ -24,15 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 
 public interface SMGAbstractionCandidate {
 
-  public boolean isEmpty();
+  boolean isEmpty();
 
-  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
+  UnmodifiableCLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
 
-  public int getScore();
+  int getScore();
 
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState);
-
+  SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState);
 }

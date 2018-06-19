@@ -678,7 +678,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                 dummy,
                 returnType,
                 new CIdExpression(dummy, functionDecl),
-                Collections.<CExpression>singletonList(parameters.get(0)),
+                Collections.singletonList(parameters.get(0)),
                 functionDecl);
 
         BooleanFormula form = null;

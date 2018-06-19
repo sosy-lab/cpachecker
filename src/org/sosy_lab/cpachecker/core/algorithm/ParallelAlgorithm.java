@@ -30,6 +30,7 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -391,17 +392,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               public void updated(ReachedSet pReachedSet) {
                 singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
                 ReachedSet oldReachedSet = oldReached.get();
-                ReachedSet currentReached = coreComponents.createReachedSet();
+                ReachedSet newReached = coreComponents.createReachedSet();
                 for (AbstractState as : pReachedSet) {
-                  currentReached.add(as, pReachedSet.getPrecision(as));
-                  currentReached.removeOnlyFromWaitlist(as);
+                  newReached.add(as, pReachedSet.getPrecision(as));
+                  newReached.removeOnlyFromWaitlist(as);
                 }
                 if (oldReachedSet != null) {
-                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
+                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);
                 } else {
-                  aggregatedReachedSetManager.addReachedSet(currentReached);
+                  aggregatedReachedSetManager.addReachedSet(newReached);
                 }
-                oldReached.set(currentReached);
+                oldReached.set(newReached);
               }
             });
       }
@@ -419,6 +420,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               break;
             }
           }
+
+          Preconditions.checkState(status != null, "algorithm should run at least once.");
 
           // check if we could prove the program to be safe
           if (status.isSound()
@@ -695,12 +698,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public static interface ReachedSetUpdateListener {
+  public interface ReachedSetUpdateListener {
 
     void updated(ReachedSet pReachedSet);
   }
 
-  public static interface ReachedSetUpdater {
+  public interface ReachedSetUpdater {
 
     void register(ReachedSetUpdateListener pReachedSetUpdateListener);
 
@@ -708,7 +711,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public static interface ConditionAdjustmentEventSubscriber {
+  public interface ConditionAdjustmentEventSubscriber {
 
     void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
 

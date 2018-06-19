@@ -717,15 +717,7 @@ class ASTConverter {
 
     @SuppressWarnings("unchecked")
     List<Expression> p = sCI.arguments();
-
-    List<JExpression> params;
-
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = Collections.emptyList();
-    }
+    List<JExpression> params = convert(p);
 
     String name;
     String simpleName;
@@ -1293,24 +1285,26 @@ class ASTConverter {
     if (constructorBinding != null) {
       final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
 
-      return new JConstructorDeclaration(getFileLocation(pCIC),
-                                         convertConstructorType(constructorBinding),
-                                         fullName,
-                                         simpleName,
-                                         Collections.<JParameterDeclaration>emptyList(),
-                                         mb.getVisibility(),
-                                         mb.isStrictFp(),
-                                         getDeclaringClassType(constructorBinding));
+      return new JConstructorDeclaration(
+          getFileLocation(pCIC),
+          convertConstructorType(constructorBinding),
+          fullName,
+          simpleName,
+          Collections.emptyList(),
+          mb.getVisibility(),
+          mb.isStrictFp(),
+          getDeclaringClassType(constructorBinding));
 
     } else {
-      return new JConstructorDeclaration(getFileLocation(pCIC),
-                                         JConstructorType.createUnresolvableConstructorType(),
-                                         fullName,
-                                         simpleName,
-                                         Collections.<JParameterDeclaration>emptyList(),
-                                         VisibilityModifier.NONE,
-                                         false,
-                                         JClassType.createUnresolvableType());
+      return new JConstructorDeclaration(
+          getFileLocation(pCIC),
+          JConstructorType.createUnresolvableConstructorType(),
+          fullName,
+          simpleName,
+          Collections.emptyList(),
+          VisibilityModifier.NONE,
+          false,
+          JClassType.createUnresolvableType());
     }
   }
 
@@ -1444,17 +1438,7 @@ class ASTConverter {
   private List<JExpression> getParameterExpressions(ClassInstanceCreation pCIC) {
     @SuppressWarnings("unchecked")
     List<Expression> p = pCIC.arguments();
-
-    List<JExpression> params;
-
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = Collections.emptyList();
-    }
-
-    return params;
+    return convert(p);
   }
 
 
@@ -1755,7 +1739,6 @@ class ASTConverter {
   }
 
   private List<JExpression> convert(List<Expression> el) {
-
     List<JExpression> result = new ArrayList<>(el.size());
     for (Expression expression : el) {
       result.add(convertExpressionWithoutSideEffects(expression));

@@ -36,10 +36,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
  */
 public interface Property {
 
-  /**
-   * @return  The textual description of the property.
-   */
+  /** @return The textual description of the property. */
   @Override
-  public String toString();
-
+  String toString();
 }

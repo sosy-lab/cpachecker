@@ -199,6 +199,8 @@ public class UsageTransferRelation implements TransferRelation {
     if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
+    newState = null;
+    precision = null;
     statistics.transferRelationTimer.stop();
     return result;
   }

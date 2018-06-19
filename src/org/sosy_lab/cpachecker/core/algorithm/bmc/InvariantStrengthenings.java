@@ -78,7 +78,7 @@ public class InvariantStrengthenings {
     return (NoAbstraction<S>) NoAbstraction.INSTANCE;
   }
 
-  private static enum UnsatCoreBasedRefinement
+  private enum UnsatCoreBasedRefinement
       implements InvariantStrengthening<SymbolicCandiateInvariant, SymbolicCandiateInvariant> {
     INSTANCE;
 

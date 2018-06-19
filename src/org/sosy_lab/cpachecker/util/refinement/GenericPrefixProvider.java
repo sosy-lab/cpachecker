@@ -220,10 +220,13 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   }
 
   private InfeasiblePrefix buildInfeasiblePrefix(final ARGPath infeasiblePrefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix,
-        cfa.getVarClassification().isPresent()
-            ? cfa.getVarClassification().get().getIntBoolVars()
-            : Collections.<String>emptySet(), false);
+    UseDefRelation useDefRelation =
+        new UseDefRelation(
+            infeasiblePrefix,
+            cfa.getVarClassification().isPresent()
+                ? cfa.getVarClassification().get().getIntBoolVars()
+                : Collections.emptySet(),
+            false);
 
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
         infeasiblePrefix,

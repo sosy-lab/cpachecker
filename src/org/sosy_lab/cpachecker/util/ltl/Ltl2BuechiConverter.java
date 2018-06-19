@@ -23,10 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.ltl;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jhoafparser.consumer.HOAConsumerPrint;
 import jhoafparser.consumer.HOAConsumerStore;
 import jhoafparser.parser.HOAFParser;
@@ -45,10 +56,10 @@ public class Ltl2BuechiConverter {
   private final ProcessBuilder builder;
 
   public static Automaton convertFormula(LtlFormula pFormula)
-      throws InterruptedException, IOException, LtlParseException {
+      throws InterruptedException, LtlParseException {
     Objects.requireNonNull(pFormula);
 
-    StoredAutomaton storedAutomaton;
+    StoredAutomaton storedAutomaton = null;
     Ltl2BuechiConverter converter = new Ltl2BuechiConverter(pFormula);
 
     try (InputStream is = converter.runLtlExec()) {
@@ -61,8 +72,10 @@ public class Ltl2BuechiConverter {
     } catch (ParseException e) {
       throw new LtlParseException(
           String.format(
-              "An error occured while parsing the output from the external tool '%s'", LTL3BA),
+              "An error occured while parsing the output from external tool '%s'", LTL3BA),
           e);
+    } catch (IOException e) {
+      throw new LtlParseException(e.getMessage(), e);
     }
 
     return LtlParserUtils.transform(storedAutomaton);
@@ -82,16 +95,58 @@ public class Ltl2BuechiConverter {
     builder.command(LTL3BA, "-H", "-f", ltlFormula.toString());
   }
 
-  private InputStream runLtlExec() throws IOException, InterruptedException, LtlParseException {
-    Process process = builder.start();
-    InputStream is = process.getInputStream();
+  private InputStream runLtlExec() throws InterruptedException, LtlParseException {
+    InputStream is;
 
-    int exitvalue = process.waitFor();
-    if (exitvalue != 0) {
-      throw new LtlParseException(
-          String.format("Tool %s exited with error code: %d", LTL3BA, exitvalue));
+    try {
+      Process process = builder.start();
+      is = process.getInputStream();
+
+      int exitvalue = process.waitFor();
+
+      if (exitvalue != 0) {
+        String errMsg = convertProcessToStream(is).collect(Collectors.joining("\n"));
+        throw new LtlParseException(
+            String.format(
+                "Tool '%s' exited with error code %d. Message from tool:%n%s",
+                LTL3BA, exitvalue, errMsg));
+      }
+
+    } catch (IOException | ExecutionException e) {
+      throw new LtlParseException(e.getMessage(), e);
     }
 
     return is;
+  }
+
+  private static class StreamGobbler implements Runnable {
+
+    private InputStream input;
+    private Consumer<String> consumer;
+
+    StreamGobbler(InputStream input, Consumer<String> consumer) {
+      this.input = input;
+      this.consumer = consumer;
+    }
+
+    @Override
+    public void run() {
+      InputStreamReader inputStreamReader = new InputStreamReader(input, Charset.defaultCharset());
+      BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+      bufferedReader.lines().forEach(consumer);
+    }
+  }
+
+  private Stream<String> convertProcessToStream(InputStream is)
+      throws InterruptedException, ExecutionException {
+    List<String> list = new ArrayList<>();
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    StreamGobbler gobbler = new StreamGobbler(is, x -> list.add(x));
+
+    executor.submit(gobbler).get();
+    executor.shutdown();
+
+    return list.stream();
   }
 }

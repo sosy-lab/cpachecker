@@ -45,7 +45,7 @@ public final class JObjectReferenceReturn extends JReturnStatement {
   private final JClassType classReference;
 
   public JObjectReferenceReturn(FileLocation pFileLocation, JClassType pClassReference) {
-    super(pFileLocation, Optional.<JExpression>of(new JThisExpression(pFileLocation, pClassReference)));
+    super(pFileLocation, Optional.of(new JThisExpression(pFileLocation, pClassReference)));
     classReference = pClassReference;
   }
 

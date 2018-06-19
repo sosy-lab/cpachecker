@@ -27,9 +27,11 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
 public interface SMGAbstractObject {
 
-  public boolean isAbstract();
-  public boolean matchGenericShape(SMGAbstractObject pOther);
-  public boolean matchSpecificShape(SMGAbstractObject pOther);
-  public SMGObjectKind getKind();
+  boolean isAbstract();
 
+  boolean matchGenericShape(SMGAbstractObject pOther);
+
+  boolean matchSpecificShape(SMGAbstractObject pOther);
+
+  SMGObjectKind getKind();
 }

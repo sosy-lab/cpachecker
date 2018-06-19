@@ -151,6 +151,8 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
       toRemove.clear();
       firstPointIterator = null;
       secondPointIterator = null;
+      firstPoint = null;
+      secondPoint = null;
     }
   }
 

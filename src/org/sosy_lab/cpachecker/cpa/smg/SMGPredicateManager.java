@@ -74,34 +74,23 @@ public class SMGPredicateManager {
   }
 
   private BooleanFormula createBooleanFormula(
-      Formula pFormulaOne,
-      Formula pFormulaTwo,
-      BinaryOperator pOp) {
-    BooleanFormula result;
+      Formula pFormulaOne, Formula pFormulaTwo, BinaryOperator pOp) {
     switch (pOp) {
       case GREATER_THAN:
-        result = fmgr.makeGreaterThan(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeGreaterThan(pFormulaOne, pFormulaTwo, true);
       case GREATER_EQUAL:
-        result = fmgr.makeGreaterOrEqual(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeGreaterOrEqual(pFormulaOne, pFormulaTwo, true);
       case LESS_THAN:
-        result = fmgr.makeLessThan(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeLessThan(pFormulaOne, pFormulaTwo, true);
       case LESS_EQUAL:
-        result = fmgr.makeLessOrEqual(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeLessOrEqual(pFormulaOne, pFormulaTwo, true);
       case EQUALS:
-        result = fmgr.makeEqual(pFormulaOne, pFormulaTwo);
-        break;
+        return fmgr.makeEqual(pFormulaOne, pFormulaTwo);
       case NOT_EQUALS:
-        result = bfmgr.not(fmgr.makeEqual(pFormulaOne, pFormulaTwo));
-        break;
+        return bfmgr.not(fmgr.makeEqual(pFormulaOne, pFormulaTwo));
       default:
         throw new AssertionError();
-
     }
-    return result;
   }
 
   private BooleanFormula addPredicateToFormula(BooleanFormula pFormula, ExplicitRelation
@@ -209,7 +198,7 @@ public class SMGPredicateManager {
     }
   }
 
-  public boolean isErrorPathFeasible(SMGState pState) {
+  public boolean isErrorPathFeasible(UnmodifiableSMGState pState) {
     if (!verifyPredicates) {
       return false;
     }

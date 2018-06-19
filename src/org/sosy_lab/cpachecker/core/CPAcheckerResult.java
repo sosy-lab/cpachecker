@@ -43,7 +43,7 @@ public class CPAcheckerResult {
    * - FALSE: bug found
    * - TRUE: no bug found
    */
-  public static enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
+  public enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
 
   private final Result result;
 

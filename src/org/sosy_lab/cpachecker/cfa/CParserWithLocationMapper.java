@@ -90,8 +90,7 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename)
-      throws ParserException, IOException, InterruptedException {
+  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
     String tokenizedCode = tokenizeSourcefile(pFilename, sourceOriginMapping);
     return realParser.parseString(
@@ -220,8 +219,7 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, IOException, InterruptedException {
+  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -34,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
-public class AnonymousTypes {
+public class TypeUtils {
   public static CType createTypeWithLength(int pSizeInBits) {
     if (pSizeInBits % 8 == 0) {
       CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY,
@@ -45,5 +47,17 @@ public class AnonymousTypes {
       CType bitFieldType = new CBitFieldType(fieldType, pSizeInBits);
       return bitFieldType;
     }
+  }
+
+  public static CType getRealExpressionType(CType type) {
+    return type.getCanonicalType();
+  }
+
+  public static CType getRealExpressionType(CSimpleDeclaration decl) {
+    return getRealExpressionType(decl.getType());
+  }
+
+  public static CType getRealExpressionType(CRightHandSide exp) {
+    return getRealExpressionType(exp.getExpressionType());
   }
 }

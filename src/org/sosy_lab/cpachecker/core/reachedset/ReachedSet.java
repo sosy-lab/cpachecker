@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public interface ReachedSet extends UnmodifiableReachedSet {
 
   @Override
-  public Set<AbstractState> asCollection();
+  Set<AbstractState> asCollection();
 
   /**
    * Add a state with a precision to the reached set and to the waitlist.
@@ -53,28 +53,28 @@ public interface ReachedSet extends UnmodifiableReachedSet {
    * @param precision The Precision for the AbstractState
    * @throws IllegalArgumentException If the state is already in the reached set, but with a different precision.
    */
-  public void add(AbstractState state, Precision precision) throws IllegalArgumentException;
+  void add(AbstractState state, Precision precision) throws IllegalArgumentException;
 
 
-  public void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
+  void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
   /**
    * Re-add a state to the waitlist which is already contained in the reached set.
    */
-  public void reAddToWaitlist(AbstractState s);
+  void reAddToWaitlist(AbstractState s);
 
   /**
    * Change the precision of a state that is already in the reached set.
    */
-  public void updatePrecision(AbstractState s, Precision newPrecision);
+  void updatePrecision(AbstractState s, Precision newPrecision);
 
-  public void remove(AbstractState state);
+  void remove(AbstractState state);
 
-  public void removeAll(Iterable<? extends AbstractState> toRemove);
+  void removeAll(Iterable<? extends AbstractState> toRemove);
 
-  public void removeOnlyFromWaitlist(AbstractState state);
+  void removeOnlyFromWaitlist(AbstractState state);
 
-  public void clear();
+  void clear();
 
-  public AbstractState popFromWaitlist();
+  AbstractState popFromWaitlist();
 }

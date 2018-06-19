@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
@@ -33,6 +34,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  * information.
  */
 public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGAddressValue {
+
+  public static final SMGKnownAddressValue ZERO_ADDRESS =
+      SMGKnownAddressValue.valueOf(
+          SMGNullObject.INSTANCE, SMGKnownExpValue.ZERO, SMGKnownSymValue.ZERO);
 
   /** The address this value represents. */
   private final SMGAddress address;

@@ -78,7 +78,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
 
     private final String cRepresentation;
 
-    private TypeIdOperator(String pCRepresentation) {
+    TypeIdOperator(String pCRepresentation) {
       cRepresentation = pCRepresentation;
     }
 

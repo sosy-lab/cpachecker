@@ -31,19 +31,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public interface GraphLevel {
 
-  public Color getBackgroundColor();
-  public int getWidth();
+  Color getBackgroundColor();
 
-  public Collection<Pair<List<Integer>, Color>> getGroups();
+  int getWidth();
 
-  public interface Builder<NodeType> {
+  Collection<Pair<List<Integer>, Color>> getGroups();
+
+  interface Builder<NodeType> {
     @CanIgnoreReturnValue
-    public Builder<NodeType> node();
+    Builder<NodeType> node();
 
     @CanIgnoreReturnValue
-    public Builder<NodeType> addMarkings(NodeType node);
+    Builder<NodeType> addMarkings(NodeType node);
 
-    public GraphLevel build();
-
+    GraphLevel build();
   }
 }

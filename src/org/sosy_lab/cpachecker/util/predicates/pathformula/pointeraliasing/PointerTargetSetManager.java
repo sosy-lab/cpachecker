@@ -384,7 +384,7 @@ class PointerTargetSetManager {
   /**
    * A handler for merge conflicts that appear when merging bases.
    */
-  private static enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
+  private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
     /**
@@ -404,7 +404,7 @@ class PointerTargetSetManager {
       }
       int currentFieldIndex = 0;
       final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
-        ImmutableList.<CCompositeTypeMemberDeclaration>builder();
+          ImmutableList.builder();
       if (type1 instanceof CCompositeType) {
         final CCompositeType compositeType1 = (CCompositeType) type1;
         if (compositeType1.getKind() == ComplexTypeKind.UNION &&

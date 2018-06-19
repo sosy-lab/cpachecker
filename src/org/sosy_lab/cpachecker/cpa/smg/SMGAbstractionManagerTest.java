@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
-
 public class SMGAbstractionManagerTest {
   private CLangSMG smg;
   @Before
@@ -55,7 +54,7 @@ public class SMGAbstractionManagerTest {
       SMGEdgeHasValue hv;
       smg.addHeapObject(node);
       if (next != null) {
-        int address = SMGValueFactory.getNewValue();
+        int address = SMGCPA.getNewValue();
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
         hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, node, address);
         smg.addValue(address);
@@ -67,7 +66,7 @@ public class SMGAbstractionManagerTest {
       next = node;
     }
 
-    int address = SMGValueFactory.getNewValue();
+    int address = SMGCPA.getNewValue();
     SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, globalVar, address);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
     smg.addGlobalObject(globalVar);

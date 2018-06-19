@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGNodeMapping {
   private final Map<SMGObject, SMGObject> object_map = new HashMap<>();
@@ -42,7 +41,7 @@ public class SMGNodeMapping {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null || !(obj instanceof SMGNodeMapping)) {
+    if (!(obj instanceof SMGNodeMapping)) {
       return false;
     }
     SMGNodeMapping other = (SMGNodeMapping) obj;

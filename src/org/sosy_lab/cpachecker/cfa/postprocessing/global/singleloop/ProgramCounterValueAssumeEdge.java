@@ -38,7 +38,7 @@ public interface ProgramCounterValueAssumeEdge extends CFAEdge {
    *
    * @return the program counter value.
    */
-  public int getProgramCounterValue();
+  int getProgramCounterValue();
 
   /**
    * Checks if the assumption is assumed to be true or false on this edge.
@@ -46,6 +46,6 @@ public interface ProgramCounterValueAssumeEdge extends CFAEdge {
    * @return {@code true} is the assumption on this edge is assumed to be
    * true, {@code false} otherwise.
    */
-  public boolean getTruthAssumption();
+  boolean getTruthAssumption();
 
 }

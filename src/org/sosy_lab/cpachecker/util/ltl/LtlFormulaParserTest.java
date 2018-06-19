@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Conjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Disjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Finally;
-import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Globally;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Next;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Release;
 import org.sosy_lab.cpachecker.util.ltl.formulas.StrongRelease;
@@ -72,7 +72,7 @@ public class LtlFormulaParserTest {
                 new Until(new Literal("b"), new Release(new Literal("c"), new Literal("a")))));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlFormulaParser.parse(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
     }
   }
 
@@ -101,7 +101,7 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlFormulaParser.parse(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
     }
   }
 
@@ -154,7 +154,7 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlFormulaParser.parse(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
     }
   }
 
@@ -215,7 +215,7 @@ public class LtlFormulaParserTest {
             new Literal("a"));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlFormulaParser.parse(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
     }
   }
 }

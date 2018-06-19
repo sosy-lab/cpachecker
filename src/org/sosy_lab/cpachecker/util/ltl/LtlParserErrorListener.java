@@ -28,9 +28,9 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
-public class ParserErrorListener extends BaseErrorListener {
+class LtlParserErrorListener extends BaseErrorListener {
 
-  public static final ParserErrorListener INSTANCE = new ParserErrorListener();
+  static final LtlParserErrorListener INSTANCE = new LtlParserErrorListener();
 
   @Override
   public void syntaxError(

@@ -185,7 +185,7 @@ class DynamicMemoryHandler {
         parameters = Collections.singletonList(newParam);
 
       } else {
-        parameters = Collections.<CExpression>singletonList(multiplication);
+        parameters = Collections.singletonList(multiplication);
       }
 
     } else if (parameters.size() != 1) {

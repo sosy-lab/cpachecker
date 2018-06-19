@@ -221,7 +221,7 @@ public class SymbolicRegionManager implements RegionManager {
     }
 
     @Override
-    public Region getResult() throws InterruptedException {
+    public Region getResult() {
       return new SymbolicRegion(bfmgr, cubes);
     }
 

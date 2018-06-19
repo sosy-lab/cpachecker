@@ -27,11 +27,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public interface SMGEdgeHasValueTemplateWithConcreteValue {
 
-  public SMGObjectTemplate getObjectTemplate();
+  SMGObjectTemplate getObjectTemplate();
 
-  public int getValue();
+  int getValue();
 
-  public long getOffset();
+  long getOffset();
 
-  public CType getType();
+  CType getType();
 }

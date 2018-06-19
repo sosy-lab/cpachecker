@@ -20,6 +20,11 @@
     <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
 
+    <!-- TODO: disable reference-equality check because commonly used in CPAchecker -->
+    <property name="errorprone.options" value="
+        -Xep:ReferenceEquality:OFF
+        "/>
+
     <import file="build/build-ivy.xml"/>
     <import file="build/build-version.xml"/>
     <import file="build/build-compile.xml"/>

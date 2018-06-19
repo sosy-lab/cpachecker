@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -81,7 +82,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return smgState;
   }
 
-  public CFAEdge getEdge() {
+  CFAEdge getEdge() {
     return edge;
   }
 
@@ -90,17 +91,19 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
-
     if (pValue.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
-    SMGExplicitValue explicitValue = smgState.getExplicit((SMGKnownSymValue) pValue);
-
-    return explicitValue;
+    Preconditions.checkState(pValue instanceof SMGKnownSymValue, "known value has invalid type");
+    if (!smgState.isExplicit((SMGKnownSymValue) pValue)) {
+      return SMGUnknownValue.getInstance();
+    }
+    return Preconditions.checkNotNull(
+        smgState.getExplicit((SMGKnownSymValue) pValue),
+        "known and existing value cannot be read from state");
   }
 
-  protected void setSmgState(SMGState pSmgState) {
+  void setSmgState(SMGState pSmgState) {
     smgState = pSmgState;
   }
 
@@ -124,18 +127,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         throw e2;
       }
 
-      SMGValueAndState symValueAndState;
-
-      if (symValueAndStates.size() > 0) {
-        symValueAndState = symValueAndStates.get(0);
-      } else {
-        symValueAndState = SMGValueAndState.of(getNewState());
-      }
-
-      for (int c = 1; c < symValueAndStates.size(); c++) {
-        smgStatesToBeProccessed.add(symValueAndStates.get(c).getSmgState());
-      }
-
+      SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
       SMGSymbolicValue symValue = symValueAndState.getObject();
       smgState = symValueAndState.getSmgState();
 
@@ -168,17 +160,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       throw e2;
     }
 
-    SMGValueAndState valueAndState;
-    if (valueAndStates.size() > 0) {
-      valueAndState = valueAndStates.get(0);
-    } else {
-      valueAndState = SMGValueAndState.of(getNewState());
-    }
-
-    for (int c = 1; c < valueAndStates.size(); c++) {
-      smgStatesToBeProccessed.add(valueAndStates.get(c).getSmgState());
-    }
-
+    SMGValueAndState valueAndState = getStateAndAddRestForLater(valueAndStates);
     SMGSymbolicValue value = valueAndState.getObject();
     smgState = valueAndState.getSmgState();
 
@@ -188,6 +170,25 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     } else {
       return new NumericValue(expValue.getAsLong());
     }
+  }
+
+  /**
+   * Returns the first state (or a new state if list is empty) and stores the rest of the list for
+   * later analysis.
+   */
+  private SMGValueAndState getStateAndAddRestForLater(
+      final List<? extends SMGValueAndState> valueAndStates) {
+    final SMGValueAndState valueAndState;
+    if (valueAndStates.size() > 0) {
+      valueAndState = valueAndStates.get(0);
+    } else {
+      valueAndState = SMGValueAndState.of(getNewState());
+    }
+
+    for (int c = 1; c < valueAndStates.size(); c++) {
+      smgStatesToBeProccessed.add(valueAndStates.get(c).getSmgState());
+    }
+    return valueAndState;
   }
 
   @Override

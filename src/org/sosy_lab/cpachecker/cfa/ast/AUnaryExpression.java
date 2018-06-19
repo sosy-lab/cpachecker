@@ -85,11 +85,9 @@ public abstract class AUnaryExpression extends AbstractExpression {
             && Objects.equals(other.operator, operator);
   }
 
-  public static  interface AUnaryOperator {
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
-    public String getOperator();
+  public interface AUnaryOperator {
+    /** Returns the string representation of this operator (e.g. "*", "+"). */
+    String getOperator();
   }
 
 }

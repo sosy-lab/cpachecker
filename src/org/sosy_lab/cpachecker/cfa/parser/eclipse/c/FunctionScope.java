@@ -27,13 +27,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -45,14 +46,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
  * Implementation of {@link Scope} for the local scope inside functions.
@@ -102,10 +100,10 @@ class FunctionScope extends AbstractScope {
 
   public FunctionScope() {
     this(
-        ImmutableMap.<String, CFunctionDeclaration>of(),
-        ImmutableMap.<String, CComplexTypeDeclaration>of(),
-        ImmutableMap.<String, CTypeDefDeclaration>of(),
-        ImmutableMap.<String, CSimpleDeclaration>of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         "",
         CProgramScope.empty());
   }

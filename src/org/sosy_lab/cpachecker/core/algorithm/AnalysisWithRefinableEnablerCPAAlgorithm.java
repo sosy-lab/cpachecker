@@ -137,7 +137,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     private final Class<? extends AbstractState> stateClass;
     private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-    private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
+    Enabler(
+        Class<? extends AbstractState> pStateClassOfEnabler,
         Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {
       stateClass = pStateClassOfEnabler;
       cpaClass = pCPAClassOfEnabler;

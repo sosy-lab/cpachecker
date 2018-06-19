@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {
 
-  Map<ConvertingTags, KeyDef> tagConverter =
+  final Map<ConvertingTags, KeyDef> tagConverter =
       ImmutableMap.of(
           SMGConvertingTags.WARNING, KeyDef.WARNING,
           SMGConvertingTags.NOTE, KeyDef.NOTE);

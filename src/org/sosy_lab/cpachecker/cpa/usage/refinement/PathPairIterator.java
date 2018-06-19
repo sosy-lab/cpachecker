@@ -65,7 +65,6 @@ public class PathPairIterator extends
   private StatCounter numberOfRepeatedConstructedPaths = new StatCounter("Number of repeated path computed");
   //private int numberOfrepeatedPaths = 0;
 
-
   private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
   private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
 
@@ -104,7 +103,6 @@ public class PathPairIterator extends
     // subgraph computer need partitioning, which is not built at creation.
     // Thus, we move the creation of subgraphcomputer here
     subgraphComputer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
-    targetToPathIterator.clear();
   }
 
   @Override
@@ -206,6 +204,10 @@ public class PathPairIterator extends
     if (callerClass.equals(IdentifierIterator.class)) {
       //Refinement iteration finishes
       refinedStates.clear();
+      targetToPathIterator.clear();
+      firstPath = null;
+      refinedStates.clear();
+      subgraphComputer = null;
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();
       computedPathsForUsage.clear();

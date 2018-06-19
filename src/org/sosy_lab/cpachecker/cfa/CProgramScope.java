@@ -484,7 +484,7 @@ public class CProgramScope implements Scope {
   }
 
   private static boolean equals(CType pA, CType pB) {
-    return equals(pA, pB, Sets.<Pair<CType, CType>>newHashSet());
+    return equals(pA, pB, Sets.newHashSet());
   }
 
   private static boolean equals(@Nullable CType pA, @Nullable CType pB, Set<Pair<CType, CType>> pResolved) {

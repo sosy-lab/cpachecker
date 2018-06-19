@@ -102,8 +102,7 @@ public class CFATraversal {
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
   public static CFATraversal dfs() {
-    return new CFATraversal(
-        FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.<CFAEdge>alwaysFalse());
+    return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());
   }
 
   /**
@@ -128,10 +127,10 @@ public class CFATraversal {
    * during traversing.
    */
   public CFATraversal ignoreSummaryEdges() {
-    return new CFATraversal(edgeSupplier,
+    return new CFATraversal(
+        edgeSupplier,
         successorSupplier,
-        Predicates.<CFAEdge>or(ignoreEdge,
-            Predicates.instanceOf(FunctionSummaryEdge.class)));
+        Predicates.or(ignoreEdge, Predicates.instanceOf(FunctionSummaryEdge.class)));
   }
 
   /**
@@ -142,13 +141,13 @@ public class CFATraversal {
    */
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
-    return new CFATraversal(edgeSupplier,
+    return new CFATraversal(
+        edgeSupplier,
         successorSupplier,
-        Predicates.<CFAEdge>or(
+        Predicates.or(
             ignoreEdge,
             Predicates.instanceOf(FunctionCallEdge.class),
-            Predicates.instanceOf(FunctionReturnEdge.class)
-            ));
+            Predicates.instanceOf(FunctionReturnEdge.class)));
   }
 
   /**
@@ -403,7 +402,6 @@ public class CFATraversal {
     }
   }
 
-
   // --- Types and classes for implementors of CFAVisitors
 
   /**
@@ -414,7 +412,7 @@ public class CFATraversal {
    *
    * @see CFATraversal
    */
-  public static interface CFAVisitor {
+  public interface CFAVisitor {
 
     /**
      * Called for each edge the traversal process encounters.
@@ -431,11 +429,8 @@ public class CFATraversal {
     TraversalProcess visitNode(CFANode node);
   }
 
-  /**
-   * An enum for possible actions a visitor can tell the traversal strategy to
-   * do next.
-   */
-  public static enum TraversalProcess {
+  /** An enum for possible actions a visitor can tell the traversal strategy to do next. */
+  public enum TraversalProcess {
    /**
      * Continue normally.
      */

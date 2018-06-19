@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -59,11 +60,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressAndState>, CPATransferException>
     implements CRightHandSideVisitor<List<SMGAddressAndState>, CPATransferException> {
 
-  protected final SMGExpressionEvaluator smgExpressionEvaluator;
+  final SMGExpressionEvaluator smgExpressionEvaluator;
   private final CFAEdge cfaEdge;
   private final SMGState initialSmgState;
 
-  public AddressVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  AddressVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     smgExpressionEvaluator = Preconditions.checkNotNull(pSmgExpressionEvaluator);
     cfaEdge = pEdge;
     initialSmgState = pSmgState;
@@ -74,7 +76,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
     return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
   }
 
-  protected List<SMGAddressAndState> visitDefault(@SuppressWarnings("unused") CRightHandSide rhs) {
+  List<SMGAddressAndState> visitDefault(@SuppressWarnings("unused") CRightHandSide rhs) {
     return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
   }
 
@@ -82,8 +84,10 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
   public List<SMGAddressAndState> visit(CIdExpression variableName) throws CPATransferException {
 
     SMGState state = getInitialSmgState();
-    SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
-    state.addElementToCurrentChain(object);
+    SMGObject object = state.getHeap().getObjectForVisibleVariable(variableName.getName());
+    if (object != null) {
+      state.addElementToCurrentChain(object);
+    }
 
     if (object == null && variableName.getDeclaration() != null) {
       CSimpleDeclaration dcl = variableName.getDeclaration();
@@ -132,23 +136,22 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
      */
     CExpression operand = pointerExpression.getOperand();
 
-    assert smgExpressionEvaluator.getRealExpressionType(operand) instanceof CPointerType
-      || smgExpressionEvaluator.getRealExpressionType(operand) instanceof CArrayType;
+    assert TypeUtils.getRealExpressionType(operand) instanceof CPointerType
+        || TypeUtils.getRealExpressionType(operand) instanceof CArrayType;
 
     return asAddressAndStateList(
         smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), operand));
   }
 
-  public final CFAEdge getCfaEdge() {
+  final CFAEdge getCfaEdge() {
     return cfaEdge;
   }
 
-  public final SMGState getInitialSmgState() {
+  final SMGState getInitialSmgState() {
     return initialSmgState;
   }
 
-  protected static List<SMGAddressAndState> asAddressAndStateList(
-      List<SMGAddressValueAndState> lst) {
+  static List<SMGAddressAndState> asAddressAndStateList(List<SMGAddressValueAndState> lst) {
     List<SMGAddressAndState> result = new ArrayList<>();
     for (SMGAddressValueAndState addressValueAndState : lst) {
       SMGAddressValue addressValue = addressValueAndState.getObject();

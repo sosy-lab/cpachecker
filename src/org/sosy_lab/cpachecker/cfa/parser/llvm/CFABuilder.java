@@ -189,8 +189,7 @@ public class CFABuilder {
     iterateOverFunctions(pItem, pFileName);
   }
 
-  private void addFunctionDeclarations(final Module pItem, final String pFileName)
-      throws LLVMException {
+  private void addFunctionDeclarations(final Module pItem, final String pFileName) {
     for (Value func : pItem) {
       String funcName = func.getValueName();
       assert !funcName.isEmpty();
@@ -649,8 +648,7 @@ public class CFABuilder {
     }
   }
 
-  protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName)
-      throws LLVMException {
+  protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName) {
     assert pItem.isFunction();
 
     logger.log(Level.FINE, "Creating function: " + pItem.getValueName());
@@ -873,8 +871,7 @@ public class CFABuilder {
     return getAssignStatement(valueToStoreTo, expression, pFunctionName, pFileName);
   }
 
-  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName, String pFileName)
-      throws LLVMException {
+  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName, String pFileName) {
     // We ignore the specifics and handle alloca statements like C declarations of variables
     CSimpleDeclaration assignedVar =
         getAssignedVarDeclaration(pItem, pFunctionName, null, pFileName);
@@ -1261,7 +1258,7 @@ public class CFABuilder {
     return init;
   }
 
-  private int getLength(Value pAggregateValue) throws LLVMException {
+  private int getLength(Value pAggregateValue) {
     CType aggregateType = typeConverter.getCType(pAggregateValue.typeOf()).getCanonicalType();
     if (aggregateType instanceof CArrayType) {
       CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
@@ -1337,8 +1334,7 @@ public class CFABuilder {
       final Value pItem,
       final String pFunctionName,
       final CInitializer pInitializer,
-      final String pFileName)
-      throws LLVMException {
+      final String pFileName) {
     final long itemId = pItem.getAddress();
     if (!variableDeclarations.containsKey(itemId)) {
       String assignedVar = getName(pItem);
@@ -1479,7 +1475,7 @@ public class CFABuilder {
     return newName.toString();
   }
 
-  private void declareFunction(final Value pFuncDef, final String pFileName) throws LLVMException {
+  private void declareFunction(final Value pFuncDef, final String pFileName) {
     String functionName = pFuncDef.getValueName();
 
     // Function type
@@ -1509,8 +1505,7 @@ public class CFABuilder {
     functionDeclarations.put(functionName, functionDeclaration);
   }
 
-  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef, final String pFileName)
-      throws LLVMException {
+  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef, final String pFileName) {
     assert !pFuncDef.isDeclaration();
 
     String functionName = pFuncDef.getValueName();

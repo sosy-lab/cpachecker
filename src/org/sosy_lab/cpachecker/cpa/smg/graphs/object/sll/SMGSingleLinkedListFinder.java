@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -63,8 +63,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
-      Set<SMGAbstractionBlock> pAbstractionLocks) throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(
+      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      throws SMGInconsistentException {
     SMGJoinSllProgress pProgress = new SMGJoinSllProgress();
 
     for (SMGObject object : pSmg.getHeapObjects()) {
@@ -72,14 +73,19 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     Set<SMGSingleLinkedListCandidateSequenceBlock> sllBlocks =
-        FluentIterable.from(pAbstractionLocks)
-            .filter(SMGSingleLinkedListCandidateSequenceBlock.class).toSet();
+        FluentIterable.from(pAbstractionBlocks)
+            .filter(SMGSingleLinkedListCandidateSequenceBlock.class)
+            .toSet();
 
     return pProgress.getValidCandidates(seqLengthEqualityThreshold, seqLengthEntailmentThreshold, seqLengthIncomparableThreshold, pSmg, sllBlocks);
   }
 
-  private void startTraversal(SMGObject pObject, CLangSMG pSmg, SMGState pSmgState,
-      SMGJoinSllProgress pProgress) throws SMGInconsistentException {
+  private void startTraversal(
+      SMGObject pObject,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGJoinSllProgress pProgress)
+      throws SMGInconsistentException {
     if (pProgress.containsCandidateMap(pObject)) {
       // Processed already in continueTraversal
       return;
@@ -88,7 +94,12 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     createCandidatesOfObject(pObject, pSmg, pSmgState, pProgress);
   }
 
-  private void createCandidatesOfObject(SMGObject pObject, CLangSMG pSmg, SMGState pSMGState, SMGJoinSllProgress pProgress) throws SMGInconsistentException {
+  private void createCandidatesOfObject(
+      SMGObject pObject,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      SMGJoinSllProgress pProgress)
+      throws SMGInconsistentException {
 
     if (!pSmg.isObjectValid(pObject)) {
       return;
@@ -98,9 +109,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       return;
     }
 
-    Set<SMGEdgeHasValue> hvesOfObject = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hveNext : hvesOfObject) {
+    for (SMGEdgeHasValue hveNext : pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
 
       long nfo = hveNext.getOffset();
       int nextPointer = hveNext.getValue();
@@ -137,11 +146,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
-      Set<SMGEdgePointsTo> pointsToThis = SMGUtils.getPointerToThisObject(pObject, pSmg);
-
       Set<CType> typesOfThisObject = new HashSet<>();
 
-      for (SMGEdgePointsTo edge : pointsToThis) {
+      for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
         Set<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
         for (SMGEdgeHasValue hve : hves) {
@@ -163,8 +170,13 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
   }
 
-  private void continueTraversal(int pValue, SMGSingleLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg, SMGState pSmgState, SMGJoinSllProgress pProgress) throws SMGInconsistentException {
+  private void continueTraversal(
+      int pValue,
+      SMGSingleLinkedListCandidate pPrevCandidate,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGJoinSllProgress pProgress)
+      throws SMGInconsistentException {
 
     SMGEdgePointsTo pt = pSmg.getPointer(pValue);
     SMGObject nextObject = pt.getObject();
@@ -225,8 +237,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     // Second, find out if the subsmgs are mergeable
-    SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSmg),
-        startObject, nextObject, candidate, pSmgState);
+    SMGJoinSubSMGsForAbstraction join =
+        new SMGJoinSubSMGsForAbstraction(
+            pSmg.copyOf(), startObject, nextObject, candidate, pSmgState);
 
     if(!join.isDefined()) {
       return;
@@ -249,9 +262,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     objectsOfSubSmg2.remove(nextObject);
 
     // TODO Investigate, is this okay?
-    if(nonSharedValues2.contains(pValue)) {
-      nonSharedValues2.remove(pValue);
-    }
+    nonSharedValues2.remove(pValue);
 
     // Third, calculate if the respective nfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
@@ -269,10 +280,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     // check if the sequence is uninterrupted
-    Set<SMGEdgePointsTo> ptes1 = SMGUtils.getPointerToThisObject(startObject, pSmg);
-    Set<SMGEdgePointsTo> ptes2 = SMGUtils.getPointerToThisObject(nextObject, pSmg);
-
-    for (SMGEdgePointsTo pte : ptes1) {
+    for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(startObject, pSmg)) {
       if (pte.getOffset() != candidate.getShape().getHfo()) {
         if (!nonSharedValues1.contains(pte.getValue())) {
           return;
@@ -280,7 +288,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
     }
 
-    for (SMGEdgePointsTo pte : ptes2) {
+    for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(nextObject, pSmg)) {
       if (pte.getOffset() != candidate.getShape().getHfo()) {
         if (!nonSharedValues2.contains(pte.getValue())) {
           return;
@@ -331,10 +339,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
-      Set<SMGEdgeHasValue> hves =
-          smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(val));
-
-      for (SMGEdgeHasValue hve : hves) {
+      for (SMGEdgeHasValue hve : smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(val))) {
         if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
           return false;
         }
@@ -351,10 +356,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     pObjects.add(pObject);
 
-    Set<SMGEdgeHasValue> hves = inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
-
-    for (SMGEdgeHasValue hve : hves) {
-
+    for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
       if (hve.getOffset() != nfo) {
 
         int subSmgValue = hve.getValue();

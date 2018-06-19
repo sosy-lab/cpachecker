@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,13 +36,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+/** This class does not actually apply a refinement. It only exports all new counterexamples. */
+// TODO can we delete this class?
 public class SMGBasicRefiner implements Refiner {
 
   private final LogManager logger;
-
   private final ARGCPA argCpa;
   private static Set<ARGState> cache;
 
@@ -54,40 +54,27 @@ public class SMGBasicRefiner implements Refiner {
   public static final SMGBasicRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    SMGCPA smgCpa = retrieveCPA(pCpa, SMGCPA.class);
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGBasicRefiner.class);
+    SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGBasicRefiner.class);
 
-    LogManager logger = smgCpa.getLogger();
     cache = Sets.newHashSet();
 
-    return new SMGBasicRefiner(logger, argCpa);
+    return new SMGBasicRefiner(smgCpa.getLogger(), argCpa);
   }
 
   @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public boolean performRefinement(ReachedSet pReached) throws InterruptedException {
     final Map<ARGState, CounterexampleInfo> counterexamples =
         argCpa.getARGExporter().getAllCounterexamples(pReached);
 
     logger.log(Level.FINEST, "Filtering new SMG counterexample.");
     for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
       final ARGState lastSate = cex.getKey();
-      if (!cache.contains(lastSate)) {
+      if (cache.add(lastSate)) {
         argCpa.getARGExporter().exportCounterexampleOnTheFly(lastSate, cex.getValue());
-        cache.add(lastSate);
       }
     }
     logger.log(Level.FINEST, "SMG counterexample has been exported.");
     return false;
-  }
-
-  /** retrieve the wrapped CPA or throw an exception. */
-  private static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
-      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls) throws InvalidConfigurationException {
-    final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
-    if (extractedCPA == null) {
-      throw new InvalidConfigurationException(
-          retrieveCls.getSimpleName() + " cannot be retrieved.");
-    }
-    return extractedCPA;
   }
 }

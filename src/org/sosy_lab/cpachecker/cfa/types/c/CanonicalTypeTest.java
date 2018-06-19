@@ -93,11 +93,11 @@ public class CanonicalTypeTest {
   @Test
   public void functionType() {
     CTypedefType typedef = new CTypedefType(false, false, "TYPEDEF", CNumericTypes.INT);
-    CFunctionType function = new CFunctionType(typedef, ImmutableList.<CType>of(typedef), false);
+    CFunctionType function = new CFunctionType(typedef, ImmutableList.of(typedef), false);
 
     CFunctionType expected =
         new CFunctionType(
-            CNumericTypes.SIGNED_INT, ImmutableList.<CType>of(CNumericTypes.SIGNED_INT), false);
+            CNumericTypes.SIGNED_INT, ImmutableList.of(CNumericTypes.SIGNED_INT), false);
     assertThat(function.getCanonicalType()).isEqualTo(expected);
   }
 }

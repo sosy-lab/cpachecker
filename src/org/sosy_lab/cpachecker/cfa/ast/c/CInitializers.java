@@ -27,12 +27,19 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
-import java.util.Optional;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
-
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -45,15 +52,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Utility class for initializer-related tasks.
@@ -465,11 +463,11 @@ public final class CInitializers {
 
     switch (structType.getKind()) {
     case STRUCT:
-      nextSubobjects.push(CInitializers.<CExpression>safeCast(fields));
+        nextSubobjects.push(CInitializers.safeCast(fields));
       break;
     case UNION:
-      // unions only have their first field initialized, ignore the rest
-      nextSubobjects.push(Collections.<CExpression>emptyIterator());
+        // unions only have their first field initialized, ignore the rest
+        nextSubobjects.push(Collections.emptyIterator());
       break;
     default:
       throw new AssertionError();

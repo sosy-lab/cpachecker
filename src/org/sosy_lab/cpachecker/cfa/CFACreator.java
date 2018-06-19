@@ -384,11 +384,10 @@ private boolean classifyNodes = false;
    * @param program  The program represented as String to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
-   * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseSourceAndCreateCFA(String program)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
 
     stats.totalTime.start();
     try {
@@ -954,7 +953,7 @@ v.addInitializer(initializer);
                                          initializer);
 
             previouslyInitializedVariables.add(name);
-            iterator.set(Pair.<ADeclaration, String>of(v, p.getSecond())); // replace declaration
+            iterator.set(Pair.of(v, p.getSecond())); // replace declaration
           }
         }
       }

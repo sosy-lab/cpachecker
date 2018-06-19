@@ -41,6 +41,7 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -80,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -194,10 +194,9 @@ public class CFASingleLoopTransformation {
    * @param pInputCFA the control flow automaton to be transformed.
    *
    * @return a new CFA with at most one loop.
-   * @throws InvalidConfigurationException if the configuration this transformer was created with is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  public MutableCFA apply(MutableCFA pInputCFA) throws InvalidConfigurationException, InterruptedException {
+  public MutableCFA apply(MutableCFA pInputCFA) throws InterruptedException {
 
     // If the transformation is not necessary, return the original graph
     if (pInputCFA.getLoopStructure().isPresent()) {
@@ -768,9 +767,12 @@ public class CFASingleLoopTransformation {
       Map<String, FunctionEntryNode> functions) throws InterruptedException {
     SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-    CFunctionDeclaration artificialFunctionDeclaration = new CFunctionDeclaration(
-        FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION,
-        ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, ImmutableList.<CParameterDeclaration>of());
+    CFunctionDeclaration artificialFunctionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            CFunctionType.NO_ARGS_VOID_FUNCTION,
+            ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
+            ImmutableList.of());
     FunctionEntryNode artificialFunctionEntryNode =
         new CFunctionEntryNode(
             FileLocation.DUMMY,
@@ -1273,7 +1275,8 @@ public class CFASingleLoopTransformation {
       Class<? extends CFANode> clazz = pNode.getClass();
       Class<?>[] requiredParameterTypes = new Class<?>[] { int.class, String.class };
       for (Constructor<?> cons : clazz.getConstructors()) {
-        if (cons.isAccessible() && Arrays.equals(cons.getParameterTypes(), requiredParameterTypes)) {
+        if (Modifier.isPublic(cons.getModifiers())
+            && Arrays.equals(cons.getParameterTypes(), requiredParameterTypes)) {
           try {
             result = (CFANode) cons.newInstance(functionName);
             break;
@@ -1475,7 +1478,7 @@ public class CFASingleLoopTransformation {
    * This enum contains different strategies
    * that decide how large the individual parts of the body of the new loop become.
    */
-  private static enum SubGraphGrowthStrategy {
+  private enum SubGraphGrowthStrategy {
 
     /**
      * This growth strategy allows for infinite growth.

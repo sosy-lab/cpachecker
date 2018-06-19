@@ -60,5 +60,5 @@ public interface ASimpleDeclaration extends AAstNode {
    *
    * <p>Client code should not rely on a specific format of the returned name.
    */
-  public String getQualifiedName();
+  String getQualifiedName();
 }

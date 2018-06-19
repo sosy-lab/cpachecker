@@ -166,7 +166,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     Iterator<CFAEdge> iterator = path.iterator();
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
-      if (edge instanceof CDeclarationEdge) {
+      if (edge == null || edge instanceof CDeclarationEdge) {
         continue;
       }
       if (edge instanceof CFunctionCallEdge && iterator.hasNext()) {

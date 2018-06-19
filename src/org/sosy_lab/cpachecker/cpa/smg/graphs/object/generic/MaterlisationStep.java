@@ -31,13 +31,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class MaterlisationStep {
 
@@ -280,14 +279,14 @@ public class MaterlisationStep {
     SMGObjectTemplate objectTemplate = edgeOfPointerTemplate.getObjectTemplate();
 
     if (!pAbstractObjectToPointersMap.containsKey(objectTemplate)) {
-      pAbstractObjectToPointersMap.put(objectTemplate, new HashMap<Integer, Integer>());
+      pAbstractObjectToPointersMap.put(objectTemplate, new HashMap<>());
     }
 
     int abstractValue = edgeOfPointerTemplate.getAbstractValue();
     int value;
 
     if (createNewConcreteValue) {
-      value = SMGValueFactory.getNewValue();
+      value = SMGCPA.getNewValue();
     } else {
       value = pAbstractToConcretePointerMap.get(abstractValue);
     }

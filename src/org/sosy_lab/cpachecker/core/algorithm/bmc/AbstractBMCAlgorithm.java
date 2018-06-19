@@ -832,8 +832,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  public static enum InvariantGeneratorFactory {
-
+  public enum InvariantGeneratorFactory {
     INDUCTION {
 
       @Override
@@ -1183,13 +1182,12 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  private static interface InvariantGeneratorHeadStart {
+  private interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;
   }
 
-  private static enum InvariantGeneratorHeadStartFactories {
-
+  private enum InvariantGeneratorHeadStartFactories {
     NONE {
 
       @Override

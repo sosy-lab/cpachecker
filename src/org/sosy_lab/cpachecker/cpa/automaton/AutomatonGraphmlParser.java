@@ -230,7 +230,15 @@ public class AutomatonGraphmlParser {
       throws InvalidConfigurationException, IOException {
     final CParser cparser =
         CParser.Factory.getParser(
-            logger, CParser.Factory.getOptions(config), cfa.getMachineModel());
+            /*
+             * FIXME: Use normal logger as soon as CParser supports parsing
+             * expression trees natively, such that we can remove the workaround
+             * with the undefined __CPAchecker_ACSL_return dummy function that
+             * causes warnings to be logged.
+             */
+            LogManager.createNullLogManager(),
+            CParser.Factory.getOptions(config),
+            cfa.getMachineModel());
 
     AutomatonGraphmlParserState graphMLParserState =
         setupGraphMLParser(pInputStream, pPropertyTypes);

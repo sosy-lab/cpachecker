@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -302,16 +303,15 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
-      final Collection<AbstractState> cachedReturnStates = entry.getExitStates();
-      assert cachedReturnStates == null || cachedReached != null
-          : "there cannot be " + "result-states without reached-states";
-
+      Preconditions.checkNotNull(cachedReached);
+      @Nullable final Collection<AbstractState> cachedReturnStates = entry.getExitStates();
       if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
         // cache hit, return element from cache
         logger.log(
             Level.FINEST,
             "Cache hit with finished reached-set with root",
             cachedReached.getFirstState());
+        Preconditions.checkNotNull(cachedReturnStates);
         reducedResult = cachedReturnStates;
         statesForFurtherAnalysis = cachedReturnStates;
         reached = cachedReached;
@@ -323,7 +323,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
             "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root",
             reached.getFirstState());
         reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, innerSubtree);
-        assert reducedResult != null;
+        Preconditions.checkNotNull(reducedResult);
         statesForFurtherAnalysis =
             filterResultStatesForFurtherAnalysis(reducedResult, cachedReturnStates);
       }

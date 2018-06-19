@@ -43,17 +43,17 @@ public class CBitFieldTypeTest {
   }
 
   @Test
-  public void testNulls() throws Exception {
+  public void testNulls() {
     tester.testNulls(CBitFieldType.class);
   }
 
   @Test
-  public void testEquals() throws Exception {
+  public void testEquals() {
     tester.testEquals(CBitFieldType.class);
   }
 
   @Test
-  public void testSerializable() throws Exception {
+  public void testSerializable() {
     SerializableTester.reserializeAndAssert(new CBitFieldType(CNumericTypes.INT, 8));
   }
 
