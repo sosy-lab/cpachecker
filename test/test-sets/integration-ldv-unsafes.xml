@@ -55,7 +55,7 @@
   </tasks>
 
   <tasks>
-    <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
+    <propertyfile>../programs/ldv-benchmarks/validator/Reach.prp</propertyfile>
     <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.c</include>
   </tasks>
 
