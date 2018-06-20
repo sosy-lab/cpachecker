@@ -1740,6 +1740,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
 
+    // Avoid remove NULL value on merge
+    if (pKnownVal2.getAsInt() == SMG.NULL_ADDRESS) {
+      SMGKnownSymValue tmp = pKnownVal1;
+      pKnownVal1 = pKnownVal2;
+      pKnownVal2 = tmp;
+    }
+
     heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
     SMGKnownExpValue expVal = explicitValues.remove(pKnownVal2);
     if (expVal != null) {
