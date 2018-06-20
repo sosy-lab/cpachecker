@@ -12,7 +12,12 @@ with considerably less effort */
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
-		
+		// hide tooltip after 5 seconds
+		$(document).on('shown.bs.tooltip', function (e) {
+			setTimeout(function () {
+				$(e.target).tooltip('hide');
+			}, 3000);
+		});
 	});
 
 	var app = angular.module('report', []);
