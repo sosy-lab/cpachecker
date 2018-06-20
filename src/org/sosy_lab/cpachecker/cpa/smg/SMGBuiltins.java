@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 public class SMGBuiltins {
 
@@ -317,16 +318,14 @@ public class SMGBuiltins {
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
             sizeValue = SMGKnownExpValue.ZERO;
           } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
+            throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       } else {
         if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
           sizeValue = SMGKnownExpValue.ZERO;
         } else {
-          throw new UnrecognizedCCodeException(
-              "Not able to compute allocation size", cfaEdge);
+          throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
         }
       }
     }
@@ -426,16 +425,14 @@ public class SMGBuiltins {
             if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
               resultValueAndState = SMGExplicitValueAndState.of(currentState ,SMGKnownExpValue.ZERO);
             } else {
-              throw new UnrecognizedCCodeException(
-                  "Not able to compute allocation size", cfaEdge);
+              throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
             }
           }
         } else {
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
             resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGKnownExpValue.ZERO);
           } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
+            throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       }
