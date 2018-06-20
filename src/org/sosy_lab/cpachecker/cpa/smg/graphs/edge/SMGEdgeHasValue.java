@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -50,14 +51,9 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   @Override
   public String toString() {
-    return "sizeof("
-        + type.toASTString("foo")
-        + ")b @ "
-        + object.getLabel()
-        + "+"
-        + getOffset()
-        + "b has value "
-        + value;
+    return String.format(
+        "sizeof(%s)b @ %s+%db has value %d",
+        type.toASTString(""), object.getLabel(), getOffset(), value);
   }
 
   public CType getType() {
@@ -112,6 +108,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
+  @VisibleForTesting
   public boolean isCompatibleField(SMGEdgeHasValue other) {
     return type.equals(other.type) && (getOffset() == other.getOffset());
   }
