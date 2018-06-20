@@ -1860,6 +1860,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return null;
   }
 
+  @Deprecated // unused
   public void clearExplicit(SMGKnownSymValue pKey) {
     explicitValues.remove(pKey);
   }

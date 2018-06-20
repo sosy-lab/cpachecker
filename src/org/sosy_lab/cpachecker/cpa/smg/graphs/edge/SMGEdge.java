@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.base.Objects;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -40,8 +42,26 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
  * indicates that the address points before, inside, or after an object.
  */
 public abstract class SMGEdge {
-  final protected int value;
-  final protected SMGObject object;
+
+  /**
+   * Represents an (unique?) identifier of a memory cell (i.e., its address). We do not guarantee
+   * that it represents the actual content (data value) of the memory cell. The content (data
+   * values) of cells are stored and managed externally, i.e., see {@link SMGState#getExplicit} and
+   * {@link SMGValue}.
+   *
+   * <p>Special case: The value ZERO is special and represents the NULL_ADDRESS, i.e. can be
+   * interpreted as an unaccessible memory cell at position ZERO.
+   */
+  protected final int value;
+
+  /**
+   * A part of the stack or heap containing data. In an {@link SMG} the data is represented as a
+   * {@link SMGValue} and is reachable via {@link SMGEdgeHasValue}. Or the object is references from
+   * a {@link SMGValue} via {@link SMGEdgePointsTo}.
+   */
+  protected final SMGObject object;
+
+  /** Offset of the current edge, counted in Bits from the start of the {@link SMGObject}. */
   private final long offset;
 
   SMGEdge(int pValue, SMGObject pObject, long pOffset) {
@@ -50,14 +70,17 @@ public abstract class SMGEdge {
     offset = pOffset;
   }
 
+  /** @see #value */
   public int getValue() {
     return value;
   }
 
+  /** @see #object */
   public SMGObject getObject() {
     return object;
   }
 
+  /** @see #offset */
   public long getOffset() {
     return offset;
   }
