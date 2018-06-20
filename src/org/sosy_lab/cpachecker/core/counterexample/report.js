@@ -2,11 +2,17 @@
 with considerably less effort */
 
 (function () {
-	// initialize all popovers
 	$(function () {
+		// initialize all popovers
 		$('[data-toggle="popover"]').popover({
 			html: true
-		})
+		});
+		// initialize all tooltips
+		$("[data-toggle=tooltip").tooltip();
+		$(document).on('hover', '[data-toggle=tooltip]', function () {
+			$(this).tooltip('show');
+		});
+		
 	});
 
 	var app = angular.module('report', []);
