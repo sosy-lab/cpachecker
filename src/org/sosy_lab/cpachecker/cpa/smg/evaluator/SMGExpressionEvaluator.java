@@ -595,26 +595,23 @@ public class SMGExpressionEvaluator {
     return result;
   }
 
-  private List<SMGAddressValueAndState> createAddresses(List<SMGAddressAndState> pAddresses)
+  /**
+   * transforms a list of Addresses (with SMGStates) into a list of AddressValues (with SMGStates).
+   * If Address is unknown, AddressValue will also be unknown,
+   */
+  List<SMGAddressValueAndState> createAddresses(List<SMGAddressAndState> pAddresses)
       throws SMGInconsistentException {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGAddressAndState addressAndState : pAddresses) {
-      result.addAll(createAddress(addressAndState));
+      SMGState state = addressAndState.getSmgState();
+      SMGAddress address = addressAndState.getObject();
+      if (address.isUnknown()) {
+        result.add(SMGAddressValueAndState.of(state));
+      } else {
+        result.addAll(createAddress(state, address.getObject(), address.getOffset()));
+      }
     }
     return result;
-  }
-
-  private List<SMGAddressValueAndState> createAddress(SMGAddressAndState addressAndState)
-      throws SMGInconsistentException {
-
-    SMGState state = addressAndState.getSmgState();
-    SMGAddress address = addressAndState.getObject();
-
-    if (address.isUnknown()) {
-      return singletonList(SMGAddressValueAndState.of(state));
-    }
-
-    return createAddress(state, address.getObject(), address.getOffset());
   }
 
   /**
@@ -672,51 +669,32 @@ public class SMGExpressionEvaluator {
     return smgState.getPointerFromValue(pAddressValue.getAsInt());
   }
 
+  /** returns all possible AddressValues for a given SMGObject with given offset. */
   List<SMGAddressValueAndState> createAddress(
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
-
-    List<SMGAddressValueAndState> result = new ArrayList<>();
-    for (SMGAddressValueAndState addressValueAndState : getAddress(pSmgState, pTarget, pOffset)) {
-      if (addressValueAndState.getObject().isUnknown()) {
+    if (pTarget == null || pOffset.isUnknown()) {
+      SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      SMGKnownAddressValue addressValue =
+          SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
+      return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
+    }
+    if (pTarget instanceof SMGRegion) {
+      Integer address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsInt());
+      if (address == null) {
         SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
         SMGKnownAddressValue addressValue =
             SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
-        result.add(SMGAddressValueAndState.of(addressValueAndState.getSmgState(), addressValue));
-      } else {
-        result.add(addressValueAndState);
+        return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
       }
+      return pSmgState.getPointerFromValue(address);
     }
-
-    return result;
-  }
-
-  private List<SMGAddressValueAndState> getAddress(
-      SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
-      throws SMGInconsistentException {
-
-    if (pTarget == null || pOffset.isUnknown()) {
-      return singletonList(SMGAddressValueAndState.of(pSmgState));
-    }
-
-    SMGRegion regionTarget;
-
-    if(pTarget instanceof SMGRegion) {
-      regionTarget = (SMGRegion) pTarget;
-    } else if (pTarget == SMGNullObject.INSTANCE) {
+    if (pTarget == SMGNullObject.INSTANCE) {
       return singletonList(
           SMGAddressValueAndState.of(
               pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsInt())));
-    } else {
-      throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
     }
-
-    Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());
-
-    if (address == null) {
-      return singletonList(SMGAddressValueAndState.of(pSmgState));
-    }
-    return pSmgState.getPointerFromValue(address);
+    throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }
 
   /*
