@@ -427,6 +427,11 @@ assumptions.compressAutomaton = false
 
 # write collected assumptions to file
 assumptions.export = true
+
+# export assumptions collected per location
+assumptions.export.location = true
+
+# write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
 # If it is enabled, check if a state that should lead to false state indeed
