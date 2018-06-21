@@ -259,8 +259,6 @@ input:checked+.slider:before {
 
 .marked-cfa-node>rect {
 	outline: #8B008B solid thick !important;
-	rx:5;
-	ry:5
 }
 
 .marked-cfa-node>polygon {
@@ -279,8 +277,6 @@ input:checked+.slider:before {
 
 .marked-arg-node>rect {
 	outline: #8B008B solid thick !important;
-	rx:5;
-	ry:5
 }
 
 #externalFiles_section {
@@ -470,26 +466,18 @@ text {
 
 .arg-node.target>rect {
 	fill: red;
-	rx:5;
-	ry:5
 }
 
 .arg-node.not-expanded>rect {
 	fill: orange;
-	rx:5;
-	ry:5
 }
 
 .arg-node.highlighted>rect {
 	fill: cornflowerblue;
-	rx:5;
-	ry:5
 }
 
 .arg-node.covered>rect {
 	fill: green;
-	rx:5;
-	ry:5
 }
 
 .arg-node text {
@@ -499,16 +487,12 @@ text {
 
 .arg-node rect {
 	fill: #fff;
-	rx:5;
-	ry:5
 }
 
 .cfa-node rect {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
-	rx:5;
-	ry:5
 }
 
 .cfa-node circle {
@@ -527,24 +511,18 @@ text {
 	fill: #fff;
 	stroke: #c0c0c0;
 	stroke-width: 0.5px;
-	rx:5;
-	ry:5
 }
 
 .arg-dummy rect {
 	fill: #fff;
 	stroke: #c0c0c0;
 	stroke-width: 0.5px;
-	rx:5;
-	ry:5
 }
 
 .fcall rect {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
-	rx:5;
-	ry:5
 }
 
 .edgePath path {
